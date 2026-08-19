@@ -1,14 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { AnalyzeToneDto } from '@api/collections/profiles/dto/analyze-tone.dto';
 import { ApplyProfileDto } from '@api/collections/profiles/dto/apply-profile.dto';
 import { CreateProfileDto } from '@api/collections/profiles/dto/create-profile.dto';
 import { GenerateFromExamplesDto } from '@api/collections/profiles/dto/generate-from-examples.dto';
 import { UpdateProfileDto } from '@api/collections/profiles/dto/update-profile.dto';
 import { ProfilesService } from '@api/collections/profiles/services/profiles.service';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -21,10 +19,13 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
+  assertOrganizationCreditsAvailable,
+  getDefaultTextMinimumCredits,
+} from '@api/helpers/utils/credits/organization-credits-gate.util';
+import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ActivitySource } from '@genfeedai/enums';
 import { ProfileSerializer } from '@genfeedai/serializers';
 import {
@@ -32,8 +33,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
   Patch,
   Post,
@@ -161,9 +160,10 @@ export class ProfilesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       organization,
-      await this.getDefaultTextMinimumCredits(),
+      await getDefaultTextMinimumCredits(this.modelsService),
     );
 
     let billedCredits = 0;
@@ -197,9 +197,10 @@ export class ProfilesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       organization,
-      await this.getDefaultTextMinimumCredits(),
+      await getDefaultTextMinimumCredits(this.modelsService),
     );
 
     let billedCredits = 0;
@@ -233,9 +234,10 @@ export class ProfilesController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       organization,
-      await this.getDefaultTextMinimumCredits(),
+      await getDefaultTextMinimumCredits(this.modelsService),
     );
 
     let billedCredits = 0;
@@ -251,53 +253,5 @@ export class ProfilesController {
     finalizeDeferredTextCredits(req, billedCredits);
 
     return serializeSingle(req, ProfileSerializer, profile);
-  }
-
-  private async assertOrganizationCreditsAvailable(
-    organizationId: string,
-    requiredCredits: number,
-  ): Promise<void> {
-    if (requiredCredits <= 0) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-
-    if (hasCredits) {
-      return;
-    }
-
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-
-    throw new HttpException(
-      {
-        detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
-        title: 'Insufficient credits',
-      },
-      HttpStatus.PAYMENT_REQUIRED,
-    );
-  }
-
-  private async getDefaultTextMinimumCredits(): Promise<number> {
-    const model = await this.modelsService.findOne({
-      key: baseModelKey(DEFAULT_TEXT_MODEL),
-    });
-
-    if (!model) {
-      return 0;
-    }
-
-    if (model.pricingType === 'per-token') {
-      return getMinimumTextCredits(model);
-    }
-
-    return model.cost || 0;
   }
 }

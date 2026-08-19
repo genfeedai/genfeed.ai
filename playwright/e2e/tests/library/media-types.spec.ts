@@ -137,7 +137,10 @@ test.describe('Library Media Types', () => {
         'library-category-videos',
       );
 
-      await expect(videosEntry).toHaveAttribute('href', /\/library\/videos$/);
+      await expect(videosEntry).toHaveAttribute(
+        'href',
+        brandPath(APP_ROUTES.LIBRARY.VIDEOS),
+      );
       await expect(
         authenticatedPage.getByTestId('library-category-images'),
       ).toBeVisible();
@@ -151,7 +154,9 @@ test.describe('Library Media Types', () => {
       await videosEntry.click();
 
       await authenticatedPage.waitForLoadState('domcontentloaded');
-      await expect(authenticatedPage).toHaveURL(/library\/videos/);
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${brandPath(APP_ROUTES.LIBRARY.VIDEOS)}(?:[?#]|$)`),
+      );
     });
   });
 

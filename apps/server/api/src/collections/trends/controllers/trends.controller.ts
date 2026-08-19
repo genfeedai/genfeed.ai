@@ -1,12 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { SaveTrendPreferencesDto } from '@api/collections/trends/dto/trend-preferences.dto';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -20,18 +18,19 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
+  assertOrganizationCreditsAvailable,
+  getDefaultTextMinimumCredits,
+} from '@api/helpers/utils/credits/organization-credits-gate.util';
+import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ActivitySource } from '@genfeedai/enums';
 import { TrendSerializer } from '@genfeedai/serializers';
 import {
   Body,
   Controller,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
   Post,
   Put,
@@ -94,9 +93,10 @@ export class TrendsController {
   ) {
     const organizationId = user.organizationId;
     const brandId = user.brandId;
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       organizationId,
-      await this.getDefaultTextMinimumCredits(),
+      await getDefaultTextMinimumCredits(this.modelsService),
     );
 
     // Get trends
@@ -150,54 +150,6 @@ export class TrendsController {
         0,
       ),
     };
-  }
-
-  private async assertOrganizationCreditsAvailable(
-    organizationId: string | undefined,
-    requiredCredits: number,
-  ): Promise<void> {
-    if (!organizationId || requiredCredits <= 0) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-
-    if (hasCredits) {
-      return;
-    }
-
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-
-    throw new HttpException(
-      {
-        detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
-        title: 'Insufficient credits',
-      },
-      HttpStatus.PAYMENT_REQUIRED,
-    );
-  }
-
-  private async getDefaultTextMinimumCredits(): Promise<number> {
-    const model = await this.modelsService.findOne({
-      key: baseModelKey(DEFAULT_TEXT_MODEL),
-    });
-
-    if (!model) {
-      return 0;
-    }
-
-    if (model.pricingType === 'per-token') {
-      return getMinimumTextCredits(model);
-    }
-
-    return model.cost || 0;
   }
 
   @Post('refresh')

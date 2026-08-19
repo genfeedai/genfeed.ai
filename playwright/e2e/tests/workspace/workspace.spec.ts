@@ -41,7 +41,7 @@ test.describe('Workspace', () => {
     ).toBeVisible();
   });
 
-  test('sidebar primary action stays a conversation handoff, not a retired task composer', async ({
+  test('sidebar primary action opens the task composer', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(APP_ROUTES.WORKSPACE.INBOX_UNREAD, {
@@ -51,8 +51,18 @@ test.describe('Workspace', () => {
     await expect(
       authenticatedPage.getByRole('link', { name: 'Inbox' }).first(),
     ).toBeVisible();
+    const primaryAction = authenticatedPage.getByTestId(
+      'sidebar-primary-action',
+    );
+    await expect(primaryAction).toBeVisible();
+    await primaryAction.click();
+
+    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
     await expect(
-      authenticatedPage.getByText(/New Task/i).first(),
+      authenticatedPage.getByRole('heading', { name: 'New Task' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Create Task' }),
     ).toBeVisible();
   });
 

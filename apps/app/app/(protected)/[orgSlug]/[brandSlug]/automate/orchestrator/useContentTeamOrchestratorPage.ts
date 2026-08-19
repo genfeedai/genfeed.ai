@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -220,7 +221,7 @@ export function useContentTeamOrchestratorPage() {
         );
 
         notificationsService.success('Content team orchestrator launched');
-        push(href('/automate'));
+        push(href(APP_ROUTES.AUTOMATE.OVERVIEW));
       } catch (error) {
         logger.error('Failed to launch content team orchestrator', { error });
         notificationsService.error('Unable to launch orchestrator');

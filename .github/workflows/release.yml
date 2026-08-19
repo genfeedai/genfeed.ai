@@ -189,7 +189,6 @@ jobs:
       image_tag: ${{ needs.validate-release.outputs.image_tag }}
       major_minor_tag: ""
       release_tag: ${{ needs.validate-release.outputs.release_tag }}
-    secrets: inherit
 
   deploy-saas:
     name: Deploy hosted SaaS

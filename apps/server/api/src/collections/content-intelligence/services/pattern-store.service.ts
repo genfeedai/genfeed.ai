@@ -1,6 +1,7 @@
 import type { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
@@ -33,12 +34,6 @@ export interface CreatePatternDto {
   sourcePostId?: string;
   sourcePostUrl?: string;
   sourcePostDate?: Date;
-}
-
-function readJsonRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function pickDefined(values: Record<string, unknown>): Record<string, unknown> {

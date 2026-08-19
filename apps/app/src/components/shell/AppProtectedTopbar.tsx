@@ -375,10 +375,22 @@ function AppProtectedTopbarContent({
                 size={ButtonSize.ICON}
                 className="inline-flex size-8 xl:hidden"
                 data-testid="topbar-inspector-drawer-toggle"
-                ariaLabel="Open workspace inspector"
-                onClick={() => workspaceInspector.setIsMobileOpen(true)}
+                ariaLabel={
+                  workspaceInspector.isMobileOpen
+                    ? 'Close workspace inspector'
+                    : 'Open workspace inspector'
+                }
+                onClick={() =>
+                  workspaceInspector.setIsMobileOpen(
+                    !workspaceInspector.isMobileOpen,
+                  )
+                }
               >
-                <PanelRightOpen className="size-4" />
+                {workspaceInspector.isMobileOpen ? (
+                  <PanelRightClose className="size-4" />
+                ) : (
+                  <PanelRightOpen className="size-4" />
+                )}
               </Button>
             </>
           ) : null}

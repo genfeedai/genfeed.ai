@@ -1,3 +1,4 @@
+import { emptyUnifiedInsights } from '@api/services/ads-gateway/ads-insights-range.util';
 import type {
   AdsAdapterContext,
   AdsInsightsParams,
@@ -304,7 +305,7 @@ export class MetaAdsAdapter implements IAdsAdapter {
   private toUnifiedInsights(rows: MetaInsightsData[]): UnifiedInsights {
     const row = rows[0];
     if (!row) {
-      return this.emptyInsights();
+      return emptyUnifiedInsights(this.platform);
     }
 
     return {
@@ -318,20 +319,6 @@ export class MetaAdsAdapter implements IAdsAdapter {
       impressions: row.impressions,
       platform: this.platform,
       spend: row.spend,
-    };
-  }
-
-  private emptyInsights(): UnifiedInsights {
-    return {
-      clicks: 0,
-      cpc: 0,
-      cpm: 0,
-      ctr: 0,
-      dateStart: '',
-      dateStop: '',
-      impressions: 0,
-      platform: this.platform,
-      spend: 0,
     };
   }
 }

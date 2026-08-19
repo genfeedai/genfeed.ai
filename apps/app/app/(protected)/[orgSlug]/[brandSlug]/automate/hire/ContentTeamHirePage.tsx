@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -66,7 +67,7 @@ export default function ContentTeamHirePage() {
   );
 
   const handleCancel = useCallback(() => {
-    push(href('/automate'));
+    push(href(APP_ROUTES.AUTOMATE.OVERVIEW));
   }, [href, push]);
 
   const handleSubmit = useCallback(
@@ -97,7 +98,7 @@ export default function ContentTeamHirePage() {
         });
 
         notificationsService.success('Agent hired successfully');
-        push(href('/automate'));
+        push(href(APP_ROUTES.AUTOMATE.OVERVIEW));
       } catch (error) {
         logger.error('Failed to hire content team agent', { error });
         notificationsService.error('Unable to hire agent');

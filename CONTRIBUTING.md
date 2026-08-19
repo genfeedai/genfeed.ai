@@ -12,8 +12,8 @@ lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 
 - [Before you start](#before-you-start)
 - [Toolchain and supported operating systems](#toolchain-and-supported-operating-systems)
-- [Contributor dev path (fixed ports)](#contributor-dev-path-fixed-ports)
-- [Maintainer dev path (Portless HTTPS)](#maintainer-dev-path-portless-https)
+- [Contributor dev path (Portless HTTPS)](#contributor-dev-path-portless-https)
+- [Optional debugging path (fixed ports)](#optional-debugging-path-fixed-ports)
 - [Opening an issue](#opening-an-issue)
 - [Pull-request contract](#pull-request-contract)
 - [Agent-authored PRs](#agent-authored-prs)
@@ -51,11 +51,12 @@ dependencies or update `bun.lock`.
 native Windows shells are not supported and are not tested in CI. Self-hosting
 the Community bundle only needs Docker and works anywhere Docker Compose v2 runs.
 
-## Contributor dev path (fixed ports)
+## Contributor dev path (Portless HTTPS)
 
-This is the default path for outside contributors. It needs no elevated
-privileges, no certificate trust, and no background service: plain `http://`
-on fixed ports.
+The default contributor path runs the workspaces behind
+[Portless](https://github.com/vercel-labs/portless) on trusted local HTTPS.
+Portless installs a startup service on `:443` and trusts a local certificate
+authority, so setup asks for administrator approval once per machine.
 
 ```bash
 git clone https://github.com/<your-account>/genfeed.ai.git
@@ -81,62 +82,59 @@ docker compose -f docker/local/docker-compose.yml up -d postgres redis
 bun run --cwd packages/prisma db:migrate
 ```
 
-Then start the app minimum in two terminals:
-
-```bash
-bun run dev:debug:backend:min      # api :3010, files :3012, notifications :3111
-```
-
-```bash
-bun run dev:debug:app              # web UI → http://genfeed.localhost:3000
-```
-
-Open <http://genfeed.localhost:3000>. `*.localhost` resolves to loopback on
-macOS, Linux, and WSL2 without touching `/etc/hosts`.
-
-| Command                          | Starts                                              |
-| -------------------------------- | --------------------------------------------------- |
-| `bun run dev:debug:backend:min`  | api + files + notifications (app minimum)           |
-| `bun run dev:debug:backend`      | Full backend (+ mcp `:3014` + workers `:3013`)      |
-| `bun run dev:debug:app`          | Product UI → `http://genfeed.localhost:3000`        |
-| `bun run dev:debug:frontend`     | app + website                                       |
-| `bun run dev:debug:docs`         | Docs site                                           |
-| `bun run dev:debug`              | Everything                                          |
-
-Fixed ports: app `3000`, API `3010`, files `3012`, workers `3013`, MCP `3014`,
-notifications/websocket `3111` (containers and deployed environments use
-`3011`). Service origins (`API_URL`, `NEXT_PUBLIC_API_URL`, auth URLs, …) are
-derived automatically for these ports at the `dev:debug` boundary; you do not
-need to edit them in `.env.local`. Override a single port with the matching
-`*_PORT` variable if one is taken.
-
-The self-hosted distribution has a separate container-image path that does not
-require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
-
-## Maintainer dev path (Portless HTTPS)
-
-Maintainers and anyone who wants production-like origins run the same
-workspaces behind [Portless](https://github.com/vercel-labs/portless) on
-trusted local HTTPS (`https://app.genfeed.localhost`, `https://api.genfeed.localhost`,
-…). This path installs a startup service on `:443` and trusts a local
-certificate authority, so it asks for administrator approval once per machine.
+Set up and verify Portless, then start the app minimum in two terminals:
 
 ```bash
 bun run dev:setup          # once per machine; idempotent, rerun to repair
 bun run dev:doctor         # read-only contract check
 bun run dev:backend:min    # api + files + notifications behind Portless
-bun run dev:app            # https://app.genfeed.localhost/
 ```
+
+```bash
+bun run dev:app            # web UI → https://app.genfeed.localhost/
+```
+
+Open <https://app.genfeed.localhost/>.
+
+| Command                       | Starts                                    |
+| ----------------------------- | ----------------------------------------- |
+| `bun run dev:backend:min`     | api + files + notifications (app minimum) |
+| `bun run dev:backend`         | Full backend (+ mcp + workers)            |
+| `bun run dev:app`             | Product UI via Portless HTTPS             |
+| `bun run dev:frontend`        | app + website                             |
+| `bun run dev:docs`            | Docs site                                 |
+| `bun run dev`                 | Everything                                |
 
 Package model (routed services): package **`dev`** is the Portless entry;
 **`dev:process`** is the child process Portless runs (`run-service.ts`);
-**`dev:debug`** is the same child on fixed ports without Portless. Do not mix
-Portless routes with fixed-port values in one environment. Linked worktrees
-receive branch-prefixed routes automatically. Details:
+**`dev:debug`** is the same child on fixed ports without Portless. Linked
+worktrees receive branch-prefixed routes automatically. Details:
 [docs/local-development-host-migration.md](docs/local-development-host-migration.md).
 
-You do not need this path to contribute. If `dev:setup` fails on your machine,
-use the fixed-port path above and mention it in the PR.
+The self-hosted distribution has a separate container-image path that does not
+require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
+
+## Optional debugging path (fixed ports)
+
+Fixed ports are an optional debugging path for contributors who cannot use
+Portless. They need no certificate trust or background service and use plain
+`http://` origins.
+
+```bash
+bun run dev:debug:backend:min      # api :3010, files :3012, notifications :3111
+bun run dev:debug:app              # web UI → http://genfeed.localhost:3000
+```
+
+Open <http://genfeed.localhost:3000>. `*.localhost` resolves to loopback on
+macOS, Linux, and WSL2 without touching `/etc/hosts`. Fixed ports are app
+`3000`, API `3010`, files `3012`, workers `3013`, MCP `3014`, and
+notifications/websocket `3111` (containers and deployed environments use
+`3011`). Service origins are derived automatically at the `dev:debug` boundary;
+you do not need to edit them in `.env.local`.
+
+Do not mix Portless routes with fixed-port values in one environment. If
+`dev:setup` fails on your machine, use this optional path and mention it in the
+PR.
 
 ## Opening an issue
 

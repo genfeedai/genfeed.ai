@@ -5,8 +5,6 @@
       "@genfeedai-types/*": ["../../../packages/types/src/*"],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
-      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/utils/*": ["../../../../packages/utils/*"],
       "@ui/*": ["../../../../packages/ui/src/*"],
       "~*": ["./src/*"]

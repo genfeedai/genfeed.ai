@@ -55,6 +55,10 @@ describe('ClipHighlightDetector', () => {
       expect(body.temperature).toBe(0.3);
       expect(body.stream).toBe(false);
       expect(body.max_tokens).toBe(4096);
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
 
       const [systemMsg, userMsg] = body.messages;
       expect(systemMsg.role).toBe('system');

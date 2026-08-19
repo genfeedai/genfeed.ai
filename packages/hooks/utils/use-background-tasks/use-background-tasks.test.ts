@@ -31,6 +31,7 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
+  usePathname: () => '/acme/brand-slug/workspace',
   useRouter: () => ({
     push: pushMock,
   }),

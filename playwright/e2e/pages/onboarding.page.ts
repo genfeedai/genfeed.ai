@@ -24,7 +24,9 @@ export class OnboardingPage {
   readonly websiteUrlInput: Locator;
 
   readonly providerCards: Locator;
+  readonly providerContinueButton: Locator;
   readonly summaryCards: Locator;
+  readonly summaryContinueButton: Locator;
   readonly successIcon: Locator;
   readonly goToStudioButton: Locator;
 
@@ -43,7 +45,13 @@ export class OnboardingPage {
     this.websiteUrlInput = page.locator('#brand-website-url');
 
     this.providerCards = page.locator('.provider-card');
+    this.providerContinueButton = page.getByRole('button', {
+      name: /Continue with server defaults/i,
+    });
     this.summaryCards = page.locator('.summary-card');
+    this.summaryContinueButton = page.getByRole('button', {
+      name: /Continue with self-hosted/i,
+    });
     this.successIcon = page.locator('.success-icon');
     this.goToStudioButton = page.getByRole('button', {
       name: /Enter Workspace|Go to Studio/i,
@@ -72,7 +80,9 @@ export class OnboardingPage {
 
   async assertOnStep(stepNumber: number): Promise<void> {
     const stepPath = ONBOARDING_STEPS[stepNumber - 1];
-    await expect(this.page).toHaveURL(new RegExp(`/onboarding/${stepPath}`));
+    await expect(this.page).toHaveURL(
+      new RegExp(`/onboarding/${stepPath}(?:[/?#]|$)`),
+    );
     await this.waitForStep(stepNumber);
   }
 
@@ -96,14 +106,26 @@ export class OnboardingPage {
     await this.backButton.click();
   }
 
+  async continueWithServerDefaults(): Promise<void> {
+    await this.providerContinueButton.click();
+  }
+
+  async continueWithSelfHosted(): Promise<void> {
+    await this.summaryContinueButton.click();
+  }
+
   async skipStep(): Promise<void> {
     await this.skipButton.first().click();
   }
 
   async assertSuccess(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/onboarding\/success/);
+    await expect(this.page).toHaveURL(/\/onboarding\/success(?:[/?#]|$)/);
     await this.successIcon.waitFor({ state: 'visible', timeout: 30000 });
     await expect(this.goToStudioButton).toBeVisible();
+  }
+
+  async enterWorkspace(): Promise<void> {
+    await this.goToStudioButton.click();
   }
 
   async waitForSaveComplete(): Promise<void> {

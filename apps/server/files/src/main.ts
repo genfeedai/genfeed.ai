@@ -2,7 +2,7 @@ import './instrument';
 
 import {
   bootstrap,
-  setupGracefulShutdown,
+  registerGracefulDrain,
   setupServiceShell,
 } from '@libs/bootstrap';
 
@@ -120,6 +120,13 @@ async function main() {
     logger.debug(`Files processing service is running on port ${port}`);
     logger.debug(`Connected to Redis: ${configService.get('REDIS_URL')}`);
     logger.debug(`Using S3 bucket: ${configService.get('AWS_S3_BUCKET')}`);
+
+    registerGracefulDrain({
+      app,
+      httpServer: app.getHttpServer(),
+      logger,
+      serviceName: 'files',
+    });
   } catch (error: unknown) {
     logger.error('Failed to start files service:', {
       error: error instanceof Error ? error.message : String(error),
@@ -129,4 +136,3 @@ async function main() {
 }
 
 void main();
-setupGracefulShutdown();

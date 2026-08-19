@@ -92,6 +92,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
+  usePathname: () => '/org-one/brand-one/automate/strategy-1',
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => ({
     get: (key: string) => (key === 'opportunity' ? 'opp-1' : null),

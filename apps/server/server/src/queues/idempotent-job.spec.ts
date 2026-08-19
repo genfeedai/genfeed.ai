@@ -1,11 +1,7 @@
+import type { Job } from 'bullmq';
 import { reserveIdempotentJob } from './idempotent-job';
 
-interface FakeJob {
-  getState: () => Promise<string>;
-  remove: () => Promise<void>;
-}
-
-function fakeQueue(job: FakeJob | undefined) {
+function fakeQueue(job: Pick<Job, 'getState' | 'remove'> | undefined) {
   const removed: string[] = [];
   const queue = {
     getJob: async (id: string) => {
@@ -18,8 +14,7 @@ function fakeQueue(job: FakeJob | undefined) {
         },
       };
     },
-    // biome-ignore lint/suspicious/noExplicitAny: minimal structural stub for the Queue surface used by the helper
-  } as any;
+  };
   return { queue, removed };
 }
 
@@ -32,7 +27,7 @@ describe('reserveIdempotentJob', () => {
     expect(result).toEqual({ alreadyQueued: false });
   });
 
-  for (const state of ['active', 'waiting', 'delayed']) {
+  for (const state of ['active', 'waiting', 'delayed'] as const) {
     it(`refuses enqueue and preserves an in-flight job (${state})`, async () => {
       const { queue, removed } = fakeQueue({
         getState: async () => state,
@@ -46,7 +41,7 @@ describe('reserveIdempotentJob', () => {
     });
   }
 
-  for (const state of ['completed', 'failed', 'unknown']) {
+  for (const state of ['completed', 'failed', 'unknown'] as const) {
     it(`removes a stale job and allows enqueue (${state})`, async () => {
       const { queue, removed } = fakeQueue({
         getState: async () => state,

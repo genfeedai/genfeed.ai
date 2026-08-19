@@ -37,12 +37,38 @@ function expiredThreadWhere(
   return {
     organizationId,
     threadId: { in: threadIds },
+    updatedAt: { lt: CUTOFF },
   };
 }
+
+const EXPIRED_THREAD_WIPE = {
+  config: {},
+  systemPrompt: null,
+  title: null,
+};
+
+const EXPIRED_MESSAGE_WIPE = {
+  content: null,
+  metadata: Prisma.DbNull,
+  toolCalls: Prisma.DbNull,
+  toolResults: Prisma.DbNull,
+};
+
+const EXPIRED_RUN_WIPE = {
+  config: {},
+  error: null,
+  metadata: {},
+  objective: null,
+  result: Prisma.DbNull,
+  steps: [],
+  summary: null,
+  toolCalls: [],
+};
 
 describe('CronTranscriptPurgeService', () => {
   let service: CronTranscriptPurgeService;
   let prisma: {
+    $transaction: ReturnType<typeof vi.fn>;
     agentMessage: DelegateMocks;
     agentRun: DelegateMocks;
     agentThread: DelegateMocks;
@@ -57,6 +83,9 @@ describe('CronTranscriptPurgeService', () => {
 
   beforeEach(async () => {
     prisma = {
+      $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
+        callback(prisma),
+      ),
       agentMessage: createDelegate(),
       agentRun: createDelegate(),
       agentThread: createDelegate(),
@@ -131,12 +160,13 @@ describe('CronTranscriptPurgeService', () => {
       threadContextStates: 1,
     });
 
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(prisma.agentMessage.updateMany).toHaveBeenCalledWith({
-      data: { content: null },
+      data: EXPIRED_MESSAGE_WIPE,
       where: expiredTombstoneWhere('org-1'),
     });
     expect(prisma.agentMessage.updateMany).toHaveBeenCalledWith({
-      data: { content: null },
+      data: EXPIRED_MESSAGE_WIPE,
       where: expiredThreadWhere('org-1'),
     });
     expect(prisma.agentThreadEvent.updateMany).toHaveBeenCalledWith({
@@ -144,7 +174,7 @@ describe('CronTranscriptPurgeService', () => {
       where: expiredTombstoneWhere('org-1'),
     });
     expect(prisma.agentRun.updateMany).toHaveBeenCalledWith({
-      data: { objective: null },
+      data: EXPIRED_RUN_WIPE,
       where: expiredTombstoneWhere('org-1'),
     });
     expect(prisma.agentThreadSnapshot.updateMany).toHaveBeenCalledWith({
@@ -156,7 +186,7 @@ describe('CronTranscriptPurgeService', () => {
       where: expiredTombstoneWhere('org-1'),
     });
     expect(prisma.agentThread.updateMany).toHaveBeenCalledWith({
-      data: { systemPrompt: null },
+      data: EXPIRED_THREAD_WIPE,
       where: expiredTombstoneWhere('org-1'),
     });
   });
@@ -188,7 +218,9 @@ describe('CronTranscriptPurgeService', () => {
       const isExpiredTombstone =
         where.isDeleted === true &&
         where.updatedAt?.lt.getTime() === CUTOFF.getTime();
-      const isExpiredDeletedThread = Array.isArray(where.threadId?.in);
+      const isExpiredDeletedThread =
+        Array.isArray(where.threadId?.in) &&
+        where.updatedAt?.lt.getTime() === CUTOFF.getTime();
 
       expect(isExpiredTombstone || isExpiredDeletedThread).toBe(true);
       expect(where.thread).toBeUndefined();
