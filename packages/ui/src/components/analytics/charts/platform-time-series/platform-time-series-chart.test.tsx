@@ -204,7 +204,7 @@ describe('PlatformTimeSeriesChart', () => {
       expect(screen.getByText('Instagram')).toBeInTheDocument();
       expect(screen.getByText('TikTok')).toBeInTheDocument();
       expect(screen.getByText('YouTube')).toBeInTheDocument();
-      expect(screen.getByText('Twitter')).toBeInTheDocument();
+      expect(screen.getByText('X')).toBeInTheDocument();
     });
 
     it('all default platforms are active initially', () => {
@@ -212,7 +212,7 @@ describe('PlatformTimeSeriesChart', () => {
       const instagramButton = screen.getByText('Instagram').closest('button');
       const tiktokButton = screen.getByText('TikTok').closest('button');
       const youtubeButton = screen.getByText('YouTube').closest('button');
-      const twitterButton = screen.getByText('Twitter').closest('button');
+      const twitterButton = screen.getByText('X').closest('button');
 
       expect(instagramButton).toHaveClass('bg-muted');
       expect(tiktokButton).toHaveClass('bg-muted');
@@ -491,7 +491,7 @@ describe('PlatformTimeSeriesChart', () => {
       },
       {
         color: 'var(--platform-twitter)',
-        label: 'Twitter',
+        label: 'X',
         platform: 'twitter',
       },
       {

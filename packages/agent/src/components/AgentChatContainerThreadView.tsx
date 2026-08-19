@@ -9,13 +9,14 @@ import {
   AGENT_CONVERSATION_SCROLL_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
 } from '@genfeedai/agent/constants/conversation-layout.constant';
-import type {
-  AgentChatMessage as AgentChatMessageType,
-  AgentInputRequest,
-  AgentProposedPlan,
-  AgentUiAction,
-  AgentUiActionHandler,
-  AgentWorkEvent,
+import {
+  type AgentChatMessage as AgentChatMessageType,
+  type AgentInputRequest,
+  type AgentProposedPlan,
+  type AgentUiAction,
+  type AgentUiActionHandler,
+  type AgentWorkEvent,
+  AgentWorkEventStatus,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
@@ -228,7 +229,9 @@ export function selectActiveWorkEvent(
   const pendingOrRunning = [...workEvents]
     .reverse()
     .filter(
-      (event) => event.status === 'pending' || event.status === 'running',
+      (event) =>
+        event.status === AgentWorkEventStatus.PENDING ||
+        event.status === AgentWorkEventStatus.RUNNING,
     );
   return (
     pendingOrRunning.find((event) =>

@@ -1,3 +1,4 @@
+import type { UploadStatus } from '@genfeedai/enums';
 import type { DragEvent } from 'react';
 
 export interface AttachmentItem {
@@ -8,7 +9,7 @@ export interface AttachmentItem {
   file?: File;
   name: string;
   kind: 'image' | 'video' | 'audio';
-  status: 'pending' | 'uploading' | 'completed' | 'failed';
+  status: UploadStatus;
   error?: string;
   progress?: number;
 }

@@ -49,6 +49,7 @@ describe('IngredientsService', () => {
   describe('getInstance', () => {
     it('supports the (category, token) signature and caches per key', () => {
       const first = IngredientsService.getInstance('videos', token);
+      expect(first).toBeInstanceOf(IngredientsService);
       expect(IngredientsService.getInstance('videos', token)).toBe(first);
       expect(IngredientsService.getInstance('images', token)).not.toBe(first);
     });

@@ -2,10 +2,12 @@ import {
   formatCompactPlatformLabel,
   formatPlatformLabel,
   isPlatform,
+  isSourcePostVariationPlatform,
   isTwitterPlatform,
   isYouTubePlatform,
   Platform,
   parsePlatform,
+  SOURCE_POST_VARIATION_PLATFORMS,
 } from '../src';
 
 describe('platform.util', () => {
@@ -45,6 +47,20 @@ describe('platform.util', () => {
     expect(isTwitterPlatform('x')).toBe(true);
     expect(isTwitterPlatform(Platform.TWITTER)).toBe(true);
     expect(isYouTubePlatform('youtube')).toBe(true);
+    expect(isYouTubePlatform('YOUTUBE')).toBe(true);
     expect(isYouTubePlatform('tiktok')).toBe(false);
+  });
+
+  it('narrows source-post variation platforms to existing Platform members', () => {
+    expect(SOURCE_POST_VARIATION_PLATFORMS).toEqual([
+      Platform.INSTAGRAM,
+      Platform.LINKEDIN,
+      Platform.TIKTOK,
+      Platform.TWITTER,
+    ]);
+    expect(isSourcePostVariationPlatform(Platform.INSTAGRAM)).toBe(true);
+    expect(isSourcePostVariationPlatform('x')).toBe(true);
+    expect(isSourcePostVariationPlatform(Platform.YOUTUBE)).toBe(false);
+    expect(isSourcePostVariationPlatform('not-a-platform')).toBe(false);
   });
 });

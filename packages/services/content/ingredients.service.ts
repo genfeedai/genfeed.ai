@@ -73,11 +73,10 @@ export class IngredientsService<
    * Get singleton instance for specific category and token
    * If only token is provided, defaults to 'ingredients' category
    */
-  // biome-ignore lint/suspicious/noExplicitAny: factory pattern — subclasses override with concrete return types
   static getInstance<T extends Ingredient = Ingredient>(
     categoryOrToken: IngredientCategory | string,
     tokenOrUndefined?: string,
-  ): any {
+  ): IngredientsService<T> {
     // Support both signatures: getInstance(category, token) and getInstance(token)
     const category = tokenOrUndefined ? categoryOrToken : 'ingredients';
     const token = tokenOrUndefined || categoryOrToken;

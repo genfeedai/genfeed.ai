@@ -1,3 +1,5 @@
+import type { Platform } from '@genfeedai/enums';
+
 /**
  * Delayed poll for new replies under a single owned post (24h window).
  * Each attempt is a short job; the series is scheduled at publish time.
@@ -11,7 +13,7 @@ export interface ReplyPostWatchJobData {
    * Destination platform for comment fetch + inbound auto-send.
    * Defaults to twitter/X when omitted (publish hooks + historical jobs).
    */
-  platform?: 'twitter' | 'youtube';
+  platform?: Platform.TWITTER | Platform.YOUTUBE;
   postId: string;
   /** Optional preview for draft context */
   postPreview?: string;
