@@ -1,7 +1,11 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { type BrowserContext, test as base, type Page } from '@playwright/test';
 import {
+  generateMockApiUser,
+  generateMockBrand,
+  generateMockFleetCapabilities,
   generateMockOrganization,
+  generateMockOrganizationSettings,
   generateMockUser,
   setupApiMocks,
 } from '../utils/api-interceptor';
@@ -73,6 +77,41 @@ const MOCK_BRAND_SCRAPE_RESPONSE = {
   message: 'Brand data extracted successfully',
   success: true,
 };
+
+function buildOnboardingBootstrapPayload() {
+  const organization = generateMockOrganization({
+    id: MOCK_SESSION.organizationId,
+    name: 'Test Organization',
+    slug: 'test-org',
+  });
+
+  return {
+    access: {
+      brandId: 'brand-1',
+      creditsBalance: 500,
+      hasEverHadCredits: true,
+      isOnboardingCompleted: false,
+      isSuperAdmin: false,
+      organizationId: organization.id,
+      subscriptionStatus: 'active',
+      subscriptionTier: 'pro',
+      userId: MOCK_SESSION.userId,
+    },
+    brands: [
+      {
+        ...generateMockBrand(),
+        organization,
+      },
+    ],
+    currentUser: generateMockApiUser({
+      id: MOCK_SESSION.userId,
+      isOnboardingCompleted: false,
+    }),
+    fleetCapabilities: generateMockFleetCapabilities(),
+    settings: generateMockOrganizationSettings(),
+    streak: null,
+  };
+}
 
 // ----------------------------------------------------------------------------
 // Auth Setup for Onboarding User
@@ -417,7 +456,15 @@ export const test = base.extend<OnboardingFixtures>({
     await setupOnboardingApiMocks(page);
 
     // Set up generic API mocks (lower priority fallback)
-    await setupApiMocks(page);
+    await setupApiMocks(page, {
+      '**/auth/bootstrap**': async (route) => {
+        await route.fulfill({
+          body: JSON.stringify(buildOnboardingBootstrapPayload()),
+          contentType: 'application/json',
+          status: 200,
+        });
+      },
+    });
 
     // Bootstrap by navigating to onboarding start
     await page.goto(APP_ROUTES.ONBOARDING.BRAND, {

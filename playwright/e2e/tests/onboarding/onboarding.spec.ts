@@ -38,10 +38,11 @@ test.describe('Onboarding Flow', () => {
 
       await page.enterWorkspace();
       await expect(onboardingPage).toHaveURL(
-        new RegExp(
-          `(?:${brandPath(APP_ROUTES.WORKSPACE.ROOT)}|${APP_ROUTES.WORKSPACE.OVERVIEW})(?:[/?#]|$)`,
-        ),
+        new RegExp(`${brandPath(APP_ROUTES.WORKSPACE.ROOT)}(?:[/?#]|$)`),
       );
+      await expect(
+        onboardingPage.getByTestId('workspace-dashboard-first-run'),
+      ).toBeVisible();
     });
   });
 
