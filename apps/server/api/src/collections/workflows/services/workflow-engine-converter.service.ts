@@ -52,7 +52,8 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'effect-text-overlay': 'effect-text-overlay',
   'effect-watermark': 'effect-watermark',
   'input-image': 'input-image',
-  'input-prompt': 'input-prompt',
+  'input-prompt': 'prompt',
+  prompt: 'prompt',
   'input-template': 'input-template',
   'input-video': 'input-video',
   'output-export': 'output-export',
@@ -79,6 +80,21 @@ const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'analytics-feedback': 'analyticsFeedback',
 };
 
+const EDITOR_NODE_DATA_META_KEYS = new Set([
+  'cachedOutput',
+  'color',
+  'comment',
+  'config',
+  'error',
+  'inputVariableKeys',
+  'isLocked',
+  'label',
+  'lockTimestamp',
+  'originalType',
+  'progress',
+  'status',
+]);
+
 const BRAND_ID_REQUIRED_NODE_TYPES = new Set([
   'ai-avatar-video',
   'ai-generate-image',
@@ -98,10 +114,7 @@ export class WorkflowEngineConverterService {
   ): ExecutableWorkflow {
     const primaryBrandId = workflowDoc.brandId ?? undefined;
     const nodes: ExecutableNode[] = (workflowDoc.nodes || []).map((node) => {
-      const config =
-        node.data?.config ||
-        (node as unknown as { config?: Record<string, unknown> }).config ||
-        {};
+      const config = this.mergeNodeConfig(node);
       const inputVariableKeys = (
         node.data as unknown as { inputVariableKeys?: unknown } | undefined
       )?.inputVariableKeys;
@@ -275,6 +288,45 @@ export class WorkflowEngineConverterService {
       nodes,
       organizationId,
       userId,
+    };
+  }
+
+  /**
+   * Editor nodes store prompt/template on `data.*`. Persisted nodes store
+   * them on `data.config`. Merge both so a 1-node prompt workflow executes
+   * whether or not the client folded fields before save.
+   */
+  private mergeNodeConfig(node: WorkflowVisualNode): Record<string, unknown> {
+    const data =
+      node.data && typeof node.data === 'object' && !Array.isArray(node.data)
+        ? (node.data as Record<string, unknown>)
+        : {};
+    const rawNestedConfig = data.config;
+    const nestedConfig =
+      rawNestedConfig &&
+      typeof rawNestedConfig === 'object' &&
+      !Array.isArray(rawNestedConfig)
+        ? (rawNestedConfig as Record<string, unknown>)
+        : {};
+    const rawTopLevelConfig = (node as unknown as { config?: unknown }).config;
+    const topLevelConfig =
+      rawTopLevelConfig &&
+      typeof rawTopLevelConfig === 'object' &&
+      !Array.isArray(rawTopLevelConfig)
+        ? (rawTopLevelConfig as Record<string, unknown>)
+        : {};
+    const fromData: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      if (!EDITOR_NODE_DATA_META_KEYS.has(key) && value !== undefined) {
+        fromData[key] = value;
+      }
+    }
+
+    return {
+      ...fromData,
+      ...topLevelConfig,
+      ...nestedConfig,
     };
   }
 

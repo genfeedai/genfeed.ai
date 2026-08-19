@@ -364,6 +364,42 @@ describe('app next.config', () => {
     });
   });
 
+  it('permanently aliases /workflows onto Automate workflows', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.AUTOMATE.WORKFLOWS,
+      permanent: true,
+      source: LEGACY_APP_ROUTES.WORKFLOWS,
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.AUTOMATE.WORKFLOWS,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        LEGACY_APP_ROUTES.WORKFLOWS,
+      ),
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${APP_ROUTES.AUTOMATE.WORKFLOWS}/:path*`,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${LEGACY_APP_ROUTES.WORKFLOWS}/:path*`,
+      ),
+    });
+  });
+
   it('permanently redirects the retired cron-jobs lab to workflow scheduling', async () => {
     const redirects = await config.redirects?.();
 
@@ -419,7 +455,7 @@ describe('app next.config', () => {
     });
   });
 
-  it('keeps the legacy /workflows surface hard-cut with no compatibility redirect', async () => {
+  it('does not invent a standalone Workflows app under /workflows', async () => {
     const redirects = await config.redirects?.();
 
     const legacyWorkflowRedirects = (redirects ?? []).filter((redirect) =>
@@ -428,7 +464,12 @@ describe('app next.config', () => {
         .startsWith('/workflows'),
     );
 
-    expect(legacyWorkflowRedirects).toEqual([]);
+    expect(legacyWorkflowRedirects.length).toBeGreaterThan(0);
+    expect(
+      legacyWorkflowRedirects.every((redirect) =>
+        String(redirect.destination).includes(APP_ROUTES.AUTOMATE.WORKFLOWS),
+      ),
+    ).toBe(true);
   });
 
   it('rewrites clean local workspace routes into the default local shell scope', async () => {

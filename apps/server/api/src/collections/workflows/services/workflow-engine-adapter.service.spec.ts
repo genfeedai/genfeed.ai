@@ -129,6 +129,28 @@ describe('WorkflowEngineAdapterService', () => {
       expect(result.nodes[0].config).toEqual({ model: 'flux', steps: 20 });
     });
 
+    it('merges editor prompt fields into executable config', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+            id: 'PyHRz6uB',
+            type: 'prompt',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = service.convertToExecutableWorkflow(workflowDoc);
+
+      expect(result.nodes[0]?.type).toBe('prompt');
+      expect(result.nodes[0]?.config).toEqual({
+        prompt: 'Write a FUD News brief',
+      });
+    });
+
     it('should fallback to node.config when data.config is missing', () => {
       const workflowDoc = {
         id: 'wf-1',
@@ -476,6 +498,55 @@ describe('WorkflowEngineAdapterService', () => {
         livestreamBotWorkflowService.runActiveSessionProcessing,
       ).toHaveBeenCalledWith('org-1');
       expect(result.status).toBe('completed');
+    });
+
+    it('executes a 1-node prompt workflow from editor node data', async () => {
+      const workflow = service.convertToExecutableWorkflow({
+        id: 'wf-prompt',
+        nodes: [
+          {
+            data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+            id: 'PyHRz6uB',
+            type: 'prompt',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      const result = await service.executeWorkflow(workflow);
+
+      expect(result.status).toBe('completed');
+      expect(result.error).toBeUndefined();
+      expect(result.nodeResults.get('PyHRz6uB')?.output).toBe(
+        'Write a FUD News brief',
+      );
+    });
+
+    it('executes a prompt constructor from data.template', async () => {
+      const workflow = service.convertToExecutableWorkflow({
+        id: 'wf-prompt-constructor',
+        nodes: [
+          {
+            data: {
+              label: 'Constructor',
+              template: 'Hello {{topic}}',
+              topic: 'FUD News',
+            },
+            id: 'constructor-1',
+            type: 'ai-prompt-constructor',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      const result = await service.executeWorkflow(workflow);
+
+      expect(result.status).toBe('completed');
+      expect(result.nodeResults.get('constructor-1')?.output).toBe(
+        'Hello FUD News',
+      );
     });
 
     it('executes image inputs from picker-backed config', async () => {

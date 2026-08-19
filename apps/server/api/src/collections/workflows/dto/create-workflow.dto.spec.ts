@@ -64,6 +64,34 @@ describe('CreateWorkflowDto', () => {
       );
     });
 
+    it('keeps editor prompt fields through whitelist stripping', async () => {
+      const dto = plainToInstance(CreateWorkflowDto, {
+        label: 'Prompt workflow',
+        nodes: [
+          {
+            data: {
+              label: 'Prompt',
+              prompt: 'Write a FUD News brief',
+              template: 'Hello {{topic}}',
+            },
+            id: 'PyHRz6uB',
+            position: { x: 0, y: 0 },
+            type: 'prompt',
+          },
+        ],
+      });
+
+      const errors = await validate(dto, { whitelist: true });
+      const nodeData = dto.nodes?.[0]?.data;
+
+      expect(errors).toHaveLength(0);
+      expect(nodeData).toMatchObject({
+        label: 'Prompt',
+        prompt: 'Write a FUD News brief',
+        template: 'Hello {{topic}}',
+      });
+    });
+
     it('still requires a label for non-clone creates', async () => {
       const dto = plainToInstance(CreateWorkflowDto, {});
 

@@ -413,6 +413,11 @@ export const LEGACY_APP_ROUTES = {
    * APP_ROUTES.AUTOMATE.WORKFLOWS. Scheduling is workflow-canonical.
    */
   LAB_CRON_JOBS: '/lab/cron-jobs',
+  /**
+   * @deprecated Not a standalone Workflows app. Permanently redirects to
+   * APP_ROUTES.AUTOMATE.WORKFLOWS (and nested templates/executions).
+   */
+  WORKFLOWS: '/workflows',
   /** @deprecated Use APP_ROUTES.WORKSPACE.TASKS. */
   TASKS: '/tasks',
 } as const;

@@ -21,7 +21,9 @@ export const cloudNodeTypes: NodeTypes = Object.fromEntries(
   Object.entries({
     ...coreNodeTypes, // 29 core nodes
     'ai-avatar-video': TemplateCompatibilityNode,
+    analyticsGenericSync: TemplateCompatibilityNode,
     commentTrigger: TemplateCompatibilityNode,
+    harnessWinnerPromotionSweep: TemplateCompatibilityNode,
     'effect-captions': TemplateCompatibilityNode,
     'input-image': CloudImageInputNode,
     'input-video': CloudVideoInputNode,

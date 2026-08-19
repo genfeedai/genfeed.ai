@@ -23,6 +23,10 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
+  describeCadence,
+  formatNextRunAt,
+} from '@/features/workflows/components/schedule/schedule-cadence';
+import {
   type CloudWorkflowData,
   createWorkflowApiService,
   type ExecutionResult,
@@ -521,10 +525,11 @@ export function WorkflowSurfaceInspector({
           </div>
           <p className="mt-2 text-xs text-foreground">
             {workflow.isScheduleEnabled ? 'Enabled' : 'Disabled'} ·{' '}
-            {workflow.schedule} · {workflow.timezone ?? 'UTC'}
+            {describeCadence(workflow.schedule) ?? workflow.schedule} ·{' '}
+            {workflow.timezone ?? 'UTC'}
             {workflow.isScheduleEnabled &&
-            formatTimestamp(workflow.nextRunAt ?? undefined)
-              ? ` · Next run ${formatTimestamp(workflow.nextRunAt ?? undefined)}`
+            formatNextRunAt(workflow.nextRunAt, workflow.timezone)
+              ? ` · Next run ${formatNextRunAt(workflow.nextRunAt, workflow.timezone)}`
               : ''}
           </p>
         </section>

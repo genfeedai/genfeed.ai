@@ -238,6 +238,75 @@ describe('node type normalization', () => {
     expect(restoredNode.data?.label).toBe('Legacy');
   });
 
+  it('folds editor prompt text into data.config before save', () => {
+    const restored = restoreWorkflowNodeTypes([
+      {
+        data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+        id: 'PyHRz6uB',
+        position: { x: 0, y: 0 },
+        type: 'prompt',
+      },
+      {
+        data: { label: 'Constructor', template: 'Hello {{topic}}' },
+        id: 'constructor-1',
+        position: { x: 0, y: 0 },
+        type: 'promptConstructor',
+      },
+    ] as WorkflowNodeLike[]);
+
+    expect(restored[0]).toMatchObject({
+      data: {
+        config: { prompt: 'Write a FUD News brief' },
+        label: 'Prompt',
+      },
+      type: 'prompt',
+    });
+    expect(restored[0]?.data).not.toHaveProperty('prompt');
+    expect(restored[1]).toMatchObject({
+      data: {
+        config: { template: 'Hello {{topic}}' },
+        label: 'Constructor',
+      },
+      type: 'ai-prompt-constructor',
+    });
+    expect(restored[1]?.data).not.toHaveProperty('template');
+  });
+
+  it('hydrates persisted data.config back onto editor prompt fields', () => {
+    const normalized = normalizeWorkflowNodeTypes(
+      [
+        {
+          data: {
+            config: { prompt: 'Write a FUD News brief' },
+            label: 'Prompt',
+          },
+          id: 'PyHRz6uB',
+          position: { x: 0, y: 0 },
+          type: 'prompt',
+        },
+        {
+          data: {
+            config: { template: 'Hello {{topic}}' },
+            label: 'Constructor',
+          },
+          id: 'constructor-1',
+          position: { x: 0, y: 0 },
+          type: 'ai-prompt-constructor',
+        },
+      ] as WorkflowNodeLike[],
+      new Set(['prompt', 'promptConstructor']),
+    );
+
+    expect(normalized[0]?.data).toMatchObject({
+      label: 'Prompt',
+      prompt: 'Write a FUD News brief',
+    });
+    expect(normalized[1]?.data).toMatchObject({
+      label: 'Constructor',
+      template: 'Hello {{topic}}',
+    });
+  });
+
   it('restores canonical editor aliases to legacy api types before save', () => {
     const nodes = [
       {
