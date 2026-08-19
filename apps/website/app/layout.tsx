@@ -1,11 +1,9 @@
 import '@styles/globals.css';
 
 import { stringifyJsonLd } from '@data/json-ld';
-import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { fontVariables } from '@genfeedai/fonts';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
-import { resolveRequestTheme } from '@helpers/ui/theme/theme.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
@@ -98,19 +96,15 @@ const layoutHead = (
   </>
 );
 
-export default async function RootLayout({ children }: LayoutProps) {
-  const initialTheme = await resolveRequestTheme();
-
+export default function RootLayout({ children }: LayoutProps) {
   return (
     <AppHtmlDocument
-      initialTheme={initialTheme}
+      initialTheme="dark"
       fontVariables={fontVariables}
       bodyClassName="gf-app flex flex-col"
       head={layoutHead}
     >
-      <AppProviders initialTheme={initialTheme} storageKey={THEME_STORAGE_KEY}>
-        {children}
-      </AppProviders>
+      <AppProviders>{children}</AppProviders>
     </AppHtmlDocument>
   );
 }

@@ -22,10 +22,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/',
 }));
 
-vi.mock('next-themes', () => ({
-  useTheme: () => ({ setTheme: vi.fn(), theme: 'system' }),
-}));
-
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -83,22 +79,11 @@ describe('WebsiteTopbar', () => {
     }
   });
 
-  it('offers an accessible public appearance control', async () => {
+  it('does not expose a marketing-site appearance control', () => {
     render(<WebsiteTopbar />);
 
-    fireEvent.pointerDown(
-      screen.getByRole('button', { name: 'Appearance: System' }),
-      { button: 0, ctrlKey: false },
-    );
-
     expect(
-      await screen.findByRole('menuitemradio', { name: 'System' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', { name: 'Light' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', { name: 'Dark' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /Appearance/i }),
+    ).not.toBeInTheDocument();
   });
 });

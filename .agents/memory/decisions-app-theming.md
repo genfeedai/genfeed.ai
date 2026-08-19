@@ -22,7 +22,8 @@ topics: [theme, appearance, architecture]
 - System is a first-class stored preference, not a resolved Light or Dark snapshot.
 - Existing explicit Light and Dark values remain unchanged; only the default becomes System.
 - Main-app account settings are the cross-device source of truth after sign-in.
-- Public/anonymous surfaces use local persistence.
+- The public marketing website is invariant Dark. It does not follow the OS and does not persist or share the product theme cookie.
+- Unsigned-in product surfaces (app cookie, extension, mobile) use local persistence.
 - VS Code remains the IDE theme authority; Genfeed does not add a competing selector.
 - Electron native theme owns pre-hydration desktop chrome; `apps/app` owns the loaded desktop UI.
 - Shared semantic colors are the palette authority. Platform adapters may express them as CSS variables, React Native values, VS Code variables, or standalone-page CSS.
@@ -30,7 +31,8 @@ topics: [theme, appearance, architecture]
 
 ## Rejected
 
-- Continuing dark-only as a product identity choice; a complete light palette already exists and inaccessible forced contrast is unnecessary.
+- Continuing dark-only as a product-app identity choice; a complete light palette already exists and inaccessible forced contrast is unnecessary in the app.
+- Letting the marketing website follow the OS or expose an Appearance control; editorial media needs a stable dark studio canvas.
 - Persisting `resolvedTheme`; doing so silently turns System into an explicit color and prevents later OS changes from applying.
 - Requiring authentication for appearance; public and offline-capable surfaces still need a local preference.
 - Forcing `data-theme` in IDE webviews; it conflicts with VS Code's live theme variables.

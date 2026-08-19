@@ -15,10 +15,6 @@ vi.mock('@genfeedai/auth-client/themes', () => ({
   dark: {},
 }));
 
-vi.mock('@ui/components/providers/ThemeCookieSync', () => ({
-  default: () => null,
-}));
-
 vi.mock('next-themes', () => ({
   ThemeProvider: ({ children, ...props }: { children: ReactNode }) => {
     themeProviderMock(props);
@@ -34,40 +30,34 @@ vi.mock('sonner', () => ({
 }));
 
 describe('website AppProviders', () => {
-  it('renders children through the theme and auth providers', () => {
+  it('locks the marketing site to dark without reading the product theme store', () => {
     const { container } = render(
-      <AppProviders
-        initialTheme="dark"
-        includeLazyModalErrorDebug={false}
-        includeToaster={false}
-      >
+      <AppProviders includeLazyModalErrorDebug={false} includeToaster={false}>
         <div>Website child</div>
       </AppProviders>,
     );
 
     expect(screen.getByText('Website child')).toBeInTheDocument();
-    const bootstrap = container.querySelector(
-      '#genfeed-theme-storage-bootstrap',
-    );
-    expect(bootstrap).not.toBeNull();
     expect(
-      bootstrap?.compareDocumentPosition(screen.getByText('Website child')),
-    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      container.querySelector('#genfeed-theme-storage-bootstrap'),
+    ).toBeNull();
     expect(themeProviderMock).toHaveBeenCalledWith(
-      expect.objectContaining({ enableSystem: true }),
+      expect.objectContaining({
+        defaultTheme: 'dark',
+        enableSystem: false,
+        forcedTheme: 'dark',
+        storageKey: 'genfeed-website-theme',
+      }),
     );
   });
 
-  it('themes notifications with the active preference', () => {
+  it('keeps notifications on the dark studio canvas', () => {
     render(
-      <AppProviders initialTheme="system" includeLazyModalErrorDebug={false}>
+      <AppProviders includeLazyModalErrorDebug={false}>
         <div>Notifications</div>
       </AppProviders>,
     );
 
-    expect(screen.getByTestId('toaster')).toHaveAttribute(
-      'data-theme',
-      'light',
-    );
+    expect(screen.getByTestId('toaster')).toHaveAttribute('data-theme', 'dark');
   });
 });

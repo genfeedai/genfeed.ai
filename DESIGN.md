@@ -260,6 +260,8 @@ their foreground pairs), never raw white/black assumptions.
 The stored preference is `system | light | dark`. `system` resolves from the operating
 system or host and remains stored as System so later OS changes continue to apply.
 Only resolved `light | dark` values may be written to rendered theme attributes.
+The public marketing website (`apps/website`) is locked to Dark and does not
+follow the OS or expose an Appearance control.
 
 The light palette uses warm-neutral canvas layers (`#fafaf9`, `#f6f6f4`, `#f1f1ef`),
 near-black foreground (`#0d0d0d`), and neutral structural borders (`#dad9d6`). Studio

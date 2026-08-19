@@ -9,18 +9,19 @@ topics: [theme, appearance, accessibility, apps]
 
 # App theming spec
 
-**Why:** Genfeed already has light and dark web tokens, but the user-facing apps do not expose a consistent appearance preference and several surfaces force dark mode.
-**How to apply:** Every rendered `apps/*` surface follows the shared `system | light | dark` preference contract through a thin platform adapter. Use semantic tokens for application chrome; keep deliberately invariant media overlays scoped and documented.
+**Why:** Genfeed already has light and dark web tokens, but the product apps do not expose a consistent appearance preference and several surfaces force dark mode.
+**How to apply:** Product surfaces follow the shared `system | light | dark` preference contract through a thin platform adapter. The public marketing website stays Dark. Use semantic tokens for application chrome; keep deliberately invariant media overlays scoped and documented.
 
 ## Purpose
 
-Users can choose System, Light, or Dark wherever Genfeed owns the application chrome. The choice applies immediately, survives restart, and follows a signed-in user across devices where account settings are available.
+Users can choose System, Light, or Dark in the product apps (main app, browser extension, mobile). The choice applies immediately, survives restart, and follows a signed-in user across devices where account settings are available. The marketing website stays on the dark studio canvas so editorial media is the focal point.
 
 ## Non-Goals
 
 - Arbitrary palettes, tenant branding, or custom accent colors.
 - Recoloring photographs, video controls, cinema overlays, or other intentionally invariant media chrome.
 - A Genfeed theme selector inside VS Code; IDE webviews follow the host theme.
+- A theme picker or OS-follow appearance on the public marketing website.
 - Anonymous cross-app or cross-domain preference synchronization.
 - Changing existing explicit dark preferences during migration.
 
@@ -40,7 +41,8 @@ Users can choose System, Light, or Dark wherever Genfeed owns the application ch
 - WHEN no preference exists THE SYSTEM SHALL follow the operating-system or host appearance.
 - WHEN a user chooses Light, Dark, or System THE SYSTEM SHALL apply it without a page reload and persist the raw preference.
 - WHEN a signed-in product user changes appearance THE SYSTEM SHALL save it to account settings and restore it on another signed-in device.
-- THE SYSTEM SHALL expose an accessible Appearance control in the main app, public website, browser extension, and mobile app.
+- THE SYSTEM SHALL expose an accessible Appearance control in the main app, browser extension, and mobile app.
+- THE SYSTEM SHALL render the public marketing website Dark, with no Appearance control and without following the operating-system scheme.
 - THE SYSTEM SHALL keep docs on the same Light, Dark, and System behavior through its documentation theme control.
 - THE SYSTEM SHALL make desktop boot/failure UI and standalone server HTML follow the host/system before app hydration.
 - THE SYSTEM SHALL keep IDE webviews synchronized with VS Code's active theme.

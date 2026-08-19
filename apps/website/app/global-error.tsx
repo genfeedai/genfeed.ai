@@ -2,8 +2,6 @@
 
 import type { GlobalErrorProps } from '@props/ui/feedback/global-error.props';
 import { logger } from '@services/core/logger.service';
-import { ThemeDocumentBootstrapScript } from '@ui/theme/ThemeBootstrapScript';
-import ThemeDocumentSync from '@ui/theme/ThemeDocumentSync';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -20,12 +18,8 @@ export default function GlobalError({ error }: GlobalErrorProps) {
   }, [error]);
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <ThemeDocumentBootstrapScript />
-      </head>
+    <html lang="en" data-theme="dark" style={{ colorScheme: 'dark' }}>
       <body className="gf-app min-h-dvh bg-background text-foreground">
-        <ThemeDocumentSync />
         <main className="flex min-h-dvh items-center justify-center p-6 text-center">
           <div className="max-w-lg">
             <h1 className="gen-heading-lg mb-4">Something went wrong</h1>
