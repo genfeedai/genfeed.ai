@@ -54,8 +54,8 @@ export default function CalendarSlotDrawer({
               {slot.state === CalendarSlotState.GENERATE_FAILED
                 ? slot.lastFailureReason || 'Last generate failed.'
                 : slot.cadenceId
-                  ? 'Generate fills this hole from the cadence brief. Write opens the composer.'
-                  : 'Write is the default for a one-off booking. Generate still works.'}
+                  ? 'Generate writes the next campaign post from brand voice and already scheduled content. Write opens the composer.'
+                  : 'Write is the default for a one-off booking. Generate still writes from brand voice and nearby scheduled posts.'}
             </p>
             <Input
               label="Brief override"
