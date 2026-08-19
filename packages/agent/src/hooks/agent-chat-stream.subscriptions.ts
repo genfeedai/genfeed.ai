@@ -23,6 +23,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
+import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import type { MutableRefObject } from 'react';
 
@@ -241,12 +242,18 @@ export function attachAgentStreamSubscriptions(
           threadId: payload.threadId,
         };
 
+        const lastGeneratedAsset = extractLastGeneratedAssetFromMetadata(
+          payload.metadata,
+        );
         deps.updateThreadSummary(payload.threadId, {
           attentionState: deps.isThreadVisible(payload.threadId)
             ? null
             : 'updated',
           lastActivityAt: assistantMessage.createdAt,
           lastAssistantPreview: payload.fullContent.slice(0, 280),
+          ...(lastGeneratedAsset
+            ? { lastGeneratedAssetUrl: lastGeneratedAsset.url }
+            : {}),
           pendingInputCount: 0,
           runStatus: 'completed',
         });

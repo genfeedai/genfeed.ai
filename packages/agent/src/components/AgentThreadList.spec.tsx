@@ -26,6 +26,12 @@ vi.mock('next/link', () => ({
   },
 }));
 
+vi.mock('next/image', () => ({
+  default: function MockImage(props: { alt?: string; src?: string }) {
+    return <img alt={props.alt} src={props.src} />;
+  },
+}));
+
 vi.mock('@helpers/formatting/cn/cn.util', () => ({
   cn: (...classes: Array<string | false | null | undefined>) =>
     classes.filter(Boolean).join(' '),
@@ -615,7 +621,8 @@ describe('AgentThreadList', () => {
 
   it('renders compact context previews below thread titles', async () => {
     const thread = createThread('conv-1', 'Compact row', {
-      lastAssistantPreview: 'This preview should not render anymore.',
+      lastAssistantPreview: 'Three portraits are ready',
+      lastGeneratedAssetUrl: 'https://cdn.test/portrait.png',
     });
     const apiService = createApiService({
       getThreads: vi.fn().mockResolvedValue([thread]),
@@ -625,10 +632,59 @@ describe('AgentThreadList', () => {
     render(<AgentThreadList apiService={apiService as never} />);
 
     expect(await screen.findByText('Compact row')).toBeInTheDocument();
+    expect(screen.getByText('Three portraits are ready')).toBeInTheDocument();
     expect(
-      screen.getByText('This preview should not render anymore.'),
-    ).toBeInTheDocument();
+      screen.getByRole('img', {
+        name: 'Latest generated output for Compact row',
+      }),
+    ).toHaveAttribute('src', 'https://cdn.test/portrait.png');
     expect(screen.queryByText('Running')).toBeNull();
+  });
+
+  it('groups org-scope conversations by brand instead of activity sections', async () => {
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([
+        createThread('curie-1', 'Curie shoot', {
+          brandId: 'brand-curie',
+          brandLabel: 'Curie',
+        }),
+        createThread('pascal-1', 'Pascal cutdown', {
+          brandId: 'brand-pascal',
+          brandLabel: 'Pascal',
+        }),
+      ]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Curie shoot')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Curie' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Pascal' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Recent' })).toBeNull();
+  });
+
+  it('keeps activity sections when a brand is selected', async () => {
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([
+        createThread('curie-1', 'Curie shoot', {
+          brandId: 'brand-curie',
+          brandLabel: 'Curie',
+        }),
+      ]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(
+      <AgentThreadList
+        apiService={apiService as never}
+        brandId="brand-curie"
+      />,
+    );
+
+    expect(await screen.findByText('Curie shoot')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Recent' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Curie' })).toBeNull();
   });
 
   it('uses a warning status dot for threads that need input', async () => {
@@ -693,11 +749,15 @@ describe('AgentThreadList', () => {
 
   it('renders pinned conversations in their own prioritized section', async () => {
     const pinnedThread = {
-      ...createThread('conv-2', 'Pinned thread'),
+      ...createThread('conv-2', 'Pinned thread', {
+        brandId: 'brand-1',
+      }),
       isPinned: true,
       updatedAt: '2026-03-08T11:00:00.000Z',
     };
-    const regularThread = createThread('conv-1', 'Later thread');
+    const regularThread = createThread('conv-1', 'Later thread', {
+      brandId: 'brand-1',
+    });
     const apiService = createApiService({
       branchThread: vi.fn(),
       getThreads: vi.fn().mockResolvedValue([regularThread, pinnedThread]),
@@ -707,7 +767,9 @@ describe('AgentThreadList', () => {
       updateThread: vi.fn(),
     });
 
-    render(<AgentThreadList apiService={apiService as never} />);
+    render(
+      <AgentThreadList apiService={apiService as never} brandId="brand-1" />,
+    );
 
     const pinnedSection = await screen.findByRole('region', {
       name: 'Pinned',

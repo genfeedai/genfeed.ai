@@ -3,9 +3,11 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 export const agentThreadAttributes = createEntityAttributes([
   'attentionState',
   'brandId',
+  'brandLabel',
   'contextVersion',
   'lastActivityAt',
   'lastAssistantPreview',
+  'lastGeneratedAssetUrl',
   'organizationId',
   'pendingInputCount',
   'runStatus',

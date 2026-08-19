@@ -11,6 +11,7 @@ import { AgentThreadListRow } from './AgentThreadListRow';
 import {
   type AgentThreadListFilter,
   groupAgentThreads,
+  groupAgentThreadsByBrand,
 } from './agent-thread-list.helpers';
 import { useAgentThreadList } from './useAgentThreadList';
 import { useAgentThreadPrefetch } from './useAgentThreadPrefetch';
@@ -91,11 +92,21 @@ export function AgentThreadList({
       }),
     [activeRunStatus, activeThreadId, isStreaming, searchQuery, threads],
   );
-  const visibleThreadCount =
-    groups.needsYou.length +
-    groups.working.length +
-    groups.pinned.length +
-    groups.recent.length;
+  const brandGroups = useMemo(
+    () =>
+      groupAgentThreadsByBrand(threads, {
+        searchQuery,
+      }),
+    [searchQuery, threads],
+  );
+  const isBrandScoped = Boolean(brandId);
+  const shouldGroupByBrand = !isArchivedView && !isBrandScoped;
+  const visibleThreadCount = shouldGroupByBrand
+    ? brandGroups.reduce((count, group) => count + group.threads.length, 0)
+    : groups.needsYou.length +
+      groups.working.length +
+      groups.pinned.length +
+      groups.recent.length;
 
   // Only replace the list with a spinner on the first load. Background
   // refreshes keep the existing rows so switching threads does not flash.
@@ -234,7 +245,20 @@ export function AgentThreadList({
                 ].map(renderThreadRow)}
               </ConversationSidebarSection>
             ) : null}
-            {!isArchivedView && groups.needsYou.length > 0 ? (
+            {shouldGroupByBrand
+              ? brandGroups.map((group) => (
+                  <ConversationSidebarSection
+                    key={group.brandId ?? 'organization'}
+                    count={group.threads.length}
+                    label={group.label}
+                  >
+                    {group.threads.map(renderThreadRow)}
+                  </ConversationSidebarSection>
+                ))
+              : null}
+            {!isArchivedView &&
+            !shouldGroupByBrand &&
+            groups.needsYou.length > 0 ? (
               <ConversationSidebarSection
                 count={groups.needsYou.length}
                 label="Needs you"
@@ -242,7 +266,9 @@ export function AgentThreadList({
                 {groups.needsYou.map(renderThreadRow)}
               </ConversationSidebarSection>
             ) : null}
-            {!isArchivedView && groups.working.length > 0 ? (
+            {!isArchivedView &&
+            !shouldGroupByBrand &&
+            groups.working.length > 0 ? (
               <ConversationSidebarSection
                 count={groups.working.length}
                 label="Working"
@@ -250,7 +276,9 @@ export function AgentThreadList({
                 {groups.working.map(renderThreadRow)}
               </ConversationSidebarSection>
             ) : null}
-            {!isArchivedView && groups.pinned.length > 0 ? (
+            {!isArchivedView &&
+            !shouldGroupByBrand &&
+            groups.pinned.length > 0 ? (
               <ConversationSidebarSection
                 count={groups.pinned.length}
                 label="Pinned"
@@ -258,7 +286,9 @@ export function AgentThreadList({
                 {groups.pinned.map(renderThreadRow)}
               </ConversationSidebarSection>
             ) : null}
-            {!isArchivedView && groups.recent.length > 0 ? (
+            {!isArchivedView &&
+            !shouldGroupByBrand &&
+            groups.recent.length > 0 ? (
               <ConversationSidebarSection
                 count={groups.recent.length}
                 label="Recent"

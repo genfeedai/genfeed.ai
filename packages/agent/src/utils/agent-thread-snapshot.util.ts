@@ -7,6 +7,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 
 export function mapSnapshotRunStatus(
   status?: string | null,
@@ -343,6 +344,7 @@ export function buildThreadSummaryFromSnapshot(
   | 'attentionState'
   | 'lastActivityAt'
   | 'lastAssistantPreview'
+  | 'lastGeneratedAssetUrl'
   | 'pendingInputCount'
   | 'runStatus'
 > {
@@ -379,6 +381,10 @@ export function buildThreadSummaryFromSnapshot(
     lastAssistantPreview:
       snapshot.lastAssistantMessage?.content.slice(0, 280) ??
       existingThread?.lastAssistantPreview,
+    lastGeneratedAssetUrl:
+      extractLastGeneratedAssetFromMetadata(
+        snapshot.lastAssistantMessage?.metadata,
+      )?.url ?? existingThread?.lastGeneratedAssetUrl,
     pendingInputCount:
       snapshot.pendingInputRequests.length + (hasPendingPlanApproval ? 1 : 0),
     runStatus:

@@ -373,6 +373,30 @@ describe('buildThreadSummaryFromSnapshot', () => {
     expect(summary.lastActivityAt).toBe('2026-03-24T10:00:00.000Z');
   });
 
+  it('copies the latest generated asset from assistant metadata', () => {
+    const summary = buildThreadSummaryFromSnapshot(
+      makeSnapshot({
+        lastAssistantMessage: {
+          content: 'Portraits are ready',
+          createdAt: '2026-03-24T10:00:00.000Z',
+          messageId: 'msg-1',
+          metadata: {
+            uiActions: [
+              {
+                id: 'gen-1',
+                images: ['https://cdn.test/portrait.png'],
+                title: 'Portraits',
+                type: 'content_preview_card',
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    expect(summary.lastGeneratedAssetUrl).toBe('https://cdn.test/portrait.png');
+  });
+
   it('falls back through activity timestamps', () => {
     const withRun = buildThreadSummaryFromSnapshot(
       makeSnapshot({

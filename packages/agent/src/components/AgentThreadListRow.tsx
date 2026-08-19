@@ -18,14 +18,15 @@ import {
   SquarePen,
   Undo2,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactElement, RefObject } from 'react';
-
 import {
   formatRelativeTime,
   getThreadStatusA11yLabel,
   getThreadStatusDotClass,
   getThreadStatusMeta,
+  resolveThreadListPreview,
 } from './agent-thread-list.helpers';
 
 interface AgentThreadListRowProps {
@@ -183,23 +184,42 @@ export function AgentThreadListRow({
     conv.lastActivityAt ?? conv.updatedAt ?? conv.createdAt,
   );
   const statusA11yLabel = getThreadStatusA11yLabel(conv, statusMeta);
-  const preview =
-    conv.lastAssistantPreview ||
-    conv.lastMessage ||
-    conv.source ||
-    conv.platform ||
-    'Agent conversation';
+  const preview = resolveThreadListPreview(conv);
+  const threadTitle = conv.title || 'Untitled';
+  const generatedAssetUrl = conv.lastGeneratedAssetUrl?.trim() || null;
 
-  const activitySlot = statusMeta ? (
+  const activityIndicator = statusMeta ? (
     <SimpleTooltip label={statusMeta.label} position="top">
       <ThreadActivityIndicator
         statusMeta={statusMeta}
         a11yLabel={statusA11yLabel}
       />
     </SimpleTooltip>
-  ) : (
-    // Keep columns aligned when idle — empty slot, no disc.
-    <span className="mt-1.5 size-2 shrink-0" aria-hidden />
+  ) : null;
+
+  const thumbSlot = (
+    <span className="relative mt-0.5 size-8 shrink-0">
+      {generatedAssetUrl ? (
+        <Image
+          alt={`Latest generated output for ${threadTitle}`}
+          className="size-8 rounded-md object-cover"
+          height={32}
+          src={generatedAssetUrl}
+          unoptimized
+          width={32}
+        />
+      ) : (
+        <span
+          className="block size-8 rounded-md bg-foreground/[0.06]"
+          aria-hidden
+        />
+      )}
+      {activityIndicator ? (
+        <span className="absolute -right-0.5 -top-0.5">
+          {activityIndicator}
+        </span>
+      ) : null}
+    </span>
   );
 
   return (
@@ -217,7 +237,7 @@ export function AgentThreadListRow({
     >
       {renamingThreadId === conv.id ? (
         <div className="flex min-h-10 flex-1 items-center gap-2 px-2.5 py-1.5">
-          {activitySlot}
+          {thumbSlot}
           <Input
             ref={renameInputRef}
             aria-label={`Rename ${conv.title || 'thread'}`}
@@ -268,7 +288,7 @@ export function AgentThreadListRow({
             onCancelPrefetch(conv.id);
           }}
         >
-          {activitySlot}
+          {thumbSlot}
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               {conv.isPinned ? (
@@ -285,7 +305,7 @@ export function AgentThreadListRow({
                   isArchived ? 'text-foreground/65' : 'text-foreground/90',
                 )}
               >
-                {conv.title || 'Untitled'}
+                {threadTitle}
               </span>
               {relativeTime ? (
                 <span className="shrink-0 text-[11px] tabular-nums text-foreground/36">
@@ -293,9 +313,11 @@ export function AgentThreadListRow({
                 </span>
               ) : null}
             </div>
-            <div className="mt-0.5 min-w-0 truncate text-[11px] text-foreground/38">
-              {preview}
-            </div>
+            {preview ? (
+              <div className="mt-0.5 min-w-0 truncate text-[11px] text-foreground/38">
+                {preview}
+              </div>
+            ) : null}
           </div>
         </Link>
       )}

@@ -23,6 +23,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
+import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { hasLiveReconnectStream } from '@genfeedai/agent/utils/has-live-reconnect-stream';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
@@ -334,10 +335,16 @@ export function useAgentChatStream(
           response.contextVersion,
           response.brandId,
         );
+        const lastGeneratedAsset = extractLastGeneratedAssetFromMetadata(
+          response.message.metadata,
+        );
         updateThreadSummary(response.threadId, {
           attentionState: null,
           lastActivityAt: new Date().toISOString(),
           lastAssistantPreview: response.message.content.slice(0, 280),
+          ...(lastGeneratedAsset
+            ? { lastGeneratedAssetUrl: lastGeneratedAsset.url }
+            : {}),
           pendingInputCount: 0,
           runStatus: 'completed',
         });
