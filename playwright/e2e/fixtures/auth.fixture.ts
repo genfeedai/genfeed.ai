@@ -2,6 +2,7 @@ import type { BrowserContext, Page, Route } from '@playwright/test';
 import {
   generateMockOrganization,
   generateMockUser,
+  registerProtectedAppHostFallbacks,
   setupApiMocks,
 } from '../utils/api-interceptor';
 import { setupStrictNetworkGuard } from '../utils/network-guard';
@@ -396,6 +397,10 @@ export const test = base.extend<AuthFixtures>({
     await mockWorkflowCrud(page, []);
     await mockWorkflowExecutions(page, []);
     await mockWorkflowTemplates(page, []);
+    // Workflow mocks register `/workflows**` after setupApiMocks. Re-bind
+    // bootstrap/orgs last so they beat both those globs and the network-guard
+    // abort of api.genfeed.ai (nightly shard 8, #2982).
+    await registerProtectedAppHostFallbacks(page);
     await navigateAfterAuth(page, AUTOMATION_AUTH_BOOTSTRAP_PATH);
 
     await runFixture(page);
