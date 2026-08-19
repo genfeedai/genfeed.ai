@@ -81,7 +81,7 @@ describe('AnalyticsOrganizationSync', () => {
 
     render(<AnalyticsOrganizationSync />);
 
-    expect(mocks.clearOrganization).toHaveBeenCalledOnce();
+    expect(mocks.clearOrganization).not.toHaveBeenCalled();
     expect(mocks.identifyOrganization).not.toHaveBeenCalled();
     expect(mocks.capturePageview).not.toHaveBeenCalled();
   });

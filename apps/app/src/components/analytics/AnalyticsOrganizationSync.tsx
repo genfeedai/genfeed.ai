@@ -41,7 +41,6 @@ function EnabledAnalyticsOrganizationSync() {
     }
 
     if (!isBrandScopeResolved) {
-      clearAnalyticsOrganization();
       return;
     }
 

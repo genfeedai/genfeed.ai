@@ -129,12 +129,14 @@ describe('initAnalytics', () => {
     client.initAnalytics();
     await flushInit();
     const config = mocks.posthogInit.mock.calls[0]?.[1] as {
+      capture_pageleave: unknown;
       capture_pageview: unknown;
       before_send: unknown;
       disable_session_recording: unknown;
       loaded: unknown;
     };
     expect(config.capture_pageview).toBe(false);
+    expect(config.capture_pageleave).toBe(true);
     expect(typeof config.before_send).toBe('function');
     expect(typeof config.loaded).toBe('function');
     // Replay must stay off — $snapshot bypasses before_send scrubbing.

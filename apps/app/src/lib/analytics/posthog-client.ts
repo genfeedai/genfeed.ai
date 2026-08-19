@@ -330,6 +330,10 @@ export function initAnalytics(): void {
         // scope is synchronized. SDK history capture runs inside pushState,
         // before React can apply the destination tenant scope.
         capture_pageview: false,
+        // Manual pageviews still need $pageleave so session/bounce duration
+        // stays instrumented. The SDK default is `if_capture_pageview`, which
+        // would stay off when capture_pageview is false.
+        capture_pageleave: true,
         // Keep replay hard-off: $snapshot bypasses before_send property
         // scrubbing, so enabling it would break the FR8 privacy boundary.
         disable_session_recording: true,
