@@ -8,7 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { WatchlistPlatform } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -183,10 +183,10 @@ export class WatchlistsService extends BaseService<
 
     const result = await this.prisma.watchlist.update({
       data: {
-        config: {
+        config: toPrismaJson({
           ...currentConfig,
           metrics,
-        } as never,
+        }),
       },
       where: { id: String(id) },
     });

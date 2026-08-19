@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowLifecycle } from '@genfeedai/enums';
+import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import {
   selectIsDirty,
   selectIsSaving,

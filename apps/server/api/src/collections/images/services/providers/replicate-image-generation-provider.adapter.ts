@@ -152,34 +152,40 @@ export class ReplicateImageGenerationProviderAdapter
   ): Promise<PreparedImageGenerationProvider> {
     const isBatchSupported =
       MODEL_OUTPUT_CAPABILITIES[request.model]?.isBatchSupported ?? false;
-    const { input } = await this.promptBuilderService.buildPrompt(
-      request.model,
-      {
-        blacklist: request.createImageDto.blacklist,
-        brand: request.promptBuilderBrand,
-        branding: request.brandPromptBranding,
-        brandingMode: request.createImageDto.brandingMode,
-        camera: request.createImageDto.camera,
-        fontFamily: request.createImageDto.fontFamily,
-        height: request.height,
-        isBrandingEnabled: request.createImageDto.isBrandingEnabled,
-        lens: request.createImageDto.lens,
-        lighting: request.createImageDto.lighting,
-        modelCategory: ModelCategory.IMAGE,
-        mood: request.createImageDto.mood,
-        outputs: isBatchSupported ? request.outputs : 1,
-        prompt: request.prompt,
-        promptTemplate: request.createImageDto.promptTemplate,
-        references: request.referenceImageUrls,
-        scene: request.createImageDto.scene,
-        seed: request.createImageDto.seed,
-        style: request.style || request.createImageDto.style || 'realistic',
-        tags: request.createImageDto.tags?.map((tag) => tag.toString()) || [],
-        useTemplate: request.createImageDto.useTemplate,
-        width: request.width,
-      },
-      request.organizationId,
-    );
+    const input = request.compiledDispatch
+      ? Object.fromEntries(Object.entries(request.compiledDispatch))
+      : (
+          await this.promptBuilderService.buildPrompt(
+            request.model,
+            {
+              blacklist: request.createImageDto.blacklist,
+              brand: request.promptBuilderBrand,
+              branding: request.brandPromptBranding,
+              brandingMode: request.createImageDto.brandingMode,
+              camera: request.createImageDto.camera,
+              fontFamily: request.createImageDto.fontFamily,
+              height: request.height,
+              isBrandingEnabled: request.createImageDto.isBrandingEnabled,
+              lens: request.createImageDto.lens,
+              lighting: request.createImageDto.lighting,
+              modelCategory: ModelCategory.IMAGE,
+              mood: request.createImageDto.mood,
+              outputs: isBatchSupported ? request.outputs : 1,
+              prompt: request.prompt,
+              promptTemplate: request.createImageDto.promptTemplate,
+              references: request.referenceImageUrls,
+              scene: request.createImageDto.scene,
+              seed: request.createImageDto.seed,
+              style:
+                request.style || request.createImageDto.style || 'realistic',
+              tags:
+                request.createImageDto.tags?.map((tag) => tag.toString()) || [],
+              useTemplate: request.createImageDto.useTemplate,
+              width: request.width,
+            },
+            request.organizationId,
+          )
+        ).input;
 
     return {
       additionalActivityFailure: 'fail',

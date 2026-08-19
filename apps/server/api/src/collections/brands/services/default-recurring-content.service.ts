@@ -7,6 +7,7 @@ import {
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -468,9 +469,9 @@ export class DefaultRecurringContentService {
         // legitimate "concurrent winner" signal.
         defaultRecurringBrandId: brandId,
         description: workflowDescription,
-        edges: [] as never,
+        edges: toPrismaJson([]),
         executionCount: 0,
-        inputVariables: [] as never,
+        inputVariables: toPrismaJson([]),
         isDeleted: false,
         isScheduleEnabled: scheduleConfig.isEnabled,
         label: workflowLabel,
@@ -484,7 +485,7 @@ export class DefaultRecurringContentService {
           },
           taskType: 'default-recurring-content',
         },
-        nodes: [
+        nodes: toPrismaJson([
           {
             data: {
               config: this.buildNodeConfig({
@@ -500,12 +501,12 @@ export class DefaultRecurringContentService {
             position: { x: 120, y: 120 },
             type: this.buildNodeType(params.contentType),
           },
-        ] as never,
+        ]),
         organizationId: params.organizationId,
         progress: 0,
         schedule: scheduleConfig.cronExpression,
         status: WorkflowStatus.ACTIVE,
-        steps: [] as never,
+        steps: toPrismaJson([]),
         timezone: scheduleConfig.timezone,
         userId: params.userId,
       },

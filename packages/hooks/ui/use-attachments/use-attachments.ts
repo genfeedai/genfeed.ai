@@ -1,3 +1,4 @@
+import { UploadStatus } from '@genfeedai/enums';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -70,7 +71,8 @@ export function useAttachments(
 
   const isUploading = attachments.some(
     (attachment) =>
-      attachment.status === 'pending' || attachment.status === 'uploading',
+      attachment.status === UploadStatus.PENDING ||
+      attachment.status === UploadStatus.UPLOADING,
   );
 
   // Cleanup blob URLs on unmount
@@ -109,7 +111,7 @@ export function useAttachments(
 
       setAttachments((prev) =>
         prev.map((a) =>
-          a.id === item.id ? { ...a, status: 'uploading' as const } : a,
+          a.id === item.id ? { ...a, status: UploadStatus.UPLOADING } : a,
         ),
       );
 
@@ -127,7 +129,7 @@ export function useAttachments(
                   ...a,
                   ingredientId: result.ingredientId,
                   progress: 100,
-                  status: 'completed' as const,
+                  status: UploadStatus.COMPLETED,
                   url: result.url,
                 }
               : a,
@@ -140,7 +142,7 @@ export function useAttachments(
               ? {
                   ...a,
                   error: err instanceof Error ? err.message : 'Upload failed',
-                  status: 'failed' as const,
+                  status: UploadStatus.FAILED,
                 }
               : a,
           ),
@@ -177,7 +179,7 @@ export function useAttachments(
             name: file.name,
             previewUrl,
             progress: 0,
-            status: 'pending' as const,
+            status: UploadStatus.PENDING,
           };
         });
 
@@ -217,7 +219,7 @@ export function useAttachments(
     return attachments
       .filter(
         (a): a is AttachmentItem & { ingredientId: string; url: string } =>
-          a.status === 'completed' &&
+          a.status === UploadStatus.COMPLETED &&
           a.ingredientId !== undefined &&
           a.url !== undefined,
       )

@@ -18,6 +18,7 @@ import { AgentThreadProjectorService } from '@api/services/agent-threading/servi
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
@@ -163,12 +164,6 @@ export class AgentThreadEngineService {
     return value ?? undefined;
   }
 
-  private serializeJsonRecord(
-    value: Record<string, unknown>,
-  ): Record<string, unknown> {
-    return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-  }
-
   appendEventEffect(
     params: AppendAgentThreadEventParams,
   ): Effect.Effect<AgentThreadEventDocument, unknown> {
@@ -265,7 +260,7 @@ export class AgentThreadEngineService {
               sequence,
               threadId: params.threadId,
               type: params.type,
-              data: this.serializeJsonRecord(eventDataPayload) as never,
+              data: toPrismaJson(eventDataPayload),
             },
           });
 
@@ -449,10 +444,10 @@ export class AgentThreadEngineService {
         this.prisma.agentThreadSnapshot.update({
           where: { id: snapshotRow.id },
           data: {
-            data: this.serializeJsonRecord({
+            data: toPrismaJson({
               ...snapshotData,
               inputRequests,
-            }) as never,
+            }),
             updatedAt: new Date(),
           },
         }),
@@ -744,10 +739,10 @@ export class AgentThreadEngineService {
         await this.prisma.agentThreadSnapshot.update({
           where: { id: snapshotRow.id },
           data: {
-            data: this.serializeJsonRecord({
+            data: toPrismaJson({
               ...snapshotData,
               inputRequests,
-            }) as never,
+            }),
             updatedAt: new Date(),
           },
         });

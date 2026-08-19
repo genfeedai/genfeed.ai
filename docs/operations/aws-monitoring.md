@@ -35,32 +35,48 @@ jobs on one queue.
 ### Recurring 2026-08-16..18 stalls (#3065)
 
 Observed: 3 stalled jobs on 2026-08-16, 2 on 2026-08-17, 2 on 2026-08-18.
-The alarm recovered to OK each time. CloudWatch correlation is still
-open — this lane could not query the alarm timestamps or name the
-affected queues.
+The CloudWatch alarm `genfeed-production-queues-stalled` recovered to OK
+each time.
+
+**Shipped in code (Part of #3065)**
+
+- Workers-service long jobs use a 120s lock and 30s renew/stall check
+  (`withLongJobWorkerOptions`). `maxStalledCount` stays at BullMQ's
+  default of 1 so a side-effecting job is not run a third time after
+  two stalls.
+- Files `video-processing` and `youtube-processing` use the same 120s
+  lock preset.
+- Files drains Nest/BullMQ on SIGTERM (`registerGracefulDrain`).
+- Hosted-SaaS ECS `stopTimeout` is 120s for the files and workers
+  services. Other services keep the module default of 30s.
+
+**Operator step — CloudWatch live correlation**
+
+Code-side lock, drain, and stopTimeout changes do not name the original
+queues. An operator still has to correlate the stall windows with ECS
+task-stop events. Do not invent AWS query results from this runbook.
+
+When `genfeed-production-queues-stalled` fires:
+
+1. Read `StalledJobs5m` (aggregate and per-queue) for the alarm window.
+2. Read Redis `stalledJobIds` from
+   `genfeed:monitoring:queue-health:snapshot:<queue-name>`.
+3. Correlate those timestamps and job ids with ECS stop/deploy events
+   on the files and workers services.
+
+If the named-queue window does not line up with an ECS stop, inspect
+the processor named by `queueName` + `jobId`.
 
 **Verified from code**
 
-- No worker set `lockDuration`, `stalledInterval`, or `maxStalledCount`.
-  BullMQ defaults (`30s` / `30s` / `1`) applied everywhere.
 - Multi-minute processors (`agent-run`, `workflow-execution`,
   `batch-workflow`, `batch-generation`, `clip-analyze`, `clip-factory`,
   `article-generation`, `content-pipeline`, plus files
   `video-processing` / `youtube-processing`) can exceed a 30s lock. Locks
   renew while the event loop is healthy; a 30s lease still stalls when
   renewal is delayed by event-loop pressure or a brief Redis blip.
-- Workers and files both do `SIGTERM` → close HTTP → `app.close()` → exit.
-  Files lock-duration changes still wait until the ECS stop-timeout
-  follow-up lands.
-- Stall telemetry was aggregate-only. Snapshots dropped `stalledEvents`,
-  so operators could not name the queue from the alarm.
-
-**Open follow-up (not claimed as root cause).** If the next named-queue
-window lines up with an ECS workers/files task replacement, raise the
-service stop timeout. Files now drains Nest/BullMQ on SIGTERM;
-lock-duration changes still wait until that stop-timeout follow-up
-lands. If the timestamps do not line up, inspect the processor named
-by `queueName` + `jobId`.
+- Stall telemetry was aggregate-only before #3119. Snapshots dropped
+  `stalledEvents`, so operators could not name the queue from the alarm.
 
 **Observability shipped (Part of #3065)**
 
@@ -68,10 +84,6 @@ by `queueName` + `jobId`.
   worker identity is invented from the metrics collector replica.
 - Per-queue `StalledJobs5m` and Redis `stalledJobIds` identify the
   affected queue on the next alarm.
-- Workers-service long jobs use a 120s lock and 30s renew/stall check.
-  `maxStalledCount` stays at BullMQ's default of 1 so a side-effecting
-  job is not run a third time after two stalls. Files queues stay on
-  BullMQ defaults until the ECS stop-timeout follow-up lands.
 
 Before deleting queue data:
 

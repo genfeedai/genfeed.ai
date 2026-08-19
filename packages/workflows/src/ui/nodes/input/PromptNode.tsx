@@ -37,7 +37,7 @@ function PromptNodeComponent(props: NodeProps) {
   const handleSaveToLibrary = useCallback(() => {
     if (!nodeData.prompt) return;
     openCreateModal({
-      category: 'custom' as never,
+      category: 'custom',
       createdAt: '',
       description: '',
       isDeleted: false,

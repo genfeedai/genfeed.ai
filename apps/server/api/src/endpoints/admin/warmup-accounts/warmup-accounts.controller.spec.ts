@@ -1,7 +1,12 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { LoggerService } from '@libs/logger/logger.service';
-import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WarmupAccountsController } from './warmup-accounts.controller';
@@ -63,7 +68,11 @@ describe('WarmupAccountsController', () => {
   const warmupAccountsService = {
     create: vi.fn(),
     get: vi.fn(),
+    inspectInvitation: vi.fn(),
     list: vi.fn(),
+    resendInvitation: vi.fn(),
+    revokeInvitation: vi.fn(),
+    sendInvitation: vi.fn(),
   };
 
   const loggerService = {
@@ -161,5 +170,128 @@ describe('WarmupAccountsController', () => {
 
     expect(warmupAccountsService.get).toHaveBeenCalledWith('warmup_1');
     expect(result).toMatchObject({ data: account, serialized: true });
+  });
+
+  it('declares invitation lifecycle routes before the :id wildcard', () => {
+    const routes = (
+      [
+        'inspectInvitation',
+        'sendInvitation',
+        'resendInvitation',
+        'revokeInvitation',
+        'get',
+      ] as const
+    ).map((handler) => ({
+      handler,
+      method: Reflect.getMetadata(
+        METHOD_METADATA,
+        WarmupAccountsController.prototype[handler],
+      ),
+      path: Reflect.getMetadata(
+        PATH_METADATA,
+        WarmupAccountsController.prototype[handler],
+      ),
+    }));
+
+    expect(routes).toEqual([
+      {
+        handler: 'inspectInvitation',
+        method: RequestMethod.GET,
+        path: ':id/invitation',
+      },
+      {
+        handler: 'sendInvitation',
+        method: RequestMethod.POST,
+        path: ':id/invitation/send',
+      },
+      {
+        handler: 'resendInvitation',
+        method: RequestMethod.POST,
+        path: ':id/invitation/resend',
+      },
+      {
+        handler: 'revokeInvitation',
+        method: RequestMethod.POST,
+        path: ':id/invitation/revoke',
+      },
+      {
+        handler: 'get',
+        method: RequestMethod.GET,
+        path: ':id',
+      },
+    ]);
+  });
+
+  it('inspects invitation lifecycle state through the serializer', async () => {
+    const account = makeWarmupAccount();
+    warmupAccountsService.inspectInvitation.mockResolvedValue(account);
+
+    const result = await controller.inspectInvitation(
+      'warmup_1',
+      makeRequest() as never,
+    );
+
+    expect(warmupAccountsService.inspectInvitation).toHaveBeenCalledWith(
+      'warmup_1',
+    );
+    expect(result).toMatchObject({ data: account, serialized: true });
+  });
+
+  it('sends invitations with the local DB user id', async () => {
+    const account = makeWarmupAccount();
+    warmupAccountsService.sendInvitation.mockResolvedValue(account);
+
+    const result = await controller.sendInvitation(
+      'warmup_1',
+      makeUser() as never,
+      makeRequest() as never,
+    );
+
+    expect(warmupAccountsService.sendInvitation).toHaveBeenCalledWith(
+      'warmup_1',
+      'db_user_1',
+    );
+    expect(result).toMatchObject({ data: account, serialized: true });
+  });
+
+  it('rejects send, resend, and revoke when local DB user id is missing', async () => {
+    const user = { id: '', userId: '' } as never;
+    const request = makeRequest() as never;
+
+    await expect(
+      controller.sendInvitation('warmup_1', user, request),
+    ).rejects.toThrow('Local user id is required');
+    await expect(
+      controller.resendInvitation('warmup_1', user, request),
+    ).rejects.toThrow('Local user id is required');
+    await expect(
+      controller.revokeInvitation('warmup_1', user, request),
+    ).rejects.toThrow('Local user id is required');
+  });
+
+  it('resends and revokes invitations with the acting operator id', async () => {
+    const account = makeWarmupAccount();
+    warmupAccountsService.resendInvitation.mockResolvedValue(account);
+    warmupAccountsService.revokeInvitation.mockResolvedValue(account);
+
+    await controller.resendInvitation(
+      'warmup_1',
+      makeUser() as never,
+      makeRequest() as never,
+    );
+    await controller.revokeInvitation(
+      'warmup_1',
+      makeUser() as never,
+      makeRequest() as never,
+    );
+
+    expect(warmupAccountsService.resendInvitation).toHaveBeenCalledWith(
+      'warmup_1',
+      'db_user_1',
+    );
+    expect(warmupAccountsService.revokeInvitation).toHaveBeenCalledWith(
+      'warmup_1',
+      'db_user_1',
+    );
   });
 });

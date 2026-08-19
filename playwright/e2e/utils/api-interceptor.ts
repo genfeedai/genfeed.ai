@@ -1442,6 +1442,19 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   });
 }
 
+export async function registerProtectedAppHostFallbacks(
+  page: Page,
+): Promise<void> {
+  await page.route(/\/v1\/organizations(?:\?|$|\/)/, handleOrganizationRoutes);
+  await page.route(/\/v1\/auth\/bootstrap/, async (r) => {
+    await r.fulfill({
+      body: JSON.stringify(buildProtectedAppBootstrapPayload()),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}
+
 export async function setupApiMocks(
   page: Page,
   customMocks?: Record<string, (route: Route) => Promise<void>>,
@@ -1667,14 +1680,7 @@ export async function setupApiMocks(
   // Glob `**` is path-segment based and can miss `?mine=true` / bootstrap
   // query URLs. Register regex last so they beat both the glob mocks and the
   // network-guard `**/*` abort of api.genfeed.ai.
-  await page.route(/\/v1\/organizations(?:\?|$|\/)/, handleOrganizationRoutes);
-  await page.route(/\/v1\/auth\/bootstrap/, async (r) => {
-    await r.fulfill({
-      body: JSON.stringify(buildProtectedAppBootstrapPayload()),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
+  await registerProtectedAppHostFallbacks(page);
 
   await page.route(/api\.genfeed\.ai\/v1\/health(?:\?.*)?$/, async (r) => {
     await r.fulfill({

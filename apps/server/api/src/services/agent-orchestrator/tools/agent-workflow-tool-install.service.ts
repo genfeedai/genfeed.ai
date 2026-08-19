@@ -20,6 +20,7 @@ import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator
 import { APP_ROUTES } from '@genfeedai/constants';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { ConfigService } from '@libs/config/config.service';
 import {
@@ -488,16 +489,16 @@ export class AgentWorkflowToolInstallService {
           typeof params.label === 'string' && params.label.trim()
             ? params.label.trim()
             : source.name,
-        metadata: {
+        metadata: toPrismaJson({
           createdFrom: 'agent',
           sourceTemplateId: source.id,
           sourceType: 'seeded-template',
-        },
+        }),
         schedule,
         templateId: source.id,
         timezone,
         trigger: WorkflowTrigger.MANUAL,
-      } as never,
+      },
     );
 
     const workflowId = String(workflow.id);
@@ -689,12 +690,12 @@ export class AgentWorkflowToolInstallService {
         typeof params.label === 'string' && params.label.trim()
           ? params.label.trim()
           : workflow.label,
-      metadata: {
+      metadata: toPrismaJson({
         ...(workflow.metadata ?? {}),
         createdFrom: 'agent',
         sourceId: source.id,
         sourceType: source.kind,
-      },
+      }),
       ...(schedule
         ? {
             isScheduleEnabled: true,
@@ -702,7 +703,7 @@ export class AgentWorkflowToolInstallService {
             timezone,
           }
         : {}),
-    } as never);
+    });
   }
 
   private async resolveOfficialWorkflowSource(

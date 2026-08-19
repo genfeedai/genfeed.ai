@@ -45,24 +45,16 @@ export class ProcessedTweetsService extends BaseService<
     replyBotConfigId?: string,
     botActivityId?: string,
   ): Promise<ProcessedTweetDocument> {
-    const data: Record<string, unknown> = {
-      organizationId,
-      processedAt: new Date(),
-      processedBy,
-      tweetId,
-    };
-
-    if (replyBotConfigId) {
-      data.replyBotConfigId = replyBotConfigId;
-    }
-
-    if (botActivityId) {
-      data.botActivityId = botActivityId;
-    }
-
     try {
       const result = await this.prisma.processedTweet.create({
-        data: data as never,
+        data: {
+          ...(botActivityId ? { botActivityId } : {}),
+          organizationId,
+          processedAt: new Date(),
+          processedBy,
+          ...(replyBotConfigId ? { replyBotConfigId } : {}),
+          tweetId,
+        },
       });
       return result as unknown as ProcessedTweetDocument;
     } catch (error: unknown) {

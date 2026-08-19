@@ -91,7 +91,7 @@ export class TrendAnalysisService {
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: options.limit ?? 1000,
-      where: where as never,
+      where,
     });
     return docs.map(
       (doc) =>

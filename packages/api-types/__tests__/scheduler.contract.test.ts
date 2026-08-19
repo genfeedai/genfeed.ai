@@ -109,6 +109,14 @@ describe('channelTargetInputSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  test('accepts an optional per-target caption override', () => {
+    const result = channelTargetInputSchema.parse({
+      ...validTarget,
+      caption: 'X-specific caption',
+    });
+    expect(result.caption).toBe('X-specific caption');
+  });
 });
 
 describe('recurrenceInputSchema', () => {

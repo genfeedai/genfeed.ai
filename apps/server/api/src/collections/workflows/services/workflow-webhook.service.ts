@@ -6,6 +6,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -233,7 +234,7 @@ export class WorkflowWebhookService {
 
     await this.prisma.workflow.update({
       data: {
-        config: nextConfig as never,
+        config: toPrismaJson(nextConfig),
       },
       where: { id: workflow.id },
     });

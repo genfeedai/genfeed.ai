@@ -1,4 +1,4 @@
-import type { AnalyticsMetric } from '@genfeedai/enums';
+import type { AnalyticsMetric, Platform } from '@genfeedai/enums';
 import type { PostPerformanceDataPoint } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import type { BrandPerformanceData } from '@genfeedai/services/analytics/analytics.service';
 
@@ -9,16 +9,8 @@ export interface PostPerformanceChartProps {
   className?: string;
 }
 
-export type SocialPlatform =
-  | 'instagram'
-  | 'tiktok'
-  | 'youtube'
-  | 'facebook'
-  | 'twitter'
-  | 'linkedin'
-  | 'reddit'
-  | 'pinterest'
-  | 'medium';
+/** Product {@link Platform} ids. Chart series keys stay lowercase enum values. */
+export type SocialPlatform = Platform;
 
 export interface PlatformTimeSeriesDataPoint {
   date: string;

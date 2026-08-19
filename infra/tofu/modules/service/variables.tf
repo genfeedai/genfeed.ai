@@ -55,3 +55,10 @@ variable "log_retention_days" {
   type    = number
   default = 7
 }
+# ECS container stopTimeout in seconds. AWS default (and this module default)
+# is 30. Range is 2–120. Long-running BullMQ services (files, workers) pass 120
+# so SIGTERM drain can finish before Fargate SIGKILLs the task.
+variable "stop_timeout" {
+  type    = number
+  default = 30
+}

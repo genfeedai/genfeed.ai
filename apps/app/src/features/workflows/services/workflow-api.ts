@@ -65,11 +65,13 @@ export function isCanonicalSystemWorkflow(workflow: {
  * ```
  */
 export class WorkflowApiService extends HTTPBaseService {
-  private readonly workflowLifecycles = new Set<WorkflowLifecycle>([
-    WorkflowLifecycle.ARCHIVED,
-    WorkflowLifecycle.DRAFT,
-    WorkflowLifecycle.PUBLISHED,
-  ]);
+  private readonly workflowLifecycles = new Set<CloudWorkflowData['lifecycle']>(
+    [
+      WorkflowLifecycle.ARCHIVED,
+      WorkflowLifecycle.DRAFT,
+      WorkflowLifecycle.PUBLISHED,
+    ],
+  );
 
   private isJsonApiDocument(
     payload: unknown,

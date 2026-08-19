@@ -5,6 +5,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -51,15 +52,15 @@ export class DistributionsService extends BaseService<
         brandId: dto.brandId ?? null,
         platform,
         status,
-        config: {
+        config: toPrismaJson({
           caption: dto.caption,
           chatId: dto.chatId,
           contentType: dto.contentType,
           mediaUrl: dto.mediaUrl,
           scheduledAt: scheduledAt?.toISOString(),
           text: dto.text,
-        },
-      } as never,
+        }),
+      },
     });
 
     this.logger?.log(`${url} created distribution`, {
@@ -90,13 +91,13 @@ export class DistributionsService extends BaseService<
 
     const [docs, total] = await Promise.all([
       this.prisma.distribution.findMany({
-        where: scopedWhere(organizationId, where) as never,
+        where: scopedWhere(organizationId, where),
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.distribution.count({
-        where: scopedWhere(organizationId, where) as never,
+        where: scopedWhere(organizationId, where),
       }),
     ]);
 

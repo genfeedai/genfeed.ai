@@ -14,7 +14,7 @@ import {
   PersonaStatus,
   VideoTaskModel,
 } from '@genfeedai/enums';
-import type { Credential, Persona } from '@genfeedai/prisma';
+import { type Credential, type Persona, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -170,7 +170,7 @@ export class ContentProductionWorkflowService {
         where: scopedWhere(organizationId, {
           isAutopilotEnabled: true,
           nextAutopilotRunAt: { lte: now },
-          status: PersonaStatus.ACTIVE as never,
+          status: PersonaStatus.ACTIVE,
         }),
       })) as PersonaWithCredentials[];
 
@@ -355,7 +355,7 @@ export class ContentProductionWorkflowService {
 
     await this.prisma.persona.update({
       data: {
-        config: updatedConfig as never,
+        config: toPrismaJson(updatedConfig),
         nextAutopilotRunAt: nextRun,
       },
       where: { id: persona.id },

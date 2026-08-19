@@ -1,3 +1,4 @@
+import { UploadStatus } from '@genfeedai/enums';
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { DragEvent } from 'react';
@@ -11,7 +12,7 @@ function completedAttachment(id: string): AttachmentItem {
     kind: 'image',
     name: `${id}.png`,
     previewUrl: `https://cdn.example/${id}.png`,
-    status: 'completed',
+    status: UploadStatus.COMPLETED,
     url: `https://cdn.example/${id}.png`,
   };
 }
@@ -94,7 +95,9 @@ describe('useAttachments', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.attachments[0]?.status).toBe('completed');
+      expect(result.current.attachments[0]?.status).toBe(
+        UploadStatus.COMPLETED,
+      );
     });
 
     expect(mockOnUpload).toHaveBeenCalledTimes(1);
@@ -142,7 +145,7 @@ describe('useAttachments', () => {
       resolveUpload?.({ ingredientId: 'ing', url: 'https://cdn/u.png' });
     });
     await waitFor(() => {
-      expect(result.current.attachments[0].status).toBe('completed');
+      expect(result.current.attachments[0].status).toBe(UploadStatus.COMPLETED);
     });
   });
 
@@ -158,7 +161,7 @@ describe('useAttachments', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.attachments[0]?.status).toBe('failed');
+      expect(result.current.attachments[0]?.status).toBe(UploadStatus.FAILED);
     });
     expect(result.current.attachments[0].error).toBe('upload exploded');
   });
@@ -278,7 +281,7 @@ describe('useAttachments', () => {
             kind: 'image',
             name: 'pending.png',
             previewUrl: 'blob:pending',
-            status: 'pending',
+            status: UploadStatus.PENDING,
           } as AttachmentItem,
         ],
         onUpload: mockOnUpload,

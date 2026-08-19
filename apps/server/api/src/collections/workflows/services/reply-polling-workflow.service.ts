@@ -20,7 +20,7 @@ import {
   WorkflowStatus,
 } from '@genfeedai/enums';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
-import type { Workflow } from '@genfeedai/prisma';
+import { toPrismaJson, type Workflow } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -281,8 +281,8 @@ export class ReplyPollingWorkflowService {
     const workflows = await this.prisma.workflow.findMany({
       take: 200,
       where: scopedWhere(organizationId, {
-        lifecycle: WorkflowLifecycle.PUBLISHED as never,
-        status: WorkflowStatus.ACTIVE as never,
+        lifecycle: WorkflowLifecycle.PUBLISHED,
+        status: WorkflowStatus.ACTIVE,
       }),
     });
 
@@ -351,7 +351,7 @@ export class ReplyPollingWorkflowService {
     };
 
     await this.prisma.workflow.update({
-      data: { config: updatedConfig as never },
+      data: { config: toPrismaJson(updatedConfig) },
       where: { id: workflow.id },
     });
 

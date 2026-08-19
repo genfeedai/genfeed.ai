@@ -29,6 +29,7 @@ function ReviewQueueContentContent() {
     selectedPostId,
     visibleItems,
     handleApproveItem,
+    handleAssignItem,
     handleBatchChange,
     handleBulkAction,
     handleDiscardBatch,
@@ -37,6 +38,7 @@ function ReviewQueueContentContent() {
     handleRejectItem,
     handleSelectItem,
     handleToggleSelect,
+    handleUnassignItem,
     setSelectedPostId,
   } = useReviewQueueContent();
 
@@ -76,6 +78,7 @@ function ReviewQueueContentContent() {
       selectedPostId={selectedPostId}
       visibleItems={visibleItems}
       onApprove={handleApproveItem}
+      onAssign={handleAssignItem}
       onBatchChange={handleBatchChange}
       onBulkApprove={() => handleBulkAction('approve')}
       onBulkReject={() => handleBulkAction('reject')}
@@ -88,6 +91,7 @@ function ReviewQueueContentContent() {
       onReject={handleRejectItem}
       onSelectItem={handleSelectItem}
       onToggleSelect={handleToggleSelect}
+      onUnassign={handleUnassignItem}
     />
   );
 }

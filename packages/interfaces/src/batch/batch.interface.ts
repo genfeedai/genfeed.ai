@@ -67,6 +67,8 @@ export interface IBatchItem {
   reviewFeedback?: string;
   reviewedAt?: string;
   reviewEvents?: IBatchReviewEvent[];
+  assigneeId?: string | null;
+  assignee?: IBatchItemAssignee | null;
   versionPinId?: string;
   publishApproval?: IPublishApproval;
   sourceActionId?: string;
@@ -90,6 +92,12 @@ export interface IBatchItem {
   postAvgEngagementRate?: number;
   postUrl?: string;
   createdAt: string;
+}
+
+export interface IBatchItemAssignee {
+  displayName: string;
+  handle: string;
+  id: string;
 }
 
 export interface IBatchReviewEventReviewer {

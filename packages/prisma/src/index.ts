@@ -16,3 +16,4 @@ export {
 } from './article-column-contract';
 export type { EnumFieldMeta, ModelFieldMeta } from './enum-field-map';
 export { getModelMeta, PRISMA_MODEL_METADATA } from './enum-field-map';
+export { toPrismaJson } from './to-prisma-json';

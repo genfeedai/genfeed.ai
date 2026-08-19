@@ -24,9 +24,11 @@ interface ReviewWorkspaceSurfaceAdapterProps {
   isActioning: boolean;
   isSelected: boolean;
   onApprove: (itemId: string) => void;
+  onAssign: (itemId: string, assigneeId: string) => void;
   onReject: (itemId: string, feedback?: string) => void;
   onRequestChanges: (itemId: string, feedback?: string) => void;
   onToggleSelect: (itemId: string) => void;
+  onUnassign: (itemId: string) => void;
 }
 
 /**
@@ -38,9 +40,11 @@ export default function ReviewWorkspaceSurfaceAdapter({
   isActioning,
   isSelected,
   onApprove,
+  onAssign,
   onReject,
   onRequestChanges,
   onToggleSelect,
+  onUnassign,
 }: ReviewWorkspaceSurfaceAdapterProps) {
   const pathname = usePathname();
   const { brandId, organizationId } = useBrand();
@@ -191,9 +195,11 @@ export default function ReviewWorkspaceSurfaceAdapter({
           isSelected={isSelected}
           item={activeItem}
           onApprove={onApprove}
+          onAssign={onAssign}
           onReject={onReject}
           onRequestChanges={onRequestChanges}
           onToggleSelect={onToggleSelect}
+          onUnassign={onUnassign}
         />
       </div>
     ),
@@ -202,9 +208,11 @@ export default function ReviewWorkspaceSurfaceAdapter({
       isActioning,
       isSelected,
       onApprove,
+      onAssign,
       onReject,
       onRequestChanges,
       onToggleSelect,
+      onUnassign,
     ],
   );
 

@@ -26,7 +26,7 @@ interface CloudWorkflowState {
   /** Metadata to attach when first creating a workflow */
   pendingCreateMetadata: Record<string, unknown> | null;
   /** Current lifecycle status */
-  lifecycle: WorkflowLifecycle;
+  lifecycle: CloudWorkflowData['lifecycle'];
   /** Organization owning this workflow */
   organizationId: string | null;
   /** Whether the cloud store is currently loading data */

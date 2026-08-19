@@ -14,6 +14,7 @@ import {
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSION_ORDER,
@@ -171,7 +172,7 @@ export class OrganizationSettingsService extends BaseService<
     }
 
     await this.prisma.organizationSetting.update({
-      data: { webhookDeliveryStatus: status } as never,
+      data: { webhookDeliveryStatus: toPrismaJson(status) },
       where: { id: setting.id },
     });
   }

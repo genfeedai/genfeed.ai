@@ -14,6 +14,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
@@ -214,23 +215,23 @@ export class AgentWorkflowToolCreateService {
       {
         brandId,
         description: input.description,
-        edges: input.edges,
+        edges: toPrismaJson(input.edges),
         inputVariables: Array.isArray(params.inputVariables)
-          ? (params.inputVariables as Array<Record<string, unknown>>)
+          ? toPrismaJson(params.inputVariables)
           : undefined,
         isScheduleEnabled: input.isScheduleEnabled,
         label: input.workflowLabel,
-        metadata: normalizedMetadata,
-        nodes: input.nodes,
+        metadata: toPrismaJson(normalizedMetadata),
+        nodes: toPrismaJson(input.nodes),
         schedule: input.schedule,
         steps: Array.isArray(params.steps)
-          ? (params.steps as Array<Record<string, unknown>>)
+          ? toPrismaJson(params.steps)
           : undefined,
         templateId:
           typeof params.templateId === 'string' ? params.templateId : undefined,
         timezone: input.timezone,
         trigger: input.trigger as WorkflowTrigger,
-      } as never,
+      },
     );
 
     const workflowId = String(
@@ -350,21 +351,20 @@ export class AgentWorkflowToolCreateService {
       {
         brandId,
         description: taskDescription,
-        edges: [],
-        inputVariables: [],
+        edges: toPrismaJson([]),
+        inputVariables: toPrismaJson([]),
         isScheduleEnabled: true,
         label: workflowLabel,
-        metadata: this.buildRecurringScaffoldMetadata(parsed, params),
-        nodes: this.buildRecurringScaffoldNodes(
-          parsed,
-          params,
-          brandId,
-          brandLabel,
+        metadata: toPrismaJson(
+          this.buildRecurringScaffoldMetadata(parsed, params),
+        ),
+        nodes: toPrismaJson(
+          this.buildRecurringScaffoldNodes(parsed, params, brandId, brandLabel),
         ),
         schedule: parsed.schedule,
         timezone: parsed.timezone,
         trigger: WorkflowTrigger.MANUAL,
-      } as never,
+      },
     );
 
     const workflowId = String(workflow.id);

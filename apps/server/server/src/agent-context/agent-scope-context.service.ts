@@ -3,6 +3,7 @@ import type {
   AgentScopeSource,
   ValidatedAgentScope,
 } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -284,7 +285,7 @@ export class AgentScopeContextService {
         brandId: nextBrandId,
         contextVersion: { increment: 1 },
         isLegacyBrandFallbackEligible: false,
-        scopeChangeProvenance: nextProvenance as never,
+        scopeChangeProvenance: toPrismaJson(nextProvenance),
       },
       where: scopedWhere(params.organizationId, {
         contextVersion: params.expectedContextVersion,

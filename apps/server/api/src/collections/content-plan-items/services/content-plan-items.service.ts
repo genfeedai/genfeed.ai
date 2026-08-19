@@ -12,7 +12,10 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
-import type { ContentPlanItem as PrismaContentPlanItem } from '@genfeedai/prisma';
+import {
+  type ContentPlanItem as PrismaContentPlanItem,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -56,18 +59,20 @@ export class ContentPlanItemsService {
         this.prisma.contentPlanItem.create({
           data: {
             brandId: item.brandId,
-            data: this.buildDataPayload({
-              confidence: item.confidence,
-              pipelineSteps: item.pipelineSteps,
-              platforms: item.platforms,
-              // relation-alias-ok: prompt text payload, not a Prompt row id
-              prompt: item.prompt,
-              scheduledAt: item.scheduledAt,
-              skillSlug: item.skillSlug,
-              status: ContentPlanItemStatus.PENDING,
-              topic: item.topic,
-              type: item.type,
-            }) as never,
+            data: toPrismaJson(
+              this.buildDataPayload({
+                confidence: item.confidence,
+                pipelineSteps: item.pipelineSteps,
+                platforms: item.platforms,
+                // relation-alias-ok: prompt text payload, not a Prompt row id
+                prompt: item.prompt,
+                scheduledAt: item.scheduledAt,
+                skillSlug: item.skillSlug,
+                status: ContentPlanItemStatus.PENDING,
+                topic: item.topic,
+                type: item.type,
+              }),
+            ),
             isDeleted: false,
             organizationId: item.organizationId,
             planId: item.planId,
@@ -139,15 +144,17 @@ export class ContentPlanItemsService {
 
     const updated = await this.prisma.contentPlanItem.update({
       data: {
-        data: this.buildDataPayload(
-          {
-            confidence: updates?.confidence,
-            postId: updates?.postId,
-            error: updates?.error,
-            status,
-          },
-          existing.data,
-        ) as never,
+        data: toPrismaJson(
+          this.buildDataPayload(
+            {
+              confidence: updates?.confidence,
+              postId: updates?.postId,
+              error: updates?.error,
+              status,
+            },
+            existing.data,
+          ),
+        ),
         status,
       },
       where: scopedWhere(organizationId, { id: itemId }),

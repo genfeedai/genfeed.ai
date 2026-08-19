@@ -20,7 +20,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
-import { PrismaClient } from '@genfeedai/prisma';
+import { PrismaClient, toPrismaJson } from '@genfeedai/prisma';
 import {
   createPrismaPgConfig,
   POSTGRES_CA_FILE_ENV_KEYS,
@@ -209,7 +209,7 @@ async function ensureDailyTrendsDigestWorkflow(params: {
   if (!params.dryRun) {
     await params.prisma.workflow.create({
       data: {
-        edges: DAILY_TRENDS_DIGEST_EDGES as never,
+        edges: toPrismaJson(DAILY_TRENDS_DIGEST_EDGES),
         executionCount: 0,
         inputVariables: [],
         isDeleted: false,
@@ -219,7 +219,7 @@ async function ensureDailyTrendsDigestWorkflow(params: {
           sourceTemplateId: 'daily-trends-digest',
           sourceType: 'seeded-template',
         },
-        nodes: DAILY_TRENDS_DIGEST_NODES as never,
+        nodes: toPrismaJson(DAILY_TRENDS_DIGEST_NODES),
         organizationId: params.organizationId,
         progress: 0,
         schedule: '0 7 * * *',
@@ -249,7 +249,7 @@ async function main(): Promise<void> {
     const organizations = (await prisma.organization.findMany({
       orderBy: { createdAt: 'asc' },
       select: { id: true, userId: true },
-      where: where as never,
+      where,
     })) as SeedOrganization[];
 
     logger.log(

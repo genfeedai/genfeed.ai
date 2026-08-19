@@ -1,14 +1,17 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   IWarmupAccount,
   IWarmupAccountStatus,
+  IWarmupInvitationStatus,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
+  WarmupAccountDetailProps,
   WarmupAccountFormState,
   WarmupAccountsPageProps,
+  WarmupInvitationAction,
 } from '@props/admin/warmup-accounts.props';
 import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.service';
 import { logger } from '@services/core/logger.service';
@@ -20,7 +23,16 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { CircleCheck, RefreshCw, Rocket } from 'lucide-react';
+import {
+  Ban,
+  CircleCheck,
+  Mail,
+  RefreshCw,
+  Rocket,
+  RotateCw,
+  Search,
+} from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 
 const TABS = [
@@ -64,6 +76,7 @@ type PageState = {
   accounts: IWarmupAccount[];
   activeTab: 'accounts' | 'create';
   form: WarmupAccountFormState;
+  invitationAction: WarmupInvitationAction | null;
   isLoading: boolean;
   isSubmitting: boolean;
   loadTrigger: number;
@@ -81,6 +94,8 @@ type PageAction =
       value: string;
     }
   | { type: 'SET_SELECTED'; accountId: string }
+  | { type: 'SET_INVITATION_ACTION'; action: WarmupInvitationAction | null }
+  | { type: 'UPSERT_ACCOUNT'; account: IWarmupAccount }
   | { type: 'CREATE_SUCCESS'; account: IWarmupAccount };
 
 function pageReducer(state: PageState, action: PageAction): PageState {
@@ -94,6 +109,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         accounts: [action.account, ...remaining],
         activeTab: 'accounts',
         form: INITIAL_FORM,
+        isLoading: true,
         loadTrigger: state.loadTrigger + 1,
         selectedAccountId: action.account.id,
       };
@@ -110,12 +126,29 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         ...state,
         form: { ...state.form, [action.field]: action.value },
       };
+    case 'SET_INVITATION_ACTION':
+      return { ...state, invitationAction: action.action };
     case 'SET_LOADING':
       return { ...state, isLoading: action.isLoading };
     case 'SET_SELECTED':
       return { ...state, selectedAccountId: action.accountId };
     case 'SET_SUBMITTING':
       return { ...state, isSubmitting: action.isSubmitting };
+    case 'UPSERT_ACCOUNT': {
+      const hasAccount = state.accounts.some(
+        (account) => account.id === action.account.id,
+      );
+
+      return {
+        ...state,
+        accounts: hasAccount
+          ? state.accounts.map((account) =>
+              account.id === action.account.id ? action.account : account,
+            )
+          : [action.account, ...state.accounts],
+        selectedAccountId: action.account.id,
+      };
+    }
     case 'SET_TAB':
       return {
         ...state,
@@ -143,6 +176,60 @@ function getStatusMeta(status: IWarmupAccountStatus) {
   return STATUS_META[status] ?? { label: status, variant: 'outline' as const };
 }
 
+function canSendInvitation(account: IWarmupAccount): boolean {
+  if (account.status === 'CLAIMED' || account.status === 'ARCHIVED') {
+    return false;
+  }
+
+  const status = account.invitation?.status;
+  if (!status) {
+    return (
+      account.status === 'FAILED' ||
+      account.status === 'INVITED' ||
+      account.status === 'PROVISIONED'
+    );
+  }
+
+  return (
+    status === 'pending' || status === 'delivery-failed' || status === 'expired'
+  );
+}
+
+function canResendInvitation(account: IWarmupAccount): boolean {
+  const status = account.invitation?.status;
+  return (
+    status === 'pending' ||
+    status === 'delivered' ||
+    status === 'delivery-failed' ||
+    status === 'expired'
+  );
+}
+
+function canRevokeInvitation(account: IWarmupAccount): boolean {
+  const status = account.invitation?.status;
+  return Boolean(status) && status !== 'accepted' && status !== 'revoked';
+}
+
+function formatInvitationStatus(
+  status: IWarmupInvitationStatus,
+  translate: (key: string) => string,
+): string {
+  switch (status) {
+    case 'accepted':
+      return translate('invitation.statusAccepted');
+    case 'delivered':
+      return translate('invitation.statusDelivered');
+    case 'delivery-failed':
+      return translate('invitation.statusDeliveryFailed');
+    case 'expired':
+      return translate('invitation.statusExpired');
+    case 'revoked':
+      return translate('invitation.statusRevoked');
+    default:
+      return translate('invitation.statusPending');
+  }
+}
+
 export default function WarmupAccountsPage({
   defaultTab = 'create',
 }: WarmupAccountsPageProps) {
@@ -150,13 +237,21 @@ export default function WarmupAccountsPage({
     accounts: [],
     activeTab: defaultTab,
     form: INITIAL_FORM,
+    invitationAction: null,
     isLoading: defaultTab === 'accounts',
     isSubmitting: false,
     loadTrigger: 0,
   });
 
-  const { accounts, activeTab, form, isLoading, isSubmitting, loadTrigger } =
-    state;
+  const {
+    accounts,
+    activeTab,
+    form,
+    invitationAction,
+    isLoading,
+    isSubmitting,
+    loadTrigger,
+  } = state;
   const notificationsService = NotificationsService.getInstance();
 
   const getWarmupAccountsService = useAuthedService((token: string) =>
@@ -206,6 +301,92 @@ export default function WarmupAccountsPage({
 
     return () => controller.abort();
   }, [activeTab, loadAccounts, loadTrigger]);
+
+  const runInvitationAction = useCallback(
+    async (
+      action: WarmupInvitationAction,
+      accountId: string,
+      signal?: AbortSignal,
+    ): Promise<void> => {
+      dispatch({ type: 'SET_INVITATION_ACTION', action });
+
+      try {
+        const service = await getWarmupAccountsService();
+        const account =
+          action === 'inspect'
+            ? await service.inspectInvitation(accountId)
+            : action === 'send'
+              ? await service.sendInvitation(accountId)
+              : action === 'resend'
+                ? await service.resendInvitation(accountId)
+                : await service.revokeInvitation(accountId);
+
+        if (signal?.aborted) {
+          return;
+        }
+
+        dispatch({ type: 'UPSERT_ACCOUNT', account });
+
+        if (action === 'inspect') {
+          return;
+        }
+
+        if (account.invitation?.status === 'delivery-failed') {
+          notificationsService.warning(
+            'Invitation email could not be delivered',
+          );
+          return;
+        }
+
+        if (action === 'send') {
+          notificationsService.success('Invitation sent');
+          return;
+        }
+
+        if (action === 'resend') {
+          notificationsService.success('Invitation resent');
+          return;
+        }
+
+        notificationsService.success('Invitation revoked');
+      } catch (error) {
+        if (signal?.aborted) {
+          return;
+        }
+
+        logger.error(`Warm-up invitation ${action} failed`, error);
+        notificationsService.error(
+          action === 'inspect'
+            ? 'Failed to inspect invitation'
+            : action === 'send'
+              ? 'Failed to send invitation'
+              : action === 'resend'
+                ? 'Failed to resend invitation'
+                : 'Failed to revoke invitation',
+        );
+      } finally {
+        if (!signal?.aborted) {
+          dispatch({ type: 'SET_INVITATION_ACTION', action: null });
+        }
+      }
+    },
+    [getWarmupAccountsService, notificationsService],
+  );
+
+  useEffect(() => {
+    if (activeTab !== 'accounts' || isLoading || !state.selectedAccountId) {
+      return;
+    }
+
+    const controller = new AbortController();
+    void runInvitationAction(
+      'inspect',
+      state.selectedAccountId,
+      controller.signal,
+    );
+
+    return () => controller.abort();
+  }, [activeTab, isLoading, runInvitationAction, state.selectedAccountId]);
 
   function handleFieldChange(
     field: keyof WarmupAccountFormState,
@@ -394,7 +575,30 @@ export default function WarmupAccountsPage({
               dispatch({ type: 'SET_SELECTED', accountId })
             }
           />
-          <WarmupAccountDetail account={selectedAccount} />
+          <WarmupAccountDetail
+            account={selectedAccount}
+            invitationAction={invitationAction}
+            onInspect={() => {
+              if (selectedAccount) {
+                void runInvitationAction('inspect', selectedAccount.id);
+              }
+            }}
+            onResend={() => {
+              if (selectedAccount) {
+                void runInvitationAction('resend', selectedAccount.id);
+              }
+            }}
+            onRevoke={() => {
+              if (selectedAccount) {
+                void runInvitationAction('revoke', selectedAccount.id);
+              }
+            }}
+            onSend={() => {
+              if (selectedAccount) {
+                void runInvitationAction('send', selectedAccount.id);
+              }
+            }}
+          />
         </div>
       )}
     </Container>
@@ -489,7 +693,16 @@ function WarmupAccountList({
   );
 }
 
-function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
+function WarmupAccountDetail({
+  account,
+  invitationAction = null,
+  onInspect,
+  onResend,
+  onRevoke,
+  onSend,
+}: WarmupAccountDetailProps) {
+  const translate = useTranslations('pages.warmupAccounts');
+
   if (!account) {
     return (
       <div className="shadow-border bg-card p-5">
@@ -500,6 +713,12 @@ function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
 
   const status = getStatusMeta(account.status);
   const diagnostics = account.diagnostics?.steps ?? [];
+  const invitation = account.invitation;
+  const isActionPending = invitationAction !== null;
+  const resendLabel =
+    invitation?.status === 'delivery-failed'
+      ? translate('invitation.retry')
+      : translate('invitation.resend');
 
   return (
     <aside className="shadow-border bg-card p-5">
@@ -522,6 +741,88 @@ function WarmupAccountDetail({ account }: { account?: IWarmupAccount }) {
         <DetailRow label="Invitation ID" value={account.invitationId} />
         <DetailRow label="Operator ID" value={account.operatorUserId} />
       </dl>
+
+      <div className="mt-6 border-t border-border pt-5">
+        <h3 className="text-sm font-semibold text-foreground">
+          {translate('invitation.lifecycle')}
+        </h3>
+        {invitation ? (
+          <dl className="mt-3 grid gap-3 text-sm">
+            <DetailRow
+              label={translate('invitation.status')}
+              value={formatInvitationStatus(invitation.status, translate)}
+            />
+            <DetailRow
+              label={translate('invitation.expiresAt')}
+              value={formatDate(invitation.expiresAt)}
+            />
+            {invitation.acceptedAt ? (
+              <DetailRow
+                label={translate('invitation.acceptedAt')}
+                value={formatDate(invitation.acceptedAt)}
+              />
+            ) : null}
+            {invitation.revokedAt ? (
+              <DetailRow
+                label={translate('invitation.revokedAt')}
+                value={formatDate(invitation.revokedAt)}
+              />
+            ) : null}
+          </dl>
+        ) : (
+          <p className="mt-2 text-sm text-foreground/50">
+            {translate('invitation.missing')}
+          </p>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+            icon={<Search className="size-4" />}
+            isDisabled={isActionPending}
+            isLoading={invitationAction === 'inspect'}
+            label={translate('invitation.inspect')}
+            onClick={onInspect}
+          />
+          {canSendInvitation(account) ? (
+            <Button
+              type="button"
+              size={ButtonSize.SM}
+              icon={<Mail className="size-4" />}
+              isDisabled={isActionPending}
+              isLoading={invitationAction === 'send'}
+              label={translate('invitation.send')}
+              onClick={onSend}
+            />
+          ) : null}
+          {canResendInvitation(account) ? (
+            <Button
+              type="button"
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              icon={<RotateCw className="size-4" />}
+              isDisabled={isActionPending}
+              isLoading={invitationAction === 'resend'}
+              label={resendLabel}
+              onClick={onResend}
+            />
+          ) : null}
+          {canRevokeInvitation(account) ? (
+            <Button
+              type="button"
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DESTRUCTIVE}
+              icon={<Ban className="size-4" />}
+              isDisabled={isActionPending}
+              isLoading={invitationAction === 'revoke'}
+              label={translate('invitation.revoke')}
+              onClick={onRevoke}
+            />
+          ) : null}
+        </div>
+      </div>
 
       <div className="mt-6 border-t border-border pt-5">
         <h3 className="text-sm font-semibold text-foreground">Diagnostics</h3>

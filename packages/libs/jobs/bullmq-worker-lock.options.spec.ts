@@ -25,6 +25,12 @@ describe('bullmq-worker-lock.options', () => {
   });
 
   it('merges caller worker options without dropping lock settings', () => {
+    expect(withLongJobWorkerOptions({})).toEqual({
+      lockDuration: 120_000,
+      lockRenewTime: 30_000,
+      stalledInterval: 30_000,
+    });
+    expect(withLongJobWorkerOptions({})).not.toHaveProperty('maxStalledCount');
     expect(
       withLongJobWorkerOptions({
         concurrency: 3,

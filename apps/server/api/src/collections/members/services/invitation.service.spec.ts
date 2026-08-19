@@ -411,6 +411,38 @@ describe('InvitationService', () => {
     });
   });
 
+  describe('getInvitation', () => {
+    it('returns the invitation view without token material', async () => {
+      const { prisma, service } = buildService();
+      prisma.invitation.findFirst.mockResolvedValue(makeInvitation());
+
+      const result = await service.getInvitation('inv_123', orgId);
+
+      expect(prisma.invitation.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'inv_123',
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
+      expect(result).toMatchObject({
+        email: 'new@example.com',
+        id: 'inv_123',
+        status: 'pending',
+      });
+      expect(result).not.toHaveProperty('tokenHash');
+    });
+
+    it('returns not found for missing invitations', async () => {
+      const { prisma, service } = buildService();
+      prisma.invitation.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.getInvitation('missing', orgId),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
   describe('revokeInvitation', () => {
     it('revokes a pending invitation in the owning organization', async () => {
       const { prisma, service } = buildService();

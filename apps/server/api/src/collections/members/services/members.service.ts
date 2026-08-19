@@ -72,7 +72,7 @@ export class MembersService extends BaseService<
 
   async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
     const members = await this.prisma.member.findMany({
-      where: filter as never,
+      where: filter,
     });
 
     return members as unknown as MemberDocument[];
@@ -184,7 +184,7 @@ export class MembersService extends BaseService<
     }
 
     await this.prisma.member.updateMany({
-      where: where as never,
+      where,
       data: { lastUsedBrandId: brandId },
     });
   }

@@ -1,3 +1,4 @@
+import { toPrismaJson } from '@genfeedai/prisma';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 import type { AdCreativeMappingStatus } from '@server/collections/ad-creative-mappings/schemas/ad-creative-mapping.schema';
@@ -49,7 +50,7 @@ export class AdCreativeMappingsService {
       const doc = await this.prisma.adCreativeMapping.create({
         data: {
           brandId: input.brandId ?? null,
-          data: {
+          data: toPrismaJson({
             adAccountId: input.adAccountId,
             externalAdId: input.externalAdId,
             externalCreativeId: input.externalCreativeId,
@@ -57,7 +58,7 @@ export class AdCreativeMappingsService {
             metadata: input.metadata ?? {},
             platform: input.platform ?? 'meta',
             status: input.status ?? 'draft',
-          } as never,
+          }),
           isDeleted: false,
           organizationId: input.organizationId,
         },
@@ -158,7 +159,7 @@ export class AdCreativeMappingsService {
       }
 
       const doc = await this.prisma.adCreativeMapping.update({
-        data: { data: { ...existingData, ...patchData } as never },
+        data: { data: toPrismaJson({ ...existingData, ...patchData }) },
         where: { id },
       });
 

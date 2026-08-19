@@ -37,6 +37,7 @@ export * from '@serializers/server/content/performance-summary.serializer';
 export * from '@serializers/server/content/persona.serializer';
 export * from '@serializers/server/content/post.serializer';
 export * from '@serializers/server/content/posting-cadence.serializer';
+export * from '@serializers/server/content/posting-set.serializer';
 export * from '@serializers/server/content/presigned-upload.serializer';
 export * from '@serializers/server/content/publish-approval.serializer';
 export * from '@serializers/server/content/recurrence-rule.serializer';

@@ -5,9 +5,11 @@ import {
 } from '@api/collections/content-performance/services/optimization-cycle.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
+import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
+import type { AbTestOutcome } from '@api/services/content-optimization/ab-test-suggestion-harness.types';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   type PerformanceContentItem,
   PerformanceSummaryService,
@@ -64,6 +66,7 @@ export interface OptimizationRecommendations {
     hypothesis: string;
   }>;
   general: ContentRecommendation[];
+  validatedAbTests: AbTestOutcome[];
 }
 
 export interface TimingSuggestionPayload {
@@ -179,6 +182,8 @@ export class ContentOptimizationService {
     private readonly openAiLlmService: OpenAiLlmService,
     private readonly brandMemoryService: BrandMemoryService,
     private readonly trendPreferencesService: TrendPreferencesService,
+    @Optional()
+    private readonly abTestHarness?: AbTestSuggestionHarnessService,
   ) {}
 
   // ─── 1. Content Performance Analysis ─────────────────────────────
@@ -327,12 +332,17 @@ export class ContentOptimizationService {
         recommendation: r.recommendation,
       }));
 
+    const validatedAbTests = this.abTestHarness
+      ? await this.abTestHarness.getValidatedOutcomes(organizationId, brandId)
+      : [];
+
     return {
       abTestSuggestions,
       contentTypes,
       general,
       pipelineConfigs,
       postingSchedule,
+      validatedAbTests,
     };
   }
 

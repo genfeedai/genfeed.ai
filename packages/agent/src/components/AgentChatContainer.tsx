@@ -349,7 +349,7 @@ export function AgentChatContainer({
       attachments?: Parameters<typeof container.handleSend>[2],
       options?: Parameters<typeof container.handleSend>[3],
     ) => {
-      container.handleSend(content, mentions, attachments, options);
+      return container.handleSend(content, mentions, attachments, options);
     },
     [container.handleSend],
   );
@@ -493,9 +493,12 @@ export function AgentChatContainer({
               composerShell?.placement === 'inspector' ? 'inspector' : 'default'
             }
             onMoveFollowUp={container.followUpQueue.move}
+            onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}
             onRemoveFollowUp={container.followUpQueue.remove}
+            onRetryFollowUp={container.retryFollowUp}
             onSend={sendConversationMessage}
             onSendFollowUpNow={container.sendFollowUpNow}
+            isInterruptingFollowUps={container.followUpQueue.isInterrupting}
             onStop={container.handleStopRun}
             placeholder={placeholder}
             promptBarSuggestions={promptBarSuggestions}
@@ -602,9 +605,12 @@ export function AgentChatContainer({
               onModelChange={handleModelChange}
               onMoveFollowUp={container.followUpQueue.move}
               onPrioritizeChange={handlePrioritizeChange}
+              onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}
               onRemoveFollowUp={container.followUpQueue.remove}
+              onRetryFollowUp={container.retryFollowUp}
               onSend={sendConversationMessage}
               onSendFollowUpNow={container.sendFollowUpNow}
+              isInterruptingFollowUps={container.followUpQueue.isInterrupting}
               onStop={container.handleStopRun}
               onSubmitInputRequest={container.handleSubmitInputRequest}
               onUiAction={container.handleUiAction}

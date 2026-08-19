@@ -233,7 +233,7 @@ export class PostRepeatSchedulerService {
           order: child.order || 0,
           organizationId: originalParent.organizationId,
           parentId: newParentId,
-          platform: originalParent.platform as never,
+          platform: originalParent.platform,
           scheduledDate: newScheduledDate,
           targetExecutionState: TargetExecutionState.SCHEDULED,
           userId: originalParent.userId,

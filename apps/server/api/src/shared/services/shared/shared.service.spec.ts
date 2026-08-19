@@ -125,6 +125,29 @@ describe('SharedService', () => {
       });
     });
 
+    it('persists redacted generation-brief compiler identity on the ingredient', async () => {
+      await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.IMAGE,
+        generationSource:
+          'generation-brief:v1:flux-schnell-capability@1:flux-schnell-image-compiler@1',
+        providerData: {
+          compilerId: 'flux-schnell-image-compiler',
+          status: 'compiled',
+        },
+      });
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          generationSource:
+            'generation-brief:v1:flux-schnell-capability@1:flux-schnell-image-compiler@1',
+          providerData: {
+            compilerId: 'flux-schnell-image-compiler',
+            status: 'compiled',
+          },
+        }),
+      );
+    });
+
     it('derives a compact metadata label from a multiline prompt', async () => {
       await service.createMediaDocuments(mockUser, {
         category: IngredientCategory.IMAGE,

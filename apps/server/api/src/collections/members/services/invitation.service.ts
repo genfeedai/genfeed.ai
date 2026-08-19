@@ -231,6 +231,18 @@ export class InvitationService {
     );
   }
 
+  async getInvitation(
+    invitationId: string,
+    organizationId: string,
+  ): Promise<InvitationView> {
+    const invitation = await this.getInvitationForOrganization(
+      invitationId,
+      organizationId,
+    );
+
+    return toInvitationView(invitation);
+  }
+
   async listInvitations(
     organizationId: string,
     status?: InvitationStatus,

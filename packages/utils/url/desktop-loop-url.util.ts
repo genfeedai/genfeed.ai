@@ -1,9 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import { isSourcePostVariationPlatform, Platform } from '@genfeedai/enums';
 import type { IClipDraftHandoff } from '@genfeedai/interfaces';
 import type {
   TrendItem,
   TrendSourceItem,
 } from '@genfeedai/props/trends/trends-page.props';
+
+export { isSourcePostVariationPlatform };
 
 function buildQuery(params: Record<string, string | undefined>): string {
   const searchParams = new URLSearchParams();
@@ -17,19 +20,6 @@ function buildQuery(params: Record<string, string | undefined>): string {
 
   const query = searchParams.toString();
   return query ? `?${query}` : '';
-}
-
-const SOURCE_POST_VARIATION_PLATFORMS = new Set([
-  'instagram',
-  'linkedin',
-  'tiktok',
-  'twitter',
-]);
-
-export function isSourcePostVariationPlatform(
-  platform: string | null | undefined,
-): platform is 'instagram' | 'linkedin' | 'tiktok' | 'twitter' {
-  return Boolean(platform && SOURCE_POST_VARIATION_PLATFORMS.has(platform));
 }
 
 export function buildAgentPromptHref(prompt: string): string {
@@ -105,7 +95,7 @@ export function buildTrendSourceTwitterDraftHref(
 ): string {
   return `/publish/remix${buildQuery({
     mode: isThread ? 'thread' : 'tweet',
-    platform: 'twitter',
+    platform: Platform.TWITTER,
     sourceAuthor: source.authorHandle,
     sourceReferenceId: source.sourceReferenceId,
     sourceText: source.text || source.title,

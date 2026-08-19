@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
@@ -98,7 +99,7 @@ export class CreativePatternsService {
       const updated = await this.prisma.creativePattern.update({
         data: {
           brandId: payload.brandId,
-          data: payload.data as never,
+          data: toPrismaJson(payload.data),
           organizationId: payload.organizationId,
         },
         where: { id: existing.id },
@@ -110,7 +111,7 @@ export class CreativePatternsService {
     const created = await this.prisma.creativePattern.create({
       data: {
         brandId: payload.brandId,
-        data: payload.data as never,
+        data: toPrismaJson(payload.data),
         organizationId: payload.organizationId,
       },
     });

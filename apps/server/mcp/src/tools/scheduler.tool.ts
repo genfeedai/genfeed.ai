@@ -1,11 +1,17 @@
-import type { ScheduledReleaseControlAction } from '@mcp/services/client/scheduler.client';
+import type {
+  ScheduledReleaseControlAction,
+  ValidateSchedulerTargetInput,
+} from '@mcp/services/client/scheduler.client';
 import type { ClientService } from '@mcp/services/client.service';
 
 export const SCHEDULER_TOOL_NAMES = new Set([
   'control_scheduled_release',
   'create_scheduled_release',
   'get_scheduled_release',
+  'get_scheduler_capability',
+  'list_scheduler_capabilities',
   'update_scheduled_release',
+  'validate_scheduler_target',
 ]);
 
 const RELEASE_UPDATE_FIELDS = new Set([
@@ -26,9 +32,10 @@ const TARGET_UPDATE_FIELDS = new Set([
 ]);
 
 /**
- * Scheduler MCP handlers. These only validate the routing boundary and proxy
- * canonical request bodies to `/post-groups`; the API owns all scheduler
- * domain validation and state transitions.
+ * Scheduler MCP handlers. Lifecycle tools proxy canonical request bodies to
+ * `/post-groups`. Capability tools proxy the existing `/schedules/channel-capabilities`
+ * list, get, and validate routes. The API owns scheduler domain validation
+ * and state transitions; these handlers perform no mutations of their own.
  */
 export function handleSchedulerTool(
   client: ClientService,
@@ -62,6 +69,29 @@ export function handleSchedulerTool(
       );
       return textJsonResult('Scheduled release', result);
     },
+    get_scheduler_capability: async (a) => {
+      const result = await client.getSchedulerCapability(
+        requiredString(a, 'platform'),
+      );
+      return textJsonResult('Scheduler capability', result);
+    },
+    list_scheduler_capabilities: async (a) => {
+      const result = await client.listSchedulerCapabilities({
+        includeHidden: optionalBoolean(a, 'includeHidden'),
+        includePlanned: optionalBoolean(a, 'includePlanned'),
+      });
+      return {
+        content: [
+          {
+            text:
+              result.length > 0
+                ? `Found ${result.length} scheduler capabilities:\n\n${JSON.stringify(result, null, 2)}`
+                : 'No scheduler capabilities found.',
+            type: 'text' as const,
+          },
+        ],
+      };
+    },
     update_scheduled_release: async (a) => {
       const scope = updateScope(a);
       const targetId = optionalString(a, 'targetId');
@@ -78,6 +108,12 @@ export function handleSchedulerTool(
         targetId,
       );
       return textJsonResult('Scheduled release updated', result);
+    },
+    validate_scheduler_target: async (a) => {
+      const result = await client.validateSchedulerTarget(
+        validateTargetPayload(a),
+      );
+      return textJsonResult('Scheduler target validation', result);
     },
   };
 
@@ -185,6 +221,58 @@ function optionalString(
   return typeof value === 'string' && value.trim().length > 0
     ? value
     : undefined;
+}
+
+function optionalBoolean(
+  args: Record<string, unknown>,
+  key: string,
+): boolean | undefined {
+  const value = args[key];
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function validateTargetPayload(
+  args: Record<string, unknown>,
+): ValidateSchedulerTargetInput {
+  const payload: ValidateSchedulerTargetInput = {
+    platform: requiredString(args, 'platform'),
+  };
+
+  const caption = optionalString(args, 'caption');
+  if (caption !== undefined) {
+    payload.caption = caption;
+  }
+
+  const credentialId = optionalString(args, 'credentialId');
+  if (credentialId !== undefined) {
+    payload.credentialId = credentialId;
+  }
+
+  const publishMode = optionalString(args, 'publishMode');
+  if (publishMode !== undefined) {
+    payload.publishMode = publishMode;
+  }
+
+  const visibility = optionalString(args, 'visibility');
+  if (visibility !== undefined) {
+    payload.visibility = visibility;
+  }
+
+  if (args.media !== undefined) {
+    if (!Array.isArray(args.media) || !args.media.every(isRecord)) {
+      throw new Error('media must be an array of objects');
+    }
+    payload.media = args.media;
+  }
+
+  if (args.settings !== undefined) {
+    if (!isRecord(args.settings)) {
+      throw new Error('settings must be an object');
+    }
+    payload.settings = args.settings;
+  }
+
+  return payload;
 }
 
 function textJsonResult(label: string, data: unknown) {

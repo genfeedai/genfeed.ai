@@ -38,10 +38,17 @@ Add a provider key to `.env` when you want to run generation.
 bundle. Checksums, auth, providers, and upgrades:
 [self-hosting guide](docs/self-hosting.md).
 
-<!--
-Product screenshots / GIF live under docs/assets/readme/ once captured from a
-Community instance (#3050). Do not invent customer frames or commit account data.
--->
+![Agent conversation shell in a mocked Community workspace](docs/assets/readme/agent-shell.png)
+
+*Mocked Playwright capture of the agent conversation shell. Fixture data, not a live generation.*
+
+![Publish desk in a mocked Community workspace](docs/assets/readme/publish-desk.png)
+
+*Mocked Playwright capture of the Publish desk.*
+
+![Visual workflow authoring in a mocked Community workspace](docs/assets/readme/automate-workflows.png)
+
+*Mocked Playwright capture of Automate workflow authoring.*
 
 ## Capabilities
 

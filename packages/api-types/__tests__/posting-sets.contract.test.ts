@@ -1,10 +1,17 @@
 import {
   expandPostingSetTargets,
+  persistPostingSetInputSchema,
+  persistPostingSignatureInputSchema,
   postingSetSchema,
   postingSignatureSchema,
   renderContentWithPostingSignatures,
+  validatePostingSetLifecycle,
 } from '@api-types/contracts/posting-sets.contract';
-import { CredentialPlatform, ReleaseAttachmentKind } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  ReleaseAttachmentKind,
+  TargetValidationState,
+} from '@genfeedai/enums';
 import { describe, expect, test } from 'vitest';
 
 const twitterSignature = {
@@ -212,5 +219,116 @@ describe('renderContentWithPostingSignatures', () => {
     });
 
     expect(content).toBe('Shipping notes.\n\nCustom footer.');
+  });
+});
+
+describe('persist posting set schemas', () => {
+  test('create payloads omit generated ids', () => {
+    const setResult = persistPostingSetInputSchema.safeParse({
+      label: 'Launch channels',
+      targets: [
+        {
+          credentialId: 'cred_x',
+          platform: CredentialPlatform.TWITTER,
+          signatureIds: ['sig-twitter'],
+          targetKey: 'x-primary',
+        },
+      ],
+    });
+    const signatureResult = persistPostingSignatureInputSchema.safeParse({
+      body: 'Built with Genfeed.',
+      label: 'X footer',
+      platforms: [CredentialPlatform.TWITTER],
+    });
+
+    expect(setResult.success).toBe(true);
+    expect(signatureResult.success).toBe(true);
+  });
+});
+
+describe('validatePostingSetLifecycle', () => {
+  const postingSet = {
+    id: 'set-1',
+    label: 'Launch channels',
+    targets: [
+      {
+        credentialId: 'cred_x',
+        platform: CredentialPlatform.TWITTER,
+        signatureIds: ['sig-twitter'],
+        targetKey: 'x-primary',
+      },
+    ],
+  };
+
+  test('marks connected matching credentials as valid', () => {
+    const result = validatePostingSetLifecycle({
+      credentials: [
+        {
+          id: 'cred_x',
+          isConnected: true,
+          isDeleted: false,
+          platform: CredentialPlatform.TWITTER,
+        },
+      ],
+      postingSet,
+      signatures: [twitterSignature],
+    });
+
+    expect(result.state).toBe(TargetValidationState.VALID);
+    expect(result.targets).toEqual([
+      {
+        credentialId: 'cred_x',
+        issues: [],
+        state: 'valid',
+        targetKey: 'x-primary',
+      },
+    ]);
+  });
+
+  test('degrades deleted and unavailable credentials without extra fields', () => {
+    const deleted = validatePostingSetLifecycle({
+      credentials: [
+        {
+          id: 'cred_x',
+          isConnected: true,
+          isDeleted: true,
+          platform: CredentialPlatform.TWITTER,
+        },
+      ],
+      postingSet,
+    });
+    const missing = validatePostingSetLifecycle({
+      credentials: [],
+      postingSet,
+    });
+
+    expect(deleted.state).toBe(TargetValidationState.INVALID);
+    expect(deleted.targets[0]?.state).toBe('deleted');
+    expect(deleted.targets[0]).toEqual({
+      credentialId: 'cred_x',
+      issues: ['Referenced credential was deleted.'],
+      state: 'deleted',
+      targetKey: 'x-primary',
+    });
+    expect(missing.targets[0]?.state).toBe('unavailable');
+    expect(JSON.stringify(deleted)).not.toMatch(/oauth|token|secret/i);
+  });
+
+  test('warns when a matching credential is disconnected', () => {
+    const result = validatePostingSetLifecycle({
+      credentials: [
+        {
+          id: 'cred_x',
+          isConnected: false,
+          isDeleted: false,
+          platform: CredentialPlatform.TWITTER,
+        },
+      ],
+      postingSet,
+      signatures: [twitterSignature],
+    });
+
+    expect(result.state).toBe(TargetValidationState.WARNING);
+    expect(result.targets[0]?.state).toBe('disconnected');
   });
 });

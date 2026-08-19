@@ -4,7 +4,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { ThreadContextState } from '@genfeedai/prisma';
+import { type ThreadContextState, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -395,7 +395,7 @@ export class ThreadContextCompressorService {
       if (existingRecord) {
         updatedRecord = (await this.prisma.threadContextState.update({
           data: {
-            data: newData as never,
+            data: toPrismaJson(newData),
             isDeleted: false,
           },
           where: { id: existingRecord.id },
@@ -403,7 +403,7 @@ export class ThreadContextCompressorService {
       } else {
         updatedRecord = (await this.prisma.threadContextState.create({
           data: {
-            data: newData as never,
+            data: toPrismaJson(newData),
             isDeleted: false,
             organizationId,
             threadId,

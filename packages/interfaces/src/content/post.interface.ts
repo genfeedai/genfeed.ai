@@ -4,6 +4,7 @@ import type {
   PostFormat,
   PostVisibility,
   ReviewDecision,
+  SourcePostVariationPlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IPostAnalyticsSummary } from '../analytics/analytics.interface';
@@ -96,7 +97,7 @@ export type PostVariationVoiceMode = 'brand-voice' | 'organization-defaults';
 
 export interface GenerateSourcePostVariationsInput {
   count?: number;
-  platform: 'instagram' | 'linkedin' | 'tiktok' | 'twitter';
+  platform: SourcePostVariationPlatform;
   postId?: string;
   sourcePostId?: string;
   sourceReferenceId?: string;
