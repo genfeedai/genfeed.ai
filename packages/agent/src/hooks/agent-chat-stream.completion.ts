@@ -6,6 +6,7 @@ import {
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 
 export type ResolveStreamFromMessagesDeps = {
   apiService: AgentApiService;
@@ -80,11 +81,17 @@ export async function resolveStreamFromMessages(
 
     deps.resetStreamState();
     deps.setMessages(messages);
+    const lastGeneratedAsset = extractLastGeneratedAssetFromMetadata(
+      recoveredAssistantMessage.metadata,
+    );
     deps.updateThreadSummary(pending.threadId, {
       attentionState: deps.isThreadVisible(pending.threadId) ? null : 'updated',
       lastActivityAt:
         recoveredAssistantMessage.createdAt ?? new Date().toISOString(),
       lastAssistantPreview: recoveredAssistantMessage.content.slice(0, 280),
+      ...(lastGeneratedAsset
+        ? { lastGeneratedAssetUrl: lastGeneratedAsset.url }
+        : {}),
       pendingInputCount: 0,
       runStatus: 'completed',
     });

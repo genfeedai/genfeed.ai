@@ -23,17 +23,31 @@ type FindManyArgs = {
 };
 
 describe('AgentThreadsService Prisma row contract', () => {
+  let brandDelegate: { findMany: ReturnType<typeof vi.fn> };
   let delegate: AgentThreadDelegate;
+  let ingredientDelegate: { findMany: ReturnType<typeof vi.fn> };
+  let runDelegate: { findMany: ReturnType<typeof vi.fn> };
+  let snapshotDelegate: { findMany: ReturnType<typeof vi.fn> };
   let service: AgentThreadsService;
 
   beforeEach(() => {
+    brandDelegate = { findMany: vi.fn().mockResolvedValue([]) };
     delegate = {
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
     };
+    ingredientDelegate = { findMany: vi.fn().mockResolvedValue([]) };
+    runDelegate = { findMany: vi.fn().mockResolvedValue([]) };
+    snapshotDelegate = { findMany: vi.fn().mockResolvedValue([]) };
 
     service = new AgentThreadsService(
-      { agentThread: delegate } as unknown as PrismaService,
+      {
+        agentRun: runDelegate,
+        agentThread: delegate,
+        agentThreadSnapshot: snapshotDelegate,
+        brand: brandDelegate,
+        ingredient: ingredientDelegate,
+      } as unknown as PrismaService,
       {
         debug: vi.fn(),
         error: vi.fn(),
@@ -111,5 +125,62 @@ describe('AgentThreadsService Prisma row contract', () => {
     expect(result).toBe(barePrismaRow);
     expect(result.organizationId).toBe('org-1');
     expect(result.userId).toBe('user-1');
+  });
+
+  it('attaches brand labels and the latest generated asset to listed threads', async () => {
+    delegate.findMany.mockResolvedValue([
+      {
+        brandId: 'brand-curie',
+        id: 'thread-1',
+        organizationId: 'org-1',
+        title: 'Curie shoot',
+        userId: 'user-1',
+      },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([
+      {
+        data: {
+          lastAssistantMessage: {
+            content: 'Three portraits are ready',
+            createdAt: '2026-08-19T12:00:00.000Z',
+            metadata: {},
+          },
+        },
+        threadId: 'thread-1',
+      },
+    ]);
+    ingredientDelegate.findMany.mockResolvedValue([
+      {
+        agentRun: { threadId: 'thread-1' },
+        category: 'IMAGE',
+        cdnUrl: 'https://cdn.test/portrait.png',
+        createdAt: new Date('2026-08-19T11:00:00.000Z'),
+      },
+    ]);
+    brandDelegate.findMany.mockResolvedValue([
+      { id: 'brand-curie', label: 'Curie' },
+    ]);
+
+    const result = await service.getUserThreads(
+      'user-1',
+      'org-1',
+      AgentThreadStatus.ACTIVE,
+    );
+
+    expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        brandLabel: 'Curie',
+        lastAssistantPreview: 'Three portraits are ready',
+        lastGeneratedAssetUrl: 'https://cdn.test/portrait.png',
+      }),
+    );
   });
 });

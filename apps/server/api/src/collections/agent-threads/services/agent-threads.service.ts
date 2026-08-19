@@ -6,7 +6,12 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
+import { resolveLastGeneratedAsset } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
+import {
+  AgentExecutionStatus,
+  AgentThreadStatus,
+  IngredientCategory,
+} from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -25,11 +30,25 @@ type ThreadAttentionState = 'needs-input' | 'running' | 'updated' | null;
 
 type AgentThreadSummary = Partial<{
   attentionState: ThreadAttentionState;
+  brandLabel: string;
   lastActivityAt: string;
   lastAssistantPreview: string;
+  lastGeneratedAssetUrl: string;
   pendingInputCount: number;
   runStatus: ThreadRunStatus;
 }>;
+
+type ThreadGeneratedAsset = {
+  createdAt: string;
+  url: string;
+};
+
+const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
+  IngredientCategory.AVATAR,
+  IngredientCategory.GIF,
+  IngredientCategory.IMAGE,
+  IngredientCategory.IMAGE_EDIT,
+];
 
 type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
 
@@ -269,13 +288,32 @@ export class AgentThreadsService extends BaseService<
       organizationId,
       threadIds,
     );
+    const latestAssetsByThreadId =
+      await this.findLatestGeneratedAssetsByThreadIds(
+        organizationId,
+        threadIds,
+      );
+    const brandLabelsById = await this.findBrandLabelsByIds(
+      organizationId,
+      threads
+        .map((thread) => thread.brandId)
+        .filter((brandId): brandId is string => Boolean(brandId)),
+    );
 
     return threads.map((thread) => {
       const snapshot = snapshotsByThreadId.get(String(thread.id));
       const latestRun = latestRunsByThreadId.get(String(thread.id));
+      const brandLabel = thread.brandId
+        ? brandLabelsById.get(thread.brandId)
+        : undefined;
       return {
         ...thread,
-        ...this.buildThreadSummary(snapshot, latestRun),
+        ...(brandLabel ? { brandLabel } : {}),
+        ...this.buildThreadSummary(
+          snapshot,
+          latestRun,
+          latestAssetsByThreadId.get(String(thread.id)),
+        ),
       };
     }) as AgentThreadWithSummary[];
   }
@@ -283,10 +321,25 @@ export class AgentThreadsService extends BaseService<
   private buildThreadSummary(
     snapshot?: AgentThreadSnapshotDocument | null,
     latestRun?: AgentRunDocument | null,
+    latestAsset?: ThreadGeneratedAsset,
   ): AgentThreadSummary {
+    const lastGeneratedAsset = resolveLastGeneratedAsset({
+      ingredient: latestAsset,
+      metadata: snapshot
+        ? this.asRecord(snapshot.lastAssistantMessage)?.metadata
+        : undefined,
+      metadataCreatedAt: snapshot
+        ? this.readString(
+            this.asRecord(snapshot.lastAssistantMessage),
+            'createdAt',
+          )
+        : undefined,
+    });
+
     if (!snapshot) {
       return {
         attentionState: null,
+        lastGeneratedAssetUrl: lastGeneratedAsset?.url,
         pendingInputCount: 0,
         runStatus: 'idle',
       };
@@ -322,6 +375,7 @@ export class AgentThreadsService extends BaseService<
             : null,
       lastActivityAt,
       lastAssistantPreview: lastAssistantPreview?.slice(0, 280),
+      lastGeneratedAssetUrl: lastGeneratedAsset?.url,
       pendingInputCount,
       runStatus,
     };
@@ -351,6 +405,79 @@ export class AgentThreadsService extends BaseService<
     }
 
     return latestRunsByThreadId;
+  }
+
+  private async findLatestGeneratedAssetsByThreadIds(
+    organizationId: string,
+    threadIds: string[],
+  ): Promise<Map<string, ThreadGeneratedAsset>> {
+    if (threadIds.length === 0) {
+      return new Map();
+    }
+
+    const ingredients = await this.prisma.ingredient.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        agentRun: {
+          select: { threadId: true },
+        },
+        cdnUrl: true,
+        createdAt: true,
+      },
+      where: scopedWhere(organizationId, {
+        agentRun: {
+          isDeleted: false,
+          organizationId,
+          threadId: { in: threadIds },
+        },
+        category: { in: LIST_THUMB_INGREDIENT_CATEGORIES },
+        cdnUrl: { not: null },
+      }),
+    });
+
+    const latestByThreadId = new Map<string, ThreadGeneratedAsset>();
+
+    for (const ingredient of ingredients) {
+      const threadId = ingredient.agentRun?.threadId;
+      const url = ingredient.cdnUrl;
+      if (!threadId || !url || latestByThreadId.has(threadId)) {
+        continue;
+      }
+
+      latestByThreadId.set(threadId, {
+        createdAt:
+          ingredient.createdAt instanceof Date
+            ? ingredient.createdAt.toISOString()
+            : String(ingredient.createdAt),
+        url,
+      });
+    }
+
+    return latestByThreadId;
+  }
+
+  private async findBrandLabelsByIds(
+    organizationId: string,
+    brandIds: string[],
+  ): Promise<Map<string, string>> {
+    const uniqueBrandIds = [...new Set(brandIds)];
+    if (uniqueBrandIds.length === 0) {
+      return new Map();
+    }
+
+    const brands = await this.prisma.brand.findMany({
+      select: {
+        id: true,
+        label: true,
+      },
+      where: scopedWhere(organizationId, { id: { in: uniqueBrandIds } }),
+    });
+
+    return new Map(
+      brands
+        .filter((brand) => Boolean(brand.label))
+        .map((brand) => [brand.id, brand.label]),
+    );
   }
 
   private normalizeRunStatus(

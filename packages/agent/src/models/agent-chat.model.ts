@@ -369,6 +369,7 @@ export interface AgentThread {
   systemPrompt?: string;
   platform?: string;
   brandId?: string | null;
+  brandLabel?: string | null;
   source?: string;
   status: AgentThreadStatus;
   lastMessage?: string;
@@ -384,6 +385,7 @@ export interface AgentThread {
   pendingInputCount?: number;
   lastActivityAt?: string;
   lastAssistantPreview?: string;
+  lastGeneratedAssetUrl?: string | null;
   attentionState?: 'running' | 'needs-input' | 'updated' | null;
   createdAt: string;
   updatedAt: string;

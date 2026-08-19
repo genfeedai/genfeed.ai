@@ -1,17 +1,25 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 
-export { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
-
 export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
+export { sortThreads };
 
 export type AgentThreadListFilter = 'all' | 'needs-you' | 'working' | 'pinned';
+
+export const ORGANIZATION_THREAD_GROUP_LABEL = 'Organization';
 
 export interface AgentThreadListGroups {
   needsYou: AgentThread[];
   working: AgentThread[];
   pinned: AgentThread[];
   recent: AgentThread[];
+}
+
+export interface AgentThreadBrandGroup {
+  brandId: string | null;
+  label: string;
+  threads: AgentThread[];
 }
 
 function isThreadNeedsYou(thread: AgentThread): boolean {
@@ -55,9 +63,62 @@ function matchesThreadSearch(
     thread.title,
     thread.lastMessage,
     thread.lastAssistantPreview,
+    thread.brandLabel,
     thread.platform,
     thread.source,
   ].some((value) => value?.toLocaleLowerCase().includes(normalizedQuery));
+}
+
+export function resolveThreadListPreview(thread: AgentThread): string | null {
+  const preview =
+    thread.lastAssistantPreview?.trim() || thread.lastMessage?.trim() || '';
+  return preview.length > 0 ? preview : null;
+}
+
+function latestThreadTimestamp(threads: AgentThread[]): string {
+  return threads.reduce((latest, thread) => {
+    const value = thread.updatedAt || thread.createdAt || '';
+    return value > latest ? value : latest;
+  }, '');
+}
+
+export function groupAgentThreadsByBrand(
+  threads: AgentThread[],
+  options: {
+    searchQuery: string;
+  },
+): AgentThreadBrandGroup[] {
+  const matchingThreads = threads.filter((thread) =>
+    matchesThreadSearch(thread, options.searchQuery),
+  );
+  const grouped = new Map<string, AgentThread[]>();
+  const labels = new Map<string, string>();
+
+  for (const thread of matchingThreads) {
+    const key = thread.brandId ?? '';
+    const existing = grouped.get(key) ?? [];
+    existing.push(thread);
+    grouped.set(key, existing);
+    if (!labels.has(key)) {
+      labels.set(
+        key,
+        thread.brandLabel?.trim() ||
+          (key ? key : ORGANIZATION_THREAD_GROUP_LABEL),
+      );
+    }
+  }
+
+  return [...grouped.entries()]
+    .map(([key, groupedThreads]) => ({
+      brandId: key.length > 0 ? key : null,
+      label: labels.get(key) ?? ORGANIZATION_THREAD_GROUP_LABEL,
+      threads: sortThreads(groupedThreads),
+    }))
+    .toSorted((left, right) =>
+      latestThreadTimestamp(right.threads).localeCompare(
+        latestThreadTimestamp(left.threads),
+      ),
+    );
 }
 
 export function groupAgentThreads(

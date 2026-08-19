@@ -217,7 +217,16 @@ describe('attachAgentStreamSubscriptions', () => {
     emit('agent:done', {
       creditsRemaining: 88,
       fullContent: 'All set.',
-      metadata: {},
+      metadata: {
+        uiActions: [
+          {
+            id: 'gen-1',
+            images: ['https://cdn.test/portrait.png'],
+            title: 'Portraits',
+            type: 'content_preview_card',
+          },
+        ],
+      },
       runId: 'run-1',
       startedAt: '2026-03-26T10:00:00.000Z',
       threadId: 'thread-1',
@@ -230,6 +239,7 @@ describe('attachAgentStreamSubscriptions', () => {
       expect.objectContaining({
         attentionState: null,
         lastAssistantPreview: 'All set.',
+        lastGeneratedAssetUrl: 'https://cdn.test/portrait.png',
         runStatus: 'completed',
       }),
     );
