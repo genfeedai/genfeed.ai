@@ -3,8 +3,7 @@ import type { IImage } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export class Image extends Ingredient {
-  public readonly category =
-    IngredientCategory.IMAGE as IngredientCategory.IMAGE;
+  public readonly category: IngredientCategory = IngredientCategory.IMAGE;
 
   constructor(partial: Partial<IImage>) {
     super(partial);
