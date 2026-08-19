@@ -30,6 +30,7 @@ const calendarMocks = vi.hoisted(() => {
 
     render() {
       this.options.datesSet?.(createDatesSetArg('2026-03-09', '2026-03-16'));
+      // dateClick is optional; tests that book empty cells invoke it directly.
     }
   }
 

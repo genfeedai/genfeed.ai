@@ -8,6 +8,7 @@
  * - Inferred form data types (e.g., CreatePostFormData)
  */
 
+export * from './cadence-expansion.contract';
 export * from './channel-capabilities.contract';
 export * from './channel-repurpose.contract';
 export * from './generation-brief.contract';
