@@ -303,7 +303,7 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
   assert.doesNotMatch(ci, /\b(?:labeled|unlabeled)\b/);
   assert.match(
     ci,
-    /--run-heavy "\$\{\{ inputs\.run_heavy_tests \|\| contains\(github\.event\.pull_request\.labels\.\*\.name, 'full-suite'\) \}\}"/,
+    /--run-heavy "\$\{\{ inputs\.run_heavy_tests \|\| github\.event_name == 'merge_group' \|\| contains\(github\.event\.pull_request\.labels\.\*\.name, 'full-suite'\) \}\}"/,
   );
 
   assert.match(dispatcher, /^ {4}types: \[labeled\]$/m);
