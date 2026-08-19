@@ -1,6 +1,6 @@
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
-import { ArticleStatus } from '@genfeedai/enums';
+import { PersistedArticleStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
@@ -87,7 +87,7 @@ export class GenerateArticleTask {
           isDeleted: false,
           label: title,
           organizationId,
-          status: ArticleStatus.DRAFT as never,
+          status: PersistedArticleStatus.DRAFT,
           userId,
         },
       });

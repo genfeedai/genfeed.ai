@@ -1,4 +1,7 @@
-import type { AdOptimizationConfig as PrismaAdOptimizationConfig } from '@genfeedai/prisma';
+import {
+  type AdOptimizationConfig as PrismaAdOptimizationConfig,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -52,17 +55,17 @@ export class AdOptimizationConfigsService {
       if (existing) {
         result = await this.prisma.adOptimizationConfig.update({
           data: {
-            config: config as never,
+            config: toPrismaJson(config),
             organizationId,
-          } as never,
+          },
           where: { id: existing.id },
         });
       } else {
         result = await this.prisma.adOptimizationConfig.create({
           data: {
-            config: config as never,
+            config: toPrismaJson(config),
             organizationId,
-          } as never,
+          },
         });
       }
 

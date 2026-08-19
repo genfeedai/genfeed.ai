@@ -20,7 +20,7 @@ import type {
   IHarnessProfileThesis,
   IHarnessProfileVoice,
 } from '@genfeedai/interfaces';
-import type { Profile as PrismaProfile } from '@genfeedai/prisma';
+import { type Profile as PrismaProfile, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -54,10 +54,6 @@ function readStringArrayRecord(value: unknown): Record<string, string[]> {
       .map(([key, item]) => [key, readStringArray(item)])
       .filter(([, items]) => items.length > 0),
   );
-}
-
-function serializeJsonRecord(value: Record<string, unknown>) {
-  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 }
 
 /**
@@ -120,10 +116,10 @@ export class HarnessProfilesService {
     const profile = await this.prisma.profile.create({
       data: {
         createdById: userId,
-        data: serializeJsonRecord(data as unknown as Record<string, unknown>),
+        data: toPrismaJson(data),
         isDeleted: false,
         organizationId,
-      } as never,
+      },
     });
 
     this.logger.log('Harness profile created', {
@@ -232,8 +228,8 @@ export class HarnessProfilesService {
 
     const updated = await this.prisma.profile.update({
       data: {
-        data: serializeJsonRecord(data as unknown as Record<string, unknown>),
-      } as never,
+        data: toPrismaJson(data),
+      },
       where: { id: existing.id },
     });
 
@@ -243,7 +239,7 @@ export class HarnessProfilesService {
   async remove(id: string, organizationId: string): Promise<void> {
     const existing = await this.findOneRaw(id, organizationId);
     await this.prisma.profile.update({
-      data: { isDeleted: true } as never,
+      data: { isDeleted: true },
       where: { id: existing.id },
     });
   }
@@ -372,11 +368,11 @@ export class HarnessProfilesService {
       profilesToUpdate.map((profile) =>
         this.prisma.profile.update({
           data: {
-            data: serializeJsonRecord({
+            data: toPrismaJson({
               ...readRecord(profile.data),
               isDefault: false,
             }),
-          } as never,
+          },
           where: { id: profile.id },
         }),
       ),

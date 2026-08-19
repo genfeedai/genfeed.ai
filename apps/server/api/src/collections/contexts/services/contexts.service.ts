@@ -35,7 +35,7 @@ import {
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -313,12 +313,12 @@ export class ContextsService {
       const entry = await this.prisma.contextEntry.create({
         data: {
           contextBaseId,
-          data: {
+          data: toPrismaJson({
             content: dto.content,
             ...(kind ? { kind } : {}),
             metadata,
             relevanceWeight: dto.relevanceWeight || 1.0,
-          } as never,
+          }),
           organizationId,
         },
       });

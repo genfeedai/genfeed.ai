@@ -32,7 +32,7 @@ import type {
   IProactivePreparationStatus,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
-import type { Lead } from '@genfeedai/prisma';
+import { type Lead, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -887,21 +887,20 @@ export class ProactiveOnboardingService {
     }
 
     const currentData = (existing.data as LeadData) ?? {};
-    const updatePayload: Record<string, unknown> = {
-      data: { ...currentData, proactiveStatus: status, ...extraFields },
-    };
-
-    // Sync relational fields to top-level Prisma columns if provided
-    if (extraFields?.proactiveOrganizationId) {
-      updatePayload.proactiveOrganizationId =
-        extraFields.proactiveOrganizationId;
-    }
-    if (extraFields?.proactiveBrandId) {
-      updatePayload.proactiveBrandId = extraFields.proactiveBrandId;
-    }
-
     await this.prisma.lead.update({
-      data: updatePayload as never,
+      data: {
+        data: toPrismaJson({
+          ...currentData,
+          proactiveStatus: status,
+          ...extraFields,
+        }),
+        ...(extraFields?.proactiveBrandId
+          ? { proactiveBrandId: extraFields.proactiveBrandId }
+          : {}),
+        ...(extraFields?.proactiveOrganizationId
+          ? { proactiveOrganizationId: extraFields.proactiveOrganizationId }
+          : {}),
+      },
       where: { id: leadId },
     });
   }

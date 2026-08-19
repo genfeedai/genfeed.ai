@@ -810,7 +810,7 @@ export class AgentContextAssemblyService {
       where: scopedWhere(organizationId, {
         brandId,
         createdAt: { gte: cutoff },
-        ...(platform ? { platform: platform as never } : {}),
+        ...(platform ? { platform } : {}),
       }),
     });
 

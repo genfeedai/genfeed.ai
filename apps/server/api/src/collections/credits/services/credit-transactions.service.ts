@@ -7,7 +7,7 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -112,26 +112,26 @@ export class CreditTransactionsService extends BaseService<
       category,
       description,
       isDeleted: false,
-      metadata: {
+      metadata: toPrismaJson({
         ...(options?.metadata ?? {}),
         balanceBefore,
         category,
         ...(expiresAt ? { expiresAt: expiresAt.toISOString() } : {}),
-      },
+      }),
       organizationId,
       ...(options?.referenceId ? { referenceId: options.referenceId } : {}),
       ...(options?.referenceType
         ? { referenceType: options.referenceType }
         : {}),
       source,
-    } as Record<string, unknown>;
+    };
 
     // When a transaction client is supplied, the ledger entry MUST be written
     // through it so it commits/rolls back atomically with the balance update.
     const result = tx
       ? this.normalizeDocument(
           await tx.creditTransaction.create({
-            data: data as never,
+            data,
           }),
         )
       : await this.create(data);

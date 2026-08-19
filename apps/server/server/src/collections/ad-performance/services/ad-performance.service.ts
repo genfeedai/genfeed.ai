@@ -1,4 +1,4 @@
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   AdPerformance,
@@ -202,7 +202,7 @@ export class AdPerformanceService {
       ...payload.benchmarkFields,
       brandId: payload.brandId,
       credentialId: payload.credentialId,
-      data: payload.data as never,
+      data: toPrismaJson(payload.data),
       date: payload.identity.date,
       externalAccountId: payload.identity.externalAccountId,
       externalAdId: payload.identity.externalAdId,
@@ -372,10 +372,10 @@ export class AdPerformanceService {
       records.map((record) =>
         this.prisma.adPerformance.update({
           data: {
-            data: {
+            data: toPrismaJson({
               ...this.readObjectRecord(record.data),
               scope: 'organization',
-            } as never,
+            }),
             scope: 'organization',
           },
           where: { id: record.id },

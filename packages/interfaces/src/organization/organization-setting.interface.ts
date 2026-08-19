@@ -90,6 +90,9 @@ export interface IOrganizationSetting extends IBaseEntity {
   defaultAvatarPhotoUrl?: string | null;
   defaultAvatarIngredientId?: string | null;
 
+  defaultModel?: string | null;
+  defaultModelReview?: string | null;
+  defaultModelUpdate?: string | null;
   defaultVideoModel?: string | null;
   defaultImageModel?: string | null;
   defaultImageToVideoModel?: string | null;

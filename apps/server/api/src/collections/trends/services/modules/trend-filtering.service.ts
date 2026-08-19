@@ -290,7 +290,7 @@ export class TrendFilteringService {
         this.prisma.trend.findMany({
           orderBy: { createdAt: 'desc' },
           take: limit * 5,
-          where: { ...where, organizationId } as never,
+          where: { ...where, organizationId },
         }),
         this.prisma.trend.findMany({
           orderBy: { createdAt: 'desc' },

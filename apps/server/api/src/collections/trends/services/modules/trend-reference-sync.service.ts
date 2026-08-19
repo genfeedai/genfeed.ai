@@ -7,6 +7,7 @@ import { getTrendEngagementTotal } from '@api/collections/trends/utils/trend-eng
 import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { normalizeTrendSourceUrl } from '@api/collections/trends/utils/trend-source-url.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -131,7 +132,7 @@ export class TrendReferenceSyncService {
         authorHandle: input.sourceItem.authorHandle,
         canonicalUrl: input.canonicalUrl,
         currentEngagementTotal: input.engagementTotal,
-        data: {
+        data: toPrismaJson({
           ...input.existingData,
           authorHandle: input.sourceItem.authorHandle,
           canonicalUrl: input.canonicalUrl,
@@ -152,7 +153,7 @@ export class TrendReferenceSyncService {
           text: input.sourceItem.text,
           thumbnailUrl: input.sourceItem.thumbnailUrl,
           title: input.sourceItem.title,
-        } as never,
+        }),
         lastSeenAt: input.now,
         latestTrendViralityScore: input.trend.viralityScore,
         platform: input.sourceItem.platform,
@@ -180,7 +181,7 @@ export class TrendReferenceSyncService {
         authorHandle: input.sourceItem.authorHandle,
         canonicalUrl: input.canonicalUrl,
         currentEngagementTotal: input.engagementTotal,
-        data: {
+        data: toPrismaJson({
           authorHandle: input.sourceItem.authorHandle,
           canonicalUrl: input.canonicalUrl,
           contentType: input.sourceItem.contentType,
@@ -202,7 +203,7 @@ export class TrendReferenceSyncService {
           text: input.sourceItem.text,
           thumbnailUrl: input.sourceItem.thumbnailUrl,
           title: input.sourceItem.title,
-        } as never,
+        }),
         isDeleted: false,
         lastSeenAt: input.now,
         latestTrendViralityScore: input.trend.viralityScore,
@@ -238,7 +239,7 @@ export class TrendReferenceSyncService {
 
     if (matchedSnapshot) {
       await this.prisma.trendSourceReferenceSnapshot.update({
-        data: { data: data as never, snapshotDate },
+        data: { data: toPrismaJson(data), snapshotDate },
         where: { id: matchedSnapshot.id },
       });
       return false;
@@ -246,7 +247,7 @@ export class TrendReferenceSyncService {
 
     await this.prisma.trendSourceReferenceSnapshot.create({
       data: {
-        data: data as never,
+        data: toPrismaJson(data),
         isDeleted: false,
         snapshotDate,
         sourceReferenceId: referenceId,
