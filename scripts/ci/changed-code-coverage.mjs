@@ -794,28 +794,67 @@ function parseArguments(argv) {
   return values;
 }
 
-async function readDiff(base, head) {
-  const { stdout } = await execFileAsync(
-    'git',
-    [
-      'diff',
-      '--unified=0',
-      '--no-color',
-      '--no-ext-diff',
-      '--find-renames',
-      '--diff-filter=ACMR',
-      base,
-      head,
-    ],
-    { cwd: REPOSITORY_ROOT, encoding: 'utf8', maxBuffer: COMMAND_MAX_BUFFER },
-  );
+async function runGitCommand(command, args) {
+  const { stdout } = await execFileAsync(command, args, {
+    cwd: REPOSITORY_ROOT,
+    encoding: 'utf8',
+    maxBuffer: COMMAND_MAX_BUFFER,
+  });
   return stdout;
+}
+
+async function resolveCommit(endpoint, commitish, commandRunner) {
+  try {
+    const output = String(
+      await commandRunner('git', [
+        'rev-parse',
+        '--verify',
+        '--end-of-options',
+        `${commitish}^{commit}`,
+      ]),
+    ).trim();
+
+    if (!/^[0-9a-f]+$/.test(output)) {
+      throw new Error('git returned a malformed canonical commit ID');
+    }
+    return output;
+  } catch {
+    throw new Error(`Could not resolve ${endpoint} commit`);
+  }
+}
+
+/**
+ * Resolve commit-ish CLI inputs before reading the diff. The canonical IDs are
+ * both the diff boundaries and the normalized evidence identity.
+ *
+ * @param {{base: string, head: string}} input
+ * @param {(command: string, args: string[]) => Promise<string>} commandRunner
+ */
+export async function resolveDiffInputs(
+  { base, head },
+  commandRunner = runGitCommand,
+) {
+  const baseSha = await resolveCommit('base', base, commandRunner);
+  const headSha = await resolveCommit('head', head, commandRunner);
+  const rawDiff = await commandRunner('git', [
+    'diff',
+    '--unified=0',
+    '--no-color',
+    '--no-ext-diff',
+    '--find-renames',
+    '--diff-filter=ACMR',
+    baseSha,
+    headSha,
+  ]);
+
+  return { baseSha, headSha, rawDiff };
 }
 
 async function runCli() {
   const args = parseArguments(process.argv.slice(2));
+  const diffInputs = await resolveDiffInputs(args);
   const baseline = readBaseline();
-  const changedFiles = parseUnifiedDiff(await readDiff(args.base, args.head));
+  const changedFiles = parseUnifiedDiff(diffInputs.rawDiff);
 
   let observedLatencySeconds = null;
   const surfaces = args.surfaces.map((surface) => {
@@ -851,8 +890,8 @@ async function runCli() {
   });
 
   const report = buildReport({
-    baseSha: args.base,
-    headSha: args.head,
+    baseSha: diffInputs.baseSha,
+    headSha: diffInputs.headSha,
     changedFiles,
     surfaces,
     baseline,

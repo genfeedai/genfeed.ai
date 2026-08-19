@@ -15,6 +15,7 @@ import {
   parseLcov,
   parseUnifiedDiff,
   readBaseline,
+  resolveDiffInputs,
   worstResult,
 } from './changed-code-coverage.mjs';
 import { classifyChangedFile } from './changed-code-coverage.policy.mjs';
@@ -120,6 +121,123 @@ test('policy normalizes paths and rejects empty input', () => {
 });
 
 // ── Diff parsing ────────────────────────────────────────────────────────────
+
+test('symbolic and abbreviated refs resolve to canonical commit IDs before diffing', async () => {
+  const canonicalBase = '1'.repeat(40);
+  const canonicalHead = '2'.repeat(40);
+  const diff = '+++ b/apps/app/a.ts\n@@ -0,0 +1 @@\n+changed\n';
+
+  const resolved = await resolveDiffInputs(
+    { base: 'origin/master', head: '2abc123' },
+    async (command, args) => {
+      assert.equal(command, 'git');
+      if (args[0] === 'rev-parse') {
+        const ref = args.at(-1);
+        if (ref === 'origin/master^{commit}') return `${canonicalBase}\n`;
+        if (ref === '2abc123^{commit}') return `${canonicalHead}\n`;
+      }
+      if (args[0] === 'diff') {
+        assert.deepEqual(args.slice(-2), [canonicalBase, canonicalHead]);
+        return diff;
+      }
+      throw new Error(`unexpected git arguments: ${args.join(' ')}`);
+    },
+  );
+
+  assert.deepEqual(resolved, {
+    baseSha: canonicalBase,
+    headSha: canonicalHead,
+    rawDiff: diff,
+  });
+});
+
+test('invalid, ambiguous, and non-commit inputs identify the failed endpoint and stop before diffing', async () => {
+  for (const [input, message] of [
+    ['missing-ref', 'unknown revision'],
+    ['deadbee', 'short object ID is ambiguous'],
+    ['blob-object', 'expected commit'],
+  ]) {
+    let diffCalled = false;
+    await assert.rejects(
+      resolveDiffInputs(
+        { base: input, head: 'HEAD' },
+        async (_command, args) => {
+          if (args[0] === 'rev-parse' && args.at(-1) === `${input}^{commit}`) {
+            throw new Error(message);
+          }
+          if (args[0] === 'diff') diffCalled = true;
+          return `${'2'.repeat(40)}\n`;
+        },
+      ),
+      /Could not resolve base commit/,
+    );
+    assert.equal(diffCalled, false);
+  }
+
+  let diffCalled = false;
+  await assert.rejects(
+    resolveDiffInputs(
+      { base: 'origin/master', head: 'missing-head' },
+      async (_command, args) => {
+        if (args.at(-1) === 'missing-head^{commit}') {
+          throw new Error('unknown revision');
+        }
+        if (args[0] === 'diff') diffCalled = true;
+        return `${'1'.repeat(40)}\n`;
+      },
+    ),
+    (error) => {
+      assert.equal(error.message, 'Could not resolve head commit');
+      assert.equal(error.cause, undefined);
+      return true;
+    },
+  );
+  assert.equal(diffCalled, false);
+});
+
+test('malformed resolver output fails closed before diffing', async () => {
+  let diffCalled = false;
+
+  await assert.rejects(
+    resolveDiffInputs(
+      { base: 'malformed-ref', head: 'HEAD' },
+      async (_command, args) => {
+        if (args[0] === 'rev-parse') return 'not-a-canonical-object-id\n';
+        diffCalled = true;
+        return '';
+      },
+    ),
+    /Could not resolve base commit/,
+  );
+  assert.equal(diffCalled, false);
+});
+
+test('normalized report inputs use resolved commit IDs, not commit-ish aliases', async () => {
+  const canonicalBase = 'a'.repeat(40);
+  const canonicalHead = 'b'.repeat(40);
+  const resolved = await resolveDiffInputs(
+    { base: 'release-base', head: 'HEAD' },
+    async (_command, args) => {
+      if (args[0] === 'rev-parse') {
+        return args.at(-1) === 'release-base^{commit}'
+          ? `${canonicalBase}\n`
+          : `${canonicalHead}\n`;
+      }
+      return '';
+    },
+  );
+
+  const built = buildReport({
+    baseSha: resolved.baseSha,
+    headSha: resolved.headSha,
+    changedFiles: parseUnifiedDiff(resolved.rawDiff),
+    surfaces: [],
+    baseline: BASELINE,
+  });
+
+  assert.equal(built.normalized.baseSha, canonicalBase);
+  assert.equal(built.normalized.headSha, canonicalHead);
+});
 
 test('unified diff yields the added lines of each post-image file', () => {
   const diff = [
