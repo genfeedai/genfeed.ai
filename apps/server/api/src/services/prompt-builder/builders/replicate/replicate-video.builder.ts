@@ -1,18 +1,20 @@
 import { BaseReplicateBuilder } from '@api/services/prompt-builder/builders/replicate/base-replicate.builder';
+import {
+  buildKlingAvatarV2Prompt,
+  buildKlingMasterPrompt,
+  buildKlingO1Prompt,
+  buildKlingV3OmniPrompt,
+  buildKlingV3Prompt,
+  buildKlingV16ProPrompt,
+  buildKlingV21Prompt,
+  buildKlingV26Prompt,
+} from '@api/services/prompt-builder/builders/replicate/replicate-video-kling-input.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
   Gen45Input,
   GrokImagineVideoInput,
   Hailuo23FastInput,
   Hailuo23Input,
-  KlingAvatarV2Input,
-  KlingMasterInput,
-  KlingO1Input,
-  KlingV3OmniVideoInput,
-  KlingV3VideoInput,
-  KlingV16ProInput,
-  KlingV21Input,
-  KlingV26Input,
   PixVerseV6Input,
   PVideoInput,
   ReplicateVideoInput,
@@ -126,11 +128,11 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         return this.buildPVideoPrompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1:
-        return this.buildKlingV21Prompt(params, promptText, negativePrompt);
+        return buildKlingV21Prompt(params, promptText, negativePrompt);
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER:
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO:
-        return this.buildKlingMasterPrompt(
+        return buildKlingMasterPrompt(
           model,
           params,
           promptText,
@@ -138,7 +140,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         );
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO:
-        return this.buildKlingV16ProPrompt(
+        return buildKlingV16ProPrompt(
           model,
           params,
           promptText,
@@ -146,23 +148,25 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         );
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO:
-        return this.buildKlingV3Prompt(
+        return buildKlingV3Prompt(
           model,
           params,
           promptText,
           negativePrompt,
+          this.configService.isDevelopment ? 'standard' : 'pro',
         );
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO:
-        return this.buildKlingV3OmniPrompt(
+        return buildKlingV3OmniPrompt(
           model,
           params,
           promptText,
           negativePrompt,
+          this.configService.isDevelopment ? 'standard' : 'pro',
         );
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2:
-        return this.buildKlingAvatarV2Prompt(params, promptText);
+        return buildKlingAvatarV2Prompt(params, promptText);
 
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0:
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST:
@@ -179,15 +183,10 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
         return this.buildGen45Prompt(params, promptText);
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6:
-        return this.buildKlingV26Prompt(
-          model,
-          params,
-          promptText,
-          negativePrompt,
-        );
+        return buildKlingV26Prompt(model, params, promptText, negativePrompt);
 
       case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_O1:
-        return this.buildKlingO1Prompt(params, promptText);
+        return buildKlingO1Prompt(params, promptText);
 
       case MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3:
         return this.buildHailuo23Prompt(model, params, promptText);
@@ -447,115 +446,6 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     return input;
   }
 
-  private buildKlingV21Prompt(
-    params: PromptBuilderParams,
-    promptText: string,
-    negativePrompt: string,
-  ): KlingV21Input {
-    if (!params.references || params.references.length === 0) {
-      throw new Error(
-        'start_image is required for Kling V2.1 model. Please provide a reference image.',
-      );
-    }
-
-    const allowedDurations = [5, 10];
-    const duration =
-      params.duration && allowedDurations.includes(params.duration)
-        ? params.duration
-        : 5;
-
-    const mode = params.endFrame ? 'pro' : 'standard';
-
-    const input: KlingV21Input = {
-      duration: duration,
-      mode: mode,
-      prompt: promptText,
-      start_image: params.references[0],
-    };
-
-    if (negativePrompt) {
-      input.negative_prompt = negativePrompt;
-    }
-
-    if (params.endFrame) {
-      input.end_image = params.endFrame;
-    }
-
-    return input;
-  }
-
-  private buildKlingMasterPrompt(
-    model: string,
-    params: PromptBuilderParams,
-    promptText: string,
-    negativePrompt: string,
-  ): KlingMasterInput {
-    const calculatedRatio = calculateAspectRatio(params.width, params.height);
-    const aspectRatio = normalizeAspectRatioForModel(model, calculatedRatio);
-
-    const allowedDurations = [5, 10];
-    const duration =
-      params.duration && allowedDurations.includes(params.duration)
-        ? params.duration
-        : 5;
-
-    const input: KlingMasterInput = {
-      aspect_ratio: aspectRatio,
-      duration: duration,
-      prompt: promptText,
-    };
-
-    if (negativePrompt) {
-      input.negative_prompt = negativePrompt;
-    }
-
-    if (params.references && params.references.length > 0) {
-      input.start_image = params.references[0];
-    }
-
-    return input;
-  }
-
-  private buildKlingV16ProPrompt(
-    model: string,
-    params: PromptBuilderParams,
-    promptText: string,
-    negativePrompt: string,
-  ): KlingV16ProInput {
-    const calculatedRatio = calculateAspectRatio(params.width, params.height);
-    const aspectRatio = normalizeAspectRatioForModel(model, calculatedRatio);
-
-    const allowedDurations = [5, 10];
-    const duration =
-      params.duration && allowedDurations.includes(params.duration)
-        ? params.duration
-        : 5;
-
-    const input: KlingV16ProInput = {
-      aspect_ratio: aspectRatio,
-      duration: duration,
-      prompt: promptText,
-    };
-
-    if (negativePrompt) {
-      input.negative_prompt = negativePrompt;
-    }
-
-    if (params.references && params.references.length > 0) {
-      input.start_image = params.references[0];
-    }
-
-    if (params.endFrame) {
-      input.end_image = params.endFrame;
-    }
-
-    if (params.references && params.references.length > 1) {
-      input.reference_images = params.references.slice(1, 5);
-    }
-
-    return input;
-  }
-
   private buildPVideoPrompt(
     model: string,
     params: PromptBuilderParams,
@@ -583,120 +473,6 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
     if (params.references && params.references.length > 0) {
       input.image = params.references[0];
-    }
-
-    return input;
-  }
-
-  private buildKlingV3Prompt(
-    model: string,
-    params: PromptBuilderParams,
-    promptText: string,
-    negativePrompt: string,
-  ): KlingV3VideoInput {
-    const calculatedRatio = calculateAspectRatio(params.width, params.height);
-    const aspectRatio = normalizeAspectRatioForModel(model, calculatedRatio);
-
-    const duration = Math.min(Math.max(params.duration ?? 5, 3), 15);
-
-    const mode = this.configService.isDevelopment ? 'standard' : 'pro';
-
-    const input: KlingV3VideoInput = {
-      aspect_ratio: aspectRatio,
-      duration: duration,
-      mode: mode,
-      prompt: promptText,
-    };
-
-    if (params.isAudioEnabled !== undefined) {
-      input.generate_audio = params.isAudioEnabled;
-    }
-
-    if (negativePrompt) {
-      input.negative_prompt = negativePrompt;
-    }
-
-    if (params.references && params.references.length > 0) {
-      input.start_image = params.references[0];
-    }
-
-    if (params.endFrame) {
-      input.end_image = params.endFrame;
-    }
-
-    return input;
-  }
-
-  private buildKlingV3OmniPrompt(
-    model: string,
-    params: PromptBuilderParams,
-    promptText: string,
-    negativePrompt: string,
-  ): KlingV3OmniVideoInput {
-    const calculatedRatio = calculateAspectRatio(params.width, params.height);
-    const aspectRatio = normalizeAspectRatioForModel(model, calculatedRatio);
-
-    const duration = Math.min(Math.max(params.duration ?? 5, 3), 15);
-
-    const mode = this.configService.isDevelopment ? 'standard' : 'pro';
-
-    const input: KlingV3OmniVideoInput = {
-      aspect_ratio: aspectRatio,
-      duration: duration,
-      mode: mode,
-      prompt: promptText,
-    };
-
-    if (params.isAudioEnabled !== undefined) {
-      input.generate_audio = params.isAudioEnabled;
-    }
-
-    if (negativePrompt) {
-      input.negative_prompt = negativePrompt;
-    }
-
-    // Reference images: up to 7
-    if (params.references && params.references.length > 1) {
-      input.reference_images = params.references.slice(0, 7);
-    } else if (params.references && params.references.length === 1) {
-      input.start_image = params.references[0];
-    }
-
-    if (params.endFrame) {
-      input.end_image = params.endFrame;
-    }
-
-    if (params.video) {
-      input.reference_video = params.video;
-      input.video_reference_type = 'feature';
-    }
-
-    return input;
-  }
-
-  private buildKlingAvatarV2Prompt(
-    params: PromptBuilderParams,
-    promptText: string,
-  ): KlingAvatarV2Input {
-    if (!params.references || params.references.length === 0) {
-      throw new Error(
-        'Portrait image is required for Kling Avatar V2. Please provide a reference image.',
-      );
-    }
-
-    if (!params.audioUrl) {
-      throw new Error(
-        'Audio file is required for Kling Avatar V2. Please provide an audio URL.',
-      );
-    }
-
-    const input: KlingAvatarV2Input = {
-      audio: params.audioUrl,
-      image: params.references[0],
-    };
-
-    if (promptText) {
-      input.prompt = promptText;
     }
 
     return input;
@@ -840,68 +616,6 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
     if (params.references && params.references.length > 0) {
       input.image = params.references[0];
-    }
-
-    return input;
-  }
-
-  private buildKlingV26Prompt(
-    model: string,
-    params: PromptBuilderParams,
-    promptText: string,
-    negativePrompt: string,
-  ): KlingV26Input {
-    const calculatedRatio = calculateAspectRatio(params.width, params.height);
-    const aspectRatio = normalizeAspectRatioForModel(model, calculatedRatio);
-
-    const allowedDurations = [5, 10];
-    const duration =
-      params.duration && allowedDurations.includes(params.duration)
-        ? params.duration
-        : 5;
-
-    const input: KlingV26Input = {
-      aspect_ratio: aspectRatio,
-      duration: duration,
-      prompt: promptText,
-    };
-
-    if (params.isAudioEnabled !== undefined) {
-      input.generate_audio = params.isAudioEnabled;
-    }
-
-    if (negativePrompt) {
-      input.negative_prompt = negativePrompt;
-    }
-
-    if (params.references && params.references.length > 0) {
-      input.start_image = params.references[0];
-    }
-
-    if (params.seed !== undefined) {
-      input.seed = params.seed;
-    }
-
-    return input;
-  }
-
-  private buildKlingO1Prompt(
-    params: PromptBuilderParams,
-    promptText: string,
-  ): KlingO1Input {
-    const duration = Math.min(Math.max(params.duration ?? 5, 3), 10);
-
-    const input: KlingO1Input = {
-      duration: duration,
-      prompt: promptText,
-    };
-
-    if (params.references && params.references.length > 0) {
-      input.reference_images = params.references.slice(0, 4);
-    }
-
-    if (params.seed !== undefined) {
-      input.seed = params.seed;
     }
 
     return input;

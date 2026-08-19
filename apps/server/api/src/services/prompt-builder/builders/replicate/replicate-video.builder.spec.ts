@@ -463,6 +463,139 @@ describe('ReplicateVideoBuilder', () => {
     });
   });
 
+  describe('buildPrompt - remaining Kling variants', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'test',
+      width: 1920,
+    };
+
+    it('preserves Kling master defaults and optional inputs', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
+        {
+          ...baseParams,
+          blacklist: ['blur'],
+          duration: 10,
+          references: ['start.jpg'],
+        },
+        'A tracking shot',
+      );
+
+      expect(result).toMatchObject({
+        aspect_ratio: '16:9',
+        duration: 10,
+        negative_prompt: 'blur',
+        prompt: 'A tracking shot',
+        start_image: 'start.jpg',
+      });
+    });
+
+    it('preserves Kling V1.6 end-frame and reference-image mapping', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
+        {
+          ...baseParams,
+          endFrame: 'end.jpg',
+          references: ['start.jpg', 'ref-1.jpg', 'ref-2.jpg'],
+        },
+        'A slow orbit',
+      );
+
+      expect(result).toMatchObject({
+        duration: 5,
+        end_image: 'end.jpg',
+        prompt: 'A slow orbit',
+        reference_images: ['ref-1.jpg', 'ref-2.jpg'],
+        start_image: 'start.jpg',
+      });
+    });
+
+    it('preserves Kling V3 Omni reference and video limits', () => {
+      const references = Array.from(
+        { length: 8 },
+        (_, index) => `ref-${index + 1}.jpg`,
+      );
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+        {
+          ...baseParams,
+          blacklist: ['artifact'],
+          duration: 30,
+          endFrame: 'end.jpg',
+          isAudioEnabled: false,
+          references,
+          video: 'reference.mp4',
+        },
+        'A cinematic reveal',
+      );
+
+      expect(result).toMatchObject({
+        duration: 15,
+        end_image: 'end.jpg',
+        generate_audio: false,
+        mode: 'pro',
+        negative_prompt: 'artifact',
+        prompt: 'A cinematic reveal',
+        reference_images: references.slice(0, 7),
+        reference_video: 'reference.mp4',
+        video_reference_type: 'feature',
+      });
+      expect(result).not.toHaveProperty('start_image');
+    });
+
+    it('preserves Kling V2.6 duration fallback and seed', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+        {
+          ...baseParams,
+          blacklist: ['noise'],
+          duration: 7,
+          isAudioEnabled: true,
+          references: ['start.jpg'],
+          seed: 42,
+        },
+        'A locked-off shot',
+      );
+
+      expect(result).toMatchObject({
+        duration: 5,
+        generate_audio: true,
+        negative_prompt: 'noise',
+        prompt: 'A locked-off shot',
+        seed: 42,
+        start_image: 'start.jpg',
+      });
+    });
+
+    it('preserves Kling O1 duration and reference limits', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_O1,
+        {
+          ...baseParams,
+          duration: 1,
+          references: [
+            'one.jpg',
+            'two.jpg',
+            'three.jpg',
+            'four.jpg',
+            'five.jpg',
+          ],
+          seed: 7,
+        },
+        'A product spin',
+      );
+
+      expect(result).toEqual({
+        duration: 3,
+        prompt: 'A product spin',
+        reference_images: ['one.jpg', 'two.jpg', 'three.jpg', 'four.jpg'],
+        seed: 7,
+      });
+    });
+  });
+
   describe('buildPrompt - unsupported model', () => {
     it('should throw for unsupported model', () => {
       expect(() =>
