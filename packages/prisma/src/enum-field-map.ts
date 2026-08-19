@@ -4730,6 +4730,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isDeleted',
       'isInvited',
       'isOnboardingCompleted',
+      'lastActiveAt',
       'lastName',
       'lastUsedOrganizationId',
       'lifecycleEmailPreference',

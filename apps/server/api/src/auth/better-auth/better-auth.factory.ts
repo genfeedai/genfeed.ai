@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { dash } from '@better-auth/infra';
+import { type DashOptions, dash } from '@better-auth/infra';
 import { PlatformRole } from '@genfeedai/enums';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import {
@@ -47,6 +47,10 @@ type BetterAuthMagicLinkDependencies = Pick<
 > & {
   storeToken?: MagicLinkOptions['storeToken'];
 };
+type BetterAuthDashOptions = DashOptions & {
+  activityTracking: { enabled: true };
+  apiKey: string;
+};
 type BetterAuthUserBeforePayload = {
   email?: string | null;
   handle?: string;
@@ -59,6 +63,44 @@ type BetterAuthUserAfterPayload = {
 
 export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
   'An account already exists for this email. Sign in instead.';
+
+/** Enable Better Auth dashboard activity tracking when dashboard auth exists. */
+export function buildBetterAuthDashOptions(
+  apiKey: string,
+): BetterAuthDashOptions {
+  return {
+    activityTracking: { enabled: true },
+    apiKey,
+  };
+}
+
+/**
+ * Keep Dash's plugin-owned activity timestamp out of public user inputs.
+ *
+ * Infra 0.4.0 omits `input: false`, and Better Auth merges plugin fields after
+ * `user.additionalFields`, so the protection must live on the returned plugin
+ * schema rather than in the app-level user field configuration.
+ */
+export function buildBetterAuthDashPlugin(apiKey: string) {
+  const plugin = dash(buildBetterAuthDashOptions(apiKey));
+
+  return {
+    ...plugin,
+    schema: {
+      ...plugin.schema,
+      user: {
+        ...plugin.schema.user,
+        fields: {
+          ...plugin.schema.user.fields,
+          lastActiveAt: {
+            ...plugin.schema.user.fields.lastActiveAt,
+            input: false as const,
+          },
+        },
+      },
+    },
+  };
+}
 
 /**
  * Build the deployment-sensitive Better Auth options in one testable boundary.
@@ -757,7 +799,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     },
     databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated),
     plugins: [
-      ...(apiKey ? [dash({ apiKey })] : []),
+      ...(apiKey ? [buildBetterAuthDashPlugin(apiKey)] : []),
       magicLink(
         buildBetterAuthMagicLinkOptions({
           prisma,

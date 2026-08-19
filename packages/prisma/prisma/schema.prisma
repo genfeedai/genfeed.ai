@@ -478,6 +478,8 @@ model User {
   // Platform access is explicit and separate from organization/member roles.
   name                     String?
   emailVerified            Boolean         @default(false)
+  // Better Auth Infra dash activity tracking. Nullable for users that predate tracking.
+  lastActiveAt             DateTime?
   platformRole             PlatformRole    @default(USER)
   // Better Auth admin plugin (#2423). The plugin's `role` field maps onto
   // `platformRole` above (one role system); ban state is plugin-owned
