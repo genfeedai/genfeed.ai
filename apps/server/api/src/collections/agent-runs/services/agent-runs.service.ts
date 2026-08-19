@@ -15,6 +15,7 @@ import {
   authorizeAgentArtifactWrite,
   hasAgentArtifactWriteInput,
 } from '@api/shared/utils/agent-artifact-reference-write.util';
+import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
@@ -125,12 +126,6 @@ function requireId(
 ): string | undefined {
   const value = readOptionalId(record, ...keys);
   return typeof value === 'string' ? value : undefined;
-}
-
-function readJsonRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function getTimeRangeDays(timeRange: AgentRunTimeRange): number {

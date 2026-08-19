@@ -5,6 +5,7 @@ import {
 import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { readRecordOrEmpty } from '@api/shared/utils/object/read-record-or-empty.util';
 import { CreatorAnalysisStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -29,14 +30,8 @@ export class ContentIntelligenceService extends BaseService<
     document: unknown,
   ): CreatorAnalysisDocument {
     const record = super.normalizeDocument(document) as Record<string, unknown>;
-    const data = this.readJsonRecord(record.data);
+    const data = readRecordOrEmpty(record.data);
     return { ...data, ...record, data } as CreatorAnalysisDocument;
-  }
-
-  private readJsonRecord(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
   }
 
   private pickDefined(
@@ -146,7 +141,7 @@ export class ContentIntelligenceService extends BaseService<
     }
     return this.patch(id, {
       data: {
-        ...this.readJsonRecord(existing.data),
+        ...readRecordOrEmpty(existing.data),
         ...this.pickDefined(update),
       } as Prisma.InputJsonObject,
     });

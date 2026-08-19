@@ -5,8 +5,6 @@ import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto
 import { UpdateInsightDto } from '@api/collections/insights/dto/update-insight.dto';
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -19,18 +17,19 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
+  assertOrganizationCreditsAvailable,
+  getDefaultTextMinimumCredits,
+} from '@api/helpers/utils/credits/organization-credits-gate.util';
+import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ActivitySource } from '@genfeedai/enums';
 import { InsightSerializer } from '@genfeedai/serializers';
 import {
   Body,
   Controller,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
   Patch,
   Post,
@@ -104,9 +103,10 @@ export class InsightsController {
     @CurrentUser() user: User,
   ) {
     const organization = user.organizationId;
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       organization,
-      await this.getDefaultTextMinimumCredits(),
+      await getDefaultTextMinimumCredits(this.modelsService),
     );
     let billedCredits = 0;
     const result = await this.insightsService.predictViral(
@@ -133,9 +133,10 @@ export class InsightsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getContentGaps(@Req() req: Request, @CurrentUser() user: User) {
     const organization = user.organizationId;
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       organization,
-      await this.getDefaultTextMinimumCredits(),
+      await getDefaultTextMinimumCredits(this.modelsService),
     );
     let billedCredits = 0;
     const result = await this.insightsService.getContentGaps(
@@ -166,9 +167,10 @@ export class InsightsController {
     @Query('timezone') timezone?: string,
   ) {
     const organization = user.organizationId;
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       organization,
-      await this.getDefaultTextMinimumCredits(),
+      await getDefaultTextMinimumCredits(this.modelsService),
     );
     let billedCredits = 0;
     const result = await this.insightsService.getBestTimes(
@@ -217,53 +219,5 @@ export class InsightsController {
       dto,
     );
     return serializeSingle(req, InsightSerializer, data);
-  }
-
-  private async assertOrganizationCreditsAvailable(
-    organizationId: string,
-    requiredCredits: number,
-  ): Promise<void> {
-    if (requiredCredits <= 0) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-
-    if (hasCredits) {
-      return;
-    }
-
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-
-    throw new HttpException(
-      {
-        detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
-        title: 'Insufficient credits',
-      },
-      HttpStatus.PAYMENT_REQUIRED,
-    );
-  }
-
-  private async getDefaultTextMinimumCredits(): Promise<number> {
-    const model = await this.modelsService.findOne({
-      key: baseModelKey(DEFAULT_TEXT_MODEL),
-    });
-
-    if (!model) {
-      return 0;
-    }
-
-    if (model.pricingType === 'per-token') {
-      return getMinimumTextCredits(model);
-    }
-
-    return model.cost || 0;
   }
 }

@@ -33,10 +33,13 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
+  assertOrganizationCreditsAvailable,
+  resolveTextModelMinimumCredits,
+} from '@api/helpers/utils/credits/organization-credits-gate.util';
+import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
@@ -127,13 +130,23 @@ export class ArticlesOperationsController {
       );
     const minimumRequiredCredits = (
       await Promise.all([
-        this.getTextModelMinimumCredits(modelConfig.generationModel),
-        this.getTextModelMinimumCredits(modelConfig.reviewModel),
-        this.getTextModelMinimumCredits(modelConfig.updateModel),
+        resolveTextModelMinimumCredits(
+          this.modelsService,
+          modelConfig.generationModel,
+        ),
+        resolveTextModelMinimumCredits(
+          this.modelsService,
+          modelConfig.reviewModel,
+        ),
+        resolveTextModelMinimumCredits(
+          this.modelsService,
+          modelConfig.updateModel,
+        ),
       ])
     ).reduce((sum, amount) => sum + amount, 0);
 
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       user.organizationId,
       minimumRequiredCredits,
     );
@@ -246,9 +259,13 @@ export class ArticlesOperationsController {
         user.organizationId,
       );
 
-    await this.assertOrganizationCreditsAvailable(
+    await assertOrganizationCreditsAvailable(
+      this.creditsUtilsService,
       user.organizationId,
-      await this.getTextModelMinimumCredits(modelConfig.reviewModel),
+      await resolveTextModelMinimumCredits(
+        this.modelsService,
+        modelConfig.reviewModel,
+      ),
     );
 
     let billedCredits = 0;
@@ -315,38 +332,6 @@ export class ArticlesOperationsController {
     });
   }
 
-  private async assertOrganizationCreditsAvailable(
-    organizationId: string,
-    requiredCredits: number,
-  ): Promise<void> {
-    if (requiredCredits <= 0) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-
-    if (hasCredits) {
-      return;
-    }
-
-    const balance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-
-    throw new HttpException(
-      {
-        detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
-        title: 'Insufficient credits',
-      },
-      HttpStatus.PAYMENT_REQUIRED,
-    );
-  }
-
   /**
    * Gates the per-request generation model (`GenerateArticlesDto.model`) before
    * anything is generated.
@@ -387,25 +372,5 @@ export class ArticlesOperationsController {
       },
       HttpStatus.BAD_REQUEST,
     );
-  }
-
-  private async getTextModelMinimumCredits(modelKey?: string): Promise<number> {
-    if (!modelKey) {
-      return 0;
-    }
-
-    const model = await this.modelsService.findOne({
-      key: baseModelKey(modelKey),
-    });
-
-    if (!model) {
-      return 0;
-    }
-
-    if (model.pricingType === 'per-token') {
-      return getMinimumTextCredits(model);
-    }
-
-    return model.cost || 0;
   }
 }

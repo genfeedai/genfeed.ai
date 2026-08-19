@@ -7,6 +7,7 @@ import type { PatternPlaybookDocument } from '@api/collections/content-intellige
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
@@ -15,12 +16,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-function readJsonRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 function readStringArray(value: unknown): string[] {
   return Array.isArray(value)
