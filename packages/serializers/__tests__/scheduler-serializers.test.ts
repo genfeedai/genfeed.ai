@@ -1,8 +1,16 @@
 import { channelTargetSerializerConfig } from '@serializers/configs/content/channel-target.config';
+import {
+  postingSetSerializerConfig,
+  postingSignatureSerializerConfig,
+} from '@serializers/configs/content/posting-set.config';
 import { recurrenceRuleSerializerConfig } from '@serializers/configs/content/recurrence-rule.config';
 import { releaseAttachmentSerializerConfig } from '@serializers/configs/content/release-attachment.config';
 import { releaseGroupSerializerConfig } from '@serializers/configs/content/release-group.config';
 import { ChannelTargetSerializer } from '@serializers/server/content/channel-target.serializer';
+import {
+  PostingSetSerializer,
+  PostingSignatureSerializer,
+} from '@serializers/server/content/posting-set.serializer';
 import { RecurrenceRuleSerializer } from '@serializers/server/content/recurrence-rule.serializer';
 import { ReleaseAttachmentSerializer } from '@serializers/server/content/release-attachment.serializer';
 import { ReleaseGroupSerializer } from '@serializers/server/content/release-group.serializer';
@@ -67,6 +75,85 @@ describe('Built server serializers', () => {
     expect(ChannelTargetSerializer).toBeInstanceOf(Serializer);
     expect(RecurrenceRuleSerializer).toBeInstanceOf(Serializer);
     expect(ReleaseAttachmentSerializer).toBeInstanceOf(Serializer);
+    expect(PostingSetSerializer).toBeInstanceOf(Serializer);
+    expect(PostingSignatureSerializer).toBeInstanceOf(Serializer);
+  });
+});
+
+describe('Posting set serializer configs', () => {
+  test('wires posting set and signature attributes without credential secrets', () => {
+    expect(postingSetSerializerConfig).toHaveProperty('type', 'posting-set');
+    expect(postingSetSerializerConfig.attributes).toEqual(
+      expect.arrayContaining(['label', 'targets', 'validation', 'isEnabled']),
+    );
+    expect(postingSetSerializerConfig.attributes).not.toEqual(
+      expect.arrayContaining(['oauthToken', 'accessToken', 'refreshToken']),
+    );
+    expect(postingSignatureSerializerConfig).toHaveProperty(
+      'type',
+      'posting-signature',
+    );
+    expect(postingSignatureSerializerConfig.attributes).toEqual(
+      expect.arrayContaining(['label', 'body', 'placement', 'platforms']),
+    );
+  });
+});
+
+describe('Posting set serialization', () => {
+  test('serializes reusable targets and a safe validation state', () => {
+    const result = PostingSetSerializer.serialize({
+      id: 'set-1',
+      isEnabled: true,
+      label: 'Launch channels',
+      organizationId: 'org-1',
+      targets: [
+        {
+          credentialId: 'cred_x',
+          platform: 'twitter',
+          signatureIds: ['sig-twitter'],
+          targetKey: 'x-primary',
+        },
+      ],
+      validation: {
+        signatures: [],
+        state: 'invalid',
+        targets: [
+          {
+            credentialId: 'cred_x',
+            issues: ['Referenced credential is unavailable.'],
+            state: 'unavailable',
+            targetKey: 'x-primary',
+          },
+        ],
+      },
+    });
+
+    expect(result.data).toHaveProperty('type', 'posting-set');
+    expect(result.data.attributes).toHaveProperty('label', 'Launch channels');
+    expect(result.data.attributes.validation.targets[0]).toEqual({
+      credentialId: 'cred_x',
+      issues: ['Referenced credential is unavailable.'],
+      state: 'unavailable',
+      targetKey: 'x-primary',
+    });
+    expect(JSON.stringify(result)).not.toMatch(
+      /oauth|accessToken|refreshToken/i,
+    );
+  });
+
+  test('serializes a platform-scoped signature', () => {
+    const result = PostingSignatureSerializer.serialize({
+      body: 'Built with Genfeed.',
+      id: 'sig-1',
+      isEnabled: true,
+      label: 'X footer',
+      placement: 'append',
+      platforms: ['twitter'],
+    });
+
+    expect(result.data).toHaveProperty('type', 'posting-signature');
+    expect(result.data.attributes).toHaveProperty('placement', 'append');
+    expect(result.data.attributes.platforms).toEqual(['twitter']);
   });
 });
 

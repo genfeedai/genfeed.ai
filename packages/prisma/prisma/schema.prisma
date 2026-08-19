@@ -561,6 +561,8 @@ model User {
   socialWarmupEvents       SocialWarmupEvent[]
   votes                    Vote[]
   watchlists               Watchlist[]
+  postingSets              PostingSet[]
+  postingSignatures        PostingSignature[]
   streaks                  Streak[]
   forecasts                Forecast[]
   tasks                    Task[]
@@ -674,6 +676,8 @@ model Organization {
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
   schedules                     Schedule[]
+  postingSets                   PostingSet[]
+  postingSignatures             PostingSignature[]
   distributions                 Distribution[]
   votes                         Vote[]
   watchlists                    Watchlist[]
@@ -872,6 +876,8 @@ model Brand {
   activities                 Activity[]
   contextBases               ContextBase[]              @relation("context_base_source_brand")
   schedules                  Schedule[]
+  postingSets                PostingSet[]
+  postingSignatures          PostingSignature[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
@@ -5359,4 +5365,52 @@ model DesktopMessage {
   @@index([threadId, createdAt])
   @@index([threadId, createdAt, id])
   @@map("desktop_messages")
+}
+
+/// Reusable scheduler channel group. Targets stay JSON so a later-deleted
+/// credential degrades validation instead of breaking the row via FK.
+model PostingSet {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id])
+  label          String
+  description    String?
+  isEnabled      Boolean      @default(true)
+  targets        Json         @default("[]")
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([userId, isDeleted, createdAt(sort: Desc)])
+  @@map("posting_sets")
+}
+
+/// Reusable per-platform signature. Referenced from posting-set targets by id.
+model PostingSignature {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id])
+  label          String
+  body           String
+  placement      String       @default("append")
+  platforms      String[]     @default([])
+  isEnabled      Boolean      @default(true)
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([userId, isDeleted, createdAt(sort: Desc)])
+  @@map("posting_signatures")
 }

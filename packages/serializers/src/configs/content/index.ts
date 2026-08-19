@@ -30,6 +30,7 @@ export * from '@serializers/configs/content/optimization.config';
 export * from '@serializers/configs/content/performance-summary.config';
 export * from '@serializers/configs/content/persona.config';
 export * from '@serializers/configs/content/post.config';
+export * from '@serializers/configs/content/posting-set.config';
 export * from '@serializers/configs/content/presigned-upload.config';
 export * from '@serializers/configs/content/publish-approval.config';
 export * from '@serializers/configs/content/recurrence-rule.config';
