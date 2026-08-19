@@ -54,6 +54,14 @@ const getReleaseGroupsServiceMock = vi.fn(async () => ({
   update: updateReleaseMock,
   updateTarget: updateTargetMock,
 }));
+const listSlotsMock = vi.fn(async () => []);
+const getPostingCadencesServiceMock = vi.fn(async () => ({
+  book: vi.fn(),
+  create: vi.fn(),
+  generate: vi.fn(),
+  listSlots: listSlotsMock,
+  write: vi.fn(),
+}));
 
 const calendarRenderProps: Array<{
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
@@ -299,11 +307,12 @@ describe('ContentCalendarPage', () => {
     vi.clearAllMocks();
     calendarRenderProps.length = 0;
     useAuthedServiceCallCount = 0;
-    // The page resolves three services per render, in declaration order:
-    // articles, release groups, then posts (for the repurpose flow).
+    // The page resolves four services per render, in declaration order:
+    // articles, release groups, posting cadences, then posts.
     const servicesInCallOrder = [
       getArticlesServiceMock,
       getReleaseGroupsServiceMock,
+      getPostingCadencesServiceMock,
       getPostsServiceMock,
     ];
     useAuthedServiceMock.mockImplementation(() => {

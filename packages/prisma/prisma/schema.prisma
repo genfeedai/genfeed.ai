@@ -525,6 +525,7 @@ model User {
   ingredients              Ingredient[]
   posts                    Post[]
   postGroups               PostGroup[]
+  postingCadences          PostingCadence[]
   postAnalytics            PostAnalytics[]
   prompts                  Prompt[]
   folders                  Folder[]
@@ -630,6 +631,8 @@ model Organization {
   ingredients                   Ingredient[]
   posts                         Post[]
   postGroups                    PostGroup[]
+  postingCadences               PostingCadence[]
+  slotReservations              SlotReservation[]
   postAnalytics                 PostAnalytics[]
   prompts                       Prompt[]
   folders                       Folder[]
@@ -821,6 +824,8 @@ model Brand {
   ingredients                Ingredient[]               @relation("ingredient_brand")
   posts                      Post[]
   postGroups                 PostGroup[]
+  postingCadences            PostingCadence[]
+  slotReservations           SlotReservation[]
   postAnalytics              PostAnalytics[]
   prompts                    Prompt[]
   folders                    Folder[]
@@ -1333,6 +1338,8 @@ model Credential {
   // Relations
   tags                Tag[]                @relation("credential_tags")
   posts               Post[]
+  postingCadences     PostingCadence[]
+  slotReservations    SlotReservation[]
   adBulkUploadJobs    AdBulkUploadJob[]
   adPerformances      AdPerformance[]
   monitoredAccounts   MonitoredAccount[]
@@ -2268,6 +2275,67 @@ model PostGroup {
   @@index([brandId, isDeleted, status, scheduledAt(sort: Asc), id], map: "post_groups_brand_status_schedule_idx")
   @@index([ownerId, isDeleted, createdAt(sort: Desc)], map: "post_groups_owner_created_idx")
   @@map("post_groups")
+}
+
+/// Named posting plan for calendar ghosts. Does not dispatch work.
+model PostingCadence {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  userId             String
+  user               User         @relation(fields: [userId], references: [id])
+  brandId            String
+  brand              Brand        @relation(fields: [brandId], references: [id])
+  credentialId       String
+  credential         Credential   @relation(fields: [credentialId], references: [id])
+  label              String?
+  format             String
+  intervalMinutes    Int
+  windowStartMinute  Int
+  windowEndMinute    Int
+  timezone           String       @default("UTC")
+  startsAt           DateTime
+  endsAt             DateTime?
+  maxOccurrences     Int?
+  generateLanding    String       @default("draft")
+  brief              String?
+  status             String       @default("active")
+  isDeleted          Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  reservations       SlotReservation[]
+
+  @@index([organizationId, isDeleted, brandId, status], map: "posting_cadences_org_brand_status_idx")
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "posting_cadences_org_created_idx")
+  @@map("posting_cadences")
+}
+
+/// Non-derivable slot state (generating, failed, skip, generated-item link).
+model SlotReservation {
+  id                 String          @id @default(cuid())
+  organizationId     String
+  organization       Organization    @relation(fields: [organizationId], references: [id])
+  brandId            String
+  brand              Brand           @relation(fields: [brandId], references: [id])
+  cadenceId          String?
+  cadence            PostingCadence? @relation(fields: [cadenceId], references: [id])
+  credentialId       String
+  credential         Credential      @relation(fields: [credentialId], references: [id])
+  format             String
+  instant            DateTime
+  timezone           String          @default("UTC")
+  identityKey        String
+  state              String          @default("missing")
+  generatedItemId    String?
+  generatedItemType  String?
+  lastFailureReason  String?
+  isDeleted          Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@unique([organizationId, identityKey], map: "slot_reservations_org_identity_key")
+  @@index([organizationId, isDeleted, brandId, instant], map: "slot_reservations_org_brand_instant_idx")
+  @@map("slot_reservations")
 }
 
 model PostAnalytics {

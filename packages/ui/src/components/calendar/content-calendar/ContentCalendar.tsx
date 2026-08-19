@@ -188,6 +188,7 @@ export default function ContentCalendar<T extends CalendarItem>({
   getEventIndicators,
   isItemDraggable,
   onEventDrop,
+  onDateClick,
   initialView = 'week',
   views = DEFAULT_VIEWS,
   filterControls,
@@ -267,6 +268,13 @@ export default function ContentCalendar<T extends CalendarItem>({
       onEventClick(item);
     },
     [onEventClick],
+  );
+
+  const handleDateClick = useCallback(
+    (info: { date: Date }) => {
+      onDateClick?.(info.date);
+    },
+    [onDateClick],
   );
 
   const handleEventDrop = useCallback(
@@ -409,6 +417,7 @@ export default function ContentCalendar<T extends CalendarItem>({
     () => ({
       allDaySlot: false,
       contentHeight: 'auto',
+      dateClick: onDateClick ? handleDateClick : undefined,
       datesSet: handleDatesSet,
       defaultTimedEventDuration: '00:15:00',
       editable: isDragEnabled,
@@ -437,10 +446,12 @@ export default function ContentCalendar<T extends CalendarItem>({
     }),
     [
       events,
+      handleDateClick,
       handleEventClick,
       handleEventContent,
       handleEventDrop,
       handleDatesSet,
+      onDateClick,
       isDragEnabled,
       viewSwitcher,
     ],
