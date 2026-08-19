@@ -25,6 +25,7 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: vi.fn(() => ({
     push: vi.fn(),
   })),

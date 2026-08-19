@@ -41,6 +41,7 @@ vi.mock('@hooks/navigation/use-org-url/use-org-url', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => mockUseParams(),
 }));
 

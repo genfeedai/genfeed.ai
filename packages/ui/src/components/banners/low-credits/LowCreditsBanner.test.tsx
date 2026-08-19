@@ -45,6 +45,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({
     brandSlug: 'brand-1',
     orgSlug: 'test-org',

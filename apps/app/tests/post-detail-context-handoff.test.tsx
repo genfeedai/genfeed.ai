@@ -34,6 +34,7 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ push: mocks.push }),
 }));
 

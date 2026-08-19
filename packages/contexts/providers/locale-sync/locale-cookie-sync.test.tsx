@@ -19,6 +19,7 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ refresh: refreshMock }),
 }));
 

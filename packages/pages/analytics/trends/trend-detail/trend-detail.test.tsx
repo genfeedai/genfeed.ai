@@ -33,6 +33,7 @@ const trendDetailFixture = {
 } as unknown as TrendDetailData;
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ back: backMock, push: pushMock }),
 }));
 

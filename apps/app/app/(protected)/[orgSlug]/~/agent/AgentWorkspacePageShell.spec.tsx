@@ -18,6 +18,7 @@ vi.mock('@genfeedai/agent', () => ({
 const pushMock = vi.fn();
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: pushMock,
   }),

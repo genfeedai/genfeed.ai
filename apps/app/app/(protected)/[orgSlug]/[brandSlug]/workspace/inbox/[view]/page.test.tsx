@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import WorkspaceInboxViewPage, * as PageModule from './page';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   notFound: vi.fn(() => {
     throw new Error('not-found');
   }),

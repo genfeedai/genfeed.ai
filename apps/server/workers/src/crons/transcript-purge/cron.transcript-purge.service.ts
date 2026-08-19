@@ -170,7 +170,6 @@ export class CronTranscriptPurgeService {
         ? {
             organizationId,
             threadId: { in: expiredThreadIds },
-            updatedAt: { lt: cutoff },
           }
         : null;
 
@@ -244,7 +243,7 @@ export class CronTranscriptPurgeService {
               })
             : noRows,
         ]),
-      { maxWait: 10_000, timeout: 60_000 },
+      { maxWait: 10_000, timeout: 180_000 },
     );
 
     return {

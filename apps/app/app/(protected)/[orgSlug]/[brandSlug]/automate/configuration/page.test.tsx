@@ -41,6 +41,7 @@ vi.mock('@services/organization/users.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: vi.fn(),
 }));
 

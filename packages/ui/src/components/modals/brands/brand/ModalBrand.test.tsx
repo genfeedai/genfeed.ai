@@ -85,6 +85,7 @@ vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: pushMock,
   }),

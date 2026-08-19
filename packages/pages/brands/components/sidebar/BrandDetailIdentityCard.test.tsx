@@ -70,6 +70,7 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: mockPush,
   }),

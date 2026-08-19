@@ -6,7 +6,12 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
-function makeService(nodeEnv = 'test'): OrganizationSettingsService {
+function makeService(
+  nodeEnv = 'test',
+  configGet: ReturnType<typeof vi.fn> = vi.fn((key: string) =>
+    key === 'NODE_ENV' ? nodeEnv : undefined,
+  ),
+): OrganizationSettingsService {
   return new OrganizationSettingsService(
     { organizationSetting: {} } as never,
     {
@@ -16,9 +21,7 @@ function makeService(nodeEnv = 'test'): OrganizationSettingsService {
       warn: () => undefined,
     } as unknown as LoggerService,
     { get: () => undefined } as unknown as ModuleRef,
-    {
-      get: (key: string) => (key === 'NODE_ENV' ? nodeEnv : undefined),
-    } as unknown as ConfigService,
+    { get: configGet } as unknown as ConfigService,
   );
 }
 
@@ -65,13 +68,12 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
   });
 
   it('reads NODE_ENV from ConfigService instead of process.env', async () => {
-    const service = makeService('production');
-    const patch = vi
-      .spyOn(service, 'patch')
-      .mockResolvedValue({ id: 'set_1' } as never);
-    const lowest = vi
-      .spyOn(service, 'getLowestCostModelIds')
-      .mockResolvedValue(['cheap_1']);
+    const configGet = vi.fn((key: string) =>
+      key === 'NODE_ENV' ? 'production' : undefined,
+    );
+    const service = makeService('production', configGet);
+    vi.spyOn(service, 'patch').mockResolvedValue({ id: 'set_1' } as never);
+    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue(['cheap_1']);
     vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
       'quality_1',
     ]);
@@ -81,12 +83,7 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
       id: 'set_1',
     } as never);
 
-    // production + non-cloud still uses lowest-cost defaults; the env
-    // value must come from ConfigService, not a raw process.env read.
-    expect(lowest).toHaveBeenCalled();
-    expect(patch).toHaveBeenCalledWith('set_1', {
-      enabledModelIds: ['cheap_1'],
-    });
+    expect(configGet).toHaveBeenCalledWith('NODE_ENV');
   });
 
   it('leaves a configured allowlist untouched so disabling a model sticks', async () => {

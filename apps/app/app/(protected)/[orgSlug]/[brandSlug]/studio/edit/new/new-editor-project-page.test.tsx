@@ -35,6 +35,7 @@ vi.mock('@services/editor/editor-projects.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     replace: mocks.replace,
   }),

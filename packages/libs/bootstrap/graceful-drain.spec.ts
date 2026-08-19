@@ -272,6 +272,9 @@ describe('registerGracefulDrain', () => {
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
+    handlers.get('SIGINT')?.();
+    expect(app.close).toHaveBeenCalledOnce();
+
     onceSpy.mockRestore();
     exitSpy.mockRestore();
   });

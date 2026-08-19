@@ -30,6 +30,7 @@ vi.mock('./redirect', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => useSearchParamsMock(),
 }));
 

@@ -28,6 +28,7 @@ vi.mock('@services/external/services.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: mocks.push,
   }),

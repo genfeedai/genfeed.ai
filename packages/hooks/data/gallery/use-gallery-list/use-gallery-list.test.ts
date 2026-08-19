@@ -15,6 +15,7 @@ vi.mock('@genfeedai/services/external/public.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: vi.fn(() => ({
     get: vi.fn((key: string) => (key === 'page' ? '1' : null)),
   })),

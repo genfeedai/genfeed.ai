@@ -20,6 +20,7 @@ let mockIsSubscriptionActive = true;
 let mockSubscriptionTier: string | null = 'scale';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => mockParams,
   useRouter: () => ({
     push: mockPush,

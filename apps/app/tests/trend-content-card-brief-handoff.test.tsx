@@ -56,6 +56,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({ brandSlug: 'brand-1', orgSlug: 'org-1' }),
   useRouter: () => ({
     push: vi.fn(),

@@ -46,6 +46,7 @@ vi.mock('@/lib/desktop/runtime', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 

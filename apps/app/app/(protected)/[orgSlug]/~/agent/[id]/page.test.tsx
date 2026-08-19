@@ -14,6 +14,7 @@ vi.mock('@genfeedai/agent', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => paramsState.current,
   useRouter: () => ({ replace: replaceMock }),
 }));

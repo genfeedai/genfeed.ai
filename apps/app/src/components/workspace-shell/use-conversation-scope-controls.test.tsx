@@ -54,7 +54,10 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => organizationService,
 }));
 
-vi.mock('next/navigation', () => ({ useRouter: () => router }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useRouter: () => router,
+}));
 
 vi.mock('@/lib/workspace-shell/workspace-shell-registry', () => ({
   resolveWorkspaceShellRoute: () => ({ mode: 'canvas' }),

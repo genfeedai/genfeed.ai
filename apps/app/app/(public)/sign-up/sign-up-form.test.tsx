@@ -28,6 +28,7 @@ vi.mock('@/lib/analytics', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 

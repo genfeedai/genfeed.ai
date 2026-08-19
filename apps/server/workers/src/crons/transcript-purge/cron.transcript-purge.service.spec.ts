@@ -218,9 +218,7 @@ describe('CronTranscriptPurgeService', () => {
       const isExpiredTombstone =
         where.isDeleted === true &&
         where.updatedAt?.lt.getTime() === CUTOFF.getTime();
-      const isExpiredDeletedThread =
-        Array.isArray(where.threadId?.in) &&
-        where.updatedAt?.lt.getTime() === CUTOFF.getTime();
+      const isExpiredDeletedThread = Array.isArray(where.threadId?.in);
 
       expect(isExpiredTombstone || isExpiredDeletedThread).toBe(true);
       expect(where.thread).toBeUndefined();

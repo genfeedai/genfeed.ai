@@ -4,16 +4,21 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { BadRequestException } from '@nestjs/common';
 
 export async function assertOrganizationCreditsAvailable(
   creditsUtilsService: Pick<
     CreditsUtilsService,
     'checkOrganizationCreditsAvailable' | 'getOrganizationCreditsBalance'
   >,
-  organizationId: string | undefined,
+  organizationId: string,
   requiredCredits: number,
 ): Promise<void> {
-  if (!organizationId || requiredCredits <= 0) {
+  if (!organizationId) {
+    throw new BadRequestException('Organization is required');
+  }
+
+  if (requiredCredits <= 0) {
     return;
   }
 

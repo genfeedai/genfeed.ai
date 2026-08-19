@@ -32,6 +32,7 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => useSearchParamsMock(),
 }));
 

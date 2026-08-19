@@ -93,6 +93,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => searchParamsState.value,
 }));
 

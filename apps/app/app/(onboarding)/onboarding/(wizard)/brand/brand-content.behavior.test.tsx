@@ -122,6 +122,7 @@ vi.mock('@ui/primitives/input', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: pushMock,
   }),

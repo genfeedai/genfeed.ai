@@ -41,6 +41,7 @@ vi.mock('./callback-redirect', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => useSearchParamsMock(),
 }));
 

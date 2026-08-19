@@ -248,6 +248,7 @@ vi.mock('@ui/typography/text', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: mocks.push,
   }),

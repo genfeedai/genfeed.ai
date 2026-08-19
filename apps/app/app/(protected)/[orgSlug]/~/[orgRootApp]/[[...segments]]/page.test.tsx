@@ -19,6 +19,7 @@ const { notFoundMock, redirectMock, renderPostsListPageMock } = vi.hoisted(
 );
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   notFound: notFoundMock,
   redirect: redirectMock,
 }));

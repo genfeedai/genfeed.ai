@@ -7,6 +7,7 @@ import '@testing-library/jest-dom/vitest';
 const pushSpy = vi.fn();
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: pushSpy,
   }),

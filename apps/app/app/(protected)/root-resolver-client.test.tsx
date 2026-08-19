@@ -57,6 +57,7 @@ vi.mock('@ui/loading/page/PageLoadingState', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     replace: mocks.replace,
   }),

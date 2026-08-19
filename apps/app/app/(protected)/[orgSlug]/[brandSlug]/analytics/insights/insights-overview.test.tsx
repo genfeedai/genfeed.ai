@@ -30,6 +30,7 @@ vi.mock('@hooks/data/analytics/use-insights/use-insights', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: vi.fn(() => ({
     push: vi.fn(),
   })),

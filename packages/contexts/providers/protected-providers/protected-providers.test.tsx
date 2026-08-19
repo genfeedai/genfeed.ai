@@ -77,6 +77,7 @@ vi.mock('@providers/promptbar/promptbar.provider', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 

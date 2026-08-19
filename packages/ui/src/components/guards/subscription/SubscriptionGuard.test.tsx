@@ -9,6 +9,7 @@ const replaceMock = vi.fn();
 const useAccessStateMock = vi.fn();
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ replace: replaceMock }),
 }));
 

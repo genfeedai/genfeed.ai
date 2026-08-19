@@ -82,6 +82,7 @@ vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({ brandSlug: 'brand-handle', orgSlug: 'org-one' }),
 }));
 
