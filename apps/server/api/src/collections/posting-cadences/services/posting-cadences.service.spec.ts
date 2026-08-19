@@ -1,4 +1,5 @@
-import { PostCategory, ReleaseStatus } from '@genfeedai/enums';
+import { ApiKeyScope, PostCategory, ReleaseStatus } from '@genfeedai/enums';
+import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostingCadencesService } from './posting-cadences.service';
 
@@ -148,6 +149,7 @@ describe('PostingCadencesService', () => {
       }),
       IDENTITY_KEY,
       { source: 'calendar-slot' },
+      undefined,
     );
     expect(result.releaseId).toBe('release-1');
   });
@@ -222,10 +224,72 @@ describe('PostingCadencesService', () => {
       }),
       IDENTITY_KEY,
       { source: 'calendar-slot' },
+      undefined,
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalled();
     expect(result.releaseId).toBe('release-2');
+  });
+
+  it('rejects a draft-only API key before generating a scheduled landing', async () => {
+    slotReservation.findFirst.mockResolvedValue(null);
+    findFirst.mockResolvedValue({
+      ...cadenceRow(),
+      generateLanding: 'scheduled',
+    });
+    slotReservation.create.mockResolvedValue(generatingReservation());
+    slotReservation.update.mockResolvedValue({
+      ...generatingReservation(),
+      state: 'generate-failed',
+    });
+
+    await expect(
+      service.generate(ORG_ID, USER_ID, IDENTITY_KEY, undefined, {
+        isApiKey: true,
+        scopes: [ApiKeyScope.POSTS_DRAFT],
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    expect(slotReservation.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ state: 'generate-failed' }),
+      }),
+    );
+  });
+
+  it('passes the API-key context into post-group create', async () => {
+    slotReservation.findFirst.mockResolvedValue(null);
+    findFirst.mockResolvedValue(cadenceRow());
+    slotReservation.create.mockResolvedValue(generatingReservation());
+    slotReservation.update.mockResolvedValue({
+      ...generatingReservation(),
+      generatedItemId: 'release-3',
+      generatedItemType: 'release',
+      state: 'filled',
+    });
+    postGroupsService.create.mockResolvedValue({
+      id: 'release-3',
+      targets: [{ id: 'post-3' }],
+    });
+    const apiKeyContext = {
+      isApiKey: true,
+      scopes: [ApiKeyScope.POSTS_DRAFT],
+    };
+
+    await service.write(ORG_ID, USER_ID, IDENTITY_KEY, apiKeyContext);
+
+    expect(postGroupsService.create).toHaveBeenCalledWith(
+      ORG_ID,
+      USER_ID,
+      expect.objectContaining({ status: ReleaseStatus.DRAFT }),
+      IDENTITY_KEY,
+      { source: 'calendar-slot' },
+      apiKeyContext,
+    );
   });
 });

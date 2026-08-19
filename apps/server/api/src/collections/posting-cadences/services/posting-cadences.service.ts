@@ -8,6 +8,10 @@ import type { BookCalendarSlotDto } from '@api/collections/posting-cadences/dto/
 import type { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import {
+  type ApiKeyPublishingContext,
+  assertApiKeyPublishingScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import {
   calculateEstimatedTextCredits,
@@ -405,16 +409,32 @@ export class PostingCadencesService {
     userId: string,
     identityKey: string,
     brief?: string,
+    apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<ICalendarSlotFillResult> {
-    return this.fillSlot(organizationId, userId, identityKey, brief, false);
+    return this.fillSlot(
+      organizationId,
+      userId,
+      identityKey,
+      brief,
+      false,
+      apiKeyContext,
+    );
   }
 
   async write(
     organizationId: string,
     userId: string,
     identityKey: string,
+    apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<ICalendarSlotFillResult> {
-    return this.fillSlot(organizationId, userId, identityKey, undefined, true);
+    return this.fillSlot(
+      organizationId,
+      userId,
+      identityKey,
+      undefined,
+      true,
+      apiKeyContext,
+    );
   }
 
   private async fillSlot(
@@ -423,6 +443,7 @@ export class PostingCadencesService {
     identityKey: string,
     brief: string | undefined,
     isWrite: boolean,
+    apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<ICalendarSlotFillResult> {
     const existing = await this.reservationDelegate().findFirst({
       where: scopedWhere(organizationId, { identityKey }),
@@ -476,6 +497,15 @@ export class PostingCadencesService {
             where: scopedWhere(organizationId, { id: slot.cadenceId }),
           })
         : null;
+      const landing = isWrite
+        ? ReleaseStatus.DRAFT
+        : cadence?.generateLanding === CadenceGenerateLanding.SCHEDULED
+          ? ReleaseStatus.SCHEDULED
+          : ReleaseStatus.DRAFT;
+      assertApiKeyPublishingScope(
+        apiKeyContext ?? {},
+        landing === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
+      );
       const resolvedBrief = isWrite
         ? this.resolveWriteBrief(brief)
         : await this.generateCampaignCopy(
@@ -485,11 +515,6 @@ export class PostingCadencesService {
             cadence,
             brief,
           );
-      const landing = isWrite
-        ? ReleaseStatus.DRAFT
-        : cadence?.generateLanding === CadenceGenerateLanding.SCHEDULED
-          ? ReleaseStatus.SCHEDULED
-          : ReleaseStatus.DRAFT;
 
       const release = await this.postGroupsService.create(
         organizationId,
@@ -514,6 +539,7 @@ export class PostingCadencesService {
         },
         identityKey,
         { source: 'calendar-slot' },
+        apiKeyContext,
       );
 
       const targetId = release.targets?.[0]?.id ?? release.id;
