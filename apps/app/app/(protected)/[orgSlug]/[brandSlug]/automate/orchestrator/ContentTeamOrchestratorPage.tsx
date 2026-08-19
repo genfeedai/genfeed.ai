@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { CONTENT_TEAM_BLUEPRINT_PRESETS } from '@pages/agents/content-team/content-team-presets';
 import Container from '@ui/layout/container/Container';
@@ -253,7 +254,7 @@ export default function ContentTeamOrchestratorPage() {
             />
             <Button
               label="Cancel"
-              onClick={() => push(href('/automate'))}
+              onClick={() => push(href(APP_ROUTES.AUTOMATE.OVERVIEW))}
               type="button"
               variant={ButtonVariant.SECONDARY}
             />

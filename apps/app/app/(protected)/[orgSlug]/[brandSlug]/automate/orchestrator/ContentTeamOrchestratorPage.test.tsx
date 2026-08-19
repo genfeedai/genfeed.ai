@@ -331,7 +331,7 @@ describe('ContentTeamOrchestratorPage', () => {
         'Content team orchestrator launched',
       );
       expect(mocks.push).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/automate',
+        '/acme-org/acme-creator/automate/overview',
       );
     });
   });
@@ -368,6 +368,8 @@ describe('ContentTeamOrchestratorPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    expect(mocks.push).toHaveBeenCalledWith('/acme-org/acme-creator/automate');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/automate/overview',
+    );
   });
 });

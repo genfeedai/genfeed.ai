@@ -253,7 +253,9 @@ describe('ContentTeamHirePage', () => {
       );
     });
     expect(mocks.success).toHaveBeenCalledWith('Agent hired successfully');
-    expect(mocks.push).toHaveBeenCalledWith('/acme-org/acme-creator/automate');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/automate/overview',
+    );
   });
 
   it('updates preview fields, cancels, and reports create failures', async () => {
@@ -266,7 +268,9 @@ describe('ContentTeamHirePage', () => {
     expect(screen.getByText(/10 credits/)).toBeVisible();
 
     fireEvent.click(screen.getByText('Cancel'));
-    expect(mocks.push).toHaveBeenCalledWith('/acme-org/acme-creator/automate');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/automate/overview',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Hire Agent' }));
     await waitFor(() => {
