@@ -85,6 +85,7 @@ describe('batch item row projection', () => {
     expect(upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
+          assigneeId: null,
           id: 'item-approved',
           reviewDecision: PersistedReviewDecision.APPROVED,
         }),
@@ -94,6 +95,54 @@ describe('batch item row projection', () => {
         },
       }),
     );
+  });
+
+  it('persists assigneeId and strips nested assignee identity from JSON', async () => {
+    const upsert = vi.fn().mockResolvedValue({});
+
+    await persistBatchItemRows(
+      { batchItem: { upsert } },
+      {
+        batchId: 'batch-1',
+        items: [
+          {
+            assignee: {
+              displayName: 'Jane Doe',
+              email: 'secret@example.com',
+              handle: 'jane',
+              id: 'user-1',
+            },
+            assigneeId: 'user-1',
+            format: ContentFormat.IMAGE,
+            id: 'item-assigned',
+            reviewDecision: ReviewDecision.UNSET,
+            status: BatchItemStatus.COMPLETED,
+          } as never,
+        ],
+        organizationId: 'org-1',
+      },
+    );
+
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          assigneeId: 'user-1',
+          data: expect.objectContaining({
+            assigneeId: 'user-1',
+            id: 'item-assigned',
+          }),
+        }),
+        update: expect.objectContaining({
+          assigneeId: 'user-1',
+        }),
+      }),
+    );
+    const persistedData = upsert.mock.calls[0]?.[0]?.create?.data as Record<
+      string,
+      unknown
+    >;
+    expect(persistedData).not.toHaveProperty('assignee');
+    expect(JSON.stringify(persistedData)).not.toContain('secret@example.com');
   });
 
   it('matches a soft-deleted row and restores it instead of creating', async () => {

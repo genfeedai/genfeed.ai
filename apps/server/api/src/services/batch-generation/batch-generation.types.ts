@@ -24,6 +24,7 @@ export interface BatchItemFull extends BatchItem {
   postId?: string;
   mediaUrl?: string;
   error?: string;
+  assigneeId?: string | null;
   reviewDecision: ReviewDecision;
   reviewFeedback?: string;
   reviewedAt?: string;
@@ -100,6 +101,7 @@ export type BatchConfig = {
 };
 
 export type BatchItemTypedRow = {
+  assigneeId?: string | null;
   data?: unknown;
   isDeleted?: boolean;
 };
@@ -188,7 +190,21 @@ export function resolveBatchItems(batch: {
     (row) => row.isDeleted !== true,
   );
   if (liveRows.length > 0) {
-    return cloneBatchItems(liveRows.map((row) => row.data) as Batch['items']);
+    return cloneBatchItems(
+      liveRows.map((row) => overlayTypedAssignee(row)) as Batch['items'],
+    );
   }
   return cloneBatchItems(batch.items);
+}
+
+function overlayTypedAssignee(row: BatchItemTypedRow): unknown {
+  const data =
+    row.data && typeof row.data === 'object' && !Array.isArray(row.data)
+      ? (row.data as Record<string, unknown>)
+      : {};
+
+  return {
+    ...data,
+    assigneeId: row.assigneeId ?? data.assigneeId ?? null,
+  };
 }

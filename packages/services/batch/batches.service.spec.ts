@@ -154,6 +154,27 @@ describe('BatchesService', () => {
     );
   });
 
+  it('assignItem POSTs to /:batchId/items/:itemId/assign', async () => {
+    mockInstance.post.mockResolvedValue({ data: { data: makeMockBatch() } });
+
+    await service.assignItem('batch-1', 'item-1', 'user-1');
+
+    expect(mockInstance.post).toHaveBeenCalledWith(
+      '/batch-1/items/item-1/assign',
+      { assigneeId: 'user-1' },
+    );
+  });
+
+  it('unassignItem POSTs to /:batchId/items/:itemId/unassign', async () => {
+    mockInstance.post.mockResolvedValue({ data: { data: makeMockBatch() } });
+
+    await service.unassignItem('batch-1', 'item-1');
+
+    expect(mockInstance.post).toHaveBeenCalledWith(
+      '/batch-1/items/item-1/unassign',
+    );
+  });
+
   it('cancelBatch PATCHes /:id with status cancelled', async () => {
     mockInstance.patch.mockResolvedValue({ data: { data: makeMockBatch() } });
 

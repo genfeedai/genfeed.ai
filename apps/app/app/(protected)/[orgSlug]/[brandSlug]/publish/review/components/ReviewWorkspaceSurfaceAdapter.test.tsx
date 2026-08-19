@@ -76,9 +76,11 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
         isActioning={false}
         isSelected={false}
         onApprove={vi.fn()}
+        onAssign={vi.fn()}
         onReject={vi.fn()}
         onRequestChanges={vi.fn()}
         onToggleSelect={vi.fn()}
+        onUnassign={vi.fn()}
       />,
     );
 
@@ -88,9 +90,11 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
         isActioning={false}
         isSelected
         onApprove={vi.fn()}
+        onAssign={vi.fn()}
         onReject={vi.fn()}
         onRequestChanges={vi.fn()}
         onToggleSelect={vi.fn()}
+        onUnassign={vi.fn()}
       />,
     );
 
@@ -106,9 +110,11 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
         isActioning={false}
         isSelected
         onApprove={vi.fn()}
+        onAssign={vi.fn()}
         onReject={vi.fn()}
         onRequestChanges={vi.fn()}
         onToggleSelect={vi.fn()}
+        onUnassign={vi.fn()}
       />,
     );
 
@@ -123,9 +129,11 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
         isActioning={false}
         isSelected
         onApprove={vi.fn()}
+        onAssign={vi.fn()}
         onReject={vi.fn()}
         onRequestChanges={vi.fn()}
         onToggleSelect={vi.fn()}
+        onUnassign={vi.fn()}
       />,
     );
 
@@ -143,9 +151,11 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
         isActioning={false}
         isSelected
         onApprove={vi.fn()}
+        onAssign={vi.fn()}
         onReject={vi.fn()}
         onRequestChanges={vi.fn()}
         onToggleSelect={vi.fn()}
+        onUnassign={vi.fn()}
       />,
     );
 

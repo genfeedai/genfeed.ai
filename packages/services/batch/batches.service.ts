@@ -102,6 +102,41 @@ export class BatchesService extends HTTPBaseService {
     }
   }
 
+  async assignItem(
+    batchId: string,
+    itemId: string,
+    assigneeId: string,
+  ): Promise<IBatchSummary> {
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>(
+        `/${batchId}/items/${itemId}/assign`,
+        { assigneeId },
+      );
+      return deserializeResource<IBatchSummary>(response.data);
+    } catch (error) {
+      logger.error(
+        `POST /batches/${batchId}/items/${itemId}/assign failed`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async unassignItem(batchId: string, itemId: string): Promise<IBatchSummary> {
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>(
+        `/${batchId}/items/${itemId}/unassign`,
+      );
+      return deserializeResource<IBatchSummary>(response.data);
+    } catch (error) {
+      logger.error(
+        `POST /batches/${batchId}/items/${itemId}/unassign failed`,
+        error,
+      );
+      throw error;
+    }
+  }
+
   async cancelBatch(id: string): Promise<IBatchSummary> {
     try {
       const response = await this.instance.patch<JsonApiResponseDocument>(
