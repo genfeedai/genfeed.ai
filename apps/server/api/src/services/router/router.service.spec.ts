@@ -24,6 +24,7 @@ import {
 import { ModelCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const defaultModelId = testId('model');
@@ -421,6 +422,82 @@ describe('RouterService', () => {
 
         expect(result.selectedModel).toBe('google/nano-banana');
         expect(orgSettingsService.ensureEnabledModelIds).toHaveBeenCalled();
+      });
+
+      it('picks Auto from an allowlist that stores keys instead of ids', async () => {
+        const nanoBananaId = testId('model', 13);
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          id: nanoBananaId,
+          isDefault: true,
+          key: 'google/nano-banana',
+          qualityTier: 'ultra',
+        });
+        const fluxSchnell = createMockModel({
+          category: ModelCategory.IMAGE,
+          id: testId('model', 14),
+          key: 'black-forest-labs/flux-schnell',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          nanoBanana,
+          fluxSchnell,
+        ]);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: ['google/nano-banana'],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockImplementation(
+          (setting: { enabledModelIds: string[] }) => Promise.resolve(setting),
+        );
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          organizationId: testId('org'),
+          prioritize: 'quality',
+          prompt: 'A cinematic brand still',
+        });
+
+        expect(result.selectedModel).toBe('google/nano-banana');
+      });
+
+      it('does not fall back to a catalog default outside an empty org allowlist', async () => {
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          id: testId('model', 15),
+          isDefault: true,
+          key: 'google/nano-banana',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([nanoBanana]);
+        modelsService.findOne.mockResolvedValue(nanoBanana);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+
+        await expect(
+          service.selectModel({
+            category: ModelCategory.IMAGE,
+            organizationId: testId('org'),
+            prioritize: 'quality',
+            prompt: 'A cinematic brand still',
+          }),
+        ).rejects.toThrow(ForbiddenException);
+        await expect(
+          service.selectModel({
+            category: ModelCategory.IMAGE,
+            organizationId: testId('org'),
+            prioritize: 'quality',
+            prompt: 'A cinematic brand still',
+          }),
+        ).rejects.toThrow('No models enabled for this workspace');
+
+        expect(modelsService.findOne).not.toHaveBeenCalled();
       });
 
       it('should prefer default models slightly', async () => {

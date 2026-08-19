@@ -8,6 +8,7 @@ import { PrismaService } from '../../../shared/modules/prisma/prisma.service';
 import { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
 import type { TrainingDocument } from '../../trainings/schemas/training.schema';
 import type { ModelDocument } from '../schemas/model.schema';
+import { isModelOnAllowlist } from '../utils/enabled-model.util';
 import { ModelsService } from './models.service';
 
 @Injectable()
@@ -52,9 +53,12 @@ export class ModelRegistrationService {
       ? ((ensuredSettings as Record<string, unknown>)
           .enabledModelIds as string[])
       : [];
-    const isEnabled = enabledModelIds.includes(model.id);
 
-    if (!isEnabled) {
+    if (enabledModelIds.length === 0) {
+      throw new ForbiddenException('No models enabled for this workspace');
+    }
+
+    if (!isModelOnAllowlist(model, enabledModelIds)) {
       throw new ForbiddenException('Model not enabled for this organization');
     }
 

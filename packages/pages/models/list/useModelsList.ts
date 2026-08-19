@@ -298,11 +298,20 @@ export function useModelsList({
         return false;
       }
 
-      return settings.enabledModelIds.some(
-        (enabledId) => String(enabledId || '').trim() === normalizedModelId,
+      const model = models.find(
+        (entry) => String(entry.id || '').trim() === normalizedModelId,
       );
+      const modelKey = String(model?.key || '').trim();
+
+      return settings.enabledModelIds.some((enabledId) => {
+        const normalizedEnabledId = String(enabledId || '').trim();
+        return (
+          normalizedEnabledId === normalizedModelId ||
+          (modelKey.length > 0 && normalizedEnabledId === modelKey)
+        );
+      });
     },
-    [isAdminScope, settings],
+    [isAdminScope, models, settings],
   );
 
   const filteredModels = useMemo(() => {

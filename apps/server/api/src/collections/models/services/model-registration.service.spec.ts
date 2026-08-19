@@ -86,7 +86,7 @@ describe('ModelRegistrationService.validateModelForOrg', () => {
     ).rejects.toThrow(ForbiddenException);
     await expect(
       service.validateModelForOrg(modelKey, organizationId),
-    ).rejects.toThrow('Model not enabled for this organization');
+    ).rejects.toThrow('No models enabled for this workspace');
 
     expect(orgSettingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
       emptySettings,
@@ -117,5 +117,25 @@ describe('ModelRegistrationService.validateModelForOrg', () => {
     await expect(
       orgSettingsService.ensureEnabledModelIds.mock.results[0]?.value,
     ).resolves.toBe(explicitSettings);
+  });
+
+  it('allows a model when the allowlist stores its key instead of its id', async () => {
+    const { modelsService, orgSettingsService, service } = makeService();
+    const keyedSettings = {
+      enabledModelIds: [modelKey],
+      id: testId('setting'),
+      organizationId,
+    };
+    const model = makeModel();
+
+    modelsService.findOne.mockResolvedValue(model);
+    orgSettingsService.findOne.mockResolvedValue(keyedSettings);
+    orgSettingsService.ensureEnabledModelIds.mockImplementation(
+      (setting: typeof keyedSettings) => Promise.resolve(setting),
+    );
+
+    await expect(
+      service.validateModelForOrg(modelKey, organizationId),
+    ).resolves.toEqual(model);
   });
 });

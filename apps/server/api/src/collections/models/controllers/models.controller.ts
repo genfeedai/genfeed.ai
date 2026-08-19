@@ -260,7 +260,14 @@ export class ModelsController extends BaseCRUDController<
         : [];
 
       if (enabledModelIds.length > 0) {
-        where.id = { in: enabledModelIds };
+        where.AND = [
+          {
+            OR: [
+              { id: { in: enabledModelIds } },
+              { key: { in: enabledModelIds } },
+            ],
+          },
+        ];
       } else {
         // Strict mode: no settings or an empty allowlist enables no models.
         where.id = { in: [] };

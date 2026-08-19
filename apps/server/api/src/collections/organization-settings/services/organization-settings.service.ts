@@ -1,5 +1,6 @@
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { allowlistHasLiveModel } from '@api/collections/models/utils/enabled-model.util';
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
@@ -80,19 +81,31 @@ export class OrganizationSettingsService extends BaseService<
    * Seeding only — never a merge. This runs on every settings read, so folding
    * in "missing" models would re-enable everything an org deliberately turned
    * off before the next request could observe the change, making the model
-   * toggles impossible to switch off. A non-empty allowlist is an explicit
-   * choice and is returned untouched; deliberate additions go through
-   * `addEnabledModel` or a settings PATCH.
+   * toggles impossible to switch off. A non-empty allowlist that still
+   * matches at least one live model is an explicit choice and is returned
+   * untouched. A non-empty list of ids/keys that match nothing in the
+   * registry is stale (all visible toggles off) and is re-seeded like empty.
+   * Deliberate additions go through `addEnabledModel` or a settings PATCH.
    */
   async ensureEnabledModelIds(
     setting: OrganizationSettingDocument,
   ): Promise<OrganizationSettingDocument> {
     const currentEnabledModelIds = Array.isArray(setting.enabledModelIds)
-      ? setting.enabledModelIds
+      ? setting.enabledModelIds.filter(
+          (id): id is string => typeof id === 'string' && id.length > 0,
+        )
       : [];
 
     if (currentEnabledModelIds.length > 0) {
-      return setting;
+      const liveMatches = await this.getModelsService().findAllActive({
+        OR: [
+          { id: { in: currentEnabledModelIds } },
+          { key: { in: currentEnabledModelIds } },
+        ],
+      });
+      if (allowlistHasLiveModel(currentEnabledModelIds, liveMatches ?? [])) {
+        return setting;
+      }
     }
 
     const enabledModelIds = shouldUseLowestCostModelDefaults({

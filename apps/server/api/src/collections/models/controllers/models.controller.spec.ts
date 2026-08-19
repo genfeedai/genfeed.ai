@@ -465,7 +465,14 @@ describe('ModelsController', () => {
       });
       expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
         where: {
-          id: { in: [seededModelId] },
+          AND: [
+            {
+              OR: [
+                { id: { in: [seededModelId] } },
+                { key: { in: [seededModelId] } },
+              ],
+            },
+          ],
         },
       });
     });
