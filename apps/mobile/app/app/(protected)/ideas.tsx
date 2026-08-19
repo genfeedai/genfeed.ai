@@ -221,155 +221,155 @@ export default function Ideas() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  actionButton: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  actionButtonText: {
-    color: colors.agent,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  addButton: {
-    alignItems: 'center',
-    backgroundColor: colors.agent,
-    borderRadius: borderRadius.xxxl,
-    paddingVertical: 14,
-  },
-  addButtonLabel: {
-    color: colors.agentForeground,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    backgroundColor: colors.bgTertiary,
-  },
-  cancelButtonText: {
-    color: colors.textMuted,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  container: {
-    backgroundColor: colors.bgPrimary,
-    flex: 1,
-  },
-  contentContainer: {
-    gap: 24,
-    padding: 24,
-    paddingBottom: 64,
-  },
-  deleteButton: {
-    backgroundColor: colors.transparent,
-  },
-  deleteButtonText: {
-    color: colors.error,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  header: {
-    gap: 12,
-  },
-  ideaActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  ideaCard: {
-    backgroundColor: colors.bgSecondary,
-    borderColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxxl,
-    borderWidth: 1,
-    gap: 12,
-    padding: 16,
-  },
-  ideaDate: {
-    color: colors.textMuted,
-    fontSize: 12,
-  },
-  ideaFooter: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  ideaText: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  input: {
-    backgroundColor: colors.bgPrimary,
-    borderColor: colors.bgTertiary,
-    borderRadius: 14,
-    borderWidth: 1,
-    color: colors.textPrimary,
-    fontSize: 15,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  inputMultiline: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  kicker: {
-    color: colors.agent,
-    fontSize: 13,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'flex-end',
-  },
-  modalButton: {
-    alignItems: 'center',
-    borderRadius: borderRadius.xxl,
-    minWidth: 80,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  modalContent: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 20,
-    gap: 20,
-    maxWidth: 500,
-    padding: 24,
-    width: '100%',
-  },
-  modalOverlay: {
-    alignItems: 'center',
-    backgroundColor: colors.overlayScrim,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalTitle: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  results: {
-    gap: 12,
-  },
-  saveButton: {
-    backgroundColor: colors.agent,
-  },
-  saveButtonText: {
-    color: colors.agentForeground,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  subtitle: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 26,
-    fontWeight: '600',
-  },
+    actionButton: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    actionButtonText: {
+      color: colors.agent,
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    addButton: {
+      alignItems: 'center',
+      backgroundColor: colors.agent,
+      borderRadius: borderRadius.xxxl,
+      paddingVertical: 14,
+    },
+    addButtonLabel: {
+      color: colors.agentForeground,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    cancelButton: {
+      backgroundColor: colors.bgTertiary,
+    },
+    cancelButtonText: {
+      color: colors.textMuted,
+      fontSize: 15,
+      fontWeight: '500',
+    },
+    container: {
+      backgroundColor: colors.bgPrimary,
+      flex: 1,
+    },
+    contentContainer: {
+      gap: 24,
+      padding: 24,
+      paddingBottom: 64,
+    },
+    deleteButton: {
+      backgroundColor: colors.transparent,
+    },
+    deleteButtonText: {
+      color: colors.error,
+    },
+    disabledButton: {
+      opacity: 0.6,
+    },
+    header: {
+      gap: 12,
+    },
+    ideaActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    ideaCard: {
+      backgroundColor: colors.bgSecondary,
+      borderColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxxl,
+      borderWidth: 1,
+      gap: 12,
+      padding: 16,
+    },
+    ideaDate: {
+      color: colors.textMuted,
+      fontSize: 12,
+    },
+    ideaFooter: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 8,
+    },
+    ideaText: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    input: {
+      backgroundColor: colors.bgPrimary,
+      borderColor: colors.bgTertiary,
+      borderRadius: 14,
+      borderWidth: 1,
+      color: colors.textPrimary,
+      fontSize: 15,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    inputMultiline: {
+      minHeight: 120,
+      textAlignVertical: 'top',
+    },
+    kicker: {
+      color: colors.agent,
+      fontSize: 13,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    modalActions: {
+      flexDirection: 'row',
+      gap: 12,
+      justifyContent: 'flex-end',
+    },
+    modalButton: {
+      alignItems: 'center',
+      borderRadius: borderRadius.xxl,
+      minWidth: 80,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+    },
+    modalContent: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: 20,
+      gap: 20,
+      maxWidth: 500,
+      padding: 24,
+      width: '100%',
+    },
+    modalOverlay: {
+      alignItems: 'center',
+      backgroundColor: colors.overlayScrim,
+      flex: 1,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    modalTitle: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: '600',
+    },
+    results: {
+      gap: 12,
+    },
+    saveButton: {
+      backgroundColor: colors.agent,
+    },
+    saveButtonText: {
+      color: colors.agentForeground,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    subtitle: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 26,
+      fontWeight: '600',
+    },
   });

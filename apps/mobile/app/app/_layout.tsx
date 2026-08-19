@@ -1,18 +1,15 @@
 import {
   DarkTheme,
   DefaultTheme,
-  Slot,
   ThemeProvider as NavigationThemeProvider,
+  Slot,
 } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect, useMemo } from 'react';
 import { MobileAuthProvider, useMobileAuth } from '@/contexts/auth-context';
-import {
-  MobileThemeProvider,
-  useMobileTheme,
-} from '@/contexts/theme-context';
+import { MobileThemeProvider, useMobileTheme } from '@/contexts/theme-context';
 import { notificationsService } from '@/services/notifications.service';
 import { sentryService } from '@/services/sentry.service';
 
@@ -99,9 +96,7 @@ function ThemedApplication() {
 
   return (
     <NavigationThemeProvider value={navigationTheme}>
-      <StatusBar
-        style={resolvedTheme === 'dark' ? 'light' : 'dark'}
-      />
+      <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />
       <AppInitializer />
       <Slot />
     </NavigationThemeProvider>

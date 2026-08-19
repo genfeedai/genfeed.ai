@@ -35,9 +35,8 @@ describe('extension theme adapter', () => {
   });
 
   it('hydrates an explicit stored preference before revealing extension chrome', async () => {
-    let resolveStorage: (
-      value: Record<string, { theme: 'dark' }>,
-    ) => void = () => undefined;
+    let resolveStorage: (value: Record<string, { theme: 'dark' }>) => void =
+      () => undefined;
     const storage = {
       get: vi.fn(
         () =>
@@ -86,7 +85,10 @@ describe('extension theme adapter', () => {
     let listener: ((event: MediaQueryListEvent) => void) | undefined;
     const mediaQuery = {
       addEventListener: vi.fn(
-        (_event: string, nextListener: (event: MediaQueryListEvent) => void) => {
+        (
+          _event: string,
+          nextListener: (event: MediaQueryListEvent) => void,
+        ) => {
           listener = nextListener;
         },
       ),

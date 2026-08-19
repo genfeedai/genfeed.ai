@@ -5,10 +5,7 @@ import { describe, expect, it } from 'vitest';
 describe('SiteFooter theme contract', () => {
   it('uses semantic chrome instead of forcing a dark footer', () => {
     const source = readFileSync(
-      join(
-        process.cwd(),
-        'src/components/footers/SiteFooter.tsx',
-      ),
+      join(process.cwd(), 'src/components/footers/SiteFooter.tsx'),
       'utf8',
     );
 

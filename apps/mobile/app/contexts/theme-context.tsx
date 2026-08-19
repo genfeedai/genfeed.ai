@@ -1,28 +1,28 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   DEFAULT_RESOLVED_THEME,
   DEFAULT_THEME,
   isResolvedTheme,
   isThemePreference,
+  type ResolvedTheme,
   resolveThemePreference,
   THEME_STORAGE_KEY,
-  type ResolvedTheme,
   type ThemePreference,
 } from '@genfeedai/constants';
 import {
-  nativeThemeColors,
   type NativeThemeColors,
+  nativeThemeColors,
 } from '@genfeedai/ui/semantic/mobile';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   type ReactNode,
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  useLayoutEffect,
 } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 import { useMobileAuth } from '@/contexts/auth-context';
@@ -42,9 +42,8 @@ const DEFAULT_CONTEXT: MobileThemeContextValue = {
   setPreference: async () => undefined,
 };
 
-const MobileThemeContext = createContext<MobileThemeContextValue>(
-  DEFAULT_CONTEXT,
-);
+const MobileThemeContext =
+  createContext<MobileThemeContextValue>(DEFAULT_CONTEXT);
 
 export function MobileThemeProvider({ children }: { children: ReactNode }) {
   const { getToken, isLoaded, isSignedIn, user } = useMobileAuth();
@@ -65,10 +64,7 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
           ? storedPreference
           : DEFAULT_THEME;
 
-        if (
-          isActive &&
-          preferenceRevision.current === startedAtRevision
-        ) {
+        if (isActive && preferenceRevision.current === startedAtRevision) {
           setPreferenceState(nextPreference);
         }
 
@@ -76,10 +72,7 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem(THEME_STORAGE_KEY, DEFAULT_THEME);
         }
       } catch {
-        if (
-          isActive &&
-          preferenceRevision.current === startedAtRevision
-        ) {
+        if (isActive && preferenceRevision.current === startedAtRevision) {
           setPreferenceState(DEFAULT_THEME);
         }
       } finally {
@@ -112,10 +105,7 @@ export function MobileThemeProvider({ children }: { children: ReactNode }) {
         }
 
         const accountPreference = await mobileSettingsService.getTheme(token);
-        if (
-          !isActive ||
-          preferenceRevision.current !== startedAtRevision
-        ) {
+        if (!isActive || preferenceRevision.current !== startedAtRevision) {
           return;
         }
 

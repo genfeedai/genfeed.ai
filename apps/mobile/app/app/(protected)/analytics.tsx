@@ -347,220 +347,220 @@ export default function AnalyticsScreen() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  commentsBar: {
-    backgroundColor: colors.info,
-  },
-  container: {
-    backgroundColor: colors.bgSecondary,
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  engagementBar: {
-    borderRadius: borderRadius.sm,
-    flexDirection: 'row',
-    height: 8,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  engagementLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-  },
-  engagementLegend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  engagementSection: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxl,
-    padding: 16,
-  },
-  engagementSegment: {
-    height: '100%',
-  },
-  engagementValue: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  header: {
-    marginBottom: 24,
-  },
-  headerSubtitle: {
-    color: colors.textMuted,
-    fontSize: 14,
-    marginTop: 4,
-  },
-  headerTitle: {
-    color: colors.textPrimary,
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  legendDot: {
-    borderRadius: 5,
-    height: 10,
-    marginRight: 8,
-    width: 10,
-  },
-  legendItem: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginBottom: 8,
-    width: '50%',
-  },
-  legendText: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  likesBar: {
-    backgroundColor: colors.error,
-  },
-  negative: {
-    color: colors.error,
-  },
-  platformCard: {
-    alignItems: 'center',
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxl,
-    flexDirection: 'row',
-    marginBottom: 8,
-    padding: 14,
-  },
-  platformEngagement: {
-    alignItems: 'flex-end',
-  },
-  platformIcon: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  platformIconContainer: {
-    alignItems: 'center',
-    backgroundColor: colors.bgBorder,
-    borderRadius: borderRadius.xl,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  platformInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  platformName: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  platformStats: {
-    color: colors.textMuted,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  positive: {
-    color: colors.success,
-  },
-  rankBadge: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.lg,
-    height: 32,
-    justifyContent: 'center',
-    width: 32,
-  },
-  rankText: {
-    color: colors.primaryForeground,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  savesBar: {
-    backgroundColor: colors.warning,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  sharesBar: {
-    backgroundColor: colors.success,
-  },
-  statCard: {
-    padding: 6,
-    width: '50%',
-  },
-  statGrowth: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  statIcon: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.lg,
-    color: colors.primary,
-    fontSize: 20,
-    height: 36,
-    lineHeight: 36,
-    marginBottom: 8,
-    overflow: 'hidden',
-    textAlign: 'center',
-    width: 36,
-  },
-  statLabel: {
-    color: colors.textMuted,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 24,
-    marginHorizontal: -6,
-  },
-  statValue: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  topContentCard: {
-    alignItems: 'center',
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxl,
-    flexDirection: 'row',
-    marginBottom: 8,
-    padding: 14,
-  },
-  topContentInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  topContentMetrics: {
-    alignItems: 'flex-end',
-    marginLeft: 8,
-  },
-  topContentPlatform: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  topContentTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  topContentViews: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  topContentViewsLabel: {
-    color: colors.textMuted,
-    fontSize: 11,
-  },
+    commentsBar: {
+      backgroundColor: colors.info,
+    },
+    container: {
+      backgroundColor: colors.bgSecondary,
+      flex: 1,
+    },
+    contentContainer: {
+      padding: 16,
+      paddingBottom: 32,
+    },
+    engagementBar: {
+      borderRadius: borderRadius.sm,
+      flexDirection: 'row',
+      height: 8,
+      marginBottom: 16,
+      overflow: 'hidden',
+    },
+    engagementLabel: {
+      color: colors.textMuted,
+      fontSize: 11,
+    },
+    engagementLegend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    engagementSection: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxl,
+      padding: 16,
+    },
+    engagementSegment: {
+      height: '100%',
+    },
+    engagementValue: {
+      color: colors.primary,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    header: {
+      marginBottom: 24,
+    },
+    headerSubtitle: {
+      color: colors.textMuted,
+      fontSize: 14,
+      marginTop: 4,
+    },
+    headerTitle: {
+      color: colors.textPrimary,
+      fontSize: 28,
+      fontWeight: 'bold',
+    },
+    legendDot: {
+      borderRadius: 5,
+      height: 10,
+      marginRight: 8,
+      width: 10,
+    },
+    legendItem: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      marginBottom: 8,
+      width: '50%',
+    },
+    legendText: {
+      color: colors.textMuted,
+      fontSize: 13,
+    },
+    likesBar: {
+      backgroundColor: colors.error,
+    },
+    negative: {
+      color: colors.error,
+    },
+    platformCard: {
+      alignItems: 'center',
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxl,
+      flexDirection: 'row',
+      marginBottom: 8,
+      padding: 14,
+    },
+    platformEngagement: {
+      alignItems: 'flex-end',
+    },
+    platformIcon: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: 'bold',
+    },
+    platformIconContainer: {
+      alignItems: 'center',
+      backgroundColor: colors.bgBorder,
+      borderRadius: borderRadius.xl,
+      height: 40,
+      justifyContent: 'center',
+      width: 40,
+    },
+    platformInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    platformName: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    platformStats: {
+      color: colors.textMuted,
+      fontSize: 13,
+      marginTop: 2,
+    },
+    positive: {
+      color: colors.success,
+    },
+    rankBadge: {
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.lg,
+      height: 32,
+      justifyContent: 'center',
+      width: 32,
+    },
+    rankText: {
+      color: colors.primaryForeground,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    savesBar: {
+      backgroundColor: colors.warning,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '600',
+      marginBottom: 12,
+    },
+    sharesBar: {
+      backgroundColor: colors.success,
+    },
+    statCard: {
+      padding: 6,
+      width: '50%',
+    },
+    statGrowth: {
+      fontSize: 12,
+      fontWeight: '600',
+      marginTop: 4,
+    },
+    statIcon: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.lg,
+      color: colors.primary,
+      fontSize: 20,
+      height: 36,
+      lineHeight: 36,
+      marginBottom: 8,
+      overflow: 'hidden',
+      textAlign: 'center',
+      width: 36,
+    },
+    statLabel: {
+      color: colors.textMuted,
+      fontSize: 13,
+      marginTop: 2,
+    },
+    statsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginBottom: 24,
+      marginHorizontal: -6,
+    },
+    statValue: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontWeight: 'bold',
+    },
+    topContentCard: {
+      alignItems: 'center',
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxl,
+      flexDirection: 'row',
+      marginBottom: 8,
+      padding: 14,
+    },
+    topContentInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    topContentMetrics: {
+      alignItems: 'flex-end',
+      marginLeft: 8,
+    },
+    topContentPlatform: {
+      color: colors.textMuted,
+      fontSize: 12,
+      marginTop: 2,
+    },
+    topContentTitle: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '500',
+      lineHeight: 18,
+    },
+    topContentViews: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    topContentViewsLabel: {
+      color: colors.textMuted,
+      fontSize: 11,
+    },
   });

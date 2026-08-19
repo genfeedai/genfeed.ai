@@ -60,7 +60,9 @@ describe('SidePanel', () => {
     const sidepanelPath = path.resolve(testDir, '../src/sidepanel.tsx');
     const source = readFileSync(sidepanelPath, 'utf8');
 
-    expect(source).toContain("import { useExtensionTheme } from '~hooks/use-extension-theme';");
+    expect(source).toContain(
+      "import { useExtensionTheme } from '~hooks/use-extension-theme';",
+    );
     expect(source).toContain('useExtensionTheme();');
     expect(source).not.toContain("setAttribute('data-theme', 'dark')");
   });

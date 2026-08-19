@@ -52,7 +52,9 @@ describe('themeSettingsService', () => {
   });
 
   it('patches only the selected theme preference', async () => {
-    makeAuthenticatedRequest.mockResolvedValue(new Response(null, { status: 204 }));
+    makeAuthenticatedRequest.mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
 
     await themeSettingsService.updateTheme('dark');
 

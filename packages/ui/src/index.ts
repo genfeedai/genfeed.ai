@@ -10,10 +10,7 @@ import {
   generateWebviewTokenCss,
   webviewTokenCss,
 } from '@ui/generators/webview-css';
-import {
-  nativeThemeColors,
-  nativeTokenMap,
-} from '@ui/semantic/mobile';
+import { nativeThemeColors, nativeTokenMap } from '@ui/semantic/mobile';
 import { tailwindSemanticColors } from '@ui/semantic/web';
 import { webviewSemanticTokenMap } from '@ui/semantic/webview';
 

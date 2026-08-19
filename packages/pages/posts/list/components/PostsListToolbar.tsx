@@ -96,7 +96,7 @@ export default function PostsListToolbar({
         value={sortValue}
         options={sortOptions}
         onChange={(_name, value) => onSortChange(value)}
-        className="h-8 rounded-md border border-border bg-card px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground"
+        className="h-8 rounded-md border border-border bg-secondary px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground"
       />
     </div>
   );

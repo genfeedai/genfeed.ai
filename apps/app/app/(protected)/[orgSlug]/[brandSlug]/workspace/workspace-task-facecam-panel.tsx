@@ -1,5 +1,7 @@
 'use client';
 
+import { CardVariant } from '@genfeedai/enums';
+import Card from '@ui/card/Card';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Select,
@@ -42,7 +44,7 @@ export function WorkspaceTaskFacecamPanel({
   voices,
 }: WorkspaceTaskFacecamPanelProps) {
   return (
-    <div className="rounded-lg border border-border bg-background-secondary p-3 space-y-3">
+    <Card variant={CardVariant.DEFAULT} bodyClassName="space-y-3 p-3">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/55">
           Facecam settings
@@ -117,6 +119,6 @@ export function WorkspaceTaskFacecamPanel({
       />
 
       {error ? <p className="text-[11px] text-rose-300">{error}</p> : null}
-    </div>
+    </Card>
   );
 }

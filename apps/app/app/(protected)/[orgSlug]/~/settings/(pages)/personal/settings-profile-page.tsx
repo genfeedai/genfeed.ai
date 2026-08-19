@@ -108,7 +108,13 @@ export default function SettingsProfilePage() {
         notifications.error('Failed to save your appearance preference.');
       }
     },
-    [currentUser?.settings?.theme, notifications, patchSettings, setTheme, theme],
+    [
+      currentUser?.settings?.theme,
+      notifications,
+      patchSettings,
+      setTheme,
+      theme,
+    ],
   );
 
   if (!isLoaded) {

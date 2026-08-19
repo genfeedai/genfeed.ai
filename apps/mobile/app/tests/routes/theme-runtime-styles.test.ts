@@ -1,8 +1,8 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
 import { nativeThemeColors } from '@genfeedai/ui/semantic/mobile';
+import { describe, expect, it } from 'vitest';
 
 const mobileRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

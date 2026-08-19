@@ -1,8 +1,8 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { FlashList } from '@shopify/flash-list';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { memo, type ReactElement, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -445,214 +445,214 @@ export default function Approvals() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  approveAction: {
-    backgroundColor: colors.success,
-  },
-  approveActionText: {
-    color: colors.successForeground,
-  },
-  approveButton: {
-    backgroundColor: colors.success,
-  },
-  approveButtonPressed: {
-    opacity: 0.8,
-  },
-  approveButtonText: {
-    color: colors.successForeground,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  badge: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  badgeText: {
-    color: colors.agent,
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  card: {
-    backgroundColor: colors.bgSecondary,
-    borderColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxxl,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-    padding: 16,
-  },
-  cardBody: {
-    flex: 1,
-    gap: 6,
-  },
-  cardDate: {
-    color: colors.textSubtle,
-    fontSize: 12,
-  },
-  cardDescription: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  cardHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  cardPressed: {
-    opacity: 0.8,
-  },
-  cardSelected: {
-    backgroundColor: colors.bgTertiary,
-    borderColor: colors.agent,
-  },
-  cardTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  checkbox: {
-    alignItems: 'center',
-    borderColor: colors.textSubtle,
-    borderRadius: borderRadius.xxl,
-    borderWidth: 2,
-    height: 24,
-    justifyContent: 'center',
-    width: 24,
-  },
-  checkboxSelected: {
-    backgroundColor: colors.agent,
-    borderColor: colors.agent,
-  },
-  checkmark: {
-    color: colors.agentForeground,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  container: {
-    backgroundColor: colors.bgPrimary,
-    flex: 1,
-  },
-  filterChip: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  filterChipActive: {
-    backgroundColor: colors.agent,
-  },
-  filterChipPressed: {
-    opacity: 0.8,
-  },
-  filterChipText: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: colors.agentForeground,
-  },
-  filters: {
-    flexDirection: 'row',
-    gap: 8,
-    paddingBottom: 16,
-    paddingHorizontal: 24,
-  },
-  header: {
-    gap: 8,
-    padding: 24,
-    paddingBottom: 16,
-  },
-  kicker: {
-    color: colors.agent,
-    fontSize: 13,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  listContent: {
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-  },
-  rejectAction: {
-    backgroundColor: colors.error,
-  },
-  rejectActionText: {
-    color: colors.errorForeground,
-  },
-  requestedBy: {
-    color: colors.textSubtle,
-    fontSize: 12,
-  },
-  selectionActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  selectionBar: {
-    alignItems: 'center',
-    backgroundColor: colors.bgTertiary,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  selectionButton: {
-    backgroundColor: colors.bgBorder,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  selectionButtonPressed: {
-    opacity: 0.8,
-  },
-  selectionButtonText: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  selectionText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 14,
-  },
-  swipeAction: {
-    alignItems: 'center',
-    borderRadius: borderRadius.xxxl,
-    justifyContent: 'center',
-    marginBottom: 12,
-    width: 80,
-  },
-  swipeActionPressed: {
-    opacity: 0.8,
-  },
-  swipeActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  thumbnail: {
-    borderRadius: borderRadius.xxl,
-    height: 64,
-    width: 64,
-  },
-  thumbnailPlaceholder: {
-    alignItems: 'center',
-    backgroundColor: colors.bgTertiary,
-    justifyContent: 'center',
-  },
-  thumbnailPlaceholderText: {
-    color: colors.textSubtle,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 26,
-    fontWeight: '600',
-  },
+    approveAction: {
+      backgroundColor: colors.success,
+    },
+    approveActionText: {
+      color: colors.successForeground,
+    },
+    approveButton: {
+      backgroundColor: colors.success,
+    },
+    approveButtonPressed: {
+      opacity: 0.8,
+    },
+    approveButtonText: {
+      color: colors.successForeground,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    badge: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    badgeText: {
+      color: colors.agent,
+      fontSize: 11,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    card: {
+      backgroundColor: colors.bgSecondary,
+      borderColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxxl,
+      borderWidth: 1,
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 12,
+      padding: 16,
+    },
+    cardBody: {
+      flex: 1,
+      gap: 6,
+    },
+    cardDate: {
+      color: colors.textSubtle,
+      fontSize: 12,
+    },
+    cardDescription: {
+      color: colors.textMuted,
+      fontSize: 13,
+    },
+    cardHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    cardPressed: {
+      opacity: 0.8,
+    },
+    cardSelected: {
+      backgroundColor: colors.bgTertiary,
+      borderColor: colors.agent,
+    },
+    cardTitle: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    checkbox: {
+      alignItems: 'center',
+      borderColor: colors.textSubtle,
+      borderRadius: borderRadius.xxl,
+      borderWidth: 2,
+      height: 24,
+      justifyContent: 'center',
+      width: 24,
+    },
+    checkboxSelected: {
+      backgroundColor: colors.agent,
+      borderColor: colors.agent,
+    },
+    checkmark: {
+      color: colors.agentForeground,
+      fontSize: 14,
+      fontWeight: 'bold',
+    },
+    container: {
+      backgroundColor: colors.bgPrimary,
+      flex: 1,
+    },
+    filterChip: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    filterChipActive: {
+      backgroundColor: colors.agent,
+    },
+    filterChipPressed: {
+      opacity: 0.8,
+    },
+    filterChipText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '500',
+    },
+    filterChipTextActive: {
+      color: colors.agentForeground,
+    },
+    filters: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingBottom: 16,
+      paddingHorizontal: 24,
+    },
+    header: {
+      gap: 8,
+      padding: 24,
+      paddingBottom: 16,
+    },
+    kicker: {
+      color: colors.agent,
+      fontSize: 13,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    listContent: {
+      paddingBottom: 24,
+      paddingHorizontal: 24,
+    },
+    rejectAction: {
+      backgroundColor: colors.error,
+    },
+    rejectActionText: {
+      color: colors.errorForeground,
+    },
+    requestedBy: {
+      color: colors.textSubtle,
+      fontSize: 12,
+    },
+    selectionActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    selectionBar: {
+      alignItems: 'center',
+      backgroundColor: colors.bgTertiary,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+    },
+    selectionButton: {
+      backgroundColor: colors.bgBorder,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+    },
+    selectionButtonPressed: {
+      opacity: 0.8,
+    },
+    selectionButtonText: {
+      color: colors.textMuted,
+      fontSize: 13,
+      fontWeight: '500',
+    },
+    selectionText: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 14,
+    },
+    swipeAction: {
+      alignItems: 'center',
+      borderRadius: borderRadius.xxxl,
+      justifyContent: 'center',
+      marginBottom: 12,
+      width: 80,
+    },
+    swipeActionPressed: {
+      opacity: 0.8,
+    },
+    swipeActionText: {
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    thumbnail: {
+      borderRadius: borderRadius.xxl,
+      height: 64,
+      width: 64,
+    },
+    thumbnailPlaceholder: {
+      alignItems: 'center',
+      backgroundColor: colors.bgTertiary,
+      justifyContent: 'center',
+    },
+    thumbnailPlaceholderText: {
+      color: colors.textSubtle,
+      fontSize: 24,
+      fontWeight: 'bold',
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 26,
+      fontWeight: '600',
+    },
   });

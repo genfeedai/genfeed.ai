@@ -16,9 +16,7 @@ interface AppearanceSelectorProps {
   description: string;
 }
 
-export function AppearanceSelector({
-  description,
-}: AppearanceSelectorProps) {
+export function AppearanceSelector({ description }: AppearanceSelectorProps) {
   const { preference, setPreference } = useMobileTheme();
   const styles = useThemedStyles(createStyles);
   const [isSaving, setIsSaving] = useState(false);

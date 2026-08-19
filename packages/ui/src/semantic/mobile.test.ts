@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { semanticColorTokens } from '@ui/core/colors';
 import { nativeThemeColors } from '@ui/semantic/mobile';
+import { describe, expect, it } from 'vitest';
 
 describe('nativeThemeColors', () => {
   it.each(['light', 'dark'] as const)(
@@ -18,9 +18,7 @@ describe('nativeThemeColors', () => {
       expect(native.primary).toBe(semantic.primary.hex);
       expect(native.primaryForeground).toBe(semantic.primaryForeground.hex);
       expect(native.error).toBe(semantic.destructive.hex);
-      expect(native.errorForeground).toBe(
-        semantic.destructiveForeground.hex,
-      );
+      expect(native.errorForeground).toBe(semantic.destructiveForeground.hex);
     },
   );
 

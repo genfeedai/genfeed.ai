@@ -1,7 +1,4 @@
-import {
-  DEFAULT_THEME,
-  type ThemePreference,
-} from '@genfeedai/constants';
+import { DEFAULT_THEME, type ThemePreference } from '@genfeedai/constants';
 import { create } from 'zustand';
 import {
   EXTENSION_SETTINGS_STORAGE_KEY,
@@ -98,9 +95,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>(
         set((state) =>
           state.settingsRevision === startingRevision
             ? {
-                ...normalizeSettings(
-                  result[EXTENSION_SETTINGS_STORAGE_KEY],
-                ),
+                ...normalizeSettings(result[EXTENSION_SETTINGS_STORAGE_KEY]),
                 isLoaded: true,
               }
             : { isLoaded: true },

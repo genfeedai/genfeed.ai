@@ -91,7 +91,7 @@ const EvalGridCell = memo(function EvalGridCell({
         handleEvaluate();
       }}
       size={ButtonSize.XS}
-      className="rounded-lg border border-border bg-background-secondary px-2.5 text-muted-foreground hover:bg-hover hover:text-foreground"
+      className="rounded-lg border border-border bg-muted px-2.5 text-muted-foreground hover:bg-hover hover:text-foreground"
     />
   );
 });
