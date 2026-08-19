@@ -41,6 +41,7 @@ resource "aws_ecs_task_definition" "this" {
     essential   = true
     environment = var.environment
     secrets     = var.secrets
+    stopTimeout = var.stop_timeout
     portMappings = [{
       containerPort = var.port
       hostPort      = var.port
