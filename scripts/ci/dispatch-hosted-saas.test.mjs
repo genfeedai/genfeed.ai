@@ -126,6 +126,16 @@ test('preflights capability before dispatching and preserves the SHA contract', 
   assert.equal(calls[2]?.body.inputs.release_sha, RELEASE_SHA);
   assert.equal(calls[2]?.body.inputs.source_sha, RELEASE_SHA);
   assert.equal(calls[2]?.body.inputs.marketplace_source_sha, '');
+  assert.deepEqual(Object.keys(calls[2]?.body.inputs ?? {}).sort(), [
+    'correlation_id',
+    'marketplace_source_sha',
+    'release_sha',
+    'source_sha',
+  ]);
+  assert.doesNotMatch(
+    JSON.stringify(calls[2]?.body ?? {}),
+    /GITHUB_TOKEN|ghcr\.io|password/i,
+  );
   assert.equal(result.marketplaceSourceSha, '');
   assert.equal(result.correlationId, `release-31678573754-1-${RELEASE_SHA}`);
   assert.equal(

@@ -85,3 +85,11 @@ resource "aws_iam_role_policy" "task" {
   role   = aws_iam_role.task.id
   policy = data.aws_iam_policy_document.task.json
 }
+
+# Internet-facing mcp/notifications must not inherit the CDN Get/Put/Delete
+# role. They keep an assumable task role so ECS can launch them, with no
+# extra runtime permissions.
+resource "aws_iam_role" "public_task" {
+  name               = "${local.name_prefix}-public-task"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume.json
+}

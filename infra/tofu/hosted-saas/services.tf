@@ -34,13 +34,13 @@ module "service" {
   region            = var.region
 
   execution_role_arn = aws_iam_role.execution.arn
-  task_role_arn      = aws_iam_role.task.arn
+  task_role_arn      = contains(local.public_backend_service_names, each.key) ? aws_iam_role.public_task.arn : aws_iam_role.task.arn
 
   subnets            = local.private_subnet_ids
   security_group_ids = [aws_security_group.ecs.id]
   namespace_id       = aws_service_discovery_private_dns_namespace.internal.id
 
-  secrets = local.service_task_secrets
+  secrets = contains(local.public_backend_service_names, each.key) ? local.public_backend_task_secrets[each.key] : local.service_task_secrets
   environment = concat(local.internal_env, [
     { name = "PORT", value = tostring(each.value.port) },
     { name = "SERVICE_NAME", value = each.key },
