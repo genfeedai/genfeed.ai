@@ -133,8 +133,8 @@ describe('PostPerformanceChart', () => {
       render(<PostPerformanceChart data={mockHourlyData} />);
       const viewsButton = screen.getByText('views').closest('button');
       const engagementButton = screen.getByText('engagement').closest('button');
-      expect(viewsButton).toHaveClass('bg-white/10');
-      expect(engagementButton).toHaveClass('bg-white/10');
+      expect(viewsButton).toHaveClass('bg-muted');
+      expect(engagementButton).toHaveClass('bg-muted');
     });
 
     it('renders color indicator for each metric', () => {
@@ -170,7 +170,7 @@ describe('PostPerformanceChart', () => {
       fireEvent.click(engagementButton!);
 
       // Engagement should still be active
-      expect(engagementButton).toHaveClass('bg-white/10');
+      expect(engagementButton).toHaveClass('bg-muted');
     });
 
     it('can toggle a metric back on', () => {
@@ -184,7 +184,7 @@ describe('PostPerformanceChart', () => {
 
       // Toggle back on
       fireEvent.click(viewsButton!);
-      expect(viewsButton).toHaveClass('bg-white/10');
+      expect(viewsButton).toHaveClass('bg-muted');
     });
   });
 
@@ -292,7 +292,7 @@ describe('PostPerformanceChart', () => {
     it('applies active styling to selected metrics', () => {
       render(<PostPerformanceChart data={mockHourlyData} />);
       const activeButton = screen.getByText('views').closest('button');
-      expect(activeButton).toHaveClass('text-white');
+      expect(activeButton).toHaveClass('text-foreground');
     });
 
     it('applies inactive styling to deselected metrics', () => {
@@ -301,7 +301,7 @@ describe('PostPerformanceChart', () => {
       fireEvent.click(screen.getByText('views').closest('button')!);
 
       const inactiveButton = screen.getByText('views').closest('button');
-      expect(inactiveButton).toHaveClass('text-white/50');
+      expect(inactiveButton).toHaveClass('text-muted-foreground');
     });
 
     it('applies disabled styling when loading', () => {

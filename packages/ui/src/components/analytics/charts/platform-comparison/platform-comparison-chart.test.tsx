@@ -162,8 +162,8 @@ describe('PlatformComparisonChart', () => {
       render(<PlatformComparisonChart data={mockData} />);
       const viewsButton = screen.getByText('views').closest('button');
       const likesButton = screen.getByText('likes').closest('button');
-      expect(viewsButton).toHaveClass('bg-white/10');
-      expect(likesButton).toHaveClass('bg-white/10');
+      expect(viewsButton).toHaveClass('bg-muted');
+      expect(likesButton).toHaveClass('bg-muted');
     });
 
     it('comments and shares are inactive by default', () => {
@@ -191,7 +191,7 @@ describe('PlatformComparisonChart', () => {
       const commentsButton = getMetricButton('comments');
       fireEvent.click(commentsButton);
 
-      expect(commentsButton).toHaveClass('bg-white/10');
+      expect(commentsButton).toHaveClass('bg-muted');
     });
 
     it('can toggle off views metric', () => {
@@ -213,7 +213,7 @@ describe('PlatformComparisonChart', () => {
       const likesButton = getMetricButton('likes');
       fireEvent.click(likesButton);
 
-      expect(likesButton).toHaveClass('bg-white/10');
+      expect(likesButton).toHaveClass('bg-muted');
     });
 
     it('can toggle a metric back on', () => {
@@ -227,7 +227,7 @@ describe('PlatformComparisonChart', () => {
 
       // Toggle back on
       fireEvent.click(viewsButton);
-      expect(viewsButton).toHaveClass('bg-white/10');
+      expect(viewsButton).toHaveClass('bg-muted');
     });
   });
 
@@ -346,13 +346,13 @@ describe('PlatformComparisonChart', () => {
     it('applies active styling to selected metrics', () => {
       render(<PlatformComparisonChart data={mockData} />);
       const activeButton = screen.getByText('views').closest('button');
-      expect(activeButton).toHaveClass('text-white');
+      expect(activeButton).toHaveClass('text-foreground');
     });
 
     it('applies inactive styling to unselected metrics', () => {
       render(<PlatformComparisonChart data={mockData} />);
       const inactiveButton = screen.getByText('comments').closest('button');
-      expect(inactiveButton).toHaveClass('text-white/50');
+      expect(inactiveButton).toHaveClass('text-muted-foreground');
     });
 
     it('applies disabled styling when loading', () => {
