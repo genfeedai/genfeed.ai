@@ -4,6 +4,7 @@ import {
   LOWEST_COST_VIDEO_MODEL_KEY,
   UNIFIED_MODEL_CATALOG,
 } from '@genfeedai/constants';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 import { ModelCatalogSeedService } from './model-catalog-seed.service';
