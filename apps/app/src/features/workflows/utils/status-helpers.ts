@@ -11,6 +11,7 @@
  */
 
 import { WorkflowExecutionStatus, WorkflowLifecycle } from '@genfeedai/enums';
+import type { WorkflowLifecycle as WorkflowLifecycleContract } from '@genfeedai/workflows/contracts';
 
 /**
  * Returns the appropriate icon for execution status
@@ -72,7 +73,7 @@ export function getStatusBorderColor(status: WorkflowExecutionStatus): string {
  * `workflows.lifecycle` is a `String` column, so these labels stay lowercase.
  */
 export function getLifecycleBadgeClass(
-  lifecycle: WorkflowLifecycle | undefined,
+  lifecycle: WorkflowLifecycleContract | undefined,
 ): string {
   switch (lifecycle) {
     case WorkflowLifecycle.PUBLISHED:
