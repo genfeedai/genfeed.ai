@@ -1,16 +1,38 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
 import {
   type AnalyzePerformanceOptions,
   ContentOptimizationService,
 } from '@api/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class AutoApplySuggestionDto {
   @IsString()
   suggestionId!: string;
+}
+
+export class ExecuteAbTestSuggestionDto {
+  @IsString()
+  hypothesis!: string;
+
+  @IsString()
+  platform!: string;
+
+  @IsOptional()
+  @IsString()
+  suggestionId?: string;
+
+  @IsString()
+  variable!: string;
+
+  @IsString()
+  variantA!: string;
+
+  @IsString()
+  variantB!: string;
 }
 
 @Controller('brands/:brandId/optimization')
@@ -18,6 +40,7 @@ export class ContentOptimizationController {
   constructor(
     private readonly contentOptimizationService: ContentOptimizationService,
     private readonly queueService: ContentOptimizationQueueService,
+    private readonly abTestHarness: AbTestSuggestionHarnessService,
   ) {}
 
   /**
@@ -117,6 +140,43 @@ export class ContentOptimizationController {
       brandId,
       body.suggestionId,
     );
+  }
+
+  /**
+   * POST v1/brands/:brandId/optimization/ab-tests
+   * Turns an advisory A/B suggestion into attributed variation arms.
+   */
+  @Post('ab-tests')
+  async executeAbTest(
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+    @Body() body: ExecuteAbTestSuggestionDto,
+  ) {
+    return this.abTestHarness.executeSuggestion({
+      brandId,
+      organizationId: user.organizationId,
+      suggestion: {
+        hypothesis: body.hypothesis,
+        platform: body.platform,
+        suggestionId: body.suggestionId,
+        variable: body.variable,
+        variantA: body.variantA,
+        variantB: body.variantB,
+      },
+      userId: user.userId,
+    });
+  }
+
+  /**
+   * POST v1/brands/:brandId/optimization/ab-tests/resolve
+   * Scores published A/B arms and persists resolved outcomes only.
+   */
+  @Post('ab-tests/resolve')
+  async resolveAbTests(
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.abTestHarness.resolveOutcomes(user.organizationId, brandId);
   }
 
   /**

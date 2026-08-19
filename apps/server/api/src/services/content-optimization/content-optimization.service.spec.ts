@@ -372,6 +372,7 @@ describe('ContentOptimizationService', () => {
       expect(result.pipelineConfigs).toBeInstanceOf(Array);
       expect(result.abTestSuggestions).toBeInstanceOf(Array);
       expect(result.general).toBeInstanceOf(Array);
+      expect(result.validatedAbTests).toEqual([]);
     });
 
     it('should include posting schedule per platform', async () => {
