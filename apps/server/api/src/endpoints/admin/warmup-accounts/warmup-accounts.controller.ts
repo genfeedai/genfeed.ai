@@ -76,6 +76,92 @@ export class WarmupAccountsController {
     }
   }
 
+  @Get(':id/invitation')
+  @ApiOperation({
+    summary: 'Inspect a warm-up invitation lifecycle and diagnostics',
+  })
+  async inspectInvitation(@Param('id') id: string, @Req() request: Request) {
+    try {
+      const account = await this.warmupAccountsService.inspectInvitation(id);
+      return serializeSingle(request, WarmupAccountSerializer, account);
+    } catch (error) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'inspectWarmupInvitation',
+      );
+    }
+  }
+
+  @Post(':id/invitation/send')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send a pending warm-up invitation' })
+  async sendInvitation(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    try {
+      const account = await this.warmupAccountsService.sendInvitation(
+        id,
+        this.getActorUserId(user),
+      );
+      return serializeSingle(request, WarmupAccountSerializer, account);
+    } catch (error) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'sendWarmupInvitation',
+      );
+    }
+  }
+
+  @Post(':id/invitation/resend')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend a warm-up invitation' })
+  async resendInvitation(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    try {
+      const account = await this.warmupAccountsService.resendInvitation(
+        id,
+        this.getActorUserId(user),
+      );
+      return serializeSingle(request, WarmupAccountSerializer, account);
+    } catch (error) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'resendWarmupInvitation',
+      );
+    }
+  }
+
+  @Post(':id/invitation/revoke')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revoke a warm-up invitation' })
+  async revokeInvitation(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    try {
+      const account = await this.warmupAccountsService.revokeInvitation(
+        id,
+        this.getActorUserId(user),
+      );
+      return serializeSingle(request, WarmupAccountSerializer, account);
+    } catch (error) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'revokeWarmupInvitation',
+      );
+    }
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get warm-up account details' })
   async get(@Param('id') id: string, @Req() request: Request) {
@@ -92,7 +178,7 @@ export class WarmupAccountsController {
 
     if (!actorUserId) {
       throw new BadRequestException(
-        'Local user id is required to provision warm-up accounts',
+        'Local user id is required for warm-up account actions',
       );
     }
 

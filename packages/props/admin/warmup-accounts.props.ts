@@ -20,3 +20,14 @@ export interface WarmupAccountListProps {
   selectedAccountId?: string;
   onSelectAccount: (accountId: string) => void;
 }
+
+export type WarmupInvitationAction = 'inspect' | 'resend' | 'revoke' | 'send';
+
+export interface WarmupAccountDetailProps {
+  account?: IWarmupAccount;
+  invitationAction?: WarmupInvitationAction | null;
+  onInspect: () => void;
+  onResend: () => void;
+  onRevoke: () => void;
+  onSend: () => void;
+}

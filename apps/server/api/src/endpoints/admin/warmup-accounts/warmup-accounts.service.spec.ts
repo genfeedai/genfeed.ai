@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WarmupAccountStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ConflictException, GoneException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-06-29T10:00:00.000Z');
@@ -27,6 +28,25 @@ describe('createSlugSeed', () => {
     );
   });
 });
+
+function makeInvitationView(overrides: Record<string, unknown> = {}) {
+  return {
+    acceptedAt: null,
+    createdAt,
+    email: 'lead@example.com',
+    expiresAt: new Date('2026-07-06T10:00:00.000Z'),
+    id: 'invite_1',
+    invitedByUserId: 'operator_1',
+    organizationId: 'org_1',
+    revokedAt: null,
+    roleId: 'role_member',
+    roleKey: 'member',
+    status: 'pending' as const,
+    tokenHash: 'should-never-leak',
+    updatedAt,
+    ...overrides,
+  };
+}
 
 function makeWarmupAccount(overrides: Record<string, unknown> = {}) {
   return {
@@ -90,6 +110,9 @@ describe('AdminWarmupAccountsService', () => {
   };
   let invitationService: {
     createInvitation: ReturnType<typeof vi.fn>;
+    getInvitation: ReturnType<typeof vi.fn>;
+    resendInvitation: ReturnType<typeof vi.fn>;
+    revokeInvitation: ReturnType<typeof vi.fn>;
   };
   let logger: {
     error: ReturnType<typeof vi.fn>;
@@ -155,9 +178,17 @@ describe('AdminWarmupAccountsService', () => {
     };
 
     invitationService = {
-      createInvitation: vi.fn().mockResolvedValue({
-        id: 'invite_1',
-      }),
+      createInvitation: vi.fn().mockResolvedValue(makeInvitationView()),
+      getInvitation: vi.fn().mockResolvedValue(makeInvitationView()),
+      resendInvitation: vi
+        .fn()
+        .mockResolvedValue(makeInvitationView({ status: 'delivered' })),
+      revokeInvitation: vi.fn().mockResolvedValue(
+        makeInvitationView({
+          revokedAt: updatedAt,
+          status: 'revoked',
+        }),
+      ),
     };
 
     logger = {
@@ -249,5 +280,230 @@ describe('AdminWarmupAccountsService', () => {
     expect(logger.error).toHaveBeenCalled();
     expect(result.status).toBe('FAILED');
     expect(result.diagnostics.error).toBe('Invitation disabled');
+  });
+
+  it('inspects invitation lifecycle state without token material', async () => {
+    prisma.warmupAccount.findFirst.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+
+    const result = await service.inspectInvitation('warmup_1');
+
+    expect(invitationService.getInvitation).toHaveBeenCalledWith(
+      'invite_1',
+      'org_1',
+    );
+    expect(result.invitation).toMatchObject({
+      email: 'lead@example.com',
+      id: 'invite_1',
+      status: 'pending',
+    });
+    expect(result.invitation).not.toHaveProperty('tokenHash');
+    expect(JSON.stringify(result)).not.toContain('should-never-leak');
+  });
+
+  it('sends a pending invitation and records the dispatch', async () => {
+    const account = makeWarmupAccount({
+      invitationId: 'invite_1',
+      status: WarmupAccountStatus.INVITED,
+    });
+    prisma.warmupAccount.findFirst.mockResolvedValue(account);
+    prisma.warmupAccount.update.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+
+    const result = await service.sendInvitation('warmup_1', 'operator_1');
+
+    expect(invitationService.resendInvitation).toHaveBeenCalledWith({
+      invitationId: 'invite_1',
+      invitedByUserId: 'operator_1',
+      organizationId: 'org_1',
+    });
+    expect(prisma.warmupAccount.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: WarmupAccountStatus.INVITED,
+        }),
+        where: {
+          id: 'warmup_1',
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
+      }),
+    );
+    expect(result.invitation?.status).toBe('delivered');
+  });
+
+  it('does not re-dispatch when send is requested for an already delivered invitation', async () => {
+    prisma.warmupAccount.findFirst.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+    invitationService.getInvitation.mockResolvedValue(
+      makeInvitationView({ status: 'delivered' }),
+    );
+    prisma.warmupAccount.update.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+
+    const result = await service.sendInvitation('warmup_1', 'operator_1');
+
+    expect(invitationService.resendInvitation).not.toHaveBeenCalled();
+    expect(invitationService.createInvitation).not.toHaveBeenCalled();
+    expect(result.invitation?.status).toBe('delivered');
+  });
+
+  it('creates and dispatches a missing invitation on send', async () => {
+    prisma.warmupAccount.findFirst.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: null,
+        status: WarmupAccountStatus.FAILED,
+      }),
+    );
+    invitationService.getInvitation.mockRejectedValue(
+      new Error('should not be called'),
+    );
+    invitationService.createInvitation.mockResolvedValue(
+      makeInvitationView({ status: 'delivered' }),
+    );
+    prisma.warmupAccount.update.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+
+    const result = await service.sendInvitation('warmup_1', 'operator_1');
+
+    expect(invitationService.createInvitation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'lead@example.com',
+        sendEmail: true,
+      }),
+    );
+    expect(result.status).toBe('INVITED');
+    expect(result.invitation?.status).toBe('delivered');
+  });
+
+  it('retries a failed delivery without leaving a non-retryable status', async () => {
+    prisma.warmupAccount.findFirst.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+    invitationService.getInvitation.mockResolvedValue(
+      makeInvitationView({ status: 'delivery-failed' }),
+    );
+    invitationService.resendInvitation.mockResolvedValue(
+      makeInvitationView({ status: 'delivery-failed' }),
+    );
+    prisma.warmupAccount.update.mockResolvedValue(
+      makeWarmupAccount({
+        diagnostics: {
+          error:
+            'Invitation email could not be delivered. Retry send when email delivery is available.',
+          steps: [
+            {
+              message:
+                'Invitation email dispatch failed. The invitation remains retryable.',
+              status: 'failed',
+              timestamp: '2026-06-29T10:02:00.000Z',
+            },
+          ],
+        },
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+
+    const result = await service.resendInvitation('warmup_1', 'operator_1');
+
+    expect(invitationService.resendInvitation).toHaveBeenCalledWith({
+      invitationId: 'invite_1',
+      invitedByUserId: 'operator_1',
+      organizationId: 'org_1',
+    });
+    expect(result.status).toBe('INVITED');
+    expect(result.invitation?.status).toBe('delivery-failed');
+    expect(result.diagnostics.error).toContain('Retry send');
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('revokes an invitation and records the actor transition', async () => {
+    prisma.warmupAccount.findFirst.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+    prisma.warmupAccount.update.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+
+    const result = await service.revokeInvitation('warmup_1', 'operator_1');
+
+    expect(invitationService.revokeInvitation).toHaveBeenCalledWith(
+      'invite_1',
+      'org_1',
+    );
+    expect(prisma.warmupAccount.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          auditEvents: expect.arrayContaining([
+            expect.objectContaining({
+              actorUserId: 'operator_1',
+              message: 'Revoked invitation invite_1.',
+            }),
+          ]),
+        }),
+      }),
+    );
+    expect(result.invitation?.status).toBe('revoked');
+  });
+
+  it('does not send or resend after the invitation has been accepted or revoked', async () => {
+    prisma.warmupAccount.findFirst.mockResolvedValue(
+      makeWarmupAccount({
+        invitationId: 'invite_1',
+        status: WarmupAccountStatus.INVITED,
+      }),
+    );
+    invitationService.getInvitation.mockResolvedValue(
+      makeInvitationView({ acceptedAt: updatedAt, status: 'accepted' }),
+    );
+    invitationService.resendInvitation.mockRejectedValue(
+      new ConflictException('Invitation has already been accepted'),
+    );
+
+    await expect(
+      service.sendInvitation('warmup_1', 'operator_1'),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    invitationService.getInvitation.mockResolvedValue(
+      makeInvitationView({ revokedAt: updatedAt, status: 'revoked' }),
+    );
+    invitationService.resendInvitation.mockRejectedValue(
+      new GoneException('Invitation has already been revoked'),
+    );
+
+    await expect(
+      service.resendInvitation('warmup_1', 'operator_1'),
+    ).rejects.toBeInstanceOf(GoneException);
+    expect(prisma.warmupAccount.update).not.toHaveBeenCalled();
   });
 });

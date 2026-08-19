@@ -67,6 +67,27 @@
     "publish": "Publish",
     "retryLibraryLink": "Retry Library link"
   },
+  "warmupAccounts": {
+    "invitation": {
+      "acceptedAt": "Accepted at",
+      "expiresAt": "Expires",
+      "inspect": "Inspect invitation",
+      "lifecycle": "Invitation lifecycle",
+      "missing": "No invitation is attached to this warm-up account yet.",
+      "resend": "Resend invitation",
+      "retry": "Retry delivery",
+      "revoke": "Revoke invitation",
+      "revokedAt": "Revoked at",
+      "send": "Send invitation",
+      "status": "Invitation status",
+      "statusAccepted": "Accepted",
+      "statusDelivered": "Delivered",
+      "statusDeliveryFailed": "Delivery failed",
+      "statusExpired": "Expired",
+      "statusPending": "Pending",
+      "statusRevoked": "Revoked"
+    }
+  },
   "socialWarmup": {
     "accountHandle": "@{handle}",
     "blueprintMissing": "This account is enrolled in a warm-up plan that is no longer published. Reconnect or contact support if this persists.",
