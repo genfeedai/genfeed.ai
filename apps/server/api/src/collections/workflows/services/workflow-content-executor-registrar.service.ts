@@ -6,9 +6,10 @@ import { SOURCE_CORPUS_CONFIG_LIMITS } from '@api/collections/workflows/registry
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
-  CredentialPlatform,
+  fromPrismaCredentialPlatform,
   PostCategory,
   TargetExecutionState,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import {
   HookGeneratorExecutor,
@@ -154,7 +155,14 @@ export class WorkflowContentExecutorRegistrarService {
         credentialQuery.id = credentialId;
       }
       if (platform) {
-        credentialQuery.platform = platform as CredentialPlatform;
+        const prismaPlatform = toPrismaCredentialPlatform(platform);
+        if (!prismaPlatform) {
+          return {
+            reason: 'missing_connected_credential',
+            status: 'skipped',
+          };
+        }
+        credentialQuery.platform = prismaPlatform;
       }
 
       const credential = await credentialsService.findOne(credentialQuery);
@@ -163,6 +171,14 @@ export class WorkflowContentExecutorRegistrarService {
           reason: 'missing_connected_credential',
           status: 'skipped',
         };
+      }
+      const domainPlatform = fromPrismaCredentialPlatform(
+        String(credential.platform ?? ''),
+      );
+      if (!domainPlatform) {
+        throw new Error(
+          `Unknown credential platform: ${String(credential.platform ?? '')}`,
+        );
       }
 
       const completion = await openRouterService.chatCompletion({
@@ -184,7 +200,7 @@ export class WorkflowContentExecutorRegistrarService {
         ingredients: [],
         label: this.helper.buildPostLabel(description),
         organizationId: context.organizationId,
-        platform: credential.platform as CredentialPlatform,
+        platform: domainPlatform,
         source: 'workflow-post-generator',
         targetExecutionState: TargetExecutionState.DRAFT,
         timezone,

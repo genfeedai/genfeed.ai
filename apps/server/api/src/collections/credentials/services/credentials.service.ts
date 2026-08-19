@@ -11,7 +11,11 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
-import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  FileInputType,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -94,6 +98,24 @@ export class CredentialsService extends BaseService<
         set: [...new Set(normalizedTagIds)].map((id) => ({ id })),
       },
     };
+  }
+
+  /**
+   * Prisma stores `credentials.platform` as SCREAMING enum labels.
+   * Domain `ICredential.platform` / API JSON stay product-lowercase.
+   */
+  protected override normalizeDocument(document: unknown): CredentialDocument {
+    const normalized = super.normalizeDocument(document) as Record<
+      string,
+      unknown
+    >;
+    if (typeof normalized.platform === 'string') {
+      const domainPlatform = fromPrismaCredentialPlatform(normalized.platform);
+      if (domainPlatform) {
+        normalized.platform = domainPlatform;
+      }
+    }
+    return normalized as unknown as CredentialDocument;
   }
 
   /**

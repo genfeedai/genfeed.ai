@@ -220,6 +220,21 @@ describe('CredentialPublishingReadinessService', () => {
       expect(getQuotaStatus).not.toHaveBeenCalled();
     });
 
+    it('maps Prisma SCREAMING platforms onto domain provider keys', async () => {
+      findMany.mockResolvedValue([buildRow({ platform: 'TWITTER' })]);
+
+      const readiness = await build().resolveForCredentials(
+        { credential: { findMany } } as never,
+        ORGANIZATION_ID,
+        ['cred-1'],
+      );
+
+      expect(readiness.get('cred-1')?.providerKey).toBe(
+        CredentialPlatform.TWITTER,
+      );
+      expect(readiness.get('cred-1')?.providerKey).toBe('twitter');
+    });
+
     it('resolves provider setup signals once per platform, not once per credential', async () => {
       const setupService = new PublishingProviderSetupService({
         get: (key: string) => HEALTHY_ENV[key],

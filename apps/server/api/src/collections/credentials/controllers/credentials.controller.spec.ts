@@ -243,6 +243,27 @@ describe('CredentialsController', () => {
       expect(result.mentions).toHaveLength(2);
     });
 
+    it('maps Prisma SCREAMING platforms onto domain mention platforms', async () => {
+      credentialsService.find.mockResolvedValue([
+        {
+          id: credId,
+          externalHandle: '@mapped',
+          externalName: 'Mapped',
+          platform: 'TWITTER',
+        },
+      ]);
+
+      const result = await controller.getMentions(mockUser);
+
+      expect(result.mentions).toEqual([
+        expect.objectContaining({
+          handle: '@mapped',
+          platform: CredentialPlatform.TWITTER,
+        }),
+      ]);
+      expect(result.mentions[0]?.platform).toBe('twitter');
+    });
+
     it('should skip credentials without a handle', async () => {
       credentialsService.find.mockResolvedValue([
         {
@@ -375,6 +396,28 @@ describe('CredentialsController', () => {
         .mockResolvedValueOnce({
           id: credId,
           platform: CredentialPlatform.TWITTER,
+        });
+
+      const result = await controller.refreshCredentialToken(
+        mockRequest,
+        credId,
+        mockUser,
+      );
+
+      expect(result).toBeDefined();
+    });
+
+    it('refreshes a Prisma SCREAMING twitter credential', async () => {
+      credentialsService.findOne
+        .mockResolvedValueOnce({
+          brandId: brandEntityId,
+          id: credId,
+          organizationId: orgId,
+          platform: 'TWITTER',
+        })
+        .mockResolvedValueOnce({
+          id: credId,
+          platform: 'TWITTER',
         });
 
       const result = await controller.refreshCredentialToken(

@@ -12,11 +12,12 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
   ActivitySource,
-  type CredentialPlatform,
+  fromPrismaCredentialPlatform,
   Platform,
   PostCategory,
   PostVisibility,
   TargetExecutionState,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import { buildTrendDigestHtml } from '@genfeedai/helpers';
 import type {
@@ -423,15 +424,27 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         const ingredients = this.helper.extractPublishIngredientIds(media);
 
         for (const platform of platforms) {
+          const prismaPlatform = toPrismaCredentialPlatform(platform);
+          if (!prismaPlatform) {
+            continue;
+          }
           const credential = await credentialsService.findOne({
             brandId: brandId,
             isConnected: true,
             organizationId: organizationId,
-            platform: platform as CredentialPlatform,
+            platform: prismaPlatform,
           });
 
           if (!credential) {
             continue;
+          }
+          const domainPlatform = fromPrismaCredentialPlatform(
+            String(credential.platform ?? ''),
+          );
+          if (!domainPlatform) {
+            throw new Error(
+              `Unknown credential platform: ${String(credential.platform ?? '')}`,
+            );
           }
 
           const post = await postsService.create({
@@ -443,7 +456,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
             ingredients,
             label: this.helper.buildPostLabel(caption),
             organizationId: organizationId,
-            platform: credential.platform as CredentialPlatform,
+            platform: domainPlatform,
             scheduledDate: scheduledFor ?? undefined,
             targetExecutionState: scheduledFor
               ? TargetExecutionState.SCHEDULED

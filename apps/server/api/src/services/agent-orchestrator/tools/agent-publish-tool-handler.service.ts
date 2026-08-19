@@ -12,7 +12,7 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
   ActivitySource,
-  CredentialPlatform,
+  fromPrismaCredentialPlatform,
   IngredientCategory,
   PostRepurposeMode,
   PostStatus,
@@ -20,6 +20,7 @@ import {
   parsePlatform,
   ReleaseStatus,
   TargetExecutionState,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type {
   AgentPublishIdempotencyInput,
@@ -146,9 +147,12 @@ export class AgentPublishToolHandler {
 
     const createdPlatforms = Array.from(
       new Set(
-        credentials
-          .map((credential) => String(credential.platform || '').toLowerCase())
-          .filter((platform) => platform.length > 0),
+        credentials.flatMap((credential) => {
+          const platform = fromPrismaCredentialPlatform(
+            String(credential.platform ?? ''),
+          );
+          return platform ? [platform] : [];
+        }),
       ),
     );
     const missingPlatforms = platforms.filter(
@@ -199,13 +203,23 @@ export class AgentPublishToolHandler {
               status: ReleaseStatus.SCHEDULED,
             }
           : { status: ReleaseStatus.DRAFT }),
-        targets: credentials.map((credential, order) => ({
-          credentialId: String(credential.id),
-          order,
-          platform: credential.platform as CredentialPlatform,
-          ...(scheduledAt ? { scheduledDate: scheduledAt } : {}),
-          visibility,
-        })),
+        targets: credentials.map((credential, order) => {
+          const platform = fromPrismaCredentialPlatform(
+            String(credential.platform ?? ''),
+          );
+          if (!platform) {
+            throw new ConflictException(
+              `Unknown credential platform: ${String(credential.platform ?? '')}`,
+            );
+          }
+          return {
+            credentialId: String(credential.id),
+            order,
+            platform,
+            ...(scheduledAt ? { scheduledDate: scheduledAt } : {}),
+            visibility,
+          };
+        }),
         timezone: 'UTC',
         title: baseContent.slice(0, 100),
       },
@@ -371,7 +385,14 @@ export class AgentPublishToolHandler {
     };
 
     if (params.platforms && params.platforms.length > 0) {
-      filter.platform = { in: params.platforms };
+      const prismaPlatforms = params.platforms.flatMap((platform) => {
+        const mapped = toPrismaCredentialPlatform(platform);
+        return mapped ? [mapped] : [];
+      });
+      if (prismaPlatforms.length === 0) {
+        return [];
+      }
+      filter.platform = { in: prismaPlatforms };
     }
 
     return (await this.credentialsService.find(filter)) as unknown as Array<
@@ -443,9 +464,12 @@ export class AgentPublishToolHandler {
     });
     const availablePlatforms = Array.from(
       new Set(
-        credentials
-          .map((credential) => String(credential.platform || '').toLowerCase())
-          .filter((platform) => platform.length > 0),
+        credentials.flatMap((credential) => {
+          const platform = fromPrismaCredentialPlatform(
+            String(credential.platform ?? ''),
+          );
+          return platform ? [platform] : [];
+        }),
       ),
     );
 

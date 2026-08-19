@@ -9,7 +9,10 @@ import { RedditService } from '@api/services/integrations/reddit/services/reddit
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -114,9 +117,12 @@ export class CronCredentialsService {
           }
 
           try {
-            const refresher = this.platformRefreshers.get(
-              credential.platform as CredentialPlatform,
+            const platform = fromPrismaCredentialPlatform(
+              String(credential.platform ?? ''),
             );
+            const refresher = platform
+              ? this.platformRefreshers.get(platform)
+              : undefined;
 
             if (!refresher) {
               this.logger.warn(`${url} unknown platform for refresh`, {

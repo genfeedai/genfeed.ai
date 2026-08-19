@@ -37,7 +37,10 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type {
   AccountHealthSummary,
   ContentSurface,
@@ -79,7 +82,19 @@ interface CredentialMentionItem {
 }
 
 function toCredentialPlatform(platform: unknown): CredentialPlatform {
-  return platform as unknown as CredentialPlatform;
+  const mapped = fromPrismaCredentialPlatform(
+    typeof platform === 'string' ? platform : String(platform ?? ''),
+  );
+  if (!mapped) {
+    throw new HttpException(
+      {
+        detail: `Unknown credential platform: ${String(platform ?? 'missing')}`,
+        title: 'Unknown credential platform',
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+  return mapped;
 }
 
 function toContentSurface(surface: unknown): ContentSurface {

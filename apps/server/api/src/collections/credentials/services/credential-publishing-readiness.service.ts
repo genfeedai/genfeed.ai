@@ -3,7 +3,10 @@ import { PublishingProviderSetupService } from '@api/collections/publishing-setu
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getRequiredPublishScopes } from '@genfeedai/constants';
-import type { CredentialPlatform } from '@genfeedai/enums';
+import {
+  type CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import { resolvePermissionScopeReadiness } from '@genfeedai/helpers';
 import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
 import type {
@@ -77,6 +80,16 @@ type ReadinessCredentialRow = {
 /** Fraction of the daily limit above which the account is worth flagging. */
 const QUOTA_WARN_RATIO = 0.8;
 
+function requireDomainCredentialPlatform(
+  platform: string | null | undefined,
+): CredentialPlatform {
+  const mapped = fromPrismaCredentialPlatform(platform);
+  if (!mapped) {
+    throw new Error(`Unknown credential platform: ${platform ?? 'missing'}`);
+  }
+  return mapped;
+}
+
 /**
  * Full-surface publishing readiness for one connected credential.
  *
@@ -121,7 +134,8 @@ export class CredentialPublishingReadinessService {
   async resolve(
     params: ResolveCredentialPublishingReadinessParams,
   ): Promise<IPublishingProviderReadiness> {
-    const { credential, platform } = params;
+    const { credential } = params;
+    const platform = requireDomainCredentialPlatform(params.platform);
     const credentialId = String(credential.id);
     const checkedAt = new Date().toISOString();
 
@@ -242,10 +256,11 @@ export class CredentialPublishingReadinessService {
 
     const entries: [string, IPublishingProviderReadiness][] = rows.map(
       (row) => {
-        const signals = resolveSignals(row.platform);
+        const platform = requireDomainCredentialPlatform(row.platform);
+        const signals = resolveSignals(platform);
 
         const permissionSignals = this.resolvePermissionSignals(
-          row.platform,
+          platform,
           row.grantedScopes,
           row.grantedScopesCapturedAt,
           checkedAt,
@@ -264,7 +279,7 @@ export class CredentialPublishingReadinessService {
             oauthToken: row.oauthToken,
             oauthTokenSecret: row.oauthTokenSecret,
             permissionScopeStatus: permissionSignals.status,
-            providerKey: row.platform,
+            providerKey: platform,
             refreshToken: row.refreshToken,
             refreshTokenExpiresAt: row.refreshTokenExpiry,
             setupDiagnostics: [

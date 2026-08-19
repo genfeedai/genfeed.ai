@@ -5,7 +5,11 @@ import { type OrganizationDocument } from '@api/collections/organizations/schema
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -84,7 +88,18 @@ export class QuotaService {
       );
     }
 
-    const platform = credential.platform as CredentialPlatform;
+    const platform = fromPrismaCredentialPlatform(
+      String(credential.platform ?? ''),
+    );
+    if (!platform) {
+      throw new HttpException(
+        {
+          detail: `Unknown credential platform: ${credential.platform}`,
+          title: 'Unknown credential platform',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
     const quotaField = PLATFORM_QUOTA_FIELDS[platform];
     const dailyLimit = quotaField ? (settings[quotaField] as number) || 0 : 0;
 
@@ -102,7 +117,7 @@ export class QuotaService {
           lte: endOfDay,
         },
         credentialId: credential.id.toString(),
-        platform: credential.platform,
+        platform,
         ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
       },
     );
@@ -111,16 +126,13 @@ export class QuotaService {
       allowed: currentCount < dailyLimit,
       currentCount,
       dailyLimit,
-      platform: credential.platform,
+      platform,
     };
 
-    this.logger.log(
-      `${this.constructorName} Quota check for ${credential.platform}`,
-      {
-        credentialId: credential.id,
-        ...result,
-      },
-    );
+    this.logger.log(`${this.constructorName} Quota check for ${platform}`, {
+      credentialId: credential.id,
+      ...result,
+    });
 
     return result;
   }
