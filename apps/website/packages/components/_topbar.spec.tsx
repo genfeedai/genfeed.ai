@@ -92,13 +92,13 @@ describe('WebsiteTopbar', () => {
     );
 
     expect(
-      await screen.findByRole('menuitem', { name: 'System' }),
+      await screen.findByRole('menuitemradio', { name: 'System' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitem', { name: 'Light' }),
+      screen.getByRole('menuitemradio', { name: 'Light' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitem', { name: 'Dark' }),
+      screen.getByRole('menuitemradio', { name: 'Dark' }),
     ).toBeInTheDocument();
   });
 });

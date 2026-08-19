@@ -15,11 +15,8 @@ vi.mock('@/services/api/settings.service', () => ({
   },
 }));
 
-import {
-  MobileThemeProvider,
-  useMobileTheme,
-} from '@/contexts/theme-context';
 import { useMobileAuth } from '@/contexts/auth-context';
+import { MobileThemeProvider, useMobileTheme } from '@/contexts/theme-context';
 
 function ThemeProbe() {
   const { preference, resolvedTheme, setPreference } = useMobileTheme();
@@ -91,10 +88,10 @@ describe('MobileThemeProvider', () => {
       </MobileThemeProvider>,
     );
 
-    expect(screen.getByText('system:dark')).toBeTruthy();
     await waitFor(() => {
-      expect(Appearance.setColorScheme).toHaveBeenCalledWith('unspecified');
+      expect(screen.getByText('system:dark')).toBeTruthy();
     });
+    expect(Appearance.setColorScheme).toHaveBeenCalledWith('unspecified');
   });
 
   it('restores a valid local preference without contacting account settings', async () => {
@@ -152,6 +149,9 @@ describe('MobileThemeProvider', () => {
       </MobileThemeProvider>,
     );
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Choose light' })).toBeTruthy();
+    });
     await act(async () => {
       screen.getByRole('button', { name: 'Choose light' }).click();
     });

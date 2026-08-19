@@ -49,14 +49,14 @@ export function WorkspaceBrandMentionList({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.12] bg-popover px-3 py-2 text-xs text-muted-foreground shadow-lg">
+      <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs text-muted-foreground shadow-lg">
         No brands found
       </div>
     );
   }
 
   return (
-    <div className="max-h-48 overflow-y-auto rounded-lg border border-white/[0.12] bg-popover shadow-lg">
+    <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
       {items.map((item, index) => (
         <Button
           variant={ButtonVariant.UNSTYLED}

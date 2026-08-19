@@ -33,7 +33,7 @@ export function WorkspaceTaskInspectorFooter({
   taskToolLabel,
 }: WorkspaceTaskInspectorFooterProps) {
   return (
-    <div className="space-y-3 border-t border-white/[0.08] px-6 py-4">
+    <div className="space-y-3 border-t border-border px-6 py-4">
       {showReviewActions ? (
         <div className="flex gap-2">
           <Button

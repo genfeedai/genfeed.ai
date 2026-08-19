@@ -2,6 +2,10 @@
 @import "@genfeedai/ui/web-tokens.css";
 @import "./styles/theme.css";
 
+/* Theme preferences are explicit extension state, so dark utilities must
+   follow the resolved data-theme instead of the host operating-system media. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* The extension consumes both in-repo wrappers and compiled Ship primitives.
    Tailwind must see both sources because neither lives below this stylesheet. */
 @source "../../../../../packages/ui/src/primitives";

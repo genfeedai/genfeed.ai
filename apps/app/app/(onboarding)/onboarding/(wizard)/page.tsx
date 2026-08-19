@@ -41,7 +41,7 @@ export default function OnboardingRootPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="size-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      <div className="size-6 border-2 border-border border-t-foreground rounded-full animate-spin" />
     </div>
   );
 }

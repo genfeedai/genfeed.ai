@@ -1,7 +1,7 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { AppearanceSelector } from '@/components/AppearanceSelector';
 import { borderRadius } from '@/constants';
 import { useMobileAuth } from '@/contexts/auth-context';
 import { useMobileTheme } from '@/contexts/theme-context';
@@ -196,92 +197,99 @@ export default function Login() {
           )}
         </Pressable>
       </View>
+
+      <View style={styles.appearance}>
+        <AppearanceSelector description="Choose how Genfeed looks on this device. You can change this later in Settings." />
+      </View>
     </View>
   );
 }
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  container: {
-    backgroundColor: colors.bgSecondary,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  form: {
-    gap: 16,
-  },
-  divider: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-  },
-  dividerLine: {
-    backgroundColor: colors.bgBorder,
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  googleButton: {
-    alignItems: 'center',
-    backgroundColor: colors.bgTertiary,
-    borderColor: colors.bgBorder,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingVertical: 14,
-  },
-  googleButtonText: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  header: {
-    marginBottom: 32,
-  },
-  input: {
-    backgroundColor: colors.bgTertiary,
-    borderColor: colors.bgBorder,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1,
-    color: colors.textPrimary,
-    fontSize: 16,
-    padding: 14,
-  },
-  inputContainer: {
-    gap: 6,
-  },
-  inputLabel: {
-    color: colors.textMuted,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  signInButton: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.xxl,
-    marginTop: 8,
-    paddingVertical: 14,
-  },
-  signInButtonDisabled: {
-    opacity: 0.6,
-  },
-  signInButtonText: {
-    color: colors.primaryForeground,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 16,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
+    appearance: {
+      marginTop: 32,
+    },
+    container: {
+      backgroundColor: colors.bgSecondary,
+      flex: 1,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    form: {
+      gap: 16,
+    },
+    divider: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      gap: 12,
+    },
+    dividerLine: {
+      backgroundColor: colors.bgBorder,
+      flex: 1,
+      height: 1,
+    },
+    dividerText: {
+      color: colors.textMuted,
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    googleButton: {
+      alignItems: 'center',
+      backgroundColor: colors.bgTertiary,
+      borderColor: colors.bgBorder,
+      borderRadius: 12,
+      borderWidth: 1,
+      paddingVertical: 14,
+    },
+    googleButtonText: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    header: {
+      marginBottom: 32,
+    },
+    input: {
+      backgroundColor: colors.bgTertiary,
+      borderColor: colors.bgBorder,
+      borderRadius: borderRadius.xl,
+      borderWidth: 1,
+      color: colors.textPrimary,
+      fontSize: 16,
+      padding: 14,
+    },
+    inputContainer: {
+      gap: 6,
+    },
+    inputLabel: {
+      color: colors.textMuted,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    signInButton: {
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.xxl,
+      marginTop: 8,
+      paddingVertical: 14,
+    },
+    signInButtonDisabled: {
+      opacity: 0.6,
+    },
+    signInButtonText: {
+      color: colors.primaryForeground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 16,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginBottom: 8,
+    },
   });

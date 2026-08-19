@@ -58,9 +58,14 @@ describe('browser extension theme CSS contract', () => {
 
   it('registers shared semantic variables as Tailwind v4 color utilities', () => {
     const styles = readSource('src/tailwind.css');
+    const runtimeStyles = readSource('src/style.css');
 
     expect(styles).toContain('@theme inline');
     expect(styles).toContain('@custom-variant dark');
+    expect(runtimeStyles).toContain('@custom-variant dark');
+    expect(runtimeStyles).toContain(
+      '@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *))',
+    );
     expect(styles).toContain(
       '@source "../../../../../packages/ui/src/primitives"',
     );

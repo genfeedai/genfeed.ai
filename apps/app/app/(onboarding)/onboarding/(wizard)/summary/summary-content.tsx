@@ -300,11 +300,11 @@ export default function SummaryContent() {
 
   return (
     <div ref={sectionRef}>
-      <h1 className="step-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+      <h1 className="step-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl">
         Finish with the setup that fits.
       </h1>
 
-      <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">
+      <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-muted-foreground">
         Your self-hosted install is ready to use the server defaults, but you
         can still switch to Genfeed Cloud if you want a managed path with the
         same brand context carried into signup.
@@ -312,12 +312,12 @@ export default function SummaryContent() {
 
       <div className="space-y-5">
         {readiness.ui.showBilling ? (
-          <div className="summary-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
-            <h2 className="text-lg font-semibold text-white">Your plan</h2>
+          <div className="summary-card opacity-0 border border-border bg-background-secondary p-5 md:p-6">
+            <h2 className="text-lg font-semibold text-foreground">Your plan</h2>
             <div className="mt-5 space-y-3 text-sm">
-              <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0">
-                <span className="text-white/45">Subscription</span>
-                <span className="text-right text-white">
+              <div className="flex items-start justify-between gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
+                <span className="text-muted-foreground">Subscription</span>
+                <span className="text-right text-foreground">
                   {loading
                     ? 'Checking...'
                     : formatSubscriptionTierLabel(
@@ -325,9 +325,9 @@ export default function SummaryContent() {
                       )}
                 </span>
               </div>
-              <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
-                <span className="text-white/45">Status</span>
-                <span className="text-right text-white">
+              <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
+                <span className="text-muted-foreground">Status</span>
+                <span className="text-right text-foreground">
                   {loading
                     ? 'Checking...'
                     : formatSubscriptionStatusLabel(
@@ -335,9 +335,9 @@ export default function SummaryContent() {
                       )}
                 </span>
               </div>
-              <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
-                <span className="text-white/45">Credits balance</span>
-                <span className="text-right text-white">
+              <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
+                <span className="text-muted-foreground">Credits balance</span>
+                <span className="text-right text-foreground">
                   {loading
                     ? 'Checking...'
                     : (billingState?.creditsBalance ?? 0).toLocaleString()}
@@ -347,35 +347,43 @@ export default function SummaryContent() {
           </div>
         ) : null}
 
-        <div className="summary-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
-          <h2 className="text-lg font-semibold text-white">Install summary</h2>
+        <div className="summary-card opacity-0 border border-border bg-background-secondary p-5 md:p-6">
+          <h2 className="text-lg font-semibold text-foreground">
+            Install summary
+          </h2>
           <div className="mt-5 space-y-3 text-sm">
-            <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0">
-              <span className="text-white/45">Auth</span>
-              <span className="text-white">{readiness.authMode}</span>
+            <div className="flex items-start justify-between gap-4 border-t border-border pt-3 first:border-t-0 first:pt-0">
+              <span className="text-muted-foreground">Auth</span>
+              <span className="text-foreground">{readiness.authMode}</span>
             </div>
-            <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
-              <span className="text-white/45">Workspace</span>
-              <span className="text-white">{workspaceStatus}</span>
+            <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
+              <span className="text-muted-foreground">Workspace</span>
+              <span className="text-foreground">{workspaceStatus}</span>
             </div>
-            <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
-              <span className="text-white/45">Local tools</span>
-              <span className="text-right text-white">{localToolsLabel}</span>
+            <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
+              <span className="text-muted-foreground">Local tools</span>
+              <span className="text-right text-foreground">
+                {localToolsLabel}
+              </span>
             </div>
-            <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
-              <span className="text-white/45">Default access</span>
-              <span className="text-right text-white">{accessModeLabel}</span>
+            <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
+              <span className="text-muted-foreground">Default access</span>
+              <span className="text-right text-foreground">
+                {accessModeLabel}
+              </span>
             </div>
-            <div className="flex items-start justify-between gap-4 border-t border-white/[0.06] pt-3">
-              <span className="text-white/45">Hosted providers</span>
-              <span className="text-right text-white">{providersLabel}</span>
+            <div className="flex items-start justify-between gap-4 border-t border-border pt-3">
+              <span className="text-muted-foreground">Hosted providers</span>
+              <span className="text-right text-foreground">
+                {providersLabel}
+              </span>
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/45">
+          <div className="mt-5 rounded-2xl border border-border bg-secondary p-4 text-sm text-muted-foreground">
             Default behavior: use the providers configured on this server. Add
             your own key later in{' '}
-            <span className="text-white">
+            <span className="text-foreground">
               Settings → Organization → API Keys
             </span>{' '}
             if you want BYOK overrides or this install is missing a provider you
@@ -392,7 +400,7 @@ export default function SummaryContent() {
                 onClick={(event) => {
                   void handleByokClick(event);
                 }}
-                className={`inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
+                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground/80 transition hover:border-border-strong hover:bg-hover hover:text-foreground md:w-auto ${
                   readiness.access.selectedMode === 'byok' ? CURRENT_RING : ''
                 }`}
               >
@@ -424,8 +432,8 @@ export default function SummaryContent() {
           </div>
         </div>
 
-        <div className="summary-card opacity-0 flex flex-col gap-4 border border-white/[0.08] bg-white/[0.02] p-5 md:flex-row md:items-center md:justify-between md:p-6">
-          <div className="max-w-2xl text-sm leading-6 text-white/45">
+        <div className="summary-card opacity-0 flex flex-col gap-4 border border-border bg-background-secondary p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <div className="max-w-2xl text-sm leading-6 text-muted-foreground">
             Want Genfeed Cloud to manage provider keys, credits, and infra for
             you? Start with the managed path instead and carry this brand setup
             forward into cloud onboarding.
@@ -448,7 +456,7 @@ export default function SummaryContent() {
               }
               icon={<ArrowUpRight className="size-4" />}
               disabled={loading || pendingMode !== null}
-              className={`w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
+              className={`w-full rounded-full border border-border bg-secondary text-foreground/80 hover:border-border-strong hover:bg-hover hover:text-foreground md:w-auto ${
                 readiness.access.selectedMode === 'cloud' ? CURRENT_RING : ''
               }`}
             />
@@ -462,12 +470,12 @@ export default function SummaryContent() {
             withWrapper={false}
             onClick={() => push(APP_ROUTES.ONBOARDING.PROVIDERS)}
             icon={<ArrowLeft className="size-4" />}
-            className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
+            className="h-8 rounded-full border border-border bg-secondary px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
           >
             Back
           </Button>
 
-          <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+          <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-muted px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
             <Sparkles className="size-3" />
             Step 3 of 3
           </div>

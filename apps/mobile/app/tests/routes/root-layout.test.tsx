@@ -45,9 +45,11 @@ describe('RootLayout', () => {
 
     render(<RootLayout />);
 
-    expect(screen.getByTestId('navigation-theme').getAttribute('data-dark')).toBe(
-      'true',
-    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('navigation-theme').getAttribute('data-dark'),
+      ).toBe('true');
+    });
     expect(screen.getByTestId('status-bar').getAttribute('data-style')).toBe(
       'light',
     );

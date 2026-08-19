@@ -68,7 +68,7 @@ export default function ChatJourneyPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+      <div className="rounded-2xl border border-border bg-background-secondary p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="sr-only">Activation Journey</h1>
           <Button
@@ -84,7 +84,7 @@ export default function ChatJourneyPage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-xl border border-border bg-secondary p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Progress
             </p>
@@ -92,7 +92,7 @@ export default function ChatJourneyPage() {
               {completionPercent}%
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-xl border border-border bg-secondary p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Available to unlock
             </p>
@@ -100,7 +100,7 @@ export default function ChatJourneyPage() {
               {remainingJourneyCredits}
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-xl border border-border bg-secondary p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Journey unlocked
             </p>
@@ -108,7 +108,7 @@ export default function ChatJourneyPage() {
               {earnedCredits}/{ONBOARDING_JOURNEY_TOTAL_CREDITS}
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-xl border border-border bg-secondary p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Journey total
             </p>
@@ -131,7 +131,7 @@ export default function ChatJourneyPage() {
               className={`rounded-2xl border p-5 ${
                 isRecommended
                   ? 'border-primary/40 bg-primary/5'
-                  : 'border-white/10 bg-white/[0.03]'
+                  : 'border-border bg-background-secondary'
               }`}
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -170,7 +170,7 @@ export default function ChatJourneyPage() {
 
                 <Button
                   asChild
-                  className="inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-foreground hover:bg-white/5"
+                  className="inline-flex rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-hover"
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >

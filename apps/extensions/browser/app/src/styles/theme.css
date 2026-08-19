@@ -2,6 +2,16 @@
   color-scheme: light;
 }
 
+:root:not([data-theme]) {
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+  }
+}
+
 [data-theme="dark"] {
   color-scheme: dark;
 }

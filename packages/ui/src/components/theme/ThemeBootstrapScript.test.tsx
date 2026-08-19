@@ -10,10 +10,13 @@ import {
 } from './ThemeBootstrapScript';
 
 function createDocument(prefersDark: boolean) {
-  const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', {
-    runScripts: 'outside-only',
-    url: 'https://genfeed.ai',
-  });
+  const dom = new JSDOM(
+    '<!doctype html><html><head></head><body></body></html>',
+    {
+      runScripts: 'outside-only',
+      url: 'https://genfeed.ai',
+    },
+  );
 
   Object.defineProperty(dom.window, 'matchMedia', {
     configurable: true,
@@ -130,5 +133,17 @@ describe('ThemeDocumentBootstrapScript', () => {
 
     expect(() => executeScripts(dom, markup)).not.toThrow();
     expect(dom.window.document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('keeps an explicit stored Light preference even when the OS prefers dark', () => {
+    const markup = renderToStaticMarkup(<ThemeDocumentBootstrapScript />);
+    const dom = createDocument(true);
+    dom.window.localStorage.setItem('theme', 'light');
+
+    executeScripts(dom, markup);
+
+    expect(dom.window.localStorage.getItem('theme')).toBe('light');
+    expect(dom.window.document.documentElement.dataset.theme).toBe('light');
+    expect(dom.window.document.documentElement.style.colorScheme).toBe('light');
   });
 });
