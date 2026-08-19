@@ -37,7 +37,6 @@ function expiredThreadWhere(
   return {
     organizationId,
     threadId: { in: threadIds },
-    updatedAt: { lt: CUTOFF },
   };
 }
 

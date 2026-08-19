@@ -14,17 +14,9 @@ import {
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
 import type { Prisma } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-
-function resolveSeedCatalog(): readonly ModelCatalogSeedEntry[] {
-  return getModelCatalogForDeployment(
-    !shouldUseLowestCostModelDefaults({
-      isCloud: isCloudDeployment(),
-      nodeEnv: process.env.NODE_ENV,
-    }),
-  );
-}
 
 @Injectable()
 export class ModelCatalogSeedService implements OnApplicationBootstrap {
@@ -33,7 +25,17 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly configService: ConfigService,
   ) {}
+
+  private resolveSeedCatalog(): readonly ModelCatalogSeedEntry[] {
+    return getModelCatalogForDeployment(
+      !shouldUseLowestCostModelDefaults({
+        isCloud: isCloudDeployment(),
+        nodeEnv: this.configService.get('NODE_ENV'),
+      }),
+    );
+  }
 
   async onApplicationBootstrap(): Promise<void> {
     try {
@@ -48,7 +50,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
   }
 
   async reconcileCatalog(
-    catalog: readonly ModelCatalogSeedEntry[] = resolveSeedCatalog(),
+    catalog: readonly ModelCatalogSeedEntry[] = this.resolveSeedCatalog(),
   ): Promise<number> {
     let upserted = 0;
 

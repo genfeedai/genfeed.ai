@@ -84,7 +84,7 @@ describe('ByokService OpenRouter validation', () => {
     });
   });
 
-  it('does not call a valid key invalid when first-party routing rejects it', async () => {
+  it('reports a first-party routing reject without calling the key invalid', async () => {
     httpService.post.mockReturnValue(
       throwError(() => ({
         response: {
