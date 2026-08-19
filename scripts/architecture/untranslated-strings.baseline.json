@@ -259,7 +259,7 @@
     "apps/app/src/components/models/ModelBrowserModal.tsx": 8,
     "apps/app/src/components/shell/AppProtectedTopbar.tsx": 2,
     "apps/app/src/components/ui/grid-position-selector.tsx": 2,
-    "apps/app/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 4,
+    "apps/app/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 2,
     "apps/app/src/components/workspace-shell/use-conversation-scope-controls.tsx": 2,
     "apps/app/src/features/library-remix/LibraryPickerOverlay.tsx": 7,
     "apps/app/src/features/library-remix/LibraryRemixSurface.tsx": 9,

@@ -15,7 +15,7 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
@@ -31,7 +31,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@ui/primitives/drawer';
-import { ArrowLeft, Columns2 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -210,7 +209,16 @@ function UniversalWorkspaceShellContent({
   const isInspectorOpen =
     !isFocusedOnboardingRoute && (workspaceInspector?.isOpen ?? true);
   useRegisterWorkspaceInspector(!isFocusedOnboardingRoute);
-  const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
+  // Below `xl` the inspector renders as a drawer whose opener is the same
+  // topbar toggle slot, so its open state also lives in the shared provider.
+  // Standalone shells (unit tests, non-protected layouts) have no provider and
+  // fall back to local state.
+  const [localMobileInspectorOpen, setLocalMobileInspectorOpen] =
+    useState(false);
+  const isMobileInspectorOpen =
+    workspaceInspector?.isMobileOpen ?? localMobileInspectorOpen;
+  const setIsMobileInspectorOpen =
+    workspaceInspector?.setIsMobileOpen ?? setLocalMobileInspectorOpen;
   // `null` keeps the inspector sized to its own content (clamped by the CSS
   // min/max below); a number means the operator has resized it explicitly.
   const [inspectorWidth, setInspectorWidth] = useState<number | null>(null);
@@ -398,7 +406,7 @@ function UniversalWorkspaceShellContent({
       window.removeEventListener(OPEN_FILES_TAB_EVENT, openFilesTab);
       window.removeEventListener(OPEN_BROWSER_TAB_EVENT, openBrowserTab);
     };
-  }, [applyInspectorKind]);
+  }, [applyInspectorKind, setIsMobileInspectorOpen]);
   const isUnthreadedConversation =
     normalizedPathname === APP_ROUTES.AGENT.ROOT ||
     normalizedPathname === APP_ROUTES.AGENT.NEW;
@@ -984,9 +992,9 @@ function UniversalWorkspaceShellContent({
   //
   // `/agent/*` is the first owner — it renders the conversation as its own
   // canvas. Off that route the inspector owns it, and between the inspector's
-  // two hosts the mobile drawer wins while it is open: its trigger lives in an
-  // `xl:hidden` bar, so it can only be open at widths where the desktop rail is
-  // display:none anyway.
+  // two hosts the mobile drawer wins while it is open: its opener is the
+  // topbar toggle's `xl:hidden` variant, so it can only be open at widths
+  // where the desktop rail is display:none anyway.
   const conversationInspectorSlot = isAgentRoute ? null : (
     <ConversationInspectorPanel
       apiService={agentApiService}
@@ -1121,28 +1129,6 @@ function UniversalWorkspaceShellContent({
                 ref={primaryRegionRef}
                 tabIndex={-1}
               >
-                {isFocusedOnboardingRoute ? null : (
-                  <div className="flex h-12 items-center justify-between border-b border-border px-3 xl:hidden">
-                    <Button
-                      icon={<ArrowLeft className="size-4" />}
-                      onClick={handleReturnToConversation}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    >
-                      Conversation
-                    </Button>
-                    <Button
-                      icon={<Columns2 className="size-4" />}
-                      onClick={() => setIsMobileInspectorOpen(true)}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    >
-                      Inspector
-                    </Button>
-                  </div>
-                )}
                 <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
                   value={registerSurfaceAdapter}
                 >
@@ -1257,7 +1243,10 @@ function UniversalWorkspaceShellContent({
               open={isMobileInspectorOpen}
               onOpenChange={setIsMobileInspectorOpen}
             >
-              <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
+              <DrawerContent
+                className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]"
+                id="workspace-context-inspector-drawer"
+              >
                 <DrawerHeader>
                   <DrawerTitle>
                     {WORKSPACE_INSPECTOR_CHROME.mobileDrawerTitle}
