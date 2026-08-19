@@ -331,10 +331,7 @@ test('scopes public ECS tasks to service-required secrets and IAM', () => {
   assert.match(localsTf, /public_backend_task_secrets/);
   assert.match(localsTf, /public_backend_forbidden_secret_names/);
   assert.match(servicesTf, /aws_iam_role\.public_task\.arn/);
-  assert.match(
-    servicesTf,
-    /local\.public_backend_task_secrets\[each\.key\]/,
-  );
+  assert.match(servicesTf, /local\.public_backend_task_secrets\[each\.key\]/);
   assert.match(iamTf, /resource "aws_iam_role" "public_task"/);
 
   const allowlist = localsTf.slice(
@@ -389,7 +386,10 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     /auth_token\s+=\s+random_password\.redis_auth_token\.result/,
   );
   assert.match(elasticacheTf, /auth_token_update_strategy\s+=\s+"SET"/);
-  assert.doesNotMatch(elasticacheTf, /transit_encryption_mode\s+=\s+"preferred"/);
+  assert.doesNotMatch(
+    elasticacheTf,
+    /transit_encryption_mode\s+=\s+"preferred"/,
+  );
   assert.doesNotMatch(elasticacheTf, /ignore_changes\s+=\s+\[auth_token/);
   assert.match(
     localsTf,
@@ -402,10 +402,7 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     publicDeployCore,
     /-exclude=aws_elasticache_replication_group\.redis/,
   );
-  assert.match(
-    publicDeployCore,
-    /Require Redis TLS and AUTH/,
-  );
+  assert.match(publicDeployCore, /Require Redis TLS and AUTH/);
   const rollApply = publicDeployCore.slice(
     publicDeployCore.indexOf('Tofu apply (roll services to new image)'),
     publicDeployCore.indexOf('Wait for services stable'),
@@ -415,30 +412,33 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     publicDeployCore.indexOf('Print active service logs on rollout failure'),
   );
   assert.match(rollApply, /-exclude=aws_elasticache_replication_group\.redis/);
-  assert.match(
-    authApply,
-    /-target=aws_elasticache_replication_group\.redis/,
-  );
+  assert.match(authApply, /-target=aws_elasticache_replication_group\.redis/);
 });
 
 test('passes deploy values through env instead of interpolating into shell or JS', () => {
-  assert.match(
-    publicDeployCore,
-    /SOURCE_SHA: \$\{\{ inputs\.source_sha \}\}/,
-  );
+  assert.match(publicDeployCore, /SOURCE_SHA: \$\{\{ inputs\.source_sha \}\}/);
   assert.match(
     publicDeployCore,
     /TF_VAR_image_tag: \$\{\{ steps\.image\.outputs\.sha \}\}/,
   );
-  assert.match(publicDeployCore, /IMAGE_SHA: \$\{\{ steps\.image\.outputs\.sha \}\}/);
+  assert.match(
+    publicDeployCore,
+    /IMAGE_SHA: \$\{\{ steps\.image\.outputs\.sha \}\}/,
+  );
   assert.match(publicDeployCore, /const sourceSha = process\.env\.SOURCE_SHA/);
-  assert.match(publicDeployCore, /echo "Public source SHA: \\`\$\{SOURCE_SHA\}\\`"/);
+  assert.match(
+    publicDeployCore,
+    /echo "Public source SHA: \\`\$\{SOURCE_SHA\}\\`"/,
+  );
   assert.doesNotMatch(
     publicDeployCore,
     /Public source SHA: \\`\$\{\{ inputs\.source_sha \}\}/,
   );
   assert.doesNotMatch(publicDeployCore, /-var="image_tag=\$\{\{/);
-  assert.doesNotMatch(publicDeployCore, /SHA="\$\{\{ steps\.image\.outputs\.sha \}\}"/);
+  assert.doesNotMatch(
+    publicDeployCore,
+    /SHA="\$\{\{ steps\.image\.outputs\.sha \}\}"/,
+  );
 });
 
 test('authenticates to the private GHCR server package before inspect or copy', () => {
@@ -450,10 +450,7 @@ test('authenticates to the private GHCR server package before inspect or copy', 
   assert.match(publicDeployCore, /uses: docker\/login-action@v4/);
   assert.match(publicDeployCore, /registry: ghcr\.io/);
   assert.match(publicDeployCore, /password: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
-  assert.match(
-    publicDeployCore,
-    /private GHCR package/,
-  );
+  assert.match(publicDeployCore, /private GHCR package/);
   assert.match(
     publicDeployCore,
     /imagetools inspect "\$\{REPO\}:\$1" >\/dev\/null\n/,
