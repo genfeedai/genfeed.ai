@@ -854,6 +854,60 @@ describe('CronPostsService', () => {
     });
   });
 
+  it('looks up a publisher with the domain platform for a Prisma SCREAMING credential', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: 'TWITTER',
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    const publish = vi.fn().mockResolvedValue({
+      executionState: TargetExecutionState.PUBLISHED,
+      externalId: 'tweet-1',
+      platform: CredentialPlatform.TWITTER,
+      success: true,
+      url: 'https://x.com/example/status/tweet-1',
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+    });
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(publisherFactory.getPublisher).toHaveBeenCalledWith(
+      CredentialPlatform.TWITTER,
+    );
+    expect(publisherFactory.getPublisher.mock.calls[0]?.[0]).toBe('twitter');
+  });
+
   it('omits the legacy eligibility timestamp for publish-now provider execution', async () => {
     schedulerPublishStateService.transitionPost.mockResolvedValue(true);
     const post = {

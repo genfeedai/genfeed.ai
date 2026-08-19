@@ -2,6 +2,7 @@ import {
   credentialAttributes,
   credentialInstagramAttributes,
   credentialOAuthAttributes,
+  mapSerializedCredentialPlatform,
 } from '@serializers/attributes/organizations/credential.attributes';
 import { simpleConfig } from '@serializers/builders';
 import {
@@ -22,6 +23,7 @@ export const credentialSerializerConfig = {
   attributes: credentialAttributes,
   type: 'credential',
   ...baseRelationships,
+  platform: mapSerializedCredentialPlatform,
 };
 
 export const credentialOAuthSerializerConfig = simpleConfig(
@@ -29,7 +31,7 @@ export const credentialOAuthSerializerConfig = simpleConfig(
   credentialOAuthAttributes,
 );
 
-export const credentialInstagramPagesSerializerConfig = simpleConfig(
-  'credential-instagram-pages',
-  credentialInstagramAttributes,
-);
+export const credentialInstagramPagesSerializerConfig = {
+  ...simpleConfig('credential-instagram-pages', credentialInstagramAttributes),
+  platform: mapSerializedCredentialPlatform,
+};

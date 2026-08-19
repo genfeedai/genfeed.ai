@@ -371,6 +371,45 @@ describe('PostsService batchSchedule', () => {
     );
   });
 
+  it('maps a Prisma SCREAMING credential platform onto posts.platform', async () => {
+    const { credential, post, service } = makeService();
+    post.findFirst.mockResolvedValue({
+      organizationId: 'org-1',
+      publishApprovalId: null,
+    });
+    credential.findFirst.mockResolvedValue({
+      platform: 'TWITTER',
+    });
+
+    await service.patch('post-1', { credentialId: 'credential-2' }, []);
+
+    expect(post.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          credentialId: 'credential-2',
+          platform: CredentialPlatform.TWITTER,
+        }),
+      }),
+    );
+    expect(post.update.mock.calls[0]?.[0].data.platform).toBe('twitter');
+  });
+
+  it('refuses to persist an unknown credential platform onto posts.platform', async () => {
+    const { credential, post, service } = makeService();
+    post.findFirst.mockResolvedValue({
+      organizationId: 'org-1',
+      publishApprovalId: null,
+    });
+    credential.findFirst.mockResolvedValue({
+      platform: 'NOT_A_PLATFORM',
+    });
+
+    await expect(
+      service.patch('post-1', { credentialId: 'credential-2' }, []),
+    ).rejects.toThrow('Unknown credential platform: NOT_A_PLATFORM');
+    expect(post.update).not.toHaveBeenCalled();
+  });
+
   it('rejects a credential outside the post organization', async () => {
     const { credential, post, service } = makeService();
     post.findFirst.mockResolvedValue({

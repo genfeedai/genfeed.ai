@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const objectId = () => 'test-object-id';
 
 const makeCredential = (
-  platform: CredentialPlatform = CredentialPlatform.TWITTER,
+  platform: string = CredentialPlatform.TWITTER,
 ): CredentialDocument =>
   ({
     id: objectId(),
@@ -76,6 +76,32 @@ describe('QuotaService', () => {
     await expect(service.checkQuota(cred, org)).rejects.toThrow(HttpException);
   });
 
+  it('counts posts by domain platform for a Prisma INSTAGRAM credential', async () => {
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+      quotaInstagram: 8,
+    });
+    mockPostsService.count.mockResolvedValueOnce(3);
+
+    const result = await service.checkQuota(
+      makeCredential('INSTAGRAM'),
+      makeOrganization(),
+    );
+
+    expect(result.allowed).toBe(true);
+    expect(result.currentCount).toBe(3);
+    expect(result.dailyLimit).toBe(8);
+    expect(result.platform).toBe(CredentialPlatform.INSTAGRAM);
+    expect(mockPostsService.count).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        platform: CredentialPlatform.INSTAGRAM,
+      }),
+    );
+    expect(mockPostsService.count.mock.calls[0]?.[1].platform).toBe(
+      'instagram',
+    );
+  });
+
   it('should return allowed=true when current count < daily limit', async () => {
     mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
       quotaTwitter: 10,
@@ -114,7 +140,7 @@ describe('QuotaService', () => {
     mockPostsService.count.mockResolvedValueOnce(0);
 
     const result = await service.checkQuota(
-      makeCredential(CredentialPlatform.LINKEDIN as CredentialPlatform),
+      makeCredential(CredentialPlatform.LINKEDIN),
       makeOrganization(),
     );
 

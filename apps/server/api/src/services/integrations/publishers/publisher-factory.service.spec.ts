@@ -134,6 +134,15 @@ describe('PublisherFactoryService', () => {
       expect(publisher?.platform).toBe(CredentialPlatform.TWITTER);
     });
 
+    it('resolves a Prisma SCREAMING platform onto the domain publisher', () => {
+      const publisher = service.getPublisher('TWITTER');
+      expect(publisher).toBeDefined();
+      expect(publisher?.platform).toBe(CredentialPlatform.TWITTER);
+      expect(service.getPublisher('INSTAGRAM')?.platform).toBe(
+        CredentialPlatform.INSTAGRAM,
+      );
+    });
+
     it('should return the instagram publisher for INSTAGRAM platform', () => {
       const publisher = service.getPublisher(CredentialPlatform.INSTAGRAM);
       expect(publisher).toBeDefined();

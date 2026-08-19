@@ -78,6 +78,21 @@ describe('CredentialsService', () => {
     );
   });
 
+  describe('normalizeDocument platform mapping', () => {
+    it('maps Prisma SCREAMING platforms onto domain lowercase', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        id: 'cred-1',
+        isDeleted: false,
+        organizationId: orgId,
+        platform: 'TWITTER',
+      });
+
+      const result = await service.findOne({ id: 'cred-1' });
+
+      expect(result?.platform).toBe('twitter');
+    });
+  });
+
   describe('countConnected', () => {
     it('filters by organizationId and isDeleted: false', async () => {
       prisma.credential.count.mockResolvedValue(5);

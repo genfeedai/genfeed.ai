@@ -78,6 +78,27 @@ describe('AccountHealthService', () => {
     vi.useRealTimers();
   });
 
+  it('applies warmup scoring for a Prisma SCREAMING twitter credential', async () => {
+    prisma.credential.findFirst.mockResolvedValue(
+      makeCredential({ platform: 'TWITTER' }),
+    );
+
+    const summary = await service.assessCredentialHealth({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+    });
+
+    expect(summary.platform).toBe(CredentialPlatform.TWITTER);
+    expect(summary.holdPublishing).toBe(true);
+    expect(summary.state).toBe('not_started');
+    expect(prisma.$executeRaw.mock.calls[0]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('twitter publishing is held'),
+      ]),
+    );
+  });
+
   it('holds scheduled publishing for a not-started warmup account', async () => {
     const gate = await service.evaluateScheduledPublishGate({
       brandId: 'brand-1',
