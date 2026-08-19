@@ -2,11 +2,8 @@
   "author": "vincent@genfeed.ai",
   "dependencies": {
     "@genfeedai/auth-client": "workspace:*",
-    "@genfeedai/client": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/next-config": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@genfeedai/utils": "workspace:*",
