@@ -132,9 +132,11 @@ describe('initAnalytics', () => {
       capture_pageview: unknown;
       before_send: unknown;
       disable_session_recording: unknown;
+      loaded: unknown;
     };
     expect(config.capture_pageview).toBe(false);
     expect(typeof config.before_send).toBe('function');
+    expect(typeof config.loaded).toBe('function');
     // Replay must stay off — $snapshot bypasses before_send scrubbing.
     expect(config.disable_session_recording).toBe(true);
   });
@@ -416,6 +418,46 @@ describe('analytics identity lifecycle', () => {
 
     expect(mocks.posthogResetGroups).toHaveBeenCalledOnce();
     expect(mocks.posthogReset).not.toHaveBeenCalled();
+  });
+
+  it('applies a queued logout from the SDK loaded callback', async () => {
+    mocks.posthogInit.mockImplementationOnce(
+      (
+        _token: string,
+        config: {
+          loaded?: (sdk: { reset: typeof mocks.posthogReset }) => void;
+        },
+      ) => {
+        config.loaded?.({
+          reset: mocks.posthogReset,
+        });
+      },
+    );
+    const client = await loadClient();
+
+    client.resetAnalytics();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+  });
+
+  it('still applies organization and pageview when identify throws', async () => {
+    mocks.posthogIdentify.mockImplementationOnce(() => {
+      throw new Error('identify failed');
+    });
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.identifyAnalyticsOrganization('org-123');
+    client.captureAnalyticsPageview();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogGroup).toHaveBeenCalledWith('organization', 'org-123');
+    expect(mocks.posthogCapture).toHaveBeenCalledWith('$pageview', {
+      $current_url: window.location.href,
+    });
   });
 
   it('clears persisted and pending identity after logout during SDK loading', async () => {

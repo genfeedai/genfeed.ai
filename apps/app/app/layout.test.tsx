@@ -120,9 +120,7 @@ describe('app root layout', () => {
     );
 
     expect(screen.getByText('App child')).toBeTruthy();
-    expect(
-      screen.getByTestId('analytics-anonymous-session-sync'),
-    ).toBeTruthy();
+    expect(screen.getByTestId('analytics-anonymous-session-sync')).toBeTruthy();
     expect(appProvidersSpy).toHaveBeenCalledTimes(1);
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({

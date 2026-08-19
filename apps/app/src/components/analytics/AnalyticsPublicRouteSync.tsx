@@ -9,10 +9,10 @@ import {
   clearAnalyticsOrganization,
   ensureAnalyticsAnonymous,
   identifyAnalyticsUser,
+  isAnalyticsEnabled,
 } from '@/lib/analytics';
 
-/** Synchronize account scope before pageviews on public auth/callback routes. */
-export default function AnalyticsPublicRouteSync() {
+function EnabledAnalyticsPublicRouteSync() {
   const { isLoaded: isAuthLoaded, user } = useAuthUser();
   const pathname = usePathname();
   const isLogoutRoute = pathname === APP_ROUTES.LOGOUT;
@@ -46,4 +46,9 @@ export default function AnalyticsPublicRouteSync() {
   }, [isAuthLoaded, isLogoutRoute, pageviewKey]);
 
   return null;
+}
+
+/** Synchronize account scope before pageviews on public auth/callback routes. */
+export default function AnalyticsPublicRouteSync() {
+  return isAnalyticsEnabled() ? <EnabledAnalyticsPublicRouteSync /> : null;
 }

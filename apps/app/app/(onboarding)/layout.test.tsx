@@ -104,7 +104,9 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(
       screen.getByTestId('onboarding-funnel-analytics'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('analytics-organization-sync')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('analytics-organization-sync'),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('child')).toHaveTextContent('hello');
   });
 

@@ -2,10 +2,7 @@
 
 import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { useEffect } from 'react';
-import {
-  ensureAnalyticsAnonymous,
-  isAnalyticsEnabled,
-} from '@/lib/analytics';
+import { ensureAnalyticsAnonymous, isAnalyticsEnabled } from '@/lib/analytics';
 
 function EnabledAnalyticsAnonymousSessionSync() {
   const { isLoaded, user } = useAuthUser();

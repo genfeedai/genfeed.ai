@@ -287,6 +287,7 @@ vi.mock('@/lib/analytics', async (importOriginal) => {
     clearAnalyticsOrganization: clearAnalyticsOrganizationSpy,
     identifyAnalyticsOrganization: identifyAnalyticsOrganizationSpy,
     identifyAnalyticsUser: identifyAnalyticsUserSpy,
+    isAnalyticsEnabled: () => true,
     resetAnalytics: resetAnalyticsSpy,
   };
 });

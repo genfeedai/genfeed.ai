@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   clearOrganization: vi.fn(),
   ensureAnonymous: vi.fn(),
   identifyUser: vi.fn(),
+  isAnalyticsEnabled: vi.fn(),
   pathname: '/login',
   resetAnalytics: vi.fn(),
 }));
@@ -35,15 +36,27 @@ vi.mock('@/lib/analytics', () => ({
   clearAnalyticsOrganization: mocks.clearOrganization,
   ensureAnalyticsAnonymous: mocks.ensureAnonymous,
   identifyAnalyticsUser: mocks.identifyUser,
+  isAnalyticsEnabled: mocks.isAnalyticsEnabled,
   resetAnalytics: mocks.resetAnalytics,
 }));
 
 describe('AnalyticsPublicRouteSync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isAnalyticsEnabled.mockReturnValue(true);
     mocks.authIsLoaded = true;
     mocks.authUser = null;
     mocks.pathname = '/login';
+  });
+
+  it('does not subscribe to auth when analytics is disabled', () => {
+    mocks.isAnalyticsEnabled.mockReturnValue(false);
+
+    render(<AnalyticsPublicRouteSync />);
+
+    expect(mocks.ensureAnonymous).not.toHaveBeenCalled();
+    expect(mocks.identifyUser).not.toHaveBeenCalled();
+    expect(mocks.capturePageview).not.toHaveBeenCalled();
   });
 
   it('waits for resolved authentication state', () => {

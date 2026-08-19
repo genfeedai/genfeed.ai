@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   clearOrganization: vi.fn(),
   identifyOrganization: vi.fn(),
   identifyUser: vi.fn(),
+  isAnalyticsEnabled: vi.fn(),
   isBrandScopeResolved: true,
   organizationId: 'org-1',
   pathname: '/acme/brand/home',
@@ -43,6 +44,7 @@ vi.mock('@/lib/analytics', () => ({
   clearAnalyticsOrganization: mocks.clearOrganization,
   identifyAnalyticsOrganization: mocks.identifyOrganization,
   identifyAnalyticsUser: mocks.identifyUser,
+  isAnalyticsEnabled: mocks.isAnalyticsEnabled,
   resetAnalytics: mocks.resetAnalytics,
 }));
 
@@ -53,6 +55,7 @@ vi.mock('next/navigation', () => ({
 describe('AnalyticsOrganizationSync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isAnalyticsEnabled.mockReturnValue(true);
     mocks.authIsLoaded = true;
     mocks.authUser = {
       id: 'user-1',
@@ -61,6 +64,16 @@ describe('AnalyticsOrganizationSync', () => {
     mocks.isBrandScopeResolved = true;
     mocks.organizationId = 'org-1';
     mocks.pathname = '/acme/brand/home';
+  });
+
+  it('does not subscribe to auth when analytics is disabled', () => {
+    mocks.isAnalyticsEnabled.mockReturnValue(false);
+
+    render(<AnalyticsOrganizationSync />);
+
+    expect(mocks.identifyUser).not.toHaveBeenCalled();
+    expect(mocks.identifyOrganization).not.toHaveBeenCalled();
+    expect(mocks.capturePageview).not.toHaveBeenCalled();
   });
 
   it('waits until organization scope is resolved', () => {

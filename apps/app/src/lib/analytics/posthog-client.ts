@@ -1,7 +1,7 @@
 'use client';
 
 import { isSaaS } from '@genfeedai/config/deployment';
-import type { CaptureResult, PostHog } from 'posthog-js';
+import type { CaptureResult, PostHogInterface } from 'posthog-js';
 import type {
   AnalyticsEvent,
   AnalyticsEventProperties,
@@ -32,7 +32,7 @@ interface PendingPageview {
   url: string;
 }
 
-let client: PostHog | null = null;
+let client: PostHogInterface | null = null;
 let hasInitStarted = false;
 let lastCapturedPageviewKey: string | null = null;
 let pendingIdentity: AnalyticsUserIdentity | null = null;
@@ -161,9 +161,13 @@ function applyPendingIdentity(): void {
     return;
   }
 
-  client.identify(pendingIdentity.id, {
-    is_internal: pendingIdentity.isInternal,
-  });
+  try {
+    client.identify(pendingIdentity.id, {
+      is_internal: pendingIdentity.isInternal,
+    });
+  } catch {
+    // Best-effort identify. Must not block later organization/pageview apply.
+  }
 }
 
 function applyPendingOrganization(): void {
@@ -282,6 +286,21 @@ function ensureFeatureFlagSubscription(): void {
 }
 
 /**
+ * Bind the SDK and flush queued lifecycle instructions. Used as `loaded` so
+ * reset/identify run before PostHog starts its request queue, and again after
+ * `init()` so test doubles that skip `loaded` still apply pending state.
+ */
+function bindClientAndApplyPending(posthog: PostHogInterface): void {
+  client = posthog;
+  applyPendingReset();
+  applyPendingAnonymousState();
+  applyPendingIdentity();
+  applyPendingOrganization();
+  applyPendingPageview();
+  ensureFeatureFlagSubscription();
+}
+
+/**
  * Initialise the PostHog client once, only when analytics is enabled. Safe to
  * call on every app boot: it no-ops on the server, when disabled, or when
  * already initialised. Never awaited by callers — initialisation is best-effort.
@@ -314,17 +333,17 @@ export function initAnalytics(): void {
         // Keep replay hard-off: $snapshot bypasses before_send property
         // scrubbing, so enabling it would break the FR8 privacy boundary.
         disable_session_recording: true,
+        // Apply queued logout/anonymous/identify before the SDK request queue
+        // and remote-config fetch can run as a persisted identity.
+        loaded: bindClientAndApplyPending,
         // Only build person profiles once a user is identified — keeps
         // anonymous, self-serve traffic out of person-based billing/analytics.
         person_profiles: 'identified_only',
       });
-      client = posthog;
-      applyPendingReset();
-      applyPendingAnonymousState();
-      applyPendingIdentity();
-      applyPendingOrganization();
-      applyPendingPageview();
-      ensureFeatureFlagSubscription();
+      // Test doubles often skip `loaded`. Real posthog-js already bound above.
+      if (!client) {
+        bindClientAndApplyPending(posthog);
+      }
     })
     .catch(() => {
       // Best-effort: swallow load/init failures so analytics can never surface

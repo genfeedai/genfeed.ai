@@ -9,10 +9,10 @@ import {
   clearAnalyticsOrganization,
   identifyAnalyticsOrganization,
   identifyAnalyticsUser,
+  isAnalyticsEnabled,
 } from '@/lib/analytics';
 
-/** Synchronize authenticated scope before each protected route pageview. */
-export default function AnalyticsOrganizationSync() {
+function EnabledAnalyticsOrganizationSync() {
   const { isLoaded: isAuthLoaded, user } = useAuthUser();
   const { isBrandScopeResolved, organizationId } = useBrand();
   const pathname = usePathname();
@@ -62,4 +62,9 @@ export default function AnalyticsOrganizationSync() {
   }, [isAuthLoaded, isBrandScopeResolved, pageviewKey, user?.id]);
 
   return null;
+}
+
+/** Synchronize authenticated scope before each protected route pageview. */
+export default function AnalyticsOrganizationSync() {
+  return isAnalyticsEnabled() ? <EnabledAnalyticsOrganizationSync /> : null;
 }
