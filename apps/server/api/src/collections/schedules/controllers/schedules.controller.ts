@@ -143,4 +143,12 @@ export class SchedulesController {
 
     return serializeCollection(req, ScheduleSerializer, { docs: schedules });
   }
+
+  private parseBooleanQuery(value?: string): boolean | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    return ['1', 'true', 'yes'].includes(value.toLowerCase());
+  }
 }
