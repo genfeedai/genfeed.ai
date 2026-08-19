@@ -49,17 +49,18 @@ affected queues.
   `video-processing` / `youtube-processing`) can exceed a 30s lock. Locks
   renew while the event loop is healthy; a 30s lease still stalls when
   renewal is delayed by event-loop pressure or a brief Redis blip.
-- Workers do `SIGTERM` → `app.close()`. Files does not: `setupGracefulShutdown()`
-  logs and `process.exit(0)` immediately, so Nest/BullMQ never drain.
-  A longer files lock would not remediate those deploy stalls.
+- Workers and files both do `SIGTERM` → close HTTP → `app.close()` → exit.
+  Files lock-duration changes still wait until the ECS stop-timeout
+  follow-up lands.
 - Stall telemetry was aggregate-only. Snapshots dropped `stalledEvents`,
   so operators could not name the queue from the alarm.
 
 **Open follow-up (not claimed as root cause).** If the next named-queue
 window lines up with an ECS workers/files task replacement, raise the
-service stop timeout. Files also needs a Nest/BullMQ drain before any
-lock-duration change there. If the timestamps do not line up, inspect
-the processor named by `queueName` + `jobId`.
+service stop timeout. Files now drains Nest/BullMQ on SIGTERM;
+lock-duration changes still wait until that stop-timeout follow-up
+lands. If the timestamps do not line up, inspect the processor named
+by `queueName` + `jobId`.
 
 **Observability shipped (Part of #3065)**
 
@@ -70,7 +71,7 @@ the processor named by `queueName` + `jobId`.
 - Workers-service long jobs use a 120s lock and 30s renew/stall check.
   `maxStalledCount` stays at BullMQ's default of 1 so a side-effecting
   job is not run a third time after two stalls. Files queues stay on
-  BullMQ defaults until a drain + ECS stop-timeout follow-up lands.
+  BullMQ defaults until the ECS stop-timeout follow-up lands.
 
 Before deleting queue data:
 
