@@ -12,9 +12,9 @@
  * 1 lets a side-effecting job (article gen, credits, webhooks) run a third
  * time after two stalls. Deploy-time stalls stay a drain / stop-timeout fix.
  *
- * Do not apply this preset on the files service. `setupGracefulShutdown()`
- * still `process.exit(0)` on SIGTERM, so a longer lock does not drain or
- * extend leases there.
+ * Do not apply this preset on the files service yet. Files now drains
+ * Nest/BullMQ on SIGTERM (`registerGracefulDrain`), but a longer lock
+ * still waits until the ECS stop-timeout follow-up lands (see #3065).
  */
 export const BULLMQ_LONG_JOB_LOCK_DURATION_MS = 120_000;
 export const BULLMQ_LONG_JOB_LOCK_RENEW_TIME_MS = 30_000;
