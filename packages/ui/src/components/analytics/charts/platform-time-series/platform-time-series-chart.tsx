@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, formatPlatformLabel, Platform } from '@genfeedai/enums';
 import {
   formatChartDate,
   formatCompactNumberIntl,
@@ -31,31 +31,25 @@ const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), {
   ssr: false,
 });
 
-const PLATFORM_COLORS = {
-  facebook: 'var(--platform-facebook)',
-  instagram: 'var(--platform-instagram)',
-  linkedin: 'var(--platform-linkedin)',
-  medium: 'hsl(var(--foreground))',
-  pinterest: 'var(--platform-pinterest)',
-  reddit: 'var(--platform-reddit)',
-  tiktok: 'var(--platform-tiktok)',
-  twitter: 'var(--platform-twitter)',
-  youtube: 'hsl(var(--destructive))',
+const PLATFORM_COLORS: Partial<Record<Platform, string>> = {
+  [Platform.FACEBOOK]: 'var(--platform-facebook)',
+  [Platform.INSTAGRAM]: 'var(--platform-instagram)',
+  [Platform.LINKEDIN]: 'var(--platform-linkedin)',
+  [Platform.MEDIUM]: 'hsl(var(--foreground))',
+  [Platform.PINTEREST]: 'var(--platform-pinterest)',
+  [Platform.REDDIT]: 'var(--platform-reddit)',
+  [Platform.TIKTOK]: 'var(--platform-tiktok)',
+  [Platform.TWITTER]: 'var(--platform-twitter)',
+  [Platform.YOUTUBE]: 'hsl(var(--destructive))',
 };
 
-const PLATFORM_LABELS = {
-  facebook: 'Facebook',
-  instagram: 'Instagram',
-  linkedin: 'LinkedIn',
-  medium: 'Medium',
-  pinterest: 'Pinterest',
-  reddit: 'Reddit',
-  tiktok: 'TikTok',
-  twitter: 'Twitter',
-  youtube: 'YouTube',
-};
+function chartPlatformColor(platform: Platform): string {
+  return PLATFORM_COLORS[platform] ?? 'hsl(var(--foreground))';
+}
 
-type Platform = keyof typeof PLATFORM_COLORS;
+function chartPlatformLabel(platform: Platform): string {
+  return formatPlatformLabel(platform) ?? platform;
+}
 
 interface PlatformSelectionOverride {
   sourcePlatforms: Platform[];
@@ -71,7 +65,12 @@ function arePlatformsEqual(left: Platform[], right: Platform[]) {
 
 export function PlatformTimeSeriesChart({
   data,
-  platforms = ['instagram', 'tiktok', 'youtube', 'twitter'],
+  platforms = [
+    Platform.INSTAGRAM,
+    Platform.TIKTOK,
+    Platform.YOUTUBE,
+    Platform.TWITTER,
+  ],
   isLoading = false,
   height = 300,
   className = '',
@@ -97,8 +96,8 @@ export function PlatformTimeSeriesChart({
         platforms.map((platform) => [
           platform,
           {
-            color: PLATFORM_COLORS[platform],
-            label: PLATFORM_LABELS[platform],
+            color: chartPlatformColor(platform),
+            label: chartPlatformLabel(platform),
           },
         ]),
       ),
@@ -141,9 +140,9 @@ export function PlatformTimeSeriesChart({
           >
             <span
               className="inline-block size-3 rounded-full mr-2"
-              style={{ backgroundColor: PLATFORM_COLORS[platform] }}
+              style={{ backgroundColor: chartPlatformColor(platform) }}
             />
-            {PLATFORM_LABELS[platform]}
+            {chartPlatformLabel(platform)}
           </Button>
         ))}
       </div>
@@ -185,12 +184,12 @@ export function PlatformTimeSeriesChart({
                   >
                     <stop
                       offset="5%"
-                      stopColor={PLATFORM_COLORS[platform]}
+                      stopColor={chartPlatformColor(platform)}
                       stopOpacity={0.3}
                     />
                     <stop
                       offset="95%"
-                      stopColor={PLATFORM_COLORS[platform]}
+                      stopColor={chartPlatformColor(platform)}
                       stopOpacity={0}
                     />
                   </linearGradient>
@@ -247,7 +246,7 @@ export function PlatformTimeSeriesChart({
                   key={platform}
                   type="monotone"
                   dataKey={platform}
-                  stroke={PLATFORM_COLORS[platform]}
+                  stroke={chartPlatformColor(platform)}
                   strokeWidth={2}
                   fillOpacity={1}
                   fill={`url(#color${platform})`}

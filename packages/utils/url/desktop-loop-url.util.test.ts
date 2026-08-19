@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/enums';
 import type {
   TrendItem,
   TrendSourceItem,
@@ -10,6 +11,7 @@ import {
   buildTrendAgentHref,
   buildTrendSourceAgentHref,
   buildTrendSourceTwitterDraftHref,
+  isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
 
 describe('desktop-loop-url.util', () => {
@@ -73,6 +75,12 @@ describe('desktop-loop-url.util', () => {
     expect(buildTrendSourceAgentHref(trend, source)).toContain(
       'Source+URL%3A+https%3A%2F%2Fx.com%2Fexample%2Fstatus%2F1',
     );
+  });
+
+  it('narrows source-post variation platforms to existing Platform members', () => {
+    expect(isSourcePostVariationPlatform(Platform.LINKEDIN)).toBe(true);
+    expect(isSourcePostVariationPlatform('x')).toBe(true);
+    expect(isSourcePostVariationPlatform(Platform.YOUTUBE)).toBe(false);
   });
 
   it('builds a post analytics href', () => {

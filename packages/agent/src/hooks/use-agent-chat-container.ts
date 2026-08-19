@@ -37,6 +37,7 @@ import {
 } from '@genfeedai/agent/utils/derive-timeline';
 import { hasRenderableThreadState } from '@genfeedai/agent/utils/has-renderable-thread-state';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
+import { UploadStatus } from '@genfeedai/enums';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -70,7 +71,8 @@ function restoreComposerAttachments(
 ): AttachmentItem[] {
   return attachments.map((attachment) => {
     const wasInterrupted =
-      attachment.status === 'pending' || attachment.status === 'uploading';
+      attachment.status === UploadStatus.PENDING ||
+      attachment.status === UploadStatus.UPLOADING;
 
     return {
       ...attachment,
@@ -78,7 +80,7 @@ function restoreComposerAttachments(
         ? 'Upload was interrupted. Reattach this file to retry.'
         : attachment.error,
       previewUrl: attachment.previewUrl ?? attachment.url ?? '',
-      status: wasInterrupted ? 'failed' : attachment.status,
+      status: wasInterrupted ? UploadStatus.FAILED : attachment.status,
     };
   });
 }
