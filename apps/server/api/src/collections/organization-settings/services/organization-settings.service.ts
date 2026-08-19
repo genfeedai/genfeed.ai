@@ -19,6 +19,7 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -35,6 +36,7 @@ export class OrganizationSettingsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly moduleRef: ModuleRef,
+    private readonly configService: ConfigService,
   ) {
     super(prisma, 'organizationSetting', logger);
   }
@@ -95,7 +97,7 @@ export class OrganizationSettingsService extends BaseService<
 
     const enabledModelIds = shouldUseLowestCostModelDefaults({
       isCloud: isCloudDeployment(),
-      nodeEnv: process.env.NODE_ENV,
+      nodeEnv: this.configService.get('NODE_ENV'),
     })
       ? await this.getLowestCostModelIds()
       : await this.getLatestMajorVersionModelIds();

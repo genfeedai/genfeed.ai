@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
-function makeService(): OrganizationSettingsService {
+function makeService(nodeEnv = 'test'): OrganizationSettingsService {
   return new OrganizationSettingsService(
     { organizationSetting: {} } as never,
     {
@@ -15,6 +16,9 @@ function makeService(): OrganizationSettingsService {
       warn: () => undefined,
     } as unknown as LoggerService,
     { get: () => undefined } as unknown as ModuleRef,
+    {
+      get: (key: string) => (key === 'NODE_ENV' ? nodeEnv : undefined),
+    } as unknown as ConfigService,
   );
 }
 
@@ -28,6 +32,7 @@ describe('OrganizationSettingsService system workflow bootstrap', () => {
     expect(source).not.toContain('provisionDefaultWorkflows');
     expect(source).not.toContain('WorkflowTemplateSeederService');
     expect(source).not.toContain('ensureDailyTrendsDigestWorkflow');
+    expect(source).not.toContain('process.env.NODE_ENV');
   });
 
   it('constructs without requiring the workflow seeder', () => {
@@ -56,6 +61,31 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
 
     expect(patch).toHaveBeenCalledWith('set_1', {
       enabledModelIds: ['model_1', 'model_2'],
+    });
+  });
+
+  it('reads NODE_ENV from ConfigService instead of process.env', async () => {
+    const service = makeService('production');
+    const patch = vi
+      .spyOn(service, 'patch')
+      .mockResolvedValue({ id: 'set_1' } as never);
+    const lowest = vi
+      .spyOn(service, 'getLowestCostModelIds')
+      .mockResolvedValue(['cheap_1']);
+    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
+      'quality_1',
+    ]);
+
+    await service.ensureEnabledModelIds({
+      enabledModelIds: [],
+      id: 'set_1',
+    } as never);
+
+    // production + non-cloud still uses lowest-cost defaults; the env
+    // value must come from ConfigService, not a raw process.env read.
+    expect(lowest).toHaveBeenCalled();
+    expect(patch).toHaveBeenCalledWith('set_1', {
+      enabledModelIds: ['cheap_1'],
     });
   });
 

@@ -15,6 +15,61 @@ import { firstValueFrom } from 'rxjs';
  * Provider chrome only — no model catalogs. Model lists go stale and must not
  * live in this map; the UI shows name + logo + connection status.
  */
+function readOpenRouterValidationError(error: unknown): {
+  message?: string;
+  status?: number;
+} {
+  if (!error || typeof error !== 'object') {
+    return {};
+  }
+
+  const record = error as {
+    message?: unknown;
+    response?: { data?: unknown; status?: unknown };
+  };
+  const status =
+    typeof record.response?.status === 'number'
+      ? record.response.status
+      : undefined;
+  const responseData = record.response?.data;
+  const providerMessage =
+    typeof responseData === 'string'
+      ? responseData
+      : responseData &&
+          typeof responseData === 'object' &&
+          'error' in responseData &&
+          responseData.error &&
+          typeof responseData.error === 'object' &&
+          'message' in responseData.error &&
+          typeof responseData.error.message === 'string'
+        ? responseData.error.message
+        : typeof record.message === 'string'
+          ? record.message
+          : undefined;
+
+  return { message: providerMessage, status };
+}
+
+function describeOpenRouterValidationError(error: unknown): string {
+  const { message, status } = readOpenRouterValidationError(error);
+
+  if (status === 401 || status === 403) {
+    return 'Invalid OpenRouter API key';
+  }
+
+  const normalized = message?.toLowerCase() ?? '';
+  if (
+    normalized.includes('data policy') ||
+    normalized.includes('data_collection') ||
+    normalized.includes('zdr') ||
+    normalized.includes('no endpoints found')
+  ) {
+    return 'OpenRouter rejected the key under first-party routing (zdr / no data collection)';
+  }
+
+  return 'OpenRouter key validation failed';
+}
+
 const BYOK_PROVIDER_LABELS: Record<
   ByokProvider,
   {
@@ -565,8 +620,11 @@ export class ByokService {
         ),
       );
       return { isValid: true };
-    } catch {
-      return { error: 'Invalid OpenRouter API key', isValid: false };
+    } catch (error: unknown) {
+      return {
+        error: describeOpenRouterValidationError(error),
+        isValid: false,
+      };
     }
   }
 
