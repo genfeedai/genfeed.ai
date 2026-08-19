@@ -1,27 +1,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  type ProviderCatalogResponse,
+  serializeProviderCatalog,
+  throwProviderCatalogError,
+} from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import {
-  Body,
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 
-type OpusProCollectionResponse<T extends string, A> = {
-  data: {
-    type: T;
-    attributes: A;
-  };
-};
-
-type OpusProStatusResponse = OpusProCollectionResponse<
+type OpusProStatusResponse = ProviderCatalogResponse<
   'service-status',
   {
     provider: 'opuspro';
@@ -29,7 +19,7 @@ type OpusProStatusResponse = OpusProCollectionResponse<
   }
 >;
 
-type OpusProTemplatesResponse = OpusProCollectionResponse<
+type OpusProTemplatesResponse = ProviderCatalogResponse<
   'templates',
   {
     templates: Array<{
@@ -43,7 +33,7 @@ type OpusProTemplatesResponse = OpusProCollectionResponse<
   }
 >;
 
-type OpusProGenerateResponse = OpusProCollectionResponse<
+type OpusProGenerateResponse = ProviderCatalogResponse<
   'video-generation',
   {
     videoId: string;
@@ -52,7 +42,7 @@ type OpusProGenerateResponse = OpusProCollectionResponse<
   }
 >;
 
-type OpusProVideoStatusResponse = OpusProCollectionResponse<
+type OpusProVideoStatusResponse = ProviderCatalogResponse<
   'video-status',
   {
     provider: 'opuspro';
@@ -93,24 +83,16 @@ export class OpusProController {
         isConnected = false;
       }
 
-      return {
-        data: {
-          attributes: {
-            isConnected,
-            provider: 'opuspro',
-          },
-          type: 'service-status',
+      return serializeProviderCatalog({
+        attributes: {
+          isConnected,
+          provider: 'opuspro',
         },
-      };
+        type: 'service-status',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to check Opus Pro status',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to check Opus Pro status', error);
     }
   }
 
@@ -126,25 +108,17 @@ export class OpusProController {
         user.organizationId,
       );
 
-      return {
-        data: {
-          attributes: {
-            count: templates.length,
-            provider: 'opuspro',
-            templates,
-          },
-          type: 'templates',
+      return serializeProviderCatalog({
+        attributes: {
+          count: templates.length,
+          provider: 'opuspro',
+          templates,
         },
-      };
+        type: 'templates',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to fetch Opus Pro templates',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to fetch Opus Pro templates', error);
     }
   }
 
@@ -165,25 +139,17 @@ export class OpusProController {
         user.userId ?? user.id,
       );
 
-      return {
-        data: {
-          attributes: {
-            provider: 'opuspro',
-            status: 'processing',
-            videoId,
-          },
-          type: 'video-generation',
+      return serializeProviderCatalog({
+        attributes: {
+          provider: 'opuspro',
+          status: 'processing',
+          videoId,
         },
-      };
+        type: 'video-generation',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to generate Opus Pro video',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to generate Opus Pro video', error);
     }
   }
 
@@ -201,24 +167,16 @@ export class OpusProController {
         user.organizationId,
       );
 
-      return {
-        data: {
-          attributes: {
-            ...status,
-            provider: 'opuspro',
-          },
-          type: 'video-status',
+      return serializeProviderCatalog({
+        attributes: {
+          ...status,
+          provider: 'opuspro',
         },
-      };
+        type: 'video-status',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to check Opus Pro video status',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to check Opus Pro video status', error);
     }
   }
 }
