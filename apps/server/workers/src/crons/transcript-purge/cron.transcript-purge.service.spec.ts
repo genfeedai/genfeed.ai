@@ -35,7 +35,6 @@ function expiredThreadWhere(
   threadIds: string[] = ['thread-expired-1'],
 ) {
   return {
-    isDeleted: true,
     organizationId,
     threadId: { in: threadIds },
     updatedAt: { lt: CUTOFF },
@@ -56,7 +55,11 @@ const EXPIRED_MESSAGE_WIPE = {
 };
 
 const EXPIRED_RUN_WIPE = {
+  config: {},
+  error: null,
+  metadata: {},
   objective: null,
+  result: Prisma.DbNull,
   steps: [],
   summary: null,
   toolCalls: [],
@@ -215,10 +218,13 @@ describe('CronTranscriptPurgeService', () => {
       const isExpiredTombstone =
         where.isDeleted === true &&
         where.updatedAt?.lt.getTime() === CUTOFF.getTime();
+      const isExpiredDeletedThread =
+        Array.isArray(where.threadId?.in) &&
+        where.updatedAt?.lt.getTime() === CUTOFF.getTime();
 
-      expect(isExpiredTombstone).toBe(true);
+      expect(isExpiredTombstone || isExpiredDeletedThread).toBe(true);
       expect(where.thread).toBeUndefined();
-      expect(where.isDeleted).toBe(true);
+      expect(where.isDeleted).not.toBe(false);
     }
   });
 

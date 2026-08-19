@@ -24,7 +24,11 @@ const EXPIRED_MESSAGE_WIPE = {
 } as const;
 
 const EXPIRED_RUN_WIPE = {
+  config: EMPTY_JSON,
+  error: null,
+  metadata: EMPTY_JSON,
   objective: null,
+  result: Prisma.DbNull,
   steps: EMPTY_JSON_ARRAY,
   summary: null,
   toolCalls: EMPTY_JSON_ARRAY,
@@ -164,7 +168,6 @@ export class CronTranscriptPurgeService {
     const expiredThreadChildren =
       expiredThreadIds.length > 0
         ? {
-            isDeleted: true,
             organizationId,
             threadId: { in: expiredThreadIds },
             updatedAt: { lt: cutoff },
@@ -183,63 +186,65 @@ export class CronTranscriptPurgeService {
       threadSnapshots,
       expiredContexts,
       threadContexts,
-    ] = await this.prisma.$transaction((tx) =>
-      Promise.all([
-        tx.agentThread.updateMany({
-          data: EXPIRED_THREAD_WIPE,
-          where: expiredRow,
-        }),
-        tx.agentMessage.updateMany({
-          data: EXPIRED_MESSAGE_WIPE,
-          where: expiredRow,
-        }),
-        expiredThreadChildren
-          ? tx.agentMessage.updateMany({
-              data: EXPIRED_MESSAGE_WIPE,
-              where: expiredThreadChildren,
-            })
-          : noRows,
-        tx.agentThreadEvent.updateMany({
-          data: { data: Prisma.DbNull },
-          where: expiredRow,
-        }),
-        expiredThreadChildren
-          ? tx.agentThreadEvent.updateMany({
-              data: { data: Prisma.DbNull },
-              where: expiredThreadChildren,
-            })
-          : noRows,
-        tx.agentRun.updateMany({
-          data: EXPIRED_RUN_WIPE,
-          where: expiredRow,
-        }),
-        expiredThreadChildren
-          ? tx.agentRun.updateMany({
-              data: EXPIRED_RUN_WIPE,
-              where: expiredThreadChildren,
-            })
-          : noRows,
-        tx.agentThreadSnapshot.updateMany({
-          data: { data: EMPTY_JSON },
-          where: expiredRow,
-        }),
-        expiredThreadChildren
-          ? tx.agentThreadSnapshot.updateMany({
-              data: { data: EMPTY_JSON },
-              where: expiredThreadChildren,
-            })
-          : noRows,
-        tx.threadContextState.updateMany({
-          data: { data: EMPTY_JSON },
-          where: expiredRow,
-        }),
-        expiredThreadChildren
-          ? tx.threadContextState.updateMany({
-              data: { data: EMPTY_JSON },
-              where: expiredThreadChildren,
-            })
-          : noRows,
-      ]),
+    ] = await this.prisma.$transaction(
+      (tx) =>
+        Promise.all([
+          tx.agentThread.updateMany({
+            data: EXPIRED_THREAD_WIPE,
+            where: expiredRow,
+          }),
+          tx.agentMessage.updateMany({
+            data: EXPIRED_MESSAGE_WIPE,
+            where: expiredRow,
+          }),
+          expiredThreadChildren
+            ? tx.agentMessage.updateMany({
+                data: EXPIRED_MESSAGE_WIPE,
+                where: expiredThreadChildren,
+              })
+            : noRows,
+          tx.agentThreadEvent.updateMany({
+            data: { data: Prisma.DbNull },
+            where: expiredRow,
+          }),
+          expiredThreadChildren
+            ? tx.agentThreadEvent.updateMany({
+                data: { data: Prisma.DbNull },
+                where: expiredThreadChildren,
+              })
+            : noRows,
+          tx.agentRun.updateMany({
+            data: EXPIRED_RUN_WIPE,
+            where: expiredRow,
+          }),
+          expiredThreadChildren
+            ? tx.agentRun.updateMany({
+                data: EXPIRED_RUN_WIPE,
+                where: expiredThreadChildren,
+              })
+            : noRows,
+          tx.agentThreadSnapshot.updateMany({
+            data: { data: EMPTY_JSON },
+            where: expiredRow,
+          }),
+          expiredThreadChildren
+            ? tx.agentThreadSnapshot.updateMany({
+                data: { data: EMPTY_JSON },
+                where: expiredThreadChildren,
+              })
+            : noRows,
+          tx.threadContextState.updateMany({
+            data: { data: EMPTY_JSON },
+            where: expiredRow,
+          }),
+          expiredThreadChildren
+            ? tx.threadContextState.updateMany({
+                data: { data: EMPTY_JSON },
+                where: expiredThreadChildren,
+              })
+            : noRows,
+        ]),
+      { maxWait: 10_000, timeout: 60_000 },
     );
 
     return {

@@ -267,7 +267,10 @@ export class PerformanceSummaryService {
 
     // Fetch post analytics grouped by post, then join with posts
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter,
+      where: {
+        ...matchFilter,
+        post: { isDeleted: false },
+      },
       orderBy: { engagementRate: 'desc' },
       take: 50,
     });

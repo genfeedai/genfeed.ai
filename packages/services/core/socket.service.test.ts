@@ -290,6 +290,15 @@ describe('SocketService', () => {
       ).toBe(true);
     });
 
+    it('treats an opaque previous token followed by a JWT as a cross-identity swap', () => {
+      expect(
+        isCrossIdentitySocketRotation(
+          'opaque-refresh',
+          makeJwt({ organizationId: 'org-a', sub: 'user-a' }),
+        ),
+      ).toBe(true);
+    });
+
     it('detects a user or org change as a cross-identity rotation', () => {
       expect(
         isCrossIdentitySocketRotation(
