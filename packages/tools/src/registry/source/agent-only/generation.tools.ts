@@ -45,7 +45,7 @@ export const AGENT_GENERATION_TOOLS: SourceTool[] = [
     // dynamically by the generation endpoint per audio length (issue #482).
     creditCost: 17,
     description:
-      'Generate speech audio from text using text-to-speech. Requires a voice ID from ElevenLabs. Returns the audio URL.',
+      'Generate speech audio from text using text-to-speech. If you do not already have a catalog or cloned voiceId, omit voiceId and call prepare_voice_clone instead so the user can pick a voice from the catalog. Do not ask the user to open Library → Voices.',
     name: 'generate_voice',
     parameters: {
       properties: {
@@ -54,11 +54,12 @@ export const AGENT_GENERATION_TOOLS: SourceTool[] = [
           type: 'string',
         },
         voiceId: {
-          description: 'ElevenLabs voice ID to use for speech synthesis',
+          description:
+            'Optional ElevenLabs or catalog voice ID. Omit when unknown so the run can dock the voice generate card.',
           type: 'string',
         },
       },
-      required: ['text', 'voiceId'],
+      required: ['text'],
       type: 'object',
     },
     requiredRole: 'user',

@@ -102,4 +102,50 @@ describe('AgentPrepareToolHandler.prepareVoiceClone', () => {
       },
     ]);
   });
+
+  it('still docks a voice card when the org library and catalog are both empty', async () => {
+    const catalogFindAll = vi.fn().mockResolvedValue([]);
+    const handler = createHandler({ catalogFindAll });
+
+    const result = await handler.prepareVoiceClone(ctx);
+    const card = result.nextActions?.[0];
+
+    expect(catalogFindAll).toHaveBeenCalledWith({ isActive: true });
+    expect(result.success).toBe(true);
+    expect(result.nextActions).toHaveLength(1);
+    expect(card?.type).toBe('voice_clone_card');
+    expect(card?.canUseExisting).toBe(false);
+    expect(card?.existingVoices).toEqual([]);
+    expect(card?.description).toMatch(/catalog is empty/i);
+  });
+
+  it('keeps generate_voice text on the catalog-backed card', async () => {
+    const catalogFindAll = vi.fn().mockResolvedValue([
+      {
+        createdAt: new Date('2026-01-01'),
+        externalId: 'eleven-rachel',
+        externalProvider: DbVoiceProvider.ELEVENLABS,
+        id: 'catalog-1',
+        isActive: true,
+        isDefaultSelectable: true,
+        isFeatured: false,
+        language: 'en',
+        name: 'Rachel',
+        providerData: {},
+        sampleAudioUrl: 'https://example.test/rachel.mp3',
+        updatedAt: new Date('2026-01-02'),
+      },
+    ]);
+    const handler = createHandler({ catalogFindAll });
+
+    const result = await handler.prepareVoiceClone(ctx, {
+      text: 'Welcome to FUD News',
+    });
+    const card = result.nextActions?.[0];
+
+    expect(result.success).toBe(true);
+    expect(card?.canUseExisting).toBe(true);
+    expect(card?.title).toBe('Generate Voice');
+    expect(card?.description).toContain('Welcome to FUD News');
+  });
 });

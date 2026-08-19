@@ -138,7 +138,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Prepare a voice clone action card. Detects existing cloned voices for the active brand/org and allows selecting one or uploading a new audio sample inline.',
+      'Prepare a voice generate/clone card. Use this when the user asks to generate audio, a voiceover, or clone a voice. Surfaces cloned org voices, then the platform catalog when the library is empty. Always returns a card — even if both lists are empty. Do not ask the user to open Library → Voices first.',
     name: 'prepare_voice_clone',
     parameters: {
       properties: {},
@@ -232,7 +232,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Prepare an image or video generation and return an interactive action card so the user can review and adjust parameters (model, aspect ratio, duration, prompt) before generating. Use this instead of generate_image/generate_video when: (1) the request is complex or ambiguous, (2) the user explicitly asks to pick a model or tweak settings, (3) the user says "help me choose" or "show me options". For simple, clear requests like "generate a cat image", use generate_image/generate_video directly.',
+      'Prepare an image or video generation and return an interactive action card so the user can review and adjust parameters (model, aspect ratio, duration, prompt) before generating. Always use this instead of generate_image or generate_video when it is in the tool schema, including simple requests like "generate a cat image". Never call generate_image, generate_video, or a vendor-prefixed name such as default_api.generate_image.',
     name: 'prepare_generation',
     parameters: {
       properties: {

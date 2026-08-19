@@ -26,6 +26,21 @@ describe('getAgentTypeConfig', () => {
     );
   });
 
+  it('gives default content specialists the voice-clone card even without generate_voice', () => {
+    expect(getAgentTypeConfig(AgentType.X_CONTENT).defaultTools).toEqual(
+      expect.arrayContaining([
+        AgentToolName.PREPARE_GENERATION,
+        AgentToolName.PREPARE_VOICE_CLONE,
+      ]),
+    );
+    expect(getAgentTypeConfig(AgentType.LINKEDIN_CONTENT).defaultTools).toEqual(
+      expect.arrayContaining([AgentToolName.PREPARE_VOICE_CLONE]),
+    );
+    expect(
+      getAgentTypeConfig(AgentType.SHORT_FORM_WRITER).defaultTools,
+    ).toEqual(expect.arrayContaining([AgentToolName.PREPARE_VOICE_CLONE]));
+  });
+
   it('gives the X specialist the dedicated X read and draft tools', () => {
     const config = getAgentTypeConfig(AgentType.X_CONTENT);
     expect(config.defaultTools).toEqual(

@@ -467,7 +467,7 @@ export class AgentToolExecutorService {
         return this.prepareHandler.prepareWorkflowTrigger(params, ctx);
 
       case AgentToolName.PREPARE_VOICE_CLONE:
-        return this.prepareHandler.prepareVoiceClone(ctx);
+        return this.prepareHandler.prepareVoiceClone(ctx, params);
 
       case AgentToolName.PREPARE_CLIP_WORKFLOW_RUN:
         return this.prepareHandler.prepareClipWorkflowRun(params, ctx);

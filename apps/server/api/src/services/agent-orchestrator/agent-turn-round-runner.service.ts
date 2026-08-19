@@ -12,7 +12,11 @@ import {
   type AgentArtifactCompletionMetadata,
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
-import { getGenerationPreparationRedirect } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
+import {
+  getGenerationPreparationRedirect,
+  inferPrepareGenerationType,
+  normalizeRequestedAgentToolName,
+} from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import {
   buildResolvedModelMetadata,
   normalizeResponseModel,
@@ -262,7 +266,10 @@ export class AgentTurnRoundRunnerService {
 
       // Sync starts the timer before parse; stream starts after remap (below).
       let startTime = Date.now();
-      const requestedToolName = toolCall.function.name as AgentToolName;
+      const rawRequestedToolName = toolCall.function.name;
+      const requestedToolName = normalizeRequestedAgentToolName(
+        rawRequestedToolName,
+      ) as AgentToolName;
       let toolParams: Record<string, unknown> = {};
 
       try {
@@ -280,32 +287,32 @@ export class AgentTurnRoundRunnerService {
 
       if (!allowedToolNames.has(requestedToolName)) {
         const recoveredToolName = this.getGenerationPreparationRedirect(
-          requestedToolName,
+          rawRequestedToolName,
           allowedToolNames,
         );
 
         if (recoveredToolName) {
           toolName = recoveredToolName;
           toolParams = this.buildUnknownToolRecoveryParams(
-            requestedToolName,
+            rawRequestedToolName,
             toolParams,
           );
 
           this.loggerService.warn(
-            `Recovered unknown tool ${requestedToolName} -> ${recoveredToolName}`,
+            `Recovered unknown tool ${rawRequestedToolName} -> ${recoveredToolName}`,
             {
               constructor: this.constructorName,
               model,
               organizationId: context.organizationId,
               source: source ?? 'agent',
               threadId,
-              toolName: requestedToolName,
+              toolName: rawRequestedToolName,
               userId: context.userId,
             },
           );
         } else if (!strategy.deferUnknownToolFailure) {
           const unknownToolError = this.buildUnknownToolError(
-            requestedToolName,
+            rawRequestedToolName,
             allowedToolNames,
           );
           const durationMs = Date.now() - startTime;
@@ -364,7 +371,7 @@ export class AgentTurnRoundRunnerService {
         const originalToolName = toolName;
         toolName = directGenerationOverride;
         toolParams = this.buildUnknownToolRecoveryParams(
-          originalToolName,
+          rawRequestedToolName,
           toolParams,
         );
 
@@ -405,7 +412,7 @@ export class AgentTurnRoundRunnerService {
       // Stream: unknown tools that could not be recovered fail after started.
       if (strategy.deferUnknownToolFailure && !allowedToolNames.has(toolName)) {
         const unknownToolError = this.buildUnknownToolError(
-          requestedToolName,
+          rawRequestedToolName,
           allowedToolNames,
         );
         const durationMs = Date.now() - startTime;
@@ -650,21 +657,18 @@ export class AgentTurnRoundRunnerService {
   }
 
   private getGenerationPreparationRedirect(
-    toolName: AgentToolName,
+    toolName: string,
     allowedTools: Set<AgentToolName>,
   ): AgentToolName | null {
     return getGenerationPreparationRedirect(toolName, allowedTools);
   }
 
   private buildUnknownToolRecoveryParams(
-    requestedToolName: AgentToolName,
+    requestedToolName: string,
     toolParams: Record<string, unknown>,
   ): Record<string, unknown> {
-    if (
-      requestedToolName !== AgentToolName.GENERATE_IMAGE &&
-      requestedToolName !== AgentToolName.GENERATE_VIDEO &&
-      requestedToolName !== AgentToolName.GENERATE_AS_IDENTITY
-    ) {
+    const generationType = inferPrepareGenerationType(requestedToolName);
+    if (!generationType) {
       return toolParams;
     }
 
@@ -676,8 +680,7 @@ export class AgentTurnRoundRunnerService {
 
     return {
       ...toolParams,
-      generationType:
-        requestedToolName === AgentToolName.GENERATE_IMAGE ? 'image' : 'video',
+      generationType,
       prompt,
     };
   }
