@@ -4,6 +4,7 @@ import {
   extractThreadEnvelope,
   sanitizeGeneratedThreadTitle,
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
+import { fenceUntrustedContent } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 
 describe('agent-thread-title.util', () => {
   describe('buildSeedThreadTitle', () => {
@@ -25,6 +26,28 @@ describe('agent-thread-title.util', () => {
 
     it('falls back to seed title when nothing useful remains', () => {
       expect(buildFallbackThreadTitle('please')).toBe('please');
+    });
+
+    it('titles from the raw user prompt, not the untrusted-data fence', () => {
+      const rawPrompt = 'draft a launch plan';
+      const fenced = fenceUntrustedContent(rawPrompt);
+
+      expect(buildFallbackThreadTitle(fenced)).toBe('Launch Plan');
+      expect(buildSeedThreadTitle(fenced)).toBe(rawPrompt);
+      expect(
+        sanitizeGeneratedThreadTitle(
+          'This Is Untrusted User Generated',
+          rawPrompt,
+        ),
+      ).toBe('Launch Plan');
+      expect(
+        extractThreadEnvelope({
+          assistantContent:
+            '{"title":"This Is Untrusted User Generated","content":"Here is the plan."}',
+          prompt: rawPrompt,
+          seedTitle: rawPrompt,
+        }).title,
+      ).toBe('Launch Plan');
     });
   });
 

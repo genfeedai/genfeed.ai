@@ -3,10 +3,12 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { Voice } from '@models/ingredients/voice.model';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 export interface VoiceCatalogListProps {
   children: ReactNode;
+  generateHref?: string;
   hasActiveFilters: boolean;
   onCloneVoice: () => void;
   onClearFilters: () => void;
@@ -15,6 +17,7 @@ export interface VoiceCatalogListProps {
 
 export default function VoiceCatalogList({
   children,
+  generateHref,
   hasActiveFilters,
   onClearFilters,
   onCloneVoice,
@@ -33,7 +36,7 @@ export default function VoiceCatalogList({
             <p className="text-sm text-muted-foreground">
               {hasActiveFilters
                 ? 'Clear the current filters or clone a new voice sample to populate this library.'
-                : 'Clone your first voice from an uploaded or recorded sample.'}
+                : 'Generate a voice with Agent or clone one from an uploaded or recorded sample.'}
             </p>
           </div>
 
@@ -41,6 +44,11 @@ export default function VoiceCatalogList({
             {hasActiveFilters ? (
               <Button onClick={onClearFilters} withWrapper={false}>
                 Clear Filters
+              </Button>
+            ) : null}
+            {generateHref ? (
+              <Button asChild withWrapper={false}>
+                <Link href={generateHref}>Generate Voice</Link>
               </Button>
             ) : null}
             <Button

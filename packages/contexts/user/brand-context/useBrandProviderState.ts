@@ -1,5 +1,6 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { parseScopedAppPath } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import type { IBrand, ICredential } from '@genfeedai/interfaces';
@@ -16,12 +17,13 @@ import {
   getPlaywrightAuthState,
 } from '@helpers/auth/auth.helper';
 import { useQuery } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import {
   startTransition,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -48,6 +50,8 @@ export function useBrandProviderState({
   initialBootstrap = null,
 }: UseBrandProviderStateParams) {
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
+  const pathname = usePathname();
+  const pathScope = parseScopedAppPath(pathname ?? '');
   const {
     isLoaded: isAuthLoaded,
     isSignedIn,
@@ -211,9 +215,12 @@ export function useBrandProviderState({
 
   const brands = useMemo(() => brandsData ?? [], [brandsData]);
   const routeOrgSlug =
-    typeof params?.orgSlug === 'string' ? params.orgSlug : '';
+    (typeof params?.orgSlug === 'string' ? params.orgSlug : '') ||
+    pathScope.orgSlug;
   const routeBrandSlug =
-    typeof params?.brandSlug === 'string' ? params.brandSlug : '';
+    typeof params?.brandSlug === 'string'
+      ? params.brandSlug
+      : pathScope.brandSlug;
   const isOrgRoute = routeOrgSlug.length > 0 && routeBrandSlug.length === 0;
   const selectedBrand = useMemo(
     () => brands.find((brand: Brand) => getBrandEntityId(brand) === brandId),
@@ -254,9 +261,18 @@ export function useBrandProviderState({
     );
   }, [brands, routeBrandSlug, routeOrgSlug, selectedBrand]);
 
+  const hasResolvedBrandList =
+    hasInitialBootstrap || isBrandsFetched || !isBrandsFetchEnabled;
+
   const effectiveSelectedBrand = useMemo(() => {
     if (routeBrand) {
       return routeBrand;
+    }
+
+    // URL names a brand. Do not flash JWT / first-brand (Boxing Couple, Koro)
+    // while the brand list is still loading or the URL brand has not matched.
+    if (routeOrgSlug && routeBrandSlug && !hasResolvedBrandList) {
+      return undefined;
     }
 
     if (selectedBrand) {
@@ -268,15 +284,34 @@ export function useBrandProviderState({
     }
 
     return undefined;
-  }, [brands, isOrgRoute, routeBrand, selectedBrand]);
+  }, [
+    brands,
+    hasResolvedBrandList,
+    isOrgRoute,
+    routeBrand,
+    routeBrandSlug,
+    routeOrgSlug,
+    selectedBrand,
+  ]);
 
   const effectiveBrandId = useMemo(() => {
     if (isOrgRoute) {
       return '';
     }
 
+    if (routeOrgSlug && routeBrandSlug && !routeBrand) {
+      return getBrandEntityId(effectiveSelectedBrand);
+    }
+
     return getBrandEntityId(effectiveSelectedBrand) || brandId;
-  }, [brandId, effectiveSelectedBrand, isOrgRoute]);
+  }, [
+    brandId,
+    effectiveSelectedBrand,
+    isOrgRoute,
+    routeBrand,
+    routeBrandSlug,
+    routeOrgSlug,
+  ]);
 
   const effectiveOrganizationId = useMemo(() => {
     if (routeOrganizationBrand) {
@@ -441,6 +476,54 @@ export function useBrandProviderState({
     organizationId,
     scopedBrandId,
     scopedOrganizationId,
+  ]);
+
+  const lastSyncedUrlBrandIdRef = useRef('');
+
+  useEffect(() => {
+    if (
+      !effectiveIsSignedIn ||
+      localBootstrapEnabled ||
+      !effectiveUserId ||
+      !routeBrand
+    ) {
+      return;
+    }
+
+    const urlBrandId = getBrandEntityId(routeBrand);
+    if (!urlBrandId || urlBrandId === lastSyncedUrlBrandIdRef.current) {
+      return;
+    }
+
+    lastSyncedUrlBrandIdRef.current = urlBrandId;
+    if (urlBrandId === authData.brand) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const service = await getUsersService();
+        if (typeof service?.patchMeBrand !== 'function') {
+          return;
+        }
+
+        await service.patchMeBrand(urlBrandId, { isSelected: true });
+        clearClientProtectedBootstrapCache();
+      } catch (error) {
+        lastSyncedUrlBrandIdRef.current = '';
+        logger.warn('Failed to persist URL brand as last-used', {
+          error,
+          reportToSentry: false,
+        });
+      }
+    })();
+  }, [
+    authData.brand,
+    effectiveIsSignedIn,
+    effectiveUserId,
+    getUsersService,
+    localBootstrapEnabled,
+    routeBrand,
   ]);
 
   const credentials = useMemo<ICredential[]>(

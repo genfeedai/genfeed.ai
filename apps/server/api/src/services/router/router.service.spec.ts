@@ -9,6 +9,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
@@ -31,6 +32,10 @@ describe('RouterService', () => {
   let service: RouterService;
   let modelsService: vi.Mocked<ModelsService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let orgSettingsService: {
+    ensureEnabledModelIds: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+  };
 
   const createMockModel = (overrides: Record<string, unknown> = {}) =>
     ({
@@ -66,6 +71,11 @@ describe('RouterService', () => {
       warn: vi.fn(),
     };
 
+    const mockOrgSettingsService = {
+      ensureEnabledModelIds: vi.fn(async (setting: unknown) => setting),
+      findOne: vi.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RouterService,
@@ -77,12 +87,17 @@ describe('RouterService', () => {
           provide: LoggerService,
           useValue: mockLoggerService,
         },
+        {
+          provide: OrganizationSettingsService,
+          useValue: mockOrgSettingsService,
+        },
       ],
     }).compile();
 
     service = module.get<RouterService>(RouterService);
     modelsService = module.get(ModelsService);
     loggerService = module.get(LoggerService);
+    orgSettingsService = mockOrgSettingsService;
   });
 
   afterEach(() => {
@@ -357,6 +372,55 @@ describe('RouterService', () => {
         });
 
         expect(result.selectedModel).toBe('black-forest-labs/flux-schnell');
+      });
+
+      it('picks the cheapest enabled model after the latest-major allowlist seed', async () => {
+        // #3083 seeds empty allowlists with latest-major IDs (nano-banana),
+        // not the catalog cheapest (flux-schnell). Auto · Lowest Cost used
+        // to pick flux-schnell and then validateModelForOrg 403'd.
+        const nanoBananaId = testId('model', 11);
+        const fluxSchnellId = testId('model', 12);
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.039,
+          costTier: undefined,
+          id: nanoBananaId,
+          isDefault: true,
+          isHighlighted: true,
+          key: 'google/nano-banana',
+        });
+        const fluxSchnell = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.003,
+          costTier: undefined,
+          id: fluxSchnellId,
+          isDefault: false,
+          isHighlighted: true,
+          key: 'black-forest-labs/flux-schnell',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          nanoBanana,
+          fluxSchnell,
+        ]);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockResolvedValue({
+          enabledModelIds: [nanoBananaId],
+          id: testId('setting'),
+        });
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          organizationId: testId('org'),
+          prioritize: 'cost',
+          prompt: 'A simple brand logo mark',
+        });
+
+        expect(result.selectedModel).toBe('google/nano-banana');
+        expect(orgSettingsService.ensureEnabledModelIds).toHaveBeenCalled();
       });
 
       it('should prefer default models slightly', async () => {

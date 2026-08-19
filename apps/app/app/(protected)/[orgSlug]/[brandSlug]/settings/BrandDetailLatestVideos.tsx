@@ -1,6 +1,8 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { BrandDetailLatestVideosProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
@@ -11,8 +13,9 @@ import Link from 'next/link';
 export default function BrandDetailLatestVideos({
   videos,
 }: BrandDetailLatestVideosProps) {
+  const { href } = useOrgUrl();
   // One-off generation is Agent-first — Studio no longer has a media prompt bar.
-  const createHref = `${EnvironmentService.apps.app}/agent/new`;
+  const createHref = `${EnvironmentService.apps.app}${href(APP_ROUTES.AGENT.NEW)}`;
 
   return (
     <Card
@@ -25,7 +28,9 @@ export default function BrandDetailLatestVideos({
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
-          <Link href={`${EnvironmentService.apps.app}/library/overview`}>
+          <Link
+            href={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.OVERVIEW)}`}
+          >
             View all
           </Link>
         </Button>

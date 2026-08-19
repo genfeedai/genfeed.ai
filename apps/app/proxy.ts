@@ -9,6 +9,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   LEGACY_APP_ROUTES,
+  parseScopedAppPath,
 } from '@genfeedai/constants';
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -150,7 +151,9 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
   [APP_ROUTES.AUTOMATE.ROOT, APP_ROUTES.AUTOMATE.OVERVIEW],
   [APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.OVERVIEW],
+  ['/library/assets', APP_ROUTES.LIBRARY.VIDEOS],
   [APP_ROUTES.DISCOVER.ROOT, APP_ROUTES.DISCOVER.OVERVIEW],
+  [APP_ROUTES.STUDIO.AUDIO, APP_ROUTES.LIBRARY.VOICES],
   [APP_ROUTES.DISCOVER.DISCOVERY, APP_ROUTES.DISCOVER.OVERVIEW],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.STORYBOARD],
   [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
@@ -182,8 +185,11 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
   return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
 }
 
-/** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
-const SLUG_RE = /^[a-zA-Z0-9-]+$/;
+/**
+ * Slug segments are alphanumeric + hyphens (Demo brand `FUDNEWS` is uppercase).
+ * Reject `/`, `//`, and dots so slugs cannot become open redirects.
+ */
+const SLUG_RE = /^[a-zA-Z0-9][a-zA-Z0-9-]*$/;
 
 function canonicalizeLegacyScopedProtectedPath(
   pathname: string,
@@ -276,16 +282,8 @@ function getTopLevelSegment(pathname: string): string | null {
   return segment ?? null;
 }
 
-/**
- * Validate a workspace slug to prevent open redirects.
- * Slugs must start with a lowercase letter or digit and consist only of
- * lowercase letters, digits, and hyphens. A slug starting with "/" or
- * containing "//" could create cross-origin redirect vectors.
- */
-const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
-
 function isValidSlug(slug: string | undefined): slug is string {
-  return typeof slug === 'string' && SLUG_PATTERN.test(slug);
+  return typeof slug === 'string' && SLUG_RE.test(slug);
 }
 
 function isBareProtectedPath(pathname: string): boolean {
@@ -473,6 +471,65 @@ type WorkspaceSlugResolutionOptions = {
   skipSlugCookie?: boolean;
 };
 
+function slugsFromPathname(pathname: string): WorkspaceSlugs | null {
+  const scope = parseScopedAppPath(pathname);
+  if (!scope.orgSlug || !isValidSlug(scope.orgSlug)) {
+    return null;
+  }
+  if (scope.brandSlug && !isValidSlug(scope.brandSlug)) {
+    return null;
+  }
+
+  return {
+    brandCount: scope.brandSlug ? 1 : 0,
+    brandSlug: scope.brandSlug || undefined,
+    orgSlug: scope.orgSlug,
+  };
+}
+
+function resolveRefererWorkspaceSlugs(
+  req?: NextRequest,
+): WorkspaceSlugs | null {
+  if (!req) {
+    return null;
+  }
+
+  const referer = req.headers.get('referer');
+  if (!referer) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(referer);
+    const requestOrigin = req.nextUrl.origin ?? new URL(req.url).origin;
+    if (parsed.origin !== requestOrigin) {
+      return null;
+    }
+
+    return slugsFromPathname(parsed.pathname);
+  } catch {
+    return null;
+  }
+}
+
+async function continueWithCurrentWorkspace(
+  req: NextRequest,
+  cacheKey?: string | null,
+): Promise<NextResponse> {
+  const slugs = slugsFromPathname(req.nextUrl.pathname);
+  if (!slugs) {
+    return NextResponse.next();
+  }
+
+  writeWorkspaceSlugCache(cacheKey, slugs);
+  const cookieValue = await encodeSlugCookie(slugs);
+  const response = NextResponse.next();
+  if (cookieValue) {
+    setSlugCookie(response, cookieValue);
+  }
+  return response;
+}
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
   cacheKey?: string | null,
@@ -481,6 +538,19 @@ async function resolveActiveWorkspaceSlugs(
 ): Promise<SlugResolution | null> {
   const preferAvailableBrand = options?.preferAvailableBrand === true;
   const skipSlugCookie = options?.skipSlugCookie === true;
+  const fromRequestPath =
+    req && !skipSlugCookie ? slugsFromPathname(req.nextUrl.pathname) : null;
+  if (fromRequestPath && (!preferAvailableBrand || fromRequestPath.brandSlug)) {
+    const cookieValue = await encodeSlugCookie(fromRequestPath);
+    return { cookieValue, slugs: fromRequestPath };
+  }
+
+  const fromReferer = resolveRefererWorkspaceSlugs(req);
+  if (fromReferer && (!preferAvailableBrand || fromReferer.brandSlug)) {
+    const cookieValue = await encodeSlugCookie(fromReferer);
+    return { cookieValue, slugs: fromReferer };
+  }
+
   const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
   if (cached && (!preferAvailableBrand || cached.brandSlug)) {
     return { cookieValue: null, slugs: cached };
@@ -1197,10 +1267,10 @@ async function routeBetterAuthRequest(
       return response;
     }
 
-    return NextResponse.next();
+    return continueWithCurrentWorkspace(req, sessionCookie);
   }
 
-  return NextResponse.next();
+  return continueWithCurrentWorkspace(req, sessionCookie);
 }
 
 export async function proxy(req: NextRequest) {

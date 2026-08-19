@@ -78,6 +78,8 @@ describe('formatAgentError', () => {
 
     expect(formatted.title).toBe('Action not allowed');
     expect(formatted.detail).toMatch(/Model not enabled/i);
+    expect(formatted.recovery).not.toMatch(/switch to auto/i);
+    expect(formatted.recovery).toMatch(/enabled for this workspace/i);
     expect(formatted.title).not.toBe('Provider access denied');
   });
 

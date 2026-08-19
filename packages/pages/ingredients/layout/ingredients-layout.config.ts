@@ -213,7 +213,7 @@ export const INGREDIENT_CONFIGS: Record<string, IngredientsLayoutConfig> = {
         { label: 'Failed', value: IngredientStatus.FAILED },
       ],
     },
-    showGenerateLink: false,
+    showGenerateLink: true,
     showUpload: true,
     showViewToggle: false,
     visibleFilters: {

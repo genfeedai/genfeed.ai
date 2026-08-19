@@ -30,6 +30,7 @@ function makeSignedInRequest(
   pathname: string,
   opts: {
     extraCookies?: Record<string, string>;
+    referer?: string;
     search?: string;
   } = {},
 ) {
@@ -50,11 +51,19 @@ function makeSignedInRequest(
       }),
     },
     headers: {
-      get: vi.fn((name: string) =>
-        name.toLowerCase() === 'cookie' ? rawCookieHeader : null,
-      ),
+      get: vi.fn((name: string) => {
+        const normalizedName = name.toLowerCase();
+        if (normalizedName === 'cookie') {
+          return rawCookieHeader;
+        }
+        if (normalizedName === 'referer') {
+          return opts.referer ?? null;
+        }
+        return null;
+      }),
     },
     nextUrl: {
+      origin: 'http://localhost:3000',
       pathname,
       search,
       // proxy reads callbackUrl via nextUrl.searchParams.get(...)
@@ -1368,6 +1377,66 @@ describe('proxy', () => {
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+  });
+
+  it('keeps /library/assets on the current brand from the referer', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/library/assets', {
+        referer: 'http://localhost:3000/demo/FUDNEWS/library/images',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/demo/FUDNEWS/library/videos',
+    );
+  });
+
+  it('keeps /studio/audio on the current brand as library voices', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/studio/audio', {
+        referer: 'http://localhost:3000/demo/FUDNEWS/studio/storyboard',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/demo/FUDNEWS/library/voices',
+    );
+  });
+
+  it('writes the URL brand into gf_ws so a later unscoped hop stays on FUD News', async () => {
+    vi.stubEnv('COOKIE_SECRET', 'test-secret-at-least-32-chars-long!!');
+    const { default: proxy } = await import('./proxy');
+
+    const scopedResponse = await proxy(
+      makeSignedInRequest('/demo/FUDNEWS/library/images'),
+      {} as never,
+    );
+
+    expect(scopedResponse.headers.get('location')).toBeNull();
+    const cookieValue = (scopedResponse.headers.get('set-cookie') ?? '')
+      .match(/gf_ws=([^;]+)/)
+      ?.at(1);
+    expect(cookieValue).toBeTruthy();
+
+    const unscopedResponse = await proxy(
+      makeSignedInRequest('/library/assets', {
+        extraCookies: { gf_ws: cookieValue ?? '' },
+      }),
+      {} as never,
+    );
+
+    expect(unscopedResponse.status).toBe(307);
+    expect(unscopedResponse.headers.get('location')).toBe(
+      'http://localhost:3000/demo/FUDNEWS/library/videos',
     );
   });
 

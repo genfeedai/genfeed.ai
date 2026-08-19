@@ -120,6 +120,7 @@ export class VideoGenerationPreparationService {
       brand,
       organizationSettings,
       referenceIds,
+      user.organizationId,
     );
     const validationOrgId =
       user.organizationId || request.context?.organizationId;
@@ -331,6 +332,7 @@ export class VideoGenerationPreparationService {
       defaultVideoModel?: unknown;
     } | null,
     referenceIds: string[],
+    organizationId?: string,
   ): Promise<string> {
     if (createVideoDto.autoSelectModel) {
       const recommendation = await this.routerService.selectModel({
@@ -340,6 +342,7 @@ export class VideoGenerationPreparationService {
           width: createVideoDto.width,
         },
         duration: createVideoDto.duration,
+        organizationId,
         prioritize: createVideoDto.prioritize || 'balanced',
         prompt: createVideoDto.text || '',
         speech: createVideoDto.speech,

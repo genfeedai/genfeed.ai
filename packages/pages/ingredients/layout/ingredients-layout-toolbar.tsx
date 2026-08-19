@@ -1,11 +1,12 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, PageScope } from '@genfeedai/enums';
 import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
-import { EnvironmentService } from '@services/core/environment.service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
@@ -34,6 +35,8 @@ export default function IngredientsLayoutToolbar({
   onFiltersChange,
   onUpload,
 }: IngredientsLayoutToolbarProps) {
+  const { href } = useOrgUrl();
+
   return (
     <div className="flex w-full min-w-0 items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
@@ -66,11 +69,7 @@ export default function IngredientsLayoutToolbar({
             image/video/avatar/music prompt bars are retired. */}
         {scope !== PageScope.SUPERADMIN && config.showGenerateLink && (
           <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
-            <Link
-              href={`${EnvironmentService.apps.app}/agent/new`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <Link href={href(APP_ROUTES.AGENT.NEW)}>
               <ExternalLink />
               Generate
             </Link>
