@@ -14,6 +14,7 @@ vi.mock('@app-server/protected-bootstrap.server', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   notFound: notFoundMock,
 }));
 

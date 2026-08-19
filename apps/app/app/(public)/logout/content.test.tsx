@@ -13,6 +13,7 @@ vi.mock('@genfeedai/auth-client', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: mocks.push,
   }),

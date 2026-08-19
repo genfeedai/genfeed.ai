@@ -25,6 +25,7 @@ const xtermMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({
     brandSlug: 'test-brand',
     orgSlug: 'test-org',

@@ -16,6 +16,7 @@ vi.mock('@pages/trends/platform-detail/trends-platform-detail', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   notFound: () => mockNotFound(),
 }));
 

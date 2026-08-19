@@ -38,6 +38,7 @@ vi.mock('next/image', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ push: pushMock }),
   useSearchParams: () => new URLSearchParams('range=30d'),
 }));

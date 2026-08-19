@@ -17,6 +17,7 @@ vi.mock('./content', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   notFound: () => mockNotFound(),
 }));
 

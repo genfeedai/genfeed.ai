@@ -88,7 +88,12 @@ export async function drainHttpApplication(
 export function registerGracefulDrain(
   options: RegisterGracefulDrainOptions,
 ): void {
+  let isDraining = false;
   const shutdown = (signal: string) => {
+    if (isDraining) {
+      return;
+    }
+    isDraining = true;
     void drainHttpApplication({ ...options, signal });
   };
 

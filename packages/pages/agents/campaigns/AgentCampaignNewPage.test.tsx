@@ -17,6 +17,7 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: vi.fn(() => ({
     push: pushMock,
   })),

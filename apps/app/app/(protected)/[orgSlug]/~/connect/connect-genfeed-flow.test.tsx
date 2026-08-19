@@ -85,6 +85,7 @@ vi.mock('@services/management/api-keys.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({ orgSlug: 'acme' }),
 }));
 

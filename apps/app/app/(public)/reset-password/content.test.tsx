@@ -12,6 +12,7 @@ vi.mock('@genfeedai/auth-client', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 

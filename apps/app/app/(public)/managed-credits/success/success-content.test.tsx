@@ -22,6 +22,7 @@ const { captureAnalyticsEventMock, getCheckoutResultMock, searchParamsState } =
   }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => searchParamsState.value,
 }));
 

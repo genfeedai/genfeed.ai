@@ -70,6 +70,7 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => ({
     get: (key: string) => (key === 'returnTo' ? mocks.returnTo : null),
   }),

@@ -39,6 +39,7 @@ vi.mock('@/features/moodboard/MoodBoardCanvas', () => ({
   ),
 }));
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
   useParams: () => ({ orgSlug: 'org', brandSlug: 'brand' }),
 }));

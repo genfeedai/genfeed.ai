@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandOrganizationCredentialsLegacyRoute from './page';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   permanentRedirect: vi.fn(),
 }));
 

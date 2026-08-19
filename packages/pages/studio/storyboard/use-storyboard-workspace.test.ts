@@ -39,6 +39,7 @@ const {
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useSearchParams: () => searchParams,
 }));
 

@@ -15,6 +15,7 @@ let capturedItems: SwitcherDropdownItem[] = [];
 let capturedMinWidth: number | undefined;
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({
     brandSlug: 'test-brand',
     orgSlug: 'test-org',

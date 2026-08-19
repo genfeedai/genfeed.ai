@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsIndexPage from './page';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   redirect: vi.fn(),
 }));
 

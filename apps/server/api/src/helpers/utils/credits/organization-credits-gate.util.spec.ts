@@ -31,12 +31,10 @@ describe('assertOrganizationCreditsAvailable', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('skips the lookup when the organization id is missing', async () => {
-    await assertOrganizationCreditsAvailable(
-      creditsUtilsService,
-      undefined,
-      12,
-    );
+  it('throws when the organization id is missing', async () => {
+    await expect(
+      assertOrganizationCreditsAvailable(creditsUtilsService, '', 12),
+    ).rejects.toMatchObject({ message: 'Organization is required' });
 
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,

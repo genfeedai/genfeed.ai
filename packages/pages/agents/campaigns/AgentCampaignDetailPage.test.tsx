@@ -25,6 +25,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: vi.fn(() => ({
     id: 'campaign-123',
   })),

@@ -32,6 +32,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({
     brandSlug: 'moonrise-studio',
     orgSlug: 'moonrise-org',

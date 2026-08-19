@@ -62,6 +62,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({
     brandSlug: 'acme-brand',
     orgSlug: 'acme-org',

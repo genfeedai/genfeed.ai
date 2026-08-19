@@ -25,6 +25,7 @@ const brandContextMock = {
 };
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   useRouter: () => ({
     push: pushMock,

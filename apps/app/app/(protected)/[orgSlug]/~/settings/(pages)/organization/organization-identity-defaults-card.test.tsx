@@ -199,6 +199,7 @@ vi.mock('@utils/media/ingredient-type.util', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
   useRouter: () => ({
     push: mocks.push,
   }),
