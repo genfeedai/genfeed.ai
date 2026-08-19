@@ -72,6 +72,10 @@ vi.mock('@/components/runtime/RuntimeConfigScript', () => ({
   },
 }));
 
+vi.mock('@/components/analytics/AnalyticsAnonymousSessionSync', () => ({
+  default: () => <div data-testid="analytics-anonymous-session-sync" />,
+}));
+
 vi.mock('@ui/shell/metadata', () => ({
   // Passing the overrides straight through lets the assertions below read the
   // real exported `metadata`. `clearMocks: true` wipes call history between
@@ -116,6 +120,9 @@ describe('app root layout', () => {
     );
 
     expect(screen.getByText('App child')).toBeTruthy();
+    expect(
+      screen.getByTestId('analytics-anonymous-session-sync'),
+    ).toBeTruthy();
     expect(appProvidersSpy).toHaveBeenCalledTimes(1);
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({

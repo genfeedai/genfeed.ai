@@ -15,6 +15,7 @@ import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
 import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
+import AnalyticsAnonymousSessionSync from '@/components/analytics/AnalyticsAnonymousSessionSync';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
 import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
@@ -84,6 +85,7 @@ export default async function RootLayout({ children }: LayoutProps) {
           initialTheme={initialTheme}
           storageKey={THEME_STORAGE_KEY}
         >
+          <AnalyticsAnonymousSessionSync />
           <DesktopDragStrip />
           {/* Desktop ships as a bundled app with its own update path and offline
               story; the deploy skew watcher and the service worker both only

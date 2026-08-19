@@ -27,9 +27,20 @@ const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST =
   process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com';
 
+interface PendingPageview {
+  key: string;
+  url: string;
+}
+
 let client: PostHog | null = null;
 let hasInitStarted = false;
+let lastCapturedPageviewKey: string | null = null;
 let pendingIdentity: AnalyticsUserIdentity | null = null;
+// undefined = no instruction, null = explicit clear, string = active group.
+let pendingOrganizationId: string | null | undefined;
+let pendingPageview: PendingPageview | null = null;
+let shouldEnsureAnonymous = false;
+let shouldResetAnalytics = false;
 let unsubscribeFromFeatureFlags: (() => void) | null = null;
 
 export interface AnalyticsUserIdentity {
@@ -155,6 +166,77 @@ function applyPendingIdentity(): void {
   });
 }
 
+function applyPendingOrganization(): void {
+  if (!client || pendingOrganizationId === undefined) {
+    return;
+  }
+
+  try {
+    if (pendingOrganizationId === null) {
+      client.resetGroups();
+      return;
+    }
+
+    client.group('organization', pendingOrganizationId);
+  } catch {
+    // Best-effort organization state.
+  }
+}
+
+function applyPendingReset(): void {
+  if (!client || !shouldResetAnalytics) {
+    return;
+  }
+
+  shouldResetAnalytics = false;
+  try {
+    client.reset();
+    notifyFeatureFlagSubscriptions(true);
+  } catch {
+    // Best-effort reset.
+  }
+}
+
+function applyPendingPageview(): void {
+  if (!client || !pendingPageview) {
+    return;
+  }
+
+  const pageview = pendingPageview;
+  pendingPageview = null;
+  if (pageview.key === lastCapturedPageviewKey) {
+    return;
+  }
+
+  try {
+    client.capture('$pageview', { $current_url: pageview.url });
+    lastCapturedPageviewKey = pageview.key;
+  } catch {
+    // Best-effort pageview capture.
+  }
+}
+
+function applyPendingAnonymousState(): void {
+  if (!client || !shouldEnsureAnonymous) {
+    return;
+  }
+
+  shouldEnsureAnonymous = false;
+  try {
+    if (client.get_property('$user_id')) {
+      client.reset();
+      notifyFeatureFlagSubscriptions(true);
+      return;
+    }
+
+    if (Object.keys(client.getGroups()).length > 0) {
+      client.resetGroups();
+    }
+  } catch {
+    // Best-effort anonymous-state reconciliation.
+  }
+}
+
 function resolveFeatureFlags(
   keys: readonly string[],
   errorsLoading = false,
@@ -225,10 +307,10 @@ export function initAnalytics(): void {
         // event's URL-bearing properties to bounded route templates and drop
         // free-text keys. Required now that pageviews capture in-app navigation.
         before_send: scrubEventProperties,
-        // Capture $pageview on the initial load AND every App Router (History
-        // API) navigation. Plain `true` fires only once at init and then goes
-        // silent for client-side navigation, hiding in-app page usage.
-        capture_pageview: 'history_change',
+        // Route components capture pageviews only after auth and organization
+        // scope is synchronized. SDK history capture runs inside pushState,
+        // before React can apply the destination tenant scope.
+        capture_pageview: false,
         // Keep replay hard-off: $snapshot bypasses before_send property
         // scrubbing, so enabling it would break the FR8 privacy boundary.
         disable_session_recording: true,
@@ -237,7 +319,11 @@ export function initAnalytics(): void {
         person_profiles: 'identified_only',
       });
       client = posthog;
+      applyPendingReset();
+      applyPendingAnonymousState();
       applyPendingIdentity();
+      applyPendingOrganization();
+      applyPendingPageview();
       ensureFeatureFlagSubscription();
     })
     .catch(() => {
@@ -301,34 +387,57 @@ export function captureAnalyticsEvent<E extends AnalyticsEvent>(
   }
 }
 
+/** Capture the current route after identity and tenant scope are synchronized. */
+export function captureAnalyticsPageview(pageviewKey?: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  pendingPageview = {
+    key: pageviewKey ?? window.location.href,
+    url: window.location.href,
+  };
+  applyPendingPageview();
+}
+
 /**
  * Associate subsequent events with an organization group. Called from the
  * authenticated shell once an org id is known. No PII — the id is an opaque
  * identifier the client already holds.
  */
 export function identifyAnalyticsOrganization(organizationId: string): void {
-  if (!client || !organizationId) {
+  if (!organizationId) {
     return;
   }
-  try {
-    client.group('organization', organizationId);
-  } catch {
-    // Best-effort grouping.
-  }
+
+  pendingOrganizationId = organizationId;
+  applyPendingOrganization();
+}
+
+/** Clear persisted account scope without rotating an existing anonymous id. */
+export function ensureAnalyticsAnonymous(): void {
+  pendingIdentity = null;
+  pendingOrganizationId = undefined;
+  pendingPageview = null;
+  shouldEnsureAnonymous = true;
+  applyPendingAnonymousState();
+}
+
+/** Clear organization attribution while preserving the authenticated person. */
+export function clearAnalyticsOrganization(): void {
+  pendingOrganizationId = null;
+  applyPendingOrganization();
 }
 
 /** Clear the current user/group association (e.g. on sign-out). */
 export function resetAnalytics(): void {
   pendingIdentity = null;
-  if (!client) {
-    return;
-  }
-  try {
-    client.reset();
-    notifyFeatureFlagSubscriptions(true);
-  } catch {
-    // Best-effort reset.
-  }
+  pendingOrganizationId = undefined;
+  lastCapturedPageviewKey = null;
+  pendingPageview = null;
+  shouldEnsureAnonymous = false;
+  shouldResetAnalytics = true;
+  applyPendingReset();
 }
 
 /** Test-only hook to reset module singleton state between cases. */
@@ -336,7 +445,12 @@ export function __resetAnalyticsForTests(): void {
   unsubscribeFromFeatureFlags?.();
   client = null;
   hasInitStarted = false;
+  lastCapturedPageviewKey = null;
   pendingIdentity = null;
+  pendingOrganizationId = undefined;
+  pendingPageview = null;
+  shouldEnsureAnonymous = false;
+  shouldResetAnalytics = false;
   unsubscribeFromFeatureFlags = null;
   featureFlagSubscriptions.clear();
 }

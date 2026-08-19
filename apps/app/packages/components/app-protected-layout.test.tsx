@@ -10,23 +10,33 @@ const {
   appLayoutSpy,
   appSidebarSpy,
   agentThreadListSpy,
+  captureAnalyticsPageviewSpy,
   commandPaletteOpenSpy,
+  clearAnalyticsOrganizationSpy,
   dispatchOpenTaskComposerSpy,
+  identifyAnalyticsOrganizationSpy,
+  identifyAnalyticsUserSpy,
   shellState,
   onboardingGuardSpy,
   lowCreditsBannerSpy,
   protectedProvidersSpy,
+  resetAnalyticsSpy,
   universalShellSpy,
 } = vi.hoisted(() => ({
   agentThreadListSpy: vi.fn(),
   appLayoutSpy: vi.fn(),
   appSidebarSpy: vi.fn(),
+  captureAnalyticsPageviewSpy: vi.fn(),
   commandPaletteOpenSpy: vi.fn(),
+  clearAnalyticsOrganizationSpy: vi.fn(),
   dispatchOpenTaskComposerSpy: vi.fn(),
+  identifyAnalyticsOrganizationSpy: vi.fn(),
+  identifyAnalyticsUserSpy: vi.fn(),
   shellState: { isAuthLoaded: true, isShellThrowing: false },
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
+  resetAnalyticsSpy: vi.fn(),
   universalShellSpy: vi.fn(),
 }));
 
@@ -36,6 +46,7 @@ const mockPathname = vi.hoisted(() => ({
 
 const mockBrandState = vi.hoisted(() => ({
   brandId: 'brand-123',
+  organizationId: 'org-123',
 }));
 
 const mockRouteParams = vi.hoisted(() => ({
@@ -67,6 +78,16 @@ function MessagesNavPanelProbe() {
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn().mockResolvedValue('token'),
+  }),
+}));
+
+vi.mock('@hooks/auth/use-auth-user', () => ({
+  useAuthUser: () => ({
+    isLoaded: true,
+    user: {
+      id: 'user-123',
+      primaryEmailAddress: { emailAddress: 'user@example.com' },
+    },
   }),
 }));
 
@@ -235,6 +256,8 @@ vi.mock('@contexts/features/command-palette.provider', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: mockBrandState.brandId,
+    isBrandScopeResolved: true,
+    organizationId: mockBrandState.organizationId,
     brands: [
       {
         id: mockBrandState.brandId,
@@ -254,6 +277,19 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     settings: { subscriptionTier: 'scale' },
   }),
 }));
+
+vi.mock('@/lib/analytics', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/analytics')>();
+
+  return {
+    ...actual,
+    captureAnalyticsPageview: captureAnalyticsPageviewSpy,
+    clearAnalyticsOrganization: clearAnalyticsOrganizationSpy,
+    identifyAnalyticsOrganization: identifyAnalyticsOrganizationSpy,
+    identifyAnalyticsUser: identifyAnalyticsUserSpy,
+    resetAnalytics: resetAnalyticsSpy,
+  };
+});
 
 vi.mock('@services/core/command-palette.service', () => ({
   CommandPaletteService: {
@@ -487,16 +523,22 @@ describe('AppProtectedLayout', () => {
     shellState.isShellThrowing = false;
     sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
+    mockBrandState.organizationId = 'org-123';
     mockRouteParams.brandSlug = 'brand-123';
     mockRouteParams.orgSlug = 'org-123';
     appLayoutSpy.mockClear();
     appSidebarSpy.mockClear();
     agentThreadListSpy.mockClear();
+    captureAnalyticsPageviewSpy.mockClear();
     commandPaletteOpenSpy.mockClear();
+    clearAnalyticsOrganizationSpy.mockClear();
     dispatchOpenTaskComposerSpy.mockClear();
+    identifyAnalyticsOrganizationSpy.mockClear();
+    identifyAnalyticsUserSpy.mockClear();
     onboardingGuardSpy.mockClear();
     lowCreditsBannerSpy.mockClear();
     protectedProvidersSpy.mockClear();
+    resetAnalyticsSpy.mockClear();
     universalShellSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
@@ -580,6 +622,21 @@ describe('AppProtectedLayout', () => {
     // everywhere else — it no longer takes over the workspace nav column.
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+  });
+
+  it('keeps product analytics grouped with the active organization', () => {
+    const { rerender } = render(<AppProtectedLayout />);
+
+    expect(identifyAnalyticsOrganizationSpy).toHaveBeenLastCalledWith(
+      'org-123',
+    );
+
+    mockBrandState.organizationId = 'org-456';
+    rerender(<AppProtectedLayout />);
+
+    expect(identifyAnalyticsOrganizationSpy).toHaveBeenLastCalledWith(
+      'org-456',
+    );
   });
 
   it('keeps the org switcher visible in SaaS mode', () => {

@@ -4,6 +4,7 @@ import { signOut } from '@genfeedai/auth-client';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { resetAnalytics } from '@/lib/analytics';
 
 export default function LogoutPage() {
   const { push } = useRouter();
@@ -12,6 +13,7 @@ export default function LogoutPage() {
     let isCancelled = false;
 
     async function performSignOut() {
+      resetAnalytics();
       try {
         await signOut();
       } catch {

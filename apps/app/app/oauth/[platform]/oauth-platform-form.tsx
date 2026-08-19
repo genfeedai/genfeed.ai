@@ -7,6 +7,7 @@ import { ServicesService } from '@services/external/services.service';
 import { CircleCheck, CircleX } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
 
 interface OAuthPlatformFormProps {
   platform: string;
@@ -165,8 +166,11 @@ export default function OAuthPlatformForm(
   props: Parameters<typeof OAuthPlatformFormContent>[0],
 ) {
   return (
-    <Suspense fallback={null}>
-      <OAuthPlatformFormContent {...props} />
-    </Suspense>
+    <>
+      <AnalyticsPublicRouteSync />
+      <Suspense fallback={null}>
+        <OAuthPlatformFormContent {...props} />
+      </Suspense>
+    </>
   );
 }

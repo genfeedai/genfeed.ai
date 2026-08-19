@@ -30,6 +30,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
+import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
@@ -538,6 +539,7 @@ function AppLayoutWithDynamicMenu({
 
   return (
     <>
+      <AnalyticsOrganizationSync />
       {!isEditorCanvasRoute && !isFocusedOnboardingRoute ? (
         <StreakNotificationsBridge initialStreak={initialBootstrap?.streak} />
       ) : null}
