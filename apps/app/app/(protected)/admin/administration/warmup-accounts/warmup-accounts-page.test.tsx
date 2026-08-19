@@ -209,11 +209,14 @@ describe('WarmupAccountsPage', () => {
 
     expect(screen.getByText('Pending')).toBeDefined();
     expect(
-      screen.getByRole('button', { name: /Send invitation/i }),
+      screen.getByRole('button', { name: /^Send invitation$/i }),
     ).toBeDefined();
     expect(
-      screen.getByRole('button', { name: /Revoke invitation/i }),
+      screen.getByRole('button', { name: /^Revoke invitation$/i }),
     ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: /^Resend invitation$/i }),
+    ).toBeNull();
   });
 
   it('sends an invitation from server state and does not mark success when dispatch fails', async () => {
@@ -243,7 +246,7 @@ describe('WarmupAccountsPage', () => {
       expect(mocks.inspectInvitation).toHaveBeenCalled();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Send invitation/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Send invitation$/i }));
 
     await waitFor(() => {
       expect(mocks.sendInvitation).toHaveBeenCalledWith('warmup_1');
