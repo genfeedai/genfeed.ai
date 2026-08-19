@@ -18,6 +18,16 @@ describe('pricing metadata', () => {
     expect(result.description).not.toContain('Scale unlocks unlimited seats');
   });
 
+  it('keeps the meta description inside the search-snippet budget', async () => {
+    const parent = Promise.resolve({}) as ResolvingMetadata;
+
+    const result = await PageModule.generateMetadata({}, parent);
+
+    // Ahrefs flags anything over 158 characters as "Meta description too long".
+    expect(result.description?.length).toBeGreaterThanOrEqual(100);
+    expect(result.description?.length).toBeLessThanOrEqual(158);
+  });
+
   it('keeps the JSON-LD entitlement copy aligned with pricing metadata', () => {
     const jsonLd = PageModule.buildPricingJsonLd();
 
