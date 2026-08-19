@@ -5,6 +5,7 @@ import {
   assertSignupMagicLinkCanCreateUser,
   buildBetterAuthAdminOptions,
   buildBetterAuthAdvancedOptions,
+  buildBetterAuthDashOptions,
   buildBetterAuthMagicLinkOptions,
   buildBetterAuthOrganizationOptions,
   buildBetterAuthUserDatabaseHooks,
@@ -399,6 +400,15 @@ describe('buildBetterAuthAdminOptions', () => {
   });
 });
 
+describe('buildBetterAuthDashOptions', () => {
+  it('enables activity tracking for dashboard-connected deployments', () => {
+    expect(buildBetterAuthDashOptions('better_auth_api_key')).toEqual({
+      activityTracking: { enabled: true },
+      apiKey: 'better_auth_api_key',
+    });
+  });
+});
+
 describe('buildBetterAuthUserDatabaseHooks', () => {
   it('generates a URL-safe handle when first-time user creation has none', async () => {
     const hooks = requireUserCreateHooks();
@@ -632,6 +642,14 @@ describe('createBetterAuthInstance source', () => {
 
     expect(source).toMatch(
       /admin\)?\s*\(\s*buildBetterAuthAdminOptions\(\)\s*\)/,
+    );
+  });
+
+  it('passes activity tracking options into the dashboard plugin', () => {
+    const source = createBetterAuthInstance.toString();
+
+    expect(source).toMatch(
+      /dash\)?\s*\(\s*buildBetterAuthDashOptions\(apiKey\)\s*\)/,
     );
   });
 

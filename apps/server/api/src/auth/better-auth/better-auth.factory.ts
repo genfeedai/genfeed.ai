@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { dash } from '@better-auth/infra';
+import { type DashOptions, dash } from '@better-auth/infra';
 import { PlatformRole } from '@genfeedai/enums';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import {
@@ -47,6 +47,10 @@ type BetterAuthMagicLinkDependencies = Pick<
 > & {
   storeToken?: MagicLinkOptions['storeToken'];
 };
+type BetterAuthDashOptions = DashOptions & {
+  activityTracking: { enabled: true };
+  apiKey: string;
+};
 type BetterAuthUserBeforePayload = {
   email?: string | null;
   handle?: string;
@@ -59,6 +63,16 @@ type BetterAuthUserAfterPayload = {
 
 export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
   'An account already exists for this email. Sign in instead.';
+
+/** Enable Better Auth dashboard activity tracking when dashboard auth exists. */
+export function buildBetterAuthDashOptions(
+  apiKey: string,
+): BetterAuthDashOptions {
+  return {
+    activityTracking: { enabled: true },
+    apiKey,
+  };
+}
 
 /**
  * Build the deployment-sensitive Better Auth options in one testable boundary.
@@ -757,7 +771,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     },
     databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated),
     plugins: [
-      ...(apiKey ? [dash({ apiKey })] : []),
+      ...(apiKey ? [dash(buildBetterAuthDashOptions(apiKey))] : []),
       magicLink(
         buildBetterAuthMagicLinkOptions({
           prisma,
