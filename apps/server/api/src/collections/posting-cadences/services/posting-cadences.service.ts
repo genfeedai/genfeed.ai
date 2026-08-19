@@ -1,4 +1,3 @@
-import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import { buildBrandVoiceSummary } from '@api/collections/brands/utils/brand-context.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -53,6 +52,7 @@ import type {
   ICalendarSlotFillResult,
   IPostingCadence,
 } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -130,7 +130,7 @@ type MatchingTarget = {
 };
 
 type BrandContextRow = {
-  agentConfig: unknown;
+  agentConfig: Prisma.JsonValue;
   description: string | null;
   label: string;
   text: string | null;
@@ -680,11 +680,7 @@ export class PostingCadencesService {
       ),
       brandLabel:
         this.sanitizePromptText(brand?.label || 'Brand', 120) ?? 'Brand',
-      brandVoice: brand
-        ? buildBrandVoiceSummary({
-            agentConfig: (brand.agentConfig ?? {}) as BrandAgentConfig,
-          })
-        : null,
+      brandVoice: brand ? buildBrandVoiceSummary(brand) : null,
       campaign: {
         brief: this.sanitizePromptText(
           cadence?.brief ?? slot.resolvedBrief ?? null,

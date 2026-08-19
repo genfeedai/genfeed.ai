@@ -378,7 +378,7 @@ export class AdPerformanceService {
             }),
             scope: 'organization',
           },
-          where: { id: record.id },
+          where: scopedWhere(organizationId, { id: record.id }),
         }),
       ),
     );

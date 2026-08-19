@@ -787,15 +787,10 @@ export class BatchGenerationReviewService {
           },
         },
       },
-      where: {
+      where: scopedWhere(organizationId, {
         isActive: true,
-        isDeleted: false,
-        organizationId,
         userId: assigneeId,
-        user: {
-          isDeleted: false,
-        },
-      },
+      }),
     });
 
     if (!member?.user || member.user.isDeleted) {

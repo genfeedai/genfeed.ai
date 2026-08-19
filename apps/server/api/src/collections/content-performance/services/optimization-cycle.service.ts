@@ -105,7 +105,7 @@ export class OptimizationCycleService {
 
     const [rankedContent, cycleStats] = await Promise.all([
       this.getRankedContent(where, topN),
-      this.computeCycleStats(where, options),
+      this.computeCycleStats(organizationId, where, options),
     ]);
 
     const topPatterns = this.extractPatterns(rankedContent);
@@ -233,11 +233,12 @@ export class OptimizationCycleService {
   }
 
   private async computeCycleStats(
+    organizationId: string,
     where: Record<string, unknown>,
     options: OptimizationCycleOptions,
   ): Promise<CycleStats> {
     const rows = (await this.prisma.contentPerformance.findMany({
-      where,
+      where: scopedWhere(organizationId, where),
     })) as unknown as ContentPerformanceDocument[];
 
     const engagementRates = rows.map((row) => row.engagementRate ?? 0);

@@ -92,7 +92,7 @@ export class TrendPreferencesService {
       if (existing) {
         const updated = await this.prisma.trendPreferences.update({
           data: updateData,
-          where: { id: existing.id },
+          where: scopedWhere(organizationId, { id: existing.id }),
         });
         return this.normalizePreferences(updated) as TrendPreferencesDocument;
       }
