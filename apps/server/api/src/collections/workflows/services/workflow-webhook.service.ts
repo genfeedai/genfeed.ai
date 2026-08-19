@@ -7,6 +7,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -219,7 +220,7 @@ export class WorkflowWebhookService {
     updates: Record<string, unknown>,
   ): Promise<void> {
     const workflow = await this.prisma.workflow.findFirst({
-      select: { config: true, id: true },
+      select: { config: true, id: true, organizationId: true },
       where: { id: workflowId, isDeleted: false },
     });
 
@@ -236,7 +237,7 @@ export class WorkflowWebhookService {
       data: {
         config: toPrismaJson(nextConfig),
       },
-      where: { id: workflow.id },
+      where: scopedWhere(workflow.organizationId, { id: workflow.id }),
     });
   }
 

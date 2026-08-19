@@ -139,7 +139,7 @@ export class BotActivitiesService extends BaseService<
           ...patch,
         }),
       },
-      where: { id: existing.id },
+      where: scopedWhere(existing.organizationId, { id: existing.id }),
     });
 
     return this.normalizeActivity(updated as unknown as BotActivityDocument);

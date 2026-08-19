@@ -901,7 +901,7 @@ export class ProactiveOnboardingService {
           ? { proactiveOrganizationId: extraFields.proactiveOrganizationId }
           : {}),
       },
-      where: { id: leadId },
+      where: scopedWhere(organizationId, { id: leadId }),
     });
   }
 

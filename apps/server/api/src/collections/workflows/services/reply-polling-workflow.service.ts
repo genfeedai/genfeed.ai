@@ -352,7 +352,7 @@ export class ReplyPollingWorkflowService {
 
     await this.prisma.workflow.update({
       data: { config: toPrismaJson(updatedConfig) },
-      where: { id: workflow.id },
+      where: scopedWhere(workflow.organizationId, { id: workflow.id }),
     });
 
     return triggered;

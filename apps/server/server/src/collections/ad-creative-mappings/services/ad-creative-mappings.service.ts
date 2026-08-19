@@ -160,7 +160,7 @@ export class AdCreativeMappingsService {
 
       const doc = await this.prisma.adCreativeMapping.update({
         data: { data: toPrismaJson({ ...existingData, ...patchData }) },
-        where: { id },
+        where: scopedWhere(organizationId, { id }),
       });
 
       this.logger.log(`${caller} updated mapping ${id}`);
