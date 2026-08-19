@@ -10,11 +10,7 @@ describe('Loading', () => {
     const spinner = screen.getByRole('status', { name: 'Loading' });
 
     expect(rootElement).toHaveClass('min-h-screen');
-    expect(spinner).toHaveClass(
-      'animate-spin',
-      'size-6',
-      'text-foreground/80',
-    );
+    expect(spinner).toHaveClass('animate-spin', 'size-6', 'text-foreground/80');
     expect(spinner).not.toHaveClass('text-white/80');
     expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });

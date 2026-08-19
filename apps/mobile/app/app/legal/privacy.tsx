@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
 import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
+import { Stack } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useThemedStyles } from '@/hooks/use-themed-styles';
 
@@ -147,38 +147,38 @@ export default function PrivacyPolicy() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  container: {
-    backgroundColor: colors.bgPrimary,
-    flex: 1,
-  },
-  content: {
-    padding: 24,
-    paddingBottom: 64,
-  },
-  heading: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  lastUpdated: {
-    color: colors.textSubtle,
-    fontSize: 13,
-    marginBottom: 24,
-  },
-  paragraph: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  subheading: {
-    color: colors.agent,
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 12,
-  },
+    container: {
+      backgroundColor: colors.bgPrimary,
+      flex: 1,
+    },
+    content: {
+      padding: 24,
+      paddingBottom: 64,
+    },
+    heading: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '600',
+      marginBottom: 12,
+    },
+    lastUpdated: {
+      color: colors.textSubtle,
+      fontSize: 13,
+      marginBottom: 24,
+    },
+    paragraph: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      lineHeight: 24,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    subheading: {
+      color: colors.agent,
+      fontSize: 15,
+      fontWeight: '600',
+      marginBottom: 8,
+      marginTop: 12,
+    },
   });

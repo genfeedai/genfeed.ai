@@ -43,13 +43,16 @@ describe('ThemePreferenceSync', () => {
     expect(setThemeMock).not.toHaveBeenCalled();
   });
 
-  it.each([undefined, null, 'sepia'])('ignores %s as a stored theme', (theme) => {
-    useCurrentUserMock.mockReturnValue({
-      currentUser: { settings: { theme } },
-    });
+  it.each([undefined, null, 'sepia'])(
+    'ignores %s as a stored theme',
+    (theme) => {
+      useCurrentUserMock.mockReturnValue({
+        currentUser: { settings: { theme } },
+      });
 
-    render(<ThemePreferenceSync />);
+      render(<ThemePreferenceSync />);
 
-    expect(setThemeMock).not.toHaveBeenCalled();
-  });
+      expect(setThemeMock).not.toHaveBeenCalled();
+    },
+  );
 });

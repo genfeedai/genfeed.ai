@@ -3,7 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 const mobileAppDir = path.dirname(fileURLToPath(import.meta.url));
-const constantsDir = path.resolve(mobileAppDir, '../../../packages/constants/src');
+const constantsDir = path.resolve(
+  mobileAppDir,
+  '../../../packages/constants/src',
+);
 const uiDir = path.resolve(mobileAppDir, '../../../packages/ui/src');
 
 export default defineConfig({

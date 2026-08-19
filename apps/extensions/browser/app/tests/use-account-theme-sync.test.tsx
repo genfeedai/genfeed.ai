@@ -12,7 +12,11 @@ vi.mock('~services/theme-settings.service', () => ({
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useSettingsStore } from '~store/use-settings-store';
 
-function SyncHarness({ authenticated = true }: { authenticated?: boolean }): ReactElement | null {
+function SyncHarness({
+  authenticated = true,
+}: {
+  authenticated?: boolean;
+}): ReactElement | null {
   useAccountThemeSync(authenticated);
   return null;
 }
@@ -72,7 +76,9 @@ describe('useAccountThemeSync', () => {
 
   it('serializes rapid PATCHes so a stale request cannot win on the server', async () => {
     const firstPatch = deferred<void>();
-    updateTheme.mockReturnValueOnce(firstPatch.promise).mockResolvedValue(undefined);
+    updateTheme
+      .mockReturnValueOnce(firstPatch.promise)
+      .mockResolvedValue(undefined);
 
     render(<SyncHarness />);
     await waitFor(() => expect(getTheme).toHaveBeenCalledOnce());

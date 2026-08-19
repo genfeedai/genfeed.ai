@@ -1,10 +1,7 @@
+import { type SemanticThemeColors, semanticColorTokens } from '@ui/core/colors';
 import { motionTokens } from '@ui/core/motion';
 import { radiusTokens } from '@ui/core/radius';
 import { typographyTokens } from '@ui/core/typography';
-import {
-  semanticColorTokens,
-  type SemanticThemeColors,
-} from '@ui/core/colors';
 
 const INVARIANT_NATIVE_COLORS = {
   agent: '#38BDF8',

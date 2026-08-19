@@ -46,7 +46,9 @@ describe('IngredientTabsInfo', () => {
   } as IIngredient;
 
   it('renders visible metadata fields immediately', () => {
-    const { container } = render(<IngredientTabsInfo ingredient={ingredient} />);
+    const { container } = render(
+      <IngredientTabsInfo ingredient={ingredient} />,
+    );
 
     expect(screen.getByText('Core Metadata')).toHaveClass(
       'text-muted-foreground',

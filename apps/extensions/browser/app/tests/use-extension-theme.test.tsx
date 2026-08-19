@@ -29,9 +29,8 @@ describe('useExtensionTheme', () => {
   });
 
   it('does not render or apply System before an explicit stored theme loads', async () => {
-    let resolveSettings: (
-      settings: Record<string, { theme: 'dark' }>,
-    ) => void = () => undefined;
+    let resolveSettings: (settings: Record<string, { theme: 'dark' }>) => void =
+      () => undefined;
     vi.mocked(window.matchMedia).mockReturnValue({
       addEventListener: vi.fn(),
       matches: false,

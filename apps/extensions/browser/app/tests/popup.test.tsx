@@ -136,9 +136,7 @@ describe('IndexPopup', () => {
 
     await waitFor(() => {
       expect(document.documentElement.classList.contains('dark')).toBe(false);
-      expect(document.documentElement.getAttribute('data-theme')).toBe(
-        'light',
-      );
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
       expect(document.body.classList.contains('dark')).toBe(false);
     });
   });

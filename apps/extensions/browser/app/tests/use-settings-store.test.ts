@@ -77,9 +77,7 @@ describe('useSettingsStore theme preference', () => {
   });
 
   it('does not let a stale initial read overwrite a newer storage event', async () => {
-    let resolveRead:
-      | ((settings: Record<string, unknown>) => void)
-      | undefined;
+    let resolveRead: ((settings: Record<string, unknown>) => void) | undefined;
     vi.mocked(chrome.storage.local.get).mockReturnValue(
       new Promise((resolve) => {
         resolveRead = resolve;

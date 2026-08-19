@@ -110,70 +110,70 @@ export function ErrorBoundary(props: ErrorBoundaryProps) {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    backgroundColor: colors.bgPrimary,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  content: {
-    alignItems: 'center',
-    maxWidth: 400,
-    width: '100%',
-  },
-  detailsContainer: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: borderRadius.xxl,
-    marginBottom: 24,
-    maxHeight: 200,
-    padding: 16,
-    width: '100%',
-  },
-  errorMessage: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    marginBottom: 12,
-  },
-  errorName: {
-    color: colors.error,
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.xxl,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-  },
-  retryButtonPressed: {
-    opacity: 0.8,
-  },
-  retryButtonText: {
-    color: colors.primaryForeground,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  stackTrace: {
-    color: colors.textSubtle,
-    fontFamily: 'monospace',
-    fontSize: 11,
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
+    container: {
+      alignItems: 'center',
+      backgroundColor: colors.bgPrimary,
+      flex: 1,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    content: {
+      alignItems: 'center',
+      maxWidth: 400,
+      width: '100%',
+    },
+    detailsContainer: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: borderRadius.xxl,
+      marginBottom: 24,
+      maxHeight: 200,
+      padding: 16,
+      width: '100%',
+    },
+    errorMessage: {
+      color: colors.textPrimary,
+      fontSize: 13,
+      marginBottom: 12,
+    },
+    errorName: {
+      color: colors.error,
+      fontSize: 14,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    retryButton: {
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.xxl,
+      paddingHorizontal: 32,
+      paddingVertical: 14,
+    },
+    retryButtonPressed: {
+      opacity: 0.8,
+    },
+    retryButtonText: {
+      color: colors.primaryForeground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    stackTrace: {
+      color: colors.textSubtle,
+      fontFamily: 'monospace',
+      fontSize: 11,
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 16,
+      lineHeight: 24,
+      marginBottom: 24,
+      textAlign: 'center',
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontWeight: '600',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
   });
 
 export default ErrorBoundary;

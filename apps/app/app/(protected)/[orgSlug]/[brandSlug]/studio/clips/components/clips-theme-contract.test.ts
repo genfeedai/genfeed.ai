@@ -16,7 +16,9 @@ describe('Clips theme contract', () => {
       const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
 
       expect(source).not.toMatch(/(?:bg|border|text)-zinc-\d+/);
-      expect(source).not.toMatch(/(?:bg|border|text)-(?:black|white)(?:\s|["'`/])/);
+      expect(source).not.toMatch(
+        /(?:bg|border|text)-(?:black|white)(?:\s|["'`/])/,
+      );
     },
   );
 });

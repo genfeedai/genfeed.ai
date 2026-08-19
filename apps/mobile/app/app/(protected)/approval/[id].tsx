@@ -1,7 +1,7 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -184,10 +184,7 @@ export default function ApprovalDetail() {
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <ActivityIndicator
-              size="small"
-              color={colors.successForeground}
-            />
+            <ActivityIndicator size="small" color={colors.successForeground} />
           ) : (
             <Text style={styles.approveButtonText}>Approve</Text>
           )}
@@ -258,179 +255,179 @@ export default function ApprovalDetail() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  actionButton: {
-    alignItems: 'center',
-    borderRadius: borderRadius.xxl,
-    flex: 1,
-    paddingVertical: 16,
-  },
-  actionButtonPressed: {
-    opacity: 0.8,
-  },
-  actions: {
-    backgroundColor: colors.bgPrimary,
-    borderTopColor: colors.bgTertiary,
-    borderTopWidth: 1,
-    bottom: 0,
-    flexDirection: 'row',
-    gap: 16,
-    left: 0,
-    padding: 24,
-    paddingBottom: 40,
-    position: 'absolute',
-    right: 0,
-  },
-  approveButton: {
-    backgroundColor: colors.success,
-  },
-  approveButtonPressed: {
-    opacity: 0.8,
-  },
-  approveButtonText: {
-    color: colors.successForeground,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  badgeText: {
-    color: colors.agent,
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  cancelButton: {
-    backgroundColor: colors.bgTertiary,
-  },
-  cancelButtonText: {
-    color: colors.textMuted,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  confirmRejectButton: {
-    backgroundColor: colors.error,
-  },
-  confirmRejectButtonPressed: {
-    opacity: 0.8,
-  },
-  confirmRejectButtonText: {
-    color: colors.errorForeground,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  container: {
-    backgroundColor: colors.bgPrimary,
-    flex: 1,
-  },
-  content: {
-    gap: 16,
-    padding: 24,
-  },
-  contentContainer: {
-    paddingBottom: 120,
-  },
-  description: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  input: {
-    backgroundColor: colors.bgPrimary,
-    borderColor: colors.bgTertiary,
-    borderRadius: 14,
-    borderWidth: 1,
-    color: colors.textPrimary,
-    fontSize: 15,
-    minHeight: 100,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    textAlignVertical: 'top',
-  },
-  metadata: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: borderRadius.xxl,
-    gap: 12,
-    marginTop: 8,
-    padding: 16,
-  },
-  metaLabel: {
-    color: colors.textSubtle,
-    fontSize: 14,
-  },
-  metaRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  metaValue: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'flex-end',
-  },
-  modalButton: {
-    alignItems: 'center',
-    borderRadius: borderRadius.xxl,
-    minWidth: 80,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  modalButtonPressed: {
-    opacity: 0.8,
-  },
-  modalContent: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 20,
-    gap: 16,
-    maxWidth: 500,
-    padding: 24,
-    width: '100%',
-  },
-  modalOverlay: {
-    alignItems: 'center',
-    backgroundColor: colors.overlayScrim,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalSubtitle: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  modalTitle: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  preview: {
-    aspectRatio: 16 / 9,
-    backgroundColor: colors.bgTertiary,
-    width: '100%',
-  },
-  rejectButton: {
-    backgroundColor: colors.transparent,
-    borderColor: colors.error,
-    borderWidth: 2,
-  },
-  rejectButtonText: {
-    color: colors.error,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '600',
-    lineHeight: 32,
-  },
+    actionButton: {
+      alignItems: 'center',
+      borderRadius: borderRadius.xxl,
+      flex: 1,
+      paddingVertical: 16,
+    },
+    actionButtonPressed: {
+      opacity: 0.8,
+    },
+    actions: {
+      backgroundColor: colors.bgPrimary,
+      borderTopColor: colors.bgTertiary,
+      borderTopWidth: 1,
+      bottom: 0,
+      flexDirection: 'row',
+      gap: 16,
+      left: 0,
+      padding: 24,
+      paddingBottom: 40,
+      position: 'absolute',
+      right: 0,
+    },
+    approveButton: {
+      backgroundColor: colors.success,
+    },
+    approveButtonPressed: {
+      opacity: 0.8,
+    },
+    approveButtonText: {
+      color: colors.successForeground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    badge: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+    },
+    badgeText: {
+      color: colors.agent,
+      fontSize: 12,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    cancelButton: {
+      backgroundColor: colors.bgTertiary,
+    },
+    cancelButtonText: {
+      color: colors.textMuted,
+      fontSize: 15,
+      fontWeight: '500',
+    },
+    confirmRejectButton: {
+      backgroundColor: colors.error,
+    },
+    confirmRejectButtonPressed: {
+      opacity: 0.8,
+    },
+    confirmRejectButtonText: {
+      color: colors.errorForeground,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    container: {
+      backgroundColor: colors.bgPrimary,
+      flex: 1,
+    },
+    content: {
+      gap: 16,
+      padding: 24,
+    },
+    contentContainer: {
+      paddingBottom: 120,
+    },
+    description: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      lineHeight: 24,
+    },
+    input: {
+      backgroundColor: colors.bgPrimary,
+      borderColor: colors.bgTertiary,
+      borderRadius: 14,
+      borderWidth: 1,
+      color: colors.textPrimary,
+      fontSize: 15,
+      minHeight: 100,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      textAlignVertical: 'top',
+    },
+    metadata: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: borderRadius.xxl,
+      gap: 12,
+      marginTop: 8,
+      padding: 16,
+    },
+    metaLabel: {
+      color: colors.textSubtle,
+      fontSize: 14,
+    },
+    metaRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    metaValue: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    modalActions: {
+      flexDirection: 'row',
+      gap: 12,
+      justifyContent: 'flex-end',
+    },
+    modalButton: {
+      alignItems: 'center',
+      borderRadius: borderRadius.xxl,
+      minWidth: 80,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+    },
+    modalButtonPressed: {
+      opacity: 0.8,
+    },
+    modalContent: {
+      backgroundColor: colors.bgSecondary,
+      borderRadius: 20,
+      gap: 16,
+      maxWidth: 500,
+      padding: 24,
+      width: '100%',
+    },
+    modalOverlay: {
+      alignItems: 'center',
+      backgroundColor: colors.overlayScrim,
+      flex: 1,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    modalSubtitle: {
+      color: colors.textMuted,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    modalTitle: {
+      color: colors.textPrimary,
+      fontSize: 20,
+      fontWeight: '600',
+    },
+    preview: {
+      aspectRatio: 16 / 9,
+      backgroundColor: colors.bgTertiary,
+      width: '100%',
+    },
+    rejectButton: {
+      backgroundColor: colors.transparent,
+      borderColor: colors.error,
+      borderWidth: 2,
+    },
+    rejectButtonText: {
+      color: colors.error,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontWeight: '600',
+      lineHeight: 32,
+    },
   });

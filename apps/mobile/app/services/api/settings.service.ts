@@ -26,10 +26,7 @@ class MobileSettingsService {
     return isThemePreference(theme) ? theme : DEFAULT_THEME;
   }
 
-  async updateTheme(
-    token: string,
-    theme: ThemePreference,
-  ): Promise<void> {
+  async updateTheme(token: string, theme: ThemePreference): Promise<void> {
     await apiRequest<SettingsResponse>(token, 'users/me/settings', {
       body: { theme },
       method: 'PATCH',

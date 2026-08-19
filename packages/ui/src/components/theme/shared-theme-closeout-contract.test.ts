@@ -37,9 +37,7 @@ describe('shared Light/Dark semantic chrome contract', () => {
 
     expect(source).toContain('data-[state=unchecked]:!bg-muted-foreground');
     expect(source).toContain('data-[state=checked]:!bg-primary');
-    expect(source).toContain(
-      'data-[state=unchecked]:[&>span]:!bg-background',
-    );
+    expect(source).toContain('data-[state=unchecked]:[&>span]:!bg-background');
     expect(source).toContain(
       'data-[state=checked]:[&>span]:!bg-primary-foreground',
     );

@@ -1,7 +1,7 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
-import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { borderRadius } from '@/constants';
 import { useMobileAuth } from '@/contexts/auth-context';
 import { useMobileTheme } from '@/contexts/theme-context';

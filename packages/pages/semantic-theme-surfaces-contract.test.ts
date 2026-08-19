@@ -50,11 +50,7 @@ describe('page semantic theme surfaces', () => {
       'border-white',
       'border-border',
     ],
-    [
-      'posts/detail/PostDetailOverlay.tsx',
-      'border-white',
-      'border-border',
-    ],
+    ['posts/detail/PostDetailOverlay.tsx', 'border-white', 'border-border'],
     [
       'brands/components/sidebar/BrandDetailManualKitCard.tsx',
       'border-white',
@@ -94,7 +90,9 @@ describe('page semantic theme surfaces', () => {
 
   it('themes campaign controls and platform icons', () => {
     const table = readPage('agents/campaigns/OutreachCampaignsTable.tsx');
-    const header = readPage('agents/campaigns/OutreachCampaignDetailHeader.tsx');
+    const header = readPage(
+      'agents/campaigns/OutreachCampaignDetailHeader.tsx',
+    );
     const wizard = readPage('agents/campaigns/OutreachCampaignWizardStep1.tsx');
 
     expect(table).not.toContain('text-slate');

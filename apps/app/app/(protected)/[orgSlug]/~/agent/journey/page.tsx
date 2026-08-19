@@ -85,7 +85,7 @@ export default function ChatJourneyPage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-border bg-secondary p-4">
+          <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Progress
             </p>
@@ -93,7 +93,7 @@ export default function ChatJourneyPage() {
               {completionPercent}%
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-secondary p-4">
+          <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Available to unlock
             </p>
@@ -101,7 +101,7 @@ export default function ChatJourneyPage() {
               {remainingJourneyCredits}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-secondary p-4">
+          <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Journey unlocked
             </p>
@@ -109,7 +109,7 @@ export default function ChatJourneyPage() {
               {earnedCredits}/{ONBOARDING_JOURNEY_TOTAL_CREDITS}
             </p>
           </div>
-          <div className="rounded-xl border border-border bg-secondary p-4">
+          <div className="p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Journey total
             </p>

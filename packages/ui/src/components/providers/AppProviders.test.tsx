@@ -87,10 +87,7 @@ describe('AppProviders', () => {
 
   it('themes notifications with the active preference', () => {
     render(
-      <AppProviders
-        initialTheme="system"
-        includeLazyModalErrorDebug={false}
-      >
+      <AppProviders initialTheme="system" includeLazyModalErrorDebug={false}>
         <div>Notifications</div>
       </AppProviders>,
     );

@@ -1,7 +1,4 @@
-import {
-  isThemePreference,
-  type ThemePreference,
-} from '@genfeedai/constants';
+import { isThemePreference, type ThemePreference } from '@genfeedai/constants';
 import {
   Select,
   SelectContent,

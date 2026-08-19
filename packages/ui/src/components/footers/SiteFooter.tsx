@@ -208,9 +208,7 @@ export default function SiteFooter({
         )}
 
         {/* Bottom Bar */}
-        <div
-          className="flex flex-col items-center justify-between border-t border-border py-10 text-xs font-black text-foreground/30 md:flex-row"
-        >
+        <div className="flex flex-col items-center justify-between border-t border-border py-10 text-xs font-black text-foreground/30 md:flex-row">
           <p>
             &copy;{' '}
             <ClientDateTime format={(date) => date.getFullYear().toString()} />{' '}

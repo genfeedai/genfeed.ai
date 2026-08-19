@@ -69,48 +69,48 @@ export function OfflineBanner({
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  container: {
-    left: 16,
-    position: 'absolute',
-    right: 16,
-    top: 60,
-    zIndex: 1000,
-  },
-  content: {
-    alignItems: 'center',
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.xl,
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  dot: {
-    backgroundColor: colors.error,
-    borderRadius: borderRadius.sm,
-    height: 8,
-    width: 8,
-  },
-  text: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
-  },
+    container: {
+      left: 16,
+      position: 'absolute',
+      right: 16,
+      top: 60,
+      zIndex: 1000,
+    },
+    content: {
+      alignItems: 'center',
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.xl,
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    dot: {
+      backgroundColor: colors.error,
+      borderRadius: borderRadius.sm,
+      height: 8,
+      width: 8,
+    },
+    text: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '500',
+    },
   });
 
 const createBannerStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  container: {
-    backgroundColor: colors.warning,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  text: {
-    color: colors.warningForeground,
-    fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
+    container: {
+      backgroundColor: colors.warning,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+    },
+    text: {
+      color: colors.warningForeground,
+      fontSize: 13,
+      fontWeight: '500',
+      textAlign: 'center',
+    },
   });
 
 export default OfflineIndicator;

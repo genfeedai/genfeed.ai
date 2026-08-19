@@ -14,8 +14,7 @@ interface NodeButtonProps
 }
 
 const variantClasses: Record<WorkflowNodeButtonVariant, string> = {
-  danger:
-    'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
   ghost: 'bg-muted text-foreground hover:bg-muted/80',
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
   success: 'bg-success text-success-foreground hover:bg-success/90',

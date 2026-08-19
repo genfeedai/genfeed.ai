@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { nativeThemeColors } from '@genfeedai/ui/semantic/mobile';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { setPreferenceMock, useMobileThemeMock } = vi.hoisted(() => ({
@@ -33,7 +33,9 @@ describe('mobile Settings', () => {
         .getByRole('radio', { name: 'System appearance' })
         .getAttribute('aria-checked'),
     ).toBe('true');
-    expect(screen.getByRole('radio', { name: 'Light appearance' })).toBeTruthy();
+    expect(
+      screen.getByRole('radio', { name: 'Light appearance' }),
+    ).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Dark appearance' })).toBeTruthy();
   });
 

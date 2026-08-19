@@ -1,6 +1,6 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ErrorScreen, LoadingScreen } from '@/components/ScreenStates';
 import { borderRadius } from '@/constants';
@@ -95,68 +95,68 @@ export default function IngredientDetail() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.agent,
-    borderRadius: borderRadius.full,
-    color: colors.agentForeground,
-    fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    textTransform: 'uppercase',
-  },
-  container: {
-    backgroundColor: colors.bgSecondary,
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 48,
-  },
-  description: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  image: {
-    height: '100%',
-    width: '100%',
-  },
-  imageContainer: {
-    alignItems: 'center',
-    aspectRatio: 16 / 9,
-    backgroundColor: colors.bgTertiary,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  infoSection: {
-    gap: 16,
-    padding: 24,
-  },
-  metaLabel: {
-    color: colors.textMuted,
-    fontSize: 14,
-  },
-  metaRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  metaSection: {
-    borderTopColor: colors.bgTertiary,
-    borderTopWidth: 1,
-    gap: 12,
-    marginTop: 8,
-    paddingTop: 16,
-  },
-  metaValue: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '600',
-  },
+    categoryBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.agent,
+      borderRadius: borderRadius.full,
+      color: colors.agentForeground,
+      fontSize: 12,
+      fontWeight: '600',
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      textTransform: 'uppercase',
+    },
+    container: {
+      backgroundColor: colors.bgSecondary,
+      flex: 1,
+    },
+    contentContainer: {
+      paddingBottom: 48,
+    },
+    description: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    image: {
+      height: '100%',
+      width: '100%',
+    },
+    imageContainer: {
+      alignItems: 'center',
+      aspectRatio: 16 / 9,
+      backgroundColor: colors.bgTertiary,
+      justifyContent: 'center',
+      width: '100%',
+    },
+    infoSection: {
+      gap: 16,
+      padding: 24,
+    },
+    metaLabel: {
+      color: colors.textMuted,
+      fontSize: 14,
+    },
+    metaRow: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    metaSection: {
+      borderTopColor: colors.bgTertiary,
+      borderTopWidth: 1,
+      gap: 12,
+      marginTop: 8,
+      paddingTop: 16,
+    },
+    metaValue: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontWeight: '600',
+    },
   });

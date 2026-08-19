@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
 import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
+import { useRouter } from 'expo-router';
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -81,68 +81,68 @@ export class ScreenErrorBoundary extends React.Component<
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  actions: {
-    gap: 12,
-    width: '100%',
-  },
-  backButton: {
-    alignItems: 'center',
-    backgroundColor: colors.transparent,
-    borderColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxl,
-    borderWidth: 2,
-    paddingVertical: 14,
-  },
-  backButtonPressed: {
-    opacity: 0.8,
-  },
-  backButtonText: {
-    color: colors.textMuted,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  container: {
-    alignItems: 'center',
-    backgroundColor: colors.bgPrimary,
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  content: {
-    alignItems: 'center',
-    maxWidth: 300,
-  },
-  emoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  retryButton: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.xxl,
-    paddingVertical: 14,
-  },
-  retryButtonPressed: {
-    opacity: 0.8,
-  },
-  retryButtonText: {
-    color: colors.primaryForeground,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
+    actions: {
+      gap: 12,
+      width: '100%',
+    },
+    backButton: {
+      alignItems: 'center',
+      backgroundColor: colors.transparent,
+      borderColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxl,
+      borderWidth: 2,
+      paddingVertical: 14,
+    },
+    backButtonPressed: {
+      opacity: 0.8,
+    },
+    backButtonText: {
+      color: colors.textMuted,
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    container: {
+      alignItems: 'center',
+      backgroundColor: colors.bgPrimary,
+      flex: 1,
+      justifyContent: 'center',
+      padding: 24,
+    },
+    content: {
+      alignItems: 'center',
+      maxWidth: 300,
+    },
+    emoji: {
+      fontSize: 64,
+      marginBottom: 16,
+    },
+    retryButton: {
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: borderRadius.xxl,
+      paddingVertical: 14,
+    },
+    retryButtonPressed: {
+      opacity: 0.8,
+    },
+    retryButtonText: {
+      color: colors.primaryForeground,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    subtitle: {
+      color: colors.textMuted,
+      fontSize: 16,
+      lineHeight: 24,
+      marginBottom: 32,
+      textAlign: 'center',
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 28,
+      fontWeight: '700',
+      marginBottom: 8,
+    },
   });
 
 export default ScreenErrorBoundary;

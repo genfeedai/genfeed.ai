@@ -1,6 +1,6 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { EmptyState, LoadingScreen } from '@/components/ScreenStates';
@@ -184,113 +184,113 @@ export default function Content() {
 
 const createStyles = (colors: NativeThemeColors) =>
   StyleSheet.create({
-  articleBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.agent,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  articleBadgeText: {
-    color: colors.agentForeground,
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  articleCard: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxxl,
-    gap: 12,
-    padding: 20,
-  },
-  articleCardPressed: {
-    opacity: 0.8,
-  },
-  card: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxxl,
-    flexDirection: 'row',
-    gap: 16,
-    padding: 16,
-  },
-  cardBody: {
-    flex: 1,
-    gap: 6,
-  },
-  cardDescription: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  cardMeta: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  cardPressed: {
-    opacity: 0.8,
-  },
-  cardTitle: {
-    color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  container: {
-    backgroundColor: colors.bgSecondary,
-    flex: 1,
-  },
-  contentContainer: {
-    gap: 32,
-    padding: 24,
-    paddingBottom: 48,
-  },
-  hero: {
-    backgroundColor: colors.bgTertiary,
-    borderRadius: borderRadius.xxxl,
-    gap: 12,
-    padding: 24,
-  },
-  heroKicker: {
-    color: colors.agent,
-    fontSize: 14,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  heroSubtitle: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  heroTitle: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  placeholder: {
-    alignItems: 'center',
-    backgroundColor: colors.bgTertiary,
-    justifyContent: 'center',
-  },
-  section: {
-    gap: 16,
-  },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  sectionLabel: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  squareThumbnail: {
-    borderRadius: borderRadius.xxl,
-    height: 72,
-    width: 72,
-  },
-  videoThumbnail: {
-    borderRadius: borderRadius.xxl,
-    height: 72,
-    width: 128,
-  },
+    articleBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.agent,
+      borderRadius: borderRadius.full,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    articleBadgeText: {
+      color: colors.agentForeground,
+      fontSize: 12,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+    },
+    articleCard: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxxl,
+      gap: 12,
+      padding: 20,
+    },
+    articleCardPressed: {
+      opacity: 0.8,
+    },
+    card: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxxl,
+      flexDirection: 'row',
+      gap: 16,
+      padding: 16,
+    },
+    cardBody: {
+      flex: 1,
+      gap: 6,
+    },
+    cardDescription: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    cardMeta: {
+      color: colors.textMuted,
+      fontSize: 13,
+    },
+    cardPressed: {
+      opacity: 0.8,
+    },
+    cardTitle: {
+      color: colors.textPrimary,
+      fontSize: 17,
+      fontWeight: '600',
+    },
+    container: {
+      backgroundColor: colors.bgSecondary,
+      flex: 1,
+    },
+    contentContainer: {
+      gap: 32,
+      padding: 24,
+      paddingBottom: 48,
+    },
+    hero: {
+      backgroundColor: colors.bgTertiary,
+      borderRadius: borderRadius.xxxl,
+      gap: 12,
+      padding: 24,
+    },
+    heroKicker: {
+      color: colors.agent,
+      fontSize: 14,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    heroSubtitle: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      lineHeight: 22,
+    },
+    heroTitle: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontWeight: '600',
+    },
+    placeholder: {
+      alignItems: 'center',
+      backgroundColor: colors.bgTertiary,
+      justifyContent: 'center',
+    },
+    section: {
+      gap: 16,
+    },
+    sectionHeader: {
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    sectionLabel: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    squareThumbnail: {
+      borderRadius: borderRadius.xxl,
+      height: 72,
+      width: 72,
+    },
+    videoThumbnail: {
+      borderRadius: borderRadius.xxl,
+      height: 72,
+      width: 128,
+    },
   });

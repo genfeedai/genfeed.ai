@@ -1,7 +1,7 @@
 import {
+  type NativeThemeColors,
   nativeThemeColors,
   nativeTokenMap,
-  type NativeThemeColors,
 } from '@genfeedai/ui/semantic/mobile';
 
 export { nativeThemeColors };
