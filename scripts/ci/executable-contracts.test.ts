@@ -36,7 +36,7 @@ const REPOSITORY_CONTRACTS = [
   },
   {
     command: ['bun', 'run', 'check:type-assertions'],
-    name: 'type assertion ratchet',
+    name: 'type assertions',
   },
   {
     command: ['bun', 'run', 'check:relation-alias-reads'],

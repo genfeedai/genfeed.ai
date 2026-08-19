@@ -45,16 +45,19 @@ whose #2644 product contract is lowercase. Clients and CLI types must match the
 product contract. No silent dual-accept in new code; compatibility reads may
 exist only behind an explicit mapper with a documented persistence boundary.
 
-## Assertions ratchet
+## Assertions floor
 
-Production `as any` / `as never` / bare `@ts-ignore` are floored by:
+Production `as any` and bare `@ts-ignore` are banned (zero). Production
+`as never` is a shrinking ratchet:
 
 ```bash
 bun run check:type-assertions
-bun run check:type-assertions --update-baseline  # only when counts go down
+bun run check:type-assertions --update-baseline  # as never only, when counts go down
 ```
 
-New casts fail CI. Cleanups must prune the baseline in the same PR.
+New `as any` / `@ts-ignore` fail CI. `as never` cleanups must prune the
+baseline in the same PR. There is no `--update-baseline` escape hatch for
+banned kinds.
 
 ## How to add a status value
 
