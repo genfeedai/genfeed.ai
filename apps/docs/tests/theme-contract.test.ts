@@ -30,7 +30,7 @@ describe('docs theme contract', () => {
   it('exposes explicit System, Light, and Dark Nextra preferences', () => {
     const source = readFileSync(join(process.cwd(), 'app/layout.tsx'), 'utf8');
 
-    expect(source).toContain('defaultTheme: \'system\'');
+    expect(source).toContain("defaultTheme: 'system'");
     expect(source).toContain("storageKey: 'theme'");
     expect(source).toContain("system: 'System'");
     expect(source).toContain("light: 'Light'");
@@ -108,9 +108,7 @@ describe('docs theme contract', () => {
     );
 
     expect(themeSource).toContain("localStorage.getItem('theme')");
-    expect(themeSource).toContain(
-      "matchMedia('(prefers-color-scheme: dark)')",
-    );
+    expect(themeSource).toContain("matchMedia('(prefers-color-scheme: dark)')");
     expect(source).toContain('id="genfeed-theme-document-bootstrap"');
     expect(source).toContain('<head>');
     expect(source).not.toContain("useState<ResolvedTheme>('light')");
