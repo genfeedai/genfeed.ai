@@ -164,7 +164,7 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   async getLowestCostModelIds(): Promise<string[]> {
-    const lowestCostKeys = new Set([
+    const lowestCostKeys: ReadonlySet<string> = new Set([
       LOWEST_COST_AGENT_CHAT_MODEL_KEY,
       LOWEST_COST_IMAGE_MODEL_KEY,
       LOWEST_COST_VIDEO_MODEL_KEY,
