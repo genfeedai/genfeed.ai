@@ -6,6 +6,7 @@ import {
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import type {
@@ -97,12 +98,6 @@ const PLATFORM_THRESHOLDS: Partial<
 
 function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function readJsonRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function readNumber(value: unknown, fallback: number): number {

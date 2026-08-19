@@ -13,6 +13,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -29,12 +30,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-function readJsonRecord(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
 
 // Simple serializer for pattern playbook
 const PatternPlaybookSerializer = {
