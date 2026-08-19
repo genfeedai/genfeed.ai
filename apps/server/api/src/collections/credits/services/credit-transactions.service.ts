@@ -106,7 +106,7 @@ export class CreditTransactionsService extends BaseService<
       );
     }
 
-    const data = {
+    const data: Prisma.CreditTransactionUncheckedCreateInput = {
       amount,
       balanceAfter,
       category,
@@ -128,13 +128,10 @@ export class CreditTransactionsService extends BaseService<
 
     // When a transaction client is supplied, the ledger entry MUST be written
     // through it so it commits/rolls back atomically with the balance update.
-    const result = tx
-      ? this.normalizeDocument(
-          await tx.creditTransaction.create({
-            data,
-          }),
-        )
-      : await this.create(data);
+    const created = tx
+      ? await tx.creditTransaction.create({ data })
+      : await this.prisma.creditTransaction.create({ data });
+    const result = this.normalizeDocument(created);
 
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.CREDITS_USAGE(organizationId),
@@ -160,25 +157,26 @@ export class CreditTransactionsService extends BaseService<
       const category = filters?.category?.trim();
       const source = filters?.source?.trim();
 
+      const where: Prisma.CreditTransactionWhereInput = {
+        isDeleted: false,
+        organizationId,
+        ...(category ? { category } : {}),
+        ...(source ? { source } : {}),
+        // brandId is stored on ledger metadata when callers pass it through.
+        ...(brandId
+          ? {
+              metadata: {
+                path: ['brandId'],
+                equals: brandId,
+              } satisfies Prisma.JsonFilter,
+            }
+          : {}),
+      };
       const results = await this.delegate.findMany({
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
-        where: {
-          isDeleted: false,
-          organizationId,
-          ...(category ? { category } : {}),
-          ...(source ? { source } : {}),
-          // brandId is stored on ledger metadata when callers pass it through.
-          ...(brandId
-            ? {
-                metadata: {
-                  path: ['brandId'],
-                  equals: brandId,
-                },
-              }
-            : {}),
-        },
+        where,
       });
       return this.normalizeDocuments(results as unknown[]);
     } catch (error: unknown) {
