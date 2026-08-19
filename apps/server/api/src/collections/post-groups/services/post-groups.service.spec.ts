@@ -510,6 +510,32 @@ describe('PostGroupsService', () => {
     });
   });
 
+  it('persists a per-target caption override as the channel description', async () => {
+    await service.create('org-1', 'user-1', {
+      baseContent: 'Shared launch note',
+      brandId: 'brand-1',
+      status: ReleaseStatus.DRAFT,
+      targets: [
+        {
+          caption: 'X-specific launch note',
+          credentialId: 'cred-x',
+          platform: CredentialPlatform.TWITTER,
+          settings: { replyPolicy: 'everyone' },
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Launch note',
+    });
+
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          description: 'X-specific launch note',
+        }),
+      }),
+    );
+  });
+
   it('persists derived publishing readiness on every scheduled channel target', async () => {
     await service.create('org-1', 'user-1', {
       baseContent: 'Launch note for X',

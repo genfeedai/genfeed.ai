@@ -3,7 +3,11 @@ import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integratio
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
 import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
-import type { Prisma, PrismaClient } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  type PrismaClient,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -317,7 +321,7 @@ export class ByokService {
           };
 
           await this.writeByokSettings(tx, existing, {
-            byokKeys: byokKeys as never,
+            byokKeys: toPrismaJson(byokKeys),
           });
         },
         { isolationLevel: 'Serializable' },
@@ -354,7 +358,7 @@ export class ByokService {
           const hasRemainingKeys = Object.keys(byokKeys).length > 0;
 
           await this.writeByokSettings(tx, existing, {
-            byokKeys: byokKeys as never,
+            byokKeys: toPrismaJson(byokKeys),
             isByokEnabled: hasRemainingKeys,
           });
         },
@@ -398,7 +402,7 @@ export class ByokService {
             };
 
             await this.writeByokSettings(tx, existing, {
-              byokKeys: byokKeys as never,
+              byokKeys: toPrismaJson(byokKeys),
             });
           }
         },
@@ -555,7 +559,7 @@ export class ByokService {
         byokKeys[provider] = entry;
 
         await this.writeByokSettings(tx, existing, {
-          byokKeys: byokKeys as never,
+          byokKeys: toPrismaJson(byokKeys),
           ...(enableByok && { isByokEnabled: true }),
         });
       },

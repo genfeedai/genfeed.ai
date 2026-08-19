@@ -8,6 +8,7 @@ import { REDIS_EVENTS } from '@genfeedai/integrations';
 import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
+  toPrismaJson,
 } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { RedisService } from '@libs/redis/redis.service';
@@ -52,7 +53,7 @@ export class IntegrationsService {
 
     const integration = await this.prisma.orgIntegration.create({
       data: {
-        config: (dto.config || {}) as never,
+        config: toPrismaJson(dto.config || {}),
         encryptedToken,
         organizationId: orgId,
         platform,
@@ -156,26 +157,21 @@ export class IntegrationsService {
       'Integration',
     );
 
-    const updateData: Record<string, unknown> = {};
-
-    // Encrypt new token if provided
-    if (dto.botToken) {
-      updateData['encryptedToken'] = this.cryptoService.encrypt(dto.botToken);
-    }
-
-    if (dto.config) {
-      updateData['config'] = {
-        ...(existing.config as Record<string, unknown>),
-        ...dto.config,
-      };
-    }
-
-    if (dto.status) {
-      updateData['status'] = this.toPrismaStatus(dto.status);
-    }
-
     const updated = await this.prisma.orgIntegration.update({
-      data: updateData as never,
+      data: {
+        ...(dto.botToken
+          ? { encryptedToken: this.cryptoService.encrypt(dto.botToken) }
+          : {}),
+        ...(dto.config
+          ? {
+              config: toPrismaJson({
+                ...(existing.config as Record<string, unknown>),
+                ...dto.config,
+              }),
+            }
+          : {}),
+        ...(dto.status ? { status: this.toPrismaStatus(dto.status) } : {}),
+      },
       where: { id: integrationId },
     });
 

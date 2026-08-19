@@ -42,7 +42,7 @@ import type {
   SocialWarmupScope,
   SyncSocialWarmupPlatformSnapshotInput,
 } from '@genfeedai/interfaces';
-import { type Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -603,10 +603,6 @@ function findBlueprintItem(
     }
   }
   return blueprint.graduation.rules.find((rule) => rule.id === itemId);
-}
-
-function toPrismaJson(value: unknown): Prisma.InputJsonValue {
-  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
 }
 
 function resolvePhaseAfterEvent(

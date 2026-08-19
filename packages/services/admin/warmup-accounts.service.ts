@@ -41,4 +41,32 @@ export class AdminWarmupAccountsService extends HTTPBaseService {
     const response = await this.instance.get<JsonApiResponseDocument>('');
     return deserializeCollection<IWarmupAccount>(response.data);
   }
+
+  async inspectInvitation(id: string): Promise<IWarmupAccount> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${id}/invitation`,
+    );
+    return deserializeResource<IWarmupAccount>(response.data);
+  }
+
+  async sendInvitation(id: string): Promise<IWarmupAccount> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/invitation/send`,
+    );
+    return deserializeResource<IWarmupAccount>(response.data);
+  }
+
+  async resendInvitation(id: string): Promise<IWarmupAccount> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/invitation/resend`,
+    );
+    return deserializeResource<IWarmupAccount>(response.data);
+  }
+
+  async revokeInvitation(id: string): Promise<IWarmupAccount> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/invitation/revoke`,
+    );
+    return deserializeResource<IWarmupAccount>(response.data);
+  }
 }

@@ -32,7 +32,7 @@ import {
   scopedWhere,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class BatchGenerationReviewService {
@@ -663,6 +663,24 @@ export class BatchGenerationReviewService {
     return this.summaryService.toBatchSummary(updatedBatch);
   }
 
+  async assignItem(
+    batchId: string,
+    itemId: string,
+    assigneeId: string,
+    orgId: string,
+  ): Promise<IBatchSummary> {
+    await this.assertAssignableOrgMember(orgId, assigneeId);
+    return this.setItemAssignee(batchId, itemId, orgId, assigneeId);
+  }
+
+  async unassignItem(
+    batchId: string,
+    itemId: string,
+    orgId: string,
+  ): Promise<IBatchSummary> {
+    return this.setItemAssignee(batchId, itemId, orgId, null);
+  }
+
   async cancelBatch(batchId: string, orgId: string): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
@@ -751,6 +769,96 @@ export class BatchGenerationReviewService {
       'Batch',
       batchId,
     )) as unknown as BatchWithConfig;
+
+    return this.summaryService.toBatchSummary(updatedBatch);
+  }
+
+  private async assertAssignableOrgMember(
+    organizationId: string,
+    assigneeId: string,
+  ): Promise<void> {
+    const member = await this.prisma.member.findFirst({
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+            isDeleted: true,
+          },
+        },
+      },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId,
+        userId: assigneeId,
+        user: {
+          isDeleted: false,
+        },
+      },
+    });
+
+    if (!member?.user || member.user.isDeleted) {
+      throw new BadRequestException(
+        'Assignee must be an active member of this organization',
+      );
+    }
+  }
+
+  private async setItemAssignee(
+    batchId: string,
+    itemId: string,
+    orgId: string,
+    assigneeId: string | null,
+  ): Promise<IBatchSummary> {
+    const batchRecord = await findOrThrow(
+      this.prisma.batch,
+      {
+        include: batchItemRowsInclude(orgId),
+        where: scopedWhere(orgId, { id: batchId }),
+      },
+      'Batch',
+      batchId,
+    );
+
+    const batchItems = resolveBatchItems(batchRecord);
+    const target = batchItems.find((item) => item.id === itemId);
+    if (!target) {
+      throw new NotFoundException('Batch item', itemId);
+    }
+
+    target.assigneeId = assigneeId;
+
+    const batchUpdate = await writeBatchJsonAndItemRows(this.prisma, {
+      batchId,
+      brandId: batchRecord.brandId,
+      items: batchItems,
+      organizationId: orgId,
+    });
+    if (batchUpdate.count !== 1) {
+      throw new NotFoundException('Batch', batchId);
+    }
+
+    const updatedBatch = (await findOrThrow(
+      this.prisma.batch,
+      {
+        include: batchItemRowsInclude(orgId),
+        where: scopedWhere(orgId, { id: batchId }),
+      },
+      'Batch',
+      batchId,
+    )) as unknown as BatchWithConfig;
+
+    this.logger.log(
+      assigneeId
+        ? `Assigned item ${itemId} in batch ${batchId}`
+        : `Unassigned item ${itemId} in batch ${batchId}`,
+      {
+        assigneeId,
+        batchId,
+        itemId,
+      },
+    );
 
     return this.summaryService.toBatchSummary(updatedBatch);
   }

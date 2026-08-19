@@ -37,6 +37,7 @@ import {
 } from '@genfeedai/agent/utils/derive-timeline';
 import { hasRenderableThreadState } from '@genfeedai/agent/utils/has-renderable-thread-state';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
+import { UploadStatus } from '@genfeedai/enums';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -70,7 +71,8 @@ function restoreComposerAttachments(
 ): AttachmentItem[] {
   return attachments.map((attachment) => {
     const wasInterrupted =
-      attachment.status === 'pending' || attachment.status === 'uploading';
+      attachment.status === UploadStatus.PENDING ||
+      attachment.status === UploadStatus.UPLOADING;
 
     return {
       ...attachment,
@@ -78,7 +80,7 @@ function restoreComposerAttachments(
         ? 'Upload was interrupted. Reattach this file to retry.'
         : attachment.error,
       previewUrl: attachment.previewUrl ?? attachment.url ?? '',
-      status: wasInterrupted ? 'failed' : attachment.status,
+      status: wasInterrupted ? UploadStatus.FAILED : attachment.status,
     };
   });
 }
@@ -266,7 +268,8 @@ export function useAgentChatContainer({
 
   const isRunActive =
     activeRunStatus === 'running' || activeRunStatus === 'cancelling';
-  const shouldQueueFollowUps = isBusy && !error;
+  const shouldQueueFollowUps = isBusy;
+  const canAutoDispatchFollowUps = !isBusy && !error;
 
   const activeThreadTitle = useMemo(() => {
     if (!activeThreadId) {
@@ -368,22 +371,71 @@ export function useAgentChatContainer({
     [],
   );
 
+  const handleStopRun = useCallback(async (): Promise<boolean> => {
+    if (
+      !isBusy &&
+      activeRunStatus !== 'running' &&
+      activeRunStatus !== 'cancelling'
+    ) {
+      return true;
+    }
+
+    if (activeRunStatus === 'cancelling') {
+      return true;
+    }
+
+    if (!activeRunId) {
+      return false;
+    }
+
+    setActiveRunStatus('cancelling');
+
+    try {
+      await runAgentApiEffect(apiService.cancelRunEffect(activeRunId));
+      return true;
+    } catch {
+      setActiveRunStatus('failed');
+      setError('Failed to stop the active agent run.');
+      return false;
+    }
+  }, [
+    activeRunId,
+    activeRunStatus,
+    apiService,
+    isBusy,
+    setActiveRunStatus,
+    setError,
+  ]);
+
   const flushFollowUp = useCallback(
-    (item: ComposerFollowUp) => {
-      followLatestTurn('smooth');
-      sendMessage(item.content, {
-        artifactReferences: item.options?.artifactReferences,
-        attachments: item.attachments,
-        ...(item.options?.brandId ? { brandId: item.options.brandId } : {}),
-        planModeEnabled: item.options?.planModeEnabled ?? false,
-      });
+    async (item: ComposerFollowUp): Promise<boolean> => {
+      if (isReadOnly) {
+        setError('Archived threads are read-only.');
+        return false;
+      }
+
+      try {
+        followLatestTurn('smooth');
+        await sendMessage(item.content, {
+          artifactReferences: item.options?.artifactReferences,
+          attachments: item.attachments,
+          ...(item.options?.brandId ? { brandId: item.options.brandId } : {}),
+          planModeEnabled: item.options?.planModeEnabled ?? false,
+        });
+        return true;
+      } catch {
+        return false;
+      }
     },
-    [followLatestTurn, sendMessage],
+    [followLatestTurn, isReadOnly, sendMessage, setError],
   );
 
   const followUpQueue = useComposerFollowUpQueue({
-    isIdle: !shouldQueueFollowUps,
-    onFlush: flushFollowUp,
+    canAutoDispatch: canAutoDispatchFollowUps,
+    isBusy,
+    isReadOnly,
+    onDispatch: flushFollowUp,
+    onInterrupt: handleStopRun,
     threadId: activeThreadId,
   });
 
@@ -421,32 +473,37 @@ export function useAgentChatContainer({
   const handleSend = useCallback(
     (
       content: string,
-      _mentions?: ExtractedMention[],
+      mentions?: ExtractedMention[],
       attachments?: ChatAttachment[],
       options?: ConversationComposerSendOptions,
-    ) => {
+    ): boolean => {
       if (isReadOnly) {
         setError('Archived threads are read-only.');
-        return;
+        return false;
       }
       if (shouldQueueFollowUps) {
-        followUpQueue.enqueue(content, {
+        const enqueued = followUpQueue.enqueue(content, {
           attachments,
+          mentions,
           options: {
             artifactReferences: options?.artifactReferences,
             ...(options?.brandId ? { brandId: options.brandId } : {}),
             planModeEnabled: options?.planModeEnabled ?? false,
           },
         });
-        return;
+        if (!enqueued.accepted) {
+          return false;
+        }
+        return true;
       }
       followLatestTurn('smooth');
-      sendMessage(content, {
+      void sendMessage(content, {
         artifactReferences: options?.artifactReferences,
         attachments,
         ...(options?.brandId ? { brandId: options.brandId } : {}),
         planModeEnabled: options?.planModeEnabled ?? false,
       });
+      return true;
     },
     [
       followLatestTurn,
@@ -519,33 +576,7 @@ export function useAgentChatContainer({
     [followLatestTurn, handleSend, isBusy, messages, onRegenerate, setError],
   );
 
-  const handleStopRun = useCallback(async () => {
-    if (!activeRunId || activeRunStatus === 'cancelling') {
-      return;
-    }
-
-    setActiveRunStatus('cancelling');
-
-    try {
-      await runAgentApiEffect(apiService.cancelRunEffect(activeRunId));
-    } catch {
-      setActiveRunStatus('failed');
-      setError('Failed to stop the active agent run.');
-    }
-  }, [activeRunId, activeRunStatus, apiService, setActiveRunStatus, setError]);
-
-  const sendFollowUpNow = useCallback(
-    (id: string) => {
-      const item = followUpQueue.queue.find((entry) => entry.id === id);
-      if (!item) {
-        return;
-      }
-      followUpQueue.remove(id);
-      void handleStopRun();
-      flushFollowUp(item);
-    },
-    [flushFollowUp, followUpQueue, handleStopRun],
-  );
+  const sendFollowUpNow = followUpQueue.sendNow;
 
   const handleSubmitInputRequest = useCallback(
     async (answer: string) => {
@@ -976,6 +1007,8 @@ export function useAgentChatContainer({
     handleStopRun,
     sendFollowUpNow,
     followUpQueue,
+    promoteQueuedFollowUp: followUpQueue.promoteOldest,
+    retryFollowUp: followUpQueue.retry,
     handleSubmitInputRequest,
     handleUiAction,
     handleApprovePlan,

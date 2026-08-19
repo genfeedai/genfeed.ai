@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/ui';
 import { useState } from 'react';
 
+import ReviewAssignmentPanel from './ReviewAssignmentPanel';
 import ReviewDecisionPanel from './ReviewDecisionPanel';
 import ReviewHistoryPanel from './ReviewHistoryPanel';
 import ReviewLineagePanel from './ReviewLineagePanel';
@@ -25,9 +26,11 @@ interface ReviewDetailPanelAsideProps {
   isSelected: boolean;
   item: ReviewPanelItem;
   onApprove: (itemId: string) => void;
+  onAssign: (itemId: string, assigneeId: string) => void;
   onReject: (itemId: string, feedback?: string) => void;
   onRequestChanges: (itemId: string, feedback?: string) => void;
   onToggleSelect: (itemId: string) => void;
+  onUnassign: (itemId: string) => void;
   reviewEvents: ReviewEvent[];
   statusLabel: string;
 }
@@ -56,9 +59,11 @@ export default function ReviewDetailPanelAside({
   isSelected,
   item,
   onApprove,
+  onAssign,
   onReject,
   onRequestChanges,
   onToggleSelect,
+  onUnassign,
   reviewEvents,
   statusLabel,
 }: ReviewDetailPanelAsideProps) {
@@ -80,6 +85,15 @@ export default function ReviewDetailPanelAside({
           setFeedback={setFeedback}
         />
       </div>
+
+      <Section title="Assignee">
+        <ReviewAssignmentPanel
+          isActioning={isActioning}
+          item={item}
+          onAssign={onAssign}
+          onUnassign={onUnassign}
+        />
+      </Section>
 
       <Section title="Details">
         <DefinitionList className="text-sm">

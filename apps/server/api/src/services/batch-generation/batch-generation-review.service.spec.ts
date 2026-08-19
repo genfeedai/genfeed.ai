@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import {
@@ -6,6 +7,7 @@ import {
   ContentFormat,
   ReviewDecision,
 } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -320,5 +322,171 @@ describe('BatchGenerationReviewService harness review feedback', () => {
     await expect(
       bareService.rejectItems('batch-1', ['item-4'], 'org-1'),
     ).resolves.toBeDefined();
+  });
+});
+
+describe('BatchGenerationReviewService assignment', () => {
+  const batch = {
+    findFirst: vi.fn(),
+    updateMany: vi.fn(),
+  };
+  const batchItem = {
+    upsert: vi.fn().mockResolvedValue({}),
+  };
+  const member = {
+    findFirst: vi.fn(),
+  };
+  const summaryService = {
+    toBatchSummary: vi.fn((row) => row),
+  };
+
+  let service: BatchGenerationReviewService;
+
+  function createBatchRecord() {
+    return {
+      brandId: 'brand-1',
+      id: 'batch-1',
+      items: [
+        {
+          id: 'item-1',
+          reviewDecision: ReviewDecision.APPROVED,
+          status: BatchItemStatus.COMPLETED,
+        },
+      ],
+      organizationId: 'org-1',
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    batch.findFirst.mockResolvedValue(createBatchRecord());
+    batch.updateMany.mockResolvedValue({ count: 1 });
+    member.findFirst.mockResolvedValue({
+      id: 'member-1',
+      user: { id: 'user-1', isDeleted: false },
+    });
+    service = new BatchGenerationReviewService(
+      { batch, batchItem, member } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      summaryService as never,
+    );
+  });
+
+  it('assigns a tenant-scoped active member without changing review decision', async () => {
+    await service.assignItem('batch-1', 'item-1', 'user-1', 'org-1');
+
+    expect(member.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          isDeleted: false,
+          organizationId: 'org-1',
+          userId: 'user-1',
+          user: { isDeleted: false },
+        }),
+      }),
+    );
+    expect(batch.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'batch-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(batch.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              assigneeId: 'user-1',
+              id: 'item-1',
+              reviewDecision: ReviewDecision.APPROVED,
+            }),
+          ],
+        }),
+        where: expect.objectContaining({
+          id: 'batch-1',
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(batchItem.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          assigneeId: 'user-1',
+          organizationId: 'org-1',
+        }),
+        update: expect.objectContaining({
+          assigneeId: 'user-1',
+        }),
+      }),
+    );
+  });
+
+  it('unassigns without changing the review decision', async () => {
+    batch.findFirst.mockResolvedValue({
+      ...createBatchRecord(),
+      items: [
+        {
+          assigneeId: 'user-1',
+          id: 'item-1',
+          reviewDecision: ReviewDecision.APPROVED,
+          status: BatchItemStatus.COMPLETED,
+        },
+      ],
+    });
+
+    await service.unassignItem('batch-1', 'item-1', 'org-1');
+
+    expect(member.findFirst).not.toHaveBeenCalled();
+    expect(batch.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          items: [
+            expect.objectContaining({
+              assigneeId: null,
+              id: 'item-1',
+              reviewDecision: ReviewDecision.APPROVED,
+            }),
+          ],
+        }),
+      }),
+    );
+  });
+
+  it('rejects assignment when the user is outside the organization', async () => {
+    member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.assignItem('batch-1', 'item-1', 'user-other-org', 'org-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(batch.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects assignment when the member is inactive', async () => {
+    member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.assignItem('batch-1', 'item-1', 'user-inactive', 'org-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects assignment when the user is soft-deleted', async () => {
+    member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.assignItem('batch-1', 'item-1', 'user-deleted', 'org-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('fails closed when the item is missing from the tenant-scoped batch', async () => {
+    await expect(
+      service.assignItem('batch-1', 'missing-item', 'user-1', 'org-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

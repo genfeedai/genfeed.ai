@@ -15,6 +15,7 @@ import type {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
@@ -91,7 +92,7 @@ export class BotsLivestreamService {
     organizationId: string,
   ): Promise<LivestreamBotSessionDocument | null> {
     const session = await this.prisma.livestreamBotSession.findFirst({
-      where: { botId, isDeleted: false, organizationId } as never,
+      where: { botId, isDeleted: false, organizationId },
     });
 
     return session
@@ -171,19 +172,21 @@ export class BotsLivestreamService {
 
     const created = await this.prisma.livestreamBotSession.create({
       data: {
-        data: serializeLivestreamSessionData({
-          context: { source: 'none' },
-          deliveryHistory: [],
-          platformStates: this.buildPlatformStates(normalizedBot),
-          status: 'stopped',
-          transcriptChunks: [],
-        }),
+        data: toPrismaJson(
+          serializeLivestreamSessionData({
+            context: { source: 'none' },
+            deliveryHistory: [],
+            platformStates: this.buildPlatformStates(normalizedBot),
+            status: 'stopped',
+            transcriptChunks: [],
+          }),
+        ),
         botId,
         brandId,
         isDeleted: false,
         organizationId,
         userId,
-      } as never,
+      },
     });
 
     return normalizeLivestreamSessionDocument(

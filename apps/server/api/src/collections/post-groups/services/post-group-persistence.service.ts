@@ -215,7 +215,10 @@ export class PostGroupPersistenceService {
           }),
           brandId,
           credentialId: target.credentialId,
-          description: params.input.baseContent,
+          description: this.contractService.readTargetCaption(
+            target.caption,
+            params.input.baseContent,
+          ),
           groupId: group.id,
           ingredients: this.contractService.buildIngredientConnect(
             params.input.media,

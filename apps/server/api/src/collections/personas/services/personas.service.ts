@@ -102,8 +102,8 @@ export class PersonasService extends BaseService<
     const persona = await this.prisma.persona.update({
       data: {
         assignedMembers: { set: memberIds.map((id) => ({ id })) },
-      } as never,
-      where: scopedWhere(organizationId, { id: personaId }) as never,
+      },
+      where: scopedWhere(organizationId, { id: personaId }),
     });
 
     if (!persona) {

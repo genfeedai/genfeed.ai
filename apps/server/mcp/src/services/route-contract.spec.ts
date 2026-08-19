@@ -135,6 +135,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/post-groups/controllers/post-groups.controller.ts',
     prefix: 'post-groups',
   },
+  schedules: {
+    file: 'collections/schedules/controllers/schedules.controller.ts',
+    prefix: 'schedules',
+  },
   metaAds: {
     file: 'services/integrations/meta-ads/controllers/meta-ads.controller.ts',
     prefix: 'services/meta-ads',
@@ -473,6 +477,24 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: ':id/targets/:targetId',
     controller: 'postGroups',
     tools: ['update_scheduled_release'],
+  },
+  {
+    method: 'Get',
+    sub: 'channel-capabilities',
+    controller: 'schedules',
+    tools: ['list_scheduler_capabilities'],
+  },
+  {
+    method: 'Get',
+    sub: 'channel-capabilities/:platform',
+    controller: 'schedules',
+    tools: ['get_scheduler_capability'],
+  },
+  {
+    method: 'Post',
+    sub: 'channel-capabilities/validate',
+    controller: 'schedules',
+    tools: ['validate_scheduler_target'],
   },
 
   // ── Meta Ads (services/meta-ads) ──

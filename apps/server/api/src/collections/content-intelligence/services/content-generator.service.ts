@@ -238,6 +238,7 @@ export class ContentGeneratorService {
         brandId: dto.brandId,
         organizationId: organizationId.toString(),
         platform: dto.platform,
+        query: dto.topic,
       });
     } catch (error: unknown) {
       this.logger.warn(

@@ -14,6 +14,7 @@ import type {
   IEditorRenderOutputMetadata,
   IEditorRenderProvenance,
 } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
@@ -107,11 +108,13 @@ export class EditorProjectsService extends BaseService<
     // count === 1; the other will get count === 0 → ConflictException.
     const updated = await this.prisma.editorProject.updateMany({
       data: {
-        config: this.mergeProjectConfig(
-          existing,
-          EditorProjectStatus.RENDERING,
-          renderExport,
-        ) as never,
+        config: toPrismaJson(
+          this.mergeProjectConfig(
+            existing,
+            EditorProjectStatus.RENDERING,
+            renderExport,
+          ),
+        ),
         updatedAt: new Date(),
       },
       where: scopedWhere(organizationId, {
@@ -156,11 +159,12 @@ export class EditorProjectsService extends BaseService<
 
     const project = await this.prisma.editorProject.update({
       data: {
-        config: this.mergeProjectConfig(
-          existing,
-          EditorProjectStatus.RENDERING,
-          { ...renderExport, job },
-        ) as never,
+        config: toPrismaJson(
+          this.mergeProjectConfig(existing, EditorProjectStatus.RENDERING, {
+            ...renderExport,
+            job,
+          }),
+        ),
       },
       where: { id },
     });
@@ -202,15 +206,13 @@ export class EditorProjectsService extends BaseService<
       throw new ConflictException('Render job no longer owns this project');
     }
 
-    const completedConfig = this.mergeProjectConfig(
-      existing,
-      EditorProjectStatus.COMPLETED,
-      {
+    const completedConfig = toPrismaJson(
+      this.mergeProjectConfig(existing, EditorProjectStatus.COMPLETED, {
         ...(renderExport ?? ({} as IEditorRenderProvenance)),
         completedAt: new Date().toISOString(),
         output,
-      },
-    ) as never;
+      }),
+    );
     const updated = await this.prisma.editorProject.updateMany({
       data: {
         config: completedConfig,
@@ -290,16 +292,18 @@ export class EditorProjectsService extends BaseService<
       throw new ConflictException('Render job no longer owns this project');
     }
 
-    const terminalConfig = this.mergeProjectConfig(
-      existing,
-      status,
-      failure
-        ? {
-            ...(renderExport ?? ({} as IEditorRenderProvenance)),
-            failure,
-          }
-        : undefined,
-    ) as never;
+    const terminalConfig = toPrismaJson(
+      this.mergeProjectConfig(
+        existing,
+        status,
+        failure
+          ? {
+              ...(renderExport ?? ({} as IEditorRenderProvenance)),
+              failure,
+            }
+          : undefined,
+      ),
+    );
     const updated = await this.prisma.editorProject.updateMany({
       data: {
         config: terminalConfig,

@@ -24,6 +24,28 @@ export interface IWarmupAccountAuditEvent {
   timestamp: string;
 }
 
+export type IWarmupInvitationStatus =
+  | 'accepted'
+  | 'delivered'
+  | 'delivery-failed'
+  | 'expired'
+  | 'pending'
+  | 'revoked';
+
+export interface IWarmupInvitation {
+  acceptedAt?: string | null;
+  createdAt: string;
+  email: string;
+  expiresAt: string;
+  id: string;
+  invitedByUserId: string;
+  organizationId: string;
+  revokedAt?: string | null;
+  roleKey?: string;
+  status: IWarmupInvitationStatus;
+  updatedAt: string;
+}
+
 export interface IWarmupAccountCreateRequest {
   leadEmail: string;
   leadFirstName?: string;
@@ -49,6 +71,7 @@ export interface IWarmupAccount {
   organizationId?: string;
   brandId?: string;
   invitationId?: string;
+  invitation?: IWarmupInvitation;
   diagnostics: IWarmupAccountDiagnostics;
   auditEvents: IWarmupAccountAuditEvent[];
   createdAt: string;

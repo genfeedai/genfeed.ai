@@ -21,3 +21,21 @@ describe('messages/replies/page.tsx', () => {
     expect(source).toContain('REPLY_BOT_FEATURE_FLAG');
   });
 });
+
+describe('messages/replies/replies-page.tsx', () => {
+  it('detects YouTube with the shared platform helper', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/[brandSlug]/messages/replies/replies-page.tsx',
+      ),
+      'utf8',
+    );
+
+    expect(source).toContain('isYouTubePlatform');
+    expect(source).toContain('parsePlatform');
+    expect(source).toContain('formatPlatformLabel');
+    expect(source).not.toContain("=== 'YOUTUBE'");
+    expect(source).not.toContain("=== 'youtube'");
+  });
+});

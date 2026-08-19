@@ -165,16 +165,10 @@ export class AgentOrchestratorContextService {
     const shouldLoadBrandContext =
       Boolean(policy.brandId) ||
       (!thread?.systemPrompt && !request.systemPromptOverride);
-    // This is the main conversational agent — every turn already carries
-    // message history, compressed thread context, up to 8 feedback memories,
-    // skill prompt sections, and page context, so it has the tightest budget
-    // headroom of any AgentContextAssemblyService caller and runs on every
-    // single turn. brandMemory + performancePatterns are worth the shared
-    // ~6k character budget (feedback-blindness is exactly what #3019 fixes).
-    // recentPosts/ragContext stay off: the thread's own message history and
-    // feedback memories already carry "what have we done" signal, and this
-    // call doesn't thread a `query`, so ragContext would be an inert no-op —
-    // adding either here would just compete with, not add to, that budget.
+    // Main conversational agent: brandMemory + performancePatterns stay on
+    // (#3019). Retrieval layers (#2460) turn on when the turn has a query so
+    // pgvector knowledge and semantically close recent posts can ground the
+    // reply. Empty knowledge stores remain a no-op inside assembleContext.
     const brandContext = shouldLoadBrandContext
       ? await this.contextAssemblyService.assembleContext({
           brandId: policy.brandId,
@@ -183,9 +177,12 @@ export class AgentOrchestratorContextService {
             brandIdentity: true,
             brandMemory: true,
             performancePatterns: true,
+            ragContext: true,
+            recentPosts: true,
           },
           organizationId: context.organizationId,
           platform: policy.platform,
+          query: request.content,
         })
       : null;
     // Every candidate here can be a key persisted months ago — an org default, a

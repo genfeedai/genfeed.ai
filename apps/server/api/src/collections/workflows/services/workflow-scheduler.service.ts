@@ -263,7 +263,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         data: {
           executionCount: { increment: 1 },
           lastExecutedAt: new Date(),
-        } as never,
+        },
         where: { id: workflowId },
       });
 

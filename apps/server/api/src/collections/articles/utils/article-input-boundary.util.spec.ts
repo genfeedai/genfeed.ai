@@ -45,5 +45,20 @@ describe('article-input-boundary.util', () => {
         expect(assertOwnership).toThrow(message);
       },
     );
+
+    it.each([
+      ['', '', 'brand-1', 'Invalid userId'],
+      ['user-1', '', '', 'Invalid organizationId'],
+      ['', '', '', 'Invalid userId'],
+    ])(
+      'returns the highest-priority error when multiple ownership ids are invalid',
+      (userId, organizationId, brandId, message) => {
+        const assertOwnership = () =>
+          assertArticleOwnershipIds(userId, organizationId, brandId);
+
+        expect(assertOwnership).toThrow(BadRequestException);
+        expect(assertOwnership).toThrow(message);
+      },
+    );
   });
 });

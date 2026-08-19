@@ -97,7 +97,10 @@ The Community container package `genfeed.ai` must be public before the anonymous
 artifact smoke can pass. For the initial private-to-public migration, let the
 workflow push the corrected exact image first, change that package to public,
 then rerun only the failed artifact job; this avoids exposing the stale image.
-Do not change the visibility of the internal `genfeed.ai/server` package.
+Do not change the visibility of the internal `genfeed.ai/server` package. Hosted
+SaaS copies `SERVER_IMAGE_REPOSITORY` (that private server package) into ECR, so
+the deploy engine authenticates to GHCR with `GITHUB_TOKEN` before inspect or
+`imagetools create`. The public Community image is a different package.
 
 `packages/create` and every other enrolled public package are published by the
 release itself, from the same pinned SHA — see the npm section below. No manual

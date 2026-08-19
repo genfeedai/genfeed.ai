@@ -111,7 +111,7 @@ export class TemplateMetadataService {
    */
   async delete(templateId: string): Promise<void> {
     await this.prisma.templateMetadata.updateMany({
-      data: { isDeleted: true } as never,
+      data: { isDeleted: true },
       where: { isDeleted: false, templateId },
     });
   }

@@ -14,6 +14,7 @@ export const warmupAccountAttributes = createEntityAttributes([
   'organizationId',
   'brandId',
   'invitationId',
+  'invitation',
   'diagnostics',
   'auditEvents',
   'createdAt',

@@ -27,13 +27,13 @@ function EditableText({
   placeholder = '',
   value = '',
 }: EditableTextProps) {
-  const [draftValue, setDraftValue] = useState(value);
+  const [draftValue, setDraftValue] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const editorRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
   const isCancellingRef = useRef(false);
   const isSavingRef = useRef(false);
-  const originalValueRef = useRef(value);
+  const originalValueRef = useRef('');
 
   useEffect(() => {
     if (!isEditing) {

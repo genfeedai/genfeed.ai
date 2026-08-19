@@ -41,8 +41,7 @@ type IngredientModelConstructorMap = {
 export class IngredientsService<
   T extends Ingredient = Ingredient,
 > extends BaseService<T> {
-  // biome-ignore lint/suspicious/noExplicitAny: heterogeneous map stores different IngredientsService<T> subtypes
-  private static instances = new Map<string, IngredientsService<any>>();
+  private static instances = new Map<string, IngredientsService<Ingredient>>();
 
   constructor(category: IngredientCategory | string, token: string) {
     const modelMap: IngredientModelConstructorMap = {
@@ -70,15 +69,19 @@ export class IngredientsService<
   }
 
   /**
-   * Get singleton instance for specific category and token
-   * If only token is provided, defaults to 'ingredients' category
+   * Get singleton instance for specific category and token.
+   * If only token is provided, defaults to the `ingredients` category.
+   *
+   * Return type is the default `IngredientsService<Ingredient>` on purpose:
+   * `VideosService` / `ImagesService` / … override `getInstance(token)` with a
+   * narrower factory, and a method-level generic here makes those static
+   * sides fail to extend this class (TS2417). Callers that need a concrete
+   * model should use the subclass factory (`VideosService.getInstance`).
    */
-  // biome-ignore lint/suspicious/noExplicitAny: factory pattern — subclasses override with concrete return types
-  static getInstance<T extends Ingredient = Ingredient>(
+  static getInstance(
     categoryOrToken: IngredientCategory | string,
     tokenOrUndefined?: string,
-  ): any {
-    // Support both signatures: getInstance(category, token) and getInstance(token)
+  ): IngredientsService<Ingredient> {
     const category = tokenOrUndefined ? categoryOrToken : 'ingredients';
     const token = tokenOrUndefined || categoryOrToken;
 
@@ -87,13 +90,15 @@ export class IngredientsService<
     if (!IngredientsService.instances.has(key)) {
       IngredientsService.instances.set(
         key,
-        new IngredientsService<T>(category, token),
+        new IngredientsService<Ingredient>(category, token),
       );
     }
 
-    return IngredientsService.instances.get(
-      key,
-    ) as unknown as IngredientsService<T>;
+    const instance = IngredientsService.instances.get(key);
+    if (!instance) {
+      throw new Error(`IngredientsService instance missing for ${key}`);
+    }
+    return instance;
   }
 
   /**

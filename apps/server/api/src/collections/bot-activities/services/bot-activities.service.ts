@@ -7,7 +7,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { BotActivityStatus } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -134,10 +134,10 @@ export class BotActivitiesService extends BaseService<
       : {};
     const updated = await this.prisma.botActivity.update({
       data: {
-        data: {
+        data: toPrismaJson({
           ...currentData,
           ...patch,
-        } as never,
+        }),
       },
       where: { id: existing.id },
     });

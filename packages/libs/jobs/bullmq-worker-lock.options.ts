@@ -3,18 +3,19 @@
  *
  * Library defaults are lockDuration=30s, stalledInterval=30s, maxStalledCount=1.
  * Long workers-service jobs (agent-run, workflow execution, clip/generation)
- * routinely exceed 30s. Locks renew while the event loop is healthy; a 30s
- * lease still stalls when renewal is delayed by event-loop pressure or a brief
- * Redis blip. A 2-minute lease covers that gap without hiding a dead worker
+ * and files-service jobs (video-processing, youtube-processing) routinely
+ * exceed 30s. Locks renew while the event loop is healthy; a 30s lease still
+ * stalls when renewal is delayed by event-loop pressure or a brief Redis blip.
+ * A 2-minute lease covers that gap without hiding a dead worker
  * (stalledInterval stays 30s).
  *
  * maxStalledCount is omitted on purpose. Raising it above BullMQ's default of
  * 1 lets a side-effecting job (article gen, credits, webhooks) run a third
  * time after two stalls. Deploy-time stalls stay a drain / stop-timeout fix.
  *
- * Do not apply this preset on the files service yet. Files now drains
- * Nest/BullMQ on SIGTERM (`registerGracefulDrain`), but a longer lock
- * still waits until the ECS stop-timeout follow-up lands (see #3065).
+ * Files processors use this preset together with SIGTERM drain
+ * (`registerGracefulDrain`) and a 120s ECS stopTimeout on the files and
+ * workers services (see #3065).
  */
 export const BULLMQ_LONG_JOB_LOCK_DURATION_MS = 120_000;
 export const BULLMQ_LONG_JOB_LOCK_RENEW_TIME_MS = 30_000;

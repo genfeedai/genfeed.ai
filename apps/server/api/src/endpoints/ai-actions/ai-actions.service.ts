@@ -51,25 +51,19 @@ export class AiActionsService {
       }
     }
 
-    // Prepend brand voice/identity to system prompt. This is a lean,
-    // single-turn helper call (no thread history, no memories, no skill
-    // prompts) so it carries the most budget headroom of any
-    // AgentContextAssemblyService caller — brandMemory + performancePatterns
-    // + recentPosts are all worth the ~6k shared character budget here since
-    // most actions (rewrite/expand/hook-generator/seo-optimize/...) operate
-    // on content the brand is about to publish. ragContext stays off: no
-    // `query` is threaded through this call (dto.content is the artifact
-    // being transformed, not a retrieval query), so wiring RAG here is a
-    // separate, larger change outside this fix's scope.
+    // Single-turn helper: retrieve brand knowledge and semantically close
+    // recent posts when they exist. Empty stores stay a no-op (#2460).
     const brandContext = await this.contextAssemblyService.assembleContext({
       layers: {
         brandGuidance: true,
         brandIdentity: true,
         brandMemory: true,
         performancePatterns: true,
+        ragContext: true,
         recentPosts: true,
       },
       organizationId: orgId,
+      query: dto.content,
     });
     if (brandContext) {
       const brandPreamble = this.contextAssemblyService.buildSystemPrompt(

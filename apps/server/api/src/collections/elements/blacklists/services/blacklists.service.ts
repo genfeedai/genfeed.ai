@@ -32,7 +32,7 @@ export class ElementsBlacklistsService extends BaseService<
 
   async deleteAll(filter: Record<string, unknown>): Promise<{ count: number }> {
     return this.prisma.elementBlacklist.updateMany({
-      where: filter as never,
+      where: filter,
       data: { isDeleted: true },
     });
   }

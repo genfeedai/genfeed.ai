@@ -114,6 +114,25 @@ export class BatchGenerationService {
     );
   }
 
+  @HandleErrors('assign item', 'batch-generation')
+  assignItem(
+    batchId: string,
+    itemId: string,
+    assigneeId: string,
+    orgId: string,
+  ): Promise<IBatchSummary> {
+    return this.reviewService.assignItem(batchId, itemId, assigneeId, orgId);
+  }
+
+  @HandleErrors('unassign item', 'batch-generation')
+  unassignItem(
+    batchId: string,
+    itemId: string,
+    orgId: string,
+  ): Promise<IBatchSummary> {
+    return this.reviewService.unassignItem(batchId, itemId, orgId);
+  }
+
   @HandleErrors('request changes', 'batch-generation')
   requestChanges(
     batchId: string,

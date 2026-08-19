@@ -188,6 +188,97 @@ describe('AgentChatInput', () => {
     expect(await screen.findByLabelText('Queue follow-up')).toBeTruthy();
   });
 
+  it('keeps the editor writable while a run is active', async () => {
+    render(
+      <AgentChatInput
+        onSend={vi.fn()}
+        onStop={vi.fn()}
+        showStop
+        willQueueFollowUp
+      />,
+    );
+
+    const editor = await screen.findByRole('textbox');
+    expect(editor).toHaveAttribute('contenteditable', 'true');
+    expect(editor).toHaveAttribute('aria-disabled', 'false');
+    expect(screen.getByLabelText('Stop agent')).toBeTruthy();
+  });
+
+  it('promotes a queued follow-up on empty Enter and no-ops without a queue', async () => {
+    const user = userEvent.setup();
+    const onSend = vi.fn();
+    const onPromoteQueuedFollowUp = vi.fn();
+
+    const { rerender } = render(
+      <AgentChatInput
+        hasQueuedFollowUps
+        onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
+        onSend={onSend}
+        onStop={vi.fn()}
+        showStop
+        willQueueFollowUp
+      />,
+    );
+
+    const editor = await screen.findByRole('textbox');
+    await user.type(editor, '{Enter}');
+    expect(onPromoteQueuedFollowUp).toHaveBeenCalledTimes(1);
+    expect(onSend).not.toHaveBeenCalled();
+
+    rerender(
+      <AgentChatInput
+        onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
+        onSend={onSend}
+        onStop={vi.fn()}
+        showStop
+        willQueueFollowUp
+      />,
+    );
+    await user.type(await screen.findByRole('textbox'), '{Enter}');
+    expect(onPromoteQueuedFollowUp).toHaveBeenCalledTimes(1);
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('blocks enqueue while an attachment is still uploading and keeps the draft', async () => {
+    const user = userEvent.setup();
+    const onSend = vi.fn();
+    storeState.composerSeed = {
+      content: 'Send after upload',
+      nonce: 2,
+      threadId: null,
+    };
+
+    render(
+      <AgentChatInput
+        attachments={[
+          {
+            id: 'uploading-1',
+            kind: 'image',
+            name: 'draft.png',
+            previewUrl: '',
+            status: 'uploading',
+          },
+        ]}
+        isUploading
+        onSend={onSend}
+        willQueueFollowUp
+      />,
+    );
+
+    const editor = await screen.findByRole('textbox', {
+      name: 'Conversation prompt',
+    });
+    await user.type(editor, '{Enter}');
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'Wait for attachments to finish uploading, then send again.',
+      ),
+    ).toBeInTheDocument();
+    expect(editor).toHaveTextContent('Send after upload');
+  });
+
   it('does not render a context usage meter', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 

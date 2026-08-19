@@ -263,10 +263,7 @@ export class CronModelDeprecationService {
    */
   private async isModelInActiveWorkflows(modelKey: string): Promise<boolean> {
     try {
-      const activeStatuses = [
-        WorkflowStatus.ACTIVE as never,
-        WorkflowStatus.RUNNING as never,
-      ];
+      const activeStatuses = [WorkflowStatus.ACTIVE, WorkflowStatus.RUNNING];
 
       const workflows = await this.prisma.workflow.findMany({
         select: { nodes: true },

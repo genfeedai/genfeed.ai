@@ -4,6 +4,7 @@ import type {
   AgentStrategyReportDocument,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-report.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -137,10 +138,10 @@ export class AgentStrategyReportsService {
     const created = await this.prisma.agentStrategyReport.create({
       data: {
         brandId: typeof brandId === 'string' ? brandId : null,
-        data: {
+        data: toPrismaJson({
           ...reportData,
           metadata: metadata ?? {},
-        } as never,
+        }),
         isDeleted: false,
         organizationId,
         strategyId,

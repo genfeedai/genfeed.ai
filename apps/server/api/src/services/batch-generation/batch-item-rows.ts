@@ -52,7 +52,7 @@ export function toBatchItemCreatedAt(
 export function batchItemRowsReadArgs(organizationId: string) {
   return {
     orderBy: { createdAt: 'asc' as const },
-    select: { data: true, isDeleted: true },
+    select: { assigneeId: true, data: true, isDeleted: true },
     where: { isDeleted: false, organizationId },
   };
 }
@@ -151,10 +151,12 @@ function persistOneBatchItemRow(
   now: Date,
 ): Promise<unknown> {
   const createdAt = toBatchItemCreatedAt(item.createdAt, now);
-  const data = item as unknown as Prisma.InputJsonValue;
+  const data = toPersistedBatchItemData(item);
   const reviewDecision = toPersistedReviewDecision(item.reviewDecision);
   const status = toPrismaBatchItemStatus(item.status);
+  const assigneeId = item.assigneeId ?? null;
   const row = {
+    assigneeId,
     batchId: input.batchId,
     brandId: input.brandId ?? null,
     createdAt,
@@ -172,6 +174,7 @@ function persistOneBatchItemRow(
       id: item.id,
     },
     update: {
+      assigneeId,
       brandId: row.brandId,
       data: row.data,
       isDeleted: false,
@@ -184,4 +187,11 @@ function persistOneBatchItemRow(
       organizationId: input.organizationId,
     },
   });
+}
+
+function toPersistedBatchItemData(item: BatchItemFull): Prisma.InputJsonValue {
+  const { assignee: _assignee, ...rest } = item as BatchItemFull & {
+    assignee?: unknown;
+  };
+  return rest as unknown as Prisma.InputJsonValue;
 }

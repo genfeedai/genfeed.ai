@@ -10,6 +10,7 @@ import { TrendSourceItemsService } from '@api/collections/trends/services/module
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -280,13 +281,13 @@ export class TrendSourcePreviewService {
     };
 
     const existingDoc = await this.prisma.trend.findFirst({
-      where: { id: String(trend.id), isDeleted: false } as never,
+      where: { id: String(trend.id), isDeleted: false },
     });
     if (existingDoc) {
       const existingData =
         (existingDoc.data as unknown as Record<string, unknown>) ?? {};
       await this.prisma.trend.update({
-        data: { data: { ...existingData, metadata } as never },
+        data: { data: toPrismaJson({ ...existingData, metadata }) },
         where: { id: String(trend.id) },
       });
     }

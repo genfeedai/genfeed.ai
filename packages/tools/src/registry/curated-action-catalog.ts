@@ -112,6 +112,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_meta_campaign_insights', surfaces: ['mcp'] },
   { name: 'get_meta_top_performers', surfaces: ['mcp'] },
   { name: 'get_scheduled_release', surfaces: ['mcp'] },
+  { name: 'get_scheduler_capability', surfaces: ['mcp'] },
   { name: 'get_social_conversation', surfaces: ['mcp'] },
   { name: 'get_tiktok_campaign_insights', surfaces: ['mcp'] },
   { name: 'get_tiktok_top_performers', surfaces: ['mcp'] },
@@ -143,6 +144,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_music', surfaces: ['mcp'] },
   { name: 'list_posts', surfaces: ['agent', 'mcp'] },
   { name: 'list_review_queue', surfaces: ['agent'] },
+  { name: 'list_scheduler_capabilities', surfaces: ['mcp'] },
   { name: 'list_social_conversations', surfaces: ['mcp'] },
   { name: 'list_system_workflow_catalog', surfaces: ['agent', 'mcp'] },
   { name: 'list_tiktok_ad_accounts', surfaces: ['mcp'] },
@@ -213,6 +215,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'update_strategy_state', surfaces: ['agent'] },
   { name: 'upscale_image', surfaces: ['agent', 'mcp'] },
+  { name: 'validate_scheduler_target', surfaces: ['mcp'] },
 ] as const satisfies readonly CuratedActionCatalogEntry[];
 
 export type CuratedActionName = (typeof CURATED_ACTION_CATALOG)[number]['name'];

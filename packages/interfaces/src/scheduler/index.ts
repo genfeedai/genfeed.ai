@@ -1,5 +1,6 @@
 export * from './analytics-capability.interface';
 export * from './channel-target.interface';
+export * from './posting-set.interface';
 export * from './recurrence-rule.interface';
 export * from './release-attachment.interface';
 export * from './release-group.interface';

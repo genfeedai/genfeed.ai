@@ -202,6 +202,52 @@ describe('curated action catalog', () => {
     }
   });
 
+  it('exposes read-only scheduler capability discovery on MCP only', () => {
+    for (const name of [
+      'get_scheduler_capability',
+      'list_scheduler_capabilities',
+      'validate_scheduler_target',
+    ]) {
+      const tool = getToolByName(name);
+      const entry = CURATED_ACTION_CATALOG.find(
+        (candidate) => candidate.name === name,
+      );
+      expect(tool, name).toBeDefined();
+      expect(entry, name).toBeDefined();
+      expect(tool?.surfaces, name).toMatchObject({ agent: false, mcp: true });
+      expect(tool?.creditCost, name).toBe(0);
+      expect(entry && isPublishingApprovalRequired(entry), name).toBe(false);
+    }
+
+    expect(
+      getToolByName('list_scheduler_capabilities')?.parameters.properties,
+    ).toEqual(
+      expect.objectContaining({
+        includeHidden: expect.objectContaining({ type: 'boolean' }),
+        includePlanned: expect.objectContaining({ type: 'boolean' }),
+      }),
+    );
+    expect(
+      getToolByName('get_scheduler_capability')?.parameters.required,
+    ).toEqual(['platform']);
+    expect(
+      getToolByName('validate_scheduler_target')?.parameters.required,
+    ).toEqual(['platform']);
+    expect(
+      Object.keys(
+        getToolByName('validate_scheduler_target')?.parameters.properties ?? {},
+      ).sort(),
+    ).toEqual([
+      'caption',
+      'credentialId',
+      'media',
+      'platform',
+      'publishMode',
+      'settings',
+      'visibility',
+    ]);
+  });
+
   it('publishes Instagram inspiration and review-only remix schemas on both surfaces', () => {
     const listTool = getToolByName('list_instagram_inspiration');
     const remixTool = getToolByName('create_instagram_remix_workflow');

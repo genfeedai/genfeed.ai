@@ -288,7 +288,7 @@ export async function runWorkflowSeed(
       const organizations = await prisma.organization.findMany({
         orderBy: { createdAt: 'asc' },
         select: { id: true, userId: true },
-        where: buildOrganizationWhere(args) as never,
+        where: buildOrganizationWhere(args),
       });
 
       logger.log(

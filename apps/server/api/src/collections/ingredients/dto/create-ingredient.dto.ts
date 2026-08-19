@@ -16,6 +16,7 @@ import {
   IsBoolean,
   IsEnum,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -134,6 +135,22 @@ export class CreateIngredientDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly generationPrompt?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Redacted generation-brief compiler identity',
+    required: false,
+  })
+  readonly generationSource?: string;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Redacted generation-brief compiler and profile evidence',
+    required: false,
+  })
+  readonly providerData?: Record<string, unknown>;
 
   @IsString()
   @IsOptional()

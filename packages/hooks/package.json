@@ -4,6 +4,7 @@
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
