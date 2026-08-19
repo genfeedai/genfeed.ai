@@ -267,7 +267,10 @@ export class PerformanceSummaryService {
 
     // Fetch post analytics grouped by post, then join with posts
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: matchFilter,
+      where: {
+        ...matchFilter,
+        post: { is: scopedWhere(organizationId) },
+      },
       orderBy: { engagementRate: 'desc' },
       take: 50,
     });
@@ -284,7 +287,10 @@ export class PerformanceSummaryService {
               publicationDate: true,
             },
             take: postIds.length,
-            where: { id: { in: postIds } },
+            where: scopedWhere(organizationId, {
+              id: { in: postIds },
+              isDeleted: false,
+            }),
           })
         : [];
     const postMap = new Map(posts.map((p) => [p.id, p]));
@@ -396,11 +402,10 @@ export class PerformanceSummaryService {
     minViews?: number,
   ): Promise<PerformanceContentItem[]> {
     const organizationId = String(matchFilter.organizationId ?? '');
-    const activePostScope = scopedWhere(organizationId);
     const where: Prisma.PostAnalyticsWhereInput = {
       ...matchFilter,
       ...(minViews === undefined ? {} : { totalViews: { gte: minViews } }),
-      post: activePostScope,
+      post: { is: scopedWhere(organizationId) },
     };
 
     const analytics = await this.prisma.postAnalytics.findMany({
@@ -453,7 +458,9 @@ export class PerformanceSummaryService {
           AVG(pa."engagementRate") AS avg_engagement_rate,
           COUNT(DISTINCT pa."postId") AS total_posts
         FROM "post_analytics" pa
+        INNER JOIN "posts" p ON p."id" = pa."postId"
         WHERE ${this.buildAnalyticsSqlWhere(matchFilter)}
+          AND p."isDeleted" = false
         GROUP BY pa."platform"
         ORDER BY avg_engagement_rate DESC
         LIMIT 20

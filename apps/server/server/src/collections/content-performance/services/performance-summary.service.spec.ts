@@ -64,7 +64,9 @@ describe('PerformanceSummaryService', () => {
       const where = analyticsFindMany.mock.calls[0]?.[0]?.where;
       expect(where.organizationId).toBe('org-1');
       expect(where.brandId).toBe('brand-1');
-      expect(where.post).toEqual({ isDeleted: false, organizationId: 'org-1' });
+      expect(where.post).toEqual({
+        is: { isDeleted: false, organizationId: 'org-1' },
+      });
       expect(where.date.gte).toBeInstanceOf(Date);
       expect(where.date.lte).toBeInstanceOf(Date);
     });
@@ -178,7 +180,7 @@ describe('PerformanceSummaryService', () => {
       take?: number;
       where?: {
         organizationId?: string;
-        post?: { isDeleted?: boolean; organizationId?: string };
+        post?: { is?: { isDeleted?: boolean; organizationId?: string } };
         totalViews?: { gte?: number };
       };
     };
@@ -197,7 +199,7 @@ describe('PerformanceSummaryService', () => {
       deletedPostIds: ReadonlySet<string> = new Set(),
     ) {
       const minViews = query?.where?.totalViews?.gte;
-      const excludeDeleted = query?.where?.post?.isDeleted === false;
+      const excludeDeleted = query?.where?.post?.is?.isDeleted === false;
       const eligible = rows.filter((row) => {
         if (excludeDeleted && deletedPostIds.has(String(row.postId))) {
           return false;
@@ -305,7 +307,7 @@ describe('PerformanceSummaryService', () => {
           where: expect.objectContaining({
             brandId: 'brand-1',
             organizationId: 'org-1',
-            post: { isDeleted: false, organizationId: 'org-1' },
+            post: { is: { isDeleted: false, organizationId: 'org-1' } },
             totalViews: { gte: DEFAULT_WORST_PERFORMER_MIN_VIEWS },
           }),
         }),
@@ -412,6 +414,17 @@ describe('PerformanceSummaryService', () => {
   });
 
   describe('getPromptPerformance', () => {
+    it('scopes analytics through the post relation is-filter, not a relation alias', async () => {
+      await service.getPromptPerformance('org-1', 'brand-1');
+
+      const where = analyticsFindMany.mock.calls[0]?.[0]?.where;
+      expect(where.organizationId).toBe('org-1');
+      expect(where.brandId).toBe('brand-1');
+      expect(where.post).toEqual({
+        is: { isDeleted: false, organizationId: 'org-1' },
+      });
+    });
+
     it('returns an empty list when no analytics exist', async () => {
       await expect(
         service.getPromptPerformance('org-1', 'brand-1'),
