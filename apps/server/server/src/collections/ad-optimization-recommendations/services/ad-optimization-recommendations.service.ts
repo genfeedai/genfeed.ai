@@ -1,4 +1,5 @@
 import {
+  type Prisma,
   type AdOptimizationRecommendation as PrismaAdOptimizationRecommendation,
   toPrismaJson,
 } from '@genfeedai/prisma';
@@ -243,7 +244,7 @@ export class AdOptimizationRecommendationsService {
 
   private toCreateManyInput(
     recommendation: Partial<AdOptimizationRecommendationDocument>,
-  ): Record<string, unknown> {
+  ): Prisma.AdOptimizationRecommendationCreateManyInput {
     const organizationId = this.asString(recommendation.organizationId);
     if (!organizationId) {
       throw new Error(
