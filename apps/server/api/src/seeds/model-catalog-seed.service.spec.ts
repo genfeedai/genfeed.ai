@@ -50,6 +50,7 @@ describe('ModelCatalogSeedService', () => {
     service = new ModelCatalogSeedService(
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
+      { get: () => 'test' } as unknown as ConfigService,
     );
   });
 
