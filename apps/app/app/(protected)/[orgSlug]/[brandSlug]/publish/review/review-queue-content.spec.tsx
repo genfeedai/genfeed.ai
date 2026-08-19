@@ -138,16 +138,20 @@ vi.mock('./components/ReviewWorkspaceSurfaceAdapter', () => ({
   default: ({
     activeItem,
     onApprove,
+    onAssign,
     onReject,
     onRequestChanges,
+    onUnassign,
   }: {
     activeItem: { id: string } | null;
     isActioning: boolean;
     isSelected: boolean;
     onApprove: (itemId: string) => void;
+    onAssign: (itemId: string, assigneeId: string) => void;
     onReject: (itemId: string, feedback?: string) => void;
     onRequestChanges: (itemId: string, feedback?: string) => void;
     onToggleSelect: (itemId: string) => void;
+    onUnassign: (itemId: string) => void;
   }) => (
     <div>
       <button
@@ -169,6 +173,18 @@ vi.mock('./components/ReviewWorkspaceSurfaceAdapter', () => ({
         onClick={() => activeItem && onReject(activeItem.id, 'Reject reason')}
       >
         Reject Active Item
+      </button>
+      <button
+        type="button"
+        onClick={() => activeItem && onAssign(activeItem.id, 'user-1')}
+      >
+        Assign Active Item
+      </button>
+      <button
+        type="button"
+        onClick={() => activeItem && onUnassign(activeItem.id)}
+      >
+        Unassign Active Item
       </button>
     </div>
   ),
@@ -503,6 +519,68 @@ describe('ReviewQueueContent', () => {
         '/publish/review?batch=batch-1&filter=ready',
         { scroll: false },
       );
+    });
+  });
+
+  it('assigns and unassigns the active inspector item without changing filters', async () => {
+    const assignItem = vi.fn().mockResolvedValue({
+      id: 'batch-1',
+      items: [
+        {
+          assignee: { displayName: 'Jane Doe', handle: 'jane', id: 'user-1' },
+          assigneeId: 'user-1',
+          createdAt: new Date().toISOString(),
+          format: 'video',
+          id: 'item-1',
+          status: 'COMPLETED',
+        },
+      ],
+    });
+    const unassignItem = vi.fn().mockResolvedValue({
+      id: 'batch-1',
+      items: [
+        {
+          createdAt: new Date().toISOString(),
+          format: 'video',
+          id: 'item-1',
+          status: 'COMPLETED',
+        },
+      ],
+    });
+
+    mocks.getBatchesService.mockResolvedValue({
+      assignItem,
+      itemAction: vi.fn(),
+      unassignItem,
+    });
+    mockReviewQueries({
+      activeBatch: {
+        id: 'batch-1',
+        items: [
+          {
+            createdAt: new Date().toISOString(),
+            format: 'video',
+            id: 'item-1',
+            status: 'COMPLETED',
+          },
+        ],
+        status: 'COMPLETED',
+        totalCount: 1,
+      },
+    });
+
+    render(<ReviewQueueContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Assign Active Item' }));
+    await waitFor(() => {
+      expect(assignItem).toHaveBeenCalledWith('batch-1', 'item-1', 'user-1');
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unassign Active Item' }),
+    );
+    await waitFor(() => {
+      expect(unassignItem).toHaveBeenCalledWith('batch-1', 'item-1');
     });
   });
 

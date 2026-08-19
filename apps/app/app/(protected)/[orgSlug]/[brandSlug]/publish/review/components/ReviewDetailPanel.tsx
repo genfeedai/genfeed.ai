@@ -25,9 +25,11 @@ interface ReviewDetailPanelProps {
   isSelected: boolean;
   item: ReviewPanelItem | null;
   onApprove: (itemId: string) => void;
+  onAssign: (itemId: string, assigneeId: string) => void;
   onReject: (itemId: string, feedback?: string) => void;
   onRequestChanges: (itemId: string, feedback?: string) => void;
   onToggleSelect: (itemId: string) => void;
+  onUnassign: (itemId: string) => void;
 }
 
 function buildStatusLabel(item: ReviewPanelItem): string {
@@ -40,9 +42,11 @@ export default function ReviewDetailPanel({
   isSelected,
   item,
   onApprove,
+  onAssign,
   onRequestChanges,
   onReject,
   onToggleSelect,
+  onUnassign,
 }: ReviewDetailPanelProps) {
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
@@ -116,9 +120,11 @@ export default function ReviewDetailPanel({
           isSelected={isSelected}
           item={item}
           onApprove={onApprove}
+          onAssign={onAssign}
           onReject={onReject}
           onRequestChanges={onRequestChanges}
           onToggleSelect={onToggleSelect}
+          onUnassign={onUnassign}
           reviewEvents={reviewEvents}
           statusLabel={statusLabel}
         />

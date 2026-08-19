@@ -13,6 +13,7 @@ import type {
   IBatchReviewEventReviewer,
   IBatchSummary,
 } from '@genfeedai/interfaces';
+import { serializeBatchItemAssignee } from '@genfeedai/serializers';
 import { Injectable } from '@nestjs/common';
 
 type PostAnalyticsSummary = {
@@ -67,6 +68,7 @@ export class BatchGenerationSummaryService {
     const postIds = this.collectPostIds(batchItemsById);
     const organizationIds = this.collectOrganizationIds(batches);
     const reviewerIds = this.collectReviewerIds(batchItemsById);
+    const assigneeIds = this.collectAssigneeIds(batchItemsById);
 
     const linkedPosts =
       postIds.length > 0
@@ -115,9 +117,9 @@ export class BatchGenerationSummaryService {
         : [];
     const analyticsMap = this.buildAnalyticsMap(linkedAnalytics);
     const linkedPostMap = new Map(linkedPosts.map((post) => [post.id, post]));
-    const reviewerMap = await this.loadReviewerMap(
+    const memberIdentityMap = await this.loadMemberIdentityMap(
       organizationIds,
-      reviewerIds,
+      [...new Set([...reviewerIds, ...assigneeIds])],
     );
 
     return batches.map((batch) => {
@@ -147,7 +149,18 @@ export class BatchGenerationSummaryService {
             ? analyticsMap.get(item.postId)
             : undefined;
 
+          const assigneeId = item.assigneeId ?? null;
+          const assignee = assigneeId
+            ? memberIdentityMap.get(
+                this.reviewerKey(batch.organizationId, assigneeId),
+              )
+            : undefined;
+
           return {
+            assignee: assignee
+              ? serializeBatchItemAssignee(assignee)
+              : undefined,
+            assigneeId: assigneeId || undefined,
             batchId: batch.id,
             caption: item.caption,
             createdAt: item.createdAt ?? batch.createdAt.toISOString(),
@@ -182,7 +195,7 @@ export class BatchGenerationSummaryService {
             reviewEvents: this.toReviewEvents(
               item,
               batch.organizationId,
-              reviewerMap,
+              memberIdentityMap,
             ),
             reviewedAt: item.reviewedAt,
             reviewFeedback: item.reviewFeedback,
@@ -250,15 +263,27 @@ export class BatchGenerationSummaryService {
     ];
   }
 
-  private async loadReviewerMap(
+  private collectAssigneeIds(
+    batchItemsById: Map<string, BatchItemFull[]>,
+  ): string[] {
+    return [
+      ...new Set(
+        [...batchItemsById.values()]
+          .flat()
+          .flatMap((item) => (item.assigneeId ? [item.assigneeId] : [])),
+      ),
+    ];
+  }
+
+  private async loadMemberIdentityMap(
     organizationIds: string[],
-    reviewerIds: string[],
-  ): Promise<Map<string, IBatchReviewEventReviewer>> {
-    if (reviewerIds.length === 0) {
+    userIds: string[],
+  ): Promise<Map<string, ReviewerMemberRecord['user']>> {
+    if (userIds.length === 0) {
       return new Map();
     }
 
-    const reviewerMembers = (await this.prisma.member.findMany({
+    const members = (await this.prisma.member.findMany({
       select: {
         organizationId: true,
         user: {
@@ -277,16 +302,16 @@ export class BatchGenerationSummaryService {
         isActive: true,
         isDeleted: false,
         organizationId: { in: organizationIds },
-        userId: { in: reviewerIds },
+        userId: { in: userIds },
       },
     })) as unknown as ReviewerMemberRecord[];
 
     return new Map(
-      reviewerMembers
+      members
         .filter((member) => !member.user.isDeleted)
         .map((member) => [
           this.reviewerKey(member.organizationId, member.user.id),
-          this.toReviewEventReviewer(member),
+          member.user,
         ]),
     );
   }
@@ -294,14 +319,18 @@ export class BatchGenerationSummaryService {
   private toReviewEvents(
     item: BatchItemFull,
     organizationId: string,
-    reviewerMap: Map<string, IBatchReviewEventReviewer>,
+    memberIdentityMap: Map<string, ReviewerMemberRecord['user']>,
   ): IBatchReviewEvent[] {
     return (item.reviewEvents ?? []).map((event) => ({
       decision: event.decision,
       feedback: event.feedback,
       reviewedAt: event.reviewedAt,
       reviewer: event.reviewerId
-        ? reviewerMap.get(this.reviewerKey(organizationId, event.reviewerId))
+        ? this.toReviewEventReviewer(
+            memberIdentityMap.get(
+              this.reviewerKey(organizationId, event.reviewerId),
+            ),
+          )
         : undefined,
       reviewerId: event.reviewerId,
       versionPinId: event.versionPinId,
@@ -348,22 +377,16 @@ export class BatchGenerationSummaryService {
   }
 
   private toReviewEventReviewer(
-    member: ReviewerMemberRecord,
-  ): IBatchReviewEventReviewer {
-    const fullName = [member.user.firstName, member.user.lastName]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
+    user: ReviewerMemberRecord['user'] | undefined,
+  ): IBatchReviewEventReviewer | undefined {
+    if (!user) {
+      return undefined;
+    }
 
+    const assignee = serializeBatchItemAssignee(user);
     return {
-      ...(member.user.avatar ? { avatar: member.user.avatar } : {}),
-      displayName:
-        member.user.name ||
-        fullName ||
-        member.user.handle ||
-        `Team member ${member.user.id.slice(0, 8)}`,
-      handle: member.user.handle,
-      id: member.user.id,
+      ...(user.avatar ? { avatar: user.avatar } : {}),
+      ...assignee,
     };
   }
 }

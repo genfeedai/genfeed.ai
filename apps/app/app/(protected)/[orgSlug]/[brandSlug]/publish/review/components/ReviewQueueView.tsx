@@ -53,6 +53,7 @@ interface ReviewQueueViewProps {
   selectedPostId: string | null;
   visibleItems: IBatchItem[];
   onApprove: (itemId: string) => Promise<void>;
+  onAssign: (itemId: string, assigneeId: string) => Promise<void>;
   onBatchChange: (value: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
@@ -65,6 +66,7 @@ interface ReviewQueueViewProps {
   onReject: (itemId: string, feedback?: string) => Promise<void>;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;
+  onUnassign: (itemId: string) => Promise<void>;
 }
 
 /**
@@ -90,6 +92,7 @@ export default function ReviewQueueView({
   selectedPostId,
   visibleItems,
   onApprove,
+  onAssign,
   onBatchChange,
   onBulkApprove,
   onBulkReject,
@@ -102,6 +105,7 @@ export default function ReviewQueueView({
   onReject,
   onSelectItem,
   onToggleSelect,
+  onUnassign,
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
 
@@ -233,9 +237,11 @@ export default function ReviewQueueView({
             isActioning={isActioning}
             isSelected={activeItem ? selectedIds.has(activeItem.id) : false}
             onApprove={onApprove}
+            onAssign={onAssign}
             onReject={onReject}
             onRequestChanges={onRequestChanges}
             onToggleSelect={onToggleSelect}
+            onUnassign={onUnassign}
           />
           <ReviewGrid
             activeItem={activeItem}

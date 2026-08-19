@@ -50,9 +50,11 @@ function renderPanel(item: IBatchItem) {
       isSelected={false}
       item={item}
       onApprove={vi.fn()}
+      onAssign={vi.fn()}
       onReject={vi.fn()}
       onRequestChanges={vi.fn()}
       onToggleSelect={vi.fn()}
+      onUnassign={vi.fn()}
     />,
   );
 }

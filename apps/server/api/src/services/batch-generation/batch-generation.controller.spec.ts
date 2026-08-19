@@ -29,6 +29,7 @@ describe('BatchGenerationController', () => {
           provide: BatchGenerationService,
           useValue: {
             approveItems: vi.fn(),
+            assignItem: vi.fn(),
             cancelBatch: vi.fn(),
             createBatch: vi.fn(),
             createManualReviewBatch: vi.fn(),
@@ -37,6 +38,7 @@ describe('BatchGenerationController', () => {
             processBatch: vi.fn(),
             rejectItems: vi.fn(),
             requestChanges: vi.fn(),
+            unassignItem: vi.fn(),
             updateBatch: vi.fn(),
           },
         },
@@ -261,6 +263,47 @@ describe('BatchGenerationController', () => {
         'test-object-id',
         'Not aligned with the brief.',
         'test-object-id',
+      );
+    });
+  });
+
+  describe('assignItem', () => {
+    it('assigns with the canonical user id and organization', async () => {
+      service.assignItem.mockResolvedValue({ id: 'batch-1' } as never);
+
+      await controller.assignItem(
+        mockReq,
+        'batch-1',
+        'item-1',
+        { assigneeId: 'user-1' } as never,
+        {
+          organizationId: 'org-1',
+          userId: 'actor-1',
+        } as never,
+      );
+
+      expect(service.assignItem).toHaveBeenCalledWith(
+        'batch-1',
+        'item-1',
+        'user-1',
+        'org-1',
+      );
+    });
+  });
+
+  describe('unassignItem', () => {
+    it('clears assignment for the tenant-scoped item', async () => {
+      service.unassignItem.mockResolvedValue({ id: 'batch-1' } as never);
+
+      await controller.unassignItem(mockReq, 'batch-1', 'item-1', {
+        organizationId: 'org-1',
+        userId: 'actor-1',
+      } as never);
+
+      expect(service.unassignItem).toHaveBeenCalledWith(
+        'batch-1',
+        'item-1',
+        'org-1',
       );
     });
   });

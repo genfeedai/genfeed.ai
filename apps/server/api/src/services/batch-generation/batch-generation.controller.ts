@@ -9,6 +9,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { AssignBatchItemDto } from '@api/services/batch-generation/dto/assign-batch-item.dto';
 import {
   BatchAction,
   BatchActionDto,
@@ -207,6 +208,50 @@ export class BatchGenerationController {
       return serializeSingle(req, BatchSerializer, data);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'itemAction');
+    }
+  }
+
+  @Post(':id/items/:itemId/assign')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Assign a review item to a team member' })
+  async assignItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: AssignBatchItemDto,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const data = await this.batchGenerationService.assignItem(
+        id,
+        itemId,
+        dto.assigneeId,
+        user.organizationId,
+      );
+      return serializeSingle(req, BatchSerializer, data);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'assignItem');
+    }
+  }
+
+  @Post(':id/items/:itemId/unassign')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Clear assignment on a review item' })
+  async unassignItem(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const data = await this.batchGenerationService.unassignItem(
+        id,
+        itemId,
+        user.organizationId,
+      );
+      return serializeSingle(req, BatchSerializer, data);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(error, this.loggerService, 'unassignItem');
     }
   }
 
