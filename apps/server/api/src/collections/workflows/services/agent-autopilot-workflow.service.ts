@@ -11,7 +11,7 @@ import {
   AgentExecutionTrigger,
   AgentRunFrequency,
 } from '@genfeedai/enums';
-import type { AgentStrategy } from '@genfeedai/prisma';
+import { type AgentStrategy, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -359,7 +359,7 @@ export class AgentAutopilotWorkflowService {
 
       await this.prisma.agentStrategy.update({
         data: {
-          config: updatedConfig as never,
+          config: toPrismaJson(updatedConfig),
           ...(shouldPause ? { isActive: false } : {}),
         },
         where: { id: strategyId },
@@ -368,10 +368,10 @@ export class AgentAutopilotWorkflowService {
       if (newFailureCount >= MAX_CONSECUTIVE_FAILURES) {
         await this.prisma.agentStrategy.update({
           data: {
-            config: {
+            config: toPrismaJson({
               ...updatedConfig,
               requiresManualReactivation: true,
-            } as never,
+            }),
           },
           where: { id: strategyId },
         });
@@ -487,7 +487,7 @@ export class AgentAutopilotWorkflowService {
 
       if (updated) {
         await this.prisma.agentStrategy.update({
-          data: { config: updatedConfig as never },
+          data: { config: toPrismaJson(updatedConfig) },
           where: { id: strategy.id },
         });
       }
@@ -528,10 +528,10 @@ export class AgentAutopilotWorkflowService {
     const existingConfig = (record.config ?? {}) as AgentStrategyConfig;
     await this.prisma.agentStrategy.update({
       data: {
-        config: {
+        config: toPrismaJson({
           ...existingConfig,
           nextRunAt: nextRun.toISOString(),
-        } as never,
+        }),
       },
       where: { id: strategyId },
     });

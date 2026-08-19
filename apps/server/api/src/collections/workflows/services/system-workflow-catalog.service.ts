@@ -13,6 +13,7 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
@@ -117,7 +118,7 @@ export class SystemWorkflowCatalogService {
           }
 
           return tx.workflow.create({
-            data: createData as never,
+            data: createData,
           });
         },
         { isolationLevel: 'Serializable' },
@@ -266,13 +267,13 @@ export class SystemWorkflowCatalogService {
     return {
       ...(input.brandId ? { brandId: input.brandId } : {}),
       description: entry.description,
-      edges: entry.edges as never,
+      edges: toPrismaJson(entry.edges),
       executionCount: 0,
-      inputVariables: entry.inputVariables as never,
+      inputVariables: toPrismaJson(entry.inputVariables),
       isDeleted: false,
       isScheduleEnabled: entry.isScheduleEnabled,
       label: entry.label,
-      metadata: {
+      metadata: toPrismaJson({
         ...provenanceMetadata,
         installedAt: new Date().toISOString(),
         sourceIssue: entry.sourceIssue,
@@ -280,13 +281,13 @@ export class SystemWorkflowCatalogService {
         sourceTemplateId: entry.canonicalId,
         sourceTemplateVersion: entry.version,
         sourceType: 'catalog-install',
-      },
-      nodes: entry.nodes as never,
+      }),
+      nodes: toPrismaJson(entry.nodes),
       organizationId: input.organizationId,
       progress: 0,
       schedule: entry.schedule,
       status: WorkflowStatus.ACTIVE,
-      steps: entry.steps as never,
+      steps: toPrismaJson(entry.steps),
       timezone: entry.timezone,
       userId: input.userId,
     };

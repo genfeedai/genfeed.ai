@@ -1,5 +1,6 @@
 import type { TrendPreferencesDocument } from '@api/collections/trends/schemas/trend-preferences.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -84,13 +85,13 @@ export class TrendPreferencesService {
       }
 
       const updateData = {
-        config: normalizedPreferences,
+        config: toPrismaJson(normalizedPreferences),
         updatedAt: new Date(),
       };
 
       if (existing) {
         const updated = await this.prisma.trendPreferences.update({
-          data: updateData as never,
+          data: updateData,
           where: { id: existing.id },
         });
         return this.normalizePreferences(updated) as TrendPreferencesDocument;
@@ -102,7 +103,7 @@ export class TrendPreferencesService {
           brandId,
           isDeleted: false,
           organizationId,
-        } as never,
+        },
       });
       return this.normalizePreferences(created) as TrendPreferencesDocument;
     } catch (error: unknown) {

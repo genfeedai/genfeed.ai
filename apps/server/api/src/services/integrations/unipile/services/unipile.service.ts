@@ -24,6 +24,7 @@ import {
 import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
+  toPrismaJson,
 } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -94,7 +95,7 @@ export class UnipileService {
     const integration = existing
       ? await this.prisma.orgIntegration.update({
           data: {
-            config: config as unknown as never,
+            config: toPrismaJson(config),
             encryptedToken,
             status: PRISMA_ACTIVE_STATUS,
           },
@@ -102,7 +103,7 @@ export class UnipileService {
         })
       : await this.prisma.orgIntegration.create({
           data: {
-            config: config as unknown as never,
+            config: toPrismaJson(config),
             encryptedToken,
             organizationId,
             platform: PRISMA_UNIPILE_PLATFORM,

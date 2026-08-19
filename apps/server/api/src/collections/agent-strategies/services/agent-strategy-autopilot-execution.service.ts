@@ -47,14 +47,10 @@ import {
   TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-function toPrismaJson(value: unknown): Prisma.InputJsonValue {
-  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
-}
 
 @Injectable()
 export class AgentStrategyAutopilotExecutionService {

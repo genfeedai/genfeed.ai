@@ -11,7 +11,10 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
-import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
+import {
+  WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import {
   resolveNestedActionOrigin,
   runWithActionOrigin,
@@ -297,16 +300,16 @@ export class SystemWorkflowProvenanceService {
           return await tx.workflow.create({
             data: {
               description: input.description,
-              edges: [],
+              edges: toPrismaJson([]),
               executionCount: 0,
-              inputVariables: [],
+              inputVariables: toPrismaJson([]),
               isDeleted: false,
               // Schedule is display metadata only: system actions fire from the
               // workers sweep scheduler, never from the user-workflow scheduler
               // (no engine executor exists for systemWorkflowAction nodes).
               isScheduleEnabled: false,
               label: input.label,
-              metadata: {
+              metadata: toPrismaJson({
                 sourceIssue: 1011,
                 sourceTemplateChangeSummary:
                   input.changeSummary ??
@@ -321,8 +324,8 @@ export class SystemWorkflowProvenanceService {
                   sourceIssue: 1011,
                   version: input.version,
                 }),
-              },
-              nodes: [
+              }),
+              nodes: toPrismaJson([
                 {
                   data: {
                     config: { canonicalId: input.canonicalId },
@@ -332,15 +335,15 @@ export class SystemWorkflowProvenanceService {
                   position: { x: 0, y: 120 },
                   type: 'systemWorkflowAction',
                 },
-              ],
+              ]),
               organizationId: input.organizationId,
               progress: 0,
               schedule: input.schedule,
               status: WorkflowStatus.ACTIVE,
-              steps: [],
+              steps: toPrismaJson([]),
               timezone: 'UTC',
               userId: input.userId,
-            } as never,
+            },
             select: { id: true, label: true },
           });
         },
@@ -374,7 +377,7 @@ export class SystemWorkflowProvenanceService {
     return await this.prisma.workflowExecution.create({
       data: {
         organizationId: input.organizationId,
-        result: {
+        result: toPrismaJson({
           inputValues: this.toJsonRecord(input.inputValues ?? {}),
           metadata: withActionOriginMetadata({
             ...(input.metadata ?? {}),
@@ -395,13 +398,13 @@ export class SystemWorkflowProvenanceService {
           ],
           progress: 0,
           trigger: input.trigger ?? WorkflowExecutionTrigger.API,
-        },
+        }),
         startedAt,
         status: PrismaWorkflowExecutionStatus.RUNNING,
         trigger: input.trigger ?? WorkflowExecutionTrigger.API,
         userId: input.userId,
         workflowId: input.workflowId,
-      } as never,
+      },
       select: { id: true },
     });
   }
@@ -421,7 +424,7 @@ export class SystemWorkflowProvenanceService {
       data: {
         completedAt,
         error: input.error,
-        result: {
+        result: toPrismaJson({
           inputValues: this.toJsonRecord(input.input.inputValues ?? {}),
           metadata: withActionOriginMetadata({
             ...(input.input.metadata ?? {}),
@@ -447,11 +450,11 @@ export class SystemWorkflowProvenanceService {
           ],
           progress: 100,
           trigger: input.input.trigger ?? WorkflowExecutionTrigger.API,
-        },
+        }),
         status: didFail
           ? PrismaWorkflowExecutionStatus.FAILED
           : PrismaWorkflowExecutionStatus.COMPLETED,
-      } as never,
+      },
       where: { id: input.executionId },
     });
 
@@ -459,7 +462,7 @@ export class SystemWorkflowProvenanceService {
       data: {
         executionCount: { increment: 1 },
         lastExecutedAt: completedAt,
-      } as never,
+      },
       where: { id: input.workflowId },
     });
   }

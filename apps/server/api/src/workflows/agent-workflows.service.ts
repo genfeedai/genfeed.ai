@@ -14,7 +14,7 @@ import type {
 } from '@api/workflows/agent-workflows.types';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
 import { UpdateAgentWorkflowStateDto } from '@api/workflows/dto/update-agent-workflow-state.dto';
-import type { AgentWorkflow } from '@genfeedai/prisma';
+import { type AgentWorkflow, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -84,7 +84,7 @@ export class AgentWorkflowsService {
 
     const workflow = await this.prisma.agentWorkflow.create({
       data: {
-        config: config as never,
+        config: toPrismaJson(config),
         organizationId,
         userId,
       },
@@ -138,7 +138,7 @@ export class AgentWorkflowsService {
     this.recordTransition(config, nextPhase, 'gate_met', actor, workflow.id);
 
     const updated = await this.prisma.agentWorkflow.update({
-      data: { config: config as never },
+      data: { config: toPrismaJson(config) },
       where: { id: workflow.id },
     });
 
@@ -183,7 +183,7 @@ export class AgentWorkflowsService {
     );
 
     const updated = await this.prisma.agentWorkflow.update({
-      data: { config: config as never },
+      data: { config: toPrismaJson(config) },
       where: { id: workflow.id },
     });
 
@@ -211,7 +211,7 @@ export class AgentWorkflowsService {
     this.recordTransition(config, targetPhase, 'rollback', 'user', workflow.id);
 
     const updated = await this.prisma.agentWorkflow.update({
-      data: { config: config as never },
+      data: { config: toPrismaJson(config) },
       where: { id: workflow.id },
     });
 
@@ -246,7 +246,7 @@ export class AgentWorkflowsService {
     );
 
     const updated = await this.prisma.agentWorkflow.update({
-      data: { config: config as never },
+      data: { config: toPrismaJson(config) },
       where: { id: workflow.id },
     });
 

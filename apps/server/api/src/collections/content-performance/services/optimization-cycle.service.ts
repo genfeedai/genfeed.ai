@@ -237,7 +237,7 @@ export class OptimizationCycleService {
     options: OptimizationCycleOptions,
   ): Promise<CycleStats> {
     const rows = (await this.prisma.contentPerformance.findMany({
-      where: where as never,
+      where,
     })) as unknown as ContentPerformanceDocument[];
 
     const engagementRates = rows.map((row) => row.engagementRate ?? 0);
