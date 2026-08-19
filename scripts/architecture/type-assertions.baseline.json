@@ -1,5 +1,4 @@
 {
-  "as_any": {},
   "as_never": {
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorPreview.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-generation-defaults-card.tsx": 1,
@@ -88,6 +87,5 @@
     "packages/ui/src/components/modals/automation/useModalReplyBot.ts": 3,
     "packages/workflows/src/ui/canvas/WorkflowCanvas.tsx": 1,
     "packages/workflows/src/ui/nodes/input/PromptNode.tsx": 1
-  },
-  "ts_ignore": {}
+  }
 }

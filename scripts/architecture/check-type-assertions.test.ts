@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { stripCommentsAndStrings } from './check-type-assertions';
+import {
+  evaluateTypeAssertions,
+  ratchetBaselineFromScan,
+  readBaselineShape,
+  stripCommentsAndStrings,
+} from './check-type-assertions';
 
 /**
  * The ratchet counts `as any` / `as never` with a line regex. Prose and string
@@ -160,5 +165,103 @@ describe('stripCommentsAndStrings', () => {
   it('preserves column positions so reported offsets stay usable', () => {
     const line = 'const x = /* note */ value as never;';
     expect(code(line)).toHaveLength(line.length);
+  });
+});
+
+describe('evaluateTypeAssertions', () => {
+  const emptyScan = {
+    as_any: {},
+    as_never: {},
+    ts_ignore: {},
+  };
+
+  it('bans production as any with no baseline escape hatch', () => {
+    expect(
+      evaluateTypeAssertions(
+        { as_never: {} },
+        { ...emptyScan, as_any: { 'apps/server/api/src/foo.ts': 1 } },
+      ),
+    ).toEqual([
+      {
+        actual: 1,
+        file: 'apps/server/api/src/foo.ts',
+        kind: 'as_any',
+        type: 'banned',
+      },
+    ]);
+  });
+
+  it('bans production @ts-ignore the same way', () => {
+    expect(
+      evaluateTypeAssertions(
+        { as_never: {} },
+        { ...emptyScan, ts_ignore: { 'packages/ui/src/x.ts': 2 } },
+      ),
+    ).toEqual([
+      {
+        actual: 2,
+        file: 'packages/ui/src/x.ts',
+        kind: 'ts_ignore',
+        type: 'banned',
+      },
+    ]);
+  });
+
+  it('ignores leftover as_any / ts_ignore keys on a legacy baseline', () => {
+    expect(
+      evaluateTypeAssertions(
+        readBaselineShape({
+          as_any: { 'apps/legacy.ts': 3 },
+          as_never: {},
+          ts_ignore: { 'apps/legacy.ts': 1 },
+        }),
+        emptyScan,
+      ),
+    ).toEqual([]);
+  });
+
+  it('still ratchets as never: growth, new file, and stale baseline', () => {
+    expect(
+      evaluateTypeAssertions(
+        { as_never: { 'kept.ts': 2, 'stale.ts': 3 } },
+        {
+          ...emptyScan,
+          as_never: { 'kept.ts': 4, 'stale.ts': 1, 'new.ts': 1 },
+        },
+      ),
+    ).toEqual([
+      {
+        actual: 4,
+        baseline: 2,
+        file: 'kept.ts',
+        kind: 'as_never',
+        type: 'growth',
+      },
+      {
+        actual: 1,
+        file: 'new.ts',
+        kind: 'as_never',
+        type: 'new_file',
+      },
+      {
+        actual: 1,
+        baseline: 3,
+        file: 'stale.ts',
+        kind: 'as_never',
+        type: 'stale_baseline',
+      },
+    ]);
+  });
+
+  it('does not persist banned kinds when rewriting the ratchet baseline', () => {
+    expect(
+      ratchetBaselineFromScan({
+        as_any: { 'apps/server/api/src/foo.ts': 1 },
+        as_never: { 'apps/server/api/src/bar.ts': 2 },
+        ts_ignore: { 'apps/server/api/src/baz.ts': 1 },
+      }),
+    ).toEqual({
+      as_never: { 'apps/server/api/src/bar.ts': 2 },
+    });
   });
 });

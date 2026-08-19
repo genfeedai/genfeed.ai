@@ -1,21 +1,28 @@
 /**
- * Ratchet: production `as any` / `as never` / bare ts-ignore directives must not grow.
+ * Production `as any` and bare `@ts-expect-error` are banned (floor is 0).
+ * Production `as never` is a shrinking ratchet — counts may only go down.
  *
  * These casts hide real type holes (domain enum vs Prisma enum was the
- * BatchStatus crash class). Counts may only go down. When a file hits zero for
- * a kind, drop its baseline entry in the same PR.
+ * BatchStatus crash class). When an `as never` file hits zero, drop its
+ * baseline entry in the same PR. Do not add `as any` / `@ts-expect-error` baseline
+ * entries — remove the cast.
  *
  * Tests and stories are out of scope for this floor — clean them separately.
  *
  *   bun run check:type-assertions
- *   bun run check:type-assertions --update-baseline
+ *   bun run check:type-assertions --update-baseline  # as never only
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 
-export type AssertionKind = 'as_any' | 'as_never' | 'ts_ignore';
+export const BANNED_ASSERTION_KINDS = ['as_any', 'ts_ignore'] as const;
+export const RATCHETED_ASSERTION_KINDS = ['as_never'] as const;
+
+export type BannedAssertionKind = (typeof BANNED_ASSERTION_KINDS)[number];
+export type RatchetedAssertionKind = (typeof RATCHETED_ASSERTION_KINDS)[number];
+export type AssertionKind = BannedAssertionKind | RatchetedAssertionKind;
 
 export type TypeAssertionOccurrence = {
   file: string;
@@ -24,11 +31,12 @@ export type TypeAssertionOccurrence = {
   text: string;
 };
 
+/** Per-kind file counts from a production scan. */
+export type TypeAssertionScan = Record<AssertionKind, Record<string, number>>;
+
+/** On-disk ratchet. Banned kinds are not stored — they must stay at zero. */
 export type TypeAssertionBaseline = {
-  /** Relative path → count of that kind in production sources. */
-  as_any: Record<string, number>;
   as_never: Record<string, number>;
-  ts_ignore: Record<string, number>;
 };
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
@@ -273,9 +281,9 @@ export function groupCounts(
   );
 }
 
-export function buildBaseline(
+export function scanToCounts(
   occurrences: TypeAssertionOccurrence[],
-): TypeAssertionBaseline {
+): TypeAssertionScan {
   return {
     as_any: groupCounts(occurrences, 'as_any'),
     as_never: groupCounts(occurrences, 'as_never'),
@@ -283,13 +291,30 @@ export function buildBaseline(
   };
 }
 
+export function ratchetBaselineFromScan(
+  actual: TypeAssertionScan,
+): TypeAssertionBaseline {
+  return { as_never: actual.as_never };
+}
+
 function total(counts: Record<string, number>): number {
   return Object.values(counts).reduce((sum, value) => sum + value, 0);
 }
 
+type LegacyBaselineJson = {
+  as_any?: Record<string, number>;
+  as_never?: Record<string, number>;
+  ts_ignore?: Record<string, number>;
+};
+
+export function readBaselineShape(raw: unknown): TypeAssertionBaseline {
+  const parsed = (raw ?? {}) as LegacyBaselineJson;
+  return { as_never: parsed.as_never ?? {} };
+}
+
 function readBaseline(): TypeAssertionBaseline {
   const raw = readFileSync(BASELINE_PATH, 'utf8');
-  return JSON.parse(raw) as TypeAssertionBaseline;
+  return readBaselineShape(JSON.parse(raw) as unknown);
 }
 
 function writeBaseline(baseline: TypeAssertionBaseline): void {
@@ -302,68 +327,90 @@ function writeBaseline(baseline: TypeAssertionBaseline): void {
 
 export type TypeAssertionViolation =
   | {
-      kind: AssertionKind;
+      kind: BannedAssertionKind;
+      type: 'banned';
+      file: string;
+      actual: number;
+    }
+  | {
+      kind: RatchetedAssertionKind;
       type: 'growth';
       file: string;
       baseline: number;
       actual: number;
     }
   | {
-      kind: AssertionKind;
+      kind: RatchetedAssertionKind;
       type: 'new_file';
       file: string;
       actual: number;
     }
   | {
-      kind: AssertionKind;
+      kind: RatchetedAssertionKind;
       type: 'stale_baseline';
       file: string;
       baseline: number;
       actual: number;
     };
 
-export function diffAgainstBaseline(
+export function evaluateTypeAssertions(
   baseline: TypeAssertionBaseline,
-  actual: TypeAssertionBaseline,
+  actual: TypeAssertionScan,
 ): TypeAssertionViolation[] {
   const violations: TypeAssertionViolation[] = [];
-  const kinds: AssertionKind[] = ['as_any', 'as_never', 'ts_ignore'];
 
-  for (const kind of kinds) {
-    const baseMap = baseline[kind];
-    const actualMap = actual[kind];
-    const files = new Set([...Object.keys(baseMap), ...Object.keys(actualMap)]);
-
+  for (const kind of BANNED_ASSERTION_KINDS) {
+    const files = Object.keys(actual[kind]).sort((left, right) =>
+      left.localeCompare(right),
+    );
     for (const file of files) {
-      const baseCount = baseMap[file] ?? 0;
-      const actualCount = actualMap[file] ?? 0;
+      const actualCount = actual[kind][file] ?? 0;
+      if (actualCount > 0) {
+        violations.push({
+          actual: actualCount,
+          file,
+          kind,
+          type: 'banned',
+        });
+      }
+    }
+  }
 
-      if (actualCount > baseCount) {
-        if (baseCount === 0) {
-          violations.push({
-            actual: actualCount,
-            file,
-            kind,
-            type: 'new_file',
-          });
-        } else {
-          violations.push({
-            actual: actualCount,
-            baseline: baseCount,
-            file,
-            kind,
-            type: 'growth',
-          });
-        }
-      } else if (actualCount < baseCount) {
+  const baseMap = baseline.as_never;
+  const actualMap = actual.as_never;
+  const files = [
+    ...new Set([...Object.keys(baseMap), ...Object.keys(actualMap)]),
+  ].sort((left, right) => left.localeCompare(right));
+
+  for (const file of files) {
+    const baseCount = baseMap[file] ?? 0;
+    const actualCount = actualMap[file] ?? 0;
+
+    if (actualCount > baseCount) {
+      if (baseCount === 0) {
+        violations.push({
+          actual: actualCount,
+          file,
+          kind: 'as_never',
+          type: 'new_file',
+        });
+      } else {
         violations.push({
           actual: actualCount,
           baseline: baseCount,
           file,
-          kind,
-          type: 'stale_baseline',
+          kind: 'as_never',
+          type: 'growth',
         });
       }
+    } else if (actualCount < baseCount) {
+      violations.push({
+        actual: actualCount,
+        baseline: baseCount,
+        file,
+        kind: 'as_never',
+        type: 'stale_baseline',
+      });
     }
   }
 
@@ -371,28 +418,34 @@ export function diffAgainstBaseline(
 }
 
 function printSummary(
-  actual: TypeAssertionBaseline,
+  actual: TypeAssertionScan,
   violations: TypeAssertionViolation[],
 ): void {
-  process.stdout.write('Type assertion ratchet (production sources)\n');
+  process.stdout.write('Type assertions (production sources)\n');
   process.stdout.write(
-    `  as any:     ${total(actual.as_any)} across ${Object.keys(actual.as_any).length} files\n`,
+    `  as any:     ${total(actual.as_any)} (banned — must stay 0)\n`,
   );
   process.stdout.write(
-    `  as never:   ${total(actual.as_never)} across ${Object.keys(actual.as_never).length} files\n`,
+    `  @ts-ignore: ${total(actual.ts_ignore)} (banned — must stay 0)\n`,
   );
   process.stdout.write(
-    `  @ts-ignore: ${total(actual.ts_ignore)} across ${Object.keys(actual.ts_ignore).length} files\n`,
+    `  as never:   ${total(actual.as_never)} across ${Object.keys(actual.as_never).length} files (ratchet)\n`,
   );
 
   if (violations.length === 0) {
-    process.stdout.write('  OK — no growth vs baseline.\n');
+    process.stdout.write(
+      '  OK — banned kinds empty, as never at or below baseline.\n',
+    );
     return;
   }
 
   process.stdout.write('\nViolations:\n');
   for (const violation of violations) {
-    if (violation.type === 'new_file') {
+    if (violation.type === 'banned') {
+      process.stdout.write(
+        `  [BAN ${violation.kind}] ${violation.file}: ${violation.actual} — production ${violation.kind === 'as_any' ? '`as any`' : '`@ts-ignore`'} is forbidden. Remove the cast; do not add a baseline entry.\n`,
+      );
+    } else if (violation.type === 'new_file') {
       process.stdout.write(
         `  [NEW ${violation.kind}] ${violation.file}: ${violation.actual} (was 0)\n`,
       );
@@ -406,30 +459,46 @@ function printSummary(
       );
     }
   }
-  process.stdout.write(
-    '\nFix the cast, or if you intentionally cleaned some: bun run check:type-assertions --update-baseline\n',
+
+  const hasRatchetDrift = violations.some(
+    (violation) => violation.type !== 'banned',
   );
+  const hasBanned = violations.some((violation) => violation.type === 'banned');
+  if (hasBanned) {
+    process.stdout.write(
+      '\nBanned kinds have no --update-baseline escape hatch. Remove the cast.\n',
+    );
+  }
+  if (hasRatchetDrift) {
+    process.stdout.write(
+      '\nFor as never cleanups: bun run check:type-assertions --update-baseline\n',
+    );
+  }
 }
 
 function main(): void {
   const updateBaseline = process.argv.includes('--update-baseline');
   const occurrences = scanTypeAssertions();
-  const actual = buildBaseline(occurrences);
+  const actual = scanToCounts(occurrences);
+  const violations = evaluateTypeAssertions(readBaseline(), actual);
 
   if (updateBaseline) {
-    writeBaseline(actual);
+    const banned = violations.filter(
+      (violation) => violation.type === 'banned',
+    );
+    if (banned.length > 0) {
+      printSummary(actual, banned);
+      process.exit(1);
+    }
+    writeBaseline(ratchetBaselineFromScan(actual));
     process.stdout.write(
-      `Updated type-assertions baseline (${total(actual.as_any)} as any, ${total(actual.as_never)} as never, ${total(actual.ts_ignore)} @ts-ignore).\n`,
+      `Updated as never baseline (${total(actual.as_never)} across ${Object.keys(actual.as_never).length} files).\n`,
     );
     process.exit(0);
   }
 
-  const baseline = readBaseline();
-  const violations = diffAgainstBaseline(baseline, actual);
   printSummary(actual, violations);
 
-  // Stale baselines are a soft fail only when they are the only issue? No —
-  // require pruning so the floor keeps dropping.
   if (violations.length > 0) {
     process.exit(1);
   }
