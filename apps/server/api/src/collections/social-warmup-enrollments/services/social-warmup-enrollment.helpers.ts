@@ -1,3 +1,4 @@
+import { readRecordOrEmpty as readRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import {
   SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
@@ -465,12 +466,6 @@ function isNamedUniqueViolation(
   return (
     Array.isArray(target) && fields.every((field) => target.includes(field))
   );
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
 }
 
 function readString(value: unknown): string | undefined {
