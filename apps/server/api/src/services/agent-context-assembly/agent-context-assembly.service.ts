@@ -26,15 +26,18 @@ import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
   fitBrandContextToBudget,
 } from './brand-context-budget.util';
+import { rankByQueryOverlap } from './text-overlap.util';
 
 const DEFAULT_LAYERS: Required<ContextLayers> = {
   brandGuidance: true,
   brandIdentity: true,
   brandMemory: true,
   performancePatterns: false,
-  ragContext: false,
-  recentPosts: false,
+  ragContext: true,
+  recentPosts: true,
 };
+
+const RECENT_POSTS_CANDIDATE_MULTIPLIER = 5;
 
 const CACHE_TTL_BRAND = 300; // 5 min
 const CACHE_TTL_MEMORY = 600; // 10 min
@@ -262,6 +265,7 @@ export class AgentContextAssemblyService {
           organizationId,
           brandId,
           params.platform,
+          params.query,
           context,
         ),
       );
@@ -692,6 +696,7 @@ export class AgentContextAssemblyService {
     organizationId: string,
     brandId: string,
     platform: string | undefined,
+    query: string | undefined,
     context: AssembledBrandContext,
   ): Promise<void> {
     const cacheKey = this.cacheService.generateKey(
@@ -699,12 +704,19 @@ export class AgentContextAssemblyService {
       organizationId,
       brandId,
       platform || 'all',
+      query?.trim() || 'recency',
     );
 
     const summaries = await this.cacheService.getOrSet(
       cacheKey,
       async () =>
-        this.loadRecentPostSummaries(organizationId, brandId, platform),
+        this.loadRecentPostSummaries(
+          organizationId,
+          brandId,
+          platform,
+          RECENT_POSTS_LIMIT,
+          query,
+        ),
       { ttl: CACHE_TTL_POSTS },
     );
 
@@ -799,29 +811,37 @@ export class AgentContextAssemblyService {
     brandId: string,
     platform?: string,
     limit: number = RECENT_POSTS_LIMIT,
+    query?: string,
   ): Promise<string[]> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - RECENT_POSTS_DAYS);
+    const take = query?.trim()
+      ? limit * RECENT_POSTS_CANDIDATE_MULTIPLIER
+      : limit;
 
     const posts = await this.prisma.post.findMany({
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true, description: true, platform: true },
-      take: limit,
+      take,
       where: scopedWhere(organizationId, {
         brandId,
         createdAt: { gte: cutoff },
-        ...(platform ? { platform: platform as never } : {}),
+        ...(platform ? { platform } : {}),
       }),
     });
 
-    return posts
-      .filter((p) => p.description)
-      .map((p) => {
-        const desc =
-          p.description.length > MAX_POST_SUMMARY_LENGTH
-            ? `${p.description.substring(0, MAX_POST_SUMMARY_LENGTH)}...`
-            : p.description;
-        return `[${p.platform}] ${desc}`;
-      });
+    const ranked = rankByQueryOverlap(
+      posts.filter((post) => post.description),
+      query ?? '',
+      (post) => post.description,
+    ).slice(0, limit);
+
+    return ranked.map((post) => {
+      const desc =
+        post.description.length > MAX_POST_SUMMARY_LENGTH
+          ? `${post.description.substring(0, MAX_POST_SUMMARY_LENGTH)}...`
+          : post.description;
+      return `[${post.platform}] ${desc}`;
+    });
   }
 }
