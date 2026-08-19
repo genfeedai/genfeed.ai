@@ -442,7 +442,7 @@ export class AgentThreadEngineService {
 
       yield* fromPromiseEffect(() =>
         this.prisma.agentThreadSnapshot.update({
-          where: { id: snapshotRow.id },
+          where: scopedWhere(params.organizationId, { id: snapshotRow.id }),
           data: {
             data: toPrismaJson({
               ...snapshotData,
@@ -737,7 +737,7 @@ export class AgentThreadEngineService {
         });
 
         await this.prisma.agentThreadSnapshot.update({
-          where: { id: snapshotRow.id },
+          where: scopedWhere(organizationId, { id: snapshotRow.id }),
           data: {
             data: toPrismaJson({
               ...snapshotData,

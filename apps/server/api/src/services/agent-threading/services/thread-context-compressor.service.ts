@@ -5,6 +5,7 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type ThreadContextState, toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -398,7 +399,7 @@ export class ThreadContextCompressorService {
             data: toPrismaJson(newData),
             isDeleted: false,
           },
-          where: { id: existingRecord.id },
+          where: scopedWhere(organizationId, { id: existingRecord.id }),
         })) as ThreadContextStateWithData;
       } else {
         updatedRecord = (await this.prisma.threadContextState.create({

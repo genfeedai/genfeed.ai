@@ -230,7 +230,7 @@ export class HarnessProfilesService {
       data: {
         data: toPrismaJson(data),
       },
-      where: { id: existing.id },
+      where: scopedWhere(organizationId, { id: existing.id }),
     });
 
     return this.normalizeProfile(updated);
@@ -240,7 +240,7 @@ export class HarnessProfilesService {
     const existing = await this.findOneRaw(id, organizationId);
     await this.prisma.profile.update({
       data: { isDeleted: true },
-      where: { id: existing.id },
+      where: scopedWhere(organizationId, { id: existing.id }),
     });
   }
 
@@ -373,7 +373,7 @@ export class HarnessProfilesService {
               isDefault: false,
             }),
           },
-          where: { id: profile.id },
+          where: scopedWhere(organizationId, { id: profile.id }),
         }),
       ),
     );

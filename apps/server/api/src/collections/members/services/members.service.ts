@@ -71,8 +71,14 @@ export class MembersService extends BaseService<
   }
 
   async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
+    const organizationId =
+      typeof filter.organizationId === 'string' ? filter.organizationId : '';
+    if (!organizationId) {
+      throw new TypeError('find requires organizationId');
+    }
+
     const members = await this.prisma.member.findMany({
-      where: filter,
+      where: scopedWhere(organizationId, filter),
     });
 
     return members as unknown as MemberDocument[];
@@ -171,7 +177,13 @@ export class MembersService extends BaseService<
     // Refuse to run without an org + user scope: Prisma omits `undefined` where
     // clauses, so a missing scope would silently widen the updateMany to every
     // member row across all tenants. Skip (no-op) instead.
-    if (!where.organizationId || !where.userId) {
+    const organizationId =
+      typeof where.organizationId === 'string'
+        ? where.organizationId
+        : undefined;
+    const userId = typeof where.userId === 'string' ? where.userId : undefined;
+
+    if (!organizationId || !userId) {
       this.logger.warn(
         'setLastUsedBrand skipped: filter missing organizationId/userId scope',
         {
@@ -184,7 +196,7 @@ export class MembersService extends BaseService<
     }
 
     await this.prisma.member.updateMany({
-      where,
+      where: scopedWhere(organizationId, { userId }),
       data: { lastUsedBrandId: brandId },
     });
   }

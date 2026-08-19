@@ -116,7 +116,7 @@ export class PostingSignaturesController {
 
   private requireScope(
     user: User,
-    query: PostingSignaturesQueryDto = {},
+    query?: PostingSignaturesQueryDto,
   ): RequestContext {
     const context = extractRequestContext(user, query);
     if (!context.organizationId || !context.userId) {

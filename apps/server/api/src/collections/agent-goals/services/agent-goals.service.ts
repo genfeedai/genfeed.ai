@@ -101,7 +101,7 @@ export class AgentGoalsService {
           : {}),
         ...(dto.label !== undefined ? { label: dto.label } : {}),
       },
-      where: { id: goalId },
+      where: scopedWhere(organizationId, { id: goalId }),
     });
     return this.refreshProgress(goalId, organizationId);
   }
@@ -146,7 +146,7 @@ export class AgentGoalsService {
           progressPercent,
         }),
       },
-      where: { id: goalId },
+      where: scopedWhere(organizationId, { id: goalId }),
     });
 
     const updatedGoal = await findUniqueOrThrow(

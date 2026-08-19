@@ -126,7 +126,7 @@ export class PostingSetsController {
 
   private requireScope(
     user: User,
-    query: PostingSetsQueryDto = {},
+    query?: PostingSetsQueryDto,
   ): RequestContext {
     const context = extractRequestContext(user, query);
     if (!context.organizationId || !context.userId) {

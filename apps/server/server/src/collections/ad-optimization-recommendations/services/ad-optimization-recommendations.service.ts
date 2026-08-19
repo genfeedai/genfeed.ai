@@ -230,7 +230,7 @@ export class AdOptimizationRecommendationsService {
             }),
           ),
         },
-        where: { id },
+        where: scopedWhere(organizationId, { id }),
       });
 
       this.logger.log(`${caller} updated recommendation ${id} to ${status}`);

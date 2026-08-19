@@ -110,9 +110,13 @@ export type RenderPostingSignaturesInput = z.infer<
   typeof renderPostingSignaturesInputSchema
 >;
 
-export const persistPostingSignatureInputSchema = postingSignatureSchema.omit({
-  id: true,
-});
+export const persistPostingSignatureInputSchema = postingSignatureSchema
+  .omit({
+    id: true,
+  })
+  .extend({
+    brandId: idSchema.optional(),
+  });
 
 export const persistPostingSetInputSchema = postingSetSchema.omit({
   id: true,
