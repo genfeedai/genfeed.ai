@@ -43,55 +43,75 @@ function normalizeThemeStorage(
       }
     }
   };
+  const createFallbackList = (query: string, matches: boolean) =>
+    ({
+      addEventListener: () => undefined,
+      addListener: () => undefined,
+      dispatchEvent: () => false,
+      matches,
+      media: query,
+      onchange: null,
+      removeEventListener: () => undefined,
+      removeListener: () => undefined,
+    }) as MediaQueryList;
+  const wrapMediaQueryList = (result: MediaQueryList) =>
+    ({
+      addEventListener: result.addEventListener?.bind(result),
+      addListener: (listener) => {
+        if (listener) result.addEventListener?.('change', listener);
+      },
+      dispatchEvent: result.dispatchEvent?.bind(result),
+      get matches() {
+        return result.matches;
+      },
+      media: result.media,
+      onchange: result.onchange,
+      removeEventListener: result.removeEventListener?.bind(result),
+      removeListener: (listener) => {
+        if (listener) result.removeEventListener?.('change', listener);
+      },
+    }) as MediaQueryList;
+
+  const nativeMatchMedia =
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia.bind(window)
+      : null;
+
+  const resolveMediaQuery = (query: string) => {
+    if (nativeMatchMedia) {
+      try {
+        return wrapMediaQueryList(nativeMatchMedia(query));
+      } catch {
+        // Fall through to the theme-only stub below.
+      }
+    }
+
+    if (query !== darkMediaQuery) {
+      return createFallbackList(query, false);
+    }
+
+    return createFallbackList(query, defaultResolvedTheme === 'dark');
+  };
 
   try {
-    if (typeof window.matchMedia !== 'function') {
+    if (!nativeMatchMedia) {
       throw new TypeError('matchMedia is unavailable');
     }
 
-    const nativeMatchMedia = window.matchMedia.bind(window);
     const probe = nativeMatchMedia(darkMediaQuery);
 
     if (
-      typeof probe.addListener !== 'function' ||
-      typeof probe.removeListener !== 'function'
+      typeof probe.addListener === 'function' &&
+      typeof probe.removeListener === 'function'
     ) {
-      installMatchMedia((query: string) => {
-        const result = nativeMatchMedia(query);
-
-        return {
-          addEventListener: result.addEventListener?.bind(result),
-          addListener: (listener) => {
-            if (listener) result.addEventListener?.('change', listener);
-          },
-          dispatchEvent: result.dispatchEvent?.bind(result),
-          matches: result.matches,
-          media: result.media,
-          onchange: result.onchange,
-          removeEventListener: result.removeEventListener?.bind(result),
-          removeListener: (listener) => {
-            if (listener) result.removeEventListener?.('change', listener);
-          },
-        } as MediaQueryList;
-      });
+      return;
     }
-
-    return;
   } catch {
-    installMatchMedia(
-      (query: string) =>
-        ({
-          addEventListener: () => undefined,
-          addListener: () => undefined,
-          dispatchEvent: () => false,
-          matches: query === darkMediaQuery && defaultResolvedTheme === 'dark',
-          media: query,
-          onchange: null,
-          removeEventListener: () => undefined,
-          removeListener: () => undefined,
-        }) as MediaQueryList,
-    );
+    // Install a scoped shim: wrap native lists when they exist, and stub only
+    // the color-scheme query when they do not.
   }
+
+  installMatchMedia(resolveMediaQuery);
 }
 
 function bootstrapThemeDocument(

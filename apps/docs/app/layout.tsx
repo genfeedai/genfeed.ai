@@ -26,10 +26,42 @@ function normalizeStoredTheme() {
   }
 
   const darkMediaQuery = '(prefers-color-scheme: dark)';
+  const nativeMatchMedia =
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia.bind(window)
+      : null;
+  const wrapMediaQueryList = (result: MediaQueryList) =>
+    ({
+      addEventListener: result.addEventListener?.bind(result),
+      addListener: (listener) => {
+        if (listener) result.addEventListener?.('change', listener);
+      },
+      dispatchEvent: result.dispatchEvent?.bind(result),
+      get matches() {
+        return result.matches;
+      },
+      media: result.media,
+      onchange: result.onchange,
+      removeEventListener: result.removeEventListener?.bind(result),
+      removeListener: (listener) => {
+        if (listener) result.removeEventListener?.('change', listener);
+      },
+    }) as MediaQueryList;
+  const createFallbackList = (query: string, matches: boolean) =>
+    ({
+      addEventListener: () => undefined,
+      addListener: () => undefined,
+      dispatchEvent: () => false,
+      matches,
+      media: query,
+      onchange: null,
+      removeEventListener: () => undefined,
+      removeListener: () => undefined,
+    }) as MediaQueryList;
 
   try {
-    if (typeof window.matchMedia === 'function') {
-      const mediaQuery = window.matchMedia(darkMediaQuery);
+    if (nativeMatchMedia) {
+      const mediaQuery = nativeMatchMedia(darkMediaQuery);
 
       if (
         typeof mediaQuery.addListener === 'function' &&
@@ -39,20 +71,25 @@ function normalizeStoredTheme() {
       }
     }
   } catch {
-    // Install the deterministic fallback below.
+    // Install a scoped shim below.
   }
 
-  const fallbackMatchMedia = (query: string) =>
-    ({
-      addEventListener: () => undefined,
-      addListener: () => undefined,
-      dispatchEvent: () => false,
-      matches: query === darkMediaQuery,
-      media: query,
-      onchange: null,
-      removeEventListener: () => undefined,
-      removeListener: () => undefined,
-    }) as MediaQueryList;
+  const fallbackMatchMedia = (query: string) => {
+    if (nativeMatchMedia) {
+      try {
+        return wrapMediaQueryList(nativeMatchMedia(query));
+      } catch {
+        // Fall through to the theme-only stub.
+      }
+    }
+
+    if (query !== darkMediaQuery) {
+      return createFallbackList(query, false);
+    }
+
+    // Deterministic fallback until the host can report a color scheme.
+    return createFallbackList(query, true);
+  };
 
   try {
     Object.defineProperty(window, 'matchMedia', {
@@ -69,8 +106,7 @@ function normalizeStoredTheme() {
   }
 }
 
-export const DOCS_THEME_STORAGE_BOOTSTRAP_SOURCE =
-  `(${normalizeStoredTheme.toString()})()`;
+export const DOCS_THEME_STORAGE_BOOTSTRAP_SOURCE = `(${normalizeStoredTheme.toString()})()`;
 
 export const metadata = {
   description:
