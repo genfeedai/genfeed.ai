@@ -20,6 +20,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import { CreatorAnalysisSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -32,61 +33,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-type SerializableDocument = Record<string, unknown> & {
-  toObject?: () => unknown;
-};
-
-function toSerializableDocument(data: unknown): SerializableDocument {
-  if (!data || typeof data !== 'object') {
-    return {};
-  }
-
-  if (
-    'toObject' in data &&
-    typeof (data as SerializableDocument).toObject === 'function'
-  ) {
-    const objectValue = (data as SerializableDocument).toObject?.();
-    return objectValue && typeof objectValue === 'object'
-      ? (objectValue as SerializableDocument)
-      : {};
-  }
-
-  return data as SerializableDocument;
-}
-
-// Simple serializer for creator analysis
-const CreatorAnalysisSerializer = {
-  serialize: (data: unknown) => {
-    if (!data) {
-      return null;
-    }
-    const doc = toSerializableDocument(data);
-    return {
-      attributes: {
-        avatarUrl: doc.avatarUrl,
-        bio: doc.bio,
-        displayName: doc.displayName,
-        errorMessage: doc.errorMessage,
-        followerCount: doc.followerCount,
-        followingCount: doc.followingCount,
-        handle: doc.handle,
-        lastScrapedAt: doc.lastScrapedAt,
-        metrics: doc.metrics,
-        niche: doc.niche,
-        patternsExtracted: doc.patternsExtracted,
-        platform: doc.platform,
-        postsScraped: doc.postsScraped,
-        profileUrl: doc.profileUrl,
-        scrapeConfig: doc.scrapeConfig,
-        status: doc.status,
-        tags: doc.tags,
-      },
-      id: doc.id?.toString(),
-      type: 'creator-analysis',
-    };
-  },
-};
 
 @AutoSwagger()
 @Controller('content-intelligence/creators')

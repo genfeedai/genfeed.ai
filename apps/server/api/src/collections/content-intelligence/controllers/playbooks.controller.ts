@@ -13,11 +13,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import { PatternPlaybookSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -30,42 +30,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-// Simple serializer for pattern playbook
-const PatternPlaybookSerializer = {
-  serialize: (data: unknown) => {
-    if (!data) {
-      return null;
-    }
-    const doc =
-      typeof (data as { toObject?: unknown }).toObject === 'function'
-        ? ((data as { toObject: () => Record<string, unknown> }).toObject() ??
-          {})
-        : ((data as Record<string, unknown>) ?? {});
-    const persistedData = readJsonRecord(doc.data);
-    const sourceCreators = Array.isArray(doc.sourceCreators)
-      ? doc.sourceCreators.filter(
-          (entry): entry is string => typeof entry === 'string',
-        )
-      : [];
-
-    return {
-      attributes: {
-        description: persistedData.description,
-        insights: persistedData.insights,
-        isActive: persistedData.isActive,
-        lastUpdatedAt: persistedData.lastUpdatedAt,
-        name: persistedData.name,
-        niche: persistedData.niche,
-        patternsCount: persistedData.patternsCount,
-        platform: persistedData.platform,
-        sourceCreators,
-      },
-      id: String(doc.id ?? ''),
-      type: 'pattern-playbook',
-    };
-  },
-};
 
 @AutoSwagger()
 @Controller('content-intelligence/playbooks')

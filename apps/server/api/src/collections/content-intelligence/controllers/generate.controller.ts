@@ -5,6 +5,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import { GeneratedContentSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -31,29 +32,6 @@ export class GenerateController {
       dto,
     );
 
-    // Format as JSON:API collection
-    const docs = results.map((result, index) => ({
-      attributes: {
-        body: result.body,
-        content: result.content,
-        cta: result.cta,
-        hashtags: result.hashtags,
-        hook: result.hook,
-        patternId: result.patternId,
-        patternUsed: result.patternUsed,
-      },
-      id: `generated-${index}`,
-      type: 'generated-content',
-    }));
-
-    return {
-      data: docs,
-      meta: {
-        limit: results.length,
-        page: 1,
-        totalDocs: results.length,
-        totalPages: 1,
-      },
-    };
+    return GeneratedContentSerializer.serializeCollection(results);
   }
 }

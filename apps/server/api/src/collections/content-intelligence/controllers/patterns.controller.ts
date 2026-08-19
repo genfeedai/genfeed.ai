@@ -15,62 +15,10 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import { ContentPatternSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Delete, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-
-type SerializableDocument = Record<string, unknown> & {
-  toObject?: () => unknown;
-};
-
-function toSerializableDocument(data: unknown): SerializableDocument {
-  if (!data || typeof data !== 'object') {
-    return {};
-  }
-
-  if (
-    'toObject' in data &&
-    typeof (data as SerializableDocument).toObject === 'function'
-  ) {
-    const objectValue = (data as SerializableDocument).toObject?.();
-    return objectValue && typeof objectValue === 'object'
-      ? (objectValue as SerializableDocument)
-      : {};
-  }
-
-  return data as SerializableDocument;
-}
-
-// Simple serializer for content pattern
-const ContentPatternSerializer = {
-  serialize: (data: unknown) => {
-    if (!data) {
-      return null;
-    }
-    const doc = toSerializableDocument(data);
-    const persistedData = toSerializableDocument(doc.data);
-    return {
-      attributes: {
-        description: persistedData.description,
-        extractedFormula: persistedData.extractedFormula,
-        patternType: persistedData.patternType,
-        placeholders: persistedData.placeholders,
-        platform: persistedData.platform,
-        rawExample: persistedData.rawExample,
-        relevanceWeight: persistedData.relevanceWeight,
-        sourceCreatorId: doc.sourceCreatorId,
-        sourceMetrics: persistedData.sourceMetrics,
-        sourcePostDate: persistedData.sourcePostDate,
-        sourcePostUrl: persistedData.sourcePostUrl,
-        tags: persistedData.tags,
-        templateCategory: persistedData.templateCategory,
-        usageCount: persistedData.usageCount,
-      },
-      id: doc.id?.toString(),
-      type: 'content-pattern',
-    };
-  },
-};
 
 @AutoSwagger()
 @Controller('content-intelligence/patterns')
