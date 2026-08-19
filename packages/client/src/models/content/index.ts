@@ -7,5 +7,6 @@ export * from './model.model';
 export * from './mood-board.model';
 export * from './newsletter.model';
 export * from './post.model';
+export * from './posting-set.model';
 export * from './prompt.model';
 export * from './template.model';
