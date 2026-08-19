@@ -135,7 +135,7 @@ export class PostGroupContractService {
     publishMode: 'draft' | 'publish_now' | 'scheduled',
   ): ChannelTargetValidationResult {
     return validateChannelTargetSettings({
-      caption: input.baseContent,
+      caption: this.readTargetCaption(target.caption, input.baseContent),
       credentialId: target.credentialId,
       media: this.toValidationMedia(input.media),
       platform: target.platform,
@@ -143,6 +143,11 @@ export class PostGroupContractService {
       settings: target.settings ?? {},
       visibility: target.visibility,
     });
+  }
+
+  readTargetCaption(caption: string | undefined, baseContent: string): string {
+    const override = caption?.trim();
+    return override && override.length > 0 ? override : baseContent;
   }
 
   invalidTargetException(

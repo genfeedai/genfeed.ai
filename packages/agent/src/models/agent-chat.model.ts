@@ -9,6 +9,7 @@ import type {
   AgentArtifactReference,
   AgentClipRunIdentity,
   AgentDashboardOperation,
+  AgentPublishTargetProposal,
   AgentUIBlock,
   AnalyticsQueryReference,
   ScopedResearchFindingReference,
@@ -106,7 +107,12 @@ export interface AgentUiActionCta {
   payload?: Record<string, unknown>;
 }
 
-export type { AgentUiActionHandler } from '@genfeedai/interfaces';
+export type {
+  AgentPublishSettingField,
+  AgentPublishTargetProposal,
+  AgentPublishValidationIssue,
+  AgentUiActionHandler,
+} from '@genfeedai/interfaces';
 
 /**
  * One choice the agent offers. Every option carries its own CTAs so a
@@ -252,6 +258,7 @@ export interface AgentUiAction {
   }[];
   scheduledAt?: string;
   platforms?: string[];
+  targets?: AgentPublishTargetProposal[];
   contentId?: string;
   creditEstimate?: number;
   originalPost?: {
