@@ -155,4 +155,36 @@ describe('TopPerformerPromptContextService', () => {
 
     expect(result).toContain('Cross-platform winner');
   });
+
+  it('prefers semantically overlapping winners when a query is provided', async () => {
+    performanceSummaryService.getWeeklySummary.mockResolvedValue(
+      makeSummary({
+        topPerformers: [
+          makePerformanceItem({
+            description: 'weekend recap photos',
+            engagementRate: 9.1,
+            title: 'Office dump',
+          }),
+          makePerformanceItem({
+            description: 'product launch for founders',
+            engagementRate: 3.2,
+            postId: 'post-2',
+            title: 'Launch week',
+          }),
+        ],
+      }),
+    );
+
+    const result = await service.assembleContext({
+      brandId: BRAND_ID,
+      organizationId: ORG_ID,
+      query: 'founder launch',
+    });
+
+    const winnerIndex = result?.indexOf('Launch week') ?? -1;
+    const recapIndex = result?.indexOf('Office dump') ?? -1;
+    expect(winnerIndex).toBeGreaterThan(-1);
+    expect(recapIndex).toBeGreaterThan(-1);
+    expect(winnerIndex).toBeLessThan(recapIndex);
+  });
 });
