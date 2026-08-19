@@ -15,9 +15,25 @@ function buildClient() {
     getScheduledRelease: vi
       .fn()
       .mockResolvedValue({ id: 'release-1', targets: [] }),
+    getSchedulerCapability: vi.fn().mockResolvedValue({
+      label: 'YouTube',
+      platform: 'youtube',
+      status: 'supported',
+    }),
+    listSchedulerCapabilities: vi.fn().mockResolvedValue([
+      { label: 'YouTube', platform: 'youtube', status: 'supported' },
+      { label: 'TikTok', platform: 'tiktok', status: 'supported' },
+    ]),
     updateScheduledRelease: vi
       .fn()
       .mockResolvedValue({ id: 'release-1', title: 'Updated' }),
+    validateSchedulerTarget: vi.fn().mockResolvedValue({
+      errors: [],
+      platform: 'youtube',
+      valid: true,
+      validationState: 'valid',
+      warnings: [],
+    }),
   };
 }
 
@@ -30,12 +46,15 @@ function call(
 }
 
 describe('SCHEDULER_TOOL_NAMES', () => {
-  it('lists exactly the scheduler release tools', () => {
+  it('lists the scheduler release and capability tools', () => {
     expect([...SCHEDULER_TOOL_NAMES].sort()).toEqual([
       'control_scheduled_release',
       'create_scheduled_release',
       'get_scheduled_release',
+      'get_scheduler_capability',
+      'list_scheduler_capabilities',
       'update_scheduled_release',
+      'validate_scheduler_target',
     ]);
   });
 });
@@ -190,5 +209,105 @@ describe('handleSchedulerTool', () => {
     expect(() => call(client, 'not_a_scheduler_tool', {})).toThrow(
       /Unknown scheduler tool/,
     );
+  });
+
+  it('lists scheduler capabilities and forwards discovery flags', async () => {
+    const client = buildClient();
+
+    const result = await call(client, 'list_scheduler_capabilities', {
+      includeHidden: true,
+      includePlanned: false,
+    });
+
+    expect(client.listSchedulerCapabilities).toHaveBeenCalledWith({
+      includeHidden: true,
+      includePlanned: false,
+    });
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('youtube');
+  });
+
+  it('describes an empty capability list without calling mutating methods', async () => {
+    const client = buildClient();
+    client.listSchedulerCapabilities.mockResolvedValue([]);
+
+    const result = await call(client, 'list_scheduler_capabilities', {});
+
+    expect(client.listSchedulerCapabilities).toHaveBeenCalledWith({
+      includeHidden: undefined,
+      includePlanned: undefined,
+    });
+    expect(result.content[0].text).toBe('No scheduler capabilities found.');
+  });
+
+  it('gets one scheduler capability by platform', async () => {
+    const client = buildClient();
+
+    await call(client, 'get_scheduler_capability', { platform: 'youtube' });
+
+    expect(client.getSchedulerCapability).toHaveBeenCalledWith('youtube');
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+  });
+
+  it('rejects get_scheduler_capability without a platform', async () => {
+    const client = buildClient();
+
+    await expect(call(client, 'get_scheduler_capability', {})).rejects.toThrow(
+      /platform is required/,
+    );
+    expect(client.getSchedulerCapability).not.toHaveBeenCalled();
+  });
+
+  it('validates a proposed target without mutating scheduler state', async () => {
+    const client = buildClient();
+    const media = [{ id: 'asset-1', kind: 'video' }];
+    const settings = { privacyStatus: 'public' };
+
+    const result = await call(client, 'validate_scheduler_target', {
+      caption: 'Hello',
+      media,
+      platform: 'youtube',
+      publishMode: 'scheduled',
+      settings,
+      visibility: 'public',
+    });
+
+    expect(client.validateSchedulerTarget).toHaveBeenCalledWith({
+      caption: 'Hello',
+      media,
+      platform: 'youtube',
+      publishMode: 'scheduled',
+      settings,
+      visibility: 'public',
+    });
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('valid');
+  });
+
+  it('rejects validate payloads without a platform', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'validate_scheduler_target', { settings: {} }),
+    ).rejects.toThrow(/platform is required/);
+    expect(client.validateSchedulerTarget).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-object settings on validate', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'validate_scheduler_target', {
+        platform: 'youtube',
+        settings: ['not-an-object'],
+      }),
+    ).rejects.toThrow(/settings must be an object/);
+    expect(client.validateSchedulerTarget).not.toHaveBeenCalled();
   });
 });
