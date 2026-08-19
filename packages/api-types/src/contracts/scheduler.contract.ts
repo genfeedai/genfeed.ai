@@ -147,6 +147,8 @@ export const channelTargetErrorSchema = z.object({
 /** A single channel destination within a create-release request. */
 export const channelTargetInputSchema = z.object({
   attachments: z.array(releaseAttachmentInputSchema).optional(),
+  /** Per-target caption override; omit to inherit the release `baseContent`. */
+  caption: z.string().optional(),
   credentialId: idSchema,
   order: nonNegativeIntSchema.optional(),
   platform: z.nativeEnum(CredentialPlatform),

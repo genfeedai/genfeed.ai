@@ -15,6 +15,14 @@ export interface AgentPublishContext {
   validatedScope?: ValidatedAgentScope;
 }
 
+export interface AgentPublishTargetPayload {
+  caption?: string;
+  credentialId: string;
+  platform: string;
+  settings?: Record<string, unknown>;
+  visibility?: PostVisibility;
+}
+
 export interface PublishConfirmedContentInput {
   caption?: string;
   contentId: string;
@@ -24,6 +32,7 @@ export interface PublishConfirmedContentInput {
   platforms: string[];
   scheduledAt?: string;
   sourceActionId: string;
+  targets?: AgentPublishTargetPayload[];
   visibility: PostVisibility;
 }
 
@@ -41,6 +50,7 @@ export interface AgentPublishIdempotencyInput {
   platforms: string[];
   scheduledAt?: string;
   sourceActionId: string;
+  targets?: AgentPublishTargetPayload[];
   threadId?: string;
   userId: string;
   visibility: PostVisibility;

@@ -59,6 +59,72 @@ export type AgentUiActionHandler = (
   payload?: Record<string, unknown>,
 ) => boolean | void | Promise<boolean | undefined> | Promise<void>;
 
+export type AgentPublishTargetMediaKind =
+  | 'carousel'
+  | 'image'
+  | 'link'
+  | 'short_video'
+  | 'video';
+
+export type AgentPublishSettingFieldType =
+  | 'boolean'
+  | 'multi_select'
+  | 'number'
+  | 'select'
+  | 'string'
+  | 'text'
+  | 'url';
+
+export interface AgentPublishTargetMedia {
+  id?: string;
+  isAnimated?: boolean;
+  kind: AgentPublishTargetMediaKind;
+}
+
+export interface AgentPublishValidationIssue {
+  code: string;
+  field?: string;
+  message: string;
+  severity: 'error' | 'warning';
+}
+
+export interface AgentPublishSettingOption {
+  label: string;
+  value: string;
+}
+
+export interface AgentPublishSettingField {
+  defaultValue?: boolean | number | string | string[];
+  description?: string;
+  key: string;
+  label: string;
+  options?: AgentPublishSettingOption[];
+  required?: boolean;
+  type: AgentPublishSettingFieldType;
+}
+
+/**
+ * One scheduler destination inside a `publish_post_card`. The shared caption
+ * and visibility live on the parent action; each target carries the effective
+ * per-channel override, capability-driven settings, and validation blockers.
+ */
+export interface AgentPublishTargetProposal {
+  blockers: AgentPublishValidationIssue[];
+  caption?: string;
+  captionMaxLength?: number;
+  credentialId: string;
+  id: string;
+  isCaptionRequired?: boolean;
+  isSelected?: boolean;
+  label: string;
+  media?: AgentPublishTargetMedia[];
+  platform: string;
+  settingFields?: AgentPublishSettingField[];
+  settings: Record<string, unknown>;
+  visibility: PostVisibility;
+  warnings?: AgentPublishValidationIssue[];
+}
+
 export interface AgentUiActionOutputVariant {
   id: string;
   kind: 'audio' | 'image' | 'text' | 'video';
@@ -171,6 +237,8 @@ export interface AgentUiAction extends AgentUiActionBase {
   }[];
   scheduledAt?: string;
   platforms?: string[];
+  /** Per-channel scheduler destinations for a `publish_post_card`. */
+  targets?: AgentPublishTargetProposal[];
   visibility?: PostVisibility;
   creditEstimate?: number;
   originalPost?: {
