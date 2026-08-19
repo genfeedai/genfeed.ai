@@ -158,8 +158,8 @@ export function hasAgentArtifactWriteInput(
   ...inputs: AgentArtifactWriteInput[]
 ): boolean {
   return inputs.some((input) => {
-    const topLevel = readRecord(input);
-    const metadata = readRecord(input.metadata);
+    const topLevel = readRecordOrEmpty(input);
+    const metadata = readRecordOrEmpty(input.metadata);
     return (
       hasOwn(topLevel, 'artifactReferences') ||
       hasOwn(topLevel, 'artifactVersionPinIds') ||
