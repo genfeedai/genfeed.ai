@@ -155,12 +155,14 @@ via WSL2).
 bun install && cp .env.example .env.local
 bun run env:sync local --prune-legacy
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
-bun run dev:debug:backend:min      # then, in a second terminal:
-bun run dev:debug:app              # → http://genfeed.localhost:3000
+bun run dev:setup                  # once per machine
+bun run dev:backend:min            # then, in a second terminal:
+bun run dev:app                    # → https://app.genfeed.localhost/
 ```
 
-That is the contributor dev path (fixed ports, no admin rights). Everything
-else — issue forms and **EARS** criteria, the PR contract (squash +
+Portless HTTPS is the default contributor dev path. Fixed-port `dev:debug*`
+commands remain an optional debugging path when Portless cannot be used.
+Everything else — issue forms and **EARS** criteria, the PR contract (squash +
 conventional title + linked issue), the **CLA** (once per GitHub account per
 CLA version), agent-authored PR disclosure, and focused verification — is in
 [CONTRIBUTING.md](CONTRIBUTING.md).

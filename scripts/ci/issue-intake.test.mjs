@@ -31,7 +31,7 @@ const EARS_PLACEHOLDER = [
 
 function acceptanceBlock(source, fileName) {
   const match = source.match(
-    /  - type: textarea\n    id: acceptance\n    attributes:\n      label: Acceptance criteria\n      description: ([^\n]+)\n      placeholder: \|\n([\s\S]*?)\n    validations:\n      required: true\n/,
+    / {2}- type: textarea\n {4}id: acceptance\n {4}attributes:\n {6}label: Acceptance criteria\n {6}description: ([^\n]+)\n {6}placeholder: \|\n([\s\S]*?)\n {4}validations:\n {6}required: true\n/,
   );
   assert.ok(match, `${fileName} must require an Acceptance criteria textarea`);
   return { description: match[1], placeholder: match[2] };
@@ -84,6 +84,55 @@ test('issue chooser points questions and vulnerabilities off the tracker', () =>
     config,
     /url: https:\/\/github\.com\/genfeedai\/genfeed\.ai\/security\/advisories\/new/,
   );
+});
+
+test('Community Profile has a valid Markdown issue-intake fallback', () => {
+  const fallback = readRepoFile('.github/ISSUE_TEMPLATE/ISSUE_TEMPLATE.md');
+  const template = fallback.match(
+    /^---\n(?<metadata>[\s\S]*?)\n---\n(?<body>[\s\S]+)$/,
+  );
+
+  assert.ok(
+    template?.groups,
+    'the fallback must include GitHub Markdown-template metadata',
+  );
+
+  const { metadata, body } = template.groups;
+
+  assert.match(metadata, /^name: General issue$/m);
+  assert.match(metadata, /^about: \S.+$/m);
+  assert.match(metadata, /^title: ""$/m);
+  assert.match(metadata, /^labels: "needs:triage"$/m);
+  assert.match(metadata, /^assignees: ""$/m);
+
+  assert.match(body, /template=bug\.yml/);
+  assert.match(body, /template=feature\.yml/);
+  assert.match(body, /template=task\.yml/);
+  assert.match(body, /issues\/new\/choose/);
+  assert.match(body, /## Acceptance criteria/);
+  assert.match(body, /WHEN .* THE SYSTEM SHALL/);
+  assert.match(body, /IF .* THEN THE SYSTEM SHALL/);
+  assert.match(body, /triage rewrites.*never closes for phrasing/i);
+});
+
+test('README and CONTRIBUTING make Portless the default contributor path', () => {
+  const readme = readRepoFile('README.md');
+  const contributing = readRepoFile('CONTRIBUTING.md');
+
+  for (const [fileName, source] of [
+    ['README.md', readme],
+    ['CONTRIBUTING.md', contributing],
+  ]) {
+    assert.match(source, /bun run dev:setup/);
+    assert.match(source, /bun run dev:backend:min/);
+    assert.match(source, /bun run dev:app/);
+    assert.match(source, /https:\/\/app\.genfeed\.localhost\//);
+    assert.match(
+      source,
+      /optional debugging path/i,
+      `${fileName} must identify fixed ports as optional debugging`,
+    );
+  }
 });
 
 test('CONTRIBUTING documents intake labels and the rewrite-not-bounce rule', () => {
