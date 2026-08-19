@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildFluxDevPrompt as publicBuildFluxDevPrompt,
+  buildPulidFluxPrompt as publicBuildPulidFluxPrompt,
+  buildZImageTurboLoraPrompt as publicBuildZImageTurboLoraPrompt,
+  buildZImageTurboPrompt as publicBuildZImageTurboPrompt,
+} from './index';
+import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidLoraPrompt,
   buildFlux2DevPulidPrompt,
@@ -11,6 +17,30 @@ import {
   buildZImageTurboPrompt,
   type Flux2PulidUpscaleParams,
 } from './prompt-builder';
+
+const PROMPT_BUILDER_EXPORTS = [
+  ['buildFluxDevPrompt', publicBuildFluxDevPrompt, buildFluxDevPrompt],
+  ['buildPulidFluxPrompt', publicBuildPulidFluxPrompt, buildPulidFluxPrompt],
+  [
+    'buildZImageTurboLoraPrompt',
+    publicBuildZImageTurboLoraPrompt,
+    buildZImageTurboLoraPrompt,
+  ],
+  [
+    'buildZImageTurboPrompt',
+    publicBuildZImageTurboPrompt,
+    buildZImageTurboPrompt,
+  ],
+] as const;
+
+describe('ComfyUI prompt builder exports', () => {
+  it.each(PROMPT_BUILDER_EXPORTS)(
+    'keeps %s aligned across the public and compatibility paths',
+    (_builderName, publicBuilder, compatibilityBuilder) => {
+      expect(publicBuilder).toBe(compatibilityBuilder);
+    },
+  );
+});
 
 describe('buildZImageTurboPrompt', () => {
   const prompt = buildZImageTurboPrompt({ prompt: 'a red car', seed: 42 });
