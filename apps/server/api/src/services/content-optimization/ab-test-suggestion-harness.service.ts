@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  type PostCreateInput,
+  PostsService,
+} from '@api/collections/posts/services/posts.service';
 import {
   AB_TEST_OUTCOME_ENTRY_TYPE,
   AB_TEST_SUGGESTION_SOURCE,
@@ -14,13 +17,11 @@ import {
 import {
   PostFormat,
   PostVisibility,
+  parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { Injectable } from '@nestjs/common';
-
-type PostCreateInput = Prisma.PostUncheckedCreateInput;
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AbTestSuggestionHarnessService {
@@ -40,19 +41,25 @@ export class AbTestSuggestionHarnessService {
       params.suggestion.variantB,
     ] as const;
 
+    const platform = parsePlatform(params.suggestion.platform);
+    if (!platform) {
+      throw new BadRequestException(
+        `Unsupported A/B suggestion platform: ${params.suggestion.platform}`,
+      );
+    }
+
     const postIds: string[] = [];
     for (const [index, caption] of arms.entries()) {
       const variantId = `${groupId}:${index + 1}/${arms.length}`;
-      const post = await this.postsService.create({
+      const createInput: PostCreateInput = {
         brandId: params.brandId,
         description: caption,
         format: PostFormat.STANDARD,
-        generationId: groupId,
         groupId,
         ingredients: [],
         label: `${params.suggestion.variable} arm ${index + 1}`,
         organizationId: params.organizationId,
-        platform: params.suggestion.platform,
+        platform,
         source: AB_TEST_SUGGESTION_SOURCE,
         sourceActionId: suggestionId,
         sourceWorkflowId: groupId,
@@ -61,7 +68,8 @@ export class AbTestSuggestionHarnessService {
         userId: params.userId,
         variantId,
         visibility: PostVisibility.PUBLIC,
-      } as PostCreateInput);
+      };
+      const post = await this.postsService.create(createInput);
       postIds.push(String(post.id));
     }
 

@@ -6,7 +6,7 @@ import {
   AB_TEST_OUTCOME_ENTRY_TYPE,
   AB_TEST_SUGGESTION_SOURCE,
 } from '@api/services/content-optimization/ab-test-suggestion-harness.types';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { Platform, TargetExecutionState } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const organizationId = 'org-1';
@@ -85,8 +85,30 @@ describe('AbTestSuggestionHarnessService', () => {
     expect(first.variantId).toBe(`${result.groupId}:1/2`);
     expect(second.variantId).toBe(`${result.groupId}:2/2`);
     expect(first.targetExecutionState).toBe(TargetExecutionState.DRAFT);
+    expect(first.platform).toBe(Platform.INSTAGRAM);
     expect(first.description).toBe('Did you know this?');
     expect(second.description).toBe('Here is the news.');
+  });
+
+  it('rejects an executable suggestion when the platform is unknown', async () => {
+    const harness = createHarness();
+
+    await expect(
+      harness.service.executeSuggestion({
+        brandId,
+        organizationId,
+        suggestion: {
+          hypothesis: 'Question hooks outperform statements',
+          platform: 'not-a-platform',
+          suggestionId: 'sug-hook-1',
+          variable: 'hook_style',
+          variantA: 'Did you know this?',
+          variantB: 'Here is the news.',
+        },
+        userId,
+      }),
+    ).rejects.toThrow(/Unsupported A\/B suggestion platform/);
+    expect(harness.postsService.create).not.toHaveBeenCalled();
   });
 
   it('persists a resolved outcome when post-publish scoring has a winner', async () => {
