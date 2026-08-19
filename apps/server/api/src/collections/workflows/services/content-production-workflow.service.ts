@@ -358,7 +358,7 @@ export class ContentProductionWorkflowService {
         config: toPrismaJson(updatedConfig),
         nextAutopilotRunAt: nextRun,
       },
-      where: { id: persona.id },
+      where: scopedWhere(persona.organizationId, { id: persona.id }),
     });
   }
 

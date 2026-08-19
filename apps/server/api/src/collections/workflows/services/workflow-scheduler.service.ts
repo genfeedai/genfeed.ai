@@ -264,7 +264,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
           executionCount: { increment: 1 },
           lastExecutedAt: new Date(),
         },
-        where: { id: workflowId },
+        where: scopedWhere(wOrgId, { id: workflowId }),
       });
 
       // Start execution (fire and forget).

@@ -828,6 +828,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   BatchItem: {
     allFields: [
+      'assignee',
+      'assigneeId',
       'batch',
       'batchId',
       'brand',
@@ -848,6 +850,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       status: { enumType: 'BatchItemStatus', isRequired: true },
     },
     relationIdFields: {
+      assignee: 'assigneeId',
       batch: 'batchId',
       brand: 'brandId',
       organization: 'organizationId',
@@ -4886,6 +4889,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'articleAnalytics',
       'articles',
       'assets',
+      'assignedBatchItems',
       'batches',
       'bookmarks',
       'botActivities',

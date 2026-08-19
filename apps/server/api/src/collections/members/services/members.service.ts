@@ -71,8 +71,14 @@ export class MembersService extends BaseService<
   }
 
   async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
+    const organizationId =
+      typeof filter.organizationId === 'string' ? filter.organizationId : '';
+    if (!organizationId) {
+      throw new TypeError('find requires organizationId');
+    }
+
     const members = await this.prisma.member.findMany({
-      where: filter,
+      where: scopedWhere(organizationId, filter),
     });
 
     return members as unknown as MemberDocument[];
@@ -190,7 +196,7 @@ export class MembersService extends BaseService<
     }
 
     await this.prisma.member.updateMany({
-      where: { isDeleted: false, organizationId, userId },
+      where: scopedWhere(organizationId, { userId }),
       data: { lastUsedBrandId: brandId },
     });
   }

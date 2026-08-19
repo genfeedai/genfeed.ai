@@ -230,10 +230,9 @@ export class PostingSetsService {
 
     const rows = (await this.prisma.credential.findMany({
       select: CREDENTIAL_REF_SELECT,
-      where: {
+      where: scopedWhere(organizationId, {
         id: { in: [...credentialIds] },
-        organizationId,
-      },
+      }),
     })) as StoredCredentialRefRow[];
 
     return toCredentialRefs(rows);
