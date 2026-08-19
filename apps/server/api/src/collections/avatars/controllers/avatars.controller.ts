@@ -9,6 +9,7 @@ import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { serializeProviderCatalog } from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -71,16 +72,14 @@ export class AvatarsController {
     try {
       const voices = await this.heygenService.getVoices(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            provider: 'heygen',
-            voices,
-          },
-          id: 'heygen',
-          type: 'voice-provider',
+      return serializeProviderCatalog({
+        attributes: {
+          provider: 'heygen',
+          voices,
         },
-      };
+        id: 'heygen',
+        type: 'voice-provider',
+      });
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} ${CallerUtil.getCallerName()} failed`,
@@ -103,16 +102,14 @@ export class AvatarsController {
     try {
       const avatars = await this.heygenService.getAvatars(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            avatars,
-            provider: 'heygen',
-          },
-          id: 'heygen',
-          type: 'avatar-provider',
+      return serializeProviderCatalog({
+        attributes: {
+          avatars,
+          provider: 'heygen',
         },
-      };
+        id: 'heygen',
+        type: 'avatar-provider',
+      });
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} ${CallerUtil.getCallerName()} failed`,
@@ -135,16 +132,14 @@ export class AvatarsController {
     try {
       const voices = await this.hedraService.getVoices(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            provider: 'hedra',
-            voices,
-          },
-          id: 'hedra',
-          type: 'voice-provider',
+      return serializeProviderCatalog({
+        attributes: {
+          provider: 'hedra',
+          voices,
         },
-      };
+        id: 'hedra',
+        type: 'voice-provider',
+      });
     } catch (_error: unknown) {
       throw new HttpException(
         'Failed to fetch Hedra voices',
@@ -164,16 +159,14 @@ export class AvatarsController {
         user.organizationId,
       );
 
-      return {
-        data: {
-          attributes: {
-            provider: 'elevenlabs',
-            voices,
-          },
-          id: 'elevenlabs',
-          type: 'voice-provider',
+      return serializeProviderCatalog({
+        attributes: {
+          provider: 'elevenlabs',
+          voices,
         },
-      };
+        id: 'elevenlabs',
+        type: 'voice-provider',
+      });
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} ${CallerUtil.getCallerName()} failed`,
@@ -196,16 +189,14 @@ export class AvatarsController {
     try {
       const avatars = await this.hedraService.getAvatars(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            avatars,
-            provider: 'hedra',
-          },
-          id: 'hedra',
-          type: 'avatar-provider',
+      return serializeProviderCatalog({
+        attributes: {
+          avatars,
+          provider: 'hedra',
         },
-      };
+        id: 'hedra',
+        type: 'avatar-provider',
+      });
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} ${CallerUtil.getCallerName()} failed`,

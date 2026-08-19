@@ -1,19 +1,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  type ProviderCatalogResponse,
+  serializeProviderCatalog,
+  throwProviderCatalogError,
+} from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 
-type HeygenCollectionResponse<T extends string, A> = {
-  data: {
-    type: T;
-    attributes: A;
-  };
-};
-
-type HeygenVoicesResponse = HeygenCollectionResponse<
+type HeygenVoicesResponse = ProviderCatalogResponse<
   'voices',
   {
     voices: Array<{
@@ -27,7 +25,7 @@ type HeygenVoicesResponse = HeygenCollectionResponse<
   }
 >;
 
-type HeygenAvatarsResponse = HeygenCollectionResponse<
+type HeygenAvatarsResponse = ProviderCatalogResponse<
   'avatars',
   {
     avatars: Array<{
@@ -41,7 +39,7 @@ type HeygenAvatarsResponse = HeygenCollectionResponse<
   }
 >;
 
-type HeygenStatusResponse = HeygenCollectionResponse<
+type HeygenStatusResponse = ProviderCatalogResponse<
   'service-status',
   {
     provider: 'heygen';
@@ -68,30 +66,22 @@ export class HeyGenController {
     try {
       const voices = await this.heygenService.getVoices(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            count: voices.length,
-            provider: 'heygen',
-            voices: voices.map((v) => ({
-              index: v.index,
-              name: v.name,
-              preview: v.preview,
-              voiceId: v.voiceId,
-            })),
-          },
-          type: 'voices',
+      return serializeProviderCatalog({
+        attributes: {
+          count: voices.length,
+          provider: 'heygen',
+          voices: voices.map((v) => ({
+            index: v.index,
+            name: v.name,
+            preview: v.preview,
+            voiceId: v.voiceId,
+          })),
         },
-      };
+        type: 'voices',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to fetch HeyGen voices',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to fetch HeyGen voices', error);
     }
   }
 
@@ -103,30 +93,22 @@ export class HeyGenController {
     try {
       const avatars = await this.heygenService.getAvatars(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            avatars: avatars.map((a) => ({
-              avatarId: a.avatarId,
-              index: a.index,
-              name: a.name,
-              preview: a.preview,
-            })),
-            count: avatars.length,
-            provider: 'heygen',
-          },
-          type: 'avatars',
+      return serializeProviderCatalog({
+        attributes: {
+          avatars: avatars.map((a) => ({
+            avatarId: a.avatarId,
+            index: a.index,
+            name: a.name,
+            preview: a.preview,
+          })),
+          count: avatars.length,
+          provider: 'heygen',
         },
-      };
+        type: 'avatars',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to fetch HeyGen avatars',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to fetch HeyGen avatars', error);
     }
   }
 
@@ -146,25 +128,17 @@ export class HeyGenController {
       // Check if using custom key (this is simplified - you may want to check org settings directly)
       hasCustomKey = !!user.organizationId;
 
-      return {
-        data: {
-          attributes: {
-            hasCustomKey,
-            isConnected,
-            provider: 'heygen',
-          },
-          type: 'service-status',
+      return serializeProviderCatalog({
+        attributes: {
+          hasCustomKey,
+          isConnected,
+          provider: 'heygen',
         },
-      };
+        type: 'service-status',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to check HeyGen status',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to check HeyGen status', error);
     }
   }
 }

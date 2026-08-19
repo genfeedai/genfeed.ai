@@ -1,25 +1,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  type ProviderCatalogResponse,
+  serializeProviderCatalog,
+  throwProviderCatalogError,
+} from '@api/services/integrations/_shared/serialize-provider-catalog';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import {
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-} from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 
-type HedraCollectionResponse<T extends string, A> = {
-  data: {
-    type: T;
-    attributes: A;
-  };
-};
-
-type HedraVoicesResponse = HedraCollectionResponse<
+type HedraVoicesResponse = ProviderCatalogResponse<
   'voices',
   {
     voices: unknown[];
@@ -28,7 +20,7 @@ type HedraVoicesResponse = HedraCollectionResponse<
   }
 >;
 
-type HedraAvatarsResponse = HedraCollectionResponse<
+type HedraAvatarsResponse = ProviderCatalogResponse<
   'avatars',
   {
     avatars: unknown[];
@@ -37,7 +29,7 @@ type HedraAvatarsResponse = HedraCollectionResponse<
   }
 >;
 
-type HedraJobStatusResponse = HedraCollectionResponse<
+type HedraJobStatusResponse = ProviderCatalogResponse<
   'job-status',
   {
     jobId: string;
@@ -45,7 +37,7 @@ type HedraJobStatusResponse = HedraCollectionResponse<
   }
 >;
 
-type HedraStatusResponse = HedraCollectionResponse<
+type HedraStatusResponse = ProviderCatalogResponse<
   'service-status',
   {
     provider: 'hedra';
@@ -72,25 +64,17 @@ export class HedraController {
     try {
       const voices = await this.hedraService.getVoices(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            count: voices.length,
-            provider: 'hedra',
-            voices,
-          },
-          type: 'voices',
+      return serializeProviderCatalog({
+        attributes: {
+          count: voices.length,
+          provider: 'hedra',
+          voices,
         },
-      };
+        type: 'voices',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to fetch Hedra voices',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to fetch Hedra voices', error);
     }
   }
 
@@ -102,25 +86,17 @@ export class HedraController {
     try {
       const avatars = await this.hedraService.getAvatars(user.organizationId);
 
-      return {
-        data: {
-          attributes: {
-            avatars,
-            count: avatars.length,
-            provider: 'hedra',
-          },
-          type: 'avatars',
+      return serializeProviderCatalog({
+        attributes: {
+          avatars,
+          count: avatars.length,
+          provider: 'hedra',
         },
-      };
+        type: 'avatars',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to fetch Hedra avatars',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to fetch Hedra avatars', error);
     }
   }
 
@@ -138,24 +114,16 @@ export class HedraController {
         user.organizationId,
       );
 
-      return {
-        data: {
-          attributes: {
-            jobId,
-            ...status,
-          },
-          type: 'job-status',
+      return serializeProviderCatalog({
+        attributes: {
+          jobId,
+          ...status,
         },
-      };
+        type: 'job-status',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to fetch job status',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to fetch job status', error);
     }
   }
 
@@ -175,25 +143,17 @@ export class HedraController {
       // Check if using custom key
       hasCustomKey = !!user.organizationId;
 
-      return {
-        data: {
-          attributes: {
-            hasCustomKey,
-            isConnected,
-            provider: 'hedra',
-          },
-          type: 'service-status',
+      return serializeProviderCatalog({
+        attributes: {
+          hasCustomKey,
+          isConnected,
+          provider: 'hedra',
         },
-      };
+        type: 'service-status',
+      });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      throw new HttpException(
-        {
-          detail: (error as Error)?.message ?? 'Unknown error occurred',
-          title: 'Failed to check Hedra status',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throwProviderCatalogError('Failed to check Hedra status', error);
     }
   }
 }
