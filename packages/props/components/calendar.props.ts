@@ -98,6 +98,10 @@ export interface ContentCalendarProps<T extends CalendarItem> {
    */
   onEventDrop?: (change: CalendarEventDrop<T>) => void;
   /**
+   * Empty-cell click. Used to book a one-off missing slot at that instant.
+   */
+  onDateClick?: (start: Date) => void;
+  /**
    * Layout shown on first render. Subsequent view switches are owned by the
    * calendar, so this is genuinely initial rather than a controlled value.
    */

@@ -29,6 +29,7 @@ import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
+  fromPrismaCredentialPlatform,
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
@@ -450,7 +451,37 @@ export class CronPostsService {
       }
 
       // Get publisher for platform
-      const platform = credential.platform as CredentialPlatform;
+      const platform = fromPrismaCredentialPlatform(
+        String(credential.platform ?? ''),
+      );
+      if (!platform) {
+        const unknownPlatform = String(credential.platform ?? '');
+        this.logger.error(`${url} unsupported platform`, {
+          platform: unknownPlatform,
+          postId: post.id,
+        });
+        await this.persistPublishState(
+          post,
+          {
+            error: createChannelTargetError(
+              'unsupported_platform',
+              'Unsupported platform',
+              false,
+            ),
+            executionState: TargetExecutionState.FAILED,
+          },
+          'Unsupported platform',
+        );
+        this.emitPublishFailedWebhook(
+          post,
+          'Unsupported platform',
+          unknownPlatform,
+        );
+        return createFailedPublishResult(
+          unknownPlatform,
+          'Unsupported platform',
+        );
+      }
       const publisher = this.publisherFactory.getPublisher(platform);
       if (!publisher) {
         this.logger.error(`${url} unsupported platform`, {

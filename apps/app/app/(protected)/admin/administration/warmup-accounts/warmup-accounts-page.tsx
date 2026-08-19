@@ -190,15 +190,12 @@ function canSendInvitation(account: IWarmupAccount): boolean {
     );
   }
 
-  return (
-    status === 'pending' || status === 'delivery-failed' || status === 'expired'
-  );
+  return status === 'pending';
 }
 
 function canResendInvitation(account: IWarmupAccount): boolean {
   const status = account.invitation?.status;
   return (
-    status === 'pending' ||
     status === 'delivered' ||
     status === 'delivery-failed' ||
     status === 'expired'

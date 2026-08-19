@@ -14,8 +14,16 @@ import { CronCredentialsService } from '@workers/crons/credentials/cron.credenti
 
 describe('CronCredentialsService', () => {
   let service: CronCredentialsService;
+  let credentialsService: { findAll: ReturnType<typeof vi.fn> };
+  let twitterService: { refreshToken: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    credentialsService = {
+      findAll: vi.fn().mockResolvedValue({ docs: [] }),
+    };
+    twitterService = {
+      refreshToken: vi.fn().mockResolvedValue({}),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronCredentialsService,
@@ -29,9 +37,7 @@ describe('CronCredentialsService', () => {
         },
         {
           provide: CredentialsService,
-          useValue: {
-            findAll: vi.fn().mockResolvedValue({ docs: [] }),
-          },
+          useValue: credentialsService,
         },
         {
           provide: FacebookService,
@@ -77,9 +83,7 @@ describe('CronCredentialsService', () => {
         },
         {
           provide: TwitterService,
-          useValue: {
-            refreshToken: vi.fn(),
-          },
+          useValue: twitterService,
         },
         {
           provide: YoutubeService,
@@ -95,5 +99,25 @@ describe('CronCredentialsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('refreshes tokens for a Prisma SCREAMING twitter credential', async () => {
+    credentialsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          brandId: 'brand-1',
+          id: 'cred-1',
+          organizationId: 'org-1',
+          platform: 'TWITTER',
+        },
+      ],
+    });
+
+    await service.refreshExpiringTokens();
+
+    expect(twitterService.refreshToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+    );
   });
 });

@@ -122,6 +122,30 @@ describe('AccountPublishingContextService', () => {
     vi.unstubAllEnvs();
   });
 
+  it('maps a Prisma SCREAMING credential platform onto domain limits', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      id: credentialId,
+      accessToken: 'secret-token',
+      accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
+      brandId,
+      isConnected: true,
+      isDeleted: false,
+      label: 'Founder X',
+      organizationId,
+      platform: 'TWITTER',
+    });
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(context.account.platform).toBe(CredentialPlatform.TWITTER);
+    expect(context.constraints.maxWeightedCharacters).toBe(280);
+  });
+
   it('resolves credentials with strict organization and brand guards', async () => {
     await service.resolve({
       brandId,

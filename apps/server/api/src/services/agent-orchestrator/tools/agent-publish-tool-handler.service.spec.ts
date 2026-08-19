@@ -269,4 +269,57 @@ describe('AgentPublishToolHandler per-channel review', () => {
     expect(result.error).toContain('YouTube does not support image media.');
     expect(postGroupsService.create).not.toHaveBeenCalled();
   });
+
+  it('maps Prisma SCREAMING credential platforms onto release targets', async () => {
+    const {
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', platform: 'TWITTER' },
+    ]);
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        confirmed: true,
+        contentId: 'ingredient-1',
+        sourceActionId: 'action-1',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'twitter',
+            visibility: PostVisibility.PUBLIC,
+          },
+        ],
+      },
+      scopedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(postGroupsService.create).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      expect.objectContaining({
+        targets: [
+          expect.objectContaining({
+            credentialId: 'cred-1',
+            platform: CredentialPlatform.TWITTER,
+          }),
+        ],
+      }),
+      expect.any(String),
+      expect.any(Object),
+    );
+    expect(
+      postGroupsService.create.mock.calls[0]?.[2].targets[0].platform,
+    ).toBe('twitter');
+  });
 });

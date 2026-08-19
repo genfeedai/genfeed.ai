@@ -8,12 +8,20 @@ import {
 } from '@genfeedai/constants';
 import {
   ArticleStatus,
+  ButtonSize,
+  ButtonVariant,
+  CalendarSlotState,
   formatPlatformLabel,
+  PostCategory,
   PostRepurposeMode,
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type { IArticle, IReleaseGroup } from '@genfeedai/interfaces';
+import type {
+  IArticle,
+  ICalendarSlot,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -31,6 +39,7 @@ import type {
 } from '@props/publisher/release-calendar.props';
 import { usePostRepurposeModal } from '@providers/global-modals/global-modals.provider';
 import { ArticlesService } from '@services/content/articles.service';
+import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
 import type { ReleaseGroupListQuery } from '@services/content/release-groups.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -38,7 +47,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { EmptyState } from '@ui/feedback';
-import { Calendar, FileText, List } from 'lucide-react';
+import { Button } from '@ui/primitives/button';
+import { Calendar, FileText, List, Repeat } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -50,6 +60,8 @@ const CREATE_POST_AGENT_HREF = buildAgentPromptHref(
   'Help me draft a new post for my brand.',
 );
 
+import CadenceFormSheet from './cadence-form-sheet';
+import CalendarSlotDrawer from './calendar-slot-drawer';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
@@ -82,9 +94,15 @@ interface ReleaseContentCalendarItem extends CalendarItem {
   release: IReleaseGroup;
 }
 
+interface SlotContentCalendarItem extends CalendarItem {
+  itemType: 'slot';
+  slot: ICalendarSlot;
+}
+
 type ContentCalendarItem =
   | ArticleContentCalendarItem
-  | ReleaseContentCalendarItem;
+  | ReleaseContentCalendarItem
+  | SlotContentCalendarItem;
 
 function getArticleColor(status: string): string {
   return ARTICLE_STATUS_COLORS[status] ?? DEFAULT_COLOR;
@@ -123,6 +141,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
     ReleaseGroupsService.getInstance(token),
   );
 
+  const getPostingCadencesService = useAuthedService((token: string) =>
+    PostingCadencesService.getInstance(token),
+  );
+
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
   );
@@ -131,6 +153,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [releases, setReleases] = useState<IReleaseGroup[]>([]);
+  const [slots, setSlots] = useState<ICalendarSlot[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<ICalendarSlot | null>(null);
+  const [isCadenceFormOpen, setIsCadenceFormOpen] = useState(false);
+  const [isSlotPending, setIsSlotPending] = useState(false);
   const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(
     null,
   );
@@ -153,10 +179,12 @@ export default function ContentCalendarPage(): React.JSX.Element {
       setIsLoading(true);
 
       try {
-        const [articlesService, releaseGroupsService] = await Promise.all([
-          getArticlesService(),
-          getReleaseGroupsService(),
-        ]);
+        const [articlesService, releaseGroupsService, cadencesService] =
+          await Promise.all([
+            getArticlesService(),
+            getReleaseGroupsService(),
+            getPostingCadencesService(),
+          ]);
 
         const window = {
           endDate: dateRange.end.toISOString(),
@@ -179,10 +207,21 @@ export default function ContentCalendarPage(): React.JSX.Element {
           ...(filters.status.length ? { status: filters.status } : {}),
         };
 
-        const [fetchedArticles, fetchedReleases] = await Promise.all([
-          articlesService.findAll(window),
-          releaseGroupsService.findAll(releasesQuery, controller.signal),
-        ]);
+        const [fetchedArticles, fetchedReleases, fetchedSlots] =
+          await Promise.all([
+            articlesService.findAll(window),
+            releaseGroupsService.findAll(releasesQuery, controller.signal),
+            brandId
+              ? cadencesService.listSlots(
+                  {
+                    brandId,
+                    endDate: window.endDate,
+                    startDate: window.startDate,
+                  },
+                  controller.signal,
+                )
+              : Promise.resolve([]),
+          ]);
 
         if (controller.signal.aborted) {
           return;
@@ -190,6 +229,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
         setArticles(fetchedArticles);
         setReleases(fetchedReleases);
+        setSlots(fetchedSlots);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -211,6 +251,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
     brandId,
     filters,
     getArticlesService,
+    getPostingCadencesService,
     getReleaseGroupsService,
     notificationsService,
   ]);
@@ -238,8 +279,17 @@ export default function ContentCalendarPage(): React.JSX.Element {
       }),
     );
 
-    return [...releaseItems, ...articleItems];
-  }, [articles, releases]);
+    const slotItems: SlotContentCalendarItem[] = slots.map((slot) => ({
+      id: slot.identityKey,
+      itemType: 'slot',
+      scheduledDate: slot.instant,
+      slot,
+      status: slot.state,
+      title: slot.format,
+    }));
+
+    return [...releaseItems, ...articleItems, ...slotItems];
+  }, [articles, releases, slots]);
 
   const selectedRelease = useMemo(
     () => releases.find((release) => release.id === selectedReleaseId) ?? null,
@@ -311,6 +361,11 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
   const handleEventClick = useCallback(
     (item: ContentCalendarItem) => {
+      if (item.itemType === 'slot') {
+        setSelectedSlot(item.slot);
+        return;
+      }
+
       if (item.itemType === 'article') {
         // Refinement belongs to the artifact — open the article's editor page.
         push(
@@ -340,12 +395,33 @@ export default function ContentCalendarPage(): React.JSX.Element {
       return getArticleColor(item.status);
     }
 
+    if (item.itemType === 'slot') {
+      return '#64748b';
+    }
+
     return DEFAULT_COLOR;
   }, []);
 
   const getEventBadge = useCallback(
     (item: ContentCalendarItem): CalendarEventBadge | null =>
-      item.itemType === 'release' ? releaseStatusBadge(item.release) : null,
+      item.itemType === 'release'
+        ? releaseStatusBadge(item.release)
+        : item.itemType === 'slot'
+          ? {
+              label:
+                item.slot.state === CalendarSlotState.GENERATE_FAILED
+                  ? 'failed'
+                  : item.slot.state === CalendarSlotState.GENERATING
+                    ? 'generating'
+                    : 'missing',
+              tone:
+                item.slot.state === CalendarSlotState.GENERATE_FAILED
+                  ? 'danger'
+                  : item.slot.state === CalendarSlotState.GENERATING
+                    ? 'warning'
+                    : 'muted',
+            }
+          : null,
     [],
   );
 
@@ -513,6 +589,102 @@ export default function ContentCalendarPage(): React.JSX.Element {
     href,
   ]);
 
+  const defaultCredentialId = credentials[0]?.id ?? '';
+
+  const handleDateClick = useCallback(
+    (start: Date) => {
+      if (!brandId || !defaultCredentialId) {
+        notificationsService.error('Connect a channel before booking a slot.');
+        return;
+      }
+
+      void (async () => {
+        try {
+          const service = await getPostingCadencesService();
+          const booked = await service.book({
+            brandId,
+            credentialId: defaultCredentialId,
+            format: PostCategory.POST,
+            instant: start.toISOString(),
+          });
+          setSlots((current) => [...current, booked]);
+          setSelectedSlot(booked);
+        } catch (error) {
+          notificationsService.error(mutationErrorMessage(error));
+        }
+      })();
+    },
+    [
+      brandId,
+      defaultCredentialId,
+      getPostingCadencesService,
+      notificationsService,
+    ],
+  );
+
+  const handleGenerateSlot = useCallback(
+    (brief?: string) => {
+      if (!selectedSlot) {
+        return;
+      }
+      setIsSlotPending(true);
+      void (async () => {
+        try {
+          const service = await getPostingCadencesService();
+          const filled = await service.generate({
+            brief,
+            identityKey: selectedSlot.identityKey,
+          });
+          setSlots((current) =>
+            current.filter((slot) => slot.identityKey !== filled.identityKey),
+          );
+          setSelectedSlot(null);
+          notificationsService.success('Slot generated.');
+        } catch (error) {
+          notificationsService.error(mutationErrorMessage(error));
+        } finally {
+          setIsSlotPending(false);
+        }
+      })();
+    },
+    [getPostingCadencesService, notificationsService, selectedSlot],
+  );
+
+  const handleWriteSlot = useCallback(() => {
+    if (!selectedSlot) {
+      return;
+    }
+    setIsSlotPending(true);
+    void (async () => {
+      try {
+        const service = await getPostingCadencesService();
+        const filled = await service.write(selectedSlot.identityKey);
+        setSlots((current) =>
+          current.filter((slot) => slot.identityKey !== filled.identityKey),
+        );
+        setSelectedSlot(null);
+        if (filled.generatedItemId) {
+          push(
+            withArtifactEditorReturn(
+              href(createArtifactEditorRoute('post', filled.generatedItemId)),
+              href(APP_ROUTES.PUBLISH.CALENDAR),
+            ),
+          );
+        }
+      } catch (error) {
+        notificationsService.error(mutationErrorMessage(error));
+      } finally {
+        setIsSlotPending(false);
+      }
+    })();
+  }, [
+    getPostingCadencesService,
+    href,
+    notificationsService,
+    push,
+    selectedSlot,
+  ]);
+
   const handleRetryTarget = useCallback(
     (targetId: string) => {
       if (!selectedReleaseId) {
@@ -530,6 +702,16 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
   const filterControls = (
     <div className="flex flex-wrap items-center gap-2">
+      <Button
+        aria-label="New cadence"
+        isDisabled={!defaultCredentialId}
+        onClick={() => setIsCadenceFormOpen(true)}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.SECONDARY}
+      >
+        <Repeat className="size-4" />
+        Cadence
+      </Button>
       <ReleaseCalendarFilters
         credentialOptions={credentialOptions}
         filters={filters}
@@ -569,6 +751,43 @@ export default function ContentCalendarPage(): React.JSX.Element {
       {selectedRelease ? (
         <EvergreenSeriesControls groupId={selectedRelease.id} />
       ) : null}
+      <CalendarSlotDrawer
+        isPending={isSlotPending}
+        onClose={() => setSelectedSlot(null)}
+        onGenerate={handleGenerateSlot}
+        onWrite={handleWriteSlot}
+        slot={selectedSlot}
+      />
+      <CadenceFormSheet
+        brandId={brandId}
+        credentialId={defaultCredentialId}
+        isOpen={isCadenceFormOpen}
+        isPending={isSlotPending}
+        onClose={() => setIsCadenceFormOpen(false)}
+        onSubmit={(input) => {
+          setIsSlotPending(true);
+          void (async () => {
+            try {
+              const service = await getPostingCadencesService();
+              await service.create(input);
+              setIsCadenceFormOpen(false);
+              notificationsService.success('Cadence saved.');
+              if (dateRange && brandId) {
+                const nextSlots = await service.listSlots({
+                  brandId,
+                  endDate: dateRange.end.toISOString(),
+                  startDate: dateRange.start.toISOString(),
+                });
+                setSlots(nextSlots);
+              }
+            } catch (error) {
+              notificationsService.error(mutationErrorMessage(error));
+            } finally {
+              setIsSlotPending(false);
+            }
+          })();
+        }}
+      />
     </>
   );
 
@@ -589,6 +808,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
     <ContentCalendar
       items={calendarItems}
       onEventClick={handleEventClick}
+      onDateClick={handleDateClick}
       onDatesChange={handleDatesChange}
       getEventColor={getEventColor}
       getEventBadge={getEventBadge}

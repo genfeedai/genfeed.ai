@@ -8,7 +8,11 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type {
   AccountHealthOverride,
   AccountHealthReconnect,
@@ -121,6 +125,18 @@ function readDateIso(
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
+function requireDomainCredentialPlatform(
+  platform: string | null | undefined,
+): CredentialPlatform {
+  const mapped = fromPrismaCredentialPlatform(platform);
+  if (!mapped) {
+    throw new BadRequestException(
+      `Unknown credential platform: ${platform ?? 'missing'}`,
+    );
+  }
+  return mapped;
+}
+
 function isOverrideActive(
   credential: Pick<Credential, 'warmupManualOverride' | 'warmupOverrideUntil'>,
   now: Date,
@@ -162,8 +178,9 @@ export class AccountHealthService {
     params: AssessAccountHealthParams,
   ): Promise<AccountHealthSummary> {
     const credential = await this.findCredential(params);
+    const platform = requireDomainCredentialPlatform(credential.platform);
     const thresholds = this.mergeThresholds(
-      credential.platform as CredentialPlatform,
+      platform,
       params.request?.thresholds,
       credential.warmupThresholds,
     );
@@ -392,7 +409,7 @@ export class AccountHealthService {
     signals: AccountHealthSignals,
   ): AccountHealthSummary {
     const now = new Date();
-    const platform = credential.platform as CredentialPlatform;
+    const platform = requireDomainCredentialPlatform(credential.platform);
     const isWarmupPlatform = WARMUP_PLATFORMS.has(platform);
 
     if (!isWarmupPlatform) {
@@ -519,11 +536,12 @@ export class AccountHealthService {
       'id' | 'isConnected' | 'platform' | 'warmupSignals'
     >,
   ): AccountHealthReconnect | undefined {
+    const platform = requireDomainCredentialPlatform(credential.platform);
     return reconnectForCredential({
       credentialId: credential.id,
       hasPartialScopes: hasPartialSocialWarmupScopes(credential.warmupSignals),
       isConnected: credential.isConnected,
-      platform: credential.platform,
+      platform,
     });
   }
 
@@ -531,14 +549,13 @@ export class AccountHealthService {
     const explicitLabel =
       readString(credential.label) ?? readString(credential.externalName);
     const handle = readString(credential.externalHandle);
+    const platform = requireDomainCredentialPlatform(credential.platform);
 
     if (explicitLabel) {
       return explicitLabel;
     }
 
-    return handle
-      ? `${credential.platform} @${handle.replace(/^@/, '')}`
-      : credential.platform;
+    return handle ? `${platform} @${handle.replace(/^@/, '')}` : platform;
   }
 
   private getHoldReason(

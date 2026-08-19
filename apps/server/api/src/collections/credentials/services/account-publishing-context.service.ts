@@ -4,7 +4,10 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type {
   AccountPublishingConstraints,
   AccountPublishingContext,
@@ -15,7 +18,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ResolveAccountPublishingContextParams {
   brandId: string;
@@ -37,12 +40,15 @@ const PLATFORM_CHARACTER_LIMITS: Partial<Record<CredentialPlatform, number>> = {
 };
 
 function normalizeCredentialPlatform(value: unknown): CredentialPlatform {
-  const normalized = String(value ?? '').toLowerCase();
-  const platform = Object.values(CredentialPlatform).find(
-    (candidate) => candidate === normalized,
+  const platform = fromPrismaCredentialPlatform(
+    typeof value === 'string' ? value : String(value ?? ''),
   );
-
-  return platform ?? CredentialPlatform.TWITTER;
+  if (!platform) {
+    throw new BadRequestException(
+      `Unknown credential platform: ${String(value ?? 'missing')}`,
+    );
+  }
+  return platform;
 }
 
 function readString(value: unknown): string | undefined {

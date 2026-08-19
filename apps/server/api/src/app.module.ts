@@ -76,6 +76,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
+import { PostingCadencesModule } from '@api/collections/posting-cadences/posting-cadences.module';
 import { PostingSetsModule } from '@api/collections/posting-sets/posting-sets.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { PresetsModule } from '@api/collections/presets/presets.module';
@@ -327,6 +328,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     OrganizationsModule,
     PersonasModule,
     PostGroupsModule,
+    PostingCadencesModule,
     PostingSetsModule,
     PostsModule,
     PublishApprovalsModule,

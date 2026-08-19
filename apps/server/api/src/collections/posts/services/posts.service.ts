@@ -33,6 +33,7 @@ import {
 } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
+  fromPrismaCredentialPlatform,
   type PersistedReviewDecision,
   PostFormat,
   PostVisibility,
@@ -443,7 +444,13 @@ export class PostsService extends BaseService<
           'The selected publishing credential is unavailable for this organization.',
         );
       }
-      resolvedPlatform = credential.platform;
+      const domainPlatform = fromPrismaCredentialPlatform(credential.platform);
+      if (!domainPlatform) {
+        throw new BadRequestException(
+          `Unknown credential platform: ${credential.platform}`,
+        );
+      }
+      resolvedPlatform = domainPlatform;
     }
 
     let currentPost: PostDocument | null = null;
@@ -735,7 +742,10 @@ export class PostsService extends BaseService<
     const credential = post.credential as unknown as CredentialEntity;
     const ingredient = ingredients[0] as unknown as IngredientEntity;
 
-    if (credential.platform !== 'YOUTUBE') {
+    if (
+      fromPrismaCredentialPlatform(String(credential.platform ?? '')) !==
+      CredentialPlatform.YOUTUBE
+    ) {
       this.logger.warn(
         `handleYoutubePost called for non-YouTube platform: ${credential.platform}`,
       );

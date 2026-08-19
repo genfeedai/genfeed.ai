@@ -1,4 +1,25 @@
+import { fromPrismaCredentialPlatform } from '@genfeedai/enums';
 import { createEntityAttributes } from '@genfeedai/helpers';
+
+/**
+ * Prisma `credentials.platform` is SCREAMING; API JSON stays domain lowercase.
+ * jsonapi-serializer uses this as a computed attribute when present on the
+ * serializer config under the same key as the listed field.
+ */
+export function mapSerializedCredentialPlatform(record: {
+  platform?: unknown;
+}): string | undefined {
+  if (typeof record.platform !== 'string' || record.platform.length === 0) {
+    return undefined;
+  }
+
+  const mapped = fromPrismaCredentialPlatform(record.platform);
+  if (!mapped) {
+    throw new Error(`Unknown credential platform: ${record.platform}`);
+  }
+
+  return mapped;
+}
 
 const publicFields = [
   'organizationId',

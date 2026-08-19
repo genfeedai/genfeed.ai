@@ -16,7 +16,10 @@ import { TwitterPublisherService } from '@api/services/integrations/publishers/t
 import { WhatsappPublisherService } from '@api/services/integrations/publishers/whatsapp-publisher.service';
 import { WordpressPublisherService } from '@api/services/integrations/publishers/wordpress-publisher.service';
 import { YouTubePublisherService } from '@api/services/integrations/publishers/youtube-publisher.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -71,8 +74,12 @@ export class PublisherFactoryService {
    * @param platform The platform to get the publisher for
    * @returns The publisher for the platform, or null if not supported
    */
-  getPublisher(platform: CredentialPlatform): IPublisher | null {
-    return this.publishers.get(platform) || null;
+  getPublisher(platform: string): IPublisher | null {
+    const domainPlatform = fromPrismaCredentialPlatform(platform);
+    if (!domainPlatform) {
+      return null;
+    }
+    return this.publishers.get(domainPlatform) || null;
   }
 
   /**
@@ -80,8 +87,12 @@ export class PublisherFactoryService {
    * @param platform The platform to check
    * @returns True if the platform is supported
    */
-  isSupported(platform: CredentialPlatform): boolean {
-    return this.publishers.has(platform);
+  isSupported(platform: string): boolean {
+    const domainPlatform = fromPrismaCredentialPlatform(platform);
+    if (!domainPlatform) {
+      return false;
+    }
+    return this.publishers.has(domainPlatform);
   }
 
   /**
