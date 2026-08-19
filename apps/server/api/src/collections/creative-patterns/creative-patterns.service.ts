@@ -102,7 +102,7 @@ export class CreativePatternsService {
           data: toPrismaJson(payload.data),
           organizationId: payload.organizationId,
         },
-        where: { id: existing.id },
+        where: scopedWhere(payload.organizationId, { id: existing.id }),
       });
 
       return this.normalizeRecord(updated);

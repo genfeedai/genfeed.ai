@@ -99,7 +99,7 @@ export class UnipileService {
             encryptedToken,
             status: PRISMA_ACTIVE_STATUS,
           },
-          where: { id: existing.id },
+          where: scopedWhere(organizationId, { id: existing.id }),
         })
       : await this.prisma.orgIntegration.create({
           data: {

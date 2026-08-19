@@ -15,6 +15,7 @@ import type {
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
 import { UpdateAgentWorkflowStateDto } from '@api/workflows/dto/update-agent-workflow-state.dto';
 import { type AgentWorkflow, toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -139,7 +140,7 @@ export class AgentWorkflowsService {
 
     const updated = await this.prisma.agentWorkflow.update({
       data: { config: toPrismaJson(config) },
-      where: { id: workflow.id },
+      where: scopedWhere(organizationId, { id: workflow.id }),
     });
 
     return this.toApiState(updated);
@@ -184,7 +185,7 @@ export class AgentWorkflowsService {
 
     const updated = await this.prisma.agentWorkflow.update({
       data: { config: toPrismaJson(config) },
-      where: { id: workflow.id },
+      where: scopedWhere(organizationId, { id: workflow.id }),
     });
 
     return this.toApiState(updated);
@@ -212,7 +213,7 @@ export class AgentWorkflowsService {
 
     const updated = await this.prisma.agentWorkflow.update({
       data: { config: toPrismaJson(config) },
-      where: { id: workflow.id },
+      where: scopedWhere(organizationId, { id: workflow.id }),
     });
 
     return this.toApiState(updated);
@@ -247,7 +248,7 @@ export class AgentWorkflowsService {
 
     const updated = await this.prisma.agentWorkflow.update({
       data: { config: toPrismaJson(config) },
-      where: { id: workflow.id },
+      where: scopedWhere(organizationId, { id: workflow.id }),
     });
 
     return this.toApiState(updated);
