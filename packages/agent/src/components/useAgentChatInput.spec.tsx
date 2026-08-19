@@ -453,3 +453,174 @@ describe('useAgentChatInput media paste', () => {
     expect(preventDefault).toHaveBeenCalled();
   });
 });
+
+describe('useAgentChatInput follow-up queue submit', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    microphoneState.isListening = false;
+    microphoneState.isTranscribing = false;
+    brandSettings.settings.isVoiceControlEnabled = false;
+  });
+
+  it('promotes the queued follow-up on empty submit and no-ops without a queue', async () => {
+    const onPromoteQueuedFollowUp = vi.fn();
+    const onSend = vi.fn();
+    const { rerender, result } = renderHook(
+      ({ hasQueuedFollowUps }: { hasQueuedFollowUps: boolean }) =>
+        useAgentChatInput({
+          hasQueuedFollowUps,
+          onPromoteQueuedFollowUp,
+          onSend,
+        }),
+      { initialProps: { hasQueuedFollowUps: true }, wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+    expect(onPromoteQueuedFollowUp).toHaveBeenCalledTimes(1);
+    expect(onSend).not.toHaveBeenCalled();
+
+    rerender({ hasQueuedFollowUps: false });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+    expect(onPromoteQueuedFollowUp).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps composer contents when enqueue is rejected', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [{ text: 'Queue me', type: 'text' }],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      'Queue me',
+    );
+    const onSend = vi.fn(() => false);
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalled();
+    expect(result.current.actionFeedback).toBe(
+      'Follow-up queue is full. Remove a prompt or wait until one sends.',
+    );
+    expect(result.current.editor?.getText()).toBe('Queue me');
+  });
+
+  it('blocks submit while attachments are uploading and preserves the draft', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [{ text: 'With photo', type: 'text' }],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      'With photo',
+    );
+    const onSend = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useAgentChatInput({
+          attachments: [
+            {
+              id: 'att-1',
+              kind: 'image',
+              name: 'shot.png',
+              previewUrl: '',
+              status: 'uploading',
+            },
+          ],
+          isUploading: true,
+          onSend,
+        }),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(result.current.actionFeedback).toBe(
+      'Wait for attachments to finish uploading, then send again.',
+    );
+    expect(result.current.editor?.getText()).toBe('With photo');
+  });
+
+  it('does not submit, enqueue, or interrupt on Shift+Enter', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [{ text: 'Keep typing', type: 'text' }],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      'Keep typing',
+    );
+    const onPromoteQueuedFollowUp = vi.fn();
+    const onSend = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useAgentChatInput({
+          hasQueuedFollowUps: true,
+          onPromoteQueuedFollowUp,
+          onSend,
+        }),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    const editor = result.current.editor;
+    expect(editor).not.toBeNull();
+    if (!editor) {
+      return;
+    }
+
+    const handled = editor.view.someProp('handleKeyDown', (handler) =>
+      handler(editor.view, {
+        key: 'Enter',
+        shiftKey: true,
+        preventDefault: vi.fn(),
+      } as unknown as KeyboardEvent),
+    );
+
+    expect(handled).not.toBe(true);
+    expect(onSend).not.toHaveBeenCalled();
+    expect(onPromoteQueuedFollowUp).not.toHaveBeenCalled();
+  });
+});

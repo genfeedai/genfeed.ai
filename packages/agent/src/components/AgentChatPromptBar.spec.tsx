@@ -9,7 +9,18 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
-  AgentChatInput: () => <div data-testid="chat-input" />,
+  AgentChatInput: (props: {
+    disabled?: boolean;
+    showStop?: boolean;
+    willQueueFollowUp?: boolean;
+  }) => (
+    <div
+      data-disabled={props.disabled ? 'true' : 'false'}
+      data-show-stop={props.showStop ? 'true' : 'false'}
+      data-testid="chat-input"
+      data-will-queue={props.willQueueFollowUp ? 'true' : 'false'}
+    />
+  ),
 }));
 
 vi.mock('@genfeedai/agent/components/AgentComposerStatusStack', () => ({
@@ -55,7 +66,11 @@ function renderPromptBar(
       content: string;
       createdAt: string;
       id: string;
+      status: 'queued' | 'sending' | 'failed';
+      threadId: string | null;
     }>;
+    isBusy: boolean;
+    isRunActive: boolean;
     onMoveFollowUp: () => void;
     onRemoveFollowUp: () => void;
     onSendFollowUpNow: () => void;
@@ -80,9 +95,9 @@ function renderPromptBar(
       followUps={extras.followUps}
       getCompletedAttachments={() => []}
       isAttachmentUploading={false}
-      isBusy={false}
+      isBusy={extras.isBusy ?? false}
       isReadOnly={isReadOnly}
-      isRunActive={false}
+      isRunActive={extras.isRunActive ?? false}
       isSubmittingInputRequest={false}
       latestProposedPlan={null}
       layoutMode="fixed"
@@ -141,15 +156,32 @@ describe('AgentChatPromptBar', () => {
           content: 'Write a caption next',
           createdAt: '2026-08-13T00:00:00.000Z',
           id: 'q-1',
+          status: 'queued',
+          threadId: 'thread-1',
         },
       ],
+      isBusy: true,
+      isRunActive: true,
       onMoveFollowUp: vi.fn(),
       onRemoveFollowUp: vi.fn(),
       onSendFollowUpNow: vi.fn(),
     });
 
-    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
-      'Write a caption next',
-    );
+    const queue = screen.getByTestId('composer-follow-up-queue');
+    expect(queue).toHaveTextContent('Write a caption next');
+    expect(queue).toHaveAccessibleName('count');
+    expect(screen.getByLabelText('remove')).toBeInTheDocument();
+  });
+
+  it('keeps the composer writable and Stop visible while a run is active', () => {
+    renderPromptBar(false, {
+      isBusy: true,
+      isRunActive: true,
+    });
+
+    const input = screen.getByTestId('chat-input');
+    expect(input).toHaveAttribute('data-disabled', 'false');
+    expect(input).toHaveAttribute('data-show-stop', 'true');
+    expect(input).toHaveAttribute('data-will-queue', 'true');
   });
 });

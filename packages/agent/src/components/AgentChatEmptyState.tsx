@@ -39,14 +39,17 @@ type AgentChatEmptyStateProps = {
   /** Compact rail layout for the workspace inspector drawer. */
   variant?: 'default' | 'inspector';
   onMoveFollowUp?: (fromIndex: number, toIndex: number) => void;
+  onPromoteQueuedFollowUp?: () => void;
   onRemoveFollowUp?: (id: string) => void;
+  onRetryFollowUp?: (id: string) => void;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
     options?: ConversationComposerSendOptions,
-  ) => void;
+  ) => boolean | undefined | Promise<boolean | undefined>;
   onSendFollowUpNow?: (id: string) => void;
+  isInterruptingFollowUps?: boolean;
   onStop: () => void;
   placeholder?: string;
   promptBarSuggestions: ReactNode;
@@ -81,10 +84,13 @@ export function AgentChatEmptyState({
   isWideLayout,
   variant = 'default',
   onMoveFollowUp,
+  onPromoteQueuedFollowUp,
   onSend,
   onSendFollowUpNow,
   onStop,
   onRemoveFollowUp,
+  onRetryFollowUp,
+  isInterruptingFollowUps = false,
   placeholder,
   promptBarSuggestions,
   removeAttachment,
@@ -103,8 +109,11 @@ export function AgentChatEmptyState({
     onRemoveFollowUp &&
     onSendFollowUpNow ? (
       <ComposerFollowUpQueue
+        isBusy={isBusy}
+        isInterrupting={isInterruptingFollowUps}
         onMove={onMoveFollowUp}
         onRemove={onRemoveFollowUp}
+        onRetry={onRetryFollowUp}
         onSendNow={onSendFollowUpNow}
         queue={followUps}
       />
@@ -175,6 +184,8 @@ export function AgentChatEmptyState({
                 attachments={chatAttachments}
                 clearAllAttachments={clearAllAttachments}
                 disabled={isReadOnly}
+                hasQueuedFollowUps={followUps.length > 0}
+                onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
                 dragHandlers={dragHandlers}
                 dragState={dragState}
                 getCompletedAttachments={getCompletedAttachments}
