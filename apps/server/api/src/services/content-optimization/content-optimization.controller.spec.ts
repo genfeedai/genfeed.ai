@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
@@ -22,6 +23,11 @@ describe('ContentOptimizationController', () => {
     queueAnalysis: vi.fn(),
   };
 
+  const mockAbTestHarness = {
+    executeSuggestion: vi.fn(),
+    resolveOutcomes: vi.fn(),
+  };
+
   const organizationId = testId('org');
 
   const mockUser = {
@@ -42,6 +48,10 @@ describe('ContentOptimizationController', () => {
         {
           provide: ContentOptimizationQueueService,
           useValue: mockQueueService,
+        },
+        {
+          provide: AbTestSuggestionHarnessService,
+          useValue: mockAbTestHarness,
         },
       ],
     })
@@ -139,6 +149,39 @@ describe('ContentOptimizationController', () => {
       'brand-1',
     );
     expect(result).toHaveLength(1);
+  });
+
+  it('should execute an A/B suggestion as attributed arms', async () => {
+    mockAbTestHarness.executeSuggestion.mockResolvedValue({
+      armCount: 2,
+      groupId: 'group-1',
+      postIds: ['post-a', 'post-b'],
+      suggestionId: 'sug-1',
+    });
+
+    const result = await controller.executeAbTest('brand-1', mockUser, {
+      hypothesis: 'Question hooks win',
+      platform: 'instagram',
+      suggestionId: 'sug-1',
+      variable: 'hook_style',
+      variantA: 'A',
+      variantB: 'B',
+    });
+
+    expect(mockAbTestHarness.executeSuggestion).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      organizationId,
+      suggestion: {
+        hypothesis: 'Question hooks win',
+        platform: 'instagram',
+        suggestionId: 'sug-1',
+        variable: 'hook_style',
+        variantA: 'A',
+        variantB: 'B',
+      },
+      userId: mockUser.userId,
+    });
+    expect(result.armCount).toBe(2);
   });
 
   it('should trigger optimization and return queued status', async () => {
