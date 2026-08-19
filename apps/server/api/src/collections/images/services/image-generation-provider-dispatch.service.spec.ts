@@ -406,6 +406,33 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
   });
 
+  it('dispatches FLUX Schnell from the compiled brief instead of rebuilding prompt context', async () => {
+    const compiledDispatch = {
+      aspect_ratio: '16:9',
+      disable_safety_checker: false,
+      go_fast: true,
+      num_inference_steps: 4,
+      num_outputs: 1,
+      output_format: 'jpg',
+      output_quality: 80,
+      prompt: 'a sunset over the ocean',
+    };
+    replicateService.generateTextToImage.mockResolvedValue('replicate-job');
+    const context = buildContext({
+      compiledDispatch,
+      model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+      compiledDispatch,
+    );
+  });
+
   it('skips finalize when the ingredient is no longer processing', async () => {
     const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
     promptBuilderService.buildPrompt.mockResolvedValue({

@@ -23,6 +23,7 @@ export interface MediaDocumentsInput {
   externalProvider?: string;
   generationPrompt?: string;
   generationSeed?: number;
+  generationSource?: string;
   groupId?: string;
   groupIndex?: number;
   hasAudio?: boolean;
@@ -38,6 +39,7 @@ export interface MediaDocumentsInput {
   parentId?: string;
   promptId?: string;
   promptTemplate?: string;
+  providerData?: Record<string, unknown>;
   resolution?: string;
   result?: string;
   scope?: AssetScope;
