@@ -550,6 +550,26 @@ describe('AppProtectedTopbar', () => {
     expect(setIsMobileOpen).toHaveBeenCalledWith(true);
   });
 
+  it('toggles the inspector drawer closed when it is already open', () => {
+    const setIsMobileOpen = vi.fn();
+    workspaceInspectorState.value = {
+      isMobileOpen: true,
+      isOpen: true,
+      isRegistered: true,
+      setIsMobileOpen,
+      toggle: vi.fn(),
+    };
+
+    render(<AppProtectedTopbar />);
+
+    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
+    expect(drawerToggle).toHaveAccessibleName('Close workspace inspector');
+    expect(drawerToggle).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(drawerToggle);
+    expect(setIsMobileOpen).toHaveBeenCalledWith(false);
+  });
+
   it('clears the visible brand on explicit organization routes', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
 

@@ -597,6 +597,16 @@ describe('UniversalWorkspaceShell', () => {
     });
     inspectorConversationMount.mockClear();
     agentActions.resetActiveConversationState.mockClear();
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      addEventListener: vi.fn(),
+      addListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches: false,
+      media: query,
+      onchange: null,
+      removeEventListener: vi.fn(),
+      removeListener: vi.fn(),
+    }));
     agentActions.setActiveThread.mockReset();
     agentActions.setActiveThread.mockImplementation(
       (threadId: string | null) => {
@@ -979,6 +989,16 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('opens the mobile inspector drawer on the composer conversation event', async () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      addEventListener: vi.fn(),
+      addListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches: query === '(max-width: 1279px)',
+      media: query,
+      onchange: null,
+      removeEventListener: vi.fn(),
+      removeListener: vi.fn(),
+    }));
     navigation.pathname = '/acme/moonrise/publish/overview';
     navigation.searchParams = new URLSearchParams();
 
@@ -1001,6 +1021,32 @@ describe('UniversalWorkspaceShell', () => {
         'Context and conversation for the active workspace surface.',
       ),
     ).toBeVisible();
+  });
+
+  it('keeps the desktop rail conversation on the composer event at xl+', async () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole('tab', { name: 'Conversation' })
+          .some((tab) => tab.getAttribute('aria-selected') === 'true'),
+      ).toBe(true),
+    );
+    expect(
+      screen.queryByText(
+        'Context and conversation for the active workspace surface.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('leads the inspector rail with Context, then Conversation', () => {

@@ -385,7 +385,9 @@ function UniversalWorkspaceShellContent({
     };
     const openConversationTab = () => {
       applyInspectorKind('conversation', 'open');
-      setIsMobileInspectorOpen(true);
+      if (window.matchMedia('(max-width: 1279px)').matches) {
+        setIsMobileInspectorOpen(true);
+      }
     };
     const openFilesTab = () => {
       applyInspectorKind('files', 'open');

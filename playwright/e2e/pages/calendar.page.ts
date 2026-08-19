@@ -52,9 +52,10 @@ export class CalendarPage {
       '[data-testid="loading"], .loading, .spinner',
     );
 
-    // Calendar layout tabs
-    this.postsTab = page.locator('a[href="/calendar/posts"]');
-    this.articlesTab = page.locator('a[href="/calendar/articles"]');
+    // Posts calendar is canonical. Articles live at the Lab list, not a
+    // second calendar route — keep the locators distinct.
+    this.postsTab = page.locator(`a[href="${APP_ROUTES.PUBLISH.CALENDAR}"]`);
+    this.articlesTab = page.locator(`a[href="${APP_ROUTES.LAB.ARTICLES}"]`);
 
     // Calendar grid elements
     this.calendarGrid = page.locator(
@@ -148,7 +149,15 @@ export class CalendarPage {
   }
 
   async switchToArticlesTab(): Promise<void> {
-    await this.articlesTab.click();
+    const isVisible = await this.articlesTab
+      .first()
+      .isVisible()
+      .catch(() => false);
+    if (isVisible) {
+      await this.articlesTab.first().click();
+    } else {
+      await this.page.goto(APP_ROUTES.LAB.ARTICLES);
+    }
     await this.waitForPageLoad();
   }
 
@@ -226,10 +235,10 @@ export class CalendarPage {
   }
 
   async assertPostsTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(/calendar\/posts/);
+    await expect(this.page).toHaveURL(/\/publish\/calendar/);
   }
 
   async assertArticlesTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(/calendar\/articles/);
+    await expect(this.page).toHaveURL(/\/lab\/articles/);
   }
 }

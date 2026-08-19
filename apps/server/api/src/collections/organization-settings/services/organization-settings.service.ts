@@ -5,6 +5,13 @@ import { UpdateOrganizationSettingDto } from '@api/collections/organization-sett
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { isCloudDeployment } from '@genfeedai/config';
+import {
+  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+  LOWEST_COST_VIDEO_MODEL_KEY,
+  shouldUseLowestCostModelDefaults,
+} from '@genfeedai/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -12,6 +19,7 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -28,6 +36,7 @@ export class OrganizationSettingsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly moduleRef: ModuleRef,
+    private readonly configService: ConfigService,
   ) {
     super(prisma, 'organizationSetting', logger);
   }
@@ -86,7 +95,12 @@ export class OrganizationSettingsService extends BaseService<
       return setting;
     }
 
-    const enabledModelIds = await this.getLatestMajorVersionModelIds();
+    const enabledModelIds = shouldUseLowestCostModelDefaults({
+      isCloud: isCloudDeployment(),
+      nodeEnv: this.configService.get('NODE_ENV'),
+    })
+      ? await this.getLowestCostModelIds()
+      : await this.getLatestMajorVersionModelIds();
     if (enabledModelIds.length === 0) {
       return setting;
     }
@@ -147,6 +161,21 @@ export class OrganizationSettingsService extends BaseService<
       data: { webhookDeliveryStatus: status } as never,
       where: { id: setting.id },
     });
+  }
+
+  async getLowestCostModelIds(): Promise<string[]> {
+    const lowestCostKeys: ReadonlySet<string> = new Set([
+      LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+      LOWEST_COST_IMAGE_MODEL_KEY,
+      LOWEST_COST_VIDEO_MODEL_KEY,
+    ]);
+    const activeModels = await this.getModelsService().findAllActive({
+      organizationId: null,
+    });
+
+    return (activeModels ?? [])
+      .filter((model) => lowestCostKeys.has(model.key ?? ''))
+      .map((model) => model.id);
   }
 
   /**

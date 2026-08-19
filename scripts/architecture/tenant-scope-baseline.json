@@ -3272,22 +3272,7 @@
       "model": "ContentPerformance",
       "reason": "unresolved-where"
     },
-    {
-      "delegate": "post",
-      "file": "apps/server/server/src/collections/content-performance/services/performance-summary.service.ts",
-      "fingerprint": "968184550416e7d9841d",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/server/src/collections/content-performance/services/performance-summary.service.ts",
-      "fingerprint": "f9e8dc5848568f3fbfd5",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
+
     {
       "delegate": "post",
       "file": "apps/server/server/src/publish-approvals/publish-approvals.service.ts",
