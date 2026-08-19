@@ -75,6 +75,34 @@ export function buildBetterAuthDashOptions(
 }
 
 /**
+ * Keep Dash's plugin-owned activity timestamp out of public user inputs.
+ *
+ * Infra 0.4.0 omits `input: false`, and Better Auth merges plugin fields after
+ * `user.additionalFields`, so the protection must live on the returned plugin
+ * schema rather than in the app-level user field configuration.
+ */
+export function buildBetterAuthDashPlugin(apiKey: string) {
+  const plugin = dash(buildBetterAuthDashOptions(apiKey));
+
+  return {
+    ...plugin,
+    schema: {
+      ...plugin.schema,
+      user: {
+        ...plugin.schema.user,
+        fields: {
+          ...plugin.schema.user.fields,
+          lastActiveAt: {
+            ...plugin.schema.user.fields.lastActiveAt,
+            input: false as const,
+          },
+        },
+      },
+    },
+  };
+}
+
+/**
  * Build the deployment-sensitive Better Auth options in one testable boundary.
  *
  * Community/self-hosted deployments keep the default host-scoped cookie when
@@ -771,7 +799,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     },
     databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated),
     plugins: [
-      ...(apiKey ? [dash(buildBetterAuthDashOptions(apiKey))] : []),
+      ...(apiKey ? [buildBetterAuthDashPlugin(apiKey)] : []),
       magicLink(
         buildBetterAuthMagicLinkOptions({
           prisma,

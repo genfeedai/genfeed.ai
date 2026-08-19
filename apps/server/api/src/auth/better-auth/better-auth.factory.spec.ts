@@ -1,11 +1,13 @@
 import { PlatformRole } from '@genfeedai/enums';
-import type { RateLimit } from 'better-auth';
+import type { BetterAuthOptions, RateLimit } from 'better-auth';
+import { parseUserInput } from 'better-auth/db';
 import { describe, expect, it, vi } from 'vitest';
 import {
   assertSignupMagicLinkCanCreateUser,
   buildBetterAuthAdminOptions,
   buildBetterAuthAdvancedOptions,
   buildBetterAuthDashOptions,
+  buildBetterAuthDashPlugin,
   buildBetterAuthMagicLinkOptions,
   buildBetterAuthOrganizationOptions,
   buildBetterAuthUserDatabaseHooks,
@@ -409,6 +411,25 @@ describe('buildBetterAuthDashOptions', () => {
   });
 });
 
+describe('buildBetterAuthDashPlugin', () => {
+  it.each(['create', 'update'] as const)(
+    'rejects client-supplied activity timestamps during user %s',
+    (action) => {
+      const options = {
+        plugins: [buildBetterAuthDashPlugin('better_auth_api_key')],
+      } satisfies BetterAuthOptions;
+
+      expect(() =>
+        parseUserInput(
+          options,
+          { lastActiveAt: new Date('2099-01-01T00:00:00.000Z') },
+          action,
+        ),
+      ).toThrow('lastActiveAt is not allowed to be set');
+    },
+  );
+});
+
 describe('buildBetterAuthUserDatabaseHooks', () => {
   it('generates a URL-safe handle when first-time user creation has none', async () => {
     const hooks = requireUserCreateHooks();
@@ -645,12 +666,10 @@ describe('createBetterAuthInstance source', () => {
     );
   });
 
-  it('passes activity tracking options into the dashboard plugin', () => {
+  it('installs the hardened activity tracking dashboard plugin', () => {
     const source = createBetterAuthInstance.toString();
 
-    expect(source).toMatch(
-      /dash\)?\s*\(\s*buildBetterAuthDashOptions\(apiKey\)\s*\)/,
-    );
+    expect(source).toContain('buildBetterAuthDashPlugin(apiKey)');
   });
 
   it('declares `handle` as a known user field so first-time sign-ups persist it', () => {
