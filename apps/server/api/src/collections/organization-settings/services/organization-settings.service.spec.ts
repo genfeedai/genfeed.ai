@@ -8,10 +8,14 @@ import { describe, expect, it, vi } from 'vitest';
 
 function makeService(
   nodeEnv = 'test',
-  configGet: ReturnType<typeof vi.fn> = vi.fn((key: string) =>
-    key === 'NODE_ENV' ? nodeEnv : undefined,
-  ),
+  configGet?: ReturnType<typeof vi.fn>,
+  modelsService: { findAllActive: ReturnType<typeof vi.fn> } = {
+    findAllActive: vi.fn().mockResolvedValue([]),
+  },
 ): OrganizationSettingsService {
+  const resolvedConfigGet =
+    configGet ??
+    vi.fn((key: string) => (key === 'NODE_ENV' ? nodeEnv : undefined));
   return new OrganizationSettingsService(
     { organizationSetting: {} } as never,
     {
@@ -20,8 +24,8 @@ function makeService(
       log: () => undefined,
       warn: () => undefined,
     } as unknown as LoggerService,
-    { get: () => undefined } as unknown as ModuleRef,
-    { get: configGet } as unknown as ConfigService,
+    { get: () => modelsService } as unknown as ModuleRef,
+    { get: resolvedConfigGet } as unknown as ConfigService,
   );
 }
 
@@ -87,7 +91,11 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
   });
 
   it('leaves a configured allowlist untouched so disabling a model sticks', async () => {
-    const service = makeService();
+    const service = makeService('test', undefined, {
+      findAllActive: vi
+        .fn()
+        .mockResolvedValue([{ id: 'model_1', key: 'google/nano-banana' }]),
+    });
     const patch = vi.spyOn(service, 'patch');
     const latest = vi.spyOn(service, 'getLatestMajorVersionModelIds');
     const setting = { enabledModelIds: ['model_1'], id: 'set_1' } as never;
@@ -99,5 +107,30 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
     expect(result).toBe(setting);
     expect(patch).not.toHaveBeenCalled();
     expect(latest).not.toHaveBeenCalled();
+  });
+
+  it('re-seeds when every stored id is stale so all visible toggles are off', async () => {
+    const service = makeService('test', undefined, {
+      findAllActive: vi.fn().mockResolvedValue([]),
+    });
+    const patch = vi
+      .spyOn(service, 'patch')
+      .mockResolvedValue({ id: 'set_1' } as never);
+    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue([
+      'live_1',
+      'live_2',
+    ]);
+    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
+      'cloud_1',
+    ]);
+
+    await service.ensureEnabledModelIds({
+      enabledModelIds: ['dead_model'],
+      id: 'set_1',
+    } as never);
+
+    expect(patch).toHaveBeenCalledWith('set_1', {
+      enabledModelIds: ['live_1', 'live_2'],
+    });
   });
 });

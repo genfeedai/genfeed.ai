@@ -136,6 +136,16 @@ const CONFIG_PATTERNS: Array<{
     isConfigurationError: false,
   },
   {
+    // Auto generate with an empty or all-off allowlist after seed (#3227).
+    // Do not tell the operator to switch to Auto — they are already on Auto.
+    match: /No models enabled for this workspace/i,
+    title: 'Action not allowed',
+    summary: 'This workspace has no models enabled for generate.',
+    recovery: 'Enable at least one model in Org Settings → Models, then retry.',
+    includeRawDetail: true,
+    isConfigurationError: false,
+  },
+  {
     // Our confirm-generate hop returns JSON:API 403 (allowlist, brand, org).
     // That is not Replicate/fal rejecting the account — keep it off the
     // generic provider-403 rule below.

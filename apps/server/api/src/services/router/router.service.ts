@@ -1,5 +1,6 @@
 import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { isModelOnAllowlist } from '@api/collections/models/utils/enabled-model.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -20,7 +21,7 @@ import {
 } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 
 /**
  * Last-resort keys for a registry that holds nothing usable in a category.
@@ -189,8 +190,7 @@ export class RouterService {
       return [];
     }
 
-    const enabled = new Set(enabledModelIds);
-    return models.filter((model) => enabled.has(String(model.id)));
+    return models.filter((model) => isModelOnAllowlist(model, enabledModelIds));
   }
 
   /**
@@ -712,8 +712,16 @@ export class RouterService {
       if (models.length === 0) {
         this.logger.warn(`${url} no models found for category`, {
           category: options.category,
+          organizationId: options.organizationId,
         });
-        // Fallback to default model
+
+        // An org-scoped Auto pick that misses the allowlist must not fall
+        // back to a catalog default. That default then fails
+        // validateModelForOrg with "Model not enabled" (#3227).
+        if (options.organizationId) {
+          throw new ForbiddenException('No models enabled for this workspace');
+        }
+
         const defaultKey = await this.getDefaultModel(options.category);
         const defaultModel = await this.modelsService.findOne({
           key: defaultKey,

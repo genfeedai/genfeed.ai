@@ -71,6 +71,18 @@ describe('formatAgentError', () => {
     expect(formatted.detail).toMatch(/Insufficient permissions/i);
   });
 
+  it('does not tell the operator to switch to Auto when no models are enabled', () => {
+    const formatted = formatAgentError(
+      'Failed to respond to UI action: 403 - No models enabled for this workspace',
+    );
+
+    expect(formatted.title).toBe('Action not allowed');
+    expect(formatted.summary).toMatch(/no models enabled/i);
+    expect(formatted.recovery).toMatch(/Org Settings/i);
+    expect(formatted.recovery).not.toMatch(/switch to auto/i);
+    expect(formatted.title).not.toBe('Provider access denied');
+  });
+
   it('keeps a specific UI-action 403 detail when the hop named the real reason', () => {
     const formatted = formatAgentError(
       'Failed to respond to UI action: 403 - Model not enabled for this organization',
