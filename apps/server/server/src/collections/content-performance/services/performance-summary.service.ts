@@ -269,7 +269,7 @@ export class PerformanceSummaryService {
     const analytics = await this.prisma.postAnalytics.findMany({
       where: {
         ...matchFilter,
-        post: scopedWhere(organizationId),
+        post: { is: scopedWhere(organizationId) },
       },
       orderBy: { engagementRate: 'desc' },
       take: 50,
@@ -402,11 +402,10 @@ export class PerformanceSummaryService {
     minViews?: number,
   ): Promise<PerformanceContentItem[]> {
     const organizationId = String(matchFilter.organizationId ?? '');
-    const activePostScope = scopedWhere(organizationId);
     const where: Prisma.PostAnalyticsWhereInput = {
       ...matchFilter,
       ...(minViews === undefined ? {} : { totalViews: { gte: minViews } }),
-      post: activePostScope,
+      post: { is: scopedWhere(organizationId) },
     };
 
     const analytics = await this.prisma.postAnalytics.findMany({

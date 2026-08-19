@@ -123,7 +123,9 @@ describe('WorkflowSurfaceInspector', () => {
     expect(screen.getByText('conversation')).toBeInTheDocument();
     expect(screen.getByText('v4 · agent')).toBeInTheDocument();
     expect(screen.getByText('Review required')).toBeInTheDocument();
-    expect(screen.getByText(/Enabled · 0 9 \* \* \*/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Enabled · Every day at 9:00 AM/),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
 
