@@ -37,7 +37,7 @@ export default function PricingStrip({ className }: PricingStripProps) {
               key={column.tier}
               className={cn(
                 'px-6 py-5 text-center',
-                isFeatured && 'bg-white/[0.04]',
+                isFeatured && 'bg-[var(--gen-accent-bg)]',
               )}
             >
               <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-surface/50">

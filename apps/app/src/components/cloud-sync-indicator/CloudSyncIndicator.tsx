@@ -101,7 +101,7 @@ export default function CloudSyncIndicator() {
           </p>
         </div>
         {hybrid && !isConnected && (
-          <div className="border-t border-white/[0.06] px-3 py-2">
+          <div className="border-t border-border px-3 py-2">
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}

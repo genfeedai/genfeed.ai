@@ -26,7 +26,7 @@ export default function BrandKPISection({
         {
           description: 'Published content',
           icon: Video,
-          iconClassName: 'bg-white/10 text-foreground',
+          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Total Posts',
           value: analytics?.totalPosts || 0,
         },
@@ -35,7 +35,7 @@ export default function BrandKPISection({
             ? `${analytics.viewsGrowth > 0 ? '+' : ''}${analytics.viewsGrowth}% from last period`
             : 'Total views',
           icon: Eye,
-          iconClassName: 'bg-white/10 text-foreground',
+          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Total Views',
           value: analytics?.totalViews || 0,
         },
@@ -44,14 +44,14 @@ export default function BrandKPISection({
             ? `${analytics.engagementGrowth > 0 ? '+' : ''}${analytics.engagementGrowth}% from last period`
             : 'Total engagement',
           icon: Heart,
-          iconClassName: 'bg-white/10 text-foreground',
+          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Total Engagement',
           value: analytics?.totalEngagement || analytics?.totalLikes || 0,
         },
         {
           description: 'Average engagement rate',
           icon: Flame,
-          iconClassName: 'bg-white/10 text-foreground',
+          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Engagement Rate',
           value: analytics?.avgEngagementRate
             ? `${analytics.avgEngagementRate.toFixed(2)}%`
@@ -60,14 +60,14 @@ export default function BrandKPISection({
         {
           description: 'Publishing channels',
           icon: Globe,
-          iconClassName: 'bg-white/10 text-foreground',
+          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Active Platforms',
           value: platformCount,
         },
         {
           description: 'Per content piece',
           icon: ChartColumn,
-          iconClassName: 'bg-white/10 text-foreground',
+          iconClassName: 'bg-foreground/10 text-foreground',
           label: 'Avg Views/Post',
           value:
             analytics?.totalPosts && analytics?.totalViews

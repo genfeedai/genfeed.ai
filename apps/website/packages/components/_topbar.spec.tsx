@@ -22,6 +22,10 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/',
 }));
 
+vi.mock('next-themes', () => ({
+  useTheme: () => ({ setTheme: vi.fn(), theme: 'system' }),
+}));
+
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -77,5 +81,24 @@ describe('WebsiteTopbar', () => {
         screen.getByRole('link', { name: new RegExp(destination, 'i') }),
       ).toBeInTheDocument();
     }
+  });
+
+  it('offers an accessible public appearance control', async () => {
+    render(<WebsiteTopbar />);
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Appearance: System' }),
+      { button: 0, ctrlKey: false },
+    );
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'System' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Light' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Dark' }),
+    ).toBeInTheDocument();
   });
 });

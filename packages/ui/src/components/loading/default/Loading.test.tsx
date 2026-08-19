@@ -10,7 +10,12 @@ describe('Loading', () => {
     const spinner = screen.getByRole('status', { name: 'Loading' });
 
     expect(rootElement).toHaveClass('min-h-screen');
-    expect(spinner).toHaveClass('animate-spin', 'size-6');
+    expect(spinner).toHaveClass(
+      'animate-spin',
+      'size-6',
+      'text-foreground/80',
+    );
+    expect(spinner).not.toHaveClass('text-white/80');
     expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
 
@@ -29,6 +34,9 @@ describe('Loading', () => {
     expect(screen.getByRole('status', { name: 'Loading posts' })).toHaveClass(
       'animate-spin',
     );
-    expect(screen.getByText('Loading posts')).toBeInTheDocument();
+    expect(screen.getByText('Loading posts')).toHaveClass(
+      'text-muted-foreground',
+    );
+    expect(screen.getByText('Loading posts')).not.toHaveClass('text-white/40');
   });
 });

@@ -55,7 +55,7 @@ export default function PublishContentLibraryToolbar({
           placeholder="Search content"
           size={ComponentSize.SM}
           className="w-full"
-          inputClassName="h-8 rounded-md border-white/10 bg-white/[0.03] text-white/90 focus:border-white/20 focus:outline-none"
+          inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
         />
       </div>
 
@@ -67,7 +67,7 @@ export default function PublishContentLibraryToolbar({
       >
         <SelectTrigger
           aria-label="Content type"
-          className="h-8 w-32 rounded-md border-white/10 bg-white/[0.03]"
+          className="h-8 w-32 rounded-md border-border bg-card text-foreground"
         >
           <SelectValue />
         </SelectTrigger>
@@ -88,7 +88,7 @@ export default function PublishContentLibraryToolbar({
       <Select value={channelValue} onValueChange={onChannelChange}>
         <SelectTrigger
           aria-label="Channel"
-          className="h-8 w-36 rounded-md border-white/10 bg-white/[0.03]"
+          className="h-8 w-36 rounded-md border-border bg-card text-foreground"
         >
           <SelectValue />
         </SelectTrigger>
@@ -105,7 +105,7 @@ export default function PublishContentLibraryToolbar({
       <Select value={statusValue} onValueChange={onStatusChange}>
         <SelectTrigger
           aria-label="Lifecycle status"
-          className="h-8 w-40 rounded-md border-white/10 bg-white/[0.03]"
+          className="h-8 w-40 rounded-md border-border bg-card text-foreground"
         >
           <SelectValue />
         </SelectTrigger>

@@ -140,7 +140,7 @@ export default function ChatJourneyPage() {
                     <h2 className="text-lg font-semibold text-foreground">
                       {mission.label}
                     </h2>
-                    <span className="rounded-full bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
+                    <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
                       +{mission.rewardCredits} credits
                     </span>
                     {isRecommended ? (
@@ -149,7 +149,7 @@ export default function ChatJourneyPage() {
                       </span>
                     ) : null}
                     {isCompleted ? (
-                      <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-300">
+                      <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
                         Completed
                       </span>
                     ) : null}

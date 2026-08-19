@@ -9,6 +9,13 @@ async function localeErrorsFor(locale: unknown) {
   return errors.filter((error) => error.property === 'locale');
 }
 
+async function themeErrorsFor(theme: unknown) {
+  const dto = plainToInstance(CreateSettingDto, { theme });
+  const errors = await validate(dto);
+
+  return errors.filter((error) => error.property === 'theme');
+}
+
 describe('CreateSettingDto', () => {
   it('should be defined', () => {
     expect(CreateSettingDto).toBeDefined();
@@ -35,6 +42,20 @@ describe('CreateSettingDto', () => {
 
       expect(localeErrors).toHaveLength(1);
       expect(localeErrors[0]?.constraints).toHaveProperty('isIn');
+    });
+
+    it.each(['system', 'light', 'dark'])(
+      'accepts the %s theme preference',
+      async (theme) => {
+        expect(await themeErrorsFor(theme)).toEqual([]);
+      },
+    );
+
+    it('rejects a theme outside the shared allowlist', async () => {
+      const themeErrors = await themeErrorsFor('solarized');
+
+      expect(themeErrors).toHaveLength(1);
+      expect(themeErrors[0]?.constraints).toHaveProperty('isIn');
     });
   });
 });

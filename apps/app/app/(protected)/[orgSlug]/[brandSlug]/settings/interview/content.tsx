@@ -72,7 +72,7 @@ function answerValueToDraft(
 function ProgressBar({ label, percent }: { label: string; percent: number }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-500"
           style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}

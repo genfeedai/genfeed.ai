@@ -64,7 +64,7 @@ export default function PostsListToolbar({
           // SM keeps the control on the same 32px shell row as ViewToggle + refresh.
           size={ComponentSize.SM}
           className="w-full"
-          inputClassName="h-8 rounded-md border-white/10 bg-white/[0.03] text-white/90 focus:border-white/20 focus:outline-none"
+          inputClassName="h-8 rounded-md border-border bg-card text-foreground focus:border-border-strong focus:outline-none"
         />
       </div>
 
@@ -77,7 +77,7 @@ export default function PostsListToolbar({
         >
           <SelectTrigger
             aria-label={translate('toolbar.publishingStateAria')}
-            className="h-8 w-32 rounded-md border-white/10 bg-white/[0.03]"
+            className="h-8 w-32 rounded-md border-border bg-card text-foreground"
           >
             <SelectValue />
           </SelectTrigger>
@@ -96,7 +96,7 @@ export default function PostsListToolbar({
         value={sortValue}
         options={sortOptions}
         onChange={(_name, value) => onSortChange(value)}
-        className="h-8 rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white/80 hover:bg-white/[0.06] hover:text-white"
+        className="h-8 rounded-md border border-border bg-card px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground"
       />
     </div>
   );

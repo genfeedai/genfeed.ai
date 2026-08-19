@@ -13,6 +13,11 @@
    imports because an `@import` that follows any other rule is invalid CSS. */
 @plugin "@tailwindcss/typography";
 
+/* next-themes writes the resolved color to data-theme. Keep every Tailwind
+   `dark:*` utility on that same source of truth instead of the default class
+   selector, which these apps do not use. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @source "../../node_modules/@shipshitdev/ui/dist";
 
 @theme inline {

@@ -58,14 +58,14 @@ function GroupRow({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         onClick={() => setExpanded(!isExpanded)}
-        className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-white/[0.04]"
+        className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-foreground/[0.04]"
       >
         {isComplete ? (
           <Check className="size-3.5 text-green-400/60 flex-shrink-0" />
         ) : (
           <ChevronDown
             className={cn(
-              'size-3.5 text-white/20 flex-shrink-0 transition-transform duration-200',
+              'size-3.5 flex-shrink-0 text-foreground/20 transition-transform duration-200',
               !isExpanded && '-rotate-90',
             )}
           />
@@ -73,19 +73,21 @@ function GroupRow({
         <span
           className={cn(
             'flex-1 text-[12px]',
-            isComplete ? 'text-white/30 line-through' : 'text-white/60',
+            isComplete
+              ? 'text-foreground/30 line-through'
+              : 'text-foreground/60',
           )}
         >
           {group.label}
         </span>
         <div className="flex items-center gap-2">
-          <div className="h-1 w-10 rounded-full bg-white/[0.06] overflow-hidden">
+          <div className="h-1 w-10 overflow-hidden rounded-full bg-foreground/[0.06]">
             <div
               className="h-full rounded-full bg-foreground transition-all duration-500 ease-out"
               style={{ width: `${group.score}%` }}
             />
           </div>
-          <span className="text-[10px] font-medium text-white/30 w-7 text-right">
+          <span className="w-7 text-right text-[10px] font-medium text-foreground/30">
             {group.score}%
           </span>
         </div>
@@ -97,9 +99,9 @@ function GroupRow({
             <Link
               key={field.key}
               href={href(field.href)}
-              className="flex items-center gap-2 px-2 py-1 rounded text-[11px] text-white/45 transition-colors duration-150 hover:text-white/70 hover:bg-white/[0.04]"
+              className="flex items-center gap-2 rounded px-2 py-1 text-[11px] text-foreground/45 transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground/70"
             >
-              <ChevronRight className="size-3 text-white/15 flex-shrink-0" />
+              <ChevronRight className="size-3 flex-shrink-0 text-foreground/15" />
               {field.label}
             </Link>
           ))}
@@ -126,16 +128,16 @@ export default function BrandCompletenessCard({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold text-white/60">
+        <span className="text-[11px] font-semibold text-foreground/60">
           Brand context
         </span>
-        <span className="text-[10px] font-medium text-white/30">
+        <span className="text-[10px] font-medium text-foreground/30">
           {result.overallScore}%
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 rounded-full bg-white/[0.06] mb-3 overflow-hidden">
+      <div className="mb-3 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
           className="h-full rounded-full bg-foreground transition-all duration-500 ease-out"
           style={{ width: `${result.overallScore}%` }}
@@ -150,7 +152,7 @@ export default function BrandCompletenessCard({
       </div>
 
       {/* Hint */}
-      <p className="mt-3 text-[10px] text-white/25 leading-relaxed">
+      <p className="mt-3 text-[10px] leading-relaxed text-foreground/30">
         Filling in brand context improves AI content quality.
       </p>
 
@@ -158,7 +160,7 @@ export default function BrandCompletenessCard({
       {result.groups.some(
         (g) => g.key !== 'visual' && g.fields.some((f) => !f.isComplete),
       ) && (
-        <div className="mt-2 pt-2 border-t border-white/[0.06]">
+        <div className="mt-2 border-t border-border pt-2">
           <Button variant={ButtonVariant.UNSTYLED} withWrapper={false}>
             <Link
               href={href('/settings/interview')}

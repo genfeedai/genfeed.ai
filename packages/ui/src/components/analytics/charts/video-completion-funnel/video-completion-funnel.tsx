@@ -158,7 +158,7 @@ export function VideoCompletionFunnel({
 
       {/* Summary Stats */}
       {!isEmpty && !isLoading && (
-        <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/[0.08]">
+        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-border pt-6">
           <div className="text-center">
             <div className="text-2xl font-bold text-success">
               {formatPercentageSimple((data.completed100 / data.started) * 100)}

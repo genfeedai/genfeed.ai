@@ -9,6 +9,69 @@ import {
 import '../styles/globals.css';
 import { DOCS_ORIGIN } from './seo';
 
+function normalizeStoredTheme() {
+  try {
+    const storedTheme = window.localStorage.getItem('theme');
+
+    if (
+      storedTheme !== null &&
+      storedTheme !== 'system' &&
+      storedTheme !== 'light' &&
+      storedTheme !== 'dark'
+    ) {
+      window.localStorage.setItem('theme', 'system');
+    }
+  } catch {
+    // Nextra will fall back to System when storage is unavailable.
+  }
+
+  const darkMediaQuery = '(prefers-color-scheme: dark)';
+
+  try {
+    if (typeof window.matchMedia === 'function') {
+      const mediaQuery = window.matchMedia(darkMediaQuery);
+
+      if (
+        typeof mediaQuery.addListener === 'function' &&
+        typeof mediaQuery.removeListener === 'function'
+      ) {
+        return;
+      }
+    }
+  } catch {
+    // Install the deterministic fallback below.
+  }
+
+  const fallbackMatchMedia = (query: string) =>
+    ({
+      addEventListener: () => undefined,
+      addListener: () => undefined,
+      dispatchEvent: () => false,
+      matches: query === darkMediaQuery,
+      media: query,
+      onchange: null,
+      removeEventListener: () => undefined,
+      removeListener: () => undefined,
+    }) as MediaQueryList;
+
+  try {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: fallbackMatchMedia,
+      writable: true,
+    });
+  } catch {
+    try {
+      window.matchMedia = fallbackMatchMedia;
+    } catch {
+      // A non-configurable host API cannot be repaired here.
+    }
+  }
+}
+
+export const DOCS_THEME_STORAGE_BOOTSTRAP_SOURCE =
+  `(${normalizeStoredTheme.toString()})()`;
+
 export const metadata = {
   description:
     'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.',
@@ -82,14 +145,31 @@ export default async function RootLayout({
 
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
-      <Head />
+      <Head>
+        <script
+          id="genfeed-theme-storage-bootstrap"
+          suppressHydrationWarning
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: trusted bootstrap sanitizes storage before Nextra's next-themes script executes
+          dangerouslySetInnerHTML={{
+            __html: DOCS_THEME_STORAGE_BOOTSTRAP_SOURCE,
+          }}
+        />
+      </Head>
       <body>
         <Layout
+          darkMode
           navbar={navbar}
           footer={footer}
+          nextThemes={{
+            attribute: 'class',
+            defaultTheme: 'system',
+            disableTransitionOnChange: true,
+            storageKey: 'theme',
+          }}
           pageMap={await getPageMap()}
           docsRepositoryBase="https://github.com/genfeedai/genfeed.ai/tree/master/apps/docs"
           sidebar={{ defaultMenuCollapseLevel: 1, toggleButton: true }}
+          themeSwitch={{ dark: 'Dark', light: 'Light', system: 'System' }}
           toc={{ backToTop: true }}
         >
           {children}

@@ -36,7 +36,7 @@ export default function ClipModeSelector({
 }: ClipModeSelectorProps) {
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium text-zinc-300">
+      <legend className="mb-2 text-sm font-medium text-foreground">
         Generation mode
       </legend>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -54,19 +54,19 @@ export default function ClipModeSelector({
               className={`min-h-24 rounded-lg border p-4 text-left transition-colors ${
                 isSelected
                   ? 'border-primary bg-primary/10'
-                  : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
+                  : 'border-border bg-secondary hover:border-primary/60'
               }`}
             >
               <span className="flex items-start gap-3">
                 <Icon
                   aria-hidden="true"
-                  className={`mt-0.5 size-5 shrink-0 ${isSelected ? 'text-primary' : 'text-zinc-500'}`}
+                  className={`mt-0.5 size-5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
                 />
                 <span>
-                  <span className="block text-sm font-medium text-zinc-200">
+                  <span className="block text-sm font-medium text-foreground">
                     {option.label}
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-zinc-500">
+                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">
                     {option.description}
                   </span>
                 </span>

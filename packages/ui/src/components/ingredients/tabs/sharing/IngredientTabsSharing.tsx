@@ -41,11 +41,11 @@ export default function IngredientTabsSharing({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl bg-tertiary p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+      <div className="rounded-2xl bg-background-tertiary p-4 shadow-border">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Access Control
         </p>
-        <p className="mt-1 text-sm text-white/65">
+        <p className="mt-1 text-sm text-muted-foreground">
           Choose who can access this asset and whether a public link should be
           exposed.
         </p>

@@ -174,10 +174,10 @@ export default function AnalyticsContent() {
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <div className="p-8 border border-[var(--gen-accent-border)] bg-white/[0.04]">
+          <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-8">
             <div className="flex flex-row flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
+                <div className="flex size-20 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-tint)]">
                   <ChartColumn className="size-10 text-surface" />
                 </div>
               </div>
@@ -296,7 +296,7 @@ export default function AnalyticsContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
+          <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-12 text-center">
             <div className="flex justify-center mb-4">
               <Sparkles className="size-8 text-surface" />
             </div>

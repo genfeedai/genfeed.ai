@@ -67,7 +67,7 @@ export function WorkspaceTaskOutputsCard({
 
       {linkedOutputGroups.length > 0 ? (
         <div
-          className="divide-y divide-white/10"
+          className="divide-y divide-border"
           data-testid="workspace-task-linked-outputs"
         >
           {linkedOutputGroups.map((group) => {
@@ -86,7 +86,7 @@ export function WorkspaceTaskOutputsCard({
                   </span>
                 </div>
 
-                <div className="divide-y divide-white/10">
+                <div className="divide-y divide-border">
                   {outputs.map((output) => {
                     const description =
                       getWorkspaceLinkedOutputDescription(output);

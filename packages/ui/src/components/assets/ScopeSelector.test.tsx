@@ -46,5 +46,9 @@ describe('ScopeSelector', () => {
 
     expect(groupedList).toHaveClass('rounded-2xl');
     expect(groupedList).toHaveClass('border');
+    expect(groupedList).toHaveClass('border-border');
+    expect(groupedList?.innerHTML).not.toMatch(
+      /\b(?:bg|border|divide|text)-(?:black|white)(?:\b|\/|\[)/,
+    );
   });
 });

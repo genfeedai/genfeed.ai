@@ -222,16 +222,13 @@ bearer_token_env_var = "GENFEED_API_KEY"`);
   );
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" class="${ui.root}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
 <title>Genfeed MCP Server</title>
 <style>
-:root {
-  color-scheme: dark;
-}
 /* Self-hosted Satoshi (the product's sans). One variable face covers 300-900,
    so the MCP page renders in the same brand type as the marketing site and app
    with no CDN, no extra route, no editorial serif. */
@@ -244,7 +241,7 @@ bearer_token_env_var = "GENFEED_API_KEY"`);
 }
 ${staticSurfaceCss}
 * { box-sizing: border-box; }
-html { min-height: 100%; background: #050607; }
+html { min-height: 100%; background: var(--gf-bg-primary); }
 body {
   min-height: 100vh;
   margin: 0;
@@ -261,8 +258,8 @@ body::before {
   inset: 0;
   z-index: -2;
   background-image:
-    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    linear-gradient(var(--gf-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gf-grid-line) 1px, transparent 1px);
   background-size: 80px 80px;
   content: "";
   opacity: 0.55;
@@ -381,7 +378,7 @@ a { color: inherit; text-decoration: none; }
   grid-template-columns: 88px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  border-bottom: 1px solid rgba(255,255,255,0.055);
+  border-bottom: 1px solid var(--gf-divider-subtle);
   padding: 10px 0;
 }
 .flow-row:last-child { border-bottom: 0; }
@@ -545,7 +542,7 @@ a { color: inherit; text-decoration: none; }
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  border-left: 1px solid rgba(255,255,255,0.06);
+  border-left: 1px solid var(--gf-divider-subtle);
   padding-left: 22px;
 }
 .prompt-note {
@@ -581,7 +578,7 @@ a { color: inherit; text-decoration: none; }
   display: grid;
   grid-template-columns: 68px minmax(0, 1fr);
   gap: 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--gf-divider-subtle);
   padding: 24px 0;
 }
 .step > div {
@@ -681,7 +678,7 @@ pre.command {
   }
   .prompt-actions {
     border-left: 0;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    border-top: 1px solid var(--gf-divider-subtle);
     padding-top: 16px;
     padding-left: 0;
   }

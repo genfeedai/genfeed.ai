@@ -2,8 +2,14 @@
 
 import { BetterAuthProvider } from '@genfeedai/auth-client/react';
 import { dark } from '@genfeedai/auth-client/themes';
-import { THEME_STORAGE_KEY } from '@genfeedai/constants';
-import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
+import {
+  DEFAULT_THEME,
+  isThemePreference,
+  THEME_STORAGE_KEY,
+  type ThemePreference,
+} from '@genfeedai/constants';
+import ThemeCookieSync from '@ui/components/providers/ThemeCookieSync';
+import { ThemeStorageBootstrapScript } from '@ui/components/theme/ThemeBootstrapScript';
 import WebMcpProvider from '@ui/providers/WebMcpProvider';
 import dynamic from 'next/dynamic';
 import { ThemeProvider, useTheme } from 'next-themes';
@@ -25,7 +31,7 @@ interface BetterAuthProviderProps {
 
 export interface AppProvidersProps {
   children: ReactNode;
-  initialTheme: string;
+  initialTheme: ThemePreference;
   authProps?: BetterAuthProviderProps;
   disableTransitionOnChange?: boolean;
   enableSystem?: boolean;
@@ -57,33 +63,47 @@ function ThemedBetterAuthProvider({
   );
 }
 
+function AppToaster() {
+  const { theme } = useTheme();
+
+  return (
+    <Toaster
+      richColors
+      closeButton
+      position="top-right"
+      theme={isThemePreference(theme) ? theme : DEFAULT_THEME}
+    />
+  );
+}
+
 export default function AppProviders({
   children,
   initialTheme,
   authProps,
   disableTransitionOnChange = true,
-  enableSystem = false,
+  enableSystem = true,
   includeLazyModalErrorDebug = true,
   includeToaster = true,
   storageKey = THEME_STORAGE_KEY,
 }: AppProvidersProps) {
   return (
-    <ThemeProvider
-      attribute="data-theme"
-      enableSystem={enableSystem}
-      defaultTheme={initialTheme}
-      storageKey={storageKey}
-      disableTransitionOnChange={disableTransitionOnChange}
-    >
-      <ThemedBetterAuthProvider authProps={authProps}>
-        <ThemeCookieSync />
-        <WebMcpProvider />
-        {children}
-        {includeToaster ? (
-          <Toaster richColors closeButton position="top-right" />
-        ) : null}
-        {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-      </ThemedBetterAuthProvider>
-    </ThemeProvider>
+    <>
+      <ThemeStorageBootstrapScript storageKey={storageKey} />
+      <ThemeProvider
+        attribute="data-theme"
+        enableSystem={enableSystem}
+        defaultTheme={initialTheme}
+        storageKey={storageKey}
+        disableTransitionOnChange={disableTransitionOnChange}
+      >
+        <ThemedBetterAuthProvider authProps={authProps}>
+          <ThemeCookieSync storageKey={storageKey} />
+          <WebMcpProvider />
+          {children}
+          {includeToaster ? <AppToaster /> : null}
+          {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
+        </ThemedBetterAuthProvider>
+      </ThemeProvider>
+    </>
   );
 }

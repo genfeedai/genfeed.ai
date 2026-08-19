@@ -26,41 +26,39 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn('p-3', className)}
+      className={cn('p-3 text-foreground', className)}
       classNames={{
         button_next: cn(
-          'size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
+          'size-7 bg-transparent p-0 text-muted-foreground hover:text-foreground',
           'inline-flex items-center justify-center',
-          'border border-white/[0.08] hover:border-white/20',
-          'hover:bg-white/5 transition-colors',
+          'border border-border hover:border-border-strong',
+          'hover:bg-accent transition-colors',
         ),
         button_previous: cn(
-          'size-7 bg-transparent p-0 opacity-50 hover:opacity-100',
+          'size-7 bg-transparent p-0 text-muted-foreground hover:text-foreground',
           'inline-flex items-center justify-center',
-          'border border-white/[0.08] hover:border-white/20',
-          'hover:bg-white/5 transition-colors',
+          'border border-border hover:border-border-strong',
+          'hover:bg-accent transition-colors',
         ),
         // Visual label for both captionLayout="label" and the dropdown facade.
         caption_label: cn(
           'relative z-[1] inline-flex items-center gap-1',
-          'whitespace-nowrap text-sm font-medium text-white/90',
+          'whitespace-nowrap text-sm font-medium text-foreground',
         ),
-        chevron: 'size-4 shrink-0 text-white/70',
+        chevron: 'size-4 shrink-0 text-muted-foreground',
         day: cn(
           'relative p-0 text-center text-sm focus-within:relative focus-within:z-20',
           'size-9',
-          props.mode === 'range'
-            ? '[&:has([aria-selected])]:bg-white/5 first:[&:has([aria-selected])]: last:[&:has([aria-selected])]:'
-            : '[&:has([aria-selected])]: [&:has([aria-selected])]:bg-white/5',
+          '[&:has([aria-selected])]:bg-muted',
         ),
         day_button: cn(
           'size-9 p-0 font-normal',
           'inline-flex items-center justify-center',
-          'hover:bg-white/10 hover:text-white',
-          'focus:outline-none focus:ring-1 focus:ring-white/20',
+          'hover:bg-accent hover:text-accent-foreground',
+          'focus:outline-none focus:ring-1 focus:ring-ring',
           'transition-colors',
         ),
-        disabled: 'text-white/20 opacity-50',
+        disabled: 'text-muted-foreground opacity-50',
         // Invisible interactive select stretched over the caption_label.
         dropdown: cn(
           'absolute inset-0 z-[2] m-0 w-full cursor-pointer appearance-none',
@@ -77,15 +75,16 @@ function Calendar({
         months: 'flex flex-col sm:flex-row gap-4',
         nav: 'absolute right-1 top-0 flex h-10 items-center gap-1',
         outside:
-          'text-white/30 aria-selected:bg-white/5 aria-selected:text-white/50',
+          'text-muted-foreground/60 aria-selected:bg-muted aria-selected:text-muted-foreground',
         range_end: '',
-        range_middle: 'aria-selected:bg-white/5 aria-selected:text-white/90',
+        range_middle: 'aria-selected:bg-muted aria-selected:text-foreground',
         range_start: '',
         selected:
-          'bg-white text-black hover:bg-white/90 hover:text-black focus:bg-white focus:text-black',
-        today: 'bg-white/10 text-white',
+          'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
+        today: 'bg-accent text-accent-foreground',
         week: '',
-        weekday: 'text-white/40 w-9 font-normal text-[0.8rem] text-center p-2',
+        weekday:
+          'w-9 p-2 text-center text-[0.8rem] font-normal text-muted-foreground',
         weekdays: '',
         ...classNames,
       }}

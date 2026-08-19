@@ -111,7 +111,7 @@ export function CloudWorkflowToolbar({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   onClick={handleStartEditing}
-                  className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-white"
+                  className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-foreground/80"
                   tooltip="Rename workflow"
                 >
                   {workflowName || 'Untitled Workflow'}

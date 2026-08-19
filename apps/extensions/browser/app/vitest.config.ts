@@ -10,6 +10,14 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@genfeedai/auth-client/react': path.resolve(
+        extensionAppDir,
+        '../../../../packages/auth-client/src/react.tsx',
+      ),
+      '@genfeedai/helpers/formatting/cn': path.resolve(
+        extensionAppDir,
+        '../../../../packages/helpers/src/formatting/cn/index.ts',
+      ),
       '@hooks': path.resolve(extensionAppDir, './src/hooks'),
       '@ui': path.resolve(extensionAppDir, '../../../../packages/ui/src'),
       '~': path.resolve(extensionAppDir, './src'),
@@ -20,6 +28,7 @@ export default defineConfig({
       '~popup': path.resolve(extensionAppDir, './src/popup.tsx'),
       '~services': path.resolve(extensionAppDir, './src/services'),
       '~store': path.resolve(extensionAppDir, './src/store'),
+      '~theme': path.resolve(extensionAppDir, './src/theme'),
       '~style.css': path.resolve(extensionAppDir, './src/style.css'),
       '~utils': path.resolve(extensionAppDir, './src/utils'),
     },

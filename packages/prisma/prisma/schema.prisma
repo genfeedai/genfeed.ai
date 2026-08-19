@@ -1156,7 +1156,7 @@ model Setting {
   id                               String                     @id @default(cuid())
   userId                           String                     @unique
   user                             User                       @relation(fields: [userId], references: [id])
-  theme                            String                     @default("dark")
+  theme                            String                     @default("system")
   locale                           String                     @default("en")
   isVerified                       Boolean                    @default(false)
   isFirstLogin                     Boolean                    @default(true)

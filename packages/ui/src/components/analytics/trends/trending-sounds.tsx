@@ -153,7 +153,7 @@ export function TrendingSounds({
                 </div>
               </div>
 
-              <div className="relative z-10 flex items-center justify-between mt-3 pt-3 border-t border-white/[0.08] pointer-events-none">
+              <div className="relative z-10 flex items-center justify-between mt-3 pt-3 border-t border-border pointer-events-none">
                 <div className="flex items-center gap-1 text-sm">
                   <TrendingUp
                     className={`size-4 ${

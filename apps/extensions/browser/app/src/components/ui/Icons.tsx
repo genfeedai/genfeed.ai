@@ -64,7 +64,7 @@ export function CloseIcon({ className = 'size-4' }: IconProps): ReactElement {
 }
 
 export function VideoIcon({
-  className = 'size-12 text-zinc-400',
+  className = 'size-12 text-muted-foreground',
 }: IconProps): ReactElement {
   return (
     <svg
@@ -85,7 +85,7 @@ export function VideoIcon({
 }
 
 export function PostsIcon({
-  className = 'size-12 text-zinc-400',
+  className = 'size-12 text-muted-foreground',
 }: IconProps): ReactElement {
   return (
     <svg

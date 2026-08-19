@@ -140,6 +140,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [social-warmup-enrollments](spec-social-warmup-enrollments.md) · [decisions](decisions-social-warmup-enrollments.md) — #2214
 - [llm-vendor-cost-ledger](spec-llm-vendor-cost-ledger.md) · [decisions](decisions-llm-vendor-cost-ledger.md) — #2361
 - [workspace-inspector-tabs](spec-workspace-inspector-tabs.md) · [decisions](decisions-workspace-inspector-tabs.md) — user-configurable right-rail asset panes
+- [app-theming](spec-app-theming.md) · [decisions](decisions-app-theming.md) — System, Light, and Dark across every rendered app surface
 
 ## Project state
 

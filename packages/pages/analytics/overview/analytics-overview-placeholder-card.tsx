@@ -30,7 +30,7 @@ export default function OverviewPlaceholderCard({
   return (
     <Card variant={CardVariant.DEFAULT} bodyClassName="p-6">
       <div className="flex h-full flex-col gap-4">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-white/5 text-foreground/70">
+        <div className="flex size-12 items-center justify-center rounded-xl bg-foreground/5 text-foreground/70">
           <Icon className="size-6" />
         </div>
 

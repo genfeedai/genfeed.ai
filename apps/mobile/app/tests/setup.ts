@@ -40,11 +40,20 @@ function MockButton({
 }
 
 function MockPressable({
+  accessibilityLabel,
+  accessibilityRole,
+  accessibilityState,
   children,
   onPress,
   style: _style,
   ...props
 }: PrimitiveProps & {
+  accessibilityLabel?: string;
+  accessibilityRole?: string;
+  accessibilityState?: {
+    checked?: boolean;
+    disabled?: boolean;
+  };
   children?: ReactNode | ((state: PressState) => ReactNode);
   onPress?: () => void;
 }) {
@@ -55,7 +64,11 @@ function MockPressable({
     'button',
     {
       ...props,
+      'aria-checked': accessibilityState?.checked,
+      'aria-disabled': accessibilityState?.disabled,
+      'aria-label': accessibilityLabel,
       onClick: onPress,
+      role: accessibilityRole,
       type: 'button',
     },
     content,
@@ -148,6 +161,14 @@ const MockStack = Object.assign(createPrimitive('div'), {
 
 // Mock Expo modules
 vi.mock('expo-router', () => ({
+  DarkTheme: {
+    colors: {},
+    dark: true,
+  },
+  DefaultTheme: {
+    colors: {},
+    dark: false,
+  },
   Link: createPrimitive('a'),
   Redirect: ({ href }: { href: string }) =>
     React.createElement('div', {
@@ -157,6 +178,21 @@ vi.mock('expo-router', () => ({
   Slot: createPrimitive('div'),
   Stack: MockStack,
   Tabs: MockTabs,
+  ThemeProvider: ({
+    children,
+    value,
+  }: {
+    children?: ReactNode;
+    value?: { dark?: boolean };
+  }) =>
+    React.createElement(
+      'div',
+      {
+        'data-dark': String(value?.dark),
+        'data-testid': 'navigation-theme',
+      },
+      children,
+    ),
   useLocalSearchParams: vi.fn(() => ({})),
   useRouter: vi.fn(() => ({
     back: vi.fn(),
@@ -166,7 +202,22 @@ vi.mock('expo-router', () => ({
 }));
 
 vi.mock('expo-status-bar', () => ({
-  StatusBar: () => null,
+  StatusBar: ({ style }: { style?: string }) =>
+    React.createElement('div', {
+      'data-style': style,
+      'data-testid': 'status-bar',
+    }),
+}));
+
+vi.mock('expo-system-ui', () => ({
+  setBackgroundColorAsync: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+  },
 }));
 
 vi.mock('expo-web-browser', () => ({
@@ -182,8 +233,8 @@ vi.mock('expo-auth-session/providers/google', () => ({
 }));
 
 vi.mock('expo-splash-screen', () => ({
-  hideAsync: vi.fn(),
-  preventAutoHideAsync: vi.fn(),
+  hideAsync: vi.fn().mockResolvedValue(undefined),
+  preventAutoHideAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('expo-font', () => ({
@@ -259,6 +310,9 @@ vi.mock('react-native', () => {
     Alert: {
       alert: vi.fn(),
     },
+    Appearance: {
+      setColorScheme: vi.fn(),
+    },
     Animated: {
       timing: vi.fn(() => ({
         start: (callback?: () => void) => callback?.(),
@@ -284,5 +338,6 @@ vi.mock('react-native', () => {
     TextInput: MockTextInput,
     TouchableOpacity: MockPressable,
     View: MockView,
+    useColorScheme: vi.fn(() => 'dark'),
   };
 });

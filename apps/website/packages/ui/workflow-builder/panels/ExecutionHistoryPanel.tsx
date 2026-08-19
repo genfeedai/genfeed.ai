@@ -87,7 +87,7 @@ function ExecutionItem({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className=" border border-white/[0.08] bg-card">
+    <div className="border border-border bg-card">
       <Button
         type="button"
         variant={ButtonVariant.UNSTYLED}
@@ -137,7 +137,7 @@ function ExecutionItem({
       </Button>
 
       {isExpanded && (
-        <div className="border-t border-white/[0.08] p-3">
+        <div className="border-t border-border p-3">
           {/* Progress */}
           {execution.status === 'running' && (
             <div className="mb-3">
@@ -243,7 +243,7 @@ export default function ExecutionHistoryPanel({
   );
 
   return (
-    <div className="border-b border-white/[0.08]">
+    <div className="border-b border-border">
       <Button
         type="button"
         variant={ButtonVariant.UNSTYLED}

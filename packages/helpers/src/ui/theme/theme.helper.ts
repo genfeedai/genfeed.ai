@@ -1,5 +1,6 @@
 import {
   DEFAULT_THEME,
+  isThemePreference,
   THEME_COOKIE_NAME,
   type ThemePreference,
 } from '@genfeedai/constants';
@@ -9,7 +10,7 @@ export async function resolveRequestTheme(): Promise<ThemePreference> {
   const cookieStore = await cookies();
   const theme = cookieStore.get(THEME_COOKIE_NAME)?.value;
 
-  if (theme === 'dark' || theme === 'light') {
+  if (isThemePreference(theme)) {
     return theme;
   }
 

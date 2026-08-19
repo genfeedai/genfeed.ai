@@ -80,7 +80,7 @@ export default function OutreachCampaignWizardStep1({
               className={`flex items-center gap-3 border p-4 transition-colors ${
                 platform === option.value
                   ? 'border-primary bg-primary/10'
-                  : 'border-white/[0.08] hover:border-primary/50'
+                  : 'border-border hover:border-primary/50'
               }`}
             >
               <span className="text-2xl">{option.icon}</span>
@@ -102,7 +102,7 @@ export default function OutreachCampaignWizardStep1({
               className={`flex w-full flex-col items-start border p-4 transition-colors ${
                 campaignType === option.value
                   ? 'border-primary bg-primary/10'
-                  : 'border-white/[0.08] hover:border-primary/50'
+                  : 'border-border hover:border-primary/50'
               }`}
             >
               <span className="font-medium">{option.label}</span>

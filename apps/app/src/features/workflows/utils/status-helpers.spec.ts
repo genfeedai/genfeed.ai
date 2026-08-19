@@ -70,8 +70,8 @@ describe('getLifecycleBadgeClass', () => {
       'success',
     ));
   it('archived', () =>
-    expect(getLifecycleBadgeClass(WorkflowLifecycle.ARCHIVED)).toContain(
-      'white',
+    expect(getLifecycleBadgeClass(WorkflowLifecycle.ARCHIVED)).toBe(
+      'border border-border bg-foreground/[0.04] text-foreground/55',
     ));
   it('draft/default', () =>
     expect(getLifecycleBadgeClass(WorkflowLifecycle.DRAFT)).toContain(

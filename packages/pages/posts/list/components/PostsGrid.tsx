@@ -91,7 +91,7 @@ const EvalGridCell = memo(function EvalGridCell({
         handleEvaluate();
       }}
       size={ButtonSize.XS}
-      className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 text-white/70 hover:bg-white/[0.06] hover:text-white"
+      className="rounded-lg border border-border bg-background-secondary px-2.5 text-muted-foreground hover:bg-hover hover:text-foreground"
     />
   );
 });
@@ -254,7 +254,7 @@ const PostsGrid = memo(
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                 >
-                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white/70">
+                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-background-secondary text-muted-foreground">
                     <PlatformIcon className="size-4" />
                   </div>
 
@@ -277,7 +277,7 @@ const PostsGrid = memo(
                             size: ButtonSize.ICON,
                             variant: ButtonVariant.GHOST,
                           }),
-                          'h-8 w-8 rounded-full border border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.08] hover:text-white',
+                          'h-8 w-8 rounded-full border border-border bg-background-secondary text-muted-foreground hover:bg-hover hover:text-foreground',
                         )}
                         aria-label="More post actions"
                         onClick={(event) => event.stopPropagation()}
@@ -364,7 +364,7 @@ const PostsGrid = memo(
                   </p>
                 )}
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.08] pt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 <Badge
                   variant={statusPresentation.variant}
                   size={ComponentSize.SM}
@@ -373,7 +373,7 @@ const PostsGrid = memo(
                 </Badge>
 
                 {post.scheduledDate && (
-                  <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-foreground/60">
+                  <span className="rounded-full border border-border bg-background-secondary px-2.5 py-1 text-xs text-foreground/60">
                     {formatDateInTimezone(
                       post.scheduledDate,
                       browserTimezone,

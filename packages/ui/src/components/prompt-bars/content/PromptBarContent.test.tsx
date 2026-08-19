@@ -204,4 +204,32 @@ describe('PromptBarContent', () => {
 
     expect(screen.getByRole('textbox').tagName).toBe('INPUT');
   });
+
+  it('uses semantic chrome in expanded and collapsed modes', () => {
+    const { container } = render(
+      <PromptBarContent
+        {...postProps}
+        platform={Platform.TWITTER}
+        presets={[PRESET]}
+      />,
+    );
+
+    const expandedInput = screen.getByRole('textbox');
+    expect(expandedInput).toHaveClass('border-border', 'text-foreground');
+    expect(container.innerHTML).not.toMatch(
+      /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /collapse/i }));
+
+    const collapsedInput = screen.getByRole('textbox');
+    expect(collapsedInput).toHaveClass(
+      'border-border',
+      'bg-background-tertiary',
+      'text-foreground',
+    );
+    expect(container.innerHTML).not.toMatch(
+      /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,
+    );
+  });
 });

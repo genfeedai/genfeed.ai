@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { notificationsServiceMock, sentryServiceMock } = vi.hoisted(() => ({
@@ -45,6 +45,12 @@ describe('RootLayout', () => {
 
     render(<RootLayout />);
 
+    expect(screen.getByTestId('navigation-theme').getAttribute('data-dark')).toBe(
+      'true',
+    );
+    expect(screen.getByTestId('status-bar').getAttribute('data-style')).toBe(
+      'light',
+    );
     await waitFor(() => {
       expect(sentryServiceMock.setUser).toHaveBeenCalledWith(null);
     });

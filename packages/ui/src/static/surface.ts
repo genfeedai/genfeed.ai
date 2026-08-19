@@ -1,7 +1,38 @@
 import { semanticColorTokens } from '../core/colors';
 import { radiusTokens } from '../core/radius';
 
-const darkColors = semanticColorTokens.dark;
+type StaticSurfaceTheme = keyof typeof semanticColorTokens;
+
+function staticSurfaceThemeVariables(theme: StaticSurfaceTheme): string {
+  const colors = semanticColorTokens[theme];
+  const isDark = theme === 'dark';
+
+  return `
+  --gf-bg-primary: ${colors.background.hex};
+  --gf-bg-secondary: ${colors.card.hex};
+  --gf-bg-tertiary: ${colors.backgroundSecondary.hex};
+  --gf-bg-elevated: ${colors.popover.hex};
+  --gf-bg-hover: ${colors.backgroundTertiary.hex};
+  --gf-border: ${colors.border.hex};
+  --gf-border-strong: ${isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(13, 13, 13, 0.18)'};
+  --gf-divider-subtle: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(13, 13, 13, 0.08)'};
+  --gf-grid-line: ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(13, 13, 13, 0.08)'};
+  --gf-fill-subtle: ${isDark ? 'rgba(255, 255, 255, 0.035)' : 'rgba(13, 13, 13, 0.04)'};
+  --gf-text-primary: ${colors.foreground.hex};
+  --gf-text-secondary: ${colors.secondaryForeground.hex};
+  --gf-text-muted: ${colors.mutedForeground.hex};
+  --gf-text-faint: ${isDark ? 'rgba(244, 244, 245, 0.52)' : 'rgba(13, 13, 13, 0.58)'};
+  --gf-accent: ${colors.primary.hex};
+  --gf-accent-foreground: ${colors.primaryForeground.hex};
+  --gf-accent-hover: ${isDark ? '#E4E4E7' : '#262626'};
+  --gf-success: ${colors.success.hex};
+  --gf-warning: ${colors.warning.hex};
+  --gf-danger: ${colors.destructive.hex};
+  --gf-info: ${colors.info.hex};`;
+}
+
+const lightThemeVariables = staticSurfaceThemeVariables('light');
+const darkThemeVariables = staticSurfaceThemeVariables('dark');
 
 export const staticSurfaceClassNames = {
   badge: 'gf-badge',
@@ -30,24 +61,8 @@ export const staticSurfaceCss = `
      that keeps every static-surface consumer on the product's sans, not Georgia. */
   --gf-font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --gf-font-serif: "Zodiak", Georgia, "Times New Roman", serif;
-  --gf-bg-primary: ${darkColors.background.hex};
-  --gf-bg-secondary: ${darkColors.card.hex};
-  --gf-bg-tertiary: ${darkColors.backgroundSecondary.hex};
-  --gf-bg-elevated: ${darkColors.popover.hex};
-  --gf-bg-hover: ${darkColors.backgroundTertiary.hex};
-  --gf-border: ${darkColors.border.hex};
-  --gf-border-strong: rgba(255, 255, 255, 0.18);
-  --gf-text-primary: ${darkColors.foreground.hex};
-  --gf-text-secondary: ${darkColors.secondaryForeground.hex};
-  --gf-text-muted: ${darkColors.mutedForeground.hex};
-  --gf-text-faint: rgba(244, 244, 245, 0.22);
-  --gf-accent: ${darkColors.primary.hex};
-  --gf-accent-foreground: ${darkColors.primaryForeground.hex};
-  --gf-accent-hover: #e4e4e7;
-  --gf-success: ${darkColors.success.hex};
-  --gf-warning: ${darkColors.warning.hex};
-  --gf-danger: ${darkColors.destructive.hex};
-  --gf-info: ${darkColors.info.hex};
+  color-scheme: light dark;
+${lightThemeVariables}
   --gf-platform-youtube: #ff0000;
   --gf-platform-tiktok: #fe2c55;
   --gf-platform-linkedin: #0a66c2;
@@ -61,6 +76,22 @@ export const staticSurfaceCss = `
   --gf-surface-radius: ${radiusTokens.none};
   --gf-shadow-border: inset 0 0 0 1px var(--gf-border);
   --gf-shadow-border-strong: inset 0 0 0 1px var(--gf-border-strong);
+}
+@media (prefers-color-scheme: dark) {
+  .gf-ui {
+    color-scheme: dark;
+${darkThemeVariables}
+  }
+}
+.gf-ui[data-theme="light"],
+[data-theme="light"] .gf-ui {
+  color-scheme: light;
+${lightThemeVariables}
+}
+.gf-ui[data-theme="dark"],
+[data-theme="dark"] .gf-ui {
+  color-scheme: dark;
+${darkThemeVariables}
 }
 .gf-card {
   position: relative;
@@ -85,8 +116,8 @@ export const staticSurfaceCss = `
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+    linear-gradient(var(--gf-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gf-grid-line) 1px, transparent 1px);
   background-size: 96px 96px;
   content: "";
   opacity: 0.28;
@@ -193,7 +224,7 @@ export const staticSurfaceCss = `
   align-items: center;
   border: 1px solid var(--gf-border);
   border-radius: var(--gf-surface-radius);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--gf-fill-subtle);
   color: var(--gf-text-muted);
   font-size: 10px;
   font-weight: 900;
@@ -219,7 +250,7 @@ export const staticSurfaceCss = `
 .gf-inline-code {
   border: 1px solid var(--gf-border);
   border-radius: var(--gf-surface-radius);
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--gf-fill-subtle);
   color: var(--gf-text-secondary);
   padding: 1px 5px;
   font-size: 11px;

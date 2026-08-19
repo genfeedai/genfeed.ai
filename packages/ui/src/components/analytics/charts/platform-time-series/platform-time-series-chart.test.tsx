@@ -30,18 +30,58 @@ vi.mock('@ui/charts', () => ({
   ChartTooltipContent: () => <div data-testid="chart-tooltip-content" />,
 }));
 
-// Mock recharts
-vi.mock('recharts', () => ({
+const rechartsMocks = vi.hoisted(() => ({
   Area: ({ dataKey, stroke }: { dataKey: string; stroke: string }) => (
     <div data-testid={`area-${dataKey}`} data-stroke={stroke} />
   ),
   AreaChart: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="area-chart">{children}</div>
   ),
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
+  CartesianGrid: ({ stroke }: { stroke?: string }) => (
+    <div data-testid="cartesian-grid" data-stroke={stroke} />
+  ),
   Tooltip: () => <div data-testid="tooltip" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
+  XAxis: ({
+    stroke,
+    tick,
+  }: {
+    stroke?: string;
+    tick?: { fill?: string };
+  }) => (
+    <div data-testid="x-axis" data-stroke={stroke} data-tick-fill={tick?.fill} />
+  ),
+  YAxis: ({
+    stroke,
+    tick,
+  }: {
+    stroke?: string;
+    tick?: { fill?: string };
+  }) => (
+    <div data-testid="y-axis" data-stroke={stroke} data-tick-fill={tick?.fill} />
+  ),
+}));
+
+vi.mock('recharts', () => rechartsMocks);
+
+// Resolve dynamic Recharts imports from the local mock so the prop contract is
+// observable synchronously instead of falling through to the global stub.
+vi.mock('next/dynamic', () => ({
+  default: (loader: () => Promise<unknown>) => {
+    const propertyAccesses = [...String(loader).matchAll(/\.([A-Za-z]+)/g)].map(
+      (entry) => entry[1],
+    );
+    const exportName = [...propertyAccesses]
+      .reverse()
+      .find((name) => name in rechartsMocks);
+    const Component =
+      exportName && exportName in rechartsMocks
+        ? rechartsMocks[exportName as keyof typeof rechartsMocks]
+        : () => null;
+
+    return function DynamicChartPiece(props: Record<string, unknown>) {
+      return <Component {...props} />;
+    };
+  },
 }));
 
 const mockData: PlatformTimeSeriesDataPoint[] = [
@@ -358,6 +398,25 @@ describe('PlatformTimeSeriesChart', () => {
   });
 
   describe('Chart Components', () => {
+    it('uses semantic grid, axis, and tick colors', () => {
+      render(<PlatformTimeSeriesChart data={mockData} />);
+
+      expect(screen.getByTestId('cartesian-grid')).toHaveAttribute(
+        'data-stroke',
+        'hsl(var(--border))',
+      );
+      for (const axis of [
+        screen.getByTestId('x-axis'),
+        screen.getByTestId('y-axis'),
+      ]) {
+        expect(axis).toHaveAttribute('data-stroke', 'hsl(var(--border))');
+        expect(axis).toHaveAttribute(
+          'data-tick-fill',
+          'hsl(var(--muted-foreground))',
+        );
+      }
+    });
+
     it('renders cartesian grid', () => {
       render(<PlatformTimeSeriesChart data={mockData} />);
       expect(screen.getByTestId('cartesian-grid')).toBeInTheDocument();

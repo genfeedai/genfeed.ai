@@ -118,16 +118,16 @@ function MoodBoardCanvasInner({
             variant={BackgroundVariant.Dots}
             gap={24}
             size={1}
-            color="rgba(255,255,255,0.06)"
+            color="hsl(var(--foreground) / 0.08)"
           />
           <MiniMap
             pannable
             zoomable
             nodeStrokeWidth={1}
-            nodeColor="oklch(1 0 0 / 0.14)"
-            nodeStrokeColor="oklch(1 0 0 / 0.22)"
-            maskColor="oklch(0 0 0 / 0.55)"
-            style={{ backgroundColor: 'var(--secondary)' }}
+            nodeColor="hsl(var(--secondary))"
+            nodeStrokeColor="hsl(var(--border-strong, var(--border)))"
+            maskColor="hsl(var(--background) / 0.55)"
+            style={{ backgroundColor: 'hsl(var(--secondary))' }}
             className="!m-3 overflow-hidden rounded-lg !border !border-border !bg-secondary !shadow-dropdown"
           />
         </ReactFlow>

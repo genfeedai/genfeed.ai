@@ -46,11 +46,16 @@ describe('IngredientTabsInfo', () => {
   } as IIngredient;
 
   it('renders visible metadata fields immediately', () => {
-    render(<IngredientTabsInfo ingredient={ingredient} />);
+    const { container } = render(<IngredientTabsInfo ingredient={ingredient} />);
 
-    expect(screen.getByText('Core Metadata')).toBeInTheDocument();
+    expect(screen.getByText('Core Metadata')).toHaveClass(
+      'text-muted-foreground',
+    );
     expect(screen.getByDisplayValue('Test Ingredient')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Description')).toBeInTheDocument();
+    expect(container.innerHTML).not.toMatch(
+      /\b(?:bg|border|text)-(?:black|white)(?:\b|\/|\[)/,
+    );
   });
 
   it('saves the label on blur', async () => {

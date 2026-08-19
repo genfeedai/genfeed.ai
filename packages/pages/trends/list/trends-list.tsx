@@ -343,8 +343,8 @@ function ViralVideosLoadingCards() {
   const labels = ['Hook pattern', 'Creator format', 'Remix angle'];
 
   return (
-    <div className="overflow-hidden rounded-card border border-white/[0.06] bg-card">
-      <div className="grid grid-cols-1 divide-y divide-white/[0.06] md:grid-cols-3 md:divide-x md:divide-y-0">
+    <div className="overflow-hidden rounded-card border border-border bg-card">
+      <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
         {labels.map((label) => (
           <div key={label} className="bg-background/30 p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -354,7 +354,7 @@ function ViralVideosLoadingCards() {
             <div className="mt-4 text-xs uppercase tracking-[0.18em] text-foreground/35">
               Loading
             </div>
-            <div className="mt-2 h-2 w-full rounded-full bg-white/[0.04]" />
+            <div className="mt-2 h-2 w-full rounded-full bg-foreground/[0.04]" />
           </div>
         ))}
       </div>

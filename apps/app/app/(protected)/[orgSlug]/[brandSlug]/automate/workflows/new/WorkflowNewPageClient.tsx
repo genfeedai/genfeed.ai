@@ -333,7 +333,7 @@ export default function WorkflowNewPageClient() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-[var(--muted-foreground)]">
+        <div className="animate-pulse text-muted-foreground">
           Loading editor…
         </div>
       </div>
@@ -343,9 +343,9 @@ export default function WorkflowNewPageClient() {
   return (
     <WorkflowUIProvider config={workflowUiConfig}>
       <ReactFlowProvider>
-        <div className="workflow-scope workflow-editor-shell flex h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 flex-col bg-[var(--background)] text-[var(--foreground)]">
+        <div className="workflow-scope workflow-editor-shell flex h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 flex-col bg-background text-foreground">
           {cloudError && (
-            <div className="border-b border-[var(--destructive)]/20 bg-[var(--destructive)]/10 px-4 py-2 text-xs text-[var(--destructive)]">
+            <div className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
               {cloudError}
             </div>
           )}
@@ -380,7 +380,7 @@ export default function WorkflowNewPageClient() {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       {workflowEstimateLabel && (
-                        <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-[11px] text-[var(--muted-foreground)]">
+                        <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-[11px] text-muted-foreground">
                           {workflowEstimateLabel}
                         </span>
                       )}

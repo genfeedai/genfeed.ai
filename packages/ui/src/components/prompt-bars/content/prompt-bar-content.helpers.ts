@@ -28,10 +28,10 @@ export const DEFAULT_PLATFORMS = [
 ] satisfies PostPlatform[];
 
 export const CONTROL_CLASS =
-  'h-9 px-3 gap-2 flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
+  'h-9 px-3 gap-2 flex-shrink-0 !border-border !bg-background-tertiary text-foreground/80 hover:!bg-accent hover:text-foreground';
 
 export const COLLAPSE_BUTTON_CLASS =
-  'size-8 bg-black/20 p-0 text-white/70 shadow-border backdrop-blur-sm hover:bg-black/30 hover:text-white';
+  'size-8 bg-background-tertiary/80 p-0 text-muted-foreground shadow-border backdrop-blur-sm hover:bg-accent hover:text-foreground';
 
 /** Copy used whenever the bar enhances existing content rather than generating new. */
 export const DEFAULT_ENHANCEMENT_PLACEHOLDER =

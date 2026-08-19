@@ -204,7 +204,7 @@ export default function TrendDetail({
                 <Badge
                   key={hashtag}
                   value={hashtag.startsWith('#') ? hashtag : `#${hashtag}`}
-                  className="border border-white/[0.08] bg-transparent"
+                  className="border border-border bg-transparent"
                 />
               ))}
             </div>

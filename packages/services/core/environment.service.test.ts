@@ -165,6 +165,27 @@ describe('EnvironmentService', () => {
     });
   });
 
+  describe('currentTheme', () => {
+    afterEach(() => {
+      document.cookie = 'theme=; path=/; max-age=0';
+    });
+
+    it.each(['system', 'light', 'dark'])(
+      'returns the stored %s preference without resolving it',
+      (theme) => {
+        document.cookie = `theme=${theme}; path=/`;
+
+        expect(EnvironmentService.currentTheme).toBe(theme);
+      },
+    );
+
+    it('defaults invalid preferences to System', () => {
+      document.cookie = 'theme=solarized; path=/';
+
+      expect(EnvironmentService.currentTheme).toBe('system');
+    });
+  });
+
   describe('Logo URL', () => {
     it('returns correct logo URL', () => {
       const assetsEndpoint = EnvironmentService.assetsEndpoint;

@@ -51,16 +51,16 @@ function LibraryPreviewTile({
     return (
       <div
         className={cn(
-          'relative overflow-hidden rounded-[1.6rem] border border-white/[0.08] bg-white/[0.03] p-4',
+          'relative overflow-hidden rounded-[1.6rem] border border-border bg-secondary p-4',
           className,
         )}
       >
         <div className="relative flex h-full items-end">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Ready for
             </div>
-            <div className="mt-1 text-lg font-semibold tracking-[-0.03em] text-white/88">
+            <div className="mt-1 text-lg font-semibold tracking-[-0.03em] text-foreground">
               {fallbackLabel}
             </div>
           </div>
@@ -73,7 +73,7 @@ function LibraryPreviewTile({
     <Link
       href={getVisualHref(item)}
       className={cn(
-        'group relative overflow-hidden rounded-[1.6rem] border border-white/[0.08] bg-white/[0.03]',
+        'group relative overflow-hidden rounded-[1.6rem] border border-border bg-secondary',
         className,
       )}
     >

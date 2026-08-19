@@ -59,7 +59,7 @@ function MediaAssetNodeComponent({
 
   return (
     <div
-      className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/[0.08] bg-secondary shadow-sm transition-colors hover:border-white/[0.18] gen-contact-sheet"
+      className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-secondary shadow-sm transition-colors hover:border-border-strong gen-contact-sheet"
       style={{ width: MOOD_BOARD_TILE_WIDTH, aspectRatio }}
     >
       {showPreview && src ? (

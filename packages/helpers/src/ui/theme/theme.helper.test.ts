@@ -9,7 +9,9 @@ vi.mock('next/headers', () => ({
 }));
 
 vi.mock('@genfeedai/constants', () => ({
-  DEFAULT_THEME: 'light',
+  DEFAULT_THEME: 'system',
+  isThemePreference: (value: unknown) =>
+    value === 'system' || value === 'light' || value === 'dark',
   THEME_COOKIE_NAME: 'theme',
 }));
 
@@ -37,12 +39,20 @@ describe('resolveRequestTheme', () => {
     expect(theme).toBe('light');
   });
 
+  it('returns "system" when the theme cookie is "system"', async () => {
+    (cookies as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      get: vi.fn().mockReturnValue({ value: 'system' }),
+    });
+    const theme = await resolveRequestTheme();
+    expect(theme).toBe('system');
+  });
+
   it('returns DEFAULT_THEME when cookie has an unrecognised value', async () => {
     (cookies as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       get: vi.fn().mockReturnValue({ value: 'solarized' }),
     });
     const theme = await resolveRequestTheme();
-    expect(theme).toBe('light');
+    expect(theme).toBe('system');
   });
 
   it('returns DEFAULT_THEME when the cookie is absent', async () => {
@@ -50,6 +60,6 @@ describe('resolveRequestTheme', () => {
       get: vi.fn().mockReturnValue(undefined),
     });
     const theme = await resolveRequestTheme();
-    expect(theme).toBe('light');
+    expect(theme).toBe('system');
   });
 });

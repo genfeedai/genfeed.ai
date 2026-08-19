@@ -480,7 +480,7 @@ export default function IssuesList() {
         />
       ) : viewMode === ViewType.LIST ? (
         <Card>
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-border/40">
             {STATUS_ORDER.reduce<JSX.Element[]>((sections, status) => {
               if (groupedByStatus[status].length === 0) {
                 return sections;

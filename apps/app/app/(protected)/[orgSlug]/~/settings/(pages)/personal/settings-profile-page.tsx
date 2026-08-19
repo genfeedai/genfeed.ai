@@ -1,17 +1,25 @@
 'use client';
 
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
+// biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
+import { useCallback, useState } from 'react';
+import { useTheme } from 'next-themes';
 import {
   type AppLocale,
   DEFAULT_LOCALE,
+  DEFAULT_THEME,
   getSelectableLocales,
+  isThemePreference,
   LOCALE_LABELS,
+  THEME_PREFERENCES,
+  type ThemePreference,
 } from '@genfeedai/constants';
 import type { ISetting } from '@genfeedai/interfaces';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
 import {
@@ -22,7 +30,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
-import { useCallback, useState } from 'react';
 
 type ExtendedSettingPatch = Partial<ISetting> & {
   isVideoNotificationsEmail?: boolean;
@@ -36,9 +43,17 @@ const SELECTABLE_LOCALES = getSelectableLocales(
   process.env.NODE_ENV !== 'production',
 );
 
+const THEME_LABELS: Record<ThemePreference, string> = {
+  dark: 'Dark',
+  light: 'Light',
+  system: 'System',
+};
+
 export default function SettingsProfilePage() {
   const { user, isLoaded } = useAuthUser();
   const { currentUser, mutateUser } = useCurrentUser();
+  const { setTheme, theme } = useTheme();
+  const notifications = NotificationsService.getInstance();
 
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -49,26 +64,51 @@ export default function SettingsProfilePage() {
   const patchSettings = useCallback(
     async (patch: ExtendedSettingPatch) => {
       if (!currentUser) {
-        return;
+        return false;
       }
 
       setIsSaving(true);
       try {
         const service = await getUsersService();
-        await service.patchSettings(currentUser.id, patch);
+        await service.patchMeSettings(patch);
         mutateUser(
           new User({
             ...currentUser,
             settings: { ...currentUser.settings, ...patch },
           }),
         );
+        return true;
       } catch (error) {
         logger.error('Failed to update settings', error);
+        return false;
       } finally {
         setIsSaving(false);
       }
     },
     [currentUser, mutateUser, getUsersService],
+  );
+
+  const handleThemeChange = useCallback(
+    async (value: string) => {
+      if (!isThemePreference(value)) {
+        return;
+      }
+
+      const storedTheme = currentUser?.settings?.theme;
+      const previousTheme = isThemePreference(theme)
+        ? theme
+        : isThemePreference(storedTheme)
+          ? storedTheme
+          : DEFAULT_THEME;
+
+      setTheme(value);
+
+      if (!(await patchSettings({ theme: value }))) {
+        setTheme(previousTheme);
+        notifications.error('Failed to save your appearance preference.');
+      }
+    },
+    [currentUser?.settings?.theme, notifications, patchSettings, setTheme, theme],
   );
 
   if (!isLoaded) {
@@ -87,6 +127,12 @@ export default function SettingsProfilePage() {
   const locale = SELECTABLE_LOCALES.includes(storedLocale)
     ? storedLocale
     : DEFAULT_LOCALE;
+  const storedTheme = currentUser?.settings?.theme;
+  const selectedTheme = isThemePreference(theme)
+    ? theme
+    : isThemePreference(storedTheme)
+      ? storedTheme
+      : DEFAULT_THEME;
   const isWorkflowNotificationsEmail =
     (currentUser?.settings as ExtendedSettingPatch | undefined)
       ?.isWorkflowNotificationsEmail ?? false;
@@ -138,6 +184,34 @@ export default function SettingsProfilePage() {
             {SELECTABLE_LOCALES.map((selectableLocale) => (
               <SelectItem key={selectableLocale} value={selectableLocale}>
                 {LOCALE_LABELS[selectableLocale]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Card>
+
+      <Card
+        label="Appearance"
+        description="Choose a light or dark interface, or follow your device setting."
+        bodyClassName="gap-3 p-4"
+      >
+        <Select
+          disabled={isSaving}
+          onValueChange={handleThemeChange}
+          value={selectedTheme}
+        >
+          <SelectTrigger
+            aria-label="Appearance"
+            id="personal-appearance"
+            className="w-full"
+            data-testid="personal-appearance-trigger"
+          >
+            <SelectValue placeholder="Select an appearance" />
+          </SelectTrigger>
+          <SelectContent>
+            {THEME_PREFERENCES.map((preference) => (
+              <SelectItem key={preference} value={preference}>
+                {THEME_LABELS[preference]}
               </SelectItem>
             ))}
           </SelectContent>

@@ -1,8 +1,10 @@
 import { useRouter } from 'expo-router';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 interface ScreenErrorFallbackProps {
   onRetry: () => void;
@@ -10,6 +12,7 @@ interface ScreenErrorFallbackProps {
 
 function ScreenErrorFallback({ onRetry }: ScreenErrorFallbackProps): ReactNode {
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.container}>
@@ -76,7 +79,8 @@ export class ScreenErrorBoundary extends React.Component<
   }
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   actions: {
     gap: 12,
     width: '100%',
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     alignItems: 'center',
-    backgroundColor: colors.indigo,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.xxl,
     paddingVertical: 14,
   },
@@ -122,7 +126,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   retryButtonText: {
-    color: colors.white,
+    color: colors.primaryForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -134,11 +138,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   title: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 8,
   },
-});
+  });
 
 export default ScreenErrorBoundary;

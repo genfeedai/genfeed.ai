@@ -10,7 +10,10 @@ import {
   generateWebviewTokenCss,
   webviewTokenCss,
 } from '@ui/generators/webview-css';
-import { nativeTokenMap } from '@ui/semantic/mobile';
+import {
+  nativeThemeColors,
+  nativeTokenMap,
+} from '@ui/semantic/mobile';
 import { tailwindSemanticColors } from '@ui/semantic/web';
 import { webviewSemanticTokenMap } from '@ui/semantic/webview';
 
@@ -24,6 +27,7 @@ export type { MotionTokenName } from '@ui/core/motion';
 export type { RadiusTokenName } from '@ui/core/radius';
 export type { SpacingTokenName } from '@ui/core/spacing';
 export type { TypographyTokenName } from '@ui/core/typography';
+export type { NativeThemeColors } from '@ui/semantic/mobile';
 
 export interface DesignTokens {
   colors: typeof semanticColorTokens;
@@ -50,6 +54,7 @@ export {
   generateWebTokenCss,
   generateWebviewTokenCss,
   motionTokens,
+  nativeThemeColors,
   nativeTokenMap,
   radiusTokens,
   semanticColorRoles,

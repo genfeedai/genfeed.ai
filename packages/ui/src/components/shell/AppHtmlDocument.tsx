@@ -1,8 +1,13 @@
+import {
+  DEFAULT_RESOLVED_THEME,
+  resolveThemePreference,
+  type ThemePreference,
+} from '@genfeedai/constants';
 import type { ReactNode } from 'react';
 
 export interface AppHtmlDocumentProps {
   children: ReactNode;
-  initialTheme: string;
+  initialTheme: ThemePreference;
   fontVariables: string;
   bodyClassName?: string;
   head?: ReactNode;
@@ -17,13 +22,18 @@ export default function AppHtmlDocument({
   head,
   lang = 'en',
 }: AppHtmlDocumentProps) {
+  const resolvedInitialTheme = resolveThemePreference(
+    initialTheme,
+    DEFAULT_RESOLVED_THEME,
+  );
+
   return (
     <html
       lang={lang}
       className={fontVariables}
-      data-theme={initialTheme}
+      data-theme={resolvedInitialTheme}
       data-scroll-behavior="smooth"
-      style={{ colorScheme: initialTheme }}
+      style={{ colorScheme: initialTheme === 'system' ? 'light dark' : initialTheme }}
       // next-themes rewrites data-theme/style on the client before React
       // hydrates, so the server-rendered attributes legitimately differ.
       suppressHydrationWarning

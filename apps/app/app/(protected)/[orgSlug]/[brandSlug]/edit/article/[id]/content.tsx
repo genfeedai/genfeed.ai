@@ -30,7 +30,7 @@ export default function ArticleEditorContent({
 
   return (
     <div className="flex flex-col">
-      <div className="border-white/[0.08] border-b bg-card">
+      <div className="border-border border-b bg-card">
         <div className="mx-auto w-full max-w-7xl px-6 py-4">
           <ArtifactEditorBackLink
             backHref={backHref}

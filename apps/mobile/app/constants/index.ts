@@ -6,9 +6,10 @@ export {
   type BorderRadius,
   borderRadius,
   type Colors,
-  colors,
   type FontSize,
   fontSize,
+  type NativeThemeColors,
+  nativeThemeColors,
   type Spacing,
   spacing,
 } from '@/constants/theme';

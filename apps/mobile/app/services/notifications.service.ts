@@ -1,8 +1,8 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { nativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { Platform } from 'react-native';
-import { colors } from '@/constants';
 import { apiRequest } from '@/services/api/base-http.service';
 
 // Configure how notifications are handled when app is in foreground
@@ -52,7 +52,7 @@ class NotificationsService {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         importance: Notifications.AndroidImportance.MAX,
-        lightColor: colors.indigo,
+        lightColor: nativeThemeColors.dark.agent,
         name: 'Default',
         vibrationPattern: [0, 250, 250, 250],
       });

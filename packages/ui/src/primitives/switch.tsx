@@ -31,21 +31,21 @@ export interface SwitchProps extends SwitchBaseProps {
  * thumb’s `translate-x-*` utilities don’t land, the track is `items-center`
  * and the knob sits dead-center for both states — looks “stuck”.
  *
- * Force track color + thumb travel off parent `data-state` so on/off always
- * slides left ↔ right.
+ * Force semantic track/thumb contrast + travel off parent `data-state` so
+ * on/off always slides left ↔ right in both Light and Dark.
  */
 const SWITCH_CONTRAST_CLASSNAME = cn(
   // Track — left-align the thumb so translate (not flex centering) owns position
   'justify-start',
-  'data-[state=unchecked]:!bg-white/15 data-[state=checked]:!bg-white',
+  'data-[state=unchecked]:!bg-muted-foreground data-[state=checked]:!bg-primary',
   // Thumb motion (Ship renders one direct span child with its own data-state)
   'data-[state=unchecked]:[&>span]:!translate-x-0.5',
   'data-[state=checked]:[&>span]:!translate-x-4',
-  'data-[state=unchecked]:[&>span]:!bg-white',
-  'data-[state=checked]:[&>span]:!bg-black',
+  'data-[state=unchecked]:[&>span]:!bg-background',
+  'data-[state=checked]:[&>span]:!bg-primary-foreground',
   '[&>span]:!transition-transform [&>span]:!duration-200 [&>span]:!ease-out',
   // Focus
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 );
 
 function Switch({

@@ -33,7 +33,7 @@ export default function ClipsInputForm({
         <div>
           <label
             htmlFor="youtube-url"
-            className="mb-1.5 block text-sm font-medium text-zinc-300"
+            className="mb-1.5 block text-sm font-medium text-foreground"
           >
             YouTube URL
           </label>
@@ -52,10 +52,10 @@ export default function ClipsInputForm({
         <div>
           <label
             htmlFor="max-clips"
-            className="mb-1.5 flex items-center justify-between text-sm font-medium text-zinc-300"
+            className="mb-1.5 flex items-center justify-between text-sm font-medium text-foreground"
           >
             <span>Max Clips</span>
-            <span className="text-xs text-zinc-500">{maxClips}</span>
+            <span className="text-xs text-muted-foreground">{maxClips}</span>
           </label>
           <Input
             id="max-clips"
@@ -66,7 +66,7 @@ export default function ClipsInputForm({
             onChange={(e) => onSetMaxClips(Number(e.target.value))}
             className="w-full accent-primary"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
+          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/70">
             <span>1</span>
             <span>15</span>
             <span>30</span>
@@ -77,10 +77,12 @@ export default function ClipsInputForm({
         <div>
           <label
             htmlFor="min-virality"
-            className="mb-1.5 flex items-center justify-between text-sm font-medium text-zinc-300"
+            className="mb-1.5 flex items-center justify-between text-sm font-medium text-foreground"
           >
             <span>Min Virality Score</span>
-            <span className="text-xs text-zinc-500">{minViralityScore}</span>
+            <span className="text-xs text-muted-foreground">
+              {minViralityScore}
+            </span>
           </label>
           <Input
             id="min-virality"
@@ -91,7 +93,7 @@ export default function ClipsInputForm({
             onChange={(e) => onSetMinViralityScore(Number(e.target.value))}
             className="w-full accent-primary"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
+          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/70">
             <span>0</span>
             <span>50</span>
             <span>100</span>
@@ -111,10 +113,13 @@ export default function ClipsInputForm({
             onClick={onStartQuick}
             isDisabled={isSubmitting || !youtubeUrl}
             isLoading={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
             icon={
               isSubmitting ? (
-                <Spinner size={ComponentSize.SM} className="text-white" />
+                <Spinner
+                  size={ComponentSize.SM}
+                  className="text-primary-foreground"
+                />
               ) : (
                 <Sparkles className="size-4" />
               )
@@ -123,12 +128,12 @@ export default function ClipsInputForm({
           />
 
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-            <p className="text-xs text-zinc-500">{quickStartHint}</p>
+            <p className="text-xs text-muted-foreground">{quickStartHint}</p>
             <Button
               variant={ButtonVariant.LINK}
               onClick={onAnalyze}
               isDisabled={isSubmitting || !youtubeUrl}
-              className="text-xs text-zinc-500 hover:text-zinc-300"
+              className="text-xs text-muted-foreground hover:text-foreground"
               icon={<Search className="size-3.5" />}
               label="Review highlights first"
             />

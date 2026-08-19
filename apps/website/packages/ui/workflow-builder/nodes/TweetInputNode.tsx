@@ -84,7 +84,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
           variant={ButtonVariant.UNSTYLED}
           className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition ${
             data.inputMode === 'url'
-              ? 'bg-primary text-white'
+              ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -97,7 +97,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
           variant={ButtonVariant.UNSTYLED}
           className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition ${
             data.inputMode === 'text'
-              ? 'bg-primary text-white'
+              ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -120,7 +120,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
             isDisabled={!data.tweetUrl || isFetching}
             type="button"
             variant={ButtonVariant.UNSTYLED}
-            className="w-full py-1.5 bg-primary text-white text-xs font-medium hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 bg-primary py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
           >
             {isFetching ? (
               <>
@@ -140,13 +140,13 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
           value={data.rawText || ''}
           onChange={handleRawTextChange}
           placeholder="Paste tweet text here…"
-          className="w-full h-20 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+          className="h-20 w-full resize-none border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
         />
       )}
 
       {/* Extracted Tweet Preview */}
       {data.extractedTweet && (
-        <div className="p-2 bg-background border border-white/[0.08]">
+        <div className="border border-border bg-background p-2">
           {data.authorHandle && (
             <div className="text-xs text-muted-foreground mb-1">
               @{data.authorHandle}

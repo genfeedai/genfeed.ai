@@ -1,5 +1,48 @@
 @import "tailwindcss";
+@import "@genfeedai/ui/web-tokens.css";
 @import "./styles/theme.css";
+
+/* The extension consumes both in-repo wrappers and compiled Ship primitives.
+   Tailwind must see both sources because neither lives below this stylesheet. */
+@source "../../../../../packages/ui/src/primitives";
+@source "../../../../../packages/ui/node_modules/@shipshitdev/ui/dist";
+
+/* Tailwind v4 does not consume tailwind.config.ts automatically. Register the
+   shared HSL variables so semantic classes compile in the extension bundle. */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-background-secondary: hsl(var(--background-secondary));
+  --color-background-tertiary: hsl(var(--background-tertiary));
+  --color-tertiary: hsl(var(--background-tertiary));
+  --color-elevated: hsl(var(--popover));
+  --color-hover: hsl(var(--accent));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-danger: hsl(var(--destructive));
+}
 
 html,
 body {

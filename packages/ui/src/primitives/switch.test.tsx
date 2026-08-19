@@ -17,7 +17,7 @@ function ControlledSwitch() {
 }
 
 describe('Switch', () => {
-  it('forces high-contrast track/thumb and explicit on/off travel', () => {
+  it('uses semantic high-contrast track/thumb pairs and explicit travel', () => {
     render(<Switch aria-label="Public profile" />);
 
     const root = screen.getByRole('switch', { name: /public profile/i });
@@ -30,8 +30,18 @@ describe('Switch', () => {
     expect(root.className).toContain(
       'data-[state=checked]:[&>span]:!translate-x-4',
     );
-    expect(root.className).toContain('data-[state=checked]:!bg-white');
-    expect(root.className).toContain('data-[state=checked]:[&>span]:!bg-black');
+    expect(root.className).toContain(
+      'data-[state=unchecked]:!bg-muted-foreground',
+    );
+    expect(root.className).toContain('data-[state=checked]:!bg-primary');
+    expect(root.className).toContain(
+      'data-[state=unchecked]:[&>span]:!bg-background',
+    );
+    expect(root.className).toContain(
+      'data-[state=checked]:[&>span]:!bg-primary-foreground',
+    );
+    expect(root.className).toContain('focus-visible:ring-ring');
+    expect(root.className).not.toMatch(/(?:bg|ring)-(?:white|black)/);
   });
 
   it('toggles aria-checked when clicked', async () => {

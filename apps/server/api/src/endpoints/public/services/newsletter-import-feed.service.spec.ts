@@ -184,6 +184,16 @@ describe('NewsletterImportFeedService', () => {
     expect(page).not.toContain('<script>');
   });
 
+  it('renders the canonical page with a system-responsive semantic palette', async () => {
+    const page = await service.generateCanonicalPage(publishedNewsletter.id);
+
+    expect(page).toContain('color-scheme: light dark');
+    expect(page).toContain('@media (prefers-color-scheme: dark)');
+    expect(page).toContain('background: var(--page-background)');
+    expect(page).toContain('color: var(--page-foreground)');
+    expect(page).not.toContain('background:#050607');
+  });
+
   it('does not expose ineligible newsletters at canonical URLs', async () => {
     newslettersService.findOne.mockResolvedValue(null);
 

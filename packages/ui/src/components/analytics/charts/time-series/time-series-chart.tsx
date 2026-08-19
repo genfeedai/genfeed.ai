@@ -96,8 +96,8 @@ export function TimeSeriesChart({
         style={{ height }}
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full size-12 border-b-2 border-white/30 mx-auto mb-3" />
-          <p className="text-sm text-white/40">Loading chart data…</p>
+          <div className="mx-auto mb-3 size-12 animate-spin rounded-full border-b-2 border-foreground/30" />
+          <p className="text-sm text-muted-foreground">Loading chart data…</p>
         </div>
       </div>
     );
@@ -110,8 +110,8 @@ export function TimeSeriesChart({
         style={{ height }}
       >
         <div className="text-center">
-          <p className="text-white/40 mb-2">No data available</p>
-          <p className="text-sm text-white/30">
+          <p className="mb-2 text-muted-foreground">No data available</p>
+          <p className="text-sm text-muted-foreground/70">
             Try selecting a different date range
           </p>
         </div>
@@ -143,8 +143,8 @@ export function TimeSeriesChart({
             variant={ButtonVariant.UNSTYLED}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border ${
               activeMetrics.includes(metric)
-                ? 'bg-white/10 border-white/20 text-white'
-                : 'bg-transparent border-white/[0.08] text-white/50 hover:border-white/20 hover:text-white/80'
+                ? 'border-border-strong bg-muted text-foreground'
+                : 'border-border/60 bg-transparent text-muted-foreground hover:border-border-strong hover:text-foreground'
             }`}
           >
             <span

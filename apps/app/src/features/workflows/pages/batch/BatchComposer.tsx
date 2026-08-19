@@ -277,7 +277,7 @@ export default function BatchComposer({
             No recent batch jobs yet.
           </InsetSurface>
         ) : (
-          <div className="divide-y divide-white/[0.08]">
+          <div className="divide-y divide-border/80">
             {recentJobs.map((job) => (
               <Button
                 key={job.id}

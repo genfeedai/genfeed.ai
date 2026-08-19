@@ -17,21 +17,21 @@ export default function SetupCard() {
 
   return (
     <Card
-      className="mx-3 mb-3 shadow-border bg-white/[0.03]"
+      className="mx-3 mb-3 bg-foreground/[0.03] shadow-border"
       bodyClassName="gap-0 p-3"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold text-white/60">
+        <span className="text-[11px] font-semibold text-foreground/60">
           Complete setup
         </span>
-        <span className="text-[10px] font-medium text-white/30">
+        <span className="text-[10px] font-medium text-foreground/30">
           {completedCount}/{totalCount}
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 rounded-full bg-white/[0.06] mb-3 overflow-hidden">
+      <div className="mb-3 h-1 overflow-hidden rounded-full bg-foreground/[0.06]">
         <div
           className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
@@ -47,14 +47,14 @@ export default function SetupCard() {
             className={cn(
               'flex items-center gap-2.5 px-2 py-1.5 text-[12px] transition-colors duration-150',
               step.isCompleted
-                ? 'text-white/30'
-                : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04]',
+                ? 'text-foreground/30'
+                : 'text-foreground/60 hover:bg-foreground/[0.04] hover:text-foreground/80',
             )}
           >
             {step.isCompleted ? (
               <Check className="size-3.5 text-green-400/60 flex-shrink-0" />
             ) : (
-              <ChevronRight className="size-3.5 text-white/20 flex-shrink-0" />
+              <ChevronRight className="size-3.5 flex-shrink-0 text-foreground/20" />
             )}
             <span className={cn(step.isCompleted && 'line-through')}>
               {step.label}

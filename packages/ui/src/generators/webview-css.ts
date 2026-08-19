@@ -8,6 +8,7 @@ export function generateWebviewTokenCss(): string {
   );
 
   return `:root {
+    color-scheme: light dark;
 ${semanticLines.join('\n')}
     --input-background: var(--vscode-input-background);
     --input-foreground: var(--vscode-input-foreground);
@@ -31,6 +32,16 @@ ${semanticLines.join('\n')}
     font-size: var(--vscode-font-size);
     color: var(--foreground);
     background: var(--background);
+  }
+
+  body.vscode-light,
+  body.vscode-high-contrast-light {
+    color-scheme: light;
+  }
+
+  body.vscode-dark,
+  body.vscode-high-contrast {
+    color-scheme: dark;
   }`;
 }
 

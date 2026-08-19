@@ -1,7 +1,9 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { StyleSheet } from 'react-native';
-import { borderRadius, colors, fontSize, spacing } from '@/constants';
+import { borderRadius, fontSize, spacing } from '@/constants';
 
-export const screenStatesStyles = StyleSheet.create({
+export const createScreenStatesStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   centerContent: {
     alignItems: 'center',
     gap: spacing.lg,
@@ -27,7 +29,7 @@ export const screenStatesStyles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyStateText: {
-    color: colors.white,
+    color: colors.textPrimary,
     fontSize: fontSize.h3,
     fontWeight: '600',
   },
@@ -54,8 +56,8 @@ export const screenStatesStyles = StyleSheet.create({
     opacity: 0.8,
   },
   retryButtonText: {
-    color: colors.accent,
+    color: colors.textPrimary,
     fontSize: fontSize.lg,
     fontWeight: '500',
   },
-});
+  });

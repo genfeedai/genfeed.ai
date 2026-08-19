@@ -2,7 +2,10 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   DEFAULT_LOCALE,
+  DEFAULT_THEME,
   SUPPORTED_LOCALES,
+  THEME_PREFERENCES,
+  type ThemePreference,
 } from '@genfeedai/constants';
 import {
   GenerationPriority,
@@ -31,12 +34,14 @@ export class CreateSettingDto {
   readonly user!: string;
 
   @IsString()
+  @IsIn(THEME_PREFERENCES)
   @ApiProperty({
-    default: 'dark',
-    description: 'The UI theme preference (light/dark)',
+    default: DEFAULT_THEME,
+    description: 'The UI appearance preference',
+    enum: THEME_PREFERENCES,
     required: true,
   })
-  readonly theme!: string;
+  readonly theme!: ThemePreference;
 
   @IsIn(SUPPORTED_LOCALES)
   @IsOptional()

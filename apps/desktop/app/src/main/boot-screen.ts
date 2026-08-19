@@ -1,13 +1,35 @@
-const DESKTOP_BOOT_BACKGROUND = '#000000';
+export type DesktopColorScheme = 'light' | 'dark';
+
+const DESKTOP_BOOT_BACKGROUNDS: Record<DesktopColorScheme, string> = {
+  dark: '#030303',
+  light: '#fafaf9',
+};
 
 const buildDataUrl = (html: string): string =>
   `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 
 const BASE_BOOT_STYLES = `
       :root {
-        background: ${DESKTOP_BOOT_BACKGROUND};
-        color: #f7f7f7;
-        color-scheme: dark;
+        --desktop-boot-background: ${DESKTOP_BOOT_BACKGROUNDS.light};
+        --desktop-boot-foreground: #0d0d0d;
+        --desktop-boot-muted: #707070;
+        --desktop-boot-ring: rgba(13, 13, 13, 0.18);
+        --desktop-boot-ring-active: rgba(13, 13, 13, 0.82);
+        --desktop-boot-shadow: rgba(13, 13, 13, 0.12);
+        background: var(--desktop-boot-background);
+        color: var(--desktop-boot-foreground);
+        color-scheme: light dark;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desktop-boot-background: ${DESKTOP_BOOT_BACKGROUNDS.dark};
+          --desktop-boot-foreground: #fafafa;
+          --desktop-boot-muted: #949494;
+          --desktop-boot-ring: rgba(255, 255, 255, 0.18);
+          --desktop-boot-ring-active: rgba(255, 255, 255, 0.82);
+          --desktop-boot-shadow: rgba(255, 255, 255, 0.14);
+        }
       }
 
       html,
@@ -20,7 +42,7 @@ const BASE_BOOT_STYLES = `
       body {
         display: grid;
         place-items: center;
-        background: ${DESKTOP_BOOT_BACKGROUND};
+        background: var(--desktop-boot-background);
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
           "Segoe UI", sans-serif;
@@ -52,7 +74,9 @@ const buildDesktopBootHtml = ({
   </body>
 </html>`;
 
-export const getDesktopBootBackground = (): string => DESKTOP_BOOT_BACKGROUND;
+export const getDesktopBootBackground = (
+  colorScheme: DesktopColorScheme,
+): string => DESKTOP_BOOT_BACKGROUNDS[colorScheme];
 
 export const buildDesktopLoadingScreenHtml = (): string =>
   buildDesktopBootHtml({
@@ -76,7 +100,7 @@ export const buildDesktopLoadingScreenHtml = (): string =>
         height: 56px;
         width: auto;
         animation: boot-pulse 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        filter: drop-shadow(0 0 28px rgba(255, 255, 255, 0.14));
+        filter: drop-shadow(0 0 28px var(--desktop-boot-shadow));
       }
 
       .spinner {
@@ -90,12 +114,12 @@ export const buildDesktopLoadingScreenHtml = (): string =>
         position: absolute;
         inset: 0;
         content: "";
-        border: 1px solid rgba(255, 255, 255, 0.18);
+        border: 1px solid var(--desktop-boot-ring);
         border-radius: 999px;
       }
 
       .spinner::after {
-        border-color: rgba(255, 255, 255, 0.82) transparent transparent;
+        border-color: var(--desktop-boot-ring-active) transparent transparent;
         animation: boot-spin 0.9s linear infinite;
       }
 
@@ -188,7 +212,7 @@ export const buildDesktopFailureScreenHtml = (): string =>
 
       p {
         margin: 0;
-        color: rgba(255, 255, 255, 0.62);
+        color: var(--desktop-boot-muted);
         font-size: 14px;
         line-height: 1.6;
       }

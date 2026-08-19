@@ -1,11 +1,10 @@
 'use client';
 
-// biome-ignore assist/source/organizeImports: External packages precede project aliases.
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import ThemeMenu from '@ui/theme/ThemeMenu';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
   ChartColumn,
@@ -61,7 +60,8 @@ export default function WebsiteTopbar() {
       dropdowns={[{ items: PRODUCT_LINKS, label: 'Product' }]}
       navLinks={NAV_LINKS}
       rightContent={
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 lg:gap-6">
+          <ThemeMenu />
           {!isSignedIn ? (
             <>
               <a

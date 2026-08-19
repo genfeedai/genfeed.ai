@@ -106,10 +106,10 @@ export default function PromptBarContentExpandedView({
           onKeyDown={onKeyDown}
           placeholder={promptPlaceholder}
           isDisabled={isEnhancing}
-          className="min-h-[96px] w-full resize-none border border-white/10 bg-transparent p-2 text-sm text-white/90 shadow-none focus:border-transparent focus-visible:ring-0"
+          className="min-h-[96px] w-full resize-none border border-border bg-transparent p-2 text-sm text-foreground shadow-none focus:border-border-strong focus-visible:ring-0"
         />
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/8 pt-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-2">
           {showCountDropdown && (
             <FormDropdown
               name="count"

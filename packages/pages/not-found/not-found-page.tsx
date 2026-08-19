@@ -16,7 +16,7 @@ export default function NotFoundPage({
     // Fill the available layout region only. `min-h-dvh` nested under the app
     // shell (sidebar + topbar) stacked a full viewport on top of chrome and
     // forced a useless scrollbar on 404.
-    <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-black text-center">
+    <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-background text-center">
       <div className="grid grid-cols-1 px-4">
         {logoUrl && (
           <Image
@@ -38,13 +38,9 @@ export default function NotFoundPage({
         </p>
 
         <div className="mt-4 grid grid-cols-1 items-center justify-center gap-4">
-          {/*
-            Forced black shell — theme `primary` is often near-black in dark mode
-            and makes the CTA disappear. Hard white chip for contrast.
-          */}
           <Link
             href={homeHref}
-            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-white px-4 py-2 text-sm font-medium text-black shadow transition-colors duration-200 hover:bg-white/90"
+            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors duration-200 hover:bg-primary/90"
           >
             {homeLabel}
           </Link>

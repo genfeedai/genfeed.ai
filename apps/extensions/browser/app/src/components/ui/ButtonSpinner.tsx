@@ -10,7 +10,10 @@ export function ButtonSpinner({
 }: ButtonSpinnerProps): ReactElement {
   return (
     <span className="flex items-center justify-center">
-      <LoadingSpinner size="sm" className="-ml-1 mr-3 text-white" />
+      <LoadingSpinner
+        size="sm"
+        className="-ml-1 mr-3 text-primary-foreground"
+      />
       {text}
     </span>
   );

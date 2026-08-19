@@ -94,11 +94,11 @@ export default function StudioClipsPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <Search className="size-6 text-primary" />
-            <h2 className="text-2xl font-semibold text-zinc-100">
+            <h2 className="text-2xl font-semibold text-foreground">
               Review Highlights
             </h2>
           </div>
-          <p className="mt-2 text-sm text-zinc-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             {isAnalyzing
               ? 'Analyzing video -- detecting viral moments...'
               : project.status === 'failed'
@@ -108,12 +108,12 @@ export default function StudioClipsPage() {
         </div>
 
         {isAnalyzing ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-800 py-20">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20">
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               Transcribing and analyzing video…
             </p>
-            <p className="mt-1 text-xs text-zinc-600">
+            <p className="mt-1 text-xs text-muted-foreground/70">
               This usually takes 1-2 minutes
             </p>
           </div>
@@ -164,14 +164,14 @@ export default function StudioClipsPage() {
             {/* Avatar & Voice config */}
             {generationMode === 'avatar' && (
               <div className="mt-4 space-y-4 rounded-xl bg-secondary p-4 shadow-border">
-                <h3 className="text-sm font-medium text-zinc-300">
+                <h3 className="text-sm font-medium text-foreground">
                   Avatar Configuration
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label
                       htmlFor="avatar-id-review"
-                      className="mb-1 block text-xs text-zinc-500"
+                      className="mb-1 block text-xs text-muted-foreground"
                     >
                       Avatar ID
                     </label>
@@ -186,7 +186,7 @@ export default function StudioClipsPage() {
                   <div>
                     <label
                       htmlFor="voice-id-review"
-                      className="mb-1 block text-xs text-zinc-500"
+                      className="mb-1 block text-xs text-muted-foreground"
                     >
                       Voice ID
                     </label>
@@ -200,7 +200,7 @@ export default function StudioClipsPage() {
                   </div>
                 </div>
 
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted-foreground">
                   {avatarProvider === 'argil'
                     ? 'Enter the avatar and voice IDs from your Argil account.'
                     : identityDefaults.isComplete
@@ -220,14 +220,14 @@ export default function StudioClipsPage() {
                         avatarProvider === opt.value
                           ? 'border-primary bg-primary/10'
                           : opt.disabled
-                            ? 'cursor-not-allowed border-zinc-800 bg-zinc-900/30 opacity-50'
-                            : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
+                            ? 'cursor-not-allowed border-border bg-muted/30 opacity-50'
+                            : 'border-border bg-secondary hover:border-primary/60'
                       }`}
                     >
-                      <div className="text-xs font-medium text-zinc-200">
+                      <div className="text-xs font-medium text-foreground">
                         {opt.label}
                       </div>
-                      <div className="text-[10px] text-zinc-500">
+                      <div className="text-[10px] text-muted-foreground">
                         {opt.description}
                       </div>
                     </Button>
@@ -247,7 +247,7 @@ export default function StudioClipsPage() {
             <div className="mt-6 flex items-center justify-between">
               <Button
                 variant={ButtonVariant.LINK}
-                className="text-sm text-zinc-500 hover:text-zinc-300"
+                className="text-sm text-muted-foreground hover:text-foreground"
                 onClick={resetToInput}
                 label="Back"
               />
@@ -261,10 +261,13 @@ export default function StudioClipsPage() {
                   (generationMode === 'avatar' && (!avatarId || !voiceId))
                 }
                 isLoading={isSubmitting}
-                className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
                 icon={
                   isSubmitting ? (
-                    <Spinner size={ComponentSize.SM} className="text-white" />
+                    <Spinner
+                      size={ComponentSize.SM}
+                      className="text-primary-foreground"
+                    />
                   ) : (
                     <Sparkles className="size-4" />
                   )
@@ -283,7 +286,7 @@ export default function StudioClipsPage() {
           <div className="mt-4">
             <Button
               variant={ButtonVariant.LINK}
-              className="text-sm text-zinc-500 hover:text-zinc-300"
+              className="text-sm text-muted-foreground hover:text-foreground"
               onClick={resetToInput}
               label="Try again"
             />

@@ -58,13 +58,13 @@ export default function StreakCard() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Daily streak
           </p>
-          <p className="text-lg font-semibold text-white">
+          <p className="text-lg font-semibold text-foreground">
             {isLoading
               ? '…'
               : `${currentStreak} day${currentStreak === 1 ? '' : 's'}`}
           </p>
         </div>
-        <div className="rounded-full border border-white/20 px-2 py-1 text-[11px] font-medium text-white/80">
+        <div className="rounded-full border border-border px-2 py-1 text-[11px] font-medium text-foreground/80">
           {streakFreezes} freeze{streakFreezes === 1 ? '' : 's'}
         </div>
       </div>
@@ -78,8 +78,8 @@ export default function StreakCard() {
               className={cn(
                 'h-7 rounded border text-[10px] flex items-center justify-center',
                 count > 0
-                  ? 'border-white/30 bg-white/25 text-white'
-                  : 'border-white/8 bg-white/[0.03] text-white/25',
+                  ? 'border-foreground/30 bg-foreground/25 text-foreground'
+                  : 'border-border bg-foreground/[0.03] text-foreground/35',
               )}
               title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}
             >
@@ -89,7 +89,7 @@ export default function StreakCard() {
         })}
       </div>
 
-      <p className="mb-3 text-[12px] leading-5 text-white/65">
+      <p className="mb-3 text-[12px] leading-5 text-foreground/65">
         {nextMilestone
           ? `Next milestone: ${nextMilestone.days} days. ${nextMilestone.remaining} more day${nextMilestone.remaining === 1 ? '' : 's'} to go.`
           : 'Top streak milestone reached. Keep creating daily to defend it.'}

@@ -1,6 +1,7 @@
 import * as Google from 'expo-auth-session/providers/google';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,10 +12,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
 import { useMobileAuth } from '@/contexts/auth-context';
+import { useMobileTheme } from '@/contexts/theme-context';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 export default function Login() {
+  const { colors } = useMobileTheme();
+  const styles = useThemedStyles(createStyles);
   const { isLoaded, signInWithEmail, signInWithGoogleIdToken } =
     useMobileAuth();
   const router = useRouter();
@@ -185,7 +190,7 @@ export default function Login() {
           ]}
         >
           {isLoading ? (
-            <ActivityIndicator color={colors.white} size="small" />
+            <ActivityIndicator color={colors.primaryForeground} size="small" />
           ) : (
             <Text style={styles.signInButtonText}>Sign In</Text>
           )}
@@ -195,7 +200,8 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   container: {
     backgroundColor: colors.bgSecondary,
     flex: 1,
@@ -255,7 +261,7 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     alignItems: 'center',
-    backgroundColor: colors.indigo,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.xxl,
     marginTop: 8,
     paddingVertical: 14,
@@ -264,7 +270,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   signInButtonText: {
-    color: colors.white,
+    color: colors.primaryForeground,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -278,4 +284,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
   },
-});
+  });

@@ -230,7 +230,7 @@ export function OverviewOperationsSection({
       </div>
 
       <div data-testid="overview-runs-table" className="flex-1">
-        <div className="h-full px-0 [&_table]:table-fixed [&_td]:align-top [&_thead]:static [&_thead]:bg-transparent [&_th]:h-10 [&_th]:bg-transparent [&_th]:px-5 [&_th]:text-white/24">
+        <div className="h-full px-0 [&_table]:table-fixed [&_td]:align-top [&_thead]:static [&_thead]:bg-transparent [&_th]:h-10 [&_th]:bg-transparent [&_th]:px-5 [&_th]:text-foreground/45">
           <AppTable<IAgentRun>
             items={displayRuns}
             columns={columns}

@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { screenStatesStyles as styles } from '@/components/ScreenStates.styles';
+import { createScreenStatesStyles } from '@/components/ScreenStates.styles';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 
 interface ErrorScreenProps {
   message?: string;
@@ -15,6 +16,8 @@ export function ErrorScreen({
   onRetry,
   retryLabel = 'Try Again',
 }: ErrorScreenProps): ReactElement {
+  const styles = useThemedStyles(createScreenStatesStyles);
+
   return (
     <View style={[styles.container, styles.centerContent]}>
       <Text style={styles.errorText}>{message}</Text>

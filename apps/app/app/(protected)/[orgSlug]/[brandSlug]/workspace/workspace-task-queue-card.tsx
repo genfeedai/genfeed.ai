@@ -37,7 +37,7 @@ export function WorkspaceTaskQueueCard({
         {isLoading && items.length === 0 ? (
           <WorkspaceTaskRowsSkeleton rows={4} />
         ) : items.length > 0 ? (
-          <div className="divide-y divide-white/[0.06]">
+          <div className="divide-y divide-border/60">
             {items.map((task) => (
               <WorkspaceTaskCard
                 key={task.id}

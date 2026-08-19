@@ -43,11 +43,11 @@ export default function ClipsProgressView({
       <div className="mb-8">
         <div className="flex items-center gap-3">
           <Film className="size-6 text-primary" />
-          <h2 className="text-2xl font-semibold text-zinc-100">
+          <h2 className="text-2xl font-semibold text-foreground">
             {statusHeading}
           </h2>
         </div>
-        <p className="mt-2 text-sm text-zinc-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           {project.status === 'completed'
             ? `Done — ${project.clips.length} clip${project.clips.length === 1 ? '' : 's'} generated`
             : project.status === 'failed'
@@ -57,10 +57,10 @@ export default function ClipsProgressView({
 
         {project.status !== 'completed' && project.status !== 'failed' && (
           <div className="mt-4 flex items-center gap-3">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full w-2/3 animate-pulse rounded-full bg-primary transition-[width] duration-500" />
             </div>
-            <span className="text-xs capitalize text-zinc-500">
+            <span className="text-xs capitalize text-muted-foreground">
               {project.status}
             </span>
           </div>
@@ -83,7 +83,7 @@ export default function ClipsProgressView({
         project.status !== 'completed' && (
           <div className="flex flex-col items-center justify-center rounded-xl bg-secondary py-20 shadow-border">
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-muted-foreground">
               {project.mode === 'raw-cut'
                 ? 'Processing YouTube video and creating captioned raw cuts…'
                 : 'Processing YouTube video and generating avatar clips…'}
@@ -95,7 +95,7 @@ export default function ClipsProgressView({
       <div className="mt-8">
         <Button
           variant={ButtonVariant.LINK}
-          className="text-sm text-zinc-500 hover:text-zinc-300"
+          className="text-sm text-muted-foreground hover:text-foreground"
           onClick={onReset}
           label="Start new project"
         />

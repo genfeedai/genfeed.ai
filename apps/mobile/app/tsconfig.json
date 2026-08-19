@@ -6,6 +6,8 @@
       "@genfeedai-types/*": ["../../../packages/types/src/*"],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/ui": ["../../../packages/ui/src/index.ts"],

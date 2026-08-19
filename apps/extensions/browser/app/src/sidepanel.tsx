@@ -10,9 +10,10 @@ import { RemixPage } from '~components/pages/RemixPage';
 import { ReplyPage } from '~components/pages/ReplyPage';
 import { SettingsPanel } from '~components/settings/SettingsPanel';
 import { LoadingSpinner } from '~components/ui';
+import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
+import { useExtensionTheme } from '~hooks/use-extension-theme';
 import { authService, getJWTToken } from '~services/auth.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
-import { useSettingsStore } from '~store/use-settings-store';
 import type { ExtensionMessage } from '~types/extension';
 import { logger } from '~utils/logger.util';
 
@@ -112,13 +113,13 @@ function SidePanelContent() {
     error: null,
     status: 'syncing',
   });
+  useAccountThemeSync(authState.status === 'authenticated');
   const [panelState, dispatchPanel] = useReducer(panelReducer, {
     activeTab: 'chat',
     pendingAuthor: '',
     pendingContent: '',
     pendingUrl: '',
   } satisfies PanelState);
-  const loadSettings = useSettingsStore((s) => s.loadSettings);
 
   // Listen for OPEN_MODE messages from the background/content scripts
   useEffect(() => {
@@ -195,8 +196,7 @@ function SidePanelContent() {
     }
 
     syncAuth();
-    loadSettings();
-  }, [isLoaded, isSignedIn, getToken, loadSettings]);
+  }, [isLoaded, isSignedIn, getToken]);
 
   if (!isLoaded || authState.status === 'syncing') {
     return (
@@ -230,12 +230,7 @@ function SidePanelContent() {
 }
 
 export default function SidePanel() {
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.body.classList.add('dark');
-    document.body.setAttribute('data-theme', 'dark');
-  }, []);
+  const isThemeReady = useExtensionTheme();
 
-  return <SidePanelContent />;
+  return isThemeReady ? <SidePanelContent /> : null;
 }

@@ -3,7 +3,7 @@ version: alpha
 name: Genfeed.ai
 description: >
   Design system for Genfeed.ai — an AI-powered content creation OS.
-  Dark-first, information-dense UI aligned with ShipCode/Linear visual language.
+  Theme-aware, dark-first, information-dense UI aligned with ShipCode/Linear visual language.
   Layered depth through background shifts, semantic status colors, and
   inset-shadow containment on elevated surfaces.
 
@@ -236,15 +236,35 @@ components:
 
 ## Overview
 
-Genfeed.ai uses a dark-first design system aligned with ShipCode and Linear's visual
-language. The system prioritizes information density, clear status hierarchy, and layered
-depth through background tones rather than heavy borders.
+Genfeed.ai uses a theme-aware, dark-first design system aligned with ShipCode and
+Linear's visual language. Users choose System, Light, or Dark; System is the default.
+The system prioritizes information density, clear status hierarchy, and layered depth
+through background tones rather than heavy borders.
 
-The visual identity is minimal and high-contrast: near-black backgrounds with white
-accent CTAs, layered depth through subtle background shifts, and semantic colors that
-map directly to content and workflow states.
+The visual identity is minimal and high-contrast in either mode: neutral backgrounds,
+inverted neutral CTAs, layered depth through subtle background shifts, and semantic
+colors that map directly to content and workflow states. The YAML palette above records
+the Studio dark reference; runtime light and dark values come from the shared token
+sources described below.
 
 ## Colors
+
+### Theme contract
+
+`packages/ui/src/core/colors.ts` is the canonical semantic Light/Dark palette.
+`packages/ui/web-tokens.css`, `packages/ui/src/semantic/mobile.ts`, standalone HTML,
+and host adapters project those roles into their platforms. Application chrome uses
+semantic roles (`background`, `foreground`, `card`, `muted`, `border`, `primary`, and
+their foreground pairs), never raw white/black assumptions.
+
+The stored preference is `system | light | dark`. `system` resolves from the operating
+system or host and remains stored as System so later OS changes continue to apply.
+Only resolved `light | dark` values may be written to rendered theme attributes.
+
+The light palette uses warm-neutral canvas layers (`#fafaf9`, `#f6f6f4`, `#f1f1ef`),
+near-black foreground (`#0d0d0d`), and neutral structural borders (`#dad9d6`). Studio
+uses its parchment projection from `packages/styles/globals.css`. Dark mode retains the
+near-black studio palette documented above.
 
 ### Background layers
 
@@ -256,9 +276,9 @@ Five background tones create depth without borders. From deepest to most elevate
 
 ### Accent
 
-Dark mode inverts the typical accent pattern: `accent` is near-white (#fafafa) for
-maximum contrast CTAs on dark backgrounds. `accent-foreground` matches `bg-primary`
-for text on accent surfaces.
+The primary action pair inverts with the theme: near-white on near-black in Dark and
+near-black on warm white in Light. Always pair `primary` with `primary-foreground`;
+never hardcode either half.
 
 ### Semantic status
 
@@ -355,9 +375,9 @@ background, no border, `hover:bg-hover` on interaction.
 ### Sidebar
 
 `bg-primary` background with `border-r border-border` structural divider. Menu items
-use ghost button semantics: transparent bg, `hover:bg-white/[0.06]`, active state =
-`bg-white/[0.06] text-foreground`. Section labels: `10px uppercase tracking-[0.15em]
-text-white/30`.
+use ghost button semantics: transparent background, `hover:bg-hover`, active state =
+`bg-hover text-foreground`. Section labels use `10px uppercase tracking-[0.15em]
+text-muted-foreground`.
 
 ### App Switcher
 
@@ -428,9 +448,12 @@ containment only.
 - **Do** use `border-border` token for structural dividers (sidebar edges, header bottoms).
 - **Do** use ghost buttons for toolbar/topbar actions.
 - **Do** use semantic status colors consistently across all surfaces.
+- **Do** verify System, Light, and Dark whenever application chrome changes.
+- **Do** pair semantic surfaces with their matching foreground token.
 - **Do** use `-0.01em` letter-spacing on body, tighter on headings.
 - **Don't** use CSS `border` for card/dialog/dropdown containment -- use inset `box-shadow`.
 - **Don't** mix hardcoded colors with token references.
+- **Don't** collapse System into its currently resolved Light or Dark value when persisting.
 - **Don't** use `accent` for status indication -- it's for primary CTAs only.
 - **Don't** add new semantic colors without updating this DESIGN.md.
 - **Don't** use large decorative gradients as core product surfaces.

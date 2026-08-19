@@ -199,7 +199,7 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
     .media-card {
       position: relative;
       aspect-ratio: 1;
-      border-radius: var(--border-radius);
+      border-radius: var(--radius);
       overflow: hidden;
       cursor: pointer;
       background: var(--vscode-editor-background);
@@ -343,20 +343,20 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
     .preview-media {
       max-width: 100%;
       max-height: 50vh;
-      border-radius: var(--border-radius);
+      border-radius: var(--radius);
       object-fit: contain;
     }
 
     .preview-video {
       max-width: 100%;
       max-height: 50vh;
-      border-radius: var(--border-radius);
+      border-radius: var(--radius);
     }
 
     .preview-metadata {
       background: rgba(255, 255, 255, 0.05);
       padding: 16px;
-      border-radius: var(--border-radius);
+      border-radius: var(--radius);
       margin-top: 16px;
       width: 100%;
       max-width: 400px;

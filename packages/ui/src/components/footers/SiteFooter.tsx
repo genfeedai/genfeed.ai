@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   DiscordIcon,
@@ -72,7 +72,7 @@ const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
 ];
 
 const VARIANT_CLASSES: Record<FooterVariant, string> = {
-  default: 'bg-black border-t border-white/5 dark:border-white/[0.08]',
+  default: 'border-t border-border bg-background text-foreground',
 };
 
 export default function SiteFooter({
@@ -94,10 +94,10 @@ export default function SiteFooter({
               alt="Genfeed"
               width={120}
               height={20}
-              className="h-5 w-auto invert mb-10"
+              className="mb-10 h-5 w-auto dark:invert"
             />
 
-            <p className="text-white/30 max-w-sm mb-12 leading-relaxed font-medium">
+            <p className="mb-12 max-w-sm font-medium leading-relaxed text-muted-foreground">
               {brandTagline}
             </p>
 
@@ -112,8 +112,8 @@ export default function SiteFooter({
                   className="group"
                   aria-label={social.label}
                 >
-                  <div className="size-12 border border-white/[0.08] group-hover:border-white flex items-center justify-center group-hover:bg-white transition-all duration-300 ease-out">
-                    <social.icon className="size-5 text-white/60 group-hover:text-black transition-colors duration-300 ease-out" />
+                  <div className="flex size-12 items-center justify-center border border-border transition-all duration-300 ease-out group-hover:border-foreground group-hover:bg-foreground">
+                    <social.icon className="size-5 text-muted-foreground transition-colors duration-300 ease-out group-hover:text-background" />
                   </div>
                 </Link>
               ))}
@@ -127,7 +127,7 @@ export default function SiteFooter({
                 <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10">
                   {section.title}
                 </h4>
-                <ul className="space-y-6 text-xs text-white/30 font-semibold uppercase tracking-widest">
+                <ul className="space-y-6 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   {section.links.map((link) => (
                     <li key={link.href}>
                       <Link
@@ -136,7 +136,7 @@ export default function SiteFooter({
                           rel: 'noopener noreferrer',
                           target: '_blank',
                         })}
-                        className="hover:text-white transition-colors"
+                        className="transition-colors hover:text-foreground"
                       >
                         {link.label}
                       </Link>
@@ -153,7 +153,7 @@ export default function SiteFooter({
                   <Mail className="size-4" />
                   Newsletter
                 </h4>
-                <p className="text-sm text-white/30 mb-6 leading-relaxed font-medium">
+                <p className="mb-6 text-sm font-medium leading-relaxed text-muted-foreground">
                   AI content tips and product updates delivered weekly.
                 </p>
 
@@ -161,7 +161,7 @@ export default function SiteFooter({
                   href={EnvironmentService.social.substack}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-white hover:text-white/80 transition-colors underline underline-offset-4"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-foreground underline underline-offset-4 transition-colors hover:text-foreground/80"
                 >
                   Subscribe on Substack
                 </Link>
@@ -172,23 +172,19 @@ export default function SiteFooter({
 
         {/* Book a Call CTA */}
         {showBookCall && (
-          <Card
-            variant={CardVariant.WHITE}
-            className="mb-24"
-            bodyClassName="p-12"
-          >
+          <Card className="mb-24" bodyClassName="p-12">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-8">
               <div className="flex items-center gap-6">
-                <div className="size-16 border border-black/10 flex items-center justify-center">
-                  <Calendar className="size-7 text-black" />
+                <div className="flex size-16 items-center justify-center border border-border">
+                  <Calendar className="size-7 text-foreground" />
                 </div>
 
                 <div>
-                  <h4 className="text-xl font-semibold uppercase tracking-wide mb-1 text-black">
+                  <h4 className="mb-1 text-xl font-semibold uppercase tracking-wide text-foreground">
                     Want to chat?
                   </h4>
 
-                  <p className="text-black/50 text-sm font-medium">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Schedule a 30-minute call to discuss your content needs.
                   </p>
                 </div>
@@ -213,8 +209,7 @@ export default function SiteFooter({
 
         {/* Bottom Bar */}
         <div
-          className="border-t border-white/5 flex flex-col md:flex-row 
-        justify-between items-center text-xs text-white/20 font-black py-10"
+          className="flex flex-col items-center justify-between border-t border-border py-10 text-xs font-black text-foreground/30 md:flex-row"
         >
           <p>
             &copy;{' '}
@@ -223,13 +218,16 @@ export default function SiteFooter({
           </p>
 
           <div className="flex flex-wrap justify-center gap-10">
-            <Link href="/terms" className="hover:text-white transition-colors">
+            <Link
+              href="/terms"
+              className="transition-colors hover:text-foreground"
+            >
               Terms
             </Link>
 
             <Link
               href="/privacy"
-              className="hover:text-white transition-colors"
+              className="transition-colors hover:text-foreground"
             >
               Privacy
             </Link>

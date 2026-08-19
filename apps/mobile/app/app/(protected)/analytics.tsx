@@ -1,3 +1,4 @@
+import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { memo, type ReactNode, useMemo } from 'react';
 import {
   RefreshControl,
@@ -11,8 +12,10 @@ import {
   ErrorScreen,
   LoadingScreen,
 } from '@/components/ScreenStates';
-import { borderRadius, colors } from '@/constants';
+import { borderRadius } from '@/constants';
+import { useMobileTheme } from '@/contexts/theme-context';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { useThemedStyles } from '@/hooks/use-themed-styles';
 import { formatNumber, formatPercentage } from '@/utils/format-date';
 
 interface StatCardProps {
@@ -23,6 +26,8 @@ interface StatCardProps {
 }
 
 function StatCard({ label, value, growth, icon }: StatCardProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.statCard}>
       <Text style={styles.statIcon}>{icon}</Text>
@@ -63,6 +68,8 @@ function PlatformCard({
   posts,
   engagementRate,
 }: PlatformCardProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.platformCard}>
       <View style={styles.platformIconContainer}>
@@ -92,6 +99,8 @@ interface TopContentCardProps {
 }
 
 function TopContentCard({ rank, title, platform, views }: TopContentCardProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.topContentCard}>
       <View style={styles.rankBadge}>
@@ -132,6 +141,8 @@ function EngagementBreakdown({
   sharesPercentage,
   savesPercentage,
 }: EngagementBreakdownProps) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.engagementSection}>
       <View style={styles.engagementBar}>
@@ -197,15 +208,17 @@ const AnalyticsScrollContainer = memo(function AnalyticsScrollContainer({
   isLoading: boolean;
   onRefresh: () => void;
 }) {
+  const { colors } = useMobileTheme();
+  const styles = useThemedStyles(createStyles);
   const refreshControl = useMemo(
     () => (
       <RefreshControl
         refreshing={isLoading}
         onRefresh={onRefresh}
-        tintColor={colors.indigo}
+        tintColor={colors.primary}
       />
     ),
-    [isLoading, onRefresh],
+    [colors.primary, isLoading, onRefresh],
   );
 
   return (
@@ -220,11 +233,13 @@ const AnalyticsScrollContainer = memo(function AnalyticsScrollContainer({
 });
 
 export default function AnalyticsScreen() {
+  const { colors } = useMobileTheme();
+  const styles = useThemedStyles(createStyles);
   const { data, isLoading, error, refetch } = useAnalytics();
 
   if (isLoading && !data.overview) {
     return (
-      <LoadingScreen message="Loading analytics..." color={colors.indigo} />
+      <LoadingScreen message="Loading analytics..." color={colors.primary} />
     );
   }
 
@@ -330,7 +345,8 @@ export default function AnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: NativeThemeColors) =>
+  StyleSheet.create({
   commentsBar: {
     backgroundColor: colors.info,
   },
@@ -366,7 +382,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   engagementValue: {
-    color: colors.indigo,
+    color: colors.primary,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -448,14 +464,14 @@ const styles = StyleSheet.create({
   },
   rankBadge: {
     alignItems: 'center',
-    backgroundColor: colors.indigo,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.lg,
     height: 32,
     justifyContent: 'center',
     width: 32,
   },
   rankText: {
-    color: colors.white,
+    color: colors.primaryForeground,
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -486,7 +502,7 @@ const styles = StyleSheet.create({
   statIcon: {
     backgroundColor: colors.bgTertiary,
     borderRadius: borderRadius.lg,
-    color: colors.indigo,
+    color: colors.primary,
     fontSize: 20,
     height: 36,
     lineHeight: 36,
@@ -547,4 +563,4 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 11,
   },
-});
+  });
