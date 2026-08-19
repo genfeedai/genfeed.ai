@@ -1,4 +1,8 @@
-import type { IBatchItemAssignee } from '@genfeedai/interfaces';
+export interface BatchItemAssigneeProjection {
+  displayName: string;
+  handle: string;
+  id: string;
+}
 
 export interface BatchItemAssigneeUser {
   firstName?: string | null;
@@ -10,7 +14,7 @@ export interface BatchItemAssigneeUser {
 
 export function serializeBatchItemAssignee(
   user: BatchItemAssigneeUser,
-): IBatchItemAssignee {
+): BatchItemAssigneeProjection {
   const fullName = [user.firstName, user.lastName]
     .filter(Boolean)
     .join(' ')
