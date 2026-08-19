@@ -58,7 +58,7 @@ export class AdOptimizationConfigsService {
             config: toPrismaJson(config),
             organizationId,
           },
-          where: { id: existing.id },
+          where: scopedWhere(organizationId, { id: existing.id }),
         });
       } else {
         result = await this.prisma.adOptimizationConfig.create({

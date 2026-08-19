@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -88,10 +89,16 @@ export class TrendAnalysisService {
       where.createdAt = createdAtFilter;
     }
 
+    const organizationId =
+      typeof options.organizationId === 'string' ? options.organizationId : '';
+    if (!organizationId) {
+      return [];
+    }
+
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: options.limit ?? 1000,
-      where,
+      where: scopedWhere(organizationId, where),
     });
     return docs.map(
       (doc) =>

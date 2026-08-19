@@ -166,7 +166,7 @@ export class EditorProjectsService extends BaseService<
           }),
         ),
       },
-      where: { id },
+      where: scopedWhere(existing.organizationId, { id }),
     });
 
     return project as unknown as EditorProjectDocument;

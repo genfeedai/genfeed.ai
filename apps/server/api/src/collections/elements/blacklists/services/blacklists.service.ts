@@ -4,6 +4,7 @@ import type { ElementBlacklistDocument } from '@api/collections/elements/blackli
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -31,8 +32,14 @@ export class ElementsBlacklistsService extends BaseService<
   }
 
   async deleteAll(filter: Record<string, unknown>): Promise<{ count: number }> {
+    const organizationId =
+      typeof filter.organizationId === 'string' ? filter.organizationId : '';
+    if (!organizationId) {
+      throw new TypeError('deleteAll requires organizationId');
+    }
+
     return this.prisma.elementBlacklist.updateMany({
-      where: filter,
+      where: scopedWhere(organizationId, filter),
       data: { isDeleted: true },
     });
   }
