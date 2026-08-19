@@ -1,3 +1,4 @@
+import type { UploadStatus } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   ResearchFindingReferenceKind,
@@ -78,7 +79,7 @@ export interface PersistedConversationComposerAttachment {
   name: string;
   previewUrl?: string;
   progress?: number;
-  status: 'completed' | 'failed' | 'pending' | 'uploading';
+  status: UploadStatus;
   url?: string;
 }
 

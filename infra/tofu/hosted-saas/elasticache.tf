@@ -34,29 +34,12 @@ resource "aws_elasticache_replication_group" "redis" {
   automatic_failover_enabled = false
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
-  # AWS requires a transit_encryption_mode when enabling in-transit encryption on
-  # an existing replication group. "preferred" accepts both encrypted and
-  # unencrypted client connections during the migration, so existing non-TLS
-  # clients keep working while services roll over to TLS+AUTH. Tighten to
-  # "required" in a follow-up once all clients use rediss://.
-  transit_encryption_mode = "preferred"
-  # AUTH deferred: AWS only allows setting auth_token once transit_encryption_mode
-  # is "required", which in turn requires every client to already be on TLS. That
-  # is a staged migration (app -> rediss:// first, then "required" + auth_token),
-  # not a single apply. Transit encryption is enabled here (preferred) and the app
-  # connects over TLS without AUTH; enable auth_token in a follow-up once all
-  # clients are confirmed on rediss://.
-  apply_immediately = true
-
-  # AUTH is deferred (see above). Terraform state still carries
-  # auth_token_update_strategy = "SET" from an earlier partial apply, so ANY plan
-  # touching the auth fields (even resetting the strategy to its default) is
-  # rejected by AWS with "AUTH token modification is only supported when
-  # encryption-in-transit is enabled" until transit_encryption_mode is "required".
-  # Ignore the auth fields so terraform stops planning an auth modification and the
-  # deploy can roll. Remove this in the follow-up that enables AUTH (switch to
-  # "required" mode + set auth_token).
-  lifecycle {
-    ignore_changes = [auth_token, auth_token_update_strategy]
-  }
+  # Reject plaintext Redis. Clients already use rediss:// + REDIS_TLS=true;
+  # "required" is the approved transport and is a prerequisite for AUTH.
+  # The deploy workflow applies this resource only after ECS tasks inject
+  # REDIS_PASSWORD, so in-flight unauthenticated clients are not locked out.
+  transit_encryption_mode    = "required"
+  auth_token                 = random_password.redis_auth_token.result
+  auth_token_update_strategy = "SET"
+  apply_immediately          = true
 }

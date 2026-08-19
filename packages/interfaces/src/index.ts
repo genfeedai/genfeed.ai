@@ -201,6 +201,7 @@ export * from './publisher/publisher.interface';
 export * from './publisher/publishing-readiness.interface';
 export * from './scheduler/analytics-capability.interface';
 export * from './scheduler/channel-target.interface';
+export * from './scheduler/posting-set.interface';
 export * from './scheduler/recurrence-rule.interface';
 export * from './scheduler/release-attachment.interface';
 export * from './scheduler/release-group.interface';

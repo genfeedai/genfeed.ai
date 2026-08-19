@@ -8,7 +8,11 @@
  * Foundation for parent issue #1132, child issue #1513.
  */
 
-import { CredentialPlatform, ReleaseAttachmentKind } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  ReleaseAttachmentKind,
+  TargetValidationState,
+} from '@genfeedai/enums';
 import { z } from 'zod';
 import {
   dateStringSchema,
@@ -104,6 +108,97 @@ export type ExpandPostingSetTargetsInput = z.infer<
 >;
 export type RenderPostingSignaturesInput = z.infer<
   typeof renderPostingSignaturesInputSchema
+>;
+
+export const persistPostingSignatureInputSchema = postingSignatureSchema.omit({
+  id: true,
+});
+
+export const persistPostingSetInputSchema = postingSetSchema.omit({
+  id: true,
+});
+
+export const updatePostingSignatureInputSchema =
+  persistPostingSignatureInputSchema.partial();
+
+export const updatePostingSetInputSchema = persistPostingSetInputSchema
+  .partial()
+  .extend({
+    targets: z.array(postingSetTargetSchema).min(1).optional(),
+  });
+
+export const postingSetReferenceStateValues = [
+  'valid',
+  'unavailable',
+  'deleted',
+  'disconnected',
+  'platform_mismatch',
+  'disabled',
+] as const;
+
+export const postingSetReferenceStateSchema = z.enum(
+  postingSetReferenceStateValues,
+);
+
+export const postingSetTargetValidationSchema = z.object({
+  credentialId: idSchema,
+  issues: z.array(z.string()),
+  state: postingSetReferenceStateSchema,
+  targetKey: idSchema,
+});
+
+export const postingSetSignatureValidationSchema = z.object({
+  issues: z.array(z.string()),
+  signatureId: idSchema,
+  state: postingSetReferenceStateSchema,
+});
+
+export const postingSetLifecycleValidationSchema = z.object({
+  signatures: z.array(postingSetSignatureValidationSchema),
+  state: z.nativeEnum(TargetValidationState),
+  targets: z.array(postingSetTargetValidationSchema),
+});
+
+export const postingSetCredentialRefSchema = z.object({
+  id: idSchema,
+  isConnected: z.boolean(),
+  isDeleted: z.boolean(),
+  platform: z.union([z.nativeEnum(CredentialPlatform), z.string().min(1)]),
+});
+
+export const validatePostingSetLifecycleInputSchema = z.object({
+  credentials: z.array(postingSetCredentialRefSchema),
+  postingSet: postingSetSchema,
+  signatures: z.array(postingSignatureSchema).optional(),
+});
+
+export type PersistPostingSignatureInput = z.infer<
+  typeof persistPostingSignatureInputSchema
+>;
+export type PersistPostingSetInput = z.infer<
+  typeof persistPostingSetInputSchema
+>;
+export type UpdatePostingSignatureInput = z.infer<
+  typeof updatePostingSignatureInputSchema
+>;
+export type UpdatePostingSetInput = z.infer<typeof updatePostingSetInputSchema>;
+export type PostingSetReferenceState = z.infer<
+  typeof postingSetReferenceStateSchema
+>;
+export type PostingSetTargetValidation = z.infer<
+  typeof postingSetTargetValidationSchema
+>;
+export type PostingSetSignatureValidation = z.infer<
+  typeof postingSetSignatureValidationSchema
+>;
+export type PostingSetLifecycleValidation = z.infer<
+  typeof postingSetLifecycleValidationSchema
+>;
+export type PostingSetCredentialRef = z.infer<
+  typeof postingSetCredentialRefSchema
+>;
+export type ValidatePostingSetLifecycleInput = z.infer<
+  typeof validatePostingSetLifecycleInputSchema
 >;
 
 interface ResolvedPostingSignature {
@@ -287,4 +382,153 @@ export function renderContentWithPostingSignatures(
   return [...prepended, parsedInput.content, ...appended]
     .filter((section) => section.trim().length > 0)
     .join('\n\n');
+}
+
+function credentialRefState(
+  credential: PostingSetCredentialRef | undefined,
+  platform: CredentialPlatform,
+): { issues: string[]; state: PostingSetReferenceState } {
+  if (!credential) {
+    return {
+      issues: ['Referenced credential is unavailable.'],
+      state: 'unavailable',
+    };
+  }
+
+  if (credential.isDeleted) {
+    return {
+      issues: ['Referenced credential was deleted.'],
+      state: 'deleted',
+    };
+  }
+
+  if (credential.platform !== platform) {
+    return {
+      issues: [
+        `Credential platform "${credential.platform}" does not match target platform "${platform}".`,
+      ],
+      state: 'platform_mismatch',
+    };
+  }
+
+  if (!credential.isConnected) {
+    return {
+      issues: ['Referenced credential is disconnected.'],
+      state: 'disconnected',
+    };
+  }
+
+  return { issues: [], state: 'valid' };
+}
+
+function signatureRefState(
+  signature: PostingSignatureInput | undefined,
+  platform: CredentialPlatform,
+): { issues: string[]; state: PostingSetReferenceState } {
+  if (!signature) {
+    return {
+      issues: ['Referenced signature is unavailable.'],
+      state: 'unavailable',
+    };
+  }
+
+  if (signature.isEnabled === false) {
+    return {
+      issues: ['Referenced signature is disabled.'],
+      state: 'disabled',
+    };
+  }
+
+  if (!signature.platforms.includes(platform)) {
+    return {
+      issues: [`Signature does not apply to platform "${platform}".`],
+      state: 'platform_mismatch',
+    };
+  }
+
+  return { issues: [], state: 'valid' };
+}
+
+function rollupLifecycleState(
+  states: readonly PostingSetReferenceState[],
+): TargetValidationState {
+  if (
+    states.some(
+      (state) =>
+        state === 'unavailable' ||
+        state === 'deleted' ||
+        state === 'platform_mismatch',
+    )
+  ) {
+    return TargetValidationState.INVALID;
+  }
+
+  if (
+    states.some((state) => state === 'disconnected' || state === 'disabled')
+  ) {
+    return TargetValidationState.WARNING;
+  }
+
+  return TargetValidationState.VALID;
+}
+
+/**
+ * Validate persisted posting-set credential and signature references.
+ *
+ * Callers must pass sanitized credential refs only — never OAuth tokens or
+ * other secret fields. Missing or deleted credentials degrade the set instead
+ * of throwing, so later scheduler expansion can still run against remaining
+ * targets.
+ */
+export function validatePostingSetLifecycle(
+  input: ValidatePostingSetLifecycleInput,
+): PostingSetLifecycleValidation {
+  const parsedInput = validatePostingSetLifecycleInputSchema.parse(input);
+  const credentialById = new Map(
+    parsedInput.credentials.map((credential) => [credential.id, credential]),
+  );
+  const signatureById = new Map(
+    (parsedInput.signatures ?? []).map((signature) => [
+      signature.id,
+      signature,
+    ]),
+  );
+
+  const targets = parsedInput.postingSet.targets.map((target) => {
+    const credentialState = credentialRefState(
+      credentialById.get(target.credentialId),
+      target.platform,
+    );
+
+    return {
+      credentialId: target.credentialId,
+      issues: credentialState.issues,
+      state: credentialState.state,
+      targetKey: target.targetKey,
+    };
+  });
+
+  const signatures = parsedInput.postingSet.targets.flatMap((target) =>
+    (target.signatureIds ?? []).map((signatureId) => {
+      const signatureState = signatureRefState(
+        signatureById.get(signatureId),
+        target.platform,
+      );
+
+      return {
+        issues: signatureState.issues,
+        signatureId,
+        state: signatureState.state,
+      };
+    }),
+  );
+
+  return {
+    signatures,
+    state: rollupLifecycleState([
+      ...targets.map((target) => target.state),
+      ...signatures.map((signature) => signature.state),
+    ]),
+    targets,
+  };
 }

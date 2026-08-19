@@ -6,6 +6,7 @@ import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
@@ -151,18 +152,18 @@ export class TrackedLinksService {
         platform: dto.platform,
         shortCode,
         shortUrl,
-        stats: {
+        stats: toPrismaJson({
           totalClicks: 0,
           uniqueClicks: 0,
-        },
-        utm: {
+        }),
+        utm: toPrismaJson({
           campaign: dto.campaignName || dto.utm?.campaign,
           content: dto.contentId || dto.utm?.content,
           medium: dto.utm?.medium || 'social',
           source: dto.platform || dto.utm?.source || 'genfeed',
           term: dto.utm?.term,
-        },
-      } as never,
+        }),
+      },
     });
 
     this.logger.log(`Tracking link generated: ${shortUrl}`, {
@@ -380,21 +381,17 @@ export class TrackedLinksService {
       isActive?: boolean;
     },
   ): Promise<TrackedLink[]> {
-    const where: Record<string, unknown> = scopedWhere(organizationId, {});
-
-    if (filters?.platform) {
-      where.platform = filters.platform;
-    }
-    if (filters?.campaignName) {
-      where.campaignName = filters.campaignName;
-    }
-    if (filters?.isActive !== undefined) {
-      where.isActive = filters.isActive;
-    }
+    const where = scopedWhere(organizationId, {
+      ...(filters?.campaignName ? { campaignName: filters.campaignName } : {}),
+      ...(filters?.isActive !== undefined
+        ? { isActive: filters.isActive }
+        : {}),
+      ...(filters?.platform ? { platform: filters.platform } : {}),
+    });
 
     const results = await this.prisma.trackedLink.findMany({
       orderBy: { createdAt: 'desc' },
-      where: where as never,
+      where,
     });
     return results as unknown as TrackedLink[];
   }
@@ -447,7 +444,7 @@ export class TrackedLinksService {
             sessionId,
             timestamp: new Date(),
             userAgent: dto.userAgent || req?.headers?.['user-agent'],
-          } as never,
+          },
         });
 
         await this.refreshLinkStats(tx, dto.linkId);
@@ -508,12 +505,12 @@ export class TrackedLinksService {
 
     await tx.trackedLink.update({
       data: {
-        stats: {
+        stats: toPrismaJson({
           lastClickAt: new Date(),
           totalClicks: clicks.length,
           uniqueClicks,
-        },
-      } as never,
+        }),
+      },
       where: { id: linkId },
     });
   }
@@ -761,7 +758,7 @@ export class TrackedLinksService {
     // be deleted within its owning tenant (defense-in-depth: no read/write split
     // that could be bypassed by a future caller or a cross-tenant id leak).
     const { count } = await this.prisma.trackedLink.updateMany({
-      data: { isDeleted: true } as never,
+      data: { isDeleted: true },
       where: scopedWhere(organizationId, { id: linkId }),
     });
 

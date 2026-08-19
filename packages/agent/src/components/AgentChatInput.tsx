@@ -42,7 +42,9 @@ interface AgentChatInputProps {
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
     options?: ConversationComposerSendOptions,
-  ) => void;
+  ) => boolean | undefined | Promise<boolean | undefined>;
+  onPromoteQueuedFollowUp?: () => void;
+  hasQueuedFollowUps?: boolean;
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
   placeholder?: string;
@@ -83,6 +85,8 @@ function mapAttachmentToTrayAsset(
 
 export function AgentChatInput({
   onSend,
+  onPromoteQueuedFollowUp,
+  hasQueuedFollowUps = false,
   onStop,
   disabled,
   placeholder,
@@ -142,6 +146,9 @@ export function AgentChatInput({
     disabled,
     dragState,
     getCompletedAttachments,
+    hasQueuedFollowUps,
+    isUploading,
+    onPromoteQueuedFollowUp,
     onSend,
     onStop,
     placeholder,

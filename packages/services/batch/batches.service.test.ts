@@ -124,4 +124,23 @@ describe('BatchesService', () => {
       itemIds: ['item-1'],
     });
   });
+
+  it('assigns and unassigns a single review item', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          attributes: { status: 'completed' },
+          id: 'batch-1',
+        },
+      },
+    });
+
+    await service.assignItem('batch-1', 'item-1', 'user-1');
+    expect(mockPost).toHaveBeenCalledWith('/batch-1/items/item-1/assign', {
+      assigneeId: 'user-1',
+    });
+
+    await service.unassignItem('batch-1', 'item-1');
+    expect(mockPost).toHaveBeenCalledWith('/batch-1/items/item-1/unassign');
+  });
 });

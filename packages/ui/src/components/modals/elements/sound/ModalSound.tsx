@@ -1,6 +1,9 @@
 'use client';
 
-import { soundElementSchema } from '@genfeedai/client/schemas';
+import {
+  type SoundElementSchema,
+  soundElementSchema,
+} from '@genfeedai/client/schemas';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/enums';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
@@ -27,10 +30,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
     onSubmit,
     closeModal,
     handleDelete: deleteModalSound,
-  } = useCrudModal<
-    ISound,
-    any // SoundElementSchema - fix later
-  >({
+  } = useCrudModal<ISound, SoundElementSchema>({
     defaultValues: {
       description: '',
       isActive: true,

@@ -151,11 +151,6 @@ describe('AgentSpawnService', () => {
       task: 'Draft an X thread',
     });
 
-    // Every spawned sub-agent type is a content-creation specialist, so it
-    // should never be feedback-blind: brandMemory + performancePatterns are
-    // on, and recentPosts is on to avoid repeating what the brand just
-    // shipped. ragContext stays off because this call site never threads a
-    // `query`, which would make the flag an inert no-op.
     expect(assembleContext).toHaveBeenCalledWith(
       expect.objectContaining({
         layers: {
@@ -163,8 +158,10 @@ describe('AgentSpawnService', () => {
           brandIdentity: true,
           brandMemory: true,
           performancePatterns: true,
+          ragContext: true,
           recentPosts: true,
         },
+        query: 'Draft an X thread',
       }),
     );
   });

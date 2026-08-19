@@ -13,8 +13,11 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { ContentPlanStatus } from '@genfeedai/enums';
-import type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
-import { Prisma } from '@genfeedai/prisma';
+import {
+  Prisma,
+  type ContentPlan as PrismaContentPlan,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -67,18 +70,20 @@ export class ContentPlansService extends BaseService<
         label: input.name,
         organizationId: input.organizationId,
         executedCount: 0,
-        config: this.buildConfigPayload(
-          {
-            description: input.description,
-            executedCount: 0,
-            itemCount: input.itemCount,
-            name: input.name,
-            periodEnd: input.periodEnd,
-            periodStart: input.periodStart,
-            status: input.status,
-          },
-          undefined,
-        ) as never,
+        config: toPrismaJson(
+          this.buildConfigPayload(
+            {
+              description: input.description,
+              executedCount: 0,
+              itemCount: input.itemCount,
+              name: input.name,
+              periodEnd: input.periodEnd,
+              periodStart: input.periodStart,
+              status: input.status,
+            },
+            undefined,
+          ),
+        ),
       },
     })) as PrismaContentPlan;
 
@@ -142,7 +147,9 @@ export class ContentPlansService extends BaseService<
     const updated = (await this.delegate.update({
       data: {
         ...(updateDto.name !== undefined ? { label: updateDto.name } : {}),
-        config: this.buildConfigPayload(updateDto, existing.config) as never,
+        config: toPrismaJson(
+          this.buildConfigPayload(updateDto, existing.config),
+        ),
       },
       where: { id },
     })) as PrismaContentPlan;
@@ -169,7 +176,9 @@ export class ContentPlansService extends BaseService<
 
     const updated = (await this.delegate.update({
       data: {
-        config: this.buildConfigPayload({ status }, existing.config) as never,
+        config: toPrismaJson(
+          this.buildConfigPayload({ status }, existing.config),
+        ),
       },
       where: { id: planId },
     })) as PrismaContentPlan;

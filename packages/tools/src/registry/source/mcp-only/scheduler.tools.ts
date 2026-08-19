@@ -159,7 +159,10 @@ const updateProperties = {
   ...targetUpdateProperties,
 };
 
-/** Thin MCP access to the canonical `/post-groups` scheduler lifecycle. */
+/**
+ * Thin MCP access to the canonical `/post-groups` scheduler lifecycle and the
+ * existing `/schedules/channel-capabilities` list, get, and validate routes.
+ */
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
@@ -240,6 +243,108 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
         releaseId: { description: 'Scheduled release ID', type: 'string' },
       },
       required: ['releaseId', 'action'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'List scheduler channel capabilities: supported platforms, caption limits, media rules, publish modes, required settings, and helper lookups. Read-only; does not mutate state. Use includeHidden or includePlanned to include channels that are not yet schedulable.',
+    name: 'list_scheduler_capabilities',
+    parameters: {
+      properties: {
+        includeHidden: {
+          description:
+            'Include hidden channels that exist but refuse scheduling',
+          type: 'boolean',
+        },
+        includePlanned: {
+          description: 'Include planned channels with no live publish path yet',
+          type: 'boolean',
+        },
+      },
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Get one scheduler channel capability by platform. Returns the canonical platform contract: caption limits, media rules, publish modes, required settings, helpers, and status. Read-only; does not mutate state.',
+    name: 'get_scheduler_capability',
+    parameters: {
+      properties: {
+        platform: {
+          description:
+            'Credential platform (for example linkedin, instagram, or youtube)',
+          enum: credentialPlatforms,
+          type: 'string',
+        },
+      },
+      required: ['platform'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Validate a proposed scheduler target against the canonical channel-capability contract. Returns errors, warnings, and validationState without creating or updating a release. Read-only; does not mutate state.',
+    name: 'validate_scheduler_target',
+    parameters: {
+      properties: {
+        caption: {
+          description: 'Caption or shared base content to validate',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'Optional connected credential ID for this destination',
+          type: 'string',
+        },
+        media: {
+          description: 'Media items proposed for this target',
+          items: {
+            properties: {
+              id: { description: 'Optional media asset ID', type: 'string' },
+              isAnimated: {
+                description:
+                  'Whether the source media is animated (GIF and friends)',
+                type: 'boolean',
+              },
+              kind: {
+                description: 'Media kind',
+                enum: ['image', 'video', 'short_video', 'carousel', 'link'],
+                type: 'string',
+              },
+            },
+            required: ['kind'],
+            type: 'object',
+          },
+          type: 'array',
+        },
+        platform: {
+          description:
+            'Credential platform (for example linkedin, instagram, or youtube)',
+          enum: credentialPlatforms,
+          type: 'string',
+        },
+        publishMode: {
+          description: 'How the target would be published',
+          enum: ['draft', 'publish_now', 'scheduled'],
+          type: 'string',
+        },
+        settings: {
+          description: 'Platform-specific publishing settings',
+          type: 'object',
+        },
+        visibility: {
+          description: 'Audience visibility of the published target',
+          enum: ['public', 'private', 'unlisted'],
+          type: 'string',
+        },
+      },
+      required: ['platform'],
       type: 'object',
     },
     requiredRole: 'user',

@@ -55,11 +55,14 @@ type AgentChatPromptBarProps = {
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
     options?: ConversationComposerSendOptions,
-  ) => void;
+  ) => boolean | undefined | Promise<boolean | undefined>;
   onStop: () => void;
   onMoveFollowUp?: (fromIndex: number, toIndex: number) => void;
+  onPromoteQueuedFollowUp?: () => void;
   onRemoveFollowUp?: (id: string) => void;
+  onRetryFollowUp?: (id: string) => void;
   onSendFollowUpNow?: (id: string) => void;
+  isInterruptingFollowUps?: boolean;
   activeWorkEvent: AgentWorkEvent | null;
   error: string | null;
   isSubmittingInputRequest: boolean;
@@ -103,8 +106,11 @@ export function AgentChatPromptBar({
   onSend,
   onStop,
   onMoveFollowUp,
+  onPromoteQueuedFollowUp,
   onRemoveFollowUp,
+  onRetryFollowUp,
   onSendFollowUpNow,
+  isInterruptingFollowUps = false,
   activeWorkEvent,
   error,
   isSubmittingInputRequest,
@@ -146,8 +152,11 @@ export function AgentChatPromptBar({
       onRemoveFollowUp &&
       onSendFollowUpNow ? (
         <ComposerFollowUpQueue
+          isBusy={isBusy}
+          isInterrupting={isInterruptingFollowUps}
           onMove={onMoveFollowUp}
           onRemove={onRemoveFollowUp}
+          onRetry={onRetryFollowUp}
           onSendNow={onSendFollowUpNow}
           queue={followUps}
         />
@@ -193,6 +202,8 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
+        hasQueuedFollowUps={followUps.length > 0}
+        onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
         disabled={
           isReadOnly ||
           isComposerUnavailable ||

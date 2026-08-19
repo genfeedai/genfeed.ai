@@ -3,12 +3,12 @@ import type {
   IngredientStatus,
   WorkflowBatchItemStatus,
   WorkflowExecutionStatus,
-  WorkflowLifecycle,
 } from '@genfeedai/enums';
 import type {
   SystemWorkflowDuplicateMetadata,
   SystemWorkflowMetadata,
 } from '@genfeedai/interfaces';
+import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import type { NodeGroup } from '@genfeedai/workflows/ui';
 import type { Edge, Node } from '@xyflow/react';
 

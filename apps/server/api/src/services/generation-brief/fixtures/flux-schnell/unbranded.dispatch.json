@@ -1,0 +1,10 @@
+{
+  "aspect_ratio": "16:9",
+  "disable_safety_checker": false,
+  "go_fast": true,
+  "num_inference_steps": 4,
+  "num_outputs": 1,
+  "output_format": "jpg",
+  "output_quality": 80,
+  "prompt": "a sunset over the ocean"
+}

@@ -55,6 +55,8 @@ export const API_ENDPOINTS = {
   ORGANIZATIONS: '/organizations',
   POSTS: '/posts',
   POST_GROUPS: '/post-groups',
+  POSTING_SETS: '/posting-sets',
+  POSTING_SIGNATURES: '/posting-signatures',
   PRESETS: '/presets',
   PROFILES: '/profiles',
   PROMPTS: '/prompts',

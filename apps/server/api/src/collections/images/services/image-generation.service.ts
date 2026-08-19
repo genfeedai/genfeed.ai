@@ -26,11 +26,29 @@ import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abo
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import {
+  assembleImageGenerationBrief,
+  assertRedactedGenerationBriefEvidence,
+  compileFluxSchnellGenerationBrief,
+  GenerationBriefCompileError,
+  resolveImageGenerationBriefSupport,
+  resolveImageGenerationFidelityMode,
+  toRedactedGenerationBriefProviderData,
+} from '@api/services/generation-brief';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type {
+  FluxSchnellDispatch,
+  GenerationBriefPersistedEvidence,
+} from '@api-types/contracts/generation-brief-compiler.contract';
+import {
+  buildFluxSchnellGenerationSource,
+  buildGenerationBriefExemptionSource,
+} from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   IngredientCategory,
   MetadataExtension,
@@ -132,11 +150,24 @@ export class ImageGenerationService {
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 
+    const compiledBrief = this.compileImageGenerationBrief({
+      createImageDto,
+      height,
+      model,
+      promptOriginalText,
+      referenceIds,
+      style,
+      width,
+    });
+
     const { promptData, metadataData, ingredientData } =
       await this.persistImageDocuments({
         brand,
         brandPromptBranding,
+        briefEvidence: compiledBrief.evidence,
+        compiledDispatch: compiledBrief.dispatch,
         createImageDto,
+        generationSource: compiledBrief.generationSource,
         height,
         model,
         promptBuilderBrand,
@@ -153,7 +184,11 @@ export class ImageGenerationService {
     const context: ImageGenerationContext = {
       brand,
       brandPromptBranding,
+      briefEvidence: compiledBrief.evidence,
+      compiledDispatch: compiledBrief.dispatch,
       createImageDto,
+      generationBrief: compiledBrief.brief,
+      generationSource: compiledBrief.generationSource,
       height,
       ingredientData,
       metadataData,
@@ -280,6 +315,95 @@ export class ImageGenerationService {
   }
 
   /**
+   * Compile a FLUX Schnell generation brief, or record an explicit exemption
+   * for every other image model.
+   */
+  private compileImageGenerationBrief(params: {
+    createImageDto: CreateImageDto;
+    height: number;
+    model: string;
+    promptOriginalText: string;
+    referenceIds: string[];
+    style?: string;
+    width: number;
+  }): {
+    brief?: ImageGenerationBrief;
+    dispatch?: FluxSchnellDispatch;
+    evidence: GenerationBriefPersistedEvidence;
+    generationSource: string;
+  } {
+    const support = resolveImageGenerationBriefSupport(params.model);
+    if (support.kind === 'exempt') {
+      return {
+        evidence: assertRedactedGenerationBriefEvidence({
+          compilerId: null,
+          compilerVersion: null,
+          modelKey: support.modelKey,
+          profileId: null,
+          profileVersion: null,
+          reason: support.reason,
+          status: 'exempted',
+        }),
+        generationSource: buildGenerationBriefExemptionSource(support.reason),
+      };
+    }
+
+    try {
+      const fidelityMode = resolveImageGenerationFidelityMode({
+        brandingMode: params.createImageDto.brandingMode,
+        isBrandingEnabled: params.createImageDto.isBrandingEnabled,
+      });
+      const composition = [
+        params.createImageDto.camera,
+        params.createImageDto.lens,
+      ]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .join(', ');
+      const avoid = [
+        ...(params.createImageDto.blacklist ?? []),
+        ...(params.createImageDto.negativePrompt
+          ? [params.createImageDto.negativePrompt]
+          : []),
+      ];
+      const brief = assembleImageGenerationBrief({
+        avoid,
+        composition,
+        fidelityMode,
+        height: params.height,
+        lighting: params.createImageDto.lighting,
+        objective: params.promptOriginalText,
+        referenceIds: params.referenceIds,
+        scene: params.createImageDto.scene,
+        visualDirection: params.style || params.createImageDto.style,
+        visualDirectionSource: 'user',
+        width: params.width,
+      });
+      const compiled = compileFluxSchnellGenerationBrief({
+        brief,
+        seed: params.createImageDto.seed,
+      });
+
+      return {
+        brief: compiled.brief,
+        dispatch: compiled.dispatch,
+        evidence: assertRedactedGenerationBriefEvidence(compiled.evidence),
+        generationSource: buildFluxSchnellGenerationSource(),
+      };
+    } catch (error: unknown) {
+      if (error instanceof GenerationBriefCompileError) {
+        throw new HttpException(
+          {
+            detail: error.message,
+            title: 'Generation brief compilation failed',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Create the prompt document, run the template-tracking prompt build, persist
    * the placeholder ingredient/metadata pair, and link the prompt. Returns the
    * documents the generation flow operates on.
@@ -287,7 +411,10 @@ export class ImageGenerationService {
   private async persistImageDocuments(params: {
     brand: ImageGenerationResolvedBrand;
     brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
+    briefEvidence: GenerationBriefPersistedEvidence;
+    compiledDispatch?: FluxSchnellDispatch;
     createImageDto: CreateImageDto;
+    generationSource: string;
     height: number;
     model: string;
     promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
@@ -305,7 +432,10 @@ export class ImageGenerationService {
     const {
       brand,
       brandPromptBranding,
+      briefEvidence,
+      compiledDispatch,
       createImageDto,
+      generationSource,
       height,
       model,
       promptBuilderBrand,
@@ -346,38 +476,39 @@ export class ImageGenerationService {
           }),
         );
 
-    // Build prompt early to get template tracking info
-    const {
-      templateUsed: imageTemplateUsed,
-      templateVersion: imageTemplateVersion,
-    } = await this.promptBuilderService.buildPrompt(
-      model,
-      {
-        blacklist: createImageDto.blacklist,
-        brand: promptBuilderBrand,
-        branding: brandPromptBranding,
-        brandingMode: createImageDto.brandingMode,
-        camera: createImageDto.camera,
-        fontFamily: createImageDto.fontFamily,
-        height,
-        isBrandingEnabled: createImageDto.isBrandingEnabled,
-        lens: createImageDto.lens,
-        lighting: createImageDto.lighting,
-        // Use model's category from DB (set by ModelsGuard), fallback to IMAGE
-        modelCategory: ModelCategory.IMAGE,
-        mood: createImageDto.mood,
-        outputs: createImageDto.outputs,
-        prompt: promptData.original,
-        promptTemplate: createImageDto.promptTemplate,
-        references: referenceImageUrls,
-        scene: createImageDto.scene,
-        seed: createImageDto.seed,
-        style: style || createImageDto.style || 'realistic',
-        useTemplate: createImageDto.useTemplate,
-        width,
-      },
-      user.organizationId,
-    );
+    let imageTemplateUsed: string | undefined;
+    let imageTemplateVersion: number | undefined;
+    if (!compiledDispatch) {
+      const builtPrompt = await this.promptBuilderService.buildPrompt(
+        model,
+        {
+          blacklist: createImageDto.blacklist,
+          brand: promptBuilderBrand,
+          branding: brandPromptBranding,
+          brandingMode: createImageDto.brandingMode,
+          camera: createImageDto.camera,
+          fontFamily: createImageDto.fontFamily,
+          height,
+          isBrandingEnabled: createImageDto.isBrandingEnabled,
+          lens: createImageDto.lens,
+          lighting: createImageDto.lighting,
+          modelCategory: ModelCategory.IMAGE,
+          mood: createImageDto.mood,
+          outputs: createImageDto.outputs,
+          prompt: promptData.original,
+          promptTemplate: createImageDto.promptTemplate,
+          references: referenceImageUrls,
+          scene: createImageDto.scene,
+          seed: createImageDto.seed,
+          style: style || createImageDto.style || 'realistic',
+          useTemplate: createImageDto.useTemplate,
+          width,
+        },
+        user.organizationId,
+      );
+      imageTemplateUsed = builtPrompt.templateUsed;
+      imageTemplateVersion = builtPrompt.templateVersion;
+    }
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
@@ -386,6 +517,7 @@ export class ImageGenerationService {
         extension: MetadataExtension.JPEG,
         generationPrompt: promptOriginalText,
         generationSeed: createImageDto.seed,
+        generationSource,
         height,
         isDefault: createImageDto.isDefault,
         model,
@@ -395,8 +527,8 @@ export class ImageGenerationService {
           ? createImageDto.parentId
           : undefined,
         promptId: promptData.id,
-        // Template tracking
         promptTemplate: imageTemplateUsed,
+        providerData: toRedactedGenerationBriefProviderData(briefEvidence),
         scope: createImageDto.scope,
         sourceIds: referenceIds,
         style,

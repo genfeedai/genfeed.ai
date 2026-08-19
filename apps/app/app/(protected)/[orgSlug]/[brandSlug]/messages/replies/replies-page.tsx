@@ -1,6 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  formatPlatformLabel,
+  isYouTubePlatform,
+  Platform,
+  parsePlatform,
+} from '@genfeedai/enums';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -82,9 +89,9 @@ export default function RepliesPage() {
 
   const [items, setItems] = useState<InboxItem[]>([]);
   const [username, setUsername] = useState<string | undefined>();
-  const [inboxPlatform, setInboxPlatform] = useState<'twitter' | 'youtube'>(
-    'twitter',
-  );
+  const [inboxPlatform, setInboxPlatform] = useState<
+    Platform.TWITTER | Platform.YOUTUBE
+  >(Platform.TWITTER);
   const [platformLabel, setPlatformLabel] = useState('X');
   const [isLoading, setIsLoading] = useState(true);
   const [isEnabling, setIsEnabling] = useState(false);
@@ -109,7 +116,7 @@ export default function RepliesPage() {
       const service = await getReplyBotService();
       const result = await service.getAuthorReplyInbox({
         brandId,
-        hours: inboxPlatform === 'youtube' ? 48 : 24,
+        hours: isYouTubePlatform(inboxPlatform) ? 48 : 24,
         platform: inboxPlatform,
       });
       if (controller.signal.aborted) {
@@ -118,11 +125,7 @@ export default function RepliesPage() {
       const nextItems = (result.items ?? []) as InboxItem[];
       setItems(nextItems);
       setUsername(result.username);
-      setPlatformLabel(
-        result.platform === 'youtube' || result.platform === 'YOUTUBE'
-          ? 'YouTube'
-          : 'X',
-      );
+      setPlatformLabel(formatPlatformLabel(result.platform) ?? 'X');
       setIntents((prev) => {
         const next = { ...prev };
         for (const item of nextItems) {
@@ -169,7 +172,7 @@ export default function RepliesPage() {
         platform: inboxPlatform,
       });
       setIsActive(result.isActive);
-      const label = inboxPlatform === 'youtube' ? 'YouTube' : 'X';
+      const label = formatPlatformLabel(inboxPlatform) ?? 'X';
       toast.success(
         result.created
           ? `Auto-replies enabled for ${label}`
@@ -181,7 +184,7 @@ export default function RepliesPage() {
       toast.error(
         error instanceof Error
           ? error.message
-          : inboxPlatform === 'youtube'
+          : isYouTubePlatform(inboxPlatform)
             ? 'Connect YouTube for this brand first'
             : 'Connect X for this brand first',
       );
@@ -277,15 +280,13 @@ export default function RepliesPage() {
     }
     setIsConnecting(true);
     try {
-      await connectPlatform(
-        inboxPlatform === 'youtube' ? Platform.YOUTUBE : Platform.TWITTER,
-      );
+      await connectPlatform(inboxPlatform);
     } catch (error: unknown) {
       logger.error('Replies platform connect failed', error);
       toast.error(
         error instanceof Error
           ? error.message
-          : inboxPlatform === 'youtube'
+          : isYouTubePlatform(inboxPlatform)
             ? 'Could not connect YouTube'
             : 'Could not connect X',
       );
@@ -332,8 +333,12 @@ export default function RepliesPage() {
           <Select
             value={inboxPlatform}
             onValueChange={(value) => {
-              if (value === 'twitter' || value === 'youtube') {
-                setInboxPlatform(value);
+              const platform = parsePlatform(value);
+              if (
+                platform === Platform.TWITTER ||
+                platform === Platform.YOUTUBE
+              ) {
+                setInboxPlatform(platform);
                 setItems([]);
                 setInboxError(null);
               }
@@ -343,10 +348,10 @@ export default function RepliesPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="twitter">
+              <SelectItem value={Platform.TWITTER}>
                 {translate('platform.twitter')}
               </SelectItem>
-              <SelectItem value="youtube">
+              <SelectItem value={Platform.YOUTUBE}>
                 {translate('platform.youtube')}
               </SelectItem>
             </SelectContent>
@@ -384,7 +389,7 @@ export default function RepliesPage() {
           description={
             inboxError
               ? inboxError
-              : inboxPlatform === 'youtube'
+              : isYouTubePlatform(inboxPlatform)
                 ? 'No unreplied YouTube comments in the last 48 hours — connect YouTube for this brand, or check back after people comment.'
                 : 'No unreplied comments in the last 24 hours — connect X and post, or check back after people reply.'
           }
@@ -398,7 +403,7 @@ export default function RepliesPage() {
             >
               {isConnecting
                 ? 'Connecting…'
-                : inboxPlatform === 'youtube'
+                : isYouTubePlatform(inboxPlatform)
                   ? 'Connect YouTube'
                   : 'Connect X'}
             </Button>

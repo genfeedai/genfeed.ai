@@ -25,6 +25,7 @@ import { isGenerationCancelledError } from '@api/collections/ingredients/errors/
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -75,6 +76,7 @@ export class ImageGenerationProviderDispatchService {
     const provider = await this.providerRegistry.prepare({
       abortSignal: context.abortSignal,
       brandPromptBranding: context.brandPromptBranding,
+      compiledDispatch: context.compiledDispatch,
       createImageDto: context.createImageDto,
       height: context.height,
       model: context.model,
@@ -447,6 +449,16 @@ export class ImageGenerationProviderDispatchService {
       extension: MetadataExtension.JPG,
       generationPrompt: context.promptData.original,
       generationSeed: context.createImageDto.seed,
+      ...(context.generationSource
+        ? { generationSource: context.generationSource }
+        : {}),
+      ...(context.briefEvidence
+        ? {
+            providerData: toRedactedGenerationBriefProviderData(
+              context.briefEvidence,
+            ),
+          }
+        : {}),
       model: context.model,
       negativePrompt: context.createImageDto.negativePrompt,
       organizationId: context.user.organizationId,

@@ -65,6 +65,35 @@ describe('resolveBatchItems reader ratchet', () => {
     ]);
   });
 
+  it('prefers the typed assigneeId column over JSON identity', () => {
+    const items = resolveBatchItems({
+      batchItems: [
+        {
+          assigneeId: 'user-typed',
+          data: {
+            assignee: {
+              displayName: 'Should not leak',
+              email: 'secret@example.com',
+              id: 'user-json',
+            },
+            assigneeId: 'user-json',
+            id: 'from-row',
+            reviewDecision: 'UNSET',
+          },
+          isDeleted: false,
+        },
+      ],
+    });
+
+    expect(items).toEqual([
+      expect.objectContaining({
+        assigneeId: 'user-typed',
+        id: 'from-row',
+      }),
+    ]);
+    expect(items[0]).not.toHaveProperty('assignee.email');
+  });
+
   it('falls back to Batch.items JSON when typed rows are absent', () => {
     const items = resolveBatchItems({
       items: [{ id: 'from-json', reviewDecision: 'APPROVED' }],

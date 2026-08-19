@@ -458,7 +458,7 @@ async function main(): Promise<void> {
         organizationId: true,
         userId: true,
       },
-      where: where as never,
+      where,
       orderBy: { createdAt: 'asc' },
     })) as SeedBrand[];
 

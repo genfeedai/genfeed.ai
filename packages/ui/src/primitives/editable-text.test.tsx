@@ -138,4 +138,104 @@ describe('EditableText', () => {
     );
     expect(onSave).toHaveBeenCalledOnce();
   });
+
+  it('starts editing from the latest parent value after a rerender', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const { rerender } = render(
+      <EditableText ariaLabel="Edit brand name" onSave={onSave} value="Acme" />,
+    );
+
+    rerender(
+      <EditableText
+        ariaLabel="Edit brand name"
+        onSave={onSave}
+        value="Acme Corp"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit brand name' }));
+
+    expect(
+      screen.getByRole('textbox', { name: 'Edit brand name' }),
+    ).toHaveValue('Acme Corp');
+  });
+
+  it('preserves an in-progress draft when the parent rerenders', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const { rerender } = render(
+      <EditableText ariaLabel="Edit brand name" onSave={onSave} value="Acme" />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit brand name' }));
+    const editor = screen.getByRole('textbox', { name: 'Edit brand name' });
+    await user.clear(editor);
+    await user.type(editor, 'Acme Labs');
+
+    rerender(
+      <EditableText
+        ariaLabel="Edit brand name"
+        onSave={onSave}
+        value="Parent Refresh"
+      />,
+    );
+
+    expect(
+      screen.getByRole('textbox', { name: 'Edit brand name' }),
+    ).toHaveValue('Acme Labs');
+
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith('Acme Labs'));
+    expect(onSave).toHaveBeenCalledOnce();
+  });
+
+  it('shows the saved value after a successful save and parent update', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    const { rerender } = render(
+      <EditableText ariaLabel="Edit brand name" onSave={onSave} value="Acme" />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit brand name' }));
+    const editor = screen.getByRole('textbox', { name: 'Edit brand name' });
+    await user.clear(editor);
+    await user.type(editor, 'Acme Labs');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith('Acme Labs'));
+
+    rerender(
+      <EditableText
+        ariaLabel="Edit brand name"
+        onSave={onSave}
+        value="Acme Labs"
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Edit brand name' }),
+    ).toHaveTextContent('Acme Labs');
+  });
+
+  it('reverts to the captured original when save fails', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockRejectedValue(new Error('save failed'));
+    render(
+      <EditableText ariaLabel="Edit brand name" onSave={onSave} value="Acme" />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit brand name' }));
+    const editor = screen.getByRole('textbox', { name: 'Edit brand name' });
+    await user.clear(editor);
+    await user.type(editor, 'Acme Labs');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith('Acme Labs'));
+    expect(onSave).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole('button', { name: 'Edit brand name' }),
+    ).toHaveTextContent('Acme');
+  });
 });

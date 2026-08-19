@@ -173,6 +173,16 @@
       }
     },
     {
+      "includes": ["apps/server/api/src/collections/videos/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "error"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "apps/app/src/components/**",
         "apps/app/src/hooks/**",

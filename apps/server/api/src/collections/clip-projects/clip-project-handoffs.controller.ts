@@ -16,6 +16,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
 import type { ClipReadyAction } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -92,7 +93,7 @@ export class ClipProjectHandoffsController {
     const durationFrames = this.resolveClipDurationFrames(clipResult);
     const editorProject = await this.editorProjectsService.create({
       ...(user.brandId ? { brandId: user.brandId } : {}),
-      config: {
+      config: toPrismaJson({
         clipHandoff: {
           clipProjectId: projectId,
           clipResultId: String(clipResult.id),
@@ -109,9 +110,9 @@ export class ClipProjectHandoffsController {
         },
         status: 'draft',
         totalDurationFrames: durationFrames,
-      },
+      }),
       organizationId: user.organizationId,
-      tracks: [
+      tracks: toPrismaJson([
         {
           clips: [
             {
@@ -134,9 +135,9 @@ export class ClipProjectHandoffsController {
           type: EditorTrackType.VIDEO,
           volume: 100,
         },
-      ],
+      ]),
       userId: user.userId ?? user.id,
-    } as never);
+    });
     const editorProjectId = String(editorProject.id);
 
     return {

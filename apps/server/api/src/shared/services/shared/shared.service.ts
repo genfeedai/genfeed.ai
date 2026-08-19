@@ -149,6 +149,9 @@ const buildIngredientCreateDto = (
   ...(input.generationSeed !== undefined
     ? { generationSeed: input.generationSeed }
     : {}),
+  ...(input.generationSource !== undefined
+    ? { generationSource: input.generationSource }
+    : {}),
   ...(input.groupId !== undefined ? { groupId: input.groupId } : {}),
   ...(input.groupIndex !== undefined ? { groupIndex: input.groupIndex } : {}),
   isDefault: input.isDefault === true,
@@ -167,6 +170,9 @@ const buildIngredientCreateDto = (
     : {}),
   ...(parentId ? { parentId } : {}),
   ...(promptId ? { promptId } : {}),
+  ...(input.providerData !== undefined
+    ? { providerData: input.providerData }
+    : {}),
   ...(input.scope !== undefined ? { scope: input.scope } : {}),
   ...(sourceIds.length > 0 ? { sources: sourceIds } : {}),
   status: input.status ?? IngredientStatus.PROCESSING,

@@ -110,4 +110,47 @@ describe('AdminWarmupAccountsService', () => {
       organizationName: 'Founder Co',
     });
   });
+
+  it('inspects, sends, resends, and revokes invitation lifecycle actions', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          attributes: {
+            invitation: { id: 'invite-1', status: 'pending' },
+            status: 'INVITED',
+          },
+          id: 'warmup-1',
+        },
+      },
+    });
+    mockPost.mockResolvedValue({
+      data: {
+        data: {
+          attributes: {
+            invitation: { id: 'invite-1', status: 'delivered' },
+            status: 'INVITED',
+          },
+          id: 'warmup-1',
+        },
+      },
+    });
+
+    await expect(service.inspectInvitation('warmup-1')).resolves.toEqual({
+      id: 'warmup-1',
+      invitation: { id: 'invite-1', status: 'pending' },
+      status: 'INVITED',
+    });
+    expect(mockGet).toHaveBeenCalledWith('/warmup-1/invitation');
+
+    await expect(service.sendInvitation('warmup-1')).resolves.toMatchObject({
+      invitation: { status: 'delivered' },
+    });
+    expect(mockPost).toHaveBeenCalledWith('/warmup-1/invitation/send');
+
+    await service.resendInvitation('warmup-1');
+    expect(mockPost).toHaveBeenCalledWith('/warmup-1/invitation/resend');
+
+    await service.revokeInvitation('warmup-1');
+    expect(mockPost).toHaveBeenCalledWith('/warmup-1/invitation/revoke');
+  });
 });

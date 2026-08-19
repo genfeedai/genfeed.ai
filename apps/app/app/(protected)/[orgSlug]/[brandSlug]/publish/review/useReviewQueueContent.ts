@@ -578,6 +578,50 @@ export function useReviewQueueContent() {
     [activeBatchId, getBatchesService, refreshBatch, visibleItems],
   );
 
+  const handleAssignItem = useCallback(
+    async (itemId: string, assigneeId: string) => {
+      if (!activeBatchId) {
+        return;
+      }
+
+      setIsActioning(true);
+      try {
+        const service = await getBatchesService();
+        const batch = await service.assignItem(
+          activeBatchId,
+          itemId,
+          assigneeId,
+        );
+        updateBatchCaches(batch);
+      } catch (error) {
+        logger.error('Assign review item failed', error);
+      } finally {
+        setIsActioning(false);
+      }
+    },
+    [activeBatchId, getBatchesService, updateBatchCaches],
+  );
+
+  const handleUnassignItem = useCallback(
+    async (itemId: string) => {
+      if (!activeBatchId) {
+        return;
+      }
+
+      setIsActioning(true);
+      try {
+        const service = await getBatchesService();
+        const batch = await service.unassignItem(activeBatchId, itemId);
+        updateBatchCaches(batch);
+      } catch (error) {
+        logger.error('Unassign review item failed', error);
+      } finally {
+        setIsActioning(false);
+      }
+    },
+    [activeBatchId, getBatchesService, updateBatchCaches],
+  );
+
   const handleRejectItem = useCallback(
     async (itemId: string, feedback?: string) => {
       if (!activeBatchId) {
@@ -655,6 +699,7 @@ export function useReviewQueueContent() {
     selectedPostId,
     visibleItems,
     handleApproveItem,
+    handleAssignItem,
     handleBatchChange,
     handleBulkAction,
     handleDiscardBatch,
@@ -663,6 +708,7 @@ export function useReviewQueueContent() {
     handleRejectItem,
     handleSelectItem,
     handleToggleSelect,
+    handleUnassignItem,
     setSelectedPostId,
   };
 }

@@ -4,6 +4,17 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
+  buildAgentPublishTargetProposals,
+  collectInvalidTargetBlockers,
+  formatTargetBlockersError,
+  parseAgentPublishTargetPayloads,
+  readCredentialId,
+  readDomainPlatform,
+  resolvePublishMediaKind,
+  resolvePublishValidationMedia,
+  toCanonicalChannelTarget,
+} from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
+import {
   readAgentScheduleValidationError,
   SAFE_AGENT_SCHEDULE_ERROR,
 } from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
@@ -12,18 +23,17 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
   ActivitySource,
-  fromPrismaCredentialPlatform,
-  IngredientCategory,
+  CredentialPlatform,
   PostRepurposeMode,
   PostStatus,
   PostVisibility,
   parsePlatform,
   ReleaseStatus,
   TargetExecutionState,
-  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type {
   AgentPublishIdempotencyInput,
+  AgentPublishTargetPayload,
   AgentToolResult,
   AgentUiAction,
   PublishConfirmedContentInput,
@@ -133,6 +143,7 @@ export class AgentPublishToolHandler {
       platforms,
       scheduledAt,
       sourceActionId,
+      targets: requestedTargets,
       visibility,
     } = input;
 
@@ -145,15 +156,24 @@ export class AgentPublishToolHandler {
       };
     }
 
+    const credentialsById = new Map(
+      credentials.flatMap((credential) => {
+        const credentialId = readCredentialId(credential.id);
+        return credentialId ? [[credentialId, credential] as const] : [];
+      }),
+    );
+    const resolvedTargets = this.resolveConfirmedTargets({
+      credentials,
+      credentialsById,
+      requestedTargets,
+      visibility,
+    });
+    if ('error' in resolvedTargets) {
+      return resolvedTargets.error;
+    }
+
     const createdPlatforms = Array.from(
-      new Set(
-        credentials.flatMap((credential) => {
-          const platform = fromPrismaCredentialPlatform(
-            String(credential.platform ?? ''),
-          );
-          return platform ? [platform] : [];
-        }),
-      ),
+      new Set(resolvedTargets.targets.map((target) => target.platform)),
     );
     const missingPlatforms = platforms.filter(
       (platform) => !createdPlatforms.includes(platform),
@@ -172,6 +192,43 @@ export class AgentPublishToolHandler {
     }
 
     const baseContent = this.resolvePublishBaseContent(caption, ingredient);
+    const media = resolvePublishValidationMedia(ingredient, contentId);
+    const publishMode = scheduledAt ? 'scheduled' : 'publish_now';
+    const targetsWithCaptions = resolvedTargets.payloads.map((target) => ({
+      ...target,
+      caption: target.caption ?? baseContent,
+    }));
+    const invalidTargets = collectInvalidTargetBlockers({
+      caption: baseContent,
+      media,
+      publishMode,
+      targets: targetsWithCaptions,
+      visibility,
+    });
+    if (invalidTargets.length > 0) {
+      return {
+        creditsUsed: 0,
+        data: {
+          contentId,
+          targetBlockers: invalidTargets,
+        },
+        error: formatTargetBlockersError(invalidTargets),
+        success: false,
+      };
+    }
+
+    const canonicalTargets = resolvedTargets.targets.map((target, order) =>
+      toCanonicalChannelTarget({
+        caption: targetsWithCaptions[order]?.caption,
+        credentialId: target.credentialId,
+        order,
+        platform: target.platform,
+        scheduledAt,
+        settings: targetsWithCaptions[order]?.settings,
+        visibility: targetsWithCaptions[order]?.visibility ?? visibility,
+      }),
+    );
+
     const idempotencyKey = this.buildIdempotencyKey({
       baseContent,
       contentId,
@@ -179,11 +236,12 @@ export class AgentPublishToolHandler {
       platforms,
       scheduledAt,
       sourceActionId,
+      targets: targetsWithCaptions,
       threadId: ctx.threadId,
       userId: ctx.userId,
       visibility,
     });
-    const mediaKind = this.resolveReleaseMediaKind(ingredient.category);
+    const mediaKind = resolvePublishMediaKind(ingredient.category);
     const release = await this.postGroupsService.create(
       ctx.organizationId,
       ctx.userId,
@@ -203,23 +261,7 @@ export class AgentPublishToolHandler {
               status: ReleaseStatus.SCHEDULED,
             }
           : { status: ReleaseStatus.DRAFT }),
-        targets: credentials.map((credential, order) => {
-          const platform = fromPrismaCredentialPlatform(
-            String(credential.platform ?? ''),
-          );
-          if (!platform) {
-            throw new ConflictException(
-              `Unknown credential platform: ${String(credential.platform ?? '')}`,
-            );
-          }
-          return {
-            credentialId: String(credential.id),
-            order,
-            platform,
-            ...(scheduledAt ? { scheduledDate: scheduledAt } : {}),
-            visibility,
-          };
-        }),
+        targets: canonicalTargets,
         timezone: 'UTC',
         title: baseContent.slice(0, 100),
       },
@@ -314,21 +356,81 @@ export class AgentPublishToolHandler {
     return `Selected ${category} asset`;
   }
 
-  private resolveReleaseMediaKind(category: unknown): string | undefined {
-    if (
-      category === IngredientCategory.IMAGE ||
-      category === IngredientCategory.IMAGE_EDIT ||
-      category === IngredientCategory.GIF
-    ) {
-      return 'image';
+  private resolveConfirmedTargets(params: {
+    credentials: PublishConfirmedContentInput['credentials'];
+    credentialsById: Map<
+      string,
+      PublishConfirmedContentInput['credentials'][number]
+    >;
+    requestedTargets: AgentPublishTargetPayload[] | undefined;
+    visibility: PostVisibility;
+  }):
+    | {
+        payloads: AgentPublishTargetPayload[];
+        targets: Array<{
+          credentialId: string;
+          platform: CredentialPlatform;
+        }>;
+      }
+    | { error: AgentToolResult } {
+    if (params.requestedTargets && params.requestedTargets.length > 0) {
+      const payloads: AgentPublishTargetPayload[] = [];
+      const targets: Array<{
+        credentialId: string;
+        platform: CredentialPlatform;
+      }> = [];
+
+      for (const requested of params.requestedTargets) {
+        const credential = params.credentialsById.get(requested.credentialId);
+        const platform =
+          readDomainPlatform(credential?.platform) ??
+          readDomainPlatform(requested.platform);
+        if (!credential || !platform) {
+          return {
+            error: {
+              creditsUsed: 0,
+              error: `Missing connected accounts for: ${requested.platform}.`,
+              success: false,
+            },
+          };
+        }
+
+        payloads.push({
+          ...requested,
+          platform,
+          visibility: requested.visibility ?? params.visibility,
+        });
+        targets.push({
+          credentialId: requested.credentialId,
+          platform,
+        });
+      }
+
+      return { payloads, targets };
     }
-    if (
-      category === IngredientCategory.VIDEO ||
-      category === IngredientCategory.VIDEO_EDIT
-    ) {
-      return 'video';
+
+    const payloads: AgentPublishTargetPayload[] = [];
+    const targets: Array<{
+      credentialId: string;
+      platform: CredentialPlatform;
+    }> = [];
+
+    for (const credential of params.credentials) {
+      const credentialId = readCredentialId(credential.id);
+      const platform = readDomainPlatform(credential.platform);
+      if (!credentialId || !platform) {
+        continue;
+      }
+
+      payloads.push({
+        credentialId,
+        platform,
+        visibility: params.visibility,
+      });
+      targets.push({ credentialId, platform });
     }
-    return undefined;
+
+    return { payloads, targets };
   }
 
   private readOptionalString(value: unknown): string | undefined {
@@ -385,14 +487,7 @@ export class AgentPublishToolHandler {
     };
 
     if (params.platforms && params.platforms.length > 0) {
-      const prismaPlatforms = params.platforms.flatMap((platform) => {
-        const mapped = toPrismaCredentialPlatform(platform);
-        return mapped ? [mapped] : [];
-      });
-      if (prismaPlatforms.length === 0) {
-        return [];
-      }
-      filter.platform = { in: prismaPlatforms };
+      filter.platform = { in: params.platforms };
     }
 
     return (await this.credentialsService.find(filter)) as unknown as Array<
@@ -407,6 +502,7 @@ export class AgentPublishToolHandler {
     defaultPlatforms?: string[];
     description: string;
     scheduledAt?: string;
+    targets: AgentUiAction['targets'];
     title: string;
     visibility: PostVisibility;
   }): AgentUiAction {
@@ -427,6 +523,7 @@ export class AgentPublishToolHandler {
       platforms: selectedPlatforms,
       requiresConfirmation: true,
       scheduledAt: params.scheduledAt,
+      targets: params.targets,
       textContent: params.defaultCaption,
       title: params.title,
       type: 'publish_post_card' as const,
@@ -464,12 +561,11 @@ export class AgentPublishToolHandler {
     });
     const availablePlatforms = Array.from(
       new Set(
-        credentials.flatMap((credential) => {
-          const platform = fromPrismaCredentialPlatform(
-            String(credential.platform ?? ''),
-          );
-          return platform ? [platform] : [];
-        }),
+        credentials
+          .map((credential) => readDomainPlatform(credential.platform))
+          .filter((platform): platform is CredentialPlatform =>
+            Boolean(platform),
+          ),
       ),
     );
 
@@ -497,6 +593,16 @@ export class AgentPublishToolHandler {
       };
     }
 
+    const media = resolvePublishValidationMedia(ingredient, params.contentId);
+    const targets = buildAgentPublishTargetProposals({
+      caption: params.caption,
+      credentials,
+      defaultPlatforms,
+      media,
+      publishMode: params.scheduledAt ? 'scheduled' : 'publish_now',
+      visibility: params.visibility,
+    });
+
     return {
       creditsUsed: 0,
       data: {
@@ -514,6 +620,7 @@ export class AgentPublishToolHandler {
               ? 'Review the caption, schedule, and platforms before confirming.'
               : 'Review the caption and platforms before confirming.',
           scheduledAt: params.scheduledAt,
+          targets,
           title:
             params.scheduledAt != null
               ? 'Schedule selected content'
@@ -577,12 +684,15 @@ export class AgentPublishToolHandler {
             : typeof params.textContent === 'string'
               ? params.textContent.trim()
               : undefined;
+      const requestedTargets = parseAgentPublishTargetPayloads(params.targets);
       const platforms = this.normalizePlatforms(
-        Array.isArray(params.platforms)
-          ? params.platforms
-          : typeof params.platform === 'string'
-            ? [params.platform]
-            : [],
+        requestedTargets.length > 0
+          ? requestedTargets.map((target) => target.platform)
+          : Array.isArray(params.platforms)
+            ? params.platforms
+            : typeof params.platform === 'string'
+              ? [params.platform]
+              : [],
       );
       const requestedScheduledAt =
         typeof params.scheduledAt === 'string' && params.scheduledAt.trim()
@@ -660,6 +770,7 @@ export class AgentPublishToolHandler {
         platforms,
         scheduledAt,
         sourceActionId,
+        ...(requestedTargets.length > 0 ? { targets: requestedTargets } : {}),
         visibility,
       });
     }

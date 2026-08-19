@@ -1,9 +1,12 @@
 import type {
+  AgentPublishSettingField,
+  AgentPublishTargetProposal,
   AgentUiAction,
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, PostVisibility } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -22,12 +25,14 @@ import {
   useMemo,
   useState,
 } from 'react';
-
-const VISIBILITY_VALUES = [
-  PostVisibility.PUBLIC,
-  PostVisibility.PRIVATE,
-  PostVisibility.UNLISTED,
-] as const;
+import {
+  readPostVisibilityValue,
+  readPublishTargetProposals,
+  resolveEffectiveCaption,
+  resolveLiveTargetBlockers,
+  targetToggleName,
+  VISIBILITY_VALUES,
+} from './publish-post-card.helpers';
 
 const VISIBILITY_MESSAGE_KEYS = {
   [PostVisibility.PRIVATE]: 'visibilityPrivate',
@@ -54,11 +59,136 @@ function toDatetimeLocalValue(value: string | undefined): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+function PublishTargetSettingField(params: {
+  field: AgentPublishSettingField;
+  fieldId: string;
+  onChange: (value: unknown) => void;
+  value: unknown;
+}): ReactElement {
+  const { field, fieldId, onChange, value } = params;
+
+  if (field.type === 'boolean') {
+    return (
+      <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
+        <Checkbox
+          id={fieldId}
+          isChecked={value === true}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+        <span>{field.label}</span>
+      </label>
+    );
+  }
+
+  if (field.type === 'select' && field.options) {
+    return (
+      <Select
+        value={typeof value === 'string' ? value : ''}
+        onValueChange={onChange}
+      >
+        <SelectTrigger id={fieldId} aria-label={field.label}>
+          <SelectValue placeholder={field.label} />
+        </SelectTrigger>
+        <SelectContent>
+          {field.options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  if (field.type === 'multi_select' && field.options) {
+    const selected = Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string')
+      : [];
+    const selectedSet = new Set(selected);
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        {field.options.map((option) => {
+          const isSelected = selectedSet.has(option.value);
+          return (
+            <Button
+              key={option.value}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              onClick={() => {
+                const next = new Set(selectedSet);
+                if (next.has(option.value)) {
+                  next.delete(option.value);
+                } else {
+                  next.add(option.value);
+                }
+                onChange([...next]);
+              }}
+              className={`rounded border px-2.5 py-1 text-xs transition-colors ${
+                isSelected
+                  ? 'border-primary bg-primary/5 text-foreground'
+                  : 'border-border text-muted-foreground hover:border-primary/50'
+              }`}
+            >
+              {option.label}
+            </Button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (field.type === 'number') {
+    return (
+      <Input
+        id={fieldId}
+        type="number"
+        value={
+          typeof value === 'number' || typeof value === 'string' ? value : ''
+        }
+        onChange={(event) => {
+          const next = event.target.value;
+          if (next.trim().length === 0) {
+            onChange(undefined);
+            return;
+          }
+          const parsed = Number(next);
+          onChange(Number.isFinite(parsed) ? parsed : next);
+        }}
+      />
+    );
+  }
+
+  if (field.type === 'text') {
+    return (
+      <Textarea
+        id={fieldId}
+        rows={3}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+  }
+
+  return (
+    <Input
+      id={fieldId}
+      type={field.type === 'url' ? 'url' : 'text'}
+      value={typeof value === 'string' ? value : ''}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
 export function PublishPostCard({
   action,
   onUiAction,
 }: PublishPostCardProps): ReactElement {
   const translate = useTranslations('agent.publishPostCard');
+  const targetProposals = useMemo(
+    () => readPublishTargetProposals(action.targets),
+    [action.targets],
+  );
   const availablePlatforms = useMemo(
     () =>
       Array.isArray(action.data?.availablePlatforms)
@@ -86,11 +216,86 @@ export function PublishPostCard({
   const [visibility, setVisibility] = useState<PostVisibility>(
     action.visibility ?? PostVisibility.PUBLIC,
   );
+  const [selectedTargetIds, setSelectedTargetIds] = useState<string[]>(() =>
+    targetProposals
+      .filter((target) => target.isSelected !== false)
+      .map((target) => target.id),
+  );
+  const [captionOverrides, setCaptionOverrides] = useState<
+    Record<string, string>
+  >(() => {
+    const initial: Record<string, string> = {};
+    const shared = action.textContent ?? '';
+    for (const target of targetProposals) {
+      if (target.caption && target.caption !== shared) {
+        initial[target.id] = target.caption;
+      }
+    }
+    return initial;
+  });
+  const [settingsByTarget, setSettingsByTarget] = useState<
+    Record<string, Record<string, unknown>>
+  >(() => {
+    const initial: Record<string, Record<string, unknown>> = {};
+    for (const target of targetProposals) {
+      initial[target.id] = { ...target.settings };
+    }
+    return initial;
+  });
+  const [visibilityByTarget, setVisibilityByTarget] = useState<
+    Record<string, PostVisibility>
+  >(() => {
+    const initial: Record<string, PostVisibility> = {};
+    for (const target of targetProposals) {
+      initial[target.id] = target.visibility;
+    }
+    return initial;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const selectedPlatformSet = useMemo(
     () => new Set(selectedPlatforms),
     [selectedPlatforms],
+  );
+  const selectedTargetIdSet = useMemo(
+    () => new Set(selectedTargetIds),
+    [selectedTargetIds],
+  );
+  const publishMode = scheduledAt.trim() ? 'scheduled' : 'publish_now';
+
+  const selectedTargets = useMemo(
+    () =>
+      targetProposals.filter((target) => selectedTargetIdSet.has(target.id)),
+    [selectedTargetIdSet, targetProposals],
+  );
+
+  const targetBlockers = useMemo(() => {
+    const blockersById: Record<string, AgentPublishTargetProposal['blockers']> =
+      {};
+    for (const target of selectedTargets) {
+      blockersById[target.id] = resolveLiveTargetBlockers({
+        caption: resolveEffectiveCaption(caption, captionOverrides[target.id]),
+        credentialId: target.credentialId,
+        media: target.media,
+        platform: target.platform,
+        publishMode,
+        settings: settingsByTarget[target.id] ?? target.settings,
+        visibility: visibilityByTarget[target.id] ?? visibility,
+      });
+    }
+    return blockersById;
+  }, [
+    caption,
+    captionOverrides,
+    publishMode,
+    selectedTargets,
+    settingsByTarget,
+    visibility,
+    visibilityByTarget,
+  ]);
+
+  const hasSelectedTargetBlockers = selectedTargets.some(
+    (target) => (targetBlockers[target.id] ?? []).length > 0,
   );
 
   const togglePlatform = useCallback((platform: string) => {
@@ -100,6 +305,18 @@ export function PublishPostCard({
         next.delete(platform);
       } else {
         next.add(platform);
+      }
+      return [...next];
+    });
+  }, []);
+
+  const toggleTarget = useCallback((targetId: string) => {
+    setSelectedTargetIds((current) => {
+      const next = new Set(current);
+      if (next.has(targetId)) {
+        next.delete(targetId);
+      } else {
+        next.add(targetId);
       }
       return [...next];
     });
@@ -120,12 +337,18 @@ export function PublishPostCard({
   );
 
   const handleConfirm = useCallback(async () => {
+    const hasStructuredTargets = targetProposals.length > 0;
+    const platforms = hasStructuredTargets
+      ? Array.from(new Set(selectedTargets.map((target) => target.platform)))
+      : selectedPlatforms;
+
     if (
       !onUiAction ||
       !action.contentId ||
-      selectedPlatforms.length === 0 ||
+      platforms.length === 0 ||
       isSubmitting ||
-      isSubmitted
+      isSubmitted ||
+      (hasStructuredTargets && hasSelectedTargetBlockers)
     ) {
       return;
     }
@@ -143,9 +366,23 @@ export function PublishPostCard({
       await onUiAction('confirm_publish_post', {
         caption: caption.trim() || undefined,
         contentId: action.contentId,
-        platforms: selectedPlatforms,
+        platforms,
         scheduledAt: normalizedScheduledAt,
         sourceActionId: action.id,
+        ...(hasStructuredTargets
+          ? {
+              targets: selectedTargets.map((target) => ({
+                caption: resolveEffectiveCaption(
+                  caption,
+                  captionOverrides[target.id],
+                ),
+                credentialId: target.credentialId,
+                platform: target.platform,
+                settings: settingsByTarget[target.id] ?? target.settings,
+                visibility: visibilityByTarget[target.id] ?? visibility,
+              })),
+            }
+          : {}),
         visibility,
       });
       setIsSubmitted(true);
@@ -158,13 +395,26 @@ export function PublishPostCard({
     action.contentId,
     action.id,
     caption,
+    captionOverrides,
+    hasSelectedTargetBlockers,
     isSubmitted,
     isSubmitting,
     onUiAction,
     scheduledAt,
     selectedPlatforms,
+    selectedTargets,
+    settingsByTarget,
+    targetProposals.length,
     visibility,
+    visibilityByTarget,
   ]);
+
+  const isConfirmDisabled =
+    !action.contentId ||
+    isSubmitting ||
+    (targetProposals.length > 0
+      ? selectedTargets.length === 0 || hasSelectedTargetBlockers
+      : selectedPlatforms.length === 0);
 
   if (isSubmitted) {
     return (
@@ -210,32 +460,211 @@ export function PublishPostCard({
         />
       </div>
 
-      <div className="mb-3">
-        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          {translate('platforms')}
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {availablePlatforms.map((platform) => {
-            const selected = selectedPlatformSet.has(platform);
+      {targetProposals.length > 0 ? (
+        <div className="mb-3">
+          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            {translate('channels')}
+          </span>
+          <div className="space-y-3">
+            {targetProposals.map((target) => {
+              const isSelected = selectedTargetIdSet.has(target.id);
+              const effectiveCaption = resolveEffectiveCaption(
+                caption,
+                captionOverrides[target.id],
+              );
+              const blockers = isSelected
+                ? (targetBlockers[target.id] ?? [])
+                : [];
+              const warnings = target.warnings ?? [];
+              const settingFields = target.settingFields ?? [];
 
-            return (
-              <Button
-                key={platform}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => togglePlatform(platform)}
-                className={`rounded border px-2.5 py-1 text-xs transition-colors ${
-                  selected
-                    ? 'border-primary bg-primary/5 text-foreground'
-                    : 'border-border text-muted-foreground hover:border-primary/50'
-                }`}
-              >
-                {platform}
-              </Button>
-            );
-          })}
+              return (
+                <div key={target.id} className="border border-border p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <Button
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
+                      onClick={() => toggleTarget(target.id)}
+                      className={`rounded border px-2.5 py-1 text-xs transition-colors ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 text-foreground'
+                          : 'border-border text-muted-foreground hover:border-primary/50'
+                      }`}
+                    >
+                      {targetToggleName(target, targetProposals)}
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      {target.label}
+                    </span>
+                  </div>
+
+                  {isSelected ? (
+                    <>
+                      <div className="mb-2">
+                        <label
+                          htmlFor={`publish-caption-${target.id}`}
+                          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+                        >
+                          {translate('channelCaption', {
+                            platform: target.label,
+                          })}
+                        </label>
+                        <Textarea
+                          id={`publish-caption-${target.id}`}
+                          value={captionOverrides[target.id] ?? ''}
+                          onChange={(event) => {
+                            const nextValue = event.target.value;
+                            setCaptionOverrides((current) => ({
+                              ...current,
+                              [target.id]: nextValue,
+                            }));
+                          }}
+                          rows={3}
+                          placeholder={
+                            effectiveCaption ||
+                            translate('channelCaptionPlaceholder')
+                          }
+                        />
+                      </div>
+
+                      <div className="mb-2">
+                        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {translate('visibility')}
+                        </span>
+                        <Select
+                          value={
+                            visibilityByTarget[target.id] ?? target.visibility
+                          }
+                          onValueChange={(value) => {
+                            setVisibilityByTarget((current) => ({
+                              ...current,
+                              [target.id]: readPostVisibilityValue(value),
+                            }));
+                          }}
+                        >
+                          <SelectTrigger
+                            aria-label={`${target.label} ${translate('visibilityAria')}`}
+                          >
+                            <SelectValue
+                              placeholder={translate('visibilityPlaceholder')}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {VISIBILITY_VALUES.map((value) => (
+                              <SelectItem key={value} value={value}>
+                                {translate(VISIBILITY_MESSAGE_KEYS[value])}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {settingFields.length > 0 ? (
+                        <div className="mb-2 space-y-2">
+                          <span className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                            {translate('channelSettings')}
+                          </span>
+                          {settingFields.map((field) => {
+                            const fieldId = `${target.id}-${field.key}`;
+                            return (
+                              <div key={field.key}>
+                                {field.type === 'boolean' ? null : (
+                                  <label
+                                    htmlFor={fieldId}
+                                    className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+                                  >
+                                    {field.label}
+                                    {field.required ? ' *' : ''}
+                                  </label>
+                                )}
+                                <PublishTargetSettingField
+                                  field={field}
+                                  fieldId={fieldId}
+                                  value={
+                                    settingsByTarget[target.id]?.[field.key]
+                                  }
+                                  onChange={(nextValue) => {
+                                    setSettingsByTarget((current) => ({
+                                      ...current,
+                                      [target.id]: {
+                                        ...(current[target.id] ?? {}),
+                                        [field.key]: nextValue,
+                                      },
+                                    }));
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+
+                      {blockers.length > 0 ? (
+                        <div className="mb-2 space-y-1 border border-destructive/30 bg-destructive/5 p-2">
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-destructive">
+                            {translate('cannotPublish')}
+                          </p>
+                          {blockers.map((blocker) => (
+                            <p
+                              key={`${blocker.code}:${blocker.field ?? ''}:${blocker.message}`}
+                              className="text-xs text-destructive"
+                            >
+                              {blocker.message}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {warnings.length > 0 ? (
+                        <div className="space-y-1 border border-amber-500/30 bg-amber-500/5 p-2">
+                          <p className="text-[10px] font-medium uppercase tracking-wider text-amber-600">
+                            {translate('reviewWarnings')}
+                          </p>
+                          {warnings.map((warning) => (
+                            <p
+                              key={`${warning.code}:${warning.field ?? ''}:${warning.message}`}
+                              className="text-xs text-amber-700 dark:text-amber-400"
+                            >
+                              {warning.message}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="mb-3">
+          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            {translate('platforms')}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {availablePlatforms.map((platform) => {
+              const selected = selectedPlatformSet.has(platform);
+
+              return (
+                <Button
+                  key={platform}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  onClick={() => togglePlatform(platform)}
+                  className={`rounded border px-2.5 py-1 text-xs transition-colors ${
+                    selected
+                      ? 'border-primary bg-primary/5 text-foreground'
+                      : 'border-border text-muted-foreground hover:border-primary/50'
+                  }`}
+                >
+                  {platform}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="mb-4">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -243,7 +672,9 @@ export function PublishPostCard({
         </span>
         <Select
           value={visibility}
-          onValueChange={(value) => setVisibility(value as PostVisibility)}
+          onValueChange={(value) =>
+            setVisibility(readPostVisibilityValue(value))
+          }
         >
           <SelectTrigger aria-label={translate('visibilityAria')}>
             <SelectValue placeholder={translate('visibilityPlaceholder')} />
@@ -280,9 +711,7 @@ export function PublishPostCard({
         onClick={() => {
           void handleConfirm();
         }}
-        isDisabled={
-          !action.contentId || selectedPlatforms.length === 0 || isSubmitting
-        }
+        isDisabled={isConfirmDisabled}
         className="flex w-full items-center justify-center gap-2 rounded bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
       >
         <Send className="size-4" />

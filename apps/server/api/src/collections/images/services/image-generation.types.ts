@@ -5,6 +5,11 @@ import type { CreateImageDto } from '@api/collections/images/dto/create-image.dt
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
+import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type {
+  FluxSchnellDispatch,
+  GenerationBriefPersistedEvidence,
+} from '@api-types/contracts/generation-brief-compiler.contract';
 
 export type ImageGenerationProvider =
   | 'genfeedai'
@@ -40,7 +45,11 @@ export type ImageGenerationSavedMetadata =
 export interface ImageGenerationContext {
   brand: ImageGenerationResolvedBrand;
   brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
+  briefEvidence?: GenerationBriefPersistedEvidence;
+  compiledDispatch?: FluxSchnellDispatch;
   createImageDto: CreateImageDto;
+  generationBrief?: ImageGenerationBrief;
+  generationSource?: string;
   height: number;
   ingredientData: ImageGenerationSavedIngredient;
   metadataData: ImageGenerationSavedMetadata;
@@ -75,6 +84,7 @@ export interface ImageGenerationCompletionPlan {
 
 export interface ImageGenerationProviderRequest {
   brandPromptBranding: ImageGenerationContext['brandPromptBranding'];
+  compiledDispatch?: FluxSchnellDispatch;
   createImageDto: CreateImageDto;
   height: number;
   model: string;

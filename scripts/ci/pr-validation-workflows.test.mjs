@@ -201,6 +201,17 @@ test('enforces executable contracts through the aggregate suite', () => {
     /scripts\/architecture\/vitest\.config\.ts/,
     'test:executable-contracts must run architecture checker tests',
   );
+  for (const contractTest of [
+    'scripts/ci/hosted-saas-handoff.test.mjs',
+    'scripts/ci/dispatch-hosted-saas.test.mjs',
+    'scripts/ci/pr-validation-workflows.test.mjs',
+  ]) {
+    assert.match(
+      script,
+      new RegExp(contractTest.replaceAll('/', '\\/')),
+      `test:executable-contracts must keep ${contractTest} instead of a new named CI guard`,
+    );
+  }
 
   for (const token of [
     'check:cron-boundary',

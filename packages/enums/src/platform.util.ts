@@ -177,3 +177,30 @@ export function isRedditPlatform(value: unknown): boolean {
 export function isTwitchPlatform(value: unknown): boolean {
   return parsePlatform(value) === Platform.TWITCH;
 }
+
+/**
+ * Platforms that source-post variation generation currently supports.
+ * Values are {@link Platform} members, not a separate vocabulary.
+ */
+export const SOURCE_POST_VARIATION_PLATFORMS = [
+  Platform.INSTAGRAM,
+  Platform.LINKEDIN,
+  Platform.TIKTOK,
+  Platform.TWITTER,
+] as const;
+
+export type SourcePostVariationPlatform =
+  (typeof SOURCE_POST_VARIATION_PLATFORMS)[number];
+
+const SOURCE_POST_VARIATION_PLATFORM_SET = new Set<string>(
+  SOURCE_POST_VARIATION_PLATFORMS,
+);
+
+export function isSourcePostVariationPlatform(
+  value: unknown,
+): value is SourcePostVariationPlatform {
+  const platform = parsePlatform(value);
+  return (
+    platform !== undefined && SOURCE_POST_VARIATION_PLATFORM_SET.has(platform)
+  );
+}

@@ -1,4 +1,7 @@
-import type { AdOptimizationRecommendation as PrismaAdOptimizationRecommendation } from '@genfeedai/prisma';
+import {
+  type AdOptimizationRecommendation as PrismaAdOptimizationRecommendation,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import type {
@@ -34,7 +37,7 @@ export class AdOptimizationRecommendationsService {
       const result = await this.prisma.adOptimizationRecommendation.createMany({
         data: recommendations.map((recommendation) =>
           this.toCreateManyInput(recommendation),
-        ) as never,
+        ),
         skipDuplicates: true,
       });
       this.logger.log(`${caller} created ${result.count} recommendations`);
@@ -218,11 +221,13 @@ export class AdOptimizationRecommendationsService {
 
       const doc = await this.prisma.adOptimizationRecommendation.update({
         data: {
-          data: this.toRecommendationData({
-            ...existingDoc,
-            status,
-            ...(options?.reason ? { reason: options.reason } : {}),
-          }) as never,
+          data: toPrismaJson(
+            this.toRecommendationData({
+              ...existingDoc,
+              status,
+              ...(options?.reason ? { reason: options.reason } : {}),
+            }),
+          ),
         },
         where: { id },
       });
@@ -247,7 +252,7 @@ export class AdOptimizationRecommendationsService {
     }
 
     return {
-      data: this.toRecommendationData(recommendation) as never,
+      data: toPrismaJson(this.toRecommendationData(recommendation)),
       organizationId,
     };
   }

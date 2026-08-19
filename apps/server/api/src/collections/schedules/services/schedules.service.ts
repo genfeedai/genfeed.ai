@@ -244,7 +244,7 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
           gte: new Date(startDate),
           lte: new Date(endDate),
         },
-      }) as never,
+      }),
     });
 
     return results as unknown as Schedule[];

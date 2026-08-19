@@ -1,3 +1,5 @@
+import type { Platform } from '@genfeedai/enums';
+
 /**
  * One inbound comment/reply to process (from XAA webhook or post-watch poll).
  */
@@ -17,7 +19,7 @@ export interface ReplyInboundJobData {
    * Destination platform for auto-send (defaults to twitter/X for XAA + post-watch).
    * YouTube author replies currently enter via the Replies UI, not this queue.
    */
-  platform?: 'twitter' | 'youtube';
+  platform?: Platform.TWITTER | Platform.YOUTUBE;
   /** ISO timestamp when the event was received */
   receivedAt: string;
   source: ReplyInboundSource;

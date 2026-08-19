@@ -7,6 +7,7 @@ import {
   findOrThrow,
   findUniqueOrThrow,
 } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { brandScope, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -37,13 +38,13 @@ export class AgentGoalsService {
     const goal = await this.prisma.agentGoal.create({
       data: {
         brandId: dto.brandId ?? null,
-        config,
+        config: toPrismaJson(config),
         description: dto.description,
         isDeleted: false,
         label: dto.label,
         organizationId,
         userId,
-      } as never,
+      },
     });
 
     return this.refreshProgress(goal.id, organizationId);
@@ -91,19 +92,15 @@ export class AgentGoalsService {
       }
     }
 
-    const prismaData: Record<string, unknown> = { config: mergedConfig };
-    if (dto.label !== undefined) {
-      prismaData.label = dto.label;
-    }
-    if (dto.description !== undefined) {
-      prismaData.description = dto.description;
-    }
-    if (dto.brandId !== undefined) {
-      prismaData.brandId = dto.brandId;
-    }
-
     await this.prisma.agentGoal.update({
-      data: prismaData as never,
+      data: {
+        ...(dto.brandId !== undefined ? { brandId: dto.brandId } : {}),
+        config: toPrismaJson(mergedConfig),
+        ...(dto.description !== undefined
+          ? { description: dto.description }
+          : {}),
+        ...(dto.label !== undefined ? { label: dto.label } : {}),
+      },
       where: { id: goalId },
     });
     return this.refreshProgress(goalId, organizationId);
@@ -142,12 +139,12 @@ export class AgentGoalsService {
 
     await this.prisma.agentGoal.update({
       data: {
-        config: {
+        config: toPrismaJson({
           ...config,
           currentValue,
           lastEvaluatedAt: new Date().toISOString(),
           progressPercent,
-        } as never,
+        }),
       },
       where: { id: goalId },
     });

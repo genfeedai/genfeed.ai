@@ -396,6 +396,66 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(error.message).toContain('Generation backend exploded');
   });
 
+  it('forwards confirmed publish targets through CREATE_POST', async () => {
+    const targets = [
+      {
+        caption: 'LinkedIn version',
+        credentialId: 'cred-linkedin',
+        platform: 'linkedin',
+      },
+      {
+        caption: 'X version',
+        credentialId: 'cred-twitter',
+        platform: 'twitter',
+      },
+    ];
+    const { executeTool, service } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        data: {
+          createdPlatforms: ['linkedin', 'twitter'],
+          totalCreated: 2,
+        },
+        nextActions: [],
+        success: true,
+      }),
+    });
+
+    const result = await service.handleThreadUiAction(
+      {
+        action: 'confirm_publish_post',
+        payload: {
+          caption: 'Shared caption',
+          contentId: 'ingredient-1',
+          platforms: ['linkedin', 'twitter'],
+          sourceActionId: 'publish-card-1',
+          targets,
+        },
+        threadId: THREAD_ID,
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+      host,
+    );
+
+    expect(executeTool).toHaveBeenCalledWith(
+      AgentToolName.CREATE_POST,
+      expect.objectContaining({
+        caption: 'Shared caption',
+        confirmed: true,
+        contentId: 'ingredient-1',
+        targets,
+      }),
+      expect.objectContaining({
+        organizationId: ORG_ID,
+        threadId: THREAD_ID,
+        userId: USER_ID,
+      }),
+    );
+    expect(result.message.content).toContain(
+      'Queued 2 posts on linkedin, twitter',
+    );
+  });
+
   it('maps a swallowed 401 from other confirmed UI actions to 401', async () => {
     const { service } = createService({
       executeTool: vi.fn().mockResolvedValue({

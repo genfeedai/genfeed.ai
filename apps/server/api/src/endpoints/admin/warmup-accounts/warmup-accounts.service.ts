@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { InvitationService } from '@api/collections/members/services/invitation.service';
+import {
+  InvitationService,
+  type InvitationView,
+} from '@api/collections/members/services/invitation.service';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
@@ -12,6 +16,7 @@ import type {
   IWarmupAccountAuditEvent,
   IWarmupAccountDiagnosticStep,
   IWarmupAccountDiagnostics,
+  IWarmupInvitation,
 } from '@genfeedai/interfaces';
 import {
   OrganizationCategory,
@@ -94,6 +99,22 @@ function createDiagnosticStep(
   };
 }
 
+function toSafeInvitation(invitation: InvitationView): IWarmupInvitation {
+  return {
+    acceptedAt: invitation.acceptedAt?.toISOString() ?? null,
+    createdAt: invitation.createdAt.toISOString(),
+    email: invitation.email,
+    expiresAt: invitation.expiresAt.toISOString(),
+    id: invitation.id,
+    invitedByUserId: invitation.invitedByUserId,
+    organizationId: invitation.organizationId,
+    revokedAt: invitation.revokedAt?.toISOString() ?? null,
+    roleKey: invitation.roleKey,
+    status: invitation.status,
+    updatedAt: invitation.updatedAt.toISOString(),
+  };
+}
+
 @Injectable()
 export class AdminWarmupAccountsService {
   private readonly context = { service: AdminWarmupAccountsService.name };
@@ -130,13 +151,89 @@ export class AdminWarmupAccountsService {
   }
 
   async get(id: string): Promise<WarmupAccountView> {
-    const account = await findOrThrow(
-      this.prisma.warmupAccount,
-      { where: { id, isDeleted: false } },
-      'Warm-up account',
+    return this.inspectInvitation(id);
+  }
+
+  async inspectInvitation(id: string): Promise<WarmupAccountView> {
+    const account = await this.getAccount(id);
+    const invitation = await this.loadInvitation(account);
+
+    return this.toView(account, invitation);
+  }
+
+  async sendInvitation(
+    id: string,
+    actorUserId: string,
+  ): Promise<WarmupAccountView> {
+    const account = await this.getAccount(id);
+    const organizationId = this.assertOrganizationId(account);
+    const existing = await this.loadInvitation(account);
+
+    if (existing?.status === 'delivered') {
+      const updated = await this.persistInvitationTransition(account, {
+        actorUserId,
+        auditMessage: `Send skipped; invitation ${existing.id} already delivered.`,
+        diagnosticMessage: 'Invitation already delivered; send is idempotent.',
+        diagnosticStatus: 'done',
+      });
+
+      return this.toView(updated, existing);
+    }
+
+    const invitation = existing
+      ? await this.invitationService.resendInvitation({
+          invitationId: existing.id,
+          invitedByUserId: actorUserId,
+          organizationId,
+        })
+      : await this.dispatchNewInvitation(account, actorUserId);
+
+    return this.recordDispatchResult(account, actorUserId, invitation, 'send');
+  }
+
+  async resendInvitation(
+    id: string,
+    actorUserId: string,
+  ): Promise<WarmupAccountView> {
+    const account = await this.getAccount(id);
+    const organizationId = this.assertOrganizationId(account);
+    const existing = await this.requireInvitation(account);
+
+    const invitation = await this.invitationService.resendInvitation({
+      invitationId: existing.id,
+      invitedByUserId: actorUserId,
+      organizationId,
+    });
+
+    return this.recordDispatchResult(
+      account,
+      actorUserId,
+      invitation,
+      'resend',
+    );
+  }
+
+  async revokeInvitation(
+    id: string,
+    actorUserId: string,
+  ): Promise<WarmupAccountView> {
+    const account = await this.getAccount(id);
+    const organizationId = this.assertOrganizationId(account);
+    const existing = await this.requireInvitation(account);
+
+    const invitation = await this.invitationService.revokeInvitation(
+      existing.id,
+      organizationId,
     );
 
-    return this.toView(account);
+    const updated = await this.persistInvitationTransition(account, {
+      actorUserId,
+      auditMessage: `Revoked invitation ${invitation.id}.`,
+      diagnosticMessage: 'Invitation revoked; it can no longer be accepted.',
+      diagnosticStatus: 'done',
+    });
+
+    return this.toView(updated, invitation);
   }
 
   async list(): Promise<WarmupAccountView[]> {
@@ -268,7 +365,7 @@ export class AdminWarmupAccountsService {
         where: { id: account.id },
       });
 
-      return this.toView(updated);
+      return this.toView(updated, invitation);
     } catch (error) {
       this.logger.error('Warm-up invitation provisioning failed', {
         ...this.context,
@@ -296,6 +393,145 @@ export class AdminWarmupAccountsService {
 
       return this.toView(failed);
     }
+  }
+
+  private async getAccount(id: string): Promise<WarmupAccount> {
+    return findOrThrow(
+      this.prisma.warmupAccount,
+      { where: { id, isDeleted: false } },
+      'Warm-up account',
+    );
+  }
+
+  private assertOrganizationId(account: WarmupAccount): string {
+    if (!account.organizationId) {
+      throw new BadRequestException('Warm-up organization is missing');
+    }
+
+    return account.organizationId;
+  }
+
+  private async loadInvitation(
+    account: WarmupAccount,
+  ): Promise<InvitationView | undefined> {
+    if (!account.invitationId || !account.organizationId) {
+      return undefined;
+    }
+
+    try {
+      return await this.invitationService.getInvitation(
+        account.invitationId,
+        account.organizationId,
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return undefined;
+      }
+
+      throw error;
+    }
+  }
+
+  private async requireInvitation(
+    account: WarmupAccount,
+  ): Promise<InvitationView> {
+    const invitation = await this.loadInvitation(account);
+
+    if (!invitation) {
+      throw new BadRequestException('Warm-up invitation is missing');
+    }
+
+    return invitation;
+  }
+
+  private async dispatchNewInvitation(
+    account: WarmupAccount,
+    actorUserId: string,
+  ): Promise<InvitationView> {
+    const organizationId = this.assertOrganizationId(account);
+
+    return this.invitationService.createInvitation({
+      defaultRoleKey: 'member',
+      email: account.leadEmail,
+      firstName: account.leadFirstName ?? undefined,
+      invitedByUserId: actorUserId,
+      lastName: account.leadLastName ?? undefined,
+      organizationId,
+      redirectUrl: `/login?warmupAccountId=${account.id}`,
+      sendEmail: true,
+    });
+  }
+
+  private async recordDispatchResult(
+    account: WarmupAccount,
+    actorUserId: string,
+    invitation: InvitationView,
+    action: 'resend' | 'send',
+  ): Promise<WarmupAccountView> {
+    const isFailed = invitation.status === 'delivery-failed';
+
+    if (isFailed) {
+      this.logger.error('Warm-up invitation dispatch failed', {
+        ...this.context,
+        action,
+        invitationId: invitation.id,
+        warmupAccountId: account.id,
+      });
+    }
+
+    const updated = await this.persistInvitationTransition(account, {
+      actorUserId,
+      auditMessage: isFailed
+        ? `Invitation ${invitation.id} ${action} failed.`
+        : `Dispatched invitation ${invitation.id} via ${action}.`,
+      diagnosticMessage: isFailed
+        ? 'Invitation email dispatch failed. The invitation remains retryable.'
+        : `Invitation email ${action === 'send' ? 'sent' : 'resent'}.`,
+      diagnosticStatus: isFailed ? 'failed' : 'done',
+      error: isFailed
+        ? new Error(
+            'Invitation email could not be delivered. Retry send when email delivery is available.',
+          )
+        : undefined,
+      invitationId: invitation.id,
+      status: WarmupAccountStatus.INVITED,
+    });
+
+    return this.toView(updated, invitation);
+  }
+
+  private async persistInvitationTransition(
+    account: WarmupAccount,
+    input: {
+      actorUserId: string;
+      auditMessage: string;
+      diagnosticMessage: string;
+      diagnosticStatus: IWarmupAccountDiagnosticStep['status'];
+      error?: unknown;
+      invitationId?: string;
+      status?: WarmupAccountStatus;
+    },
+  ): Promise<WarmupAccount> {
+    const organizationId = this.assertOrganizationId(account);
+
+    return this.prisma.warmupAccount.update({
+      data: {
+        auditEvents: this.appendAuditEvent(
+          account,
+          input.actorUserId,
+          input.auditMessage,
+        ) as unknown as Prisma.InputJsonValue,
+        diagnostics: this.appendDiagnosticStep(
+          account,
+          input.diagnosticStatus,
+          input.diagnosticMessage,
+          input.error,
+        ) as unknown as Prisma.InputJsonValue,
+        ...(input.invitationId ? { invitationId: input.invitationId } : {}),
+        ...(input.status ? { status: input.status } : {}),
+      },
+      where: scopedWhere(organizationId, { id: account.id }),
+    });
   }
 
   private async assertOperatorUser(
@@ -475,7 +711,10 @@ export class AdminWarmupAccountsService {
     };
   }
 
-  private toView(account: WarmupAccount): WarmupAccountView {
+  private toView(
+    account: WarmupAccount,
+    invitation?: InvitationView,
+  ): WarmupAccountView {
     return {
       auditEvents: account.auditEvents as unknown as IWarmupAccountAuditEvent[],
       brandId: account.brandId ?? undefined,
@@ -485,6 +724,7 @@ export class AdminWarmupAccountsService {
       diagnostics: account.diagnostics as unknown as IWarmupAccountDiagnostics,
       guidance: account.guidance ?? undefined,
       id: account.id,
+      invitation: invitation ? toSafeInvitation(invitation) : undefined,
       invitationId: account.invitationId ?? undefined,
       leadEmail: account.leadEmail,
       leadFirstName: account.leadFirstName ?? undefined,

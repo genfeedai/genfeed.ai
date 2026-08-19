@@ -97,7 +97,7 @@ export default function OrganizationGenerationDefaultsCard() {
         defaultModelUpdate: defaults.defaultModelUpdate || null,
         defaultMusicModel: defaults.defaultMusicModel || null,
         defaultVideoModel: defaults.defaultVideoModel || null,
-      } as never);
+      });
       await refresh();
       notifications.success('Organization generation defaults saved');
     } catch (error) {

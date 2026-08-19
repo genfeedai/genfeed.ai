@@ -121,7 +121,7 @@ describe('BatchInterpolationController', () => {
     duration: 5,
     format: IngredientFormat.LANDSCAPE,
     isMergeEnabled: false,
-    modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1 as any,
+    modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
     pairs: mockPairs,
     useTemplate: false,
   };

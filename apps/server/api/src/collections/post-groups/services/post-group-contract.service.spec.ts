@@ -352,6 +352,36 @@ describe('PostGroupContractService', () => {
       }),
     ).toBe(false);
   });
+
+  it('uses a per-target caption override for channel validation', () => {
+    const shared = service.validateTarget(
+      { baseContent: 'x'.repeat(300), media: [] },
+      {
+        credentialId: 'credential-twitter',
+        platform: CredentialPlatform.TWITTER,
+      },
+      'publish_now',
+    );
+    const overridden = service.validateTarget(
+      { baseContent: 'x'.repeat(300), media: [] },
+      {
+        caption: 'Short X caption',
+        credentialId: 'credential-twitter',
+        platform: CredentialPlatform.TWITTER,
+      },
+      'publish_now',
+    );
+
+    expect(shared.valid).toBe(false);
+    expect(shared.errors.some((issue) => issue.field === 'caption')).toBe(true);
+    expect(overridden.valid).toBe(true);
+    expect(service.readTargetCaption(undefined, 'Shared caption')).toBe(
+      'Shared caption',
+    );
+    expect(service.readTargetCaption('  X override  ', 'Shared caption')).toBe(
+      'X override',
+    );
+  });
 });
 
 function makeGroup(

@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { Platform } from '@genfeedai/enums';
 import { ReplyBotConfig } from '@genfeedai/models/automation/reply-bot-config.model';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import {
@@ -80,7 +81,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     brandId: string;
     credentialId?: string;
     isActive?: boolean;
-    platform?: 'twitter' | 'youtube';
+    platform?: Platform.TWITTER | Platform.YOUTUBE;
   }): Promise<{
     botConfigId: string;
     created: boolean;
@@ -112,7 +113,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
   async getAuthorReplyInbox(params: {
     brandId: string;
     hours?: number;
-    platform?: 'twitter' | 'youtube';
+    platform?: Platform.TWITTER | Platform.YOUTUBE;
   }): Promise<{
     hours: number;
     items: Array<{
@@ -146,7 +147,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     commentText: string;
     intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
     parentPostPreview?: string;
-    platform?: 'twitter' | 'youtube';
+    platform?: Platform.TWITTER | Platform.YOUTUBE;
   }): Promise<{
     commentId: string;
     draft: string;
@@ -167,7 +168,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     intent?: 'thanks' | 'question' | 'troll' | 'spam' | 'default';
     parentPostId: string;
     parentPostPreview?: string;
-    platform?: 'twitter' | 'youtube';
+    platform?: Platform.TWITTER | Platform.YOUTUBE;
     replyText?: string;
   }): Promise<{
     commentId: string;
@@ -187,7 +188,7 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
    */
   async schedulePostWatch(params: {
     brandId: string;
-    platform?: 'twitter' | 'youtube';
+    platform?: Platform.TWITTER | Platform.YOUTUBE;
     postId: string;
     postPreview?: string;
   }): Promise<{ scheduled: number }> {

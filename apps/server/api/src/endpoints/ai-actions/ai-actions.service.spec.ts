@@ -91,22 +91,17 @@ describe('AiActionsService', () => {
 
       await service.execute('org_123', dto);
 
-      // ai-actions is a single-turn helper with no thread history or
-      // memories, so it has the most budget headroom of any
-      // AgentContextAssemblyService caller — worth enabling recentPosts too,
-      // since most actions operate on content the brand is about to
-      // publish. ragContext stays off: no `query` is threaded through this
-      // call (dto.content is the artifact being transformed, not a
-      // retrieval query).
       expect(contextAssemblyService.assembleContext).toHaveBeenCalledWith({
         layers: {
           brandGuidance: true,
           brandIdentity: true,
           brandMemory: true,
           performancePatterns: true,
+          ragContext: true,
           recentPosts: true,
         },
         organizationId: 'org_123',
+        query: 'Test content',
       });
     });
 

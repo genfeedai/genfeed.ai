@@ -1,4 +1,5 @@
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
+import { rankByQueryOverlap } from '@api/services/agent-context-assembly/text-overlap.util';
 import { Injectable } from '@nestjs/common';
 import {
   type PerformanceContentItem,
@@ -9,6 +10,7 @@ export interface TopPerformerPromptContextParams {
   organizationId: string;
   brandId?: string;
   platform?: string;
+  query?: string;
   limit?: number;
 }
 
@@ -32,13 +34,15 @@ export class TopPerformerPromptContextService {
       { topN: limit, worstN: limit },
     );
 
-    const topPerformers = this.filterByPlatform(
-      summary.topPerformers,
-      params.platform,
+    const topPerformers = rankByQueryOverlap(
+      this.filterByPlatform(summary.topPerformers, params.platform),
+      params.query ?? '',
+      (item) => `${item.title} ${item.description}`,
     );
-    const worstPerformers = this.filterByPlatform(
-      summary.worstPerformers,
-      params.platform,
+    const worstPerformers = rankByQueryOverlap(
+      this.filterByPlatform(summary.worstPerformers, params.platform),
+      params.query ?? '',
+      (item) => `${item.title} ${item.description}`,
     );
 
     const sections: string[] = [];

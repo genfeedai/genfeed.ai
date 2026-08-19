@@ -1,6 +1,8 @@
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
+import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
+import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
@@ -12,12 +14,17 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [ContentOptimizationController],
-  exports: [ContentOptimizationService, ContentOptimizationQueueService],
+  exports: [
+    AbTestSuggestionHarnessService,
+    ContentOptimizationService,
+    ContentOptimizationQueueService,
+  ],
   imports: [
     ConfigModule,
     LoggerModule,
     BrandMemoryModule,
     ContentPerformanceModule,
+    PostsCoreModule,
     OpenAiLlmModule,
     TrendsModule,
     BullModule.registerQueue({
@@ -30,6 +37,10 @@ import { Module } from '@nestjs/common';
       name: 'content-optimization',
     }),
   ],
-  providers: [ContentOptimizationService, ContentOptimizationQueueService],
+  providers: [
+    AbTestSuggestionHarnessService,
+    ContentOptimizationService,
+    ContentOptimizationQueueService,
+  ],
 })
 export class ContentOptimizationModule {}
