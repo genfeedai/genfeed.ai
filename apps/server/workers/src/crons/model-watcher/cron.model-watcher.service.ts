@@ -153,9 +153,10 @@ export class CronModelWatcherService {
 
       // Step 5: Create draft entries for new Replicate models
       for (const model of newModels) {
+        // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
+        const modelKey = `${model.owner}/${model.name}`;
         try {
           const category = await this.detectModelCategory(model);
-          const modelKey = `${model.owner}/${model.name}`;
 
           const discoveryInput: IModelDiscoveryInput = {
             category,
@@ -190,10 +191,9 @@ export class CronModelWatcherService {
           }
         } catch (error: unknown) {
           summary.errors++;
-          this.logger.error(
-            `${url} failed to process model ${model.owner}/${model.name}`,
-            { error },
-          );
+          this.logger.error(`${url} failed to process model ${modelKey}`, {
+            error,
+          });
         }
       }
 
