@@ -72,7 +72,7 @@ export default {
       [
         'expo-splash-screen',
         {
-          backgroundColor: '#FAFAF9',
+          backgroundColor: '#FAFAFA',
           dark: {
             backgroundColor: '#030303',
             image: './assets/images/splash-icon.png',
@@ -103,7 +103,7 @@ export default {
     slug: 'genfeed-mobile',
 
     splash: {
-      backgroundColor: '#FAFAF9',
+      backgroundColor: '#FAFAFA',
       dark: {
         backgroundColor: '#030303',
         image: './assets/images/splash-icon.png',
