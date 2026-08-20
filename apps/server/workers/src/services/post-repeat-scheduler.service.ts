@@ -215,6 +215,10 @@ export class PostRepeatSchedulerService {
           )
           .map((ingredient) => String(ingredient));
 
+        if (!originalParent.platform) {
+          continue;
+        }
+
         await this.postsService.create({
           ...(originalParent.agentThreadId
             ? {

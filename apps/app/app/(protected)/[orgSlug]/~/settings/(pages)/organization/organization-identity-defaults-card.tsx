@@ -13,6 +13,7 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -219,7 +220,8 @@ export default function OrganizationIdentityDefaultsCard() {
                 getIngredientDisplayLabel(selectedAvatar) || 'Selected avatar'
               }
               imageUrl={
-                selectedAvatar.ingredientUrl || '/placeholders/portrait.jpg'
+                selectedAvatar.ingredientUrl ||
+                `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
               }
               title={
                 getIngredientDisplayLabel(selectedAvatar) || 'Selected avatar'

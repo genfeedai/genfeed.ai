@@ -8,10 +8,12 @@ import PricingContent from '@public/pricing/pricing-content';
 // Seats are not a Scale-only entitlement, and reviews keep reading them that
 // way. @genfeedai/pricing is the contract: FREE/BYOK is one seat, every paid
 // tier (Pro, Scale, Enterprise) has unlimited seats, and what Scale adds is
-// multi-organization workflows. page.spec.tsx pins this wording.
+// multi-organization workflows. page.spec.tsx pins this wording — and its
+// length: the previous 205-character version was truncated in search results
+// and flagged "Meta description too long" by the 2026-08-19 site audit.
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing: Credits, Pro and Scale Plans',
-  `Free to sign up. Credits buy the output you generate. Subscriptions from ${PLAN_COPY.pro.priceLabel} include monthly credits at a better rate, paid API access, and unlimited team seats; ${PLAN_COPY.scale.name} adds multi-organization workflows.`,
+  `Free to sign up and pay per output. Plans from ${PLAN_COPY.pro.priceLabel} add cheaper credits, API access, and unlimited team seats; ${PLAN_COPY.scale.name} adds multi-organization workflows.`,
   '/pricing',
 );
 

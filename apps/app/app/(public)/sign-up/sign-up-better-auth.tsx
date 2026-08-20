@@ -10,13 +10,7 @@ import { Input } from '@ui/primitives/input';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
@@ -32,10 +26,6 @@ import {
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
-
-const subscribe = () => () => {};
-const getSnapshot = () => true;
-const getServerSnapshot = () => false;
 
 type SignUpMode = 'chooser' | 'magic-link';
 
@@ -76,11 +66,6 @@ export default function SignUpBetterAuth({
   mode = 'chooser',
 }: SignUpBetterAuthProps) {
   const searchParams = useSearchParams();
-  const isMounted = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
 
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,10 +146,6 @@ export default function SignUpBetterAuth({
     } finally {
       setIsSocialSubmitting(false);
     }
-  }
-
-  if (!isMounted) {
-    return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
   }
 
   if (mode === 'magic-link' && isEmailSent) {

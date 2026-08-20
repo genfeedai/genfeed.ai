@@ -30,6 +30,7 @@ import {
   ActivitySource,
   CredentialPlatform,
   fromPrismaCredentialPlatform,
+  Platform,
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
@@ -956,7 +957,7 @@ export class CronPostsService {
       readPostString(post, ['text']) ||
       readPostString(post, ['content']) ||
       undefined;
-    const watchPlatform = isYouTube ? 'youtube' : 'twitter';
+    const watchPlatform = isYouTube ? Platform.YOUTUBE : Platform.TWITTER;
 
     void this.replyInboundQueueService
       .schedulePostWatch({

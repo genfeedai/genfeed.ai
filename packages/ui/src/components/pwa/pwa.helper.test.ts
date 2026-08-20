@@ -228,9 +228,15 @@ describe('pwa.helper', () => {
 
       expect(viewport.width).toBe('device-width');
       expect(viewport.initialScale).toBe(1);
-      expect(viewport.maximumScale).toBe(1);
-      expect(viewport.userScalable).toBe(false);
       expect(viewport.viewportFit).toBe('cover');
+    });
+
+    // WCAG 1.4.4: pinch-zoom must never be locked, PWA or not.
+    it('should not restrict pinch zoom', () => {
+      const { viewport } = generatePWAMetadata('studio' as PWAAppNameKey);
+
+      expect(viewport.maximumScale).toBeUndefined();
+      expect(viewport.userScalable).toBeUndefined();
     });
 
     it('should configure theme colors for light and dark modes', () => {

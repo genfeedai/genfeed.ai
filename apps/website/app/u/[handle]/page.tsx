@@ -56,9 +56,17 @@ export async function generateMetadata(
     const description =
       brand.description ||
       `Check out ${brand.label || handle}'s profile on ${metadata.name}`;
-    const imageUrl =
-      brand.bannerUrl ||
-      `${EnvironmentService.assetsEndpoint}/placeholders/landscape.jpg`;
+    // The old fallback pointed at assets.genfeed.ai/placeholders/landscape.jpg,
+    // which 404s — every brand without a banner shipped a broken OG card. The
+    // shared CDN card is the only guaranteed-live artwork, and it is 1200x630,
+    // so the declared dimensions follow the image actually being served.
+    const bannerUrl =
+      typeof brand.bannerUrl === 'string' && brand.bannerUrl.length > 0
+        ? brand.bannerUrl
+        : null;
+    const socialImage = bannerUrl
+      ? { height: 500, url: bannerUrl, width: 1500 }
+      : { height: 630, url: metadata.cards.default, width: 1200 };
     const rssUrl = `${EnvironmentService.apiEndpoint}/public/rss/brands/${brand.id}`;
 
     return {
@@ -79,9 +87,7 @@ export async function generateMetadata(
         images: [
           {
             alt: `@${handle} Genfeed.ai profile`,
-            height: 500,
-            url: imageUrl,
-            width: 1500,
+            ...socialImage,
           },
         ],
         siteName: metadata.name,
@@ -97,7 +103,7 @@ export async function generateMetadata(
         images: [
           {
             alt: `@${handle} Genfeed.ai profile`,
-            url: imageUrl,
+            url: socialImage.url,
           },
         ],
         title,

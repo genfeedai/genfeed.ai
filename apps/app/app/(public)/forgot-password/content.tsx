@@ -7,12 +7,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { useSearchParams } from 'next/navigation';
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
 import {
   getAuthCallbackURL,
   getAuthFlowHref,
@@ -24,17 +19,8 @@ import {
   AuthFormActions,
 } from '../auth-ui';
 
-const subscribe = () => () => {};
-const getSnapshot = () => true;
-const getServerSnapshot = () => false;
-
 export default function ForgotPasswordContent() {
   const searchParams = useSearchParams();
-  const isMounted = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
@@ -69,10 +55,6 @@ export default function ForgotPasswordContent() {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (!isMounted) {
-    return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
   }
 
   if (isEmailSent) {

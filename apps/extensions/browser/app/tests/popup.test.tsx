@@ -27,10 +27,9 @@ vi.mock('~components/pages/LoginPage', () => ({
 
 vi.mock('~style.css', () => ({}));
 
-vi.mock('~services', () => ({
-  EnvironmentService: {
-    logoURL: 'https://assets.genfeed.ai/branding/logo.svg',
-  },
+vi.mock('next/image', () => ({
+  default: (props: Record<string, unknown>) =>
+    React.createElement('img', props),
 }));
 
 import IndexPopup from '../src/popup';
@@ -53,6 +52,23 @@ describe('IndexPopup', () => {
 
   it('renders without throwing', () => {
     expect(() => render(React.createElement(IndexPopup))).not.toThrow();
+  });
+
+  it('renders the brand logo from the canonical CDN', async () => {
+    render(React.createElement(IndexPopup));
+
+    await waitFor(() => {
+      expect(screen.getByAltText('Genfeed')).toBeInTheDocument();
+    });
+
+    // The popup reads the real environment service. Before `logoURL` existed
+    // there, `src` was undefined; the value it now resolves to must be the
+    // live CDN asset and never the dead `assets.genfeed.ai` host.
+    const logo = screen.getByAltText('Genfeed');
+    expect(logo.getAttribute('src')).toContain(
+      'cdn.genfeed.ai/assets/branding/logo.svg',
+    );
+    expect(logo.getAttribute('src')).not.toContain('assets.genfeed.ai/');
   });
 
   it('shows loading state while auth is loading', () => {

@@ -31,9 +31,23 @@ async function loadClient(): Promise<WebsitePosthogClientModule> {
   return loadedClient;
 }
 
-/** Flush the dynamic import()/microtask queue used by initWebsiteAnalytics. */
+/**
+ * Flush the dynamic import()/microtask queue used by initWebsiteAnalytics.
+ *
+ * The SDK load is scheduled through `requestIdleCallback` so it stays off the
+ * pre-LCP critical path. jsdom does not implement it, so `beforeEach` stubs it
+ * to run inline — the scheduling itself is covered by its own case below.
+ */
 async function flushInit(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/** Run scheduled idle work synchronously, the way a fully idle browser would. */
+function stubImmediateIdleCallback(): void {
+  vi.stubGlobal('requestIdleCallback', (callback: () => void): number => {
+    callback();
+    return 1;
+  });
 }
 
 function dispatchTrackedCta(
@@ -49,10 +63,12 @@ function dispatchTrackedCta(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  stubImmediateIdleCallback();
   vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_testkey');
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   // Unregister the window listener so a stale module instance cannot keep
   // capturing into the shared mocks across cases.
   loadedClient?.__resetWebsiteAnalyticsForTests();
@@ -77,6 +93,74 @@ describe('isWebsiteAnalyticsEnabled', () => {
 });
 
 describe('initWebsiteAnalytics', () => {
+  it('schedules the SDK load for idle time rather than the critical path', async () => {
+    const idleCallbacks: Array<() => void> = [];
+    vi.stubGlobal('requestIdleCallback', (callback: () => void): number => {
+      idleCallbacks.push(callback);
+      return idleCallbacks.length;
+    });
+
+    const client = await loadClient();
+    client.initWebsiteAnalytics();
+    await flushInit();
+
+    // Nothing may load before the browser reports idle: `instrumentation-client`
+    // runs inside the initial client bundle, so an eager import would put the
+    // SDK request in the dependency graph Lighthouse simulates for LCP.
+    expect(mocks.posthogInit).not.toHaveBeenCalled();
+    expect(idleCallbacks).toHaveLength(1);
+
+    for (const callback of idleCallbacks) {
+      callback();
+    }
+    await flushInit();
+
+    expect(mocks.posthogInit).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to a timer when requestIdleCallback is unavailable', async () => {
+    vi.stubGlobal('requestIdleCallback', undefined);
+    vi.useFakeTimers();
+
+    try {
+      const client = await loadClient();
+      client.initWebsiteAnalytics();
+
+      expect(mocks.posthogInit).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(1500);
+
+      expect(mocks.posthogInit).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('buffers CTA clicks fired before the deferred SDK finishes loading', async () => {
+    const idleCallbacks: Array<() => void> = [];
+    vi.stubGlobal('requestIdleCallback', (callback: () => void): number => {
+      idleCallbacks.push(callback);
+      return idleCallbacks.length;
+    });
+
+    const client = await loadClient();
+    client.initWebsiteAnalytics();
+
+    // The CTA listener is attached synchronously, so a hero click during the
+    // deferral window is queued instead of dropped.
+    dispatchTrackedCta('hero_primary');
+
+    for (const callback of idleCallbacks) {
+      callback();
+    }
+    await flushInit();
+
+    expect(mocks.posthogCapture).toHaveBeenCalledWith(
+      'cta_click',
+      expect.objectContaining({ trackingName: 'hero_primary' }),
+    );
+  });
+
   it('constructs a cookieless, anonymous PostHog client', async () => {
     const client = await loadClient();
     client.initWebsiteAnalytics();

@@ -153,7 +153,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
             </NeuralGrid>
 
             <div className="text-center mt-8">
-              <Code className="bg-transparent text-surface/25">
+              <Code className="bg-transparent text-surface/55">
                 bunx skills add genfeedai/skills/{category.skills[0]?.slug}
               </Code>
             </div>

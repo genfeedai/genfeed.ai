@@ -181,7 +181,7 @@ describe('AdOptimizationRecommendationsService', () => {
         data: {
           data: expect.objectContaining({ status: 'approved' }),
         },
-        where: { id: 'rec-1' },
+        where: { id: 'rec-1', isDeleted: false, organizationId: 'org-1' },
       });
       expect(doc?.status).toBe('approved');
     });
@@ -201,7 +201,7 @@ describe('AdOptimizationRecommendationsService', () => {
             status: 'rejected',
           }),
         },
-        where: { id: 'rec-1' },
+        where: { id: 'rec-1', isDeleted: false, organizationId: 'org-1' },
       });
       expect(doc?.status).toBe('rejected');
       expect(doc?.reason).toBe('not relevant');
@@ -275,7 +275,7 @@ describe('AdOptimizationRecommendationsService', () => {
             status: 'rejected',
           }),
         },
-        where: { id: 'rec-1' },
+        where: { id: 'rec-1', isDeleted: false, organizationId: 'org-1' },
       });
       expect(doc?.status).toBe('rejected');
     });

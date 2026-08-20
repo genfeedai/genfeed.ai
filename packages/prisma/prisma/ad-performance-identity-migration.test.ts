@@ -31,7 +31,9 @@ describe('AdPerformance identity migration (#2511)', () => {
     expect(adPerformanceModel).toContain(
       '@@unique([organizationId, identityKey], map: "ad_performance_organizationId_identityKey_key")',
     );
-    expect(schemaSource.match(/^\s+identityKey\s+String$/gmu)).toHaveLength(1);
+    expect(
+      adPerformanceModel.match(/^\s+identityKey\s+String$/gmu),
+    ).toHaveLength(1);
   });
 
   it('adds a composite list index that can serve org/platform/granularity/date queries', () => {

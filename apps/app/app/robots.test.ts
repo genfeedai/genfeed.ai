@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { GET } from './robots.txt/route';
 
 describe('app robots', () => {
-  it('disallows every crawler across the whole studio origin', async () => {
-    const response = GET();
+  it('disallows crawlers everywhere outside the auth entry points', async () => {
+    const body = await GET().text();
 
-    await expect(response.text()).resolves.toContain('Disallow: /');
+    expect(body).toContain('Disallow: /');
+    expect(body).toContain('Allow: /login');
+    expect(body).toContain('Allow: /sign-up');
   });
 
   it('serves the static policy as cacheable plain text', () => {

@@ -646,6 +646,7 @@ export class AgentMediaGenerationToolHandler {
       waitForCompletion: true,
       width: dimensions.width,
       ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
+      ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
       ...(imageUrl ? { references: [imageUrl] } : {}),
@@ -886,6 +887,7 @@ export class AgentMediaGenerationToolHandler {
       text: prompt,
       waitForCompletion: true,
       width: dimensions.width,
+      ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
     };

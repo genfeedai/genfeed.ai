@@ -182,6 +182,7 @@ describe('PostingSetsService', () => {
       },
       where: {
         id: { in: ['cred_x'] },
+        isDeleted: false,
         organizationId: 'org-1',
       },
     });

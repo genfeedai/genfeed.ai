@@ -64,9 +64,10 @@ export default function IngredientTabsTags({
       const service = await getIngredientsService();
       const updatedTags = [...tags, tag];
 
-      await service.patch(ingredient.id, {
-        tags: updatedTags.map((t: ITag) => t.id),
-      });
+      await service.patchTags(
+        ingredient.id,
+        updatedTags.map((t: ITag) => t.id),
+      );
 
       setTags(updatedTags);
       // availableTags is derived from allTags via useMemo, no manual update needed
@@ -87,9 +88,10 @@ export default function IngredientTabsTags({
       const service = await getIngredientsService();
       const updatedTags = tags.filter((t) => t.id !== tagId);
 
-      await service.patch(ingredient.id, {
-        tags: updatedTags.map((t: ITag) => t.id),
-      });
+      await service.patchTags(
+        ingredient.id,
+        updatedTags.map((t: ITag) => t.id),
+      );
 
       setTags(updatedTags);
       // availableTags is derived from allTags via useMemo, no manual update needed
