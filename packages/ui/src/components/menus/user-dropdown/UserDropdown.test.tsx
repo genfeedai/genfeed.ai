@@ -77,10 +77,45 @@ describe('UserDropdown', () => {
     );
 
     const trigger = screen.getByRole('button', { name: 'Open account menu' });
-    expect(trigger).toHaveClass('w-full', 'p-3');
+    expect(trigger).toHaveClass('w-full', 'h-16', 'px-4');
     expect(within(trigger).getByText('Test User')).toBeVisible();
     expect(within(trigger).getByText('test@example.com')).toBeVisible();
     expect(within(trigger).getByText('T')).toBeVisible();
+    expect(
+      trigger.querySelector('[data-account-menu-affordance]'),
+    ).toBeVisible();
+  });
+
+  it('matches the expanded sidebar width without repeating its identity header', () => {
+    render(
+      <UserDropdown
+        showIdentity
+        userName="Test User"
+        userEmail="test@example.com"
+      />,
+    );
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Open account menu' }),
+    );
+
+    expect(screen.getByRole('menu')).toHaveClass(
+      'w-[var(--radix-dropdown-menu-trigger-width)]',
+    );
+    expect(screen.getAllByText('Test User')).toHaveLength(1);
+    expect(screen.getAllByText('test@example.com')).toHaveLength(1);
+  });
+
+  it('keeps identity context for the compact topbar avatar trigger', () => {
+    render(<UserDropdown userName="Test User" userEmail="test@example.com" />);
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Open account menu' }),
+    );
+
+    expect(screen.getAllByText('Test User')).toHaveLength(1);
+    expect(screen.getAllByText('test@example.com')).toHaveLength(1);
+    expect(screen.getByRole('menu')).toHaveClass('w-56');
   });
 
   it('switches between the settings scopes (Help lives in the personal scope)', () => {
