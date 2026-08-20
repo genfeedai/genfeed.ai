@@ -112,7 +112,7 @@ export class ClipProjectHandoffsController {
         totalDurationFrames: durationFrames,
       }),
       organizationId: user.organizationId,
-      tracks: toPrismaJson([
+      tracks: [
         {
           clips: [
             {
@@ -135,7 +135,7 @@ export class ClipProjectHandoffsController {
           type: EditorTrackType.VIDEO,
           volume: 100,
         },
-      ]),
+      ],
       userId: user.userId ?? user.id,
     });
     const editorProjectId = String(editorProject.id);

@@ -13,7 +13,7 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
@@ -241,7 +241,7 @@ export class SystemWorkflowCatalogService {
       userId: string;
     },
     entry: SystemWorkflowCatalogEntry,
-  ): Record<string, unknown> {
+  ): Prisma.WorkflowCreateInput {
     const catalogSourceId = `catalog:${entry.canonicalId}`;
     const systemWorkflowMetadata = buildSystemWorkflowMetadata({
       canonicalId: entry.canonicalId,

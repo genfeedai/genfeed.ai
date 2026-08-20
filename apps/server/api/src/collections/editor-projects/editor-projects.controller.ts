@@ -174,7 +174,7 @@ export class EditorProjectsController {
             : {}),
         }),
         organizationId: orgId,
-        tracks: toPrismaJson(tracks),
+        tracks,
         userId: user.userId ?? user.id,
       },
     );

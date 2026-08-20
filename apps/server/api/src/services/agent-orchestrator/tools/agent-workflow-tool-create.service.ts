@@ -1,3 +1,9 @@
+import type {
+  WorkflowEdgeDto,
+  WorkflowInputVariableDto,
+  WorkflowStepDto,
+  WorkflowVisualNodeDto,
+} from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { computeNextRunAtOrThrow } from '@api/collections/workflows/utils/cron-schedule.util';
@@ -14,12 +20,15 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 const MISSING_BRAND_ERROR =
   'No valid brand is available. Select a brand or refresh your brand context before creating a workflow.';
+
+function asWorkflowDtoArray<T>(value: unknown): T[] | undefined {
+  return Array.isArray(value) ? (value as T[]) : undefined;
+}
 
 /**
  * Create-workflow tools: graph payload, NL generation, and recurring scaffold.
@@ -215,18 +224,16 @@ export class AgentWorkflowToolCreateService {
       {
         brandId,
         description: input.description,
-        edges: toPrismaJson(input.edges),
-        inputVariables: Array.isArray(params.inputVariables)
-          ? toPrismaJson(params.inputVariables)
-          : undefined,
+        edges: asWorkflowDtoArray<WorkflowEdgeDto>(input.edges),
+        inputVariables: asWorkflowDtoArray<WorkflowInputVariableDto>(
+          params.inputVariables,
+        ),
         isScheduleEnabled: input.isScheduleEnabled,
         label: input.workflowLabel,
-        metadata: toPrismaJson(normalizedMetadata),
-        nodes: toPrismaJson(input.nodes),
+        metadata: normalizedMetadata,
+        nodes: asWorkflowDtoArray<WorkflowVisualNodeDto>(input.nodes),
         schedule: input.schedule,
-        steps: Array.isArray(params.steps)
-          ? toPrismaJson(params.steps)
-          : undefined,
+        steps: asWorkflowDtoArray<WorkflowStepDto>(params.steps),
         templateId:
           typeof params.templateId === 'string' ? params.templateId : undefined,
         timezone: input.timezone,
@@ -351,14 +358,12 @@ export class AgentWorkflowToolCreateService {
       {
         brandId,
         description: taskDescription,
-        edges: toPrismaJson([]),
-        inputVariables: toPrismaJson([]),
+        edges: [],
+        inputVariables: [],
         isScheduleEnabled: true,
         label: workflowLabel,
-        metadata: toPrismaJson(
-          this.buildRecurringScaffoldMetadata(parsed, params),
-        ),
-        nodes: toPrismaJson(
+        metadata: this.buildRecurringScaffoldMetadata(parsed, params),
+        nodes: asWorkflowDtoArray<WorkflowVisualNodeDto>(
           this.buildRecurringScaffoldNodes(parsed, params, brandId, brandLabel),
         ),
         schedule: parsed.schedule,

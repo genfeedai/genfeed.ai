@@ -4,7 +4,7 @@
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
-import { ReplyBotPlatform, ReplyBotType } from '@genfeedai/enums';
+import { Platform, ReplyBotPlatform, ReplyBotType } from '@genfeedai/enums';
 import type {
   ReplyPostWatchJobData,
   ReplyPostWatchResult,
@@ -36,11 +36,13 @@ export class ReplyPostWatchService {
 
     try {
       const watchPlatform =
-        data.platform === 'youtube'
+        data.platform === Platform.YOUTUBE || data.platform === 'youtube'
           ? ReplyBotPlatform.YOUTUBE
           : ReplyBotPlatform.TWITTER;
       const wirePlatform =
-        watchPlatform === ReplyBotPlatform.YOUTUBE ? 'youtube' : 'twitter';
+        watchPlatform === ReplyBotPlatform.YOUTUBE
+          ? Platform.YOUTUBE
+          : Platform.TWITTER;
 
       const comments = await this.socialMonitorService.getContentComments(
         watchPlatform,
