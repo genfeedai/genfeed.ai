@@ -134,7 +134,7 @@ export class YoutubeUploadService {
       const playlistId = readChannelSettingString(settings, 'playlistId');
 
       const insertParams: youtube_v3.Params$Resource$Videos$Insert = {
-        auth: auth as youtube_v3.Params$Resource$Videos$Insert['auth'],
+        auth: auth as unknown as youtube_v3.Params$Resource$Videos$Insert['auth'],
         media: {
           body: fs.createReadStream(filePath),
         },
