@@ -16,6 +16,7 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EditorContent } from '@tiptap/react';
+import PromptBarBody from '@ui/prompt-bars/components/shell/PromptBarBody';
 import PromptBarShell, {
   PROMPT_BAR_SURFACE_CLASS,
 } from '@ui/prompt-bars/components/shell/PromptBarShell';
@@ -209,9 +210,7 @@ export function AgentChatInput({
           />
         )}
 
-        <div
-          className={cn(isCompact ? 'px-2.5 pb-1 pt-2' : 'px-3.5 pb-1.5 pt-3')}
-        >
+        <PromptBarBody density={isCompact ? 'compact' : 'default'}>
           <EditorContent editor={editor} className="flex-1" />
 
           <AgentChatInputToolbar
@@ -242,7 +241,7 @@ export function AgentChatInput({
             // Inspector rail is narrow — use compact icon-only toolbar density.
             density={isCompact || isInspector ? 'compact' : 'default'}
           />
-        </div>
+        </PromptBarBody>
       </PromptBarShell>
 
       <ContentLibraryPicker

@@ -266,4 +266,18 @@ describe('StudioGenerateWorkspace remix restoration', () => {
       screen.getByPlaceholderText('Search generations'),
     );
   });
+
+  it('uses the same composer track as the Agent surface', () => {
+    render(<StudioGenerateWorkspace />);
+
+    const container = screen
+      .getByTestId('studio-composer')
+      .closest('[data-layout-mode]');
+
+    expect(container).toHaveAttribute('data-layout-mode', 'inflow');
+    expect(container).toHaveAttribute('data-max-width', '4xl');
+    expect(container).toContainElement(
+      document.querySelector('[data-composer-top-fade]'),
+    );
+  });
 });
