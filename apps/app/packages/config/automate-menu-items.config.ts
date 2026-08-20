@@ -62,9 +62,14 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Agents',
-    href: APP_ROUTES.AUTOMATE.LIBRARY,
+    href: APP_ROUTES.AUTOMATE.AGENTS,
     label: 'Team',
-    matchPaths: [APP_ROUTES.AUTOMATE.LIBRARY, APP_ROUTES.AUTOMATE.NEW],
+    matchPaths: [
+      APP_ROUTES.AUTOMATE.AGENTS,
+      APP_ROUTES.AUTOMATE.NEW,
+      APP_ROUTES.AUTOMATE.LIBRARY,
+      '/automate/new',
+    ],
     outline: Users,
     solid: Users,
   },

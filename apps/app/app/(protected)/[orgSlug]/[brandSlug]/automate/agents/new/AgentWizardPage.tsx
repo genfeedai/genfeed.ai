@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
@@ -237,7 +238,7 @@ export default function AgentWizardPage() {
           : [],
       });
       notificationsService.success('Agent created successfully');
-      push(href('/automate'));
+      push(href(APP_ROUTES.AUTOMATE.AGENTS));
     } catch (error) {
       logger.error('Failed to create agent', { error });
       notificationsService.error('Failed to create agent');

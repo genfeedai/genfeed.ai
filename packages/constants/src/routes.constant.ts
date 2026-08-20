@@ -110,9 +110,17 @@ export const APP_ROUTES = {
     CONFIGURATION: '/automate/configuration',
     /** Content-run history: briefs handed off from Discover through publish. */
     CONTENT_RUNS: '/automate/content-runs',
+    /**
+     * Agent roster. Detail pages nest at `/automate/agents/:agentId`.
+     */
+    AGENTS: '/automate/agents',
     HIRE: '/automate/hire',
+    /**
+     * @deprecated Team list permanently redirects to AGENTS.
+     * `/automate/library/:type` remains the Twitch/YouTube chat-bot surfaces.
+     */
     LIBRARY: '/automate/library',
-    NEW: '/automate/new',
+    NEW: '/automate/agents/new',
     ORCHESTRATOR: '/automate/orchestrator',
     /**
      * Canonical automate home. Bare ROOT permanently redirects here so Overview

@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import {
   DefinitionDetail,
@@ -59,7 +60,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
         >
           <NextLink
             href={href(
-              `/automate/${item.sourceWorkflowId}${
+              `${APP_ROUTES.AUTOMATE.AGENTS}/${item.sourceWorkflowId}${
                 item.sourceActionId ? `?opportunity=${item.sourceActionId}` : ''
               }`,
             )}

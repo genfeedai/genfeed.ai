@@ -34,10 +34,10 @@ export default function AutomationOverviewPage() {
       color: 'bg-cyan-500/12 text-cyan-300',
       cta: 'Inspect Workspace',
       description: 'Start from the unified agents workspace overview',
-      href: href(APP_ROUTES.AUTOMATE.LIBRARY),
+      href: href(APP_ROUTES.AUTOMATE.AGENTS),
       icon: Settings,
       id: 'library',
-      label: 'Library',
+      label: 'Team',
     },
     {
       color: 'bg-amber-500/12 text-amber-300',
@@ -114,10 +114,10 @@ export default function AutomationOverviewPage() {
       cta: 'Open Library',
       description:
         'Enable or inspect agent roles for content, engagement, and support.',
-      href: href(APP_ROUTES.AUTOMATE.LIBRARY),
+      href: href(APP_ROUTES.AUTOMATE.AGENTS),
       icon: Settings,
       kicker: 'Workspace',
-      label: 'Agent Library',
+      label: 'Team',
     },
     {
       color: 'bg-amber-500/12 text-amber-300',

@@ -388,13 +388,13 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(executor).toContain('postYouTubeCommentReply');
     expect(executor).toContain('replyToComment');
     const bindUi = readRepo(
-      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/[agentId]/AgentWorkflowBindCard.tsx',
+      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentWorkflowBindCard.tsx',
     );
     expect(bindUi).toContain('preferredWorkflowId');
     expect(bindUi).toContain('workflowInputOverrides');
     expect(bindUi).toContain('Save binding');
     const runDialogUtil = readRepo(
-      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/library/agent-workflow-run-input.util.ts',
+      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/agents/agent-workflow-run-input.util.ts',
     );
     expect(runDialogUtil).toContain('listUnfilledRequiredAfterForm');
     const credentialUtil = readRepo(

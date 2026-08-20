@@ -51,7 +51,7 @@ describe('Prisma-enum status badge source contracts', () => {
 
   it('keys the agent run badge off AgentRunStatus, not lowercase literals', () => {
     const source = readAppSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/automate/[agentId]/AgentRunRow.tsx',
+      'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentRunRow.tsx',
     );
 
     expect(source).toContain('[AgentRunStatus.COMPLETED]:');
@@ -68,7 +68,7 @@ describe('Prisma-enum status badge source contracts', () => {
 
   it('maps every AgentRunStatus member off the enum', () => {
     const source = readAppSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/automate/[agentId]/AgentRunRow.tsx',
+      'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentRunRow.tsx',
     );
 
     for (const member of Object.keys(AgentRunStatus)) {
@@ -78,7 +78,7 @@ describe('Prisma-enum status badge source contracts', () => {
 
   it('normalizes run content statuses across both vocabularies', () => {
     const source = readAppSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/automate/[agentId]/AgentRunContentGrid.tsx',
+      'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentRunContentGrid.tsx',
     );
 
     // A run mixes posts (lowercase String column) with ingredients (SCREAMING

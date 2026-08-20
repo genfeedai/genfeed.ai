@@ -1,19 +1,12 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
-import AgentDetailPage from './AgentDetailPage';
+import { APP_ROUTES } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Agent Detail');
-
-export default async function AutomateAgentDetailRoute({
+/** Legacy `/automate/:agentId` → nested `/automate/agents/:agentId`. */
+export default async function AutomateAgentDetailLegacyRoute({
   params,
 }: {
   params: Promise<{ agentId: string }>;
 }) {
   const { agentId } = await params;
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <AgentDetailPage agentId={agentId} />
-    </Suspense>
-  );
+  permanentRedirect(`${APP_ROUTES.AUTOMATE.AGENTS}/${agentId}`);
 }

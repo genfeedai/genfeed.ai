@@ -114,7 +114,7 @@ test.describe('Automate — Core Interactions', () => {
   test('agent wizard steps through type, brand, configure and review', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/new`);
+    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agents/new`);
 
     // Step 1 → 2: pick a type card then advance.
     await tryClick(authenticatedPage, 'button:has-text("X Content")');
@@ -141,10 +141,10 @@ test.describe('Automate — Core Interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('library hub renders with new-agent affordance', async ({
+  test('agents hub renders with new-agent affordance', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/library`);
+    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agents`);
 
     await tryClick(authenticatedPage, 'a:has-text("New Agent")');
     await tryClick(authenticatedPage, 'a:has-text("Create your first agent")');
@@ -230,7 +230,7 @@ test.describe('Automate — Core Interactions', () => {
   test('agent detail route renders run history and run-now control', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agent-1`);
+    await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agents/agent-1`);
 
     await tryClick(authenticatedPage, 'button:has-text("Run Now")');
 
