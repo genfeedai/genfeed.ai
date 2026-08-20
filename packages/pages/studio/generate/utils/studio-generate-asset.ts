@@ -76,12 +76,14 @@ export function toStudioGenerateJob(
 
   return {
     createdAt: Number.isNaN(createdAt) ? 0 : createdAt,
+    height: ingredient.metadataHeight || ingredient.height || undefined,
     id: String(ingredient.id),
     modelKey: ingredient.metadataModel || ingredient.model || undefined,
     prompt: ingredient.promptText || '',
     status: resolveStatus(ingredient.status),
     type,
     url: resolveStudioAssetUrl(ingredient),
+    width: ingredient.metadataWidth || ingredient.width || undefined,
   };
 }
 

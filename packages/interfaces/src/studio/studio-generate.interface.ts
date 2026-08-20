@@ -132,10 +132,12 @@ export interface StudioGenerateSettings {
 export interface StudioGenerateJob {
   createdAt: number;
   error?: string;
+  height?: number;
   id: string;
   modelKey?: string;
   prompt: string;
   status: IngredientStatus;
   type: StudioGenerateType;
   url?: string;
+  width?: number;
 }

@@ -2,6 +2,7 @@
 
 import type { StudioGenerateResultsProps } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
+import Masonry from '@ui/display/masonry/Masonry';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -36,7 +37,11 @@ export default function StudioGenerateResults({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+        <Masonry
+          className="w-full"
+          columns={{ default: 2, lg: 4, md: 3, sm: 2, xl: 4 }}
+          gap={12}
+        >
           {jobs.map((job) => (
             <StudioGenerateCard
               job={job}
@@ -44,7 +49,7 @@ export default function StudioGenerateResults({
               onReprompt={onReprompt}
             />
           ))}
-        </div>
+        </Masonry>
       )}
     </div>
   );

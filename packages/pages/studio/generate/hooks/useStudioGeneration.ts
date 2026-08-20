@@ -219,8 +219,12 @@ export function useStudioGeneration({
               const ingredient = await fetchService.findOne(resolvedId);
 
               patchJob(pendingId, {
+                height:
+                  ingredient?.metadataHeight || ingredient?.height || undefined,
                 status: IngredientStatus.GENERATED,
                 url: resolveStudioAssetUrl(ingredient),
+                width:
+                  ingredient?.metadataWidth || ingredient?.width || undefined,
               });
               onGeneratedRef.current?.();
             } catch (error) {

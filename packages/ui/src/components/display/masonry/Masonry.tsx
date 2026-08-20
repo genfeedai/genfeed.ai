@@ -2,7 +2,6 @@
 
 import type { MasonryProps } from '@genfeedai/props/content/masonry.props';
 import { Children, isValidElement, useEffect, useMemo, useRef } from 'react';
-import { useMounted } from '../../../lib/hooks';
 
 const BREAKPOINTS = [
   { key: 'xl' as const, width: 1280 },
@@ -18,7 +17,6 @@ export default function Masonry({
   className = '',
 }: MasonryProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mounted = useMounted();
 
   const childArray = useMemo(
     () => Children.toArray(children).filter(Boolean),
@@ -26,14 +24,9 @@ export default function Masonry({
   );
 
   useEffect(() => {
-    if (!mounted || !containerRef.current) {
+    if (!containerRef.current) {
       return;
     }
-
-    Object.assign(containerRef.current.style, {
-      display: 'grid',
-      gap: `${gap}px`,
-    });
 
     const updateColumns = (): void => {
       if (!containerRef.current) {
@@ -46,21 +39,20 @@ export default function Masonry({
       );
       const cols = breakpoint ? columns[breakpoint.key] : columns.default;
 
-      containerRef.current.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+      containerRef.current.style.columnCount = String(cols);
     };
 
     updateColumns();
 
     window.addEventListener('resize', updateColumns);
     return () => window.removeEventListener('resize', updateColumns);
-  }, [mounted, columns, gap]);
+  }, [columns]);
 
-  // Server render as flex, client renders as grid
   return (
     <div
       ref={containerRef}
-      className={`flex flex-wrap ${className}`}
-      style={!mounted ? { gap: `${gap}px` } : undefined}
+      className={className}
+      style={{ columnCount: columns.default, columnGap: `${gap}px` }}
     >
       {childArray.map((child) => {
         const childKey =
@@ -71,8 +63,8 @@ export default function Masonry({
         return (
           <div
             key={childKey}
-            className={!mounted ? 'flex-1' : 'w-full'}
-            style={!mounted ? { minWidth: '200px' } : undefined}
+            className="w-full break-inside-avoid"
+            style={{ marginBottom: `${gap}px` }}
           >
             {child}
           </div>

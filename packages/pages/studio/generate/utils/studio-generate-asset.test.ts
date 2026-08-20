@@ -104,19 +104,23 @@ describe('toStudioGenerateJob', () => {
     const job = toStudioGenerateJob(
       buildIngredient({
         cdnUrl: 'https://cdn/img.png',
+        metadataHeight: 1350,
         metadataModel: 'flux-schnell',
+        metadataWidth: 1080,
         promptText: 'a red sofa',
       }),
     );
 
     expect(job).toEqual({
       createdAt: new Date('2026-08-20T10:00:00.000Z').getTime(),
+      height: 1350,
       id: 'ing-1',
       modelKey: 'flux-schnell',
       prompt: 'a red sofa',
       status: IngredientStatus.GENERATED,
       type: 'image',
       url: 'https://cdn/img.png',
+      width: 1080,
     });
   });
 
