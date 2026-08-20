@@ -96,6 +96,7 @@ export * from './content/content-run-service.contract';
 export * from './content/dashboard-layout.interface';
 export * from './content/enhancement-response.interface';
 export * from './content/generation-payload.interface';
+export * from './content/ingredient-time-group.interface';
 export * from './content/media-provenance.interface';
 export * from './content/model.interface';
 export * from './content/mood-board.interface';

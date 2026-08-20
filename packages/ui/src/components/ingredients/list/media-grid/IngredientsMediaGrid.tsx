@@ -11,6 +11,8 @@ import {
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
 
+import { groupIngredientsByTime } from './ingredient-time-groups.util';
+
 function getGridClassName(format?: IngredientFormat): string {
   switch (format) {
     case IngredientFormat.LANDSCAPE:
@@ -76,66 +78,84 @@ export default function IngredientsMediaGrid({
     return <p className="text-sm text-foreground/45">{emptyLabel}</p>;
   }
 
+  const renderIngredient = (ingredient: IIngredient) => {
+    const isSelected = selectedIds.includes(ingredient.id);
+
+    if (isVideoIngredient(ingredient)) {
+      return (
+        <div key={ingredient.id} className="min-w-0">
+          <LazyMasonryVideo
+            video={new Video(ingredient as IVideo)}
+            isSelected={isSelected}
+            isActionsEnabled={isActionsEnabled}
+            isDragEnabled={isDragEnabled}
+            isGeneratingCaptions={isGeneratingCaptions}
+            isPortraiting={isPortraiting}
+            isMirroring={isMirroring}
+            isReversing={isReversing}
+            isContainerHovered={true}
+            onDeleteIngredient={onDeleteIngredient}
+            onPublishIngredient={onPublishIngredient}
+            onCopyPrompt={onCopyPrompt}
+            onReprompt={onReprompt}
+            onMarkArchived={onMarkArchived}
+            onSeeDetails={onSeeDetails}
+            onReverse={onReverse}
+            onMirror={onMirror}
+            onUpdateParent={onUpdateParent}
+            onRefresh={onRefresh}
+            onClickIngredient={onClickIngredient}
+            onScopeChange={onScopeChange}
+            onPortraitVideo={onConvertToPortrait}
+            onGenerateCaptions={onGenerateCaptions}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div key={ingredient.id} className="min-w-0">
+        <LazyMasonryImage
+          image={ingredient as IImage}
+          isSelected={isSelected}
+          isActionsEnabled={isActionsEnabled}
+          isDragEnabled={isDragEnabled}
+          isContainerHovered={true}
+          onDeleteIngredient={onDeleteIngredient}
+          onPublishIngredient={onPublishIngredient}
+          onCopyPrompt={onCopyPrompt}
+          onReprompt={onReprompt}
+          onMarkArchived={onMarkArchived}
+          onSeeDetails={onSeeDetails}
+          onUpdateParent={onUpdateParent}
+          onRefresh={onRefresh}
+          onClickIngredient={onClickIngredient}
+          onScopeChange={onScopeChange}
+          onConvertToVideo={onConvertToVideo}
+        />
+      </div>
+    );
+  };
+
+  const timeGroups = groupIngredientsByTime(items);
+  const gridClassName = `grid gap-3 ${getGridClassName(format)}`;
+
+  if (!timeGroups) {
+    return <div className={gridClassName}>{items.map(renderIngredient)}</div>;
+  }
+
   return (
-    <div className={`grid gap-3 ${getGridClassName(format)}`}>
-      {items.map((ingredient: IIngredient) => {
-        const isSelected = selectedIds.includes(ingredient.id);
-
-        if (isVideoIngredient(ingredient)) {
-          return (
-            <div key={ingredient.id} className="min-w-0">
-              <LazyMasonryVideo
-                video={new Video(ingredient as IVideo)}
-                isSelected={isSelected}
-                isActionsEnabled={isActionsEnabled}
-                isDragEnabled={isDragEnabled}
-                isGeneratingCaptions={isGeneratingCaptions}
-                isPortraiting={isPortraiting}
-                isMirroring={isMirroring}
-                isReversing={isReversing}
-                isContainerHovered={true}
-                onDeleteIngredient={onDeleteIngredient}
-                onPublishIngredient={onPublishIngredient}
-                onCopyPrompt={onCopyPrompt}
-                onReprompt={onReprompt}
-                onMarkArchived={onMarkArchived}
-                onSeeDetails={onSeeDetails}
-                onReverse={onReverse}
-                onMirror={onMirror}
-                onUpdateParent={onUpdateParent}
-                onRefresh={onRefresh}
-                onClickIngredient={onClickIngredient}
-                onScopeChange={onScopeChange}
-                onPortraitVideo={onConvertToPortrait}
-                onGenerateCaptions={onGenerateCaptions}
-              />
-            </div>
-          );
-        }
-
-        return (
-          <div key={ingredient.id} className="min-w-0">
-            <LazyMasonryImage
-              image={ingredient as IImage}
-              isSelected={isSelected}
-              isActionsEnabled={isActionsEnabled}
-              isDragEnabled={isDragEnabled}
-              isContainerHovered={true}
-              onDeleteIngredient={onDeleteIngredient}
-              onPublishIngredient={onPublishIngredient}
-              onCopyPrompt={onCopyPrompt}
-              onReprompt={onReprompt}
-              onMarkArchived={onMarkArchived}
-              onSeeDetails={onSeeDetails}
-              onUpdateParent={onUpdateParent}
-              onRefresh={onRefresh}
-              onClickIngredient={onClickIngredient}
-              onScopeChange={onScopeChange}
-              onConvertToVideo={onConvertToVideo}
-            />
+    <div className="flex flex-col gap-6">
+      {timeGroups.map((group) => (
+        <section key={group.label}>
+          <h3 className="sticky top-0 z-10 -mx-1 mb-2 bg-background/85 px-1 py-1.5 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40 backdrop-blur">
+            {group.label}
+          </h3>
+          <div className={gridClassName}>
+            {group.items.map(renderIngredient)}
           </div>
-        );
-      })}
+        </section>
+      ))}
     </div>
   );
 }
