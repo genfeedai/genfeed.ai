@@ -72,6 +72,23 @@ describe('useAgentStrategies', () => {
     expect(result.current.strategies).toEqual([]);
   });
 
+  it('stays idle while its scope is unresolved', async () => {
+    const { result } = renderHook(
+      () => useAgentStrategies({ brandId: '', enabled: false }),
+      { wrapper: createQueryWrapper() },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.strategies).toEqual([]);
+    expect(mockList).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(mockList).not.toHaveBeenCalled();
+  });
+
   it('refresh refetches the list', async () => {
     const { result } = renderHook(() => useAgentStrategies(), {
       wrapper: createQueryWrapper(),

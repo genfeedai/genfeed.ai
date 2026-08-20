@@ -191,7 +191,10 @@ function AgentCard({
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
   const { brandId, isReady: isBrandReady } = useBrand();
-  const { strategies, isLoading, refresh } = useAgentStrategies({ brandId });
+  const { strategies, isLoading, refresh } = useAgentStrategies({
+    brandId,
+    enabled: isBrandReady && Boolean(brandId),
+  });
   const notificationsService = NotificationsService.getInstance();
   const pathname = usePathname();
   const router = useRouter();

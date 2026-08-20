@@ -65,11 +65,14 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
 }
 
 export function useAgentStrategiesPage() {
-  const { brandId } = useBrand();
+  const { brandId, isReady: isBrandReady } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const { strategies, isLoading, refresh } = useAgentStrategies({ brandId });
+  const { strategies, isLoading, refresh } = useAgentStrategies({
+    brandId,
+    enabled: isBrandReady && Boolean(brandId),
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStrategy, setSelectedStrategy] =
