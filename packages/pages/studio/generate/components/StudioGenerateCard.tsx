@@ -7,6 +7,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 const AUDIO_TYPES = new Set(['music', 'voice']);
@@ -21,6 +22,7 @@ export default function StudioGenerateCard({
   job,
   onReprompt,
 }: StudioGenerateCardProps): ReactElement {
+  const translate = useTranslations('pages.studioGenerate');
   const { label } = getStudioGenerateTypeConfig(job.type);
   const isFailed = job.status === IngredientStatus.FAILED;
   const isPending =
@@ -33,7 +35,7 @@ export default function StudioGenerateCard({
         {isPending ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
-            <span className="text-xs">Generating…</span>
+            <span className="text-xs">{translate('generating')}</span>
           </div>
         ) : null}
 
