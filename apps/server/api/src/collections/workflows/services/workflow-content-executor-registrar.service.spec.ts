@@ -1,7 +1,11 @@
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import {
+  type INodeExecutor,
+  type NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHelper(): WorkflowEngineExecutorHelperService {
@@ -19,6 +23,16 @@ function createHelper(): WorkflowEngineExecutorHelperService {
       const value = config?.[key];
       return typeof value === 'string' ? value : undefined;
     },
+    wrapEngineExecutor:
+      (executor: INodeExecutor) =>
+      async (...args: Parameters<NodeExecutor>) =>
+        (
+          await executor.execute({
+            context: args[2],
+            inputs: args[1],
+            node: args[0],
+          })
+        ).data,
   } as unknown as WorkflowEngineExecutorHelperService;
 }
 

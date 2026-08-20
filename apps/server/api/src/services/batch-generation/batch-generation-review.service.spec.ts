@@ -378,17 +378,23 @@ describe('BatchGenerationReviewService assignment', () => {
   it('assigns a tenant-scoped active member without changing review decision', async () => {
     await service.assignItem('batch-1', 'item-1', 'user-1', 'org-1');
 
-    expect(member.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          isActive: true,
-          isDeleted: false,
-          organizationId: 'org-1',
-          userId: 'user-1',
-          user: { isDeleted: false },
-        }),
-      }),
-    );
+    expect(member.findFirst).toHaveBeenCalledWith({
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+            isDeleted: true,
+          },
+        },
+      },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    });
     expect(batch.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -477,11 +483,15 @@ describe('BatchGenerationReviewService assignment', () => {
   });
 
   it('rejects assignment when the user is soft-deleted', async () => {
-    member.findFirst.mockResolvedValue(null);
+    member.findFirst.mockResolvedValue({
+      id: 'member-1',
+      user: { id: 'user-deleted', isDeleted: true },
+    });
 
     await expect(
       service.assignItem('batch-1', 'item-1', 'user-deleted', 'org-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(batch.updateMany).not.toHaveBeenCalled();
   });
 
   it('fails closed when the item is missing from the tenant-scoped batch', async () => {

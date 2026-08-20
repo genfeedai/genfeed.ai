@@ -241,14 +241,13 @@ describe('BusinessAnalyticsService', () => {
           grouped.set(key, (grouped.get(key) ?? 0) + 1);
         }
         const result = Array.from(grouped.entries())
-          .map(([key, count]) =>
-            keyField === 'category'
-              ? { _count: { _all: count }, category: key }
-              : { _count: { _all: count }, organizationId: key },
-          )
+          .map(([key, count]) => ({
+            _count: { [keyField]: count },
+            [keyField]: key,
+          }))
           .sort(
             (left, right) =>
-              Number(right._count._all) - Number(left._count._all),
+              Number(right._count[keyField]) - Number(left._count[keyField]),
           );
         return Promise.resolve(
           typeof take === 'number' ? result.slice(0, take) : result,

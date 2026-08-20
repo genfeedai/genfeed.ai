@@ -175,6 +175,18 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'postingSet',
+    table: 'posting_sets',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'postingSignature',
+    table: 'posting_signatures',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'postAnalytics',
     table: 'post_analytics',
     brandField: 'brandId',
@@ -183,6 +195,20 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   {
     delegate: 'schedule',
     table: 'schedules',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  // Preserve parent-before-child order because reservations may reference a
+  // cadence while both composite tenant stamps are being rewritten.
+  {
+    delegate: 'postingCadence',
+    table: 'posting_cadences',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'slotReservation',
+    table: 'slot_reservations',
     brandField: 'brandId',
     orgField: 'organizationId',
   },
