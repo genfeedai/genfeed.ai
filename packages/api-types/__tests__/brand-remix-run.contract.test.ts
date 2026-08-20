@@ -31,6 +31,7 @@ describe('brand remix run contract', () => {
         name: 'Acme',
       },
       brandId: 'brand_1',
+      contract: 'brand-remix-run',
       createdAt: '2026-08-20T10:00:00.000Z',
       draft: {
         fidelityMode: 'guided',
@@ -83,8 +84,9 @@ describe('brand remix run contract', () => {
         sourceId: 'trend_ref_1',
         title: 'Unexpected product use reveal',
       },
-      status: 'PENDING',
+      status: 'pending',
       updatedAt: '2026-08-20T10:00:00.000Z',
+      version: 1,
     });
 
     expect(run.source.selector.kind).toBe('trend_reference');
@@ -94,6 +96,11 @@ describe('brand remix run contract', () => {
       source: 'explicit',
     });
     expect(JSON.stringify(run.draft.references)).not.toMatch(/https?:\/\//);
+    expect(run).toMatchObject({
+      contract: 'brand-remix-run',
+      status: 'pending',
+      version: 1,
+    });
   });
 
   test('accepts connected Meta and public-ad source selectors without copied creative', () => {
@@ -148,6 +155,65 @@ describe('brand remix run contract', () => {
           },
         },
         expectedRevision: 1,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      reviseBrandRemixRunSchema.safeParse({
+        edits: {
+          references: [
+            {
+              assetId: 'https://signed.example/reference?token=secret',
+              role: 'product',
+              source: 'explicit',
+            },
+          ],
+        },
+        expectedRevision: 1,
+      }).success,
+    ).toBe(false);
+  });
+
+  test('rejects an unversioned view or non-canonical run status', () => {
+    expect(
+      brandRemixRunViewSchema.safeParse({
+        brand: {
+          contextMode: 'brand',
+          id: 'brand_1',
+          name: 'Acme',
+        },
+        brandId: 'brand_1',
+        createdAt: '2026-08-20T10:00:00.000Z',
+        draft: {
+          fidelityMode: 'guided',
+          identity: {},
+          intent: { objective: 'Create an original visual.' },
+          output: { aspectRatio: '9:16', count: 3, kind: 'image' },
+          references: [],
+          reviewRequired: true,
+          target: { kind: 'organic', platform: 'tiktok' },
+        },
+        id: 'run_1',
+        phase: 'prefilled',
+        readiness: { issues: [], state: 'ready' },
+        recipeVersion: 1,
+        revision: 1,
+        source: {
+          capturedAt: '2026-08-20T09:55:00.000Z',
+          evidence: [],
+          metrics: {},
+          pattern: {},
+          platform: 'tiktok',
+          selector: {
+            kind: 'trend_reference',
+            sourceReferenceId: 'trend_ref_1',
+            trendId: 'trend_1',
+          },
+          sourceId: 'trend_ref_1',
+          title: 'Product reveal',
+        },
+        status: 'PENDING',
+        updatedAt: '2026-08-20T10:00:00.000Z',
       }).success,
     ).toBe(false);
   });

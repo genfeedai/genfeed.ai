@@ -6,6 +6,7 @@
  * credits, provider payloads, and downstream provenance.
  */
 
+import { ContentRunStatus } from '@genfeedai/enums';
 import { z } from 'zod';
 import {
   generationBriefReferenceSchema,
@@ -180,6 +181,7 @@ export const brandRemixOutputSchema = z.discriminatedUnion('kind', [
 
 export const brandRemixReferenceSchema = generationBriefReferenceSchema
   .extend({
+    assetId: opaqueIdSchema,
     source: z.enum(['brand_default', 'explicit']),
   })
   .strict();
@@ -309,6 +311,7 @@ export const brandRemixRunViewSchema = z
   .object({
     brand: brandRemixBrandContextSchema,
     brandId: opaqueIdSchema,
+    contract: z.literal(BRAND_REMIX_RUN_CONTRACT),
     createdAt: z.string().datetime(),
     draft: brandRemixDraftSchema,
     execution: brandRemixExecutionSchema.optional(),
@@ -320,8 +323,9 @@ export const brandRemixRunViewSchema = z
     review: brandRemixReviewSchema.optional(),
     revision: z.number().int().positive(),
     source: brandRemixSourceSnapshotSchema,
-    status: z.string().trim().min(1).max(64),
+    status: z.nativeEnum(ContentRunStatus),
     updatedAt: z.string().datetime(),
+    version: z.literal(BRAND_REMIX_RUN_VERSION),
   })
   .strict();
 

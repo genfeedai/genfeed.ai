@@ -4,6 +4,8 @@ export const contentRunAttributes = createEntityAttributes([
   'organizationId',
   'brandId',
   'brand',
+  'contract',
+  'version',
   'skillSlug',
   'status',
   'phase',
