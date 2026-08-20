@@ -6,12 +6,14 @@ import {
 import { CalendarSlotQueryDto } from '@api/collections/posting-cadences/dto/calendar-slot-query.dto';
 import { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
 import { PostingCadencesService } from '@api/collections/posting-cadences/services/posting-cadences.service';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/enums';
 import {
   CalendarSlotSerializer,
   PostingCadenceSerializer,
@@ -20,6 +22,12 @@ import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+const POSTING_CADENCE_MUTATION_SCOPES = [
+  ApiKeyScope.POSTS_DRAFT,
+  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.POSTS_SCHEDULE,
+] as const;
+
 @AutoSwagger()
 @ApiTags('PostingCadences')
 @Controller('posting-cadences')
@@ -27,6 +35,7 @@ export class PostingCadencesController {
   constructor(private readonly service: PostingCadencesService) {}
 
   @Post()
+  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
   async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -71,6 +80,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/book')
+  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
   async book(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -81,6 +91,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/generate')
+  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
   async generate(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -91,6 +102,7 @@ export class PostingCadencesController {
       user.id,
       dto.identityKey,
       dto.brief,
+      user,
     );
     return serializeSingle(request, CalendarSlotSerializer, {
       ...data.slot,
@@ -99,6 +111,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/write')
+  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
   async write(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -108,6 +121,7 @@ export class PostingCadencesController {
       user.organizationId,
       user.id,
       dto.identityKey,
+      user,
     );
     return serializeSingle(request, CalendarSlotSerializer, {
       ...data.slot,
