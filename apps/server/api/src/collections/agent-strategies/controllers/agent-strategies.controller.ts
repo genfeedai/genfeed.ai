@@ -82,6 +82,10 @@ export class AgentStrategiesController extends BaseCRUDController<
       match.agentType = query.agentType;
     }
 
+    if (query.brandId) {
+      match.brandId = query.brandId;
+    }
+
     return {
       orderBy: handleQuerySort(query.sort),
       where: match,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ICreateAgentCampaignDto } from '@genfeedai/interfaces';
@@ -22,8 +23,8 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { LayoutDashboard } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
 interface FormState {
@@ -53,7 +54,8 @@ export default function AgentCampaignNewPage() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { strategies } = useAgentStrategies();
+  const { brandId } = useBrand();
+  const { strategies } = useAgentStrategies({ brandId });
 
   const getService = useAuthedService((token: string) =>
     AgentCampaignsService.getInstance(token),

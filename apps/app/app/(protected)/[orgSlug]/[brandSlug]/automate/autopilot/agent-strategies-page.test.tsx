@@ -23,6 +23,10 @@ const mocks = vi.hoisted(() => ({
   useAgentStrategies: vi.fn(),
 }));
 
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: 'brand-one' }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     create: mocks.create,

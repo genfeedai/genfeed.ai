@@ -1,3 +1,4 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
@@ -64,10 +65,11 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
 }
 
 export function useAgentStrategiesPage() {
+  const { brandId } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const { strategies, isLoading, refresh } = useAgentStrategies();
+  const { strategies, isLoading, refresh } = useAgentStrategies({ brandId });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStrategy, setSelectedStrategy] =

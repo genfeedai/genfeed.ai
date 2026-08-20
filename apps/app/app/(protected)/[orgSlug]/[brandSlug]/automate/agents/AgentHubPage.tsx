@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
@@ -189,7 +190,8 @@ function AgentCard({
 
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
-  const { strategies, isLoading, refresh } = useAgentStrategies();
+  const { brandId } = useBrand();
+  const { strategies, isLoading, refresh } = useAgentStrategies({ brandId });
   const notificationsService = NotificationsService.getInstance();
   const router = useRouter();
   const { href } = useOrgUrl();

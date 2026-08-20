@@ -37,7 +37,12 @@ describe('useAgentStrategies', () => {
 
   it('lists strategies with filters', async () => {
     const { result } = renderHook(
-      () => useAgentStrategies({ agentType: 'content', isActive: true }),
+      () =>
+        useAgentStrategies({
+          agentType: 'content',
+          brandId: 'brand-1',
+          isActive: true,
+        }),
       { wrapper: createQueryWrapper() },
     );
 
@@ -47,6 +52,7 @@ describe('useAgentStrategies', () => {
 
     expect(mockList).toHaveBeenCalledWith({
       agentType: 'content',
+      brandId: 'brand-1',
       isActive: true,
     });
   });

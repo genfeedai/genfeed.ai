@@ -49,7 +49,7 @@ export function useContentTeamOrchestratorPage() {
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { brandId, brands } = useBrand();
-  const { strategies } = useAgentStrategies();
+  const { strategies } = useAgentStrategies({ brandId });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<OrchestratorFormState>({
     blueprintId: CONTENT_TEAM_BLUEPRINT_PRESETS[0]?.id ?? '',
