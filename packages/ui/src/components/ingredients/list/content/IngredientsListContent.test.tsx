@@ -3,7 +3,7 @@ import type { IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import type { ComponentProps } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="status-dropdown" />,
@@ -36,6 +36,22 @@ const baseIngredient = {
   status: 'GENERATED',
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
+
+/**
+ * The inspector reads the viewport through `matchMedia`, so a test picks its
+ * presentation by answering that query rather than by asserting on a class.
+ */
+function mockInspectorViewport(isDocked: boolean): void {
+  vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query: string) =>
+      ({
+        addEventListener: vi.fn(),
+        matches: isDocked,
+        media: query,
+        removeEventListener: vi.fn(),
+      }) as unknown as MediaQueryList,
+  );
+}
 
 function renderContent(
   overrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
@@ -105,5 +121,53 @@ describe('IngredientsListContent', () => {
       baseIngredient,
     );
     expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+});
+
+describe('IngredientsListContent inspector', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('docks the rail beside the grid on a wide viewport', () => {
+    mockInspectorViewport(true);
+
+    renderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(screen.getByLabelText('Asset details')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('presents the same rail as a sheet on a narrow viewport', () => {
+    mockInspectorViewport(false);
+
+    renderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    const dialog = screen.getByRole('dialog');
+
+    expect(within(dialog).getByLabelText('Asset details')).toBeInTheDocument();
+    expect(within(dialog).getByText('Avatar Source')).toBeInTheDocument();
+  });
+
+  it('drops the selection when the sheet is dismissed', () => {
+    mockInspectorViewport(false);
+
+    const onSelectionChange = vi.fn();
+    renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+    expect(onSelectionChange).toHaveBeenCalledWith([]);
+  });
+
+  it('shows no inspector for a multi-selection', () => {
+    mockInspectorViewport(true);
+
+    renderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
+
+    expect(screen.queryByLabelText('Asset details')).not.toBeInTheDocument();
   });
 });

@@ -19,11 +19,16 @@ import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
+import {
+  getIsInspectorDocked,
+  subscribeInspectorDocked,
+} from '@ui/ingredients/inspector/inspector-viewport.util';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
+import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
 import { Eye } from 'lucide-react';
 import Image from 'next/image';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 export default function IngredientsListContent({
   type,
@@ -280,6 +285,28 @@ export default function IngredientsListContent({
     );
   }, [filteredIngredients, selectedIngredientIds]);
 
+  /**
+   * Dock the inspector beside the grid where there is room for both, and show
+   * the same rail as a sheet where there is not. A docked rail that is merely
+   * hidden below `lg` leaves a narrow viewport with no way to read the asset it
+   * just selected.
+   */
+  const isInspectorDocked = useSyncExternalStore(
+    subscribeInspectorDocked,
+    getIsInspectorDocked,
+    () => false,
+  );
+
+  /** Closing the inspector is the same gesture as dropping the selection. */
+  const handleInspectorOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) {
+        onSelectionChange([]);
+      }
+    },
+    [onSelectionChange],
+  );
+
   return (
     <div className="flex min-w-0 flex-1 overflow-hidden">
       <div
@@ -305,11 +332,23 @@ export default function IngredientsListContent({
         )}
       </div>
 
-      {inspectedIngredient ? (
-        <IngredientInspectorRail
-          className="hidden lg:flex"
-          ingredient={inspectedIngredient}
-        />
+      {inspectedIngredient && isInspectorDocked ? (
+        <IngredientInspectorRail ingredient={inspectedIngredient} />
+      ) : null}
+
+      {inspectedIngredient && !isInspectorDocked ? (
+        <ContextInspector
+          isOpen
+          onOpenChange={handleInspectorOpenChange}
+          title={inspectedIngredient.metadataLabel || 'Untitled asset'}
+          width="md"
+        >
+          <IngredientInspectorRail
+            className="w-full border-l-0 px-5 py-5"
+            hasHeading={false}
+            ingredient={inspectedIngredient}
+          />
+        </ContextInspector>
       ) : null}
     </div>
   );

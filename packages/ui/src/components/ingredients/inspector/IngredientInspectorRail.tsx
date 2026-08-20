@@ -74,6 +74,7 @@ function InspectorField({
  */
 export default function IngredientInspectorRail({
   className,
+  hasHeading = true,
   ingredient,
 }: IngredientInspectorRailProps) {
   const shelf = getIngredientShelf(ingredient);
@@ -97,26 +98,30 @@ export default function IngredientInspectorRail({
             alt={ingredient.metadataLabel || 'Asset preview'}
             className="object-cover"
             fill
-            sizes="288px"
+            sizes="(min-width: 1024px) 288px, 90vw"
             src={previewUrl}
           />
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-2">
-        <h3 className="truncate text-sm font-semibold text-foreground">
-          {ingredient.metadataLabel || 'Untitled asset'}
-        </h3>
-        {shelf ? (
-          <Badge
-            className="w-fit"
-            size={ComponentSize.SM}
-            variant={SHELF_VARIANTS[shelf]}
-          >
-            {LIBRARY_SHELF_LABELS[shelf]}
-          </Badge>
-        ) : null}
-      </div>
+      {hasHeading || shelf ? (
+        <div className="flex flex-col gap-2">
+          {hasHeading ? (
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {ingredient.metadataLabel || 'Untitled asset'}
+            </h3>
+          ) : null}
+          {shelf ? (
+            <Badge
+              className="w-fit"
+              size={ComponentSize.SM}
+              variant={SHELF_VARIANTS[shelf]}
+            >
+              {LIBRARY_SHELF_LABELS[shelf]}
+            </Badge>
+          ) : null}
+        </div>
+      ) : null}
 
       <dl className="flex flex-col divide-y divide-foreground/6">
         <InspectorField label="Type" value={ingredient.category} />
