@@ -191,6 +191,25 @@ describe('useStudioGeneration socket tracking', () => {
     expect(result.current.jobs[0]?.status).toBe(IngredientStatus.PROCESSING);
   });
 
+  it('keeps the requested aspect ratio while a generated asset is pending', async () => {
+    const { result } = renderStudioGeneration({
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        aspectRatio: '4:5',
+      },
+    });
+
+    await act(async () => {
+      await result.current.submit('A founder at a desk');
+    });
+
+    expect(result.current.jobs[0]).toMatchObject({
+      height: 1024,
+      ingredientId: 'img-1',
+      width: 816,
+    });
+  });
+
   it('resolves the finished asset and marks the card generated', async () => {
     const ingredient = {
       cdnUrl: 'https://a/i.png',
@@ -356,9 +375,31 @@ describe('useStudioGeneration failures', () => {
     expect(result.current.jobs).toHaveLength(1);
     expect(result.current.jobs[0]).toMatchObject({
       error: 'Insufficient credits',
+      height: 1024,
       prompt: 'A founder at a desk',
       status: IngredientStatus.FAILED,
       type: 'image',
+      width: 1024,
+    });
+    expect(result.current.jobs[0]).not.toHaveProperty('ingredientId');
+  });
+
+  it('keeps a failed submission in the requested non-square ratio', async () => {
+    mockImagesPost.mockRejectedValue(new Error('Provider unavailable'));
+    const { result } = renderStudioGeneration({
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        aspectRatio: '4:5',
+      },
+    });
+
+    await act(async () => {
+      await result.current.submit('A founder at a desk');
+    });
+
+    expect(result.current.jobs[0]).toMatchObject({
+      height: 1024,
+      width: 816,
     });
   });
 
@@ -405,6 +446,7 @@ describe('useStudioGeneration inline voice', () => {
     expect(mockSubscribe).not.toHaveBeenCalled();
     expect(result.current.jobs[0]).toMatchObject({
       id: 'voi-1',
+      ingredientId: 'voi-1',
       ingredient: { id: 'voi-1', url: 'https://a/v.mp3' },
       status: IngredientStatus.GENERATED,
       url: 'https://a/v.mp3',

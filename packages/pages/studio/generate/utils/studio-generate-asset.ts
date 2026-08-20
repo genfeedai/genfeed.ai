@@ -101,6 +101,7 @@ export function toStudioGenerateJob(
     height: dimensions.height,
     id: String(ingredient.id),
     ingredient,
+    ingredientId: String(ingredient.id),
     modelKey:
       (typeof ingredient.metadata === 'object'
         ? ingredient.metadata?.model

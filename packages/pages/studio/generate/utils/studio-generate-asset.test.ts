@@ -117,6 +117,7 @@ describe('toStudioGenerateJob', () => {
       height: 1350,
       id: 'ing-1',
       ingredient,
+      ingredientId: 'ing-1',
       modelKey: 'flux-schnell',
       prompt: 'a red sofa',
       status: IngredientStatus.GENERATED,

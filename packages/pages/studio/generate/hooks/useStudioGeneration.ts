@@ -177,18 +177,26 @@ export function useStudioGeneration({
   const trackPendingIds = useCallback(
     (
       pendingIds: string[],
-      context: { modelKey: string; promptText: string },
+      context: {
+        height?: number;
+        modelKey: string;
+        promptText: string;
+        width?: number;
+      },
     ) => {
       const config = getStudioGenerateTypeConfig(type);
 
       setJobs((previous) => [
         ...pendingIds.map((id) => ({
           createdAt: Date.now(),
+          height: context.height,
           id,
+          ingredientId: id,
           modelKey: context.modelKey || undefined,
           prompt: context.promptText,
           status: IngredientStatus.PROCESSING,
           type,
+          width: context.width,
         })),
         ...previous,
       ]);
@@ -226,11 +234,12 @@ export function useStudioGeneration({
               const dimensions = resolveStudioAssetDimensions(ingredient);
 
               patchJob(pendingId, {
-                height: dimensions.height,
+                ...(dimensions.height ? { height: dimensions.height } : {}),
                 ingredient: ingredient ?? undefined,
+                ingredientId: String(ingredient?.id ?? resolvedId),
                 status: IngredientStatus.GENERATED,
                 url: resolveStudioAssetUrl(ingredient),
-                width: dimensions.width,
+                ...(dimensions.width ? { width: dimensions.width } : {}),
               });
               onGeneratedRef.current?.();
             } catch (error) {
@@ -302,6 +311,9 @@ export function useStudioGeneration({
         models,
         config.capabilities.hasModelSelection,
       );
+      const jobDimensions = config.capabilities.hasAspectRatio
+        ? { height: promptData.height, width: promptData.width }
+        : {};
 
       setIsGenerating(true);
 
@@ -317,7 +329,11 @@ export function useStudioGeneration({
               ...payload,
               blacklist: settings.blacklist,
             } as unknown as Partial<IImage>)) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            trackPendingIds(resolvePendingIds(data), {
+              ...jobDimensions,
+              modelKey,
+              promptText,
+            });
             break;
           }
 
@@ -331,7 +347,11 @@ export function useStudioGeneration({
               ...payload,
               blacklist: settings.blacklist,
             } as unknown as Partial<IVideo>)) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            trackPendingIds(resolvePendingIds(data), {
+              ...jobDimensions,
+              modelKey,
+              promptText,
+            });
             break;
           }
 
@@ -345,7 +365,10 @@ export function useStudioGeneration({
             const data = (await service.post(
               payload as Parameters<MusicsService['post']>[0],
             )) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            trackPendingIds(resolvePendingIds(data), {
+              modelKey,
+              promptText,
+            });
             break;
           }
 
@@ -390,6 +413,7 @@ export function useStudioGeneration({
                 createdAt: Date.now(),
                 id: String(voice.id),
                 ingredient: voice,
+                ingredientId: String(voice.id),
                 modelKey: modelKey || undefined,
                 prompt: promptText,
                 status: IngredientStatus.GENERATED,
@@ -418,6 +442,7 @@ export function useStudioGeneration({
           {
             createdAt: Date.now(),
             error: message,
+            ...jobDimensions,
             id: `failed-${crypto.randomUUID()}`,
             modelKey: modelKey || undefined,
             prompt: promptText,

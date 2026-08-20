@@ -54,13 +54,15 @@ function buildMasonryIngredient(
       ? job.ingredient.metadata
       : undefined;
   const metadata =
-    job.width && job.height
-      ? ({
-          ...sourceMetadata,
-          height: job.height,
-          width: job.width,
-        } as IMetadata)
-      : sourceMetadata;
+    sourceMetadata?.width && sourceMetadata?.height
+      ? sourceMetadata
+      : job.width && job.height
+        ? ({
+            ...sourceMetadata,
+            height: job.height,
+            width: job.width,
+          } as IMetadata)
+        : sourceMetadata;
   const persistedIngredient = Object.fromEntries(
     Object.entries(job.ingredient).filter(
       ([key]) => !MODEL_GETTER_FIELDS.has(key),
