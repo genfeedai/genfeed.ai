@@ -100,7 +100,7 @@ export class TrendAnalysisService {
     };
     const docs = organizationId
       ? await findHistoricalTrends()
-      : await crossOrgUnsafe(findHistoricalTrends);
+      : await crossOrgUnsafe(async () => await findHistoricalTrends());
     return docs.map(
       (doc) =>
         new TrendEntity({

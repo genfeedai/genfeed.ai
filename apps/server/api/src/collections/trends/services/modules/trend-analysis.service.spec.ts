@@ -13,9 +13,19 @@ import { Test, TestingModule } from '@nestjs/testing';
 function createMockPrisma() {
   return {
     trend: {
-      findMany: vi.fn().mockResolvedValue([]),
+      findMany: vi
+        .fn<(args: unknown) => PromiseLike<unknown[]>>()
+        .mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+  };
+}
+
+function createLazyResult<T>(execute: () => T): PromiseLike<T> {
+  return {
+    // biome-ignore lint/suspicious/noThenProperty: PrismaPromise executes lazily through its then method.
+    then: (onfulfilled, onrejected) =>
+      Promise.resolve().then(execute).then(onfulfilled, onrejected),
   };
 }
 
@@ -263,17 +273,19 @@ describe('TrendAnalysisService', () => {
 
     it('opens the reviewed hatch for a global corpus read under tenant context', async () => {
       let hatchWasOpen = false;
-      prisma.trend.findMany.mockImplementation(async (args) => {
-        hatchWasOpen = isCrossOrgUnsafe();
-        assertTenantScopedQuery({
-          args,
-          isCloud: true,
-          model: 'Trend',
-          operation: 'findMany',
-          tenantModelNames: new Set(['Trend']),
-        });
-        return [];
-      });
+      prisma.trend.findMany.mockImplementation((args) =>
+        createLazyResult(() => {
+          hatchWasOpen = isCrossOrgUnsafe();
+          assertTenantScopedQuery({
+            args,
+            isCloud: true,
+            model: 'Trend',
+            operation: 'findMany',
+            tenantModelNames: new Set(['Trend']),
+          });
+          return [];
+        }),
+      );
 
       await expect(
         runWithTenantContext({ organizationId: mockOrgId }, () =>
@@ -285,17 +297,19 @@ describe('TrendAnalysisService', () => {
 
     it('keeps an explicitly tenant-scoped corpus read inside the runtime guard', async () => {
       let hatchWasOpen = false;
-      prisma.trend.findMany.mockImplementation(async (args) => {
-        hatchWasOpen = isCrossOrgUnsafe();
-        assertTenantScopedQuery({
-          args,
-          isCloud: true,
-          model: 'Trend',
-          operation: 'findMany',
-          tenantModelNames: new Set(['Trend']),
-        });
-        return [];
-      });
+      prisma.trend.findMany.mockImplementation((args) =>
+        createLazyResult(() => {
+          hatchWasOpen = isCrossOrgUnsafe();
+          assertTenantScopedQuery({
+            args,
+            isCloud: true,
+            model: 'Trend',
+            operation: 'findMany',
+            tenantModelNames: new Set(['Trend']),
+          });
+          return [];
+        }),
+      );
 
       await expect(
         runWithTenantContext({ organizationId: mockOrgId }, () =>

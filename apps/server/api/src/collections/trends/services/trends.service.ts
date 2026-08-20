@@ -130,7 +130,7 @@ export class TrendsService {
         trends,
         {
           force: true,
-          writeScope: { organizationId: organizationId ?? null },
+          writeScope: { organizationId: organizationId?.trim() || null },
         },
       );
     await this.trendReferenceCorpusService.syncTrendReferences(
