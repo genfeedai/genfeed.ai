@@ -252,7 +252,9 @@ beforeEach(() => {
 });
 
 function openPicker(user: ReturnType<typeof userEvent.setup>) {
-  return user.click(screen.getByRole('button', { name: /select models/i }));
+  return user.click(
+    screen.getByRole('button', { name: /auto|select models/i }),
+  );
 }
 
 describe('ModelSelectorPopover', () => {

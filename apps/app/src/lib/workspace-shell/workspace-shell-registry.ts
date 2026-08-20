@@ -1284,7 +1284,7 @@ function hasRequiredPathScope(
 
   switch (scope) {
     case 'brand':
-      return !hasReservedPrefix && segments.length >= 3 && segments[1] !== '~';
+      return !hasReservedPrefix && segments.length >= 2 && segments[1] !== '~';
     case 'organization':
       return (
         !hasReservedPrefix && (segments.length === 1 || segments[1] === '~')

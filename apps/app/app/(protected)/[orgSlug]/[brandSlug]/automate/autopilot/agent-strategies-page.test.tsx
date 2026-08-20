@@ -404,7 +404,9 @@ describe('AgentStrategiesPage', () => {
     expect(screen.getAllByText('Disabled').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getAllByText('Daily X Growth')[0]);
-    expect(mocks.push).toHaveBeenCalledWith('/automate/strategy-1');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/org/acme/brand/demo/automate/agents/strategy-1',
+    );
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Run now' })[0]);
     await waitFor(() => {

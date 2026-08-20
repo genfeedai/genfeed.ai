@@ -202,9 +202,11 @@ function overlayTypedAssignee(row: BatchItemTypedRow): unknown {
     row.data && typeof row.data === 'object' && !Array.isArray(row.data)
       ? (row.data as Record<string, unknown>)
       : {};
+  const safeData = { ...data };
+  delete safeData.assignee;
 
   return {
-    ...data,
+    ...safeData,
     assigneeId: row.assigneeId ?? data.assigneeId ?? null,
   };
 }

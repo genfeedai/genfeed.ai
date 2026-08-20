@@ -131,7 +131,11 @@ function HookedCheckboxInner<T extends FieldValues = FieldValues>({
   );
 }
 
-function Checkbox({ ref, control, ...props }: CheckboxProps) {
+function Checkbox<T extends FieldValues = FieldValues>({
+  ref,
+  control,
+  ...props
+}: CheckboxProps<T>) {
   if (control && props.name) {
     return (
       <HookedCheckboxInner {...props} control={control} externalRef={ref} />

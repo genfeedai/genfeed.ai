@@ -24,6 +24,21 @@ const RANGE = {
   startDate: '2026-08-20T00:00:00.000Z',
 };
 
+type ReservationRow = {
+  brandId: string;
+  cadenceId: string;
+  credentialId: string;
+  format: PostCategory;
+  generatedItemId: string | null;
+  generatedItemType: CalendarSlotItemType | null;
+  id: string;
+  identityKey: string;
+  instant: Date;
+  lastFailureReason: string | null;
+  state: CalendarSlotState;
+  timezone: string;
+};
+
 function cadenceRow(
   overrides: Partial<ReturnType<typeof baseCadenceRow>> = {},
 ) {
@@ -56,12 +71,12 @@ function baseCadenceRow() {
 }
 
 function reservationRow(
-  overrides: Partial<ReturnType<typeof baseReservationRow>> = {},
-) {
+  overrides: Partial<ReservationRow> = {},
+): ReservationRow {
   return { ...baseReservationRow(), ...overrides };
 }
 
-function baseReservationRow() {
+function baseReservationRow(): ReservationRow {
   return {
     brandId: BRAND_ID,
     cadenceId: CADENCE_ID,
@@ -73,7 +88,7 @@ function baseReservationRow() {
     identityKey: IDENTITY_KEY,
     instant: new Date(INSTANT),
     lastFailureReason: null,
-    state: 'generating',
+    state: CalendarSlotState.GENERATING,
     timezone: 'UTC',
   };
 }
@@ -86,7 +101,7 @@ function missingReservation() {
   return reservationRow({ state: CalendarSlotState.MISSING });
 }
 
-type ReservationTestRow = ReturnType<typeof baseReservationRow> & {
+type ReservationTestRow = ReservationRow & {
   isDeleted: boolean;
   organizationId: string;
 };

@@ -133,7 +133,7 @@ describe('YoutubeUploadService', () => {
     expect(authService.refreshToken).toHaveBeenCalledWith(orgId, brandId);
     expect(fileQueueService.processFile).toHaveBeenCalled();
     expect(fileQueueService.waitForJob).toHaveBeenCalledWith('job-123', 30_000);
-    expect(mockVideosInsert).toHaveBeenCalledWith(
+    expect(mockVideosInsert.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         auth: mockAuth,
         part: ['snippet', 'status'],

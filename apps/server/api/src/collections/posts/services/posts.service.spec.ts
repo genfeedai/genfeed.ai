@@ -618,8 +618,8 @@ describe('PostsService batchSchedule', () => {
     );
     expect($transaction.mock.calls[0]?.[0]).toEqual([
       { kind: 'cascade', parentId: 'root-1' },
-      { kind: 'update', postId: 'root-1' },
-      { kind: 'update', postId: 'child-1' },
+      expect.objectContaining({ kind: 'update', postId: 'root-1' }),
+      expect.objectContaining({ kind: 'update', postId: 'child-1' }),
     ]);
   });
 

@@ -170,6 +170,7 @@ describe('WorkflowWebhookService', () => {
       prisma.workflow.findFirst.mockResolvedValue({
         config: { webhookId: 'wh_1' },
         id: 'workflow-1',
+        organizationId: 'org-1',
       });
       prisma.workflow.update.mockResolvedValue({});
     });
@@ -200,7 +201,11 @@ describe('WorkflowWebhookService', () => {
             webhookTriggerCount: 3,
           }),
         },
-        where: { id: 'workflow-1' },
+        where: {
+          id: 'workflow-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
       expect(workflowStepRunner.executeWorkflow).not.toHaveBeenCalled();
     });

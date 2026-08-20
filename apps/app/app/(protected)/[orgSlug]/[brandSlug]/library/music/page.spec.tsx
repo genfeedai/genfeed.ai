@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import LibraryMusicRoute, * as PageModule from './page';
 
-vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
+vi.mock('@pages/library/browser/library-browser', () => ({
   default: ({ children }: { children: ReactNode }) => (
-    <div data-testid="ingredients-layout">{children}</div>
+    <div data-testid="library-browser">{children}</div>
   ),
 }));
 
@@ -19,7 +19,7 @@ describe('LibraryMusicRoute', () => {
   it('renders the shared music library content', () => {
     render(<LibraryMusicRoute />);
 
-    expect(screen.getByTestId('ingredients-layout')).toBeInTheDocument();
+    expect(screen.getByTestId('library-browser')).toBeInTheDocument();
     expect(screen.getByTestId('ingredients-list')).toBeInTheDocument();
   });
 });

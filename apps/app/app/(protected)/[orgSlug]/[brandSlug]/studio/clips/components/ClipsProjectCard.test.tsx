@@ -46,7 +46,9 @@ describe('ClipsProjectCard', () => {
       'href',
       '/demo/koro/studio/clips/project-1',
     );
-    expect(screen.getByText('Podcast ep 12')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Podcast ep 12' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/8 clips/)).toBeInTheDocument();
     expect(screen.getByTestId('project-thumb')).toHaveAttribute(
       'data-src',

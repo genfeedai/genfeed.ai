@@ -79,14 +79,18 @@ describe('FrameSequenceSelector', () => {
     expect(screen.getByText('Frame 1')).toBeInTheDocument();
     expect(screen.getByText('Frame 2')).toBeInTheDocument();
     expect(screen.getByText('Frame 3')).toBeInTheDocument();
-    expect(screen.getByText(/3 frames selected/)).toBeInTheDocument();
+    expect(screen.getByText(/frames selected/)).toHaveTextContent(
+      '3 frames selected.',
+    );
   });
 
   it('shows singular frame copy for one frame', () => {
     render(
       <FrameSequenceSelector {...defaultProps} frames={[mockFrames[0]]} />,
     );
-    expect(screen.getByText(/1 frame selected/)).toBeInTheDocument();
+    expect(screen.getByText(/frame selected/)).toHaveTextContent(
+      '1 frame selected.',
+    );
   });
 
   it('hides sequence info when empty', () => {
