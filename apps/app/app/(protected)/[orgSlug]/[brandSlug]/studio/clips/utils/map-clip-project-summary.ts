@@ -17,15 +17,15 @@ function readNumber(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-export function mapClipProjectSummary(item: {
-  attributes?: unknown;
-  id: string;
-}): ClipProjectSummary {
-  const attrs = isRecord(item.attributes)
+export function mapClipProjectSummary(
+  item: {
+    attributes?: unknown;
+    id: string;
+  } & Record<string, unknown>,
+): ClipProjectSummary {
+  const attrs: Record<string, unknown> = isRecord(item.attributes)
     ? item.attributes
-    : isRecord(item)
-      ? item
-      : {};
+    : item;
   const settings = isRecord(attrs.settings) ? attrs.settings : undefined;
   const sourceVideoUrl = readString(attrs.sourceVideoUrl);
 
