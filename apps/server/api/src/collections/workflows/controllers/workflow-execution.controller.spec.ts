@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
@@ -38,7 +39,12 @@ describe('WorkflowExecutionController', () => {
   };
 
   const mockWorkflowExecutorService = {
+    executeManualWorkflow: vi.fn(),
     submitReviewGateApproval: vi.fn(),
+  };
+
+  const mockWorkflowExecutionsService = {
+    findOne: vi.fn(),
   };
 
   const mockWorkflowExecutionAuthorizationService = {
@@ -68,6 +74,10 @@ describe('WorkflowExecutionController', () => {
         {
           provide: WorkflowExecutorService,
           useValue: mockWorkflowExecutorService,
+        },
+        {
+          provide: WorkflowExecutionsService,
+          useValue: mockWorkflowExecutionsService,
         },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
@@ -154,6 +164,70 @@ describe('WorkflowExecutionController', () => {
       expect(mockWorkflowsService.lockNodes).not.toHaveBeenCalled();
       expect(mockWorkflowsService.unlockNodes).not.toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('execute', () => {
+    it('runs a full 1-node prompt through executeManualWorkflow', async () => {
+      mockWorkflowExecutorService.executeManualWorkflow.mockResolvedValue({
+        executionId: 'exec-prompt',
+        nodeResults: [{ nodeId: 'PyHRz6uB' }],
+        status: 'completed',
+      });
+      mockWorkflowExecutionsService.findOne.mockResolvedValue({
+        id: 'exec-prompt',
+        nodeResults: [{ nodeId: 'PyHRz6uB' }],
+      });
+
+      const result = await controller.execute(
+        mockRequest,
+        workflowId,
+        { debugMode: false },
+        mockUser,
+      );
+
+      expect(
+        mockWorkflowExecutorService.executeManualWorkflow,
+      ).toHaveBeenCalledWith(
+        workflowId,
+        mockUser.userId,
+        mockUser.organizationId,
+        {},
+        { debugMode: false },
+        undefined,
+        undefined,
+      );
+      expect(mockWorkflowRunControlService.executePartial).not.toHaveBeenCalled();
+      expect(mockWorkflowExecutionsService.findOne).toHaveBeenCalledWith({
+        id: 'exec-prompt',
+        organizationId: mockUser.organizationId,
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('maps selectedNodeIds onto the existing partial-execute path', async () => {
+      mockWorkflowRunControlService.executePartial.mockResolvedValue({
+        id: 'exec-partial',
+      });
+
+      await controller.execute(
+        mockRequest,
+        workflowId,
+        { debugMode: true, selectedNodeIds: ['PyHRz6uB'] },
+        mockUser,
+      );
+
+      expect(
+        mockWorkflowRunControlService.executePartial,
+      ).toHaveBeenCalledWith(
+        workflowId,
+        ['PyHRz6uB'],
+        mockUser.userId,
+        mockUser.organizationId,
+      );
+      expect(
+        mockWorkflowExecutorService.executeManualWorkflow,
+      ).not.toHaveBeenCalled();
     });
   });
 
