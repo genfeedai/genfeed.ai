@@ -2,7 +2,10 @@ vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
   );
-  return canonicalPrismaMock();
+  return {
+    ...canonicalPrismaMock(),
+    toPrismaJson: (value: unknown) => value,
+  };
 });
 
 import { PostingSetsService } from '@api/collections/posting-sets/services/posting-sets.service';
