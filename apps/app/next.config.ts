@@ -153,59 +153,6 @@ function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
 }
 
 /**
- * Standalone Studio one-off tabs are retired: prompt-bar surfaces hard-cut to
- * the Agent, and their asset detail routes hard-cut to Library. Covers the
- * canonical segments plus the plural aliases the old route accepted.
- */
-const RETIRED_STUDIO_TAB_SEGMENTS = [
-  'avatar',
-  'avatars',
-  'image',
-  'images',
-  'music',
-  'video',
-  'videos',
-] as const;
-
-function retiredStudioTabRedirects() {
-  return RETIRED_STUDIO_TAB_SEGMENTS.flatMap((segment) => {
-    const tabPath = `${APP_ROUTES.STUDIO.ROOT}/${segment}` as const;
-    const detailPath = `${tabPath}/:assetId` as const;
-
-    return [
-      {
-        destination: APP_ROUTES.LIBRARY.ROOT,
-        permanent: true,
-        source: detailPath,
-      },
-      {
-        destination: createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          APP_ROUTES.LIBRARY.ROOT,
-        ),
-        permanent: true,
-        source: createBrandAppRoute(':orgSlug', ':brandSlug', detailPath),
-      },
-      {
-        destination: APP_ROUTES.AGENT.NEW,
-        permanent: true,
-        source: tabPath,
-      },
-      {
-        destination: createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          APP_ROUTES.AGENT.NEW,
-        ),
-        permanent: true,
-        source: createBrandAppRoute(':orgSlug', ':brandSlug', tabPath),
-      },
-    ];
-  });
-}
-
-/**
  * Newsletter writing is Agent-first. Keep the old Publish list/generator URL
  * as a permanent compatibility edge; its legacy `?id=` shape resolves directly
  * to the focused newsletter editor instead of losing the selected artifact.
@@ -399,33 +346,6 @@ const config = createAppNextConfig({
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/library/assets'),
     },
-    // One-off Studio audio retired; voices live under Library.
-    {
-      destination: APP_ROUTES.LIBRARY.VOICES,
-      permanent: true,
-      source: APP_ROUTES.STUDIO.AUDIO,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.VOICES,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.STUDIO.AUDIO,
-      ),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.LIBRARY.VOICES,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.STUDIO.AUDIO),
-    },
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
       destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
@@ -537,7 +457,7 @@ const config = createAppNextConfig({
       source: APP_ROUTES.SETTINGS.PERSONAL,
     },
     {
-      destination: APP_ROUTES.STUDIO.STORYBOARD,
+      destination: APP_ROUTES.STUDIO.GENERATE,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     },
@@ -546,7 +466,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.STUDIO.STORYBOARD,
+        APP_ROUTES.STUDIO.GENERATE,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -555,7 +475,6 @@ const config = createAppNextConfig({
         APP_ROUTES.STUDIO.ROOT,
       ),
     },
-    ...retiredStudioTabRedirects(),
     ...legacyNewsletterRedirects(),
     // Complete-path homes: bare `/[app]` → `/[app]/overview` (Workspace,
     // Analytics, Automate, Library, Publish). Discover/Studio already redirect

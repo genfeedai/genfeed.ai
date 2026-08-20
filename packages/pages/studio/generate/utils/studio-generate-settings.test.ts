@@ -1,0 +1,318 @@
+import {
+  ContentTemplateKey,
+  IngredientFormat,
+  RouterPriority,
+} from '@genfeedai/enums';
+import { describe, expect, it } from 'vitest';
+import { buildBaseGenerationPayload } from './generation-payloads';
+import {
+  buildStudioPromptData,
+  describeStudioGenerateSettings,
+  getDefaultStudioGenerateSettings,
+  getStudioAspectRatios,
+  getStudioDurations,
+  getStudioResolutions,
+  resolveAspectDimensions,
+  resolveIngredientFormat,
+  STUDIO_ASPECT_RATIOS,
+} from './studio-generate-settings';
+
+describe('resolveAspectDimensions', () => {
+  it('keeps the long edge and derives the short edge', () => {
+    expect(resolveAspectDimensions('16:9', 1024)).toEqual({
+      height: 576,
+      width: 1024,
+    });
+    expect(resolveAspectDimensions('9:16', 1024)).toEqual({
+      height: 1024,
+      width: 576,
+    });
+    expect(resolveAspectDimensions('1:1', 1024)).toEqual({
+      height: 1024,
+      width: 1024,
+    });
+  });
+
+  it('snaps derived edges to a multiple of 8', () => {
+    const { height, width } = resolveAspectDimensions('4:5', 1024);
+
+    expect(height).toBe(1024);
+    expect(width % 8).toBe(0);
+  });
+
+  it('falls back to a square for an unparseable ratio', () => {
+    expect(resolveAspectDimensions('nonsense', 1024)).toEqual({
+      height: 1024,
+      width: 1024,
+    });
+  });
+});
+
+describe('resolveIngredientFormat', () => {
+  it('classifies orientation from the ratio', () => {
+    expect(resolveIngredientFormat('16:9')).toBe(IngredientFormat.LANDSCAPE);
+    expect(resolveIngredientFormat('9:16')).toBe(IngredientFormat.PORTRAIT);
+    expect(resolveIngredientFormat('1:1')).toBe(IngredientFormat.SQUARE);
+  });
+});
+
+describe('getDefaultStudioGenerateSettings', () => {
+  it('turns brand enrichment on by default for every type', () => {
+    for (const type of [
+      'image',
+      'video',
+      'music',
+      'avatar',
+      'voice',
+    ] as const) {
+      expect(getDefaultStudioGenerateSettings(type).brandingMode).toBe('brand');
+    }
+  });
+
+  it('gives image a square 1K default with a single output', () => {
+    const settings = getDefaultStudioGenerateSettings('image');
+
+    expect(settings).toMatchObject({
+      aspectRatio: '1:1',
+      outputs: 1,
+      prioritize: RouterPriority.BALANCED,
+      resolution: '1K',
+    });
+    expect(settings.duration).toBeUndefined();
+  });
+
+  it('gives video a widescreen default with a duration', () => {
+    const settings = getDefaultStudioGenerateSettings('video');
+
+    expect(settings.aspectRatio).toBe('16:9');
+    expect(settings.resolution).toBe('720p');
+    expect(settings.duration).toBe(5);
+  });
+
+  it('gives music a duration and no aspect-driven look', () => {
+    expect(getDefaultStudioGenerateSettings('music').duration).toBe(10);
+  });
+});
+
+describe('option lists', () => {
+  it('offers the full aspect ladder to image and video only', () => {
+    expect(getStudioAspectRatios('image')).toEqual(STUDIO_ASPECT_RATIOS);
+    expect(getStudioAspectRatios('video')).toEqual(STUDIO_ASPECT_RATIOS);
+    expect(getStudioAspectRatios('music')).toEqual([]);
+  });
+
+  it('offers pixel tiers to image and named tiers to video', () => {
+    expect(getStudioResolutions('image')).toContain('2K');
+    expect(getStudioResolutions('video')).toContain('1080p');
+    expect(getStudioResolutions('voice')).toEqual([]);
+  });
+
+  it('offers durations only where the provider bills by length', () => {
+    expect(getStudioDurations('video').length).toBeGreaterThan(0);
+    expect(getStudioDurations('music').length).toBeGreaterThan(0);
+    expect(getStudioDurations('image')).toEqual([]);
+  });
+});
+
+describe('buildStudioPromptData', () => {
+  it('carries every Look field into the prompt schema', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('image'),
+      blacklist: ['watermark'],
+      camera: 'macro',
+      lighting: 'golden hour',
+      modelKey: 'flux-dev',
+      mood: 'serene',
+      scene: 'rooftop',
+      style: 'cinematic',
+      tags: ['launch'],
+    };
+
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'A product on marble',
+      settings,
+      type: 'image',
+    });
+
+    expect(promptData).toMatchObject({
+      autoSelectModel: false,
+      blacklist: ['watermark'],
+      brand: 'brand-1',
+      brandingMode: 'brand',
+      camera: 'macro',
+      isBrandingEnabled: true,
+      isValid: true,
+      lighting: 'golden hour',
+      models: ['flux-dev'],
+      mood: 'serene',
+      scene: 'rooftop',
+      style: 'cinematic',
+      tags: ['launch'],
+      text: 'A product on marble',
+    });
+  });
+
+  it('marks auto routing when no explicit model is picked', () => {
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'anything',
+      settings: getDefaultStudioGenerateSettings('image'),
+      type: 'image',
+    });
+
+    expect(promptData.autoSelectModel).toBe(true);
+    expect(promptData.models).toEqual([]);
+  });
+
+  it('derives dimensions and format from aspect ratio and resolution', () => {
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'anything',
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        aspectRatio: '16:9',
+        resolution: '2K',
+      },
+      type: 'image',
+    });
+
+    expect(promptData.width).toBe(2048);
+    expect(promptData.height).toBe(1152);
+    expect(promptData.format).toBe(IngredientFormat.LANDSCAPE);
+  });
+
+  it('is invalid without prompt text', () => {
+    expect(
+      buildStudioPromptData({
+        brandId: 'brand-1',
+        promptText: '   ',
+        settings: getDefaultStudioGenerateSettings('image'),
+        type: 'image',
+      }).isValid,
+    ).toBe(false);
+  });
+
+  it('stays valid for avatar when speech carries the script', () => {
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: '',
+      settings: {
+        ...getDefaultStudioGenerateSettings('avatar'),
+        avatarId: 'avatar-1',
+        speech: 'Hello from Genfeed',
+        voiceId: 'voice-1',
+      },
+      type: 'avatar',
+    });
+
+    expect(promptData.isValid).toBe(true);
+    expect(promptData.avatarId).toBe('avatar-1');
+    expect(promptData.voiceId).toBe('voice-1');
+  });
+});
+
+describe('studio prompt data feeding the Genfeed enrichment payload', () => {
+  it('restores template + brand enrichment that the agent path drops', () => {
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'A founder at a desk',
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        mood: 'confident',
+        promptTemplate: 'product-photo',
+        style: 'editorial',
+      },
+      type: 'image',
+    });
+
+    const payload = buildBaseGenerationPayload(
+      promptData,
+      'flux-dev',
+      'brand-1',
+    );
+
+    expect(payload).toMatchObject({
+      brand: 'brand-1',
+      brandingMode: 'brand',
+      isBrandingEnabled: true,
+      mood: 'confident',
+      promptTemplate: ContentTemplateKey.IMAGE_PRODUCT,
+      style: 'editorial',
+      useTemplate: true,
+    });
+  });
+
+  it('honours brand enrichment switched off', () => {
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'A founder at a desk',
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        brandingMode: 'off',
+      },
+      type: 'image',
+    });
+
+    const payload = buildBaseGenerationPayload(
+      promptData,
+      'flux-dev',
+      'brand-1',
+    );
+
+    expect(payload.brandingMode).toBe('off');
+    expect(payload.isBrandingEnabled).toBe(false);
+  });
+});
+
+describe('describeStudioGenerateSettings', () => {
+  it('summarises an image setup with aspect, resolution, and brand', () => {
+    expect(
+      describeStudioGenerateSettings(
+        getDefaultStudioGenerateSettings('image'),
+        'image',
+      ),
+    ).toBe('1:1 \u00b7 1K \u00b7 Brand');
+  });
+
+  it('adds the outputs multiplier only above one', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('image'),
+      outputs: 4,
+    };
+
+    expect(describeStudioGenerateSettings(settings, 'image')).toBe(
+      '1:1 \u00b7 1K \u00b7 4x \u00b7 Brand',
+    );
+  });
+
+  it('summarises a video setup with duration and no outputs multiplier', () => {
+    const settings = {
+      ...getDefaultStudioGenerateSettings('video'),
+      outputs: 4,
+    };
+
+    expect(describeStudioGenerateSettings(settings, 'video')).toBe(
+      '16:9 \u00b7 720p \u00b7 5s \u00b7 Brand',
+    );
+  });
+
+  it('omits visual segments for types without them', () => {
+    expect(
+      describeStudioGenerateSettings(
+        getDefaultStudioGenerateSettings('music'),
+        'music',
+      ),
+    ).toBe('10s \u00b7 Brand');
+
+    expect(
+      describeStudioGenerateSettings(
+        {
+          ...getDefaultStudioGenerateSettings('voice'),
+          brandingMode: 'off',
+        },
+        'voice',
+      ),
+    ).toBe('');
+  });
+});

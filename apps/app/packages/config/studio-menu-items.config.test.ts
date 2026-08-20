@@ -5,24 +5,37 @@ import {
 } from './studio-menu-items.config';
 
 describe('STUDIO_MENU_ITEMS', () => {
-  it('lists production surfaces in a single flat Studio group', () => {
+  it('lists Studio surfaces in a single flat group, Generate first', () => {
     expect(STUDIO_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'Generate',
       'Storyboard',
       'Clips',
       'Batch',
       'Fastlane',
-      'Audio',
       'Edit',
     ]);
     expect(STUDIO_MENU_ITEMS.every((item) => item.group === '')).toBe(true);
     expect(STUDIO_MENU_ITEMS.map((item) => item.href)).toEqual([
+      '/studio/generate',
       '/studio/storyboard',
       '/studio/clips',
       '/studio/batch',
       '/studio/fastlane',
-      '/library/voices',
       '/studio/edit',
     ]);
+  });
+
+  it('never hands the operator off to another module app', () => {
+    // The old "Audio" entry pointed at `/library/voices` — a browse grid in a
+    // different app, reached from Studio's own nav. No Studio menu entry may
+    // leave `/studio` again, by href or by match path.
+    for (const item of STUDIO_MENU_ITEMS) {
+      expect(item.href.startsWith('/studio')).toBe(true);
+
+      for (const matchPath of item.matchPaths ?? []) {
+        expect(matchPath.startsWith('/studio')).toBe(true);
+      }
+    }
   });
 
   it('exposes every studio route that has a page behind a nav entry', () => {
@@ -30,10 +43,11 @@ describe('STUDIO_MENU_ITEMS', () => {
     // workspace-shell breadcrumb existed, but nothing linked to it.
     const hrefs = STUDIO_MENU_ITEMS.map((item) => item.href);
 
+    expect(hrefs).toContain('/studio/generate');
     expect(hrefs).toContain('/studio/clips');
     expect(hrefs).toContain('/studio/edit');
-    expect(hrefs).toContain('/library/voices');
     expect(hrefs).not.toContain('/studio/audio');
+    expect(hrefs).not.toContain('/library/voices');
   });
 
   it('carries no Edit/Automation subgroup headers', () => {
@@ -56,7 +70,7 @@ describe('STUDIO_MENU_ITEMS', () => {
     });
   });
 
-  it('keeps the studio logo href pointed at the production home', () => {
-    expect(STUDIO_LOGO_HREF).toBe('/studio/storyboard');
+  it('keeps the studio logo href pointed at the playground', () => {
+    expect(STUDIO_LOGO_HREF).toBe('/studio/generate');
   });
 });

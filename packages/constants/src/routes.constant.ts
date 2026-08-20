@@ -351,16 +351,16 @@ export const APP_ROUTES = {
    * image/video/avatar/music tabs were retired.
    */
   STUDIO: {
-    /**
-     * Retired one-off audio tab. Permanently redirects to Library Voices.
-     * Studio nav "Audio" links to LIBRARY.VOICES directly (no bounce).
-     */
-    AUDIO: '/studio/audio',
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
     EDIT: '/studio/edit',
     EDIT_NEW: '/studio/edit/new',
     FASTLANE: '/studio/fastlane',
+    /**
+     * The single-asset playground: every generatable type behind one prompt
+     * bar. Asset type is composer state, never a route segment.
+     */
+    GENERATE: '/studio/generate',
     ROOT: '/studio',
     STORYBOARD: '/studio/storyboard',
   },

@@ -240,8 +240,8 @@ Research:
 
 Studio:
 
-- `/:orgSlug/:brandSlug/studio/:type`
-- `/:orgSlug/:brandSlug/studio/:type/:id`
+- `/:orgSlug/:brandSlug/studio/generate`
+- `/:orgSlug/:brandSlug/studio/storyboard`
 - `/:orgSlug/:brandSlug/studio/batch`
 - `/:orgSlug/:brandSlug/studio/clips`
 - `/:orgSlug/:brandSlug/studio/fastlane`

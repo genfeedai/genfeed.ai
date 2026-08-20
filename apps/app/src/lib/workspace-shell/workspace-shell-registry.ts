@@ -712,11 +712,12 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/studio/clips',
       '/:orgSlug/:brandSlug/studio/clips/:projectId',
       '/:orgSlug/:brandSlug/studio/fastlane',
+      '/:orgSlug/:brandSlug/studio/generate',
       '/:orgSlug/:brandSlug/studio/storyboard',
     ],
     {
       adapterStatus: 'ready',
-      fallback: '/:orgSlug/:brandSlug/studio/storyboard',
+      fallback: '/:orgSlug/:brandSlug/studio/generate',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',

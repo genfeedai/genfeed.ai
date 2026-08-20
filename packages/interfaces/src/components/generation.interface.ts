@@ -4,7 +4,7 @@ export type GenerationEtaConfidence = 'low' | 'medium' | 'high';
 
 export interface IGenerationItem {
   id: string;
-  type: 'image' | 'video' | 'music' | 'avatar';
+  type: 'image' | 'video' | 'music' | 'avatar' | 'voice';
   prompt: string;
   model: string;
   startTime: Date;

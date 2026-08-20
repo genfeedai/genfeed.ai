@@ -1339,6 +1339,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         items: expect.arrayContaining([
+          expect.objectContaining({ href: '/studio/generate' }),
           expect.objectContaining({ href: '/studio/storyboard' }),
           expect.objectContaining({ href: '/studio/clips' }),
           expect.objectContaining({ href: '/studio/batch' }),
@@ -1346,12 +1347,15 @@ describe('AppProtectedLayout', () => {
       }),
     );
 
-    // One-off generation moved to the Agent — no standalone media tabs remain.
+    // One prompt bar at `/studio/generate` replaced the per-type tabs, and no
+    // Studio nav entry hands the operator off to another module app.
     for (const retiredHref of [
       '/studio/image',
       '/studio/video',
       '/studio/avatar',
       '/studio/music',
+      '/studio/audio',
+      '/library/voices',
     ]) {
       expect(appSidebarSpy).not.toHaveBeenCalledWith(
         expect.objectContaining({

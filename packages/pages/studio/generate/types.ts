@@ -31,3 +31,13 @@ export interface UseStoryboardGenerationReturn {
   setCustomCameraPrompt: (prompt: string) => void;
   setFrames: React.Dispatch<React.SetStateAction<IImage[]>>;
 }
+
+// The Studio-generate domain shapes live in `@genfeedai/interfaces` so the
+// props package can reference them without depending on `@genfeedai/pages`.
+export type {
+  StudioGenerateCapabilities,
+  StudioGenerateJob,
+  StudioGenerateSettings,
+  StudioGenerateType,
+  StudioGenerateTypeConfig,
+} from '@genfeedai/interfaces/studio/studio-generate.interface';
