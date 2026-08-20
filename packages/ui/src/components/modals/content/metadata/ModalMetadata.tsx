@@ -17,6 +17,7 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+import type { IMetadata } from '@genfeedai/interfaces';
 import type { ModalMetadataProps } from '@genfeedai/props/modals/modal.props';
 import { FoldersService } from '@genfeedai/services/content/folders.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -89,10 +90,21 @@ export default function ModalMetadata({
         tags: _tags,
         ...metadataValues
       } = formValues;
+      const currentMetadata =
+        metadata && typeof metadata === 'object' ? metadata : undefined;
 
       await service.patch(ingredientId, {
         folder: folderId || undefined,
-        metadata: metadataValues,
+        metadata: {
+          ...(currentMetadata ?? { label: '' }),
+          description: metadataValues.description,
+          duration: metadataValues.duration,
+          extension: metadataValues.extension,
+          height: metadataValues.height,
+          label: metadataValues.label ?? currentMetadata?.label ?? '',
+          size: metadataValues.size,
+          width: metadataValues.width,
+        } as IMetadata,
         scope,
       });
 
