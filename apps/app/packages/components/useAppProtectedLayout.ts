@@ -93,7 +93,7 @@ export function useAppProtectedLayout(
   const isDiscoverRoute =
     pathname === APP_ROUTES.DISCOVER.ROOT ||
     pathname.startsWith(`${APP_ROUTES.DISCOVER.ROOT}/`);
-  const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
+  const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.ASSETS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isMessagesInboxRoute = pathname === APP_ROUTES.MESSAGES.ROOT;

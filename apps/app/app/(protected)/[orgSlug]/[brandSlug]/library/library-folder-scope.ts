@@ -1,11 +1,18 @@
-import { APP_ROUTES, MAX_PAGE_SIZE } from '@genfeedai/constants';
+import { MAX_PAGE_SIZE } from '@genfeedai/constants';
 import { PageScope } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 
-export function getLibraryFolderScope(pathname: string): PageScope {
-  return pathname === APP_ROUTES.LIBRARY.AVATARS
-    ? PageScope.ORGANIZATION
-    : PageScope.BRAND;
+/**
+ * The folder axis is brand-scoped on every Library destination.
+ *
+ * It used to flip to organization scope on `/library/avatars`, back when a type
+ * was a separate surface. Type is a filter chip now, so the same folder tree has
+ * to stand still underneath it — a tree that reshuffles when you tick "Avatars"
+ * is exactly the coupling this redesign removes. Organization-shared folders
+ * still show up: the API's brand scope is `brandId: null OR brandId`.
+ */
+export function getLibraryFolderScope(_pathname: string): PageScope {
+  return PageScope.BRAND;
 }
 
 export function getLibraryFolderOwnerId(
@@ -26,8 +33,8 @@ export function createLibraryFolderQuery(
   return {
     brand: scope === PageScope.BRAND ? (brandId ?? undefined) : undefined,
     isActive: true,
-    // The sidebar renders one flat folder list per brand/organization, which
-    // stays well inside the server's page cap — no page walk needed.
+    // The sidebar loads the brand's folders as one flat page and nests them by
+    // `parentId` client-side; the count stays well inside the server's page cap.
     limit: MAX_PAGE_SIZE,
     organization:
       scope === PageScope.ORGANIZATION

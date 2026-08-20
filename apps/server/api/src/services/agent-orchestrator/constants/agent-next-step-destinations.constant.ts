@@ -55,7 +55,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   library: {
     ctaLabel: 'Open library',
-    href: APP_ROUTES.LIBRARY.OVERVIEW,
+    href: APP_ROUTES.LIBRARY.ASSETS,
     label: 'Library',
   },
   members: {

@@ -2,14 +2,22 @@
 
 import {
   LIBRARY_ASSET_ROUTES,
-  LIBRARY_MENU_ITEMS,
+  LIBRARY_PLACE_MENU_ITEMS,
+  LIBRARY_SHELF_MENU_ITEMS,
+  LIBRARY_TAIL_MENU_ITEMS,
 } from '@app-config/library-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES, LIBRARY_ASSETS_REFRESH_EVENT } from '@genfeedai/constants';
-import { ModalEnum, PageScope } from '@genfeedai/enums';
+import {
+  APP_ROUTES,
+  createLibraryShelfRoute,
+  LIBRARY_ASSETS_REFRESH_EVENT,
+} from '@genfeedai/constants';
+import { LibraryShelf, ModalEnum, PageScope } from '@genfeedai/enums';
 import type { IFolder, IIngredient, IQueryParams } from '@genfeedai/interfaces';
+import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useLibrarySummary } from '@hooks/data/library/use-library-summary';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { FoldersService } from '@services/content/folders.service';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -23,6 +31,7 @@ import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarAction
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import { Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import {
@@ -37,14 +46,28 @@ import {
   getLibraryFolderOwnerId,
   getLibraryFolderScope,
 } from './library-folder-scope';
+import { formatStorageBytes } from './library-storage.util';
 
+/**
+ * The folder axis is orthogonal to type and shelf, so every destination that
+ * lists assets keeps `?folder=` when you pick a folder. Only Mood board sits
+ * outside the asset table.
+ */
 const FOLDER_COMPATIBLE_ROUTES = new Set<string>([
-  APP_ROUTES.LIBRARY.AVATARS,
-  APP_ROUTES.LIBRARY.GIFS,
-  APP_ROUTES.LIBRARY.IMAGES,
-  APP_ROUTES.LIBRARY.MUSIC,
-  APP_ROUTES.LIBRARY.VIDEOS,
+  ...LIBRARY_ASSET_ROUTES,
+  APP_ROUTES.LIBRARY.RECENT,
+  APP_ROUTES.LIBRARY.STARRED,
+  APP_ROUTES.LIBRARY.TRASH,
+  ...LIBRARY_SHELF_MENU_ITEMS.map((item) => item.href ?? ''),
 ]);
+
+/** Sidebar rows resolve their shelf by route so counts cannot drift off label text. */
+const SHELF_BY_ROUTE = new Map<string, LibraryShelf>(
+  Object.values(LibraryShelf).map((shelf) => [
+    createLibraryShelfRoute(shelf),
+    shelf,
+  ]),
+);
 
 function dispatchLibraryAssetsRefresh(): void {
   window.dispatchEvent(new Event(LIBRARY_ASSETS_REFRESH_EVENT));
@@ -58,6 +81,7 @@ export default function LibrarySidebarNav() {
   const { replace } = useRouter();
   const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.library.sidebar');
   const notifications = NotificationsService.getInstance();
   const selectedFolderId = searchParams.get('folder');
   const folderScope = getLibraryFolderScope(normalizedPathname);
@@ -66,6 +90,7 @@ export default function LibrarySidebarNav() {
     brandId,
     organizationId,
   );
+  const { summary } = useLibrarySummary();
   const taskContextSearchParams = useMemo(
     () =>
       pickOperatorTaskContextSearchParams(
@@ -121,7 +146,7 @@ export default function LibrarySidebarNav() {
 
     const nextPath = currentRouteSupportsFolders
       ? pathname
-      : href(APP_ROUTES.LIBRARY.VIDEOS);
+      : href(APP_ROUTES.LIBRARY.ASSETS);
     const nextQuery = nextSearchParams.toString();
 
     replace(`${nextPath}${nextQuery ? `?${nextQuery}` : ''}`, {
@@ -148,14 +173,57 @@ export default function LibrarySidebarNav() {
     }
   };
 
-  const isMenuItemActive = (item: (typeof LIBRARY_MENU_ITEMS)[number]) => {
-    if (item.label === 'Assets') {
-      return LIBRARY_ASSET_ROUTES.includes(
-        normalizedPathname as (typeof LIBRARY_ASSET_ROUTES)[number],
-      );
+  const isMenuItemActive = (item: MenuItemConfig): boolean => {
+    const candidatePaths = item.matchPaths ?? (item.href ? [item.href] : []);
+
+    return candidatePaths.some((candidate) =>
+      item.isExactMatch
+        ? normalizedPathname === candidate
+        : normalizedPathname === candidate ||
+          normalizedPathname.startsWith(`${candidate}/`),
+    );
+  };
+
+  const getShelfCount = (item: MenuItemConfig): number | undefined => {
+    const shelf = item.href ? SHELF_BY_ROUTE.get(item.href) : undefined;
+
+    return shelf ? summary?.byShelf?.[shelf] : undefined;
+  };
+
+  /**
+   * Generating is the one shelf that empties on its own, so an idle library
+   * should not carry a permanent zero row for it. Every other shelf keeps its
+   * place — a stable list is worth more than hiding an empty count.
+   */
+  const isShelfVisible = (item: MenuItemConfig): boolean => {
+    if (item.href !== createLibraryShelfRoute(LibraryShelf.GENERATING)) {
+      return true;
     }
 
-    return normalizedPathname === item.href;
+    return (getShelfCount(item) ?? 0) > 0;
+  };
+
+  const renderMenuItem = (item: MenuItemConfig) => {
+    const scopedHref = withTaskContextHref(
+      href(item.href ?? APP_ROUTES.LIBRARY.ASSETS),
+      taskContextSearchParams,
+    );
+    const isGenerating =
+      item.href === createLibraryShelfRoute(LibraryShelf.GENERATING);
+
+    return (
+      <MenuItem
+        key={item.label}
+        count={getShelfCount(item)}
+        href={scopedHref}
+        isActive={isMenuItemActive(item)}
+        isPulsing={isGenerating}
+        label={item.label}
+        outline={item.outline}
+        solid={item.solid}
+        variant="icon"
+      />
+    );
   };
 
   return (
@@ -175,29 +243,18 @@ export default function LibrarySidebarNav() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2 scrollbar-thin">
-          <div className="mt-2">
+          <ul className="mt-2 flex flex-col gap-px">
+            {LIBRARY_PLACE_MENU_ITEMS.map(renderMenuItem)}
+          </ul>
+
+          <div className="mt-4">
             <div className="p-1 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
-              Library
+              {translate('shelvesGroup')}
             </div>
             <ul className="flex flex-col gap-px">
-              {LIBRARY_MENU_ITEMS.map((item) => {
-                const scopedHref = withTaskContextHref(
-                  href(item.href ?? APP_ROUTES.LIBRARY.OVERVIEW),
-                  taskContextSearchParams,
-                );
-
-                return (
-                  <MenuItem
-                    key={item.label}
-                    href={scopedHref}
-                    isActive={isMenuItemActive(item)}
-                    label={item.label}
-                    outline={item.outline}
-                    solid={item.solid}
-                    variant="icon"
-                  />
-                );
-              })}
+              {LIBRARY_SHELF_MENU_ITEMS.filter(isShelfVisible).map(
+                renderMenuItem,
+              )}
             </ul>
           </div>
 
@@ -212,7 +269,24 @@ export default function LibrarySidebarNav() {
             selectedFolderId={selectedFolderId}
             variant="navigation"
           />
+
+          <div className="mt-4 border-t border-foreground/8 pt-2">
+            <ul className="flex flex-col gap-px">
+              {LIBRARY_TAIL_MENU_ITEMS.map(renderMenuItem)}
+            </ul>
+          </div>
         </div>
+
+        {summary ? (
+          <div className="border-t border-foreground/8 px-4 py-3">
+            <div className="text-2xs font-medium uppercase tracking-[0.15em] text-foreground/30">
+              {translate('storageLabel')}
+            </div>
+            <div className="mt-0.5 text-sm font-medium tabular-nums text-foreground/72">
+              {formatStorageBytes(summary.storageBytes)}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <LazyModalFolder

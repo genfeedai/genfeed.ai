@@ -86,6 +86,17 @@ export interface IngredientsMediaGridProps {
   onReprompt?: (ingredient: IIngredient) => void;
 }
 
+export interface IngredientInspectorRailProps {
+  ingredient: IIngredient;
+  className?: string;
+  /**
+   * The docked rail names the asset itself. Inside a sheet the surrounding
+   * header already carries that name, so the rail drops its own heading rather
+   * than printing the label twice.
+   */
+  hasHeading?: boolean;
+}
+
 export interface IngredientsTypeProps {
   type: string;
 }

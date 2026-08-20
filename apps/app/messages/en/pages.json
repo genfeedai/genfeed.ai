@@ -224,5 +224,11 @@
       "skip": "Skip",
       "write": "Write"
     }
+  },
+  "library": {
+    "sidebar": {
+      "shelvesGroup": "Shelves",
+      "storageLabel": "Storage"
+    }
   }
 }

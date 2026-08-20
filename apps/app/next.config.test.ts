@@ -150,22 +150,33 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects /library/assets to /library/videos in three scopes', async () => {
+  it('never redirects /library/assets away — it is the Library home', async () => {
     const redirects = await config.redirects?.();
+
+    expect(
+      redirects?.filter((redirect) =>
+        String(redirect.source).endsWith(APP_ROUTES.LIBRARY.ASSETS),
+      ),
+    ).toEqual([]);
+  });
+
+  it('redirects the retired Library overview to All assets in three scopes', async () => {
+    const redirects = await config.redirects?.();
+
     expect(redirects).toContainEqual({
-      destination: '/library/videos',
-      permanent: true,
-      source: '/library/assets',
+      destination: '/library/assets',
+      permanent: false,
+      source: '/library/overview',
     });
     expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/library/videos',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/library/assets',
+      destination: '/:orgSlug/:brandSlug/library/assets',
+      permanent: false,
+      source: '/:orgSlug/:brandSlug/library/overview',
     });
     expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/library/videos',
-      permanent: true,
-      source: '/:orgSlug/~/library/assets',
+      destination: '/:orgSlug/~/library/assets',
+      permanent: false,
+      source: '/:orgSlug/~/library/overview',
     });
   });
 
@@ -237,7 +248,7 @@ describe('app next.config', () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.LIBRARY.OVERVIEW,
+      destination: APP_ROUTES.LIBRARY.ASSETS,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     });
@@ -245,7 +256,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ASSETS,
       ),
       permanent: false,
       source: createBrandAppRoute(
@@ -259,7 +270,6 @@ describe('app next.config', () => {
   it.each([
     APP_ROUTES.WORKSPACE.ROOT,
     APP_ROUTES.AUTOMATE.ROOT,
-    APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
     APP_ROUTES.PUBLISH.ROOT,
   ] as const)(
@@ -292,6 +302,29 @@ describe('app next.config', () => {
       ).toBe(false);
     },
   );
+
+  it('permanently redirects bare /library to All assets, not an overview', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.LIBRARY.ASSETS,
+      permanent: true,
+      source: APP_ROUTES.LIBRARY.ROOT,
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.ASSETS,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.ROOT,
+      ),
+    });
+  });
 
   it('permanently hard-cuts Publish agent-program routes into Automate and outreach into Messages', async () => {
     const redirects = await config.redirects?.();

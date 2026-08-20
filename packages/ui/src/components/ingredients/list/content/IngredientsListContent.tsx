@@ -18,11 +18,17 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
+import {
+  getIsInspectorDocked,
+  subscribeInspectorDocked,
+} from '@ui/ingredients/inspector/inspector-viewport.util';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
+import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
 import { Eye } from 'lucide-react';
 import Image from 'next/image';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 export default function IngredientsListContent({
   type,
@@ -263,28 +269,87 @@ export default function IngredientsListContent({
     type,
   ]);
 
+  /**
+   * The rail inspects one asset. A multi-selection is a bulk action, so it
+   * stays closed rather than picking an arbitrary member to describe.
+   */
+  const inspectedIngredient = useMemo(() => {
+    if (selectedIngredientIds.length !== 1) {
+      return null;
+    }
+
+    return (
+      filteredIngredients.find(
+        (ingredient: IIngredient) => ingredient.id === selectedIngredientIds[0],
+      ) ?? null
+    );
+  }, [filteredIngredients, selectedIngredientIds]);
+
+  /**
+   * Dock the inspector beside the grid where there is room for both, and show
+   * the same rail as a sheet where there is not. A docked rail that is merely
+   * hidden below `lg` leaves a narrow viewport with no way to read the asset it
+   * just selected.
+   */
+  const isInspectorDocked = useSyncExternalStore(
+    subscribeInspectorDocked,
+    getIsInspectorDocked,
+    () => false,
+  );
+
+  /** Closing the inspector is the same gesture as dropping the selection. */
+  const handleInspectorOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (!isOpen) {
+        onSelectionChange([]);
+      }
+    },
+    [onSelectionChange],
+  );
+
   return (
-    <div
-      className={`flex-1 min-w-0 overflow-hidden ${
-        isAudioCategory
-          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
-          : ''
-      }`}
-    >
-      {hasFilteredEmptyState ? (
-        <CardEmptyContent
-          label={EMPTY_STATES.RESULTS_FOUND}
-          description="Try adjusting your filters or search terms."
-          action={{
-            label: 'Clear Filters',
-            onClick: onClearFilters,
-            variant: ButtonVariant.SECONDARY,
-          }}
-          className="w-full max-w-lg"
-        />
-      ) : (
-        content
-      )}
+    <div className="flex min-w-0 flex-1 overflow-hidden">
+      <div
+        className={`flex-1 min-w-0 overflow-hidden ${
+          isAudioCategory
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
+            : ''
+        }`}
+      >
+        {hasFilteredEmptyState ? (
+          <CardEmptyContent
+            label={EMPTY_STATES.RESULTS_FOUND}
+            description="Try adjusting your filters or search terms."
+            action={{
+              label: 'Clear Filters',
+              onClick: onClearFilters,
+              variant: ButtonVariant.SECONDARY,
+            }}
+            className="w-full max-w-lg"
+          />
+        ) : (
+          content
+        )}
+      </div>
+
+      {inspectedIngredient && isInspectorDocked ? (
+        <IngredientInspectorRail ingredient={inspectedIngredient} />
+      ) : null}
+
+      {inspectedIngredient && !isInspectorDocked ? (
+        <ContextInspector
+          isOpen
+          onOpenChange={handleInspectorOpenChange}
+          title={inspectedIngredient.metadataLabel || 'Untitled asset'}
+          width="md"
+        >
+          <IngredientInspectorRail
+            className="w-full border-l-0 px-5 py-5"
+            hasHeading={false}
+            ingredient={inspectedIngredient}
+          />
+        </ContextInspector>
+      ) : null}
     </div>
   );
 }

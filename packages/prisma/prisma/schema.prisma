@@ -1827,6 +1827,8 @@ model Folder {
   organization   Organization @relation(fields: [organizationId], references: [id])
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
+  parentId       String?
+  parent         Folder?      @relation("folder_children", fields: [parentId], references: [id])
   label          String
   description    String?
   isActive       Boolean      @default(true)
@@ -1835,11 +1837,13 @@ model Folder {
   updatedAt      DateTime     @updatedAt
 
   tags        Tag[]        @relation("folder_tags")
+  children    Folder[]     @relation("folder_children")
   ingredients Ingredient[]
   bookmarks   Bookmark[]
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([parentId, isDeleted])
   @@map("folders")
 }
 
