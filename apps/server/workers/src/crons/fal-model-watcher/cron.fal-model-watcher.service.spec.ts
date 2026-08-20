@@ -11,6 +11,9 @@ import { ModelDiscoveryService } from '@workers/services/model-discovery.service
 
 describe('CronFalModelWatcherService', () => {
   let service: CronFalModelWatcherService;
+  let modelsService: {
+    prisma: { model: { findMany: ReturnType<typeof vi.fn> } };
+  };
   let modelDiscoveryService: vi.Mocked<ModelDiscoveryService>;
   let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
@@ -24,6 +27,7 @@ describe('CronFalModelWatcherService', () => {
       cost: 25,
       isActive: true,
       isDeleted: false,
+      endpoint: 'fal-ai/flux/dev',
       key: 'fal-ai/flux/dev',
       label: 'FLUX.1 [dev]',
       provider: ModelProvider.FAL,
@@ -55,11 +59,13 @@ describe('CronFalModelWatcherService', () => {
             findAllActive: vi.fn().mockResolvedValue(mockExistingModels),
             prisma: {
               model: {
-                findMany: vi
-                  .fn()
-                  .mockResolvedValue(
-                    mockExistingModels.map((model) => ({ key: model.key })),
-                  ),
+                findMany: vi.fn().mockResolvedValue(
+                  mockExistingModels.map((model) => ({
+                    endpoint: model.endpoint,
+                    key: model.key,
+                    provider: model.provider,
+                  })),
+                ),
               },
             },
           },
@@ -102,6 +108,9 @@ describe('CronFalModelWatcherService', () => {
     service = module.get<CronFalModelWatcherService>(
       CronFalModelWatcherService,
     );
+    modelsService = module.get(
+      ModelsService,
+    ) as unknown as typeof modelsService;
     modelDiscoveryService = module.get(ModelDiscoveryService);
     configService = module.get(ConfigService);
     notificationsService = module.get(NotificationsService);
@@ -144,6 +153,7 @@ describe('CronFalModelWatcherService', () => {
       expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith({
         category: ModelCategory.IMAGE,
         description: 'Frontier text-to-image model',
+        endpoint: 'fal-ai/flux-2-pro',
         label: 'FLUX.2 [pro]',
         name: 'flux-2-pro',
         owner: 'fal-ai',
@@ -187,29 +197,74 @@ describe('CronFalModelWatcherService', () => {
 
       expect(result.newModelsFound).toBe(0);
       expect(modelDiscoveryService.createDraftModel).not.toHaveBeenCalled();
-      // Freshness tracking only touches rows flagged isDiscovered.
-      expect(modelDiscoveryService.touchLastSyncedAt).toHaveBeenCalledWith([
-        'fal-ai/flux/dev',
-      ]);
+      // Freshness tracking only touches Fal rows flagged isDiscovered.
+      expect(modelDiscoveryService.touchLastSyncedAt).toHaveBeenCalledWith(
+        ModelProvider.FAL,
+        ['fal-ai/flux/dev'],
+      );
     });
 
-    it('skips namespaces that would route to another provider', async () => {
+    it('discovers Fal partner namespaces with collision-safe keys', async () => {
       mockFalResponse([
         {
-          endpoint_id: 'google/veo3',
-          metadata: { category: 'text-to-video', status: 'active' },
-        },
-        {
-          endpoint_id: 'openai/gpt-image-1',
+          endpoint_id: 'google/nano-banana-2-lite',
           metadata: { category: 'text-to-image', status: 'active' },
         },
+        {
+          endpoint_id: 'minimax/h3/text-to-video',
+          metadata: { category: 'text-to-video', status: 'active' },
+        },
       ]);
+      modelDiscoveryService.createDraftModel.mockResolvedValue({
+        id: 'draft-id',
+      } as unknown as ServerModelRecord);
 
       const result = await service.discoverNewModels();
 
       expect(result.totalPolled).toBe(2);
-      expect(result.newModelsFound).toBe(0);
-      expect(modelDiscoveryService.createDraftModel).not.toHaveBeenCalled();
+      expect(result.newModelsFound).toBe(2);
+      expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: 'google/nano-banana-2-lite',
+          provider: ModelProvider.FAL,
+        }),
+      );
+      expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: 'minimax/h3/text-to-video',
+          provider: ModelProvider.FAL,
+        }),
+      );
+    });
+
+    it('does not let a Replicate row suppress a colliding Fal endpoint', async () => {
+      modelsService.prisma.model.findMany.mockResolvedValueOnce([
+        {
+          endpoint: 'google/nano-banana-2-lite',
+          key: 'google/nano-banana-2-lite',
+          provider: ModelProvider.REPLICATE,
+        },
+      ]);
+      mockFalResponse([
+        {
+          endpoint_id: 'google/nano-banana-2-lite',
+          metadata: { category: 'text-to-image', status: 'active' },
+        },
+      ]);
+      modelDiscoveryService.createDraftModel.mockResolvedValueOnce({
+        id: 'fal-draft',
+        key: 'fal/google/nano-banana-2-lite',
+      } as unknown as ServerModelRecord);
+
+      const result = await service.discoverNewModels();
+
+      expect(result.newModelsFound).toBe(1);
+      expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: 'google/nano-banana-2-lite',
+          provider: ModelProvider.FAL,
+        }),
+      );
     });
 
     it('skips endpoints fal marks deprecated', async () => {

@@ -11,6 +11,7 @@ import { VideoGenerationPreparationService } from '@api/collections/videos/servi
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -79,7 +80,16 @@ describe('VideoGenerationService', () => {
       findOne: vi.fn().mockResolvedValue(null),
     };
     const modelRegistrationService = {
-      validateModelForOrg: vi.fn().mockResolvedValue(undefined),
+      validateModelForOrg: vi
+        .fn<
+          (
+            model: string,
+            organizationId: string,
+          ) => Promise<
+            { endpoint: string; provider: ModelProvider } | undefined
+          >
+        >()
+        .mockResolvedValue(undefined),
     };
     const modelsService = {
       findOne: vi.fn().mockResolvedValue({ cost: 10 }),
@@ -106,7 +116,11 @@ describe('VideoGenerationService', () => {
     const replicateService = {
       generateTextToVideo: vi.fn().mockResolvedValue('replicate-gen'),
     };
-    const falService = { generateVideo: vi.fn() };
+    const falService = {
+      generateVideo: vi
+        .fn()
+        .mockResolvedValue({ url: 'https://fal/generated.mp4' }),
+    };
     const providerDispatchService = new VideoGenerationProviderDispatchService(
       new KlingAiVideoGenerationProviderAdapter(klingAIService as never),
       new FalVideoGenerationProviderAdapter(falService as never),
@@ -200,6 +214,7 @@ describe('VideoGenerationService', () => {
       cacheService,
       creditsUtilsService,
       failedGenerationService,
+      falService,
       klingAIService,
       metadataService,
       modelRegistrationService,
@@ -243,6 +258,33 @@ describe('VideoGenerationService', () => {
       expect(
         modelRegistrationService.validateModelForOrg,
       ).not.toHaveBeenCalled();
+    });
+
+    it('dispatches a Fal partner selection key to its exact registered endpoint', async () => {
+      const {
+        service,
+        falService,
+        modelRegistrationService,
+        replicateService,
+      } = createService();
+      const selectionKey = 'fal/minimax/h3/text-to-video';
+      const endpoint = 'minimax/h3/text-to-video';
+      modelRegistrationService.validateModelForOrg.mockResolvedValue({
+        endpoint,
+        provider: ModelProvider.FAL,
+      });
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ model: selectionKey }),
+        buildRequest(),
+      );
+
+      expect(falService.generateVideo).toHaveBeenCalledWith(
+        endpoint,
+        expect.any(Object),
+      );
+      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
     });
   });
 

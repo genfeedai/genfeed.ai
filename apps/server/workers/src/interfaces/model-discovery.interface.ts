@@ -75,6 +75,8 @@ export interface IFalModelsResponse {
  * Input for creating a draft model from discovered data
  */
 export interface IModelDiscoveryInput {
+  /** Provider-side endpoint identity, independent from the public selection key */
+  endpoint: string;
   owner: string;
   name: string;
   description: string;

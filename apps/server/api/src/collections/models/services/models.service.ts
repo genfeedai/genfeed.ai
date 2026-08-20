@@ -305,10 +305,14 @@ export class ModelsService extends BaseService<
     populate: Parameters<BaseService<ModelDocument>['create']>[1] = [],
   ): Promise<ModelDocument> {
     void populate;
+    const data = this.splitModelData(
+      createDto as unknown as Record<string, unknown>,
+    );
+    if (!this.readString(data.endpoint)) {
+      data.endpoint = createDto.key;
+    }
     const created = await this.prisma.model.create({
-      data: this.splitModelData(
-        createDto as unknown as Record<string, unknown>,
-      ) as Prisma.ModelUncheckedCreateInput,
+      data: data as Prisma.ModelUncheckedCreateInput,
     });
     return this.normalizeModelDocument(created);
   }
@@ -438,7 +442,8 @@ export class ModelsService extends BaseService<
   }
 
   async touchDiscoveredModels(
-    keys: string[],
+    provider: ModelProvider,
+    endpoints: string[],
     lastSyncedAt: Date,
   ): Promise<void> {
     await this.prisma.model.updateMany({
@@ -446,8 +451,9 @@ export class ModelsService extends BaseService<
       where: {
         isDeleted: false,
         isDiscovered: true,
-        key: { in: keys },
+        endpoint: { in: endpoints },
         organizationId: null,
+        provider,
       },
     });
   }

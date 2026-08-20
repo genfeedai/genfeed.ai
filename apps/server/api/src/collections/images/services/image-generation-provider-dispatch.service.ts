@@ -66,8 +66,11 @@ export class ImageGenerationProviderDispatchService {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  supports(model: string): boolean {
-    return this.providerRegistry.supports(model);
+  supports(
+    model: string,
+    provider?: ImageGenerationContext['modelProvider'],
+  ): boolean {
+    return this.providerRegistry.supports(model, provider);
   }
 
   async dispatch(
@@ -80,13 +83,18 @@ export class ImageGenerationProviderDispatchService {
       createImageDto: context.createImageDto,
       height: context.height,
       model: context.model,
+      modelEndpoint: context.modelEndpoint,
+      modelProvider: context.modelProvider,
       onExternalJobCreated: async (externalId) => {
         await this.metadataService.patch(
           context.metadataData.id,
           new MetadataEntity({
             externalId,
             externalProvider:
-              this.providerRegistry.providerFor(context.model) ?? undefined,
+              this.providerRegistry.providerFor(
+                context.model,
+                context.modelProvider,
+              ) ?? undefined,
           }),
         );
       },
@@ -483,7 +491,10 @@ export class ImageGenerationProviderDispatchService {
       new MetadataEntity({
         externalId,
         externalProvider:
-          this.providerRegistry.providerFor(context.model) ?? undefined,
+          this.providerRegistry.providerFor(
+            context.model,
+            context.modelProvider,
+          ) ?? undefined,
         ...(result.kind === 'external-id' && result.promptId
           ? { promptId: result.promptId }
           : {}),

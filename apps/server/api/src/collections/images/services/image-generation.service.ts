@@ -110,11 +110,8 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto,
     request: Request,
   ): Promise<JsonApiSingleResponse> {
-    const { brand, model, promptOriginalText } = await this.resolveAndValidate(
-      user,
-      createImageDto,
-      request,
-    );
+    const { brand, model, modelEndpoint, modelProvider, promptOriginalText } =
+      await this.resolveAndValidate(user, createImageDto, request);
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
     const promptBuilderBrand = {
@@ -193,6 +190,8 @@ export class ImageGenerationService {
       ingredientData,
       metadataData,
       model,
+      modelEndpoint,
+      modelProvider,
       outputs,
       pendingIngredientIds: [ingredientData.id.toString()],
       promptBuilderBrand,
@@ -233,6 +232,8 @@ export class ImageGenerationService {
   ): Promise<{
     brand: ImageGenerationResolvedBrand;
     model: string;
+    modelEndpoint: string;
+    modelProvider?: string;
     promptOriginalText: string;
   }> {
     this.loggerService.log(`${this.constructorName} create`, {
@@ -287,12 +288,14 @@ export class ImageGenerationService {
     // single-tenant deployments (no org at all) skip it.
     const validationOrgId =
       user.organizationId || request.context?.organizationId;
-    if (validationOrgId) {
-      await this.modelRegistrationService.validateModelForOrg(
-        model,
-        validationOrgId,
-      );
-    }
+    const registeredModel = validationOrgId
+      ? await this.modelRegistrationService.validateModelForOrg(
+          model,
+          validationOrgId,
+        )
+      : undefined;
+    const modelEndpoint = registeredModel?.endpoint || model;
+    const modelProvider = registeredModel?.provider;
 
     await this.creditsService.ensureDeferredCredits(
       createImageDto,
@@ -301,7 +304,12 @@ export class ImageGenerationService {
       request,
     );
 
-    if (!this.imageGenerationProviderDispatchService.supports(model)) {
+    if (
+      !this.imageGenerationProviderDispatchService.supports(
+        model,
+        modelProvider,
+      )
+    ) {
       throw new HttpException(
         {
           detail: 'Invalid model for image generation',
@@ -311,7 +319,13 @@ export class ImageGenerationService {
       );
     }
 
-    return { brand, model, promptOriginalText };
+    return {
+      brand,
+      model,
+      modelEndpoint,
+      modelProvider,
+      promptOriginalText,
+    };
   }
 
   /**

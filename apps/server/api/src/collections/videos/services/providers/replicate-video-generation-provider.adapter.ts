@@ -3,6 +3,7 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
+import { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
@@ -14,15 +15,15 @@ export class ReplicateVideoGenerationProviderAdapter
 
   constructor(private readonly replicateService: ReplicateService) {}
 
-  supports(_model: string): boolean {
-    return true;
+  supports(_model: string, provider?: ModelProvider | string): boolean {
+    return !provider || provider === ModelProvider.REPLICATE;
   }
 
   async generate(
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult> {
     const externalId = await this.replicateService.generateTextToVideo(
-      params.model,
+      params.modelEndpoint ?? params.model,
       params.promptParams,
     );
     return {

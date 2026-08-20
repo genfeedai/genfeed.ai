@@ -23,7 +23,7 @@ import {
   isCloudDeployment,
 } from '@genfeedai/config';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
@@ -54,7 +54,11 @@ export class ReplicateImageGenerationProviderAdapter
     private readonly replicateService: ReplicateService,
   ) {}
 
-  supports(model: string): boolean {
+  supports(model: string, provider?: ModelProvider | string): boolean {
+    if (provider) {
+      return provider === ModelProvider.REPLICATE;
+    }
+
     return (
       !isFalDestination(model) &&
       !isGenfeedAiDestination(model) &&
@@ -196,7 +200,7 @@ export class ReplicateImageGenerationProviderAdapter
       failureLabel: 'ReplicateService generateImage',
       generate: async () => {
         const generationId = await this.replicateService.generateTextToImage(
-          request.model,
+          request.modelEndpoint ?? request.model,
           input,
         );
         if (!generationId) {

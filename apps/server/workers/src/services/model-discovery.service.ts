@@ -1,4 +1,5 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { getProviderModelKey } from '@api/collections/models/utils/model-key.util';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -91,12 +92,16 @@ export class ModelDiscoveryService {
     modelInfo: IModelDiscoveryInput,
   ): Promise<ServerModelRecord | null> {
     const context = 'ModelDiscoveryService createDraftModel';
-    const modelKey = `${modelInfo.owner}/${modelInfo.name}`;
+    const modelKey = getProviderModelKey(
+      modelInfo.provider,
+      modelInfo.endpoint,
+    );
 
     try {
       // Verify model doesn't already exist (defense in depth)
       const existing = await this.modelsService.findOne({
-        key: modelKey,
+        endpoint: modelInfo.endpoint,
+        provider: modelInfo.provider,
       });
 
       if (existing) {
@@ -136,6 +141,7 @@ export class ModelDiscoveryService {
         description:
           modelInfo.description ||
           `Auto-discovered model from ${modelInfo.owner}. Pending manual review.`,
+        endpoint: modelInfo.endpoint,
         isActive: false,
         isDefault: false,
         isDiscovered: true,
@@ -148,6 +154,7 @@ export class ModelDiscoveryService {
           discoverySource: 'provider-sync',
           name: modelInfo.name,
           owner: modelInfo.owner,
+          endpoint: modelInfo.endpoint,
           providerUrl: modelInfo.providerUrl,
           versionId: modelInfo.versionId,
         },
@@ -265,18 +272,25 @@ export class ModelDiscoveryService {
    * Update `lastSyncedAt` for all models discovered from a given provider.
    * Called at the end of each sync run to track freshness.
    */
-  async touchLastSyncedAt(keys: string[]): Promise<void> {
-    if (keys.length === 0) {
+  async touchLastSyncedAt(
+    provider: ModelProvider,
+    endpoints: string[],
+  ): Promise<void> {
+    if (endpoints.length === 0) {
       return;
     }
 
     const context = 'ModelDiscoveryService touchLastSyncedAt';
 
     try {
-      await this.modelsService.touchDiscoveredModels(keys, new Date());
+      await this.modelsService.touchDiscoveredModels(
+        provider,
+        endpoints,
+        new Date(),
+      );
 
       this.logger.log(
-        `${context} updated lastSyncedAt for ${keys.length} models`,
+        `${context} updated lastSyncedAt for ${endpoints.length} models`,
       );
     } catch (error: unknown) {
       this.logger.error(`${context} failed to update lastSyncedAt`, { error });

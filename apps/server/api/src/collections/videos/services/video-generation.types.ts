@@ -13,6 +13,8 @@ export interface DispatchVideoGenerationParams {
   height: number;
   imageUrl?: string;
   model: string;
+  modelEndpoint?: string;
+  modelProvider?: ModelProvider | string;
   prompt: string;
   promptParams: Record<string, unknown>;
   width: number;
@@ -31,7 +33,7 @@ export interface VideoGenerationProviderAdapter {
   generate(
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult>;
-  supports(model: string): boolean;
+  supports(model: string, provider?: ModelProvider | string): boolean;
 }
 
 export interface CreateVideoPlaceholderActivityParams {
@@ -56,6 +58,8 @@ export interface ResolvedVideoGenerationRequest {
   brand: VideoGenerationResolvedBrand;
   createVideoDto: CreateVideoDto;
   model: string;
+  modelEndpoint?: string;
+  modelProvider?: ModelProvider | string;
   referenceIds: string[];
   request: Request;
   user: User;
@@ -80,3 +84,4 @@ import type { PromptsService } from '@api/collections/prompts/services/prompts.s
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
+import type { ModelProvider } from '@genfeedai/enums';

@@ -10,6 +10,7 @@ export class ModelEntity extends BaseEntity {
   declare readonly label: string;
   declare readonly provider: ModelProvider;
   declare readonly key: string;
+  declare readonly endpoint: string;
   declare readonly category: ModelCategory;
   declare readonly cost: number;
   declare readonly isActive: boolean;

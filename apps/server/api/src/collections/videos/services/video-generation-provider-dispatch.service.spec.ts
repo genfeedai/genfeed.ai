@@ -4,6 +4,7 @@ import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('VideoGenerationProviderDispatchService', () => {
@@ -105,6 +106,44 @@ describe('VideoGenerationProviderDispatchService', () => {
         prompt: 'A cinematic sunrise',
       },
     );
+  });
+
+  it('routes a non-prefix Fal partner endpoint by provider identity', async () => {
+    falService.generateVideo.mockResolvedValue({
+      url: 'https://fal.example.com/h3.mp4',
+    });
+
+    await service.dispatch(
+      buildParams({
+        model: 'fal/minimax/h3/text-to-video',
+        modelEndpoint: 'minimax/h3/text-to-video',
+        modelProvider: ModelProvider.FAL,
+      }),
+    );
+
+    expect(falService.generateVideo).toHaveBeenCalledWith(
+      'minimax/h3/text-to-video',
+      expect.objectContaining({ prompt: 'A cinematic sunrise' }),
+    );
+    expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it('keeps a colliding endpoint on Replicate when its provider is Replicate', async () => {
+    replicateService.generateTextToVideo.mockResolvedValue('replicate-job');
+
+    await service.dispatch(
+      buildParams({
+        model: 'minimax/h3/text-to-video',
+        modelEndpoint: 'minimax/h3/text-to-video',
+        modelProvider: ModelProvider.REPLICATE,
+      }),
+    );
+
+    expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+      'minimax/h3/text-to-video',
+      expect.any(Object),
+    );
+    expect(falService.generateVideo).not.toHaveBeenCalled();
   });
 
   it('uses Replicate as the fallback with the existing prompt parameters', async () => {

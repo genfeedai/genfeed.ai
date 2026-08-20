@@ -30,6 +30,7 @@ function makeModel(overrides: Record<string, unknown> = {}) {
     isActive: true,
     isDefault: false,
     isDeleted: false,
+    endpoint: 'google/imagen-4',
     key: 'google/imagen-4',
     label: 'Imagen 4',
     organizationId: null,
@@ -96,6 +97,7 @@ describe('ModelsService', () => {
         cost: 5,
         isDefault: true,
         isDiscovered: true,
+        endpoint: 'google/imagen-4',
         key: 'google/imagen-4',
         label: 'Imagen 4',
         margin: 0.2,
@@ -112,6 +114,27 @@ describe('ModelsService', () => {
 
     expect(modelDelegate.findFirst).toHaveBeenCalledWith({
       where: { isDeleted: false, key: 'google/imagen-4' },
+    });
+  });
+
+  it('touches discovered rows by provider endpoint without crossing providers', async () => {
+    const lastSyncedAt = new Date('2026-08-20T12:00:00.000Z');
+
+    await service.touchDiscoveredModels(
+      ModelProvider.FAL,
+      ['google/nano-banana-2-lite'],
+      lastSyncedAt,
+    );
+
+    expect(modelDelegate.updateMany).toHaveBeenCalledWith({
+      data: { lastSyncedAt },
+      where: {
+        endpoint: { in: ['google/nano-banana-2-lite'] },
+        isDeleted: false,
+        isDiscovered: true,
+        organizationId: null,
+        provider: ModelProvider.FAL,
+      },
     });
   });
 

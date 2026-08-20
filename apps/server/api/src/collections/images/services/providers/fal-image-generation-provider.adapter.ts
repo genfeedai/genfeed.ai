@@ -3,7 +3,11 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
-import { isFalDestination } from '@api/collections/models/utils/model-key.util';
+import {
+  getFalEndpointFromModelKey,
+  isFalDestination,
+} from '@api/collections/models/utils/model-key.util';
+import type { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 
@@ -15,8 +19,8 @@ export class FalImageGenerationProviderAdapter
 
   constructor(private readonly falService: FalService) {}
 
-  supports(model: string): boolean {
-    return isFalDestination(model);
+  supports(model: string, provider?: ModelProvider | string): boolean {
+    return isFalDestination(model, provider);
   }
 
   async prepare(
@@ -44,7 +48,7 @@ export class FalImageGenerationProviderAdapter
       failureLabel: 'FalService generateImage',
       generate: async () => {
         const result = await this.falService.generateImage(
-          request.model,
+          request.modelEndpoint ?? getFalEndpointFromModelKey(request.model),
           input,
         );
         return {

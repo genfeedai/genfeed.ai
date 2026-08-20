@@ -90,15 +90,23 @@ export class CronModelWatcherService {
       // applyMargin call below bakes the configured margin into model costs.
       await this.platformMarginService.hydrate();
 
-      // Step 1: Fetch all known model keys from database
+      // Step 1: Fetch all known provider identities from database
       const allModels = await this.modelsService.find({});
-      const existingKeys = new Set(
+      const existingEndpoints = new Set(
         allModels
-          .map((m: ServerModelRecord) => m.key)
-          .filter((key): key is string => typeof key === 'string'),
+          .filter(
+            (model: ServerModelRecord) =>
+              model.provider === ModelProvider.REPLICATE,
+          )
+          .map((model: ServerModelRecord) => model.endpoint || model.key)
+          .filter(
+            (endpoint): endpoint is string => typeof endpoint === 'string',
+          ),
       );
 
-      this.logger.log(`${url} loaded ${existingKeys.size} existing model keys`);
+      this.logger.log(
+        `${url} loaded ${existingEndpoints.size} existing Replicate endpoints`,
+      );
 
       // Step 1.5: Pass through known provider-cost changes so the configured
       // margin stays real for models billed live from providerCostUsd.
@@ -127,7 +135,7 @@ export class CronModelWatcherService {
       // Step 4: Diff against existing models in DB
       const newModels = officialModels.filter((m) => {
         const key = `${m.owner}/${m.name}`;
-        return !existingKeys.has(key);
+        return !existingEndpoints.has(key);
       });
 
       summary.newModelsFound = newModels.length;
@@ -152,6 +160,7 @@ export class CronModelWatcherService {
           const discoveryInput: IModelDiscoveryInput = {
             category,
             description: model.description || '',
+            endpoint: modelKey,
             name: model.name,
             owner: model.owner,
             provider: ModelProvider.REPLICATE,
@@ -189,10 +198,13 @@ export class CronModelWatcherService {
       }
 
       // Step 6: Touch lastSyncedAt for Replicate models seen in this run.
-      const syncedKeys = officialModels
+      const syncedEndpoints = officialModels
         .map((m) => `${m.owner}/${m.name}`)
-        .filter((key) => existingKeys.has(key));
-      await this.modelDiscoveryService.touchLastSyncedAt(syncedKeys);
+        .filter((endpoint) => existingEndpoints.has(endpoint));
+      await this.modelDiscoveryService.touchLastSyncedAt(
+        ModelProvider.REPLICATE,
+        syncedEndpoints,
+      );
 
       // Step 7: Log summary
       this.logger.log(`${url} completed`, {

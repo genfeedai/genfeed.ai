@@ -38,7 +38,7 @@ vi.mock('@genfeedai/pricing', async (importOriginal) => {
 });
 
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@workers/config/config.service';
 import type { IModelDiscoveryInput } from '@workers/interfaces/model-discovery.interface';
@@ -205,9 +205,12 @@ describe('ModelDiscoveryService', () => {
     const modelInfo: IModelDiscoveryInput = {
       category: ModelCategory.IMAGE,
       description: 'A test image model',
+      endpoint: 'acme-labs/test-model',
       name: 'test-model',
       owner: 'acme-labs',
-      provider: 'replicate',
+      provider: ModelProvider.REPLICATE,
+      providerUrl: 'https://replicate.com/acme-labs/test-model',
+      versionId: null,
     };
 
     it('should return null if model already exists', async () => {
@@ -228,11 +231,47 @@ describe('ModelDiscoveryService', () => {
       expect(result).toBe(draftDoc);
       expect(mockModelsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          endpoint: 'acme-labs/test-model',
           isActive: false,
           isDefault: false,
           isDiscovered: true,
           key: 'acme-labs/test-model',
           reviewStatus: 'pending',
+        }),
+      );
+      expect(mockModelsService.findOne).toHaveBeenCalledWith({
+        endpoint: 'acme-labs/test-model',
+        provider: ModelProvider.REPLICATE,
+      });
+    });
+
+    it('creates a collision-safe key for a Fal partner endpoint', async () => {
+      const draftDoc = {
+        id: 'fal-draft',
+        key: 'fal/google/nano-banana-2-lite',
+      };
+      mockModelsService.create.mockResolvedValue(draftDoc);
+
+      await service.createDraftModel({
+        category: ModelCategory.IMAGE,
+        description: 'Fal partner image endpoint',
+        endpoint: 'google/nano-banana-2-lite',
+        name: 'nano-banana-2-lite',
+        owner: 'google',
+        provider: ModelProvider.FAL,
+        providerUrl: 'https://fal.ai/models/google/nano-banana-2-lite',
+        versionId: null,
+      });
+
+      expect(mockModelsService.findOne).toHaveBeenCalledWith({
+        endpoint: 'google/nano-banana-2-lite',
+        provider: ModelProvider.FAL,
+      });
+      expect(mockModelsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          endpoint: 'google/nano-banana-2-lite',
+          key: 'fal/google/nano-banana-2-lite',
+          provider: ModelProvider.FAL,
         }),
       );
     });
