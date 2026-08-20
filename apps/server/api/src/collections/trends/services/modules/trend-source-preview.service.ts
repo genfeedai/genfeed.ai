@@ -232,7 +232,9 @@ export class TrendSourcePreviewService {
       ? await this.precomputeTrendSourcePreview(result.trends, {
           force: true,
           limit: TREND_SOURCE_PREVIEW_LIMIT,
-          writeScope: { organizationId: scope.organizationId ?? null },
+          writeScope: {
+            organizationId: scope.organizationId?.trim() || null,
+          },
         })
       : result.trends;
     if (refresh) {

@@ -294,7 +294,7 @@ export class TrendFetchService {
               brandId: brandId || null,
               expiresAt,
               isCurrent: true,
-              organizationId: organizationId || null,
+              organizationId: organizationId?.trim() || null,
               platform: trendData.platform,
               requiresAuth,
               topic: trendData.topic,
