@@ -2313,28 +2313,12 @@
       "reason": "unresolved-where"
     },
     {
-      "delegate": "creditTransaction",
-      "file": "apps/server/api/src/endpoints/analytics/business-analytics.service.ts",
-      "fingerprint": "e0e5b0d095795d90fd1e",
-      "method": "groupBy",
-      "model": "CreditTransaction",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "ingredient",
       "file": "apps/server/api/src/endpoints/analytics/business-analytics.service.ts",
       "fingerprint": "69c64d090ec9dba54e26",
       "method": "count",
       "model": "Ingredient",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/endpoints/analytics/business-analytics.service.ts",
-      "fingerprint": "1664eb42125069e3340e",
-      "method": "groupBy",
-      "model": "Ingredient",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "brand",

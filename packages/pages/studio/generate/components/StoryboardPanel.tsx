@@ -1,30 +1,11 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  type IngredientFormat,
-} from '@genfeedai/enums';
-import type { IImage } from '@genfeedai/interfaces';
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { StoryboardPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import { Button } from '@ui/primitives/button';
 import CameraMovementPromptBar from '@ui/studio/frame-sequence/CameraMovementPromptBar';
 import FrameSequenceSelector from '@ui/studio/frame-sequence/FrameSequenceSelector';
 import { Sparkles, X } from 'lucide-react';
-
-interface StoryboardPanelProps {
-  cameraMovementPreset: CameraMovementPreset;
-  customCameraPrompt: string;
-  format: IngredientFormat;
-  frames: IImage[];
-  hasInterpolationModel: boolean;
-  isGenerating: boolean;
-  onCameraMovementPresetChange: (preset: CameraMovementPreset) => void;
-  onClear: () => void;
-  onCustomCameraPromptChange: (prompt: string) => void;
-  onFramesChange: (frames: IImage[]) => void;
-  onGenerate: () => void;
-}
 
 export function StoryboardPanel({
   cameraMovementPreset,
@@ -48,7 +29,7 @@ export function StoryboardPanel({
 
   return (
     <section className="mb-5 space-y-3" data-testid="storyboard-panel">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_280px]">
         <FrameSequenceSelector
           frames={frames}
           format={format}

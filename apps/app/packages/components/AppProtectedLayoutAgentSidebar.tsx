@@ -30,7 +30,7 @@ export default function AgentSidebarContent({ renderConversations }: Props) {
       <Link
         href={newThreadHref}
         aria-label="New agent thread"
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-foreground/70 transition-colors hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         <Plus className="size-4" aria-hidden="true" />
       </Link>

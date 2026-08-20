@@ -137,14 +137,14 @@ export function WorkflowTriggerCard({
                 </span>
                 {wf.status && (
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_BADGE[wf.status] ?? STATUS_BADGE.draft}`}
+                    className={`rounded-full px-1.5 py-0.5 text-2xs font-medium ${STATUS_BADGE[wf.status] ?? STATUS_BADGE.draft}`}
                   >
                     {wf.status}
                   </span>
                 )}
               </div>
               {wf.description && (
-                <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+                <p className="mt-0.5 line-clamp-1 text-2xs text-muted-foreground">
                   {wf.description}
                 </p>
               )}

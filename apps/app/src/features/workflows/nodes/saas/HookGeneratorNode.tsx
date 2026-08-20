@@ -163,7 +163,7 @@ function HookGeneratorNodeComponent(props: NodeProps): React.JSX.Element {
               {outputHashtags.map((hashtag) => (
                 <span
                   key={hashtag}
-                  className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-[10px] text-muted-foreground"
+                  className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-2xs text-muted-foreground"
                 >
                   {hashtag}
                 </span>
@@ -171,7 +171,7 @@ function HookGeneratorNodeComponent(props: NodeProps): React.JSX.Element {
             </div>
           )}
           {outputSlidePrompts.length > 0 && (
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {outputSlidePrompts.length} slide prompts ready
             </p>
           )}

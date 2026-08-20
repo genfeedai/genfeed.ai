@@ -56,7 +56,7 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
     <BaseNode {...props}>
       <div className="space-y-3">
         {/* Duration Info */}
-        <div className="text-xs text-[var(--muted-foreground)]">
+        <div className="text-xs text-muted-foreground">
           {nodeData.videoDuration
             ? `Source: ${formatTime(nodeData.videoDuration)}`
             : 'Connect video to extract frame'}
@@ -65,7 +65,7 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
         {/* Selection Mode */}
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            className="text-xs text-muted-foreground block mb-1"
             htmlFor={`video-frame-selection-${id}`}
           >
             Frame Selection

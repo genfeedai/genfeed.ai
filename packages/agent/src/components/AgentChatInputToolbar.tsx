@@ -32,6 +32,7 @@ import {
   Square,
   Zap,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, memo, type ReactElement, useRef } from 'react';
 
 export interface AgentChatInputToolbarProps {
@@ -93,18 +94,41 @@ function AgentChatInputToolbarInner({
   willQueueFollowUp = false,
   density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
+  const translate = useTranslations('agent.composerToolbar');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isCompact = density === 'compact';
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  const hasSelectableModels = models.length > 0;
   const isAutoSelected =
-    !selectedModel || selectedModel === AUTO_MODEL_OPTION_VALUE;
+    hasSelectableModels &&
+    (!selectedModel || selectedModel === AUTO_MODEL_OPTION_VALUE);
   const autoLabel = prioritize ? getAutoModelLabel(prioritize) : 'Auto';
   // One shared picker for agent chat + studio/generation (selectionMode=single).
   // autoLabel opts single mode into Auto + priority cards (user settings:
   // empty defaultAgentModel + generationPriority).
-  const modelSelector = onModelChange ? (
+  const emptyAllowlistControl =
+    onModelChange && !hasSelectableModels && !isModelsLoading ? (
+      <Button
+        ariaLabel={translate('noModelsEnabled')}
+        className={cn(
+          'max-w-[12rem] justify-start text-muted-foreground',
+          isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
+        )}
+        isDisabled
+        size={ButtonSize.SM}
+        textTransform="none"
+        title={translate('noModelsEnabledTitle')}
+        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
+      >
+        <span className="truncate text-xs">{translate('noModelsEnabled')}</span>
+      </Button>
+    ) : null;
+  const modelSelector = emptyAllowlistControl ? (
+    emptyAllowlistControl
+  ) : onModelChange ? (
     <ModelSelectorPopover
-      autoLabel={autoLabel}
+      autoLabel={hasSelectableModels ? autoLabel : undefined}
       className={cn(
         'max-w-[12rem] text-muted-foreground hover:text-foreground',
         isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
@@ -317,12 +341,12 @@ function AgentChatInputToolbarInner({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              ariaLabel="Open composer actions"
+              ariaLabel={translate('actionsAria')}
               className={cn('shrink-0', controlSize)}
               icon={<Zap className="size-4" />}
               isDisabled={disabled || !hasEditor}
               size={ButtonSize.ICON}
-              tooltip="Actions"
+              tooltip={translate('actions')}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
@@ -333,7 +357,7 @@ function AgentChatInputToolbarInner({
             side="top"
             sideOffset={8}
           >
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{translate('actions')}</DropdownMenuLabel>
             {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
               <DropdownMenuItem
                 key={action.name}
@@ -342,10 +366,10 @@ function AgentChatInputToolbarInner({
                 }}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium text-primary">
+                  <p className="truncate text-xs font-medium text-primary">
                     {action.label}
                   </p>
-                  <p className="truncate text-[11px] text-muted">
+                  <p className="truncate text-2xs text-muted">
                     {action.description}
                   </p>
                 </div>

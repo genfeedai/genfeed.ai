@@ -163,7 +163,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
       issue ? (
         <span
           className={cn(
-            'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+            'rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
             STATUS_COLORS[issue.status],
           )}
         >
@@ -219,7 +219,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                   ) : (
                     <FileText className="size-3" />
                   )}
-                  <span className="text-[10px] font-medium">
+                  <span className="text-2xs font-medium">
                     {ENTITY_MODEL_LABELS[entity.entityModel]}
                   </span>
                 </span>
@@ -240,7 +240,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                 <Button
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
-                  className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 transition-colors hover:bg-muted/40 hover:text-white/60"
+                  className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-2xs text-white/40 transition-colors hover:bg-muted/40 hover:text-white/60"
                   onClick={() =>
                     setCommentVisibility({ issueId, showAll: true })
                   }
@@ -280,7 +280,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                       >
                         {isAgent ? 'Agent' : 'User'}
                       </span>
-                      <span className="text-[10px] text-white/25">
+                      <span className="text-2xs text-white/25">
                         {getRelativeTime(comment.createdAt)}
                       </span>
                     </div>

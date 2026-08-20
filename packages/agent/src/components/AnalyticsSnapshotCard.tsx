@@ -174,7 +174,7 @@ export function AnalyticsSnapshotCard({
                   aria-selected={isActive}
                   role="tab"
                   className={cn(
-                    'h-7 rounded-md px-2.5 text-[11px] font-medium',
+                    'h-7 rounded-md px-2.5 text-2xs font-medium',
                     isActive
                       ? 'bg-foreground/10 text-foreground'
                       : 'text-muted-foreground hover:text-foreground',
@@ -190,7 +190,7 @@ export function AnalyticsSnapshotCard({
             })}
           </div>
         ) : (
-          <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+          <span className="shrink-0 text-2xs font-medium text-muted-foreground">
             {selectedPeriod}
           </span>
         )}

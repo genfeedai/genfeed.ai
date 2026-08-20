@@ -51,7 +51,7 @@ export default function IssueCommentsCard({
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1 text-2xs text-muted-foreground hover:text-foreground"
             onClick={onScrollToLatest}
           >
             <ChevronsDown className="size-3" />
@@ -66,7 +66,7 @@ export default function IssueCommentsCard({
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
-              className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 hover:bg-muted/40 hover:text-white/60"
+              className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-2xs text-white/40 hover:bg-muted/40 hover:text-white/60"
               onClick={onShowAllComments}
             >
               <ChevronDown className="size-3" />

@@ -110,9 +110,17 @@ export const APP_ROUTES = {
     CONFIGURATION: '/automate/configuration',
     /** Content-run history: briefs handed off from Discover through publish. */
     CONTENT_RUNS: '/automate/content-runs',
+    /**
+     * Agent roster. Detail pages nest at `/automate/agents/:agentId`.
+     */
+    AGENTS: '/automate/agents',
     HIRE: '/automate/hire',
+    /**
+     * @deprecated Team list permanently redirects to AGENTS.
+     * `/automate/library/:type` remains the Twitch/YouTube chat-bot surfaces.
+     */
     LIBRARY: '/automate/library',
-    NEW: '/automate/new',
+    NEW: '/automate/agents/new',
     ORCHESTRATOR: '/automate/orchestrator',
     /**
      * Canonical automate home. Bare ROOT permanently redirects here so Overview
@@ -369,16 +377,16 @@ export const APP_ROUTES = {
    * image/video/avatar/music tabs were retired.
    */
   STUDIO: {
-    /**
-     * Retired one-off audio tab. Permanently redirects to Library Voices.
-     * Studio nav "Audio" links to LIBRARY.VOICES directly (no bounce).
-     */
-    AUDIO: '/studio/audio',
     BATCH: '/studio/batch',
     CLIPS: '/studio/clips',
     EDIT: '/studio/edit',
     EDIT_NEW: '/studio/edit/new',
     FASTLANE: '/studio/fastlane',
+    /**
+     * The single-asset playground: every generatable type behind one prompt
+     * bar. Asset type is composer state, never a route segment.
+     */
+    GENERATE: '/studio/generate',
     ROOT: '/studio',
     STORYBOARD: '/studio/storyboard',
   },

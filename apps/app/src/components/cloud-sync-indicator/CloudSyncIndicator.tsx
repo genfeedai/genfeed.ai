@@ -92,7 +92,7 @@ export default function CloudSyncIndicator() {
                   : 'Offline'}
             </span>
           </div>
-          <p className="mt-1.5 text-[11px] text-foreground/48">
+          <p className="mt-1.5 text-2xs text-foreground/48">
             {isConnected
               ? 'Data syncs automatically with your cloud workspace.'
               : local

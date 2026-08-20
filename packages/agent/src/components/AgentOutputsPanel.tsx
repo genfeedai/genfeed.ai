@@ -169,7 +169,7 @@ export function AgentOutputsPanel({
           <div className="gen-shell-surface mx-auto flex size-14 items-center justify-center rounded-2xl">
             <Image className="size-6 text-foreground/38" />
           </div>
-          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground/38">
+          <p className="mt-4 text-2xs font-semibold uppercase tracking-[0.22em] text-foreground/38">
             Outputs
           </p>
           <h2 className="mt-3 text-lg font-semibold tracking-[-0.02em] text-foreground">
@@ -193,7 +193,7 @@ export function AgentOutputsPanel({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+            <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-foreground/35">
               Outputs
             </p>
             <h2 className="mt-1 truncate text-base font-semibold text-foreground">
@@ -206,7 +206,7 @@ export function AgentOutputsPanel({
             ) : null}
           </div>
           <span
-            className="gen-shell-chip shrink-0 px-2.5 py-1 text-[11px]"
+            className="gen-shell-chip shrink-0 px-2.5 py-1 text-2xs"
             data-tone="neutral"
           >
             {selectedGroup?.variants.length ?? 0} variant
@@ -310,7 +310,7 @@ export function AgentOutputsPanel({
                   setSelectedGroupId(group.id);
                   setSelectedVariantId(group.variants[0]?.id ?? null);
                 }}
-                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 data-active={group.id === selectedGroupId ? 'true' : 'false'}
               >
                 <div className="mt-0.5 shrink-0">
@@ -323,7 +323,7 @@ export function AgentOutputsPanel({
                     </p>
                     {group.status ? (
                       <span
-                        className="gen-shell-chip px-2 py-0.5 text-[10px] uppercase tracking-wide"
+                        className="gen-shell-chip px-2 py-0.5 text-2xs uppercase tracking-wide"
                         data-tone="neutral"
                       >
                         {group.status}
@@ -335,7 +335,7 @@ export function AgentOutputsPanel({
                       {group.description}
                     </p>
                   ) : null}
-                  <p className="mt-2 text-[11px] text-foreground/40">
+                  <p className="mt-2 text-2xs text-foreground/40">
                     {group.variants.length} variant
                     {group.variants.length === 1 ? '' : 's'}
                   </p>

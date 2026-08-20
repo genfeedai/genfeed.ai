@@ -16,6 +16,7 @@ export * from './integrations/connect-genfeed.helper';
 export * from './media/cdn/cdn.helper';
 export * from './media/clip-reference-frame.helper';
 export * from './media/provenance/provenance.helper';
+export * from './model-allowlist.helper';
 export * from './model-capability.helper';
 export * from './oauth/parse-granted-oauth-scopes.helper';
 export * from './onboarding/signup-brand-domain.helper';

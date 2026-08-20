@@ -256,7 +256,7 @@ export function AgentSettings({
                 {model.costTier && COST_TIER_DISPLAY[model.costTier] ? (
                   <span
                     className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px] font-bold',
+                      'rounded-full px-2 py-0.5 text-2xs font-bold',
                       COST_TIER_DISPLAY[model.costTier].colorClass,
                     )}
                     title={translate('costTierTitle', {
@@ -293,7 +293,7 @@ export function AgentSettings({
             rows={6}
             className="resize-y border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm placeholder:text-foreground/30 focus:border-primary/40"
           />
-          <div className="mt-1 text-right text-[10px] text-muted-foreground">
+          <div className="mt-1 text-right text-2xs text-muted-foreground">
             {persona.length}/5000
           </div>
         </div>

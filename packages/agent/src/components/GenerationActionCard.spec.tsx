@@ -18,19 +18,30 @@ vi.mock('@genfeedai/services/core/clipboard.service', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) =>
-    ({
-      previewDescription: 'Read and edit the full generation prompt',
-      previewEditorAria: 'Full prompt',
-      previewTitle: 'Prompt',
-      readFull: 'Read & edit',
-      readFullAria: 'Read and edit the full prompt',
-      stop: 'Stop',
-      stopAria: 'Stop generation',
-      generateAria: 'Generate image',
-      generateVideoAria: 'Generate video',
-      generateTooltip: 'Generate',
-    })[key] ?? key,
+  useTranslations:
+    () => (key: string, values?: Record<string, string | number>) => {
+      const template =
+        {
+          durationSeconds: '{seconds}s',
+          generateAria: 'Generate image',
+          generateTooltip: 'Generate',
+          generateVideoAria: 'Generate video',
+          loadingModels: 'Loading Genfeed models…',
+          noModelsEnabled: 'No models enabled',
+          noModelsEnabledTitle: 'No models enabled for this workspace',
+          previewDescription: 'Read and edit the full generation prompt',
+          previewEditorAria: 'Full prompt',
+          previewTitle: 'Prompt',
+          promptLabel: 'Prompt',
+          readFull: 'Read & edit',
+          readFullAria: 'Read and edit the full prompt',
+          stop: 'Stop',
+          stopAria: 'Stop generation',
+        }[key] ?? key;
+      return template.replace(/\{(\w+)\}/g, (token, name: string) =>
+        values?.[name] === undefined ? token : String(values[name]),
+      );
+    },
 }));
 
 vi.mock('@helpers/generation-controls.helper', async (importOriginal) => {
@@ -199,13 +210,22 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-const { storeState } = vi.hoisted(() => ({
+const { brandState, storeState } = vi.hoisted(() => ({
+  brandState: {
+    organizationId: '',
+    settings: null as { enabledModelIds?: string[] } | null,
+    settingsLoading: false,
+  },
   storeState: {
     activeThreadId: 'thread-1',
     error: null as string | null,
     setError: vi.fn(),
     setThreadUiBusy: vi.fn(),
   },
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => brandState,
 }));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
@@ -280,6 +300,11 @@ describe('GenerationActionCard', () => {
       'utf8',
     );
     expect(source).toContain("useTranslations('agent.generationActionCard')");
+    expect(source).toContain("translate('promptLabel')");
+    expect(source).toContain("translate('loadingModels')");
+    expect(source).toContain("translate('noModelsEnabled')");
+    expect(source).toContain("translate('durationSeconds'");
+    expect(source).not.toContain('{option}s');
     expect(source).not.toContain('const COPY =');
     expect(source).toContain('ButtonDropdown');
     expect(source).toContain('name="outputs"');
@@ -314,6 +339,9 @@ describe('GenerationActionCard', () => {
   });
 
   beforeEach(() => {
+    brandState.organizationId = '';
+    brandState.settings = null;
+    brandState.settingsLoading = false;
     storeState.activeThreadId = 'thread-1';
     storeState.error = null;
     storeState.setError.mockReset();
@@ -1177,5 +1205,93 @@ describe('GenerationActionCard', () => {
       ).toBeInTheDocument();
     });
     expect(rejectGenerate).toBeDefined();
+  });
+
+  it('shows an allowlisted generate model and hides disabled catalog rows', async () => {
+    const flux = createModel({
+      key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+      label: 'FLUX Schnell',
+    });
+    const kling = createModel({
+      category: ModelCategory.VIDEO,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+      label: 'Kling 2.6',
+    });
+    const nanoBanana = createModel({
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      label: 'Nano Banana',
+    });
+    brandState.organizationId = 'org_demo';
+    brandState.settings = { enabledModelIds: [nanoBanana.key] };
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-allowlist-visible',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [flux, kling, nanoBanana],
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.models).toEqual([nanoBanana]);
+    });
+    expect(capturedModelSelectorPopoverProps.autoLabel).toMatch(/Auto/);
+  });
+
+  it('does not offer Auto, Flux, or Kling when the org allowlist is empty', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+    brandState.organizationId = 'org_demo';
+    brandState.settings = { enabledModelIds: [] };
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-allowlist-empty',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+              label: 'FLUX Schnell',
+            }),
+            createModel({
+              category: ModelCategory.VIDEO,
+              key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+              label: 'Kling 2.6',
+            }),
+          ],
+        })}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('button', { name: /no models enabled/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('model-selector-popover'),
+    ).not.toBeInTheDocument();
+    expect(capturedModelSelectorPopoverProps.models).toBeUndefined();
+    expect(capturedModelSelectorPopoverProps.autoLabel).toBeUndefined();
+
+    const generate = screen.getByRole('button', { name: /generate image/i });
+    expect(generate).toBeDisabled();
+    fireEvent.click(generate);
+    expect(onUiAction).not.toHaveBeenCalled();
   });
 });

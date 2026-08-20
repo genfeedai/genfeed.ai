@@ -66,7 +66,7 @@ export default function BrandAccountTypeSelector({
             >
               {label}
             </span>
-            <span className="text-[10px] text-white/30 leading-tight block mt-1">
+            <span className="text-2xs text-white/30 leading-tight block mt-1">
               {description}
             </span>
           </Button>

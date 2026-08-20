@@ -34,10 +34,10 @@ export default function AutomationOverviewPage() {
       color: 'bg-cyan-500/12 text-cyan-300',
       cta: 'Inspect Workspace',
       description: 'Start from the unified agents workspace overview',
-      href: href(APP_ROUTES.AUTOMATE.LIBRARY),
+      href: href(APP_ROUTES.AUTOMATE.AGENTS),
       icon: Settings,
       id: 'library',
-      label: 'Library',
+      label: 'Team',
     },
     {
       color: 'bg-amber-500/12 text-amber-300',
@@ -114,10 +114,10 @@ export default function AutomationOverviewPage() {
       cta: 'Open Library',
       description:
         'Enable or inspect agent roles for content, engagement, and support.',
-      href: href(APP_ROUTES.AUTOMATE.LIBRARY),
+      href: href(APP_ROUTES.AUTOMATE.AGENTS),
       icon: Settings,
       kicker: 'Workspace',
-      label: 'Agent Library',
+      label: 'Team',
     },
     {
       color: 'bg-amber-500/12 text-amber-300',
@@ -222,7 +222,7 @@ function ActivitySignal({
             iconClassName="h-5 w-5"
           />
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
+            <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
               {kicker}
             </p>
             <h3 className="mt-1 text-base font-semibold tracking-[-0.02em] text-foreground">

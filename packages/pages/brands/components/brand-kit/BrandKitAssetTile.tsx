@@ -59,7 +59,7 @@ export default function BrandKitAssetTile({
           onError={handlePreviewError}
         />
       ) : (
-        <span className="flex flex-col items-center gap-1 p-2 text-center text-[10px] leading-tight text-muted-foreground">
+        <span className="flex flex-col items-center gap-1 p-2 text-center text-2xs leading-tight text-muted-foreground">
           <ImageOff className="size-5" />
           {previewUrl ? 'Preview unavailable' : 'No image URL'}
         </span>
@@ -93,7 +93,7 @@ export default function BrandKitAssetTile({
       )}
 
       <figcaption
-        className="truncate text-[11px] text-muted-foreground"
+        className="truncate text-2xs text-muted-foreground"
         title={previewUrl ?? caption}
       >
         <span className="font-medium text-foreground/80">{asset.role}</span>

@@ -123,7 +123,7 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
               />
             </div>
             <span
-              className={`text-[10px] ${
+              className={`text-2xs ${
                 content.length > charLimit
                   ? 'text-destructive'
                   : 'text-muted-foreground'

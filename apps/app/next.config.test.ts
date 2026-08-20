@@ -180,25 +180,6 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects /studio/audio to /library/voices in three scopes', async () => {
-    const redirects = await config.redirects?.();
-    expect(redirects).toContainEqual({
-      destination: '/library/voices',
-      permanent: true,
-      source: '/studio/audio',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/library/voices',
-      permanent: true,
-      source: '/:orgSlug/:brandSlug/studio/audio',
-    });
-    expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/library/voices',
-      permanent: true,
-      source: '/:orgSlug/~/studio/audio',
-    });
-  });
-
   it('redirects brand-scoped and org-scoped /admin to the platform dashboard', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({
@@ -598,52 +579,31 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects /studio to the storyboard production surface', async () => {
+  it('redirects /studio to the generate playground', async () => {
     const redirects = await config.redirects?.();
     const studioRedirect = redirects?.find(
       (redirect) => redirect.source === APP_ROUTES.STUDIO.ROOT,
     );
 
     expect(studioRedirect).toEqual({
-      destination: APP_ROUTES.STUDIO.STORYBOARD,
+      destination: APP_ROUTES.STUDIO.GENERATE,
       permanent: false,
       source: APP_ROUTES.STUDIO.ROOT,
     });
   });
 
-  it('hard-cuts every retired studio one-off tab to the agent', async () => {
-    const redirects = await config.redirects?.();
+  it('keeps no legacy redirect surface for the retired studio tabs', async () => {
+    // The one-off tabs came back as `/studio/generate`, so the 28 legacy
+    // `/studio/<type>` rules were hard-cut rather than repointed — there is no
+    // redirect table to maintain for them.
+    const redirects = (await config.redirects?.()) ?? [];
+    const legacyStudioSources = redirects.filter((redirect) =>
+      /^(\/:orgSlug\/(:brandSlug|~))?\/studio\/(audio|avatar|image|images|music|video|videos)(\/|$)/.test(
+        redirect.source,
+      ),
+    );
 
-    for (const segment of ['avatar', 'image', 'images', 'music', 'video']) {
-      expect(redirects).toContainEqual({
-        destination: APP_ROUTES.AGENT.NEW,
-        permanent: true,
-        source: `${APP_ROUTES.STUDIO.ROOT}/${segment}`,
-      });
-      expect(redirects).toContainEqual({
-        destination: createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          APP_ROUTES.AGENT.NEW,
-        ),
-        permanent: true,
-        source: createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          `${APP_ROUTES.STUDIO.ROOT}/${segment}`,
-        ),
-      });
-    }
-  });
-
-  it('hard-cuts retired studio asset detail routes to the library', async () => {
-    const redirects = await config.redirects?.();
-
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.LIBRARY.ROOT,
-      permanent: true,
-      source: `${APP_ROUTES.STUDIO.ROOT}/image/:assetId`,
-    });
+    expect(legacyStudioSources).toEqual([]);
   });
 
   it('does not define a broad studio wildcard redirect', async () => {

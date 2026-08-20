@@ -15,7 +15,7 @@ export const preVariants = cva(
         ghost: 'bg-transparent text-muted-foreground',
       },
       size: {
-        xs: 'text-[10px] p-2',
+        xs: 'text-2xs p-2',
         sm: 'text-xs p-3',
         md: 'text-sm p-4',
       },

@@ -16,7 +16,7 @@ export const dtVariants = cva('', {
   variants: {
     variant: {
       default: 'text-sm text-foreground/45',
-      label: 'text-[10px] uppercase tracking-wider text-white/30',
+      label: 'text-2xs uppercase tracking-wider text-white/30',
       muted: 'text-xs text-muted-foreground',
     },
   },

@@ -151,7 +151,7 @@ export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
       )}
 
       {(modelLabel || routingPolicy) && (
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-2 text-2xs text-muted-foreground">
           {modelLabel && (
             <span className="rounded bg-muted px-1.5 py-0.5">
               Model: {modelLabel}
@@ -171,7 +171,7 @@ export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
           {toolGroups.map((group) => (
             <span
               key={group.name}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-muted text-muted-foreground"
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-2xs bg-muted text-muted-foreground"
             >
               {group.name}
               {group.count > 1 && (

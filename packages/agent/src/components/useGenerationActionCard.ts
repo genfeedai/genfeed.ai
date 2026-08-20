@@ -23,12 +23,17 @@ import {
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ModelCategory,
   type RouterPriority,
   toRouterPriority,
 } from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
+import {
+  resolveOrgAllowlistedModels,
+  shouldOfferAutoModel,
+} from '@helpers/model-allowlist.helper';
 import {
   AUTO_MODEL_OPTION_VALUE,
   getAutoModelLabel,
@@ -83,6 +88,7 @@ export function useGenerationActionCard({
   onRegenerate: onRegenerateProp,
   onUiAction,
 }: UseGenerationActionCardParams) {
+  const { organizationId, settings, settingsLoading } = useBrand();
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
   const preferredModel = readPreferredGenerationModel();
@@ -182,12 +188,52 @@ export function useGenerationActionCard({
     };
   }, [setThreadUiBusy]);
 
-  // Filter models by generation type
+  const pickerLoading =
+    modelsLoading || (Boolean(organizationId) && settingsLoading);
+
+  const allowlistedModels = useMemo(
+    () =>
+      resolveOrgAllowlistedModels(models, {
+        enabledModelIds: settings?.enabledModelIds,
+        isSettingsReady: !settingsLoading,
+        organizationId,
+      }),
+    [models, organizationId, settings?.enabledModelIds, settingsLoading],
+  );
+
+  // Filter models by generation type after the org allowlist.
   const filteredModels = useMemo(() => {
     const targetCategory =
       generationType === 'video' ? ModelCategory.VIDEO : ModelCategory.IMAGE;
-    return models.filter((m) => m.category === targetCategory);
-  }, [models, generationType]);
+    return allowlistedModels.filter((m) => m.category === targetCategory);
+  }, [allowlistedModels, generationType]);
+
+  const isAllowlistEmpty =
+    Boolean(organizationId) &&
+    !pickerLoading &&
+    !modelsError &&
+    !shouldOfferAutoModel(filteredModels);
+
+  useEffect(() => {
+    if (!isAllowlistEmpty) {
+      return;
+    }
+
+    if (isAutoMode || modelKey) {
+      setIsAutoMode(false);
+      setModelKey('');
+    }
+  }, [isAllowlistEmpty, isAutoMode, modelKey]);
+
+  useEffect(() => {
+    if (pickerLoading || isAutoMode || !modelKey) {
+      return;
+    }
+
+    if (!filteredModels.some((model) => model.key === modelKey)) {
+      setModelKey('');
+    }
+  }, [filteredModels, isAutoMode, modelKey, pickerLoading]);
 
   const selectedModel = useMemo(
     () => filteredModels.find((model) => model.key === modelKey) ?? null,
@@ -255,7 +301,7 @@ export function useGenerationActionCard({
   }, []);
 
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || status === 'generating') {
+    if (!prompt.trim() || status === 'generating' || isAllowlistEmpty) {
       return;
     }
 
@@ -376,6 +422,7 @@ export function useGenerationActionCard({
     onUiAction,
     setComposerError,
     setThreadUiBusy,
+    isAllowlistEmpty,
   ]);
 
   const handleRetry = useCallback(async () => {
@@ -476,8 +523,9 @@ export function useGenerationActionCard({
     prioritize,
     setPrioritize: handlePrioritizeChange,
     models,
-    modelsLoading,
+    modelsLoading: pickerLoading,
     modelsError,
+    isAllowlistEmpty,
     retryLoadModels,
     filteredModels,
     autoModelLabel,

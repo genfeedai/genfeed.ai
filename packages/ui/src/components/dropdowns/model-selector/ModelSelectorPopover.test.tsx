@@ -1,9 +1,9 @@
 import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/primitives/command', async () => {
   const React = await import('react');
@@ -190,6 +190,23 @@ vi.mock('@ui/primitives/select', async () => {
   };
 });
 
+vi.mock('@ui/primitives/tooltip', async () => {
+  const React = await import('react');
+
+  // The hover spec is covered in ModelSelectorModelItem.test.tsx with the real
+  // Radix tooltip. Here it would only duplicate every model label in the tree.
+  return {
+    Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    TooltipContent: () => null,
+    TooltipProvider: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+    TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
+  };
+});
+
 function createModel(
   overrides: Partial<IModel> & Pick<IModel, 'key' | 'label'>,
 ): IModel {
@@ -230,11 +247,12 @@ const catalogFilterFixtures = [
   }),
 ];
 
-function visibleExpandedModelFamilies(): string[] {
-  return screen
-    .queryAllByRole('button', { name: /, .+, expanded$/ })
-    .map((button) => button.getAttribute('aria-label') ?? '')
-    .toSorted();
+beforeEach(() => {
+  window.localStorage.clear();
+});
+
+function openPicker(user: ReturnType<typeof userEvent.setup>) {
+  return user.click(screen.getByRole('button', { name: /select models/i }));
 }
 
 describe('ModelSelectorPopover', () => {
@@ -256,7 +274,7 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
+    await openPicker(user);
 
     expect(screen.getByTestId('model-selector-popover')).toHaveClass(
       'bg-secondary',
@@ -265,7 +283,7 @@ describe('ModelSelectorPopover', () => {
     expect(container.querySelector('.bg-card')).toBeNull();
   });
 
-  it('renders family groups and selects concrete variants', async () => {
+  it('lists every variant as its own row with no family to open first', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
@@ -288,22 +306,160 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
+    await openPicker(user);
 
     expect(screen.getByText('Nano Banana')).toBeInTheDocument();
-    expect(screen.queryByText('Base')).not.toBeInTheDocument();
+    expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /collapsed|expanded/ }),
+    ).not.toBeInTheDocument();
+    // The row carries the model name once — the old family layout printed the
+    // variant and then repeated the full label underneath it.
+    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /nano banana/i }));
-
-    expect(screen.getByText('Base')).toBeInTheDocument();
-    expect(screen.getByText('Pro')).toBeInTheDocument();
-
-    await user.click(screen.getByText('Pro'));
+    await user.click(screen.getByText('Nano Banana Pro'));
 
     expect(onChange).toHaveBeenCalledWith('models', ['google/nano-banana-pro']);
-  }, 15_000);
+  });
 
-  it('filters source tabs and hides auto in trainings', async () => {
+  it('shows a provider mark on every row instead of a provider rail', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({ key: 'google/nano-banana', label: 'Nano Banana' }),
+          createModel({ key: 'openai/gpt-image', label: 'GPT Image' }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+
+    expect(screen.getAllByTestId('model-row-provider-icon')).toHaveLength(2);
+    expect(
+      screen.queryByRole('button', { name: /all providers/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders audio support as an icon, never as a word in the row', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            category: ModelCategory.VIDEO,
+            hasSpeech: true,
+            key: 'google/veo-3',
+            label: 'Veo 3',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+
+    const row = screen.getByText('Veo 3').closest('button');
+    expect(row).not.toBeNull();
+    expect(
+      within(row as HTMLElement).getByRole('img', { name: 'Audio' }),
+    ).toBeInTheDocument();
+    expect(row?.textContent).not.toContain('Audio');
+  });
+
+  it('offers a capability pill only when the catalog can satisfy it', async () => {
+    const user = userEvent.setup();
+
+    const { rerender } = render(
+      <ModelSelectorPopover
+        models={[
+          createModel({ key: 'google/nano-banana', label: 'Nano Banana' }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+
+    expect(
+      screen.queryByRole('group', { name: 'Filter models' }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <ModelSelectorPopover
+        models={[
+          createModel({ key: 'google/nano-banana', label: 'Nano Banana' }),
+          createModel({
+            hasSpeech: true,
+            key: 'google/veo-3',
+            label: 'Veo 3',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    expect(
+      within(filterGroup).getByRole('button', { name: 'Audio' }),
+    ).toBeInTheDocument();
+    expect(
+      within(filterGroup).queryByRole('button', { name: 'Fast' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('narrows the list to one capability at a time', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({ key: 'google/nano-banana', label: 'Nano Banana' }),
+          createModel({
+            hasAudioToggle: true,
+            key: 'google/veo-3',
+            label: 'Veo 3',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+
+    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    await user.click(
+      within(filterGroup).getByRole('button', { name: 'Audio' }),
+    );
+
+    expect(screen.getByText('Veo 3')).toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+    expect(
+      within(filterGroup).getByRole('button', { name: 'Audio' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    // Capability views are catalog subsets — routing is not one of them.
+    expect(screen.queryByText('Best Quality')).not.toBeInTheDocument();
+  });
+
+  it('filters by source pill and hides auto outside its source groups', async () => {
     const user = userEvent.setup();
 
     render(
@@ -328,26 +484,27 @@ describe('ModelSelectorPopover', () => {
         sourceGroupResolver={(model) =>
           model.id === 'training-1' ? 'trainings' : 'models'
         }
-        sourceGroupLabels={{
-          models: 'Models',
-          trainings: 'Trainings',
-        }}
+        sourceGroupLabels={{ models: 'GenFeed', trainings: 'Trainings' }}
         autoSourceGroups={['models']}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-    expect(screen.getByText('Balanced')).toBeInTheDocument();
+    await openPicker(user);
 
-    await user.click(screen.getByRole('button', { name: 'Trainings' }));
+    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    expect(screen.getByText('Best Quality')).toBeInTheDocument();
+
+    await user.click(
+      within(filterGroup).getByRole('button', { name: 'Trainings' }),
+    );
 
     expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
-    expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+    expect(screen.queryByText('Best Quality')).not.toBeInTheDocument();
   });
 
   it('keeps auto routing and the manual catalog visible when auto is selected', async () => {
     const user = userEvent.setup();
-    const onPrioritizeChange = vi.fn();
 
     render(
       <ModelSelectorPopover
@@ -360,32 +517,26 @@ describe('ModelSelectorPopover', () => {
         values={['__auto_model__']}
         onChange={vi.fn()}
         prioritize={RouterPriority.QUALITY}
-        onPrioritizeChange={onPrioritizeChange}
         favoriteModelKeys={[]}
         onFavoriteToggle={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /auto/i }));
+    await openPicker(user);
 
-    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
-    expect(screen.getByText('Nano Banana')).toBeInTheDocument();
     expect(screen.getByText('Best Quality')).toBeInTheDocument();
-    expect(screen.getByText('Lowest Cost')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Balanced' }));
-
-    expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.BALANCED);
+    expect(screen.getByText('Nano Banana')).toBeInTheDocument();
   });
 
-  it('selects auto mode when a routing option is chosen from the flat list', async () => {
+  it('does not offer Auto when the allowlisted catalog is empty', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
     render(
       <ModelSelectorPopover
+        autoLabel="Auto · Lowest Cost"
         models={[]}
-        values={[]}
+        values={['__auto_model__']}
         onChange={onChange}
         onPrioritizeChange={vi.fn()}
         favoriteModelKeys={[]}
@@ -393,125 +544,13 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-    await user.click(screen.getByRole('button', { name: 'Fastest' }));
-
-    expect(onChange).toHaveBeenCalledWith('models', ['__auto_model__']);
-  });
-
-  it('shows only favorite families in favorites mode', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ModelSelectorPopover
-        models={[
-          createModel({
-            key: 'google/nano-banana',
-            label: 'Nano Banana',
-          }),
-          createModel({
-            category: ModelCategory.VIDEO,
-            key: 'google/veo-3.1',
-            label: 'Veo 3.1',
-          }),
-        ]}
-        values={[]}
-        onChange={vi.fn()}
-        favoriteModelKeys={['google/veo-3.1']}
-        onFavoriteToggle={vi.fn()}
-      />,
+    await user.click(
+      screen.getByRole('button', { name: /auto|select models/i }),
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-    await user.click(screen.getByRole('button', { name: 'Favorites' }));
-
-    expect(screen.getByText('Veo 3.1')).toBeInTheDocument();
-    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
-  });
-
-  it('shows deprecated models with a legacy badge under the Legacy rail', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ModelSelectorPopover
-        models={[
-          createModel({
-            isDeprecated: true,
-            key: 'google/nano-banana-pro',
-            label: 'Nano Banana Pro',
-          } as IModel),
-        ]}
-        values={[]}
-        onChange={vi.fn()}
-        favoriteModelKeys={[]}
-        onFavoriteToggle={vi.fn()}
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-    await user.click(screen.getByRole('button', { name: 'Legacy models' }));
-
-    expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
-    // Family heading "Legacy" section + row badge.
-    expect(screen.getAllByText('Legacy').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('auto-expands matching families when searching', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ModelSelectorPopover
-        models={[
-          createModel({
-            category: ModelCategory.VIDEO,
-            key: 'google/veo-3',
-            label: 'Veo 3',
-          }),
-          createModel({
-            category: ModelCategory.VIDEO,
-            key: 'google/veo-3.1-fast',
-            label: 'Veo 3.1 (Fast)',
-          }),
-        ]}
-        values={[]}
-        onChange={vi.fn()}
-        favoriteModelKeys={[]}
-        onFavoriteToggle={vi.fn()}
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-    await user.type(screen.getByPlaceholderText('Search models…'), '3.1');
-
-    expect(screen.getByText('Veo')).toBeInTheDocument();
-    expect(screen.getByText('3.1 Fast')).toBeInTheDocument();
-  });
-
-  it('gives favorite toggles an accessible model-specific label', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ModelSelectorPopover
-        models={[
-          createModel({
-            key: 'google/nano-banana-pro',
-            label: 'Nano Banana Pro',
-          }),
-        ]}
-        values={[]}
-        onChange={vi.fn()}
-        favoriteModelKeys={[]}
-        onFavoriteToggle={vi.fn()}
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-
-    expect(
-      screen.getByRole('button', {
-        name: 'Add Nano Banana Pro to favorites',
-      }),
-    ).toBeInTheDocument();
+    expect(screen.queryByText('Lowest Cost')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fastest')).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('always emits the Auto sentinel when a priority card is chosen', async () => {
@@ -523,36 +562,88 @@ describe('ModelSelectorPopover', () => {
       <ModelSelectorPopover
         models={[
           createModel({
-            key: 'google/gemini-flash',
-            label: 'Gemini Flash',
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
           }),
         ]}
-        values={['google/gemini-flash']}
+        values={['__auto_model__']}
         onChange={onChange}
-        onPrioritizeChange={onPrioritizeChange}
-        autoLabel="Auto · Balanced"
         prioritize={RouterPriority.BALANCED}
+        onPrioritizeChange={onPrioritizeChange}
         favoriteModelKeys={[]}
         onFavoriteToggle={vi.fn()}
-        selectionMode="single"
       />,
     );
 
-    // Trigger currently shows the concrete model.
-    expect(screen.getByText('Gemini Flash')).toBeInTheDocument();
+    await openPicker(user);
+    await user.click(screen.getByText('Fastest'));
 
-    await user.click(screen.getByRole('button', { name: /gemini flash/i }));
-    // Brand rail is always available for filtering.
-    expect(
-      screen.getByRole('button', { name: 'All providers' }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Best Quality' }));
-
-    expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.QUALITY);
+    expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.SPEED);
     expect(onChange).toHaveBeenCalledWith('models', ['__auto_model__']);
   });
 
-  it('shows the exact current and legacy catalog fixture memberships', async () => {
+  it('ranks favorites and recents above the rest of the catalog, once each', async () => {
+    window.localStorage.setItem(
+      'genfeed:model-recent-keys',
+      JSON.stringify(['google/model-c']),
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({ key: 'google/model-a', label: 'Model A' }),
+          createModel({ key: 'google/model-b', label: 'Model B' }),
+          createModel({ key: 'google/model-c', label: 'Model C' }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={['google/model-b']}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+
+    const popoverText =
+      screen.getByTestId('model-selector-popover').textContent ?? '';
+
+    expect(popoverText.indexOf('Favorites')).toBeGreaterThan(-1);
+    expect(popoverText.indexOf('Favorites')).toBeLessThan(
+      popoverText.indexOf('Recent'),
+    );
+    expect(popoverText.indexOf('Recent')).toBeLessThan(
+      popoverText.indexOf('All models'),
+    );
+    expect(screen.getAllByText('Model B')).toHaveLength(1);
+    expect(screen.getAllByText('Model C')).toHaveLength(1);
+  });
+
+  it('records the model it just selected as recent', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[createModel({ key: 'google/model-a', label: 'Model A' })]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+    await user.click(screen.getByText('Model A'));
+
+    expect(
+      JSON.parse(
+        window.localStorage.getItem('genfeed:model-recent-keys') ?? '[]',
+      ),
+    ).toEqual(['google/model-a']);
+  });
+
+  it('hides deprecated models until the Legacy pill is chosen', async () => {
     const user = userEvent.setup();
 
     render(
@@ -562,89 +653,93 @@ describe('ModelSelectorPopover', () => {
         onChange={vi.fn()}
         favoriteModelKeys={[]}
         onFavoriteToggle={vi.fn()}
-        selectionMode="single"
-        autoLabel="Auto"
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
-    expect(screen.getByText('Current Beta')).toBeInTheDocument();
-    expect(screen.queryByText('Legacy Alpha')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Google, collapsed' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'OpenAI, collapsed' }),
-    ).not.toBeInTheDocument();
-    expect(visibleExpandedModelFamilies()).toEqual([]);
+    await openPicker(user);
 
-    await user.click(screen.getByRole('button', { name: 'Legacy models' }));
+    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy Alpha')).not.toBeInTheDocument();
+
+    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    await user.click(
+      within(filterGroup).getByRole('button', { name: 'Legacy' }),
+    );
+
     expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Legacy Beta')).toBeInTheDocument();
     expect(screen.queryByText('Current Alpha')).not.toBeInTheDocument();
-    expect(visibleExpandedModelFamilies()).toEqual([]);
   });
 
-  it('lists collapsed families in All view without a provider accordion', async () => {
+  it('collapses search to one flat list that still reaches legacy models', async () => {
     const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={catalogFilterFixtures}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={['google/current-alpha']}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+    await user.type(screen.getByPlaceholderText('Search models…'), 'alpha');
+
+    expect(screen.getByText('Current Alpha')).toBeInTheDocument();
+    expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();
+    expect(screen.queryByText('Current Beta')).not.toBeInTheDocument();
+    // One result list — no Favorites/Recent/All split while searching.
+    expect(screen.queryByText('Favorites')).not.toBeInTheDocument();
+    expect(screen.queryByText('All models')).not.toBeInTheDocument();
+  });
+
+  it('reports an empty catalog instead of an empty section heading', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[createModel({ key: 'google/model-a', label: 'Model A' })]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+    await user.type(screen.getByPlaceholderText('Search models…'), 'zzzz');
+
+    expect(screen.getByText('No models found')).toBeInTheDocument();
+    expect(screen.queryByText('All models')).not.toBeInTheDocument();
+  });
+
+  it('gives favorite toggles an accessible model-specific label', async () => {
+    const user = userEvent.setup();
+    const onFavoriteToggle = vi.fn();
 
     render(
       <ModelSelectorPopover
         models={[
           createModel({
-            key: 'genfeed-ai/flux2-dev',
-            label: 'Flux2 Dev',
-          }),
-          createModel({
-            key: 'genfeed-ai/flux2-klein',
-            label: 'Flux2 Klein',
-          }),
-          createModel({
-            key: 'fal-ai/flux-schnell',
-            label: 'Flux Schnell',
-          }),
-          createModel({
-            key: 'sdxl',
-            label: 'SDXL (image)',
-          }),
-          createModel({
-            key: 'leonardoai',
-            label: 'Leonardoai (image)',
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
           }),
         ]}
         values={[]}
         onChange={vi.fn()}
         favoriteModelKeys={[]}
-        onFavoriteToggle={vi.fn()}
-        selectionMode="single"
+        onFavoriteToggle={onFavoriteToggle}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-
-    expect(
-      screen.queryByRole('button', { name: 'GenFeed, collapsed' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Fal, collapsed' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Unknown, collapsed' }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Unknown')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Flux Schnell')).toBeInTheDocument();
-    expect(screen.getByText('SDXL')).toBeInTheDocument();
-    expect(screen.getByText('Leonardo')).toBeInTheDocument();
-    expect(screen.queryByText('Klein')).not.toBeInTheDocument();
-
+    await openPicker(user);
     await user.click(
-      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
+      screen.getByRole('button', { name: 'Add Nano Banana to favorites' }),
     );
 
-    expect(screen.getByText('Klein')).toBeInTheDocument();
+    expect(onFavoriteToggle).toHaveBeenCalledWith('google/nano-banana');
   });
 
   it('blocks selecting models that cost more credits than available', async () => {
@@ -668,11 +763,10 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /select models/i }));
+    await openPicker(user);
+
     expect(screen.getByText('Credits')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /collapsed|expanded/ }),
-    ).not.toBeInTheDocument();
+
     await user.click(screen.getByText('Expensive Model'));
 
     expect(onChange).not.toHaveBeenCalled();
@@ -739,93 +833,5 @@ describe('ModelSelectorPopover', () => {
     expect(
       screen.queryByPlaceholderText('Search models…'),
     ).not.toBeInTheDocument();
-  });
-
-  it('keeps single-select family toggles keyboard-reachable', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ModelSelectorPopover
-        models={[
-          createModel({
-            key: 'google/nano-banana',
-            label: 'Nano Banana',
-          }),
-          createModel({
-            key: 'google/nano-banana-pro',
-            label: 'Nano Banana Pro',
-          }),
-        ]}
-        values={[]}
-        onChange={vi.fn()}
-        favoriteModelKeys={[]}
-        onFavoriteToggle={vi.fn()}
-        selectionMode="single"
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-
-    const family = screen.getByRole('button', {
-      name: 'Nano Banana, Google, collapsed',
-    });
-    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
-
-    family.focus();
-    await user.keyboard('{Enter}');
-
-    expect(family).toHaveAccessibleName('Nano Banana, Google, expanded');
-    expect(screen.getByText('Pro')).toBeInTheDocument();
-
-    await user.keyboard('{Enter}');
-
-    expect(family).toHaveAccessibleName('Nano Banana, Google, collapsed');
-    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
-  });
-
-  it('nests GenFeed Flux2 variants under one collapsed family with a real mark', async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ModelSelectorPopover
-        models={[
-          createModel({
-            key: 'genfeed-ai/flux2-dev',
-            label: 'Flux2 Dev',
-          }),
-          createModel({
-            key: 'genfeed-ai/flux2-dev-pulid',
-            label: 'Flux2 Dev Pulid',
-          }),
-          createModel({
-            key: 'genfeed-ai/flux2-klein',
-            label: 'Flux2 Klein',
-          }),
-        ]}
-        values={[]}
-        onChange={vi.fn()}
-        favoriteModelKeys={[]}
-        onFavoriteToggle={vi.fn()}
-        selectionMode="single"
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /select models/i }));
-
-    expect(
-      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('model-family-provider-icon'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Klein')).not.toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole('button', { name: 'Flux2, GenFeed, collapsed' }),
-    );
-
-    expect(screen.getByText('Klein')).toBeInTheDocument();
-    expect(screen.getByText('Dev Pulid')).toBeInTheDocument();
   });
 });

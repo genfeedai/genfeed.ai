@@ -38,13 +38,12 @@ export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
  * occludes scrolling assistant text; no "You" label — the card is the highlight.
  */
 export const AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS = [
-  'ship-ui w-full max-w-full border border-border-strong bg-tertiary px-3 py-2.5 text-[15px] leading-6 text-foreground',
+  'ship-ui w-full max-w-full border border-border-strong bg-tertiary px-3 py-2.5 text-md leading-6 text-foreground',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
 
 /** Assistant body — solid foreground so faded /90–/92 type cannot wash out. */
-export const AGENT_ASSISTANT_PROSE_CLASS =
-  'text-[15px] leading-6 text-foreground';
+export const AGENT_ASSISTANT_PROSE_CLASS = 'text-md leading-6 text-foreground';
 
 /**
  * Pins the user prompt to the scrollport and paints the canvas behind it so

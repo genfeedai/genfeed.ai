@@ -79,7 +79,7 @@ export function AdGridCard({
         </div>
 
         <div className="rounded-lg shadow-border bg-card px-3 py-2 text-right">
-          <div className="text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+          <div className="text-2xs uppercase tracking-[0.18em] text-foreground/45">
             {getMetricLabel(metric)}
           </div>
           <div className="text-lg font-semibold text-foreground">
@@ -261,25 +261,25 @@ export function AdsResearchAdTable({
       <Table className="w-full text-left">
         <TableHeader>
           <TableRow className="border-b border-white/[0.06] bg-card">
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               Platform
             </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               Title
             </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               Source
             </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               {getMetricLabel(metric)}
             </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               CTR
             </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               Channel
             </TableHead>
-            <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               Account
             </TableHead>
           </TableRow>

@@ -25,7 +25,11 @@ import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { describeCadence } from '@/features/workflows/components/schedule/schedule-cadence';
 import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import { isCanonicalSystemWorkflow } from '@/features/workflows/services/workflow-api';
-import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
+import {
+  formatLifecycleLabel,
+  getLifecycleBadgeClass,
+  isNonDefaultWorkflowLifecycle,
+} from '@/features/workflows/utils/status-helpers';
 import EmptyWorkflowState from './EmptyWorkflowState';
 import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
 import WorkflowCardDropdown from './WorkflowCardDropdown';
@@ -204,7 +208,7 @@ export default function WorkflowLibraryPage() {
                   'Reusable automation workflow for content operations.'
                 }
                 headerAction={
-                  <div className="relative z-20 flex items-center gap-2">
+                  <div className="relative z-20 flex shrink-0 items-center gap-2">
                     {isSystemWorkflow ? (
                       <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs text-info">
                         {translate('library.system')}
@@ -221,21 +225,14 @@ export default function WorkflowLibraryPage() {
                         {translate('library.local')}
                       </span>
                     ) : null}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
-                        workflow.lifecycle,
-                      )}`}
-                    >
-                      {workflow.lifecycle}
-                    </span>
-                    {!isSystemWorkflow && workflow.schedule ? (
-                      <Switch
-                        checked={workflow.isScheduleEnabled ?? false}
-                        aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.label}`}
-                        onCheckedChange={(checked) =>
-                          handleToggleSchedule(workflow.id, checked)
-                        }
-                      />
+                    {isNonDefaultWorkflowLifecycle(workflow.lifecycle) ? (
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
+                          workflow.lifecycle,
+                        )}`}
+                      >
+                        {formatLifecycleLabel(workflow.lifecycle)}
+                      </span>
                     ) : null}
                     <WorkflowCardDropdown
                       canDelete={!isSystemWorkflow}
@@ -262,9 +259,9 @@ export default function WorkflowLibraryPage() {
                     thumbnail={workflow.thumbnail}
                   />
                   {workflow.schedule ? (
-                    <div className="flex items-center gap-1.5 text-xs text-foreground/60">
+                    <div className="relative z-20 flex items-center gap-2 text-xs text-foreground/60">
                       <CalendarClock className="size-3.5 shrink-0" />
-                      <span className="truncate">
+                      <span className="min-w-0 truncate">
                         {describeCadence(workflow.schedule)}
                         {workflow.isScheduleEnabled && workflow.nextRunAt ? (
                           <>
@@ -275,9 +272,22 @@ export default function WorkflowLibraryPage() {
                             />
                           </>
                         ) : workflow.isScheduleEnabled ? null : (
-                          ' · Paused'
+                          ` · ${translate('library.paused')}`
                         )}
                       </span>
+                      {isSystemWorkflow ? (
+                        <span className="shrink-0 text-foreground/40">
+                          {translate('library.platformManaged')}
+                        </span>
+                      ) : (
+                        <Switch
+                          checked={workflow.isScheduleEnabled ?? false}
+                          aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.label}`}
+                          onCheckedChange={(checked) =>
+                            handleToggleSchedule(workflow.id, checked)
+                          }
+                        />
+                      )}
                     </div>
                   ) : null}
                   <div className="flex items-center justify-between text-xs text-foreground/50">

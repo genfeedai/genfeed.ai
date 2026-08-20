@@ -60,7 +60,7 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
-  usePathname: () => '/org-one/brand-one/automate/library',
+  usePathname: () => '/org-one/brand-one/automate/agents',
   useRouter: () => ({ push: vi.fn() }),
 }));
 
@@ -168,7 +168,7 @@ describe('AgentHubPage', () => {
     ).toBeVisible();
     expect(screen.getByText(/New Agent/).closest('a')).toHaveAttribute(
       'href',
-      '/automate/new',
+      '/automate/agents/new',
     );
     expect(document.querySelectorAll('.animate-pulse')).toHaveLength(3);
 
@@ -229,7 +229,7 @@ describe('AgentHubPage', () => {
     expect(screen.getByText('Never')).toBeVisible();
     expect(screen.getAllByText('View detail')[0].closest('a')).toHaveAttribute(
       'href',
-      '/automate/agent-1',
+      '/automate/agents/agent-1',
     );
 
     fireEvent.click(screen.getAllByText('Autopilot')[0]);

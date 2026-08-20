@@ -84,7 +84,7 @@ export function AgentRuntimeSelector({
             category={selectedRuntime.category}
             provider={selectedRuntime.provider}
           />
-          <span className="text-[11px] font-medium text-foreground">
+          <span className="text-2xs font-medium text-foreground">
             {selectedRuntime.label}
           </span>
           <ChevronDown
@@ -104,7 +104,7 @@ export function AgentRuntimeSelector({
       >
         <div className="mb-2 flex items-start justify-between gap-3 px-2.5 py-2">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/42">
+            <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-foreground/42">
               Runtime Routing
             </p>
             <p className="text-xs text-foreground/58">
@@ -114,7 +114,7 @@ export function AgentRuntimeSelector({
             </p>
           </div>
           <span
-            className="gen-shell-chip px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+            className="gen-shell-chip px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.16em]"
             data-tone={environmentLabel === 'local' ? 'success' : 'info'}
           >
             {environmentLabel}

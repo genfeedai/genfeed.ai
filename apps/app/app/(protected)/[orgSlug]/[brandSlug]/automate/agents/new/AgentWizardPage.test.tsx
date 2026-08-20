@@ -338,7 +338,7 @@ describe('AgentWizardPage', () => {
         'Agent created successfully',
       );
       expect(mocks.push).toHaveBeenCalledWith(
-        '/acme-org/acme-creator/automate',
+        '/acme-org/acme-creator/automate/agents',
       );
     });
   });

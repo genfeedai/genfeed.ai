@@ -12,7 +12,7 @@ export function AutoFillToggle(): ReactElement {
     <div className="flex items-center justify-between">
       <div>
         <span className="text-sm text-foreground">Auto-fill compose box</span>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-2xs text-muted-foreground">
           Automatically insert content after generation
         </p>
       </div>

@@ -80,7 +80,7 @@ export default function SettingsProgressRewardsCard({
               </div>
 
               <Badge
-                className="px-2.5 py-1 text-[11px] font-medium"
+                className="px-2.5 py-1 text-2xs font-medium"
                 variant={
                   milestone.isAchieved
                     ? 'success'

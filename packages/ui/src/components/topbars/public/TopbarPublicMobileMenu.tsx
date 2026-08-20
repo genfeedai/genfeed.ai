@@ -75,7 +75,7 @@ export default function TopbarPublicMobileMenu({
             {/* Mobile Dropdowns */}
             {dropdowns.map((dropdown) => (
               <li key={dropdown.label}>
-                <span className="mb-3 block text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40">
+                <span className="mb-3 block text-2xs font-bold uppercase tracking-[0.2em] text-foreground/40">
                   {dropdown.label}
                 </span>
                 <ul className="space-y-1">
@@ -110,7 +110,7 @@ export default function TopbarPublicMobileMenu({
             {/* Mobile Flat Links */}
             {navLinks.length > 0 && (
               <li>
-                <span className="mb-3 block text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/40">
+                <span className="mb-3 block text-2xs font-bold uppercase tracking-[0.2em] text-foreground/40">
                   More
                 </span>
                 <ul className="space-y-1">

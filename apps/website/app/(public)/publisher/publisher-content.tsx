@@ -318,7 +318,7 @@ export default function PublisherContent() {
                   )}
 
                   {/* Step number */}
-                  <Text className="text-[10px] font-black uppercase tracking-widest text-surface/50 mb-3">
+                  <Text className="text-2xs font-black uppercase tracking-widest text-surface/50 mb-3">
                     Step {index + 1}
                   </Text>
 

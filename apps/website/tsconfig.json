@@ -53,6 +53,7 @@
       "@public/*": ["./app/(public)/*"],
       "@schemas/*": ["../../packages/schemas/*"],
       "@genfeedai/fonts": ["../../packages/fonts/index.ts"],
+      "@genfeedai/fonts/*": ["../../packages/fonts/*"],
       "@genfeedai/serializers": ["../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
       "@genfeedai/ui": ["../../packages/ui/src/index.ts"],

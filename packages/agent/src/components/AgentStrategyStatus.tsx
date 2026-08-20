@@ -139,14 +139,14 @@ export function AgentStrategyStatus({
             Status
           </h3>
           {!strategy.isEnabled && (
-            <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            <span className="rounded-full border border-border px-2 py-0.5 text-2xs font-medium text-muted-foreground">
               Paused
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+            className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
               strategy.isActive && strategy.isEnabled
                 ? 'bg-green-500/10 text-green-500'
                 : 'bg-muted text-muted-foreground'
@@ -175,7 +175,7 @@ export function AgentStrategyStatus({
       {/* Timing */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-0.5">
-          <p className="text-[10px] text-muted-foreground">Last run</p>
+          <p className="text-2xs text-muted-foreground">Last run</p>
           <p className="text-xs font-medium text-foreground">
             {strategy.lastRunAt
               ? formatRelativeTime(strategy.lastRunAt)
@@ -183,7 +183,7 @@ export function AgentStrategyStatus({
           </p>
         </div>
         <div className="space-y-0.5">
-          <p className="text-[10px] text-muted-foreground">Next run</p>
+          <p className="text-2xs text-muted-foreground">Next run</p>
           <p className="text-xs font-medium text-foreground">
             {strategy.nextRunAt
               ? formatFutureTime(strategy.nextRunAt)
@@ -195,8 +195,8 @@ export function AgentStrategyStatus({
       {/* Daily budget */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] text-muted-foreground">Daily credits</p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-2xs text-muted-foreground">Daily credits</p>
+          <p className="text-2xs text-muted-foreground">
             {strategy.creditsUsedToday} / {strategy.dailyCreditBudget}
           </p>
         </div>
@@ -213,8 +213,8 @@ export function AgentStrategyStatus({
       {/* Weekly budget */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] text-muted-foreground">Weekly credits</p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-2xs text-muted-foreground">Weekly credits</p>
+          <p className="text-2xs text-muted-foreground">
             {strategy.creditsUsedThisWeek} / {strategy.weeklyCreditBudget}
           </p>
         </div>

@@ -180,7 +180,7 @@ function DownloadNodeComponent(props: NodeProps) {
           <div className="flex h-20 flex-col items-center justify-center text-muted-foreground">
             <Clock className="mb-2 size-6 opacity-30" />
             <span className="text-xs">Waiting for input…</span>
-            <span className="mt-1 text-[10px] opacity-60">
+            <span className="mt-1 text-2xs opacity-60">
               Run workflow to generate
             </span>
           </div>

@@ -177,7 +177,7 @@ function AgentCard({
           onClick={() => onToggle(strategy.id, !strategy.isActive)}
         />
         <Link
-          href={`/automate/${strategy.id}`}
+          href={`${APP_ROUTES.AUTOMATE.AGENTS}/${strategy.id}`}
           className="ml-auto text-xs text-foreground/50 hover:text-foreground underline underline-offset-2"
         >
           {translate('card.viewDetail')}

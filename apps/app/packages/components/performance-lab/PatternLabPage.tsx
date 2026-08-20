@@ -85,7 +85,7 @@ function FilterSelect<T extends string>({
   return (
     <div className="flex flex-col gap-1">
       <label
-        className="text-[10px] text-foreground/40 uppercase tracking-wider"
+        className="text-2xs text-foreground/40 uppercase tracking-wider"
         htmlFor={selectId}
       >
         {label}

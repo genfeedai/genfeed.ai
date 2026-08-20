@@ -1,0 +1,401 @@
+'use client';
+
+import { IngredientStatus } from '@genfeedai/enums';
+import type { IImage, IModel, IVideo } from '@genfeedai/interfaces';
+import type {
+  GenerationResponse,
+  SocketResult,
+} from '@genfeedai/interfaces/content/generation-payload.interface';
+import type { AssetQueryService } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import type {
+  StudioGenerateJob,
+  StudioGenerateSettings,
+  StudioGenerateType,
+} from '@pages/studio/generate/types';
+import {
+  buildAvatarPayload,
+  buildBaseGenerationPayload,
+  buildImagePayload,
+  buildMusicPayload,
+  buildVideoPayload,
+} from '@pages/studio/generate/utils/generation-payloads';
+import { resolveStudioAssetUrl } from '@pages/studio/generate/utils/studio-generate-asset';
+import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
+import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import { IngredientsService } from '@services/content/ingredients.service';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
+import { createMediaHandler } from '@services/core/socket-manager.service';
+import { HeyGenService } from '@services/ingredients/heygen.service';
+import { ImagesService } from '@services/ingredients/images.service';
+import { MusicsService } from '@services/ingredients/musics.service';
+import { VideosService } from '@services/ingredients/videos.service';
+import { VoicesService } from '@services/ingredients/voices.service';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { resolvePendingIds } from '@utils/network/generation.util';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+const DEFAULT_MUSIC_DURATION = 10;
+
+export interface UseStudioGenerationParams {
+  brandId: string;
+  models: readonly IModel[];
+  onGenerated?: () => void;
+  settings: StudioGenerateSettings;
+  type: StudioGenerateType;
+}
+
+export interface UseStudioGenerationReturn {
+  clearJobs: () => void;
+  isGenerating: boolean;
+  jobs: readonly StudioGenerateJob[];
+  submit: (promptText: string, references?: string[]) => Promise<void>;
+}
+
+/**
+ * Resolves the model key actually sent to the API. Auto routing and avatar
+ * both let the backend pick, so they submit an empty key.
+ */
+export function resolveModelKey(
+  settings: StudioGenerateSettings,
+  models: readonly IModel[],
+  hasModelSelection: boolean,
+): string {
+  if (!hasModelSelection || settings.modelKey === AUTO_MODEL_OPTION_VALUE) {
+    return '';
+  }
+
+  if (models.some((model) => model.key === settings.modelKey)) {
+    return settings.modelKey;
+  }
+
+  return models[0]?.key ?? '';
+}
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+export function useStudioGeneration({
+  brandId,
+  models,
+  onGenerated,
+  settings,
+  type,
+}: UseStudioGenerationParams): UseStudioGenerationReturn {
+  const { subscribe } = useSocketManager();
+  const [jobs, setJobs] = useState<readonly StudioGenerateJob[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const subscriptionsRef = useRef<Array<() => void>>([]);
+  const onGeneratedRef = useRef(onGenerated);
+
+  useEffect(() => {
+    onGeneratedRef.current = onGenerated;
+  }, [onGenerated]);
+
+  useEffect(
+    () => () => {
+      for (const unsubscribe of subscriptionsRef.current) {
+        unsubscribe();
+      }
+      subscriptionsRef.current = [];
+    },
+    [],
+  );
+
+  const notificationsService = useMemo(
+    () => NotificationsService.getInstance(),
+    [],
+  );
+
+  const getImagesService = useAuthedService((token: string) =>
+    ImagesService.getInstance(token),
+  );
+  const getVideosService = useAuthedService((token: string) =>
+    VideosService.getInstance(token),
+  );
+  const getMusicsService = useAuthedService((token: string) =>
+    MusicsService.getInstance(token),
+  );
+  const getVoicesService = useAuthedService((token: string) =>
+    VoicesService.getInstance(token),
+  );
+  const getHeyGenService = useAuthedService((token: string) =>
+    HeyGenService.getInstance(token),
+  );
+  const getIngredientsService = useAuthedService((token: string) =>
+    IngredientsService.getInstance(token),
+  );
+
+  const patchJob = useCallback(
+    (id: string, patch: Partial<StudioGenerateJob>) => {
+      setJobs((previous) =>
+        previous.map((job) => (job.id === id ? { ...job, ...patch } : job)),
+      );
+    },
+    [],
+  );
+
+  const clearJobs = useCallback(() => {
+    setJobs([]);
+  }, []);
+
+  const resolveFetchService = useCallback(
+    async (jobType: StudioGenerateType): Promise<AssetQueryService> => {
+      switch (jobType) {
+        case 'image':
+          return await getImagesService();
+        case 'video':
+          return await getVideosService();
+        case 'music':
+          return await getMusicsService();
+        default:
+          return await getIngredientsService();
+      }
+    },
+    [
+      getImagesService,
+      getIngredientsService,
+      getMusicsService,
+      getVideosService,
+    ],
+  );
+
+  const trackPendingIds = useCallback(
+    (
+      pendingIds: string[],
+      context: { modelKey: string; promptText: string },
+    ) => {
+      const config = getStudioGenerateTypeConfig(type);
+
+      setJobs((previous) => [
+        ...pendingIds.map((id) => ({
+          createdAt: Date.now(),
+          id,
+          modelKey: context.modelKey || undefined,
+          prompt: context.promptText,
+          status: IngredientStatus.PROCESSING,
+          type,
+        })),
+        ...previous,
+      ]);
+
+      for (const pendingId of pendingIds) {
+        // Socket topics are the lowercase plural of the ingredient category —
+        // `categoryToPlural()` on the server. Never derive this from the
+        // SCREAMING enum member.
+        const topic = `/${config.resourceSegment}/${pendingId}`;
+        let unsubscribe: (() => void) | null = null;
+
+        const cleanup = () => {
+          if (!unsubscribe) {
+            return;
+          }
+          unsubscribe();
+          subscriptionsRef.current = subscriptionsRef.current.filter(
+            (entry) => entry !== unsubscribe,
+          );
+          unsubscribe = null;
+        };
+
+        const handler = createMediaHandler<SocketResult>(
+          async (result) => {
+            const resolvedId =
+              typeof result === 'string'
+                ? result
+                : typeof result.id === 'string'
+                  ? result.id
+                  : pendingId;
+
+            try {
+              const fetchService = await resolveFetchService(type);
+              const ingredient = await fetchService.findOne(resolvedId);
+
+              patchJob(pendingId, {
+                status: IngredientStatus.GENERATED,
+                url: resolveStudioAssetUrl(ingredient),
+              });
+              onGeneratedRef.current?.();
+            } catch (error) {
+              logger.error(
+                'Failed to load Studio generation result after socket event',
+                error,
+              );
+              patchJob(pendingId, { status: IngredientStatus.GENERATED });
+              onGeneratedRef.current?.();
+            } finally {
+              cleanup();
+            }
+          },
+          (errorMessage: string) => {
+            const message = errorMessage || `${config.label} generation failed`;
+            patchJob(pendingId, {
+              error: message,
+              status: IngredientStatus.FAILED,
+            });
+            notificationsService.error(message);
+            cleanup();
+          },
+        );
+
+        unsubscribe = subscribe(topic, handler);
+        subscriptionsRef.current.push(unsubscribe);
+      }
+    },
+    [notificationsService, patchJob, resolveFetchService, subscribe, type],
+  );
+
+  const submit = useCallback(
+    async (promptText: string, references: string[] = []) => {
+      if (isGenerating) {
+        return;
+      }
+
+      if (!brandId) {
+        notificationsService.error('Please set up a brand before generating');
+        return;
+      }
+
+      const config = getStudioGenerateTypeConfig(type);
+      const promptData = buildStudioPromptData({
+        brandId,
+        promptText,
+        references,
+        settings,
+        type,
+      });
+
+      if (!promptData.isValid) {
+        notificationsService.error(
+          config.capabilities.hasSpeech && !promptText.trim()
+            ? 'A prompt or a script is required'
+            : 'Prompt is required',
+        );
+        return;
+      }
+
+      const modelKey = resolveModelKey(
+        settings,
+        models,
+        config.capabilities.hasModelSelection,
+      );
+
+      setIsGenerating(true);
+
+      try {
+        switch (type) {
+          case 'image': {
+            const service = await getImagesService();
+            const payload = buildImagePayload(
+              buildBaseGenerationPayload(promptData, modelKey, brandId),
+              promptData,
+            );
+            const data = (await service.post({
+              ...payload,
+              blacklist: settings.blacklist,
+            } as unknown as Partial<IImage>)) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            break;
+          }
+
+          case 'video': {
+            const service = await getVideosService();
+            const payload = buildVideoPayload(
+              buildBaseGenerationPayload(promptData, modelKey, brandId),
+              promptData,
+            );
+            const data = (await service.post({
+              ...payload,
+              blacklist: settings.blacklist,
+            } as unknown as Partial<IVideo>)) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            break;
+          }
+
+          case 'music': {
+            const service = await getMusicsService();
+            const payload = buildMusicPayload(
+              promptData,
+              modelKey,
+              settings.duration ?? DEFAULT_MUSIC_DURATION,
+            );
+            const data = (await service.post(
+              payload as Parameters<MusicsService['post']>[0],
+            )) as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            break;
+          }
+
+          case 'avatar': {
+            const service = await getHeyGenService();
+            const data = (await service.generate(
+              buildAvatarPayload(promptData),
+            )) as unknown as GenerationResponse;
+            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            break;
+          }
+
+          case 'voice': {
+            if (!settings.voiceId) {
+              notificationsService.error('Pick a voice before generating');
+              break;
+            }
+
+            const service = await getVoicesService();
+            // Text-to-speech runs inline on the API and returns the finished
+            // ingredient, so there is no socket phase to wait on.
+            const voice = await service.generate({
+              speed: 1,
+              text: promptData.speech?.trim() || promptText.trim(),
+              voiceId: settings.voiceId,
+            });
+
+            setJobs((previous) => [
+              {
+                createdAt: Date.now(),
+                id: String(voice.id),
+                modelKey: modelKey || undefined,
+                prompt: promptText,
+                status: IngredientStatus.GENERATED,
+                type,
+                url: resolveStudioAssetUrl(voice),
+              },
+              ...previous,
+            ]);
+            onGeneratedRef.current?.();
+            break;
+          }
+
+          default:
+            logger.error(`Unsupported Studio generation type: ${type}`);
+        }
+      } catch (error) {
+        logger.error('Studio generation failed', error);
+        notificationsService.error(
+          toErrorMessage(error, `Failed to generate ${config.label}`),
+        );
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [
+      brandId,
+      getHeyGenService,
+      getImagesService,
+      getMusicsService,
+      getVideosService,
+      getVoicesService,
+      isGenerating,
+      models,
+      notificationsService,
+      settings,
+      trackPendingIds,
+      type,
+    ],
+  );
+
+  return { clearJobs, isGenerating, jobs, submit };
+}

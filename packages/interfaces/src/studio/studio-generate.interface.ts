@@ -1,3 +1,9 @@
+import type {
+  IngredientCategory,
+  IngredientStatus,
+  ModelCategory,
+  RouterPriority,
+} from '@genfeedai/enums';
 import type { ReactNode } from 'react';
 import type { IIngredient, IQueryParams } from '../index';
 
@@ -45,3 +51,83 @@ export interface AvatarVoiceData {
 }
 
 export type ProviderVariant = 'secondary' | 'accent';
+
+/**
+ * Asset kinds the consolidated Studio playground can produce. Type is composer
+ * state, never a URL segment — `/studio/generate` is the only route.
+ */
+export type StudioGenerateType =
+  | 'image'
+  | 'video'
+  | 'music'
+  | 'avatar'
+  | 'voice';
+
+/**
+ * Which controls the settings popover and composer expose for a given type.
+ * Keeps the UI declarative instead of branching on the type string in JSX.
+ */
+export interface StudioGenerateCapabilities {
+  hasAspectRatio: boolean;
+  hasDuration: boolean;
+  hasIdentity: boolean;
+  hasLook: boolean;
+  hasModelSelection: boolean;
+  hasOutputs: boolean;
+  hasReferences: boolean;
+  hasSpeech: boolean;
+}
+
+export interface StudioGenerateTypeConfig {
+  capabilities: StudioGenerateCapabilities;
+  /** `type` option passed to `useElements` so the gear only loads relevant elements. */
+  elementsType: 'all' | 'image' | 'music' | 'video' | 'voice';
+  ingredientCategory: IngredientCategory;
+  label: string;
+  /** `null` for types that have no router-backed model catalog (avatar, voice). */
+  modelCategory: ModelCategory | null;
+  /** Socket topic + REST collection segment, e.g. `images`. */
+  resourceSegment: string;
+  type: StudioGenerateType;
+}
+
+/**
+ * Everything the gear popover owns. Persisted per type so switching Image →
+ * Video → Image restores the operator's last setup.
+ */
+export interface StudioGenerateSettings {
+  aspectRatio: string;
+  avatarId?: string;
+  blacklist: string[];
+  brandingMode: 'brand' | 'off';
+  camera?: string;
+  cameraMovement?: string;
+  duration?: number;
+  folder?: string;
+  isAudioEnabled: boolean;
+  lens?: string;
+  lighting?: string;
+  modelKey: string;
+  mood?: string;
+  outputs: number;
+  prioritize: RouterPriority;
+  /** Preset key — mapped to a `ContentTemplateKey` by the payload builder. */
+  promptTemplate?: string;
+  resolution: string;
+  scene?: string;
+  speech?: string;
+  style?: string;
+  tags: string[];
+  voiceId?: string;
+}
+
+export interface StudioGenerateJob {
+  createdAt: number;
+  error?: string;
+  id: string;
+  modelKey?: string;
+  prompt: string;
+  status: IngredientStatus;
+  type: StudioGenerateType;
+  url?: string;
+}

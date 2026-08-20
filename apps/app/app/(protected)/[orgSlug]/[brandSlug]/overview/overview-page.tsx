@@ -153,7 +153,7 @@ function SectionSummaryCard({
             iconClassName="h-5 w-5"
           />
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
+            <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
               {kicker ?? 'Control Plane'}
             </p>
             <h3 className="mt-1 text-base font-semibold tracking-[-0.02em] text-foreground">
@@ -472,7 +472,7 @@ export default function OverviewPageContent({
 
       <section>
         <div className="mb-5 space-y-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+          <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
             Supporting Views
           </p>
           <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">

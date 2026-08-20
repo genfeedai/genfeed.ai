@@ -126,7 +126,7 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
                   STATUS_DOT_CLASSES[run.status],
                 )}
               />
-              <span className="text-[10px] uppercase tracking-wide text-foreground/45">
+              <span className="text-2xs uppercase tracking-wide text-foreground/45">
                 {statusLabel}
               </span>
             </div>
@@ -148,10 +148,10 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
       </div>
 
       <div className="rounded border border-border bg-muted/50 px-2.5 py-2">
-        <p className="line-clamp-1 text-[12px] font-medium text-foreground/75">
+        <p className="line-clamp-1 text-xs font-medium text-foreground/75">
           {run.label}
         </p>
-        <p className="mt-0.5 line-clamp-2 text-[11px] font-mono text-foreground/45">
+        <p className="mt-0.5 line-clamp-2 text-2xs font-mono text-foreground/45">
           {run.status === AgentExecutionStatus.RUNNING ||
           run.status === AgentExecutionStatus.PENDING
             ? (run.objective ?? run.strategy ?? 'Waiting for output...')
@@ -342,7 +342,7 @@ export function DashboardRecentActivity({
           asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
+          className="h-auto px-0 text-2xs font-normal text-foreground/45 hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
             View All &rarr;
@@ -388,7 +388,7 @@ export function DashboardRecentActivity({
                     </span>
                   </TableCell>
                   <TableCell className="max-w-0 w-full">
-                    <div className="truncate text-[12px] text-foreground">
+                    <div className="truncate text-xs text-foreground">
                       {task.title}
                       {' — '}
                       <span className="text-foreground/50">
@@ -396,12 +396,12 @@ export function DashboardRecentActivity({
                       </span>
                     </div>
                     {message ? (
-                      <div className="truncate text-[11px] text-foreground/45">
+                      <div className="truncate text-2xs text-foreground/45">
                         {message}
                       </div>
                     ) : null}
                   </TableCell>
-                  <TableCell className="w-px whitespace-nowrap text-right text-[10px] text-foreground/35">
+                  <TableCell className="w-px whitespace-nowrap text-right text-2xs text-foreground/35">
                     {formatOptionalRelativeTime(
                       task.updatedAt ?? task.createdAt,
                     )}
@@ -452,7 +452,7 @@ export function DashboardRecentTasks({
           asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="h-auto px-0 text-[11px] font-normal text-foreground/45 hover:bg-transparent"
+          className="h-auto px-0 text-2xs font-normal text-foreground/45 hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
             View All &rarr;
@@ -479,7 +479,7 @@ export function DashboardRecentTasks({
                 <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
                   <span
                     className={cn(
-                      'inline-flex items-center justify-center rounded border px-2 py-0.5 text-[9px] font-medium uppercase',
+                      'inline-flex items-center justify-center rounded border px-2 py-0.5 text-2xs font-medium uppercase',
                       task.status === 'failed'
                         ? 'bg-destructive/15 text-destructive border-destructive/40'
                         : task.status === 'in_review'
@@ -493,17 +493,17 @@ export function DashboardRecentTasks({
                   </span>
                 </TableCell>
                 <TableCell className="max-w-0 w-full">
-                  <div className="truncate text-[12px] text-foreground">
+                  <div className="truncate text-xs text-foreground">
                     {task.title}
                   </div>
-                  <div className="truncate text-[11px] text-foreground/45">
+                  <div className="truncate text-2xs text-foreground/45">
                     {task.status.replaceAll('_', ' ')} &middot;{' '}
                     {formatOptionalRelativeTime(
                       task.updatedAt ?? task.createdAt,
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="w-px whitespace-nowrap text-right text-[10px] text-foreground/35 align-top pt-2.5">
+                <TableCell className="w-px whitespace-nowrap text-right text-2xs text-foreground/35 align-top pt-2.5">
                   {formatOptionalRelativeTime(task.updatedAt ?? task.createdAt)}
                 </TableCell>
               </TableRow>
@@ -544,7 +544,7 @@ function WorkspaceDashboardFirstRun({ trendsHref }: { trendsHref: string }) {
             key={step}
             className="flex gap-3 text-xs leading-5 text-muted-foreground"
           >
-            <span className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-border text-[10px] font-medium text-foreground/55">
+            <span className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-border text-2xs font-medium text-foreground/55">
               {index + 1}
             </span>
             {step}

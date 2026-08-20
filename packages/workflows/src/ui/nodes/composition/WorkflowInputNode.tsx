@@ -70,7 +70,7 @@ function WorkflowInputNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
-        <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
+        <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
           Defines an input port when this workflow is used as a subworkflow
         </div>
 
@@ -86,7 +86,7 @@ function WorkflowInputNodeComponent(props: NodeProps) {
             value={nodeData.inputName || 'input'}
             onChange={handleNameChange}
             placeholder="Enter input name..."
-            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
 
@@ -139,12 +139,12 @@ function WorkflowInputNodeComponent(props: NodeProps) {
             value={nodeData.description || ''}
             onChange={handleDescriptionChange}
             placeholder="Describe this input..."
-            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
 
         {/* Current Type Indicator */}
-        <div className="mt-1 text-[10px] text-muted-foreground text-center">
+        <div className="mt-1 text-2xs text-muted-foreground text-center">
           Output type:{' '}
           <span className="font-medium capitalize">
             {nodeData.inputType || 'image'}

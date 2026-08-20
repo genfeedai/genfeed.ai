@@ -99,14 +99,14 @@ function InputModeNotice({
 }) {
   if (!inputType) {
     return (
-      <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
+      <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
         Connect an image or video input
       </div>
     );
   }
 
   return (
-    <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1">
+    <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1">
       Mode: <span className="font-medium capitalize">{inputType}</span>
     </div>
   );
@@ -236,8 +236,8 @@ function FaceEnhancementSlider({
   return (
     <div className="space-y-1">
       <div className="flex justify-between">
-        <Label className="text-[10px]">{label}</Label>
-        <span className="text-[10px] text-muted-foreground">{value}%</span>
+        <Label className="text-2xs">{label}</Label>
+        <span className="text-2xs text-muted-foreground">{value}%</span>
       </div>
       <Slider
         value={[value]}
@@ -298,7 +298,7 @@ function VideoUpscaleSettings({
         </Select>
       </div>
 
-      <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1">
+      <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1">
         Estimated cost:{' '}
         {getVideoPriceEstimate(nodeData.targetResolution, nodeData.targetFps)}
       </div>

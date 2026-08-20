@@ -34,7 +34,7 @@ export function SubIssueRow({
         </span>
         <span
           className={cn(
-            'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+            'rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
             statusColors[issue.status],
           )}
         >

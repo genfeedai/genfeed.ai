@@ -424,7 +424,7 @@ function WorkflowTemplatesPageContent() {
                         <div className="mb-1 flex items-center gap-2">
                           <h3 className="font-semibold">{entry.label}</h3>
                           {entry.installed ? (
-                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-primary">
+                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide text-primary">
                               Installed
                             </span>
                           ) : null}

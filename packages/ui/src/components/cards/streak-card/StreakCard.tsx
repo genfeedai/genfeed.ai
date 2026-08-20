@@ -55,7 +55,7 @@ export default function StreakCard() {
       <StreakCelebrationBurst isVisible={isCelebrating} />
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Daily streak
           </p>
           <p className="text-lg font-semibold text-foreground">
@@ -64,7 +64,7 @@ export default function StreakCard() {
               : `${currentStreak} day${currentStreak === 1 ? '' : 's'}`}
           </p>
         </div>
-        <div className="rounded-full border border-border px-2 py-1 text-[11px] font-medium text-foreground/80">
+        <div className="rounded-full border border-border px-2 py-1 text-2xs font-medium text-foreground/80">
           {streakFreezes} freeze{streakFreezes === 1 ? '' : 's'}
         </div>
       </div>
@@ -76,7 +76,7 @@ export default function StreakCard() {
             <div
               key={dayKey}
               className={cn(
-                'h-7 rounded border text-[10px] flex items-center justify-center',
+                'h-7 rounded border text-2xs flex items-center justify-center',
                 count > 0
                   ? 'border-foreground/30 bg-foreground/25 text-foreground'
                   : 'border-border bg-foreground/[0.03] text-foreground/35',
@@ -89,7 +89,7 @@ export default function StreakCard() {
         })}
       </div>
 
-      <p className="mb-3 text-[12px] leading-5 text-foreground/65">
+      <p className="mb-3 text-xs leading-5 text-foreground/65">
         {nextMilestone
           ? `Next milestone: ${nextMilestone.days} days. ${nextMilestone.remaining} more day${nextMilestone.remaining === 1 ? '' : 's'} to go.`
           : 'Top streak milestone reached. Keep creating daily to defend it.'}
@@ -97,7 +97,7 @@ export default function StreakCard() {
 
       <Link
         href={APP_ROUTES.SETTINGS.ROOT}
-        className="flex items-center justify-between bg-secondary px-2.5 py-2 text-[12px] text-foreground/80 shadow-border transition-colors duration-150 hover:bg-accent"
+        className="flex items-center justify-between bg-secondary px-2.5 py-2 text-xs text-foreground/80 shadow-border transition-colors duration-150 hover:bg-accent"
       >
         <span>
           {currentStreak > 0 ? 'Open streak view' : 'Start your streak today'}

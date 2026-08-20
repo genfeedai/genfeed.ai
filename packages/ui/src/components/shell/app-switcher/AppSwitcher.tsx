@@ -564,7 +564,7 @@ export function AppSwitcher({
             ariaLabel="Switch app"
           >
             <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
-            <span className="max-w-[12rem] truncate text-[13px] font-semibold text-foreground">
+            <span className="max-w-[12rem] truncate text-sm font-semibold text-foreground">
               {activeLabel}
             </span>
             <ChevronDown className="size-3.5 shrink-0 text-foreground/45" />
@@ -595,10 +595,10 @@ export function AppSwitcher({
         }}
       >
         <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
-          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/52">
+          <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
             Apps
           </div>
-          <div className="min-w-0 truncate text-[13px] font-semibold text-foreground/58">
+          <div className="min-w-0 truncate text-sm font-semibold text-foreground/58">
             {tenantLabel}
           </div>
         </div>

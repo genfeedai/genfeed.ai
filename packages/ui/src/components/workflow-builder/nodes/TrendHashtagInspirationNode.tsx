@@ -100,7 +100,7 @@ function TrendHashtagInspirationNodeComponent({
               variant={ButtonVariant.UNSTYLED}
               className={`py-1.5 text-xs transition ${
                 data.platform === p.value
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground hover:bg-border'
               }`}
             >
@@ -128,7 +128,7 @@ function TrendHashtagInspirationNodeComponent({
               variant={ButtonVariant.UNSTYLED}
               className={`py-1.5 text-xs transition ${
                 data.contentPreference === p.value
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground hover:bg-border'
               }`}
             >
@@ -177,7 +177,7 @@ function TrendHashtagInspirationNodeComponent({
         isDisabled={isProcessing || (!data.auto && !data.hashtag)}
         type="button"
         variant={ButtonVariant.UNSTYLED}
-        className="w-full py-2 bg-primary text-white text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full py-2 bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {isProcessing ? (
           <>

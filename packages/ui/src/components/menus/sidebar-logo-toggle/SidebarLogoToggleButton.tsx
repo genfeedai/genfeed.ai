@@ -39,7 +39,7 @@ export default function SidebarLogoToggleButton({
       className={cn(
         'group relative flex size-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border-0 bg-transparent p-0 text-foreground/72 shadow-none transition-colors',
         'hover:bg-foreground/[0.06] hover:text-foreground',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
         className,
       )}
       style={style}

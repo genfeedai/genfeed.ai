@@ -198,21 +198,21 @@ function ConnectionDropMenuComponent() {
       />
       <div
         style={menuStyle}
-        className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-64 max-h-80 flex flex-col"
+        className="bg-background border border-border shadow-xl w-64 max-h-80 flex flex-col"
         role="dialog"
         aria-label="Add Node"
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)]">
-          <Plus className="size-3.5 text-[var(--muted-foreground)]" />
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+          <Plus className="size-3.5 text-muted-foreground" />
           <span className="text-xs font-medium">Add Connected Node</span>
         </div>
 
         {/* Search */}
         <div className="px-3 py-2">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-[var(--muted-foreground)]" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <input
               ref={inputRef}
               type="text"
@@ -220,7 +220,7 @@ function ConnectionDropMenuComponent() {
               aria-label="Search compatible nodes"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-7 pr-2 py-1.5 text-xs bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"
+              className="w-full pl-7 pr-2 py-1.5 text-xs bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -228,7 +228,7 @@ function ConnectionDropMenuComponent() {
         {/* Node list */}
         <div ref={listRef} className="flex-1 overflow-y-auto px-1.5 pb-1.5">
           {filteredNodes.length === 0 ? (
-            <div className="text-center text-[var(--muted-foreground)] text-xs py-4">
+            <div className="text-center text-muted-foreground text-xs py-4">
               No compatible nodes found
             </div>
           ) : (
@@ -236,7 +236,7 @@ function ConnectionDropMenuComponent() {
               if (!nodes || nodes.length === 0) return null;
               return (
                 <div key={category} className="mb-1">
-                  <div className="text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider px-2 py-1">
+                  <div className="text-2xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
                     {CATEGORY_LABELS[category as NodeCategory]}
                   </div>
                   {nodes.map((node) => {
@@ -249,8 +249,8 @@ function ConnectionDropMenuComponent() {
                         onClick={() => handleSelect(node.type)}
                         className={`w-full text-left px-2 py-1.5 rounded text-xs h-auto justify-start ${
                           currentIndex === selectedIndex
-                            ? 'bg-[var(--primary)]/10 text-[var(--foreground)]'
-                            : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
+                            ? 'bg-primary/10 text-foreground'
+                            : 'text-foreground hover:bg-secondary'
                         }`}
                       >
                         {node.label}

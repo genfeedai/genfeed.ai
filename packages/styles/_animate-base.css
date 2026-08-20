@@ -2,7 +2,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.2),
+    var(--gray-alpha-400),
     transparent
   );
   background-size: 200px 100%;

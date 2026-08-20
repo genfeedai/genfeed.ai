@@ -82,7 +82,7 @@ function SubtitleNodeComponent(props: NodeProps) {
     <BaseNode {...props}>
       <div className="space-y-3">
         {/* Input Status */}
-        <div className="text-xs text-[var(--muted-foreground)]">
+        <div className="text-xs text-muted-foreground">
           {hasRequiredInputs
             ? 'Ready to burn subtitles'
             : 'Connect video and subtitle text'}
@@ -91,7 +91,7 @@ function SubtitleNodeComponent(props: NodeProps) {
         {/* Style Selection */}
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            className="text-xs text-muted-foreground block mb-1"
             htmlFor={`subtitle-style-${id}`}
           >
             Style
@@ -116,7 +116,7 @@ function SubtitleNodeComponent(props: NodeProps) {
         {/* Position Selection */}
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            className="text-xs text-muted-foreground block mb-1"
             htmlFor={`subtitle-position-${id}`}
           >
             Position
@@ -144,7 +144,7 @@ function SubtitleNodeComponent(props: NodeProps) {
         {/* Font Size */}
         <div>
           <div
-            className="text-xs text-[var(--muted-foreground)] block mb-1"
+            className="text-xs text-muted-foreground block mb-1"
             id={`subtitle-font-size-${id}`}
           >
             Font Size: {nodeData.fontSize}px
@@ -162,7 +162,7 @@ function SubtitleNodeComponent(props: NodeProps) {
         {/* Font Color */}
         <div className="flex items-center gap-2">
           <label
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
             htmlFor={`subtitle-color-${id}`}
           >
             Color
@@ -173,9 +173,9 @@ function SubtitleNodeComponent(props: NodeProps) {
             type="color"
             value={nodeData.fontColor}
             onChange={handleFontColorChange}
-            className="size-8 rounded border border-[var(--border)] cursor-pointer"
+            className="size-8 rounded border border-border cursor-pointer"
           />
-          <span className="text-xs text-[var(--muted-foreground)]">
+          <span className="text-xs text-muted-foreground">
             {nodeData.fontColor}
           </span>
         </div>

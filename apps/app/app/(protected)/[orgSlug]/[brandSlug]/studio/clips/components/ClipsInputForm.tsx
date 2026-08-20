@@ -16,6 +16,7 @@ export default function ClipsInputForm({
   maxClips,
   minViralityScore,
   onAnalyze,
+  onCancel,
   onModeChange,
   onStartQuick,
   onSetMaxClips,
@@ -25,10 +26,8 @@ export default function ClipsInputForm({
   youtubeUrl,
 }: ClipsInputFormProps) {
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="sr-only">Clips</h1>
-
-      <div className="space-y-5 rounded-xl bg-secondary p-6 shadow-border">
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="space-y-5 rounded-xl bg-card p-6 shadow-border">
         {/* YouTube URL */}
         <div>
           <label
@@ -66,7 +65,7 @@ export default function ClipsInputForm({
             onChange={(e) => onSetMaxClips(Number(e.target.value))}
             className="w-full accent-primary"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/70">
+          <div className="mt-1 flex justify-between text-2xs text-muted-foreground/70">
             <span>1</span>
             <span>15</span>
             <span>30</span>
@@ -93,7 +92,7 @@ export default function ClipsInputForm({
             onChange={(e) => onSetMinViralityScore(Number(e.target.value))}
             className="w-full accent-primary"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/70">
+          <div className="mt-1 flex justify-between text-2xs text-muted-foreground/70">
             <span>0</span>
             <span>50</span>
             <span>100</span>
@@ -129,14 +128,24 @@ export default function ClipsInputForm({
 
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
             <p className="text-xs text-muted-foreground">{quickStartHint}</p>
-            <Button
-              variant={ButtonVariant.LINK}
-              onClick={onAnalyze}
-              isDisabled={isSubmitting || !youtubeUrl}
-              className="text-xs text-muted-foreground hover:text-foreground"
-              icon={<Search className="size-3.5" />}
-              label="Review highlights first"
-            />
+            <div className="flex items-center gap-3">
+              {onCancel ? (
+                <Button
+                  variant={ButtonVariant.LINK}
+                  onClick={onCancel}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  label="Cancel"
+                />
+              ) : null}
+              <Button
+                variant={ButtonVariant.LINK}
+                onClick={onAnalyze}
+                isDisabled={isSubmitting || !youtubeUrl}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                icon={<Search className="size-3.5" />}
+                label="Review highlights first"
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -91,7 +91,7 @@ function TaskStatusBadge({ status }: { status: TaskStatus }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+        'inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
         STATUS_COLORS[status],
       )}
     >
@@ -104,7 +104,7 @@ function TaskPriorityIndicator({ priority }: { priority: TaskPriority }) {
   return (
     <span
       className={cn(
-        'text-[10px] font-medium uppercase tracking-wider',
+        'text-2xs font-medium uppercase tracking-wider',
         PRIORITY_COLORS[priority],
       )}
     >
@@ -155,14 +155,14 @@ function IssueCard({
       onClick={() => onSelect(issue)}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-[10px] font-mono text-white/40">
+        <span className="text-2xs font-mono text-white/40">
           {issue.identifier}
         </span>
         <TaskPriorityIndicator priority={issue.priority} />
       </div>
       <p className="mb-2 text-sm leading-snug text-white/90">{issue.title}</p>
       {issue.assigneeUserId ? (
-        <span className="text-[10px] text-white/30">Assigned</span>
+        <span className="text-2xs text-white/30">Assigned</span>
       ) : null}
     </Button>
   );

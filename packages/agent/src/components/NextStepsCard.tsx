@@ -93,7 +93,7 @@ export function NextStepsCard({
       data-testid="agent-next-steps-card"
     >
       <div className="px-3 py-2">
-        <p className="text-[13px] font-medium text-foreground/90">
+        <p className="text-sm font-medium text-foreground/90">
           {action.title || 'What would you like to do?'}
         </p>
         {action.description ? (
@@ -110,7 +110,7 @@ export function NextStepsCard({
             className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-2"
           >
             <div className="min-w-0 flex-1 basis-48">
-              <p className="text-[13px] font-medium text-foreground/90">
+              <p className="text-sm font-medium text-foreground/90">
                 {step.title}
               </p>
               {step.description ? (

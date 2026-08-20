@@ -160,17 +160,17 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
       type="button"
       draggable
       onDragStart={handleDragStart}
-      className={`p-3 bg-[var(--card)] border border-transparent shadow-border cursor-grab transition-colors group ${colors.hover}`}
+      className={`p-3 bg-card border border-transparent shadow-border cursor-grab transition-colors group ${colors.hover}`}
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded ${colors.icon}`}>
           <Icon className="size-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm text-[var(--foreground)] truncate">
+          <div className="font-medium text-sm text-foreground truncate">
             {label}
           </div>
-          <div className="text-xs text-[var(--muted-foreground)] mt-0.5 line-clamp-2">
+          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
             {description}
           </div>
         </div>
@@ -241,21 +241,21 @@ function CategorySection({
   onToggle,
 }: CategorySectionProps) {
   return (
-    <div className="border-b border-[var(--border)] last:border-0">
+    <div className="border-b border-border last:border-0">
       <Button
         variant="ghost"
         onClick={onToggle}
         className="w-full flex items-center gap-2 px-4 py-3 text-left h-auto justify-start"
       >
         {isExpanded ? (
-          <ChevronDown className="size-4 text-[var(--muted-foreground)]" />
+          <ChevronDown className="size-4 text-muted-foreground" />
         ) : (
-          <ChevronRight className="size-4 text-[var(--muted-foreground)]" />
+          <ChevronRight className="size-4 text-muted-foreground" />
         )}
-        <span className="font-medium text-sm text-[var(--foreground)]">
+        <span className="font-medium text-sm text-foreground">
           {CATEGORY_LABELS[category]}
         </span>
-        <span className="text-xs text-[var(--muted-foreground)] ml-auto">
+        <span className="text-xs text-muted-foreground ml-auto">
           {nodes.length}
         </span>
       </Button>
@@ -335,15 +335,11 @@ export function NodePalette({ additionalNodes = [] }: NodePaletteProps = {}) {
   );
 
   return (
-    <div className="w-64 min-w-64 h-full bg-[var(--background)] border-r border-[var(--border)] flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--border)] flex items-start justify-between gap-2">
+    <div className="w-64 min-w-64 h-full bg-background border-r border-border flex flex-col overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
         <div>
-          <h2 className="font-semibold text-sm text-[var(--foreground)]">
-            Nodes
-          </h2>
-          <p className="text-xs text-[var(--muted-foreground)] mt-1">
-            Drag to canvas
-          </p>
+          <h2 className="font-semibold text-sm text-foreground">Nodes</h2>
+          <p className="text-xs text-muted-foreground mt-1">Drag to canvas</p>
         </div>
         <Button
           variant="ghost"
@@ -351,21 +347,21 @@ export function NodePalette({ additionalNodes = [] }: NodePaletteProps = {}) {
           onClick={togglePalette}
           title="Close sidebar (M)"
         >
-          <PanelLeftClose className="size-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
+          <PanelLeftClose className="size-4 text-muted-foreground group-hover:text-foreground" />
         </Button>
       </div>
 
       {/* Search bar */}
-      <div className="px-4 py-3 border-b border-[var(--border)]">
+      <div className="px-4 py-3 border-b border-border">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-[var(--muted-foreground)]" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search nodes..."
             aria-label="Search nodes"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm bg-[var(--secondary)] border border-[var(--border)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"
+            className="w-full pl-8 pr-3 py-1.5 text-sm bg-secondary border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>
@@ -375,7 +371,7 @@ export function NodePalette({ additionalNodes = [] }: NodePaletteProps = {}) {
           // Search results
           <div className="px-4 py-3 space-y-2">
             {filteredNodes.length === 0 ? (
-              <p className="text-sm text-[var(--muted-foreground)] text-center py-4">
+              <p className="text-sm text-muted-foreground text-center py-4">
                 No nodes found
               </p>
             ) : (

@@ -89,7 +89,7 @@ function MotionModeSelect({
   return (
     <div>
       <label
-        className="text-xs text-[var(--muted-foreground)]"
+        className="text-xs text-muted-foreground"
         htmlFor={`motion-mode-${id}`}
       >
         Mode
@@ -129,7 +129,7 @@ function VideoTransferSettings({
     <>
       <div>
         <label
-          className="text-xs text-[var(--muted-foreground)]"
+          className="text-xs text-muted-foreground"
           htmlFor={`motion-quality-${id}`}
         >
           Quality
@@ -156,7 +156,7 @@ function VideoTransferSettings({
 
       <div>
         <label
-          className="text-xs text-[var(--muted-foreground)]"
+          className="text-xs text-muted-foreground"
           htmlFor={`motion-character-orientation-${id}`}
         >
           Character Orientation
@@ -189,7 +189,7 @@ function VideoTransferSettings({
         />
         <label
           htmlFor={`keep-sound-${id}`}
-          className="text-sm text-[var(--foreground)] cursor-pointer"
+          className="text-sm text-foreground cursor-pointer"
         >
           Keep Original Sound
         </label>
@@ -218,7 +218,7 @@ function StandardMotionSettings({
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
             htmlFor={`motion-duration-${id}`}
           >
             Duration
@@ -245,7 +245,7 @@ function StandardMotionSettings({
 
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
             htmlFor={`motion-aspect-ratio-${id}`}
           >
             Aspect Ratio
@@ -272,7 +272,7 @@ function StandardMotionSettings({
       </div>
 
       <div>
-        <label className="text-xs text-[var(--muted-foreground)]">
+        <label className="text-xs text-muted-foreground">
           Motion Strength: {nodeData.motionStrength}%
         </label>
         <Slider
@@ -283,7 +283,7 @@ function StandardMotionSettings({
           onValueChange={onMotionStrengthChange}
           className="nodrag w-full"
         />
-        <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+        <div className="flex justify-between text-2xs text-muted-foreground">
           <span>Subtle</span>
           <span>Strong</span>
         </div>
@@ -338,7 +338,7 @@ function MotionRequirementHint({
   return (
     <>
       {!canGenerate && !isProcessing && (
-        <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
           <CircleAlert className="size-3" />
           {isVideoTransferMode
             ? 'Connect an image and motion video'
@@ -347,7 +347,7 @@ function MotionRequirementHint({
       )}
 
       {isVideoTransferMode && (
-        <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
           <Video className="size-3" />
           Motion video: 3-30 seconds
         </div>

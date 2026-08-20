@@ -191,7 +191,7 @@ function Panel({
 
 function Pill({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full bg-secondary px-2 py-1 text-[11px] uppercase text-foreground/60 shadow-border">
+    <span className="rounded-full bg-secondary px-2 py-1 text-2xs uppercase text-foreground/60 shadow-border">
       {children}
     </span>
   );

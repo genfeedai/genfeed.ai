@@ -35,7 +35,7 @@ export default function IssueSubIssuesCard({
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-[10px] text-white/30">
+            <span className="text-2xs text-white/30">
               {doneCount}/{subIssues.length}
             </span>
           </div>

@@ -1,9 +1,23 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import {
+  CostTier,
+  ModelCategory,
+  ModelProvider,
+  SpeedTier,
+} from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import {
-  isModelFamilyExpanded,
+  getModelRowCapabilities,
+  getModelSpecCapabilities,
+  MODEL_FILTER_ALL,
+  MODEL_FILTER_AUDIO,
+  MODEL_FILTER_CHEAP,
+  MODEL_FILTER_FAST,
+  MODEL_FILTER_LEGACY,
+  matchesModelFilter,
+  matchesModelSearch,
+  orderOptionsByKeys,
   parseModelFamilyAndVariant,
-  shouldRenderModelFamilyHeader,
+  sortModelOptions,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
 import { describe, expect, it } from 'vitest';
@@ -210,42 +224,204 @@ describe('transformModelsToOptions', () => {
   });
 });
 
-describe('shouldRenderModelFamilyHeader', () => {
-  it('hides nest chrome for a single variant', () => {
-    expect(shouldRenderModelFamilyHeader(1)).toBe(false);
+function createOption(
+  overrides: Partial<IModel> & Pick<IModel, 'key' | 'label'>,
+  favoriteModelKeys: string[] = [],
+  sourceGroupResolver?: (model: IModel) => string | undefined,
+) {
+  return transformModelsToOptions(
+    [createModel(overrides)],
+    favoriteModelKeys,
+    sourceGroupResolver,
+  )[0];
+}
+
+describe('getModelRowCapabilities', () => {
+  it('reports audio for speech and for a toggleable audio track', () => {
+    expect(
+      getModelRowCapabilities(
+        createModel({ hasSpeech: true, key: 'google/veo-3', label: 'Veo 3' }),
+      ).map((capability) => capability.id),
+    ).toEqual(['audio']);
+
+    expect(
+      getModelRowCapabilities(
+        createModel({
+          hasAudioToggle: true,
+          key: 'google/veo-3-fast',
+          label: 'Veo 3 Fast',
+        }),
+      ).map((capability) => capability.id),
+    ).toEqual(['audio']);
   });
 
-  it('keeps a collapsible header when a family has variants', () => {
-    expect(shouldRenderModelFamilyHeader(2)).toBe(true);
+  it('ships an icon for every row capability so no row prints the word', () => {
+    const capabilities = getModelRowCapabilities(
+      createModel({
+        hasSpeech: true,
+        key: 'google/veo-3-fast',
+        label: 'Veo 3 Fast',
+        speedTier: SpeedTier.FAST,
+      }),
+    );
+
+    expect(capabilities.map((capability) => capability.id)).toEqual([
+      'audio',
+      'fast',
+    ]);
+    expect(
+      capabilities.every((capability) => typeof capability.icon === 'function'),
+    ).toBe(true);
+  });
+
+  it('stays empty for a silent, non-fast model', () => {
+    expect(
+      getModelRowCapabilities(
+        createModel({ key: 'kwaivgi/kling-v2', label: 'Kling v2' }),
+      ),
+    ).toEqual([]);
   });
 });
 
-describe('isModelFamilyExpanded', () => {
-  it('stays collapsed until the user opens it', () => {
+describe('getModelSpecCapabilities', () => {
+  it('adds the detail the row deliberately drops', () => {
     expect(
-      isModelFamilyExpanded({
-        familyKey: 'genfeed-ai:flux2',
-        hasSearchMatch: false,
-        toggledFamilyKeys: [],
-      }),
+      getModelSpecCapabilities(
+        createModel({
+          hasEndFrame: true,
+          hasInterpolation: true,
+          hasResolutionOptions: true,
+          key: 'kwaivgi/kling-v2',
+          label: 'Kling v2',
+          maxReferences: 3,
+        }),
+      ).map((capability) => capability.id),
+    ).toEqual(['end-frame', 'interpolation', 'references', 'resolutions']);
+  });
+
+  it('pluralizes the reference count', () => {
+    expect(
+      getModelSpecCapabilities(
+        createModel({
+          key: 'kwaivgi/kling-v2',
+          label: 'Kling v2',
+          maxReferences: 1,
+        }),
+      )[0],
+    ).toMatchObject({ label: '1 reference' });
+  });
+});
+
+describe('matchesModelFilter', () => {
+  const legacyOption = createOption({
+    isLegacy: true,
+    key: 'google/veo-2',
+    label: 'Veo 2',
+  });
+
+  it('keeps deprecated models out of every view except Legacy', () => {
+    expect(matchesModelFilter(legacyOption, MODEL_FILTER_ALL)).toBe(false);
+    expect(matchesModelFilter(legacyOption, MODEL_FILTER_LEGACY)).toBe(true);
+  });
+
+  it('excludes current models from Legacy', () => {
+    expect(
+      matchesModelFilter(
+        createOption({ key: 'google/veo-3', label: 'Veo 3' }),
+        MODEL_FILTER_LEGACY,
+      ),
     ).toBe(false);
   });
 
-  it('expands on search or an explicit toggle', () => {
-    expect(
-      isModelFamilyExpanded({
-        familyKey: 'genfeed-ai:flux2',
-        hasSearchMatch: true,
-        toggledFamilyKeys: [],
-      }),
-    ).toBe(true);
+  it('matches capability pills against model metadata', () => {
+    const option = createOption({
+      costTier: CostTier.LOW,
+      hasSpeech: true,
+      key: 'google/veo-3-fast',
+      label: 'Veo 3 Fast',
+      speedTier: SpeedTier.FAST,
+    });
+
+    expect(matchesModelFilter(option, MODEL_FILTER_AUDIO)).toBe(true);
+    expect(matchesModelFilter(option, MODEL_FILTER_FAST)).toBe(true);
+    expect(matchesModelFilter(option, MODEL_FILTER_CHEAP)).toBe(true);
+
+    const slowOption = createOption({
+      costTier: CostTier.HIGH,
+      key: 'kwaivgi/kling-v2',
+      label: 'Kling v2',
+      speedTier: SpeedTier.SLOW,
+    });
+
+    expect(matchesModelFilter(slowOption, MODEL_FILTER_AUDIO)).toBe(false);
+    expect(matchesModelFilter(slowOption, MODEL_FILTER_FAST)).toBe(false);
+    expect(matchesModelFilter(slowOption, MODEL_FILTER_CHEAP)).toBe(false);
+  });
+
+  it('routes source pills through the option source group', () => {
+    const option = createOption(
+      { key: 'google/veo-3', label: 'Veo 3' },
+      [],
+      () => 'genfeed',
+    );
+
+    expect(matchesModelFilter(option, 'source:genfeed')).toBe(true);
+    expect(matchesModelFilter(option, 'source:fal')).toBe(false);
+  });
+});
+
+describe('matchesModelSearch', () => {
+  const option = createOption({
+    description: 'Cinematic shots with native audio',
+    key: 'google/veo-3-fast',
+    label: 'Veo 3 Fast',
+  });
+
+  it('matches the family name even though the list is flat', () => {
+    expect(matchesModelSearch(option, 'veo')).toBe(true);
+  });
+
+  it('matches brand and description text', () => {
+    expect(matchesModelSearch(option, 'google')).toBe(true);
+    expect(matchesModelSearch(option, 'cinematic')).toBe(true);
+    expect(matchesModelSearch(option, 'kling')).toBe(false);
+  });
+});
+
+describe('sortModelOptions', () => {
+  it('keeps siblings adjacent by brand, family, then numeric variant', () => {
+    const options = transformModelsToOptions(
+      [
+        createModel({ key: 'kwaivgi/kling-v2', label: 'Kling v2' }),
+        createModel({ key: 'google/veo-3-1', label: 'Veo 3.1' }),
+        createModel({ key: 'google/veo-3', label: 'Veo 3' }),
+        createModel({ key: 'google/imagen-4', label: 'Imagen 4' }),
+      ],
+      [],
+    );
 
     expect(
-      isModelFamilyExpanded({
-        familyKey: 'genfeed-ai:flux2',
-        hasSearchMatch: false,
-        toggledFamilyKeys: ['genfeed-ai:flux2'],
-      }),
-    ).toBe(true);
+      sortModelOptions(options).map((option) => option.model.label),
+    ).toEqual(['Imagen 4', 'Veo 3', 'Veo 3.1', 'Kling v2']);
+  });
+});
+
+describe('orderOptionsByKeys', () => {
+  it('follows recency order and ignores keys no longer in the catalog', () => {
+    const options = transformModelsToOptions(
+      [
+        createModel({ key: 'google/veo-3', label: 'Veo 3' }),
+        createModel({ key: 'kwaivgi/kling-v2', label: 'Kling v2' }),
+      ],
+      [],
+    );
+
+    expect(
+      orderOptionsByKeys(options, [
+        'kwaivgi/kling-v2',
+        'retired/model',
+        'google/veo-3',
+      ]).map((option) => option.model.key),
+    ).toEqual(['kwaivgi/kling-v2', 'google/veo-3']);
   });
 });

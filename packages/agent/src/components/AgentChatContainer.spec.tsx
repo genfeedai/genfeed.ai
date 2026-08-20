@@ -28,6 +28,14 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useOptionalUser: () => null,
 }));
 
+vi.mock('@genfeedai/agent/hooks/use-agent-registry-models', () => ({
+  useAgentRegistryModels: () => ({
+    defaultModelKey: null,
+    isLoading: false,
+    models: [],
+  }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => null,
 }));

@@ -109,7 +109,7 @@ export function OnboardingChecklistCard({
                 {item.label}
               </span>
               {isCreditRewardsVisible && (
-                <span className="text-[10px] font-medium text-amber-300">
+                <span className="text-2xs font-medium text-amber-300">
                   +{item.rewardCredits ?? 0}
                 </span>
               )}
@@ -117,7 +117,7 @@ export function OnboardingChecklistCard({
             {!item.isCompleted && item.ctaHref && (
               <a
                 href={item.ctaHref}
-                className="flex items-center gap-0.5 text-[10px] font-medium text-primary hover:underline"
+                className="flex items-center gap-0.5 text-2xs font-medium text-primary hover:underline"
               >
                 {item.ctaLabel || 'Start'}
                 <ChevronRight className="size-3" />

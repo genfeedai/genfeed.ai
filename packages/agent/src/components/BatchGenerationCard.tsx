@@ -149,7 +149,7 @@ export function BatchGenerationCard({
       <div className="mb-3 min-w-0 space-y-1.5">
         <label
           htmlFor="batch-count"
-          className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          className="block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
         >
           Number of items
         </label>
@@ -165,7 +165,7 @@ export function BatchGenerationCard({
       </div>
 
       <div className="mb-3 min-w-0">
-        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
           Platforms
         </span>
         <div className="flex min-w-0 flex-wrap gap-2">
@@ -198,7 +198,7 @@ export function BatchGenerationCard({
           {estimatedCredits === 1 ? '' : 's'}
         </span>
       </div>
-      <p className="mb-3 break-words text-[10px] leading-4 text-muted-foreground/80 [overflow-wrap:anywhere]">
+      <p className="mb-3 break-words text-2xs leading-4 text-muted-foreground/80 [overflow-wrap:anywhere]">
         Based on default mix (image{' '}
         {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.IMAGE]}% / video{' '}
         {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.VIDEO]}% / reel{' '}

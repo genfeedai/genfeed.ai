@@ -27,7 +27,7 @@ export function CostIndicator() {
       size="sm"
       onClick={() => openModal('cost')}
       title="View cost breakdown"
-      className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+      className="text-muted-foreground hover:text-foreground"
     >
       <DollarSign className="size-3.5" />
       <span className="font-mono text-xs">{formatCost(displayCost)}</span>

@@ -32,7 +32,7 @@ function BatchCounter({
 }: BatchCounterProps) {
   return (
     <div className="flex items-center gap-0.5">
-      <span className="mr-0.5 text-[11px] text-muted-foreground">Batch</span>
+      <span className="mr-0.5 text-2xs text-muted-foreground">Batch</span>
       <Button
         variant="ghost"
         size="icon-sm"
@@ -264,7 +264,7 @@ function BatchProgress({
   return (
     <>
       <div className="mx-1 h-4 w-px bg-border" />
-      <span className="text-[11px] tabular-nums text-muted-foreground">
+      <span className="text-2xs tabular-nums text-muted-foreground">
         {currentBatchRun}/{batchCount}
       </span>
     </>

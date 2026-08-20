@@ -231,7 +231,7 @@ export default function HookRemixModal({
             disabled={isSubmitting}
             className="w-full"
           />
-          <div className="flex justify-between text-[10px] text-foreground/40 mt-1">
+          <div className="flex justify-between text-2xs text-foreground/40 mt-1">
             <span>{MIN_HOOK_DURATION}s</span>
             <span>{MAX_HOOK_DURATION}s</span>
           </div>

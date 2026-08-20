@@ -220,7 +220,7 @@ export default function AppTable<T>({
                 <th
                   key={String(column.key)}
                   className={cn(
-                    'h-10 select-none px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground',
+                    'h-10 select-none px-4 text-left align-middle text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground',
                     column.className,
                   )}
                 >

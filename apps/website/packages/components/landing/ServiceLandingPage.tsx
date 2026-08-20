@@ -73,7 +73,7 @@ export default function ServiceLandingPage({
             </div>
 
             <div className="bg-background/60 p-6">
-              <div className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-surface/50">
+              <div className="mb-4 flex items-center gap-2 text-2xs font-black uppercase tracking-[0.24em] text-surface/50">
                 <CalendarRange className="size-4" />
                 {config.fitLabel}
               </div>

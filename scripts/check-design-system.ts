@@ -4,8 +4,18 @@ import path from 'node:path';
 
 import { PLATFORM_COLORS } from '../packages/constants/src/platform-colors';
 import { semanticColorTokens } from '../packages/ui/src/core/colors';
+import {
+  elevationTokens,
+  focusTokens,
+} from '../packages/ui/src/core/elevation';
 import { motionTokens } from '../packages/ui/src/core/motion';
 import { radiusTokens } from '../packages/ui/src/core/radius';
+import {
+  backgroundScale,
+  neutralAlphaScale,
+  neutralScale,
+} from '../packages/ui/src/core/scales';
+import { sizingTokens } from '../packages/ui/src/core/sizing';
 import { spacingTokens } from '../packages/ui/src/core/spacing';
 import { typographyTokens } from '../packages/ui/src/core/typography';
 
@@ -233,7 +243,7 @@ function checkWebTokenDrift(failures: string[]): void {
   for (const [tokenName, value] of Object.entries(radiusTokens)) {
     assertContains(
       webTokens,
-      `--radius-${tokenName}: ${value};`,
+      `--radius-${cssName(tokenName)}: ${value};`,
       failures,
       'packages/ui/web-tokens.css',
     );
@@ -246,6 +256,64 @@ function checkWebTokenDrift(failures: string[]): void {
       failures,
       'packages/ui/web-tokens.css',
     );
+  }
+
+  for (const [tokenName, value] of Object.entries(sizingTokens)) {
+    assertContains(
+      webTokens,
+      `--${cssName(tokenName)}: ${value};`,
+      failures,
+      'packages/ui/web-tokens.css',
+    );
+  }
+
+  for (const [tokenName, value] of Object.entries(focusTokens)) {
+    assertContains(
+      webTokens,
+      `--${cssName(tokenName)}: ${value};`,
+      failures,
+      'packages/ui/web-tokens.css',
+    );
+  }
+
+  // The neutral ladder, its translucent twin, the two-step canvas, and the
+  // elevation stack are all per-theme, so every step is asserted once per theme.
+  for (const theme of ['dark', 'light'] as const) {
+    for (const [step, value] of Object.entries(neutralScale[theme])) {
+      assertContains(
+        webTokens,
+        `--gray-${step}: ${value.hsl};`,
+        failures,
+        'packages/ui/web-tokens.css',
+      );
+    }
+
+    for (const [step, value] of Object.entries(neutralAlphaScale[theme])) {
+      assertContains(
+        webTokens,
+        `--gray-alpha-${step}: ${value};`,
+        failures,
+        'packages/ui/web-tokens.css',
+      );
+    }
+
+    for (const [step, value] of Object.entries(backgroundScale[theme])) {
+      assertContains(
+        webTokens,
+        `--background-${step}: ${value.hsl};`,
+        failures,
+        'packages/ui/web-tokens.css',
+      );
+    }
+
+    for (const [tokenName, value] of Object.entries(elevationTokens[theme])) {
+      assertContains(
+        webTokens,
+        `--${cssName(tokenName)}: ${value};`,
+        failures,
+        'packages/ui/web-tokens.css',
+      );
+    }
   }
 }
 

@@ -175,7 +175,7 @@ function TemplateCompatibilityNodeComponent(
             {definition.description}
           </p>
         </div>
-        <span className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-[10px] uppercase text-muted-foreground">
+        <span className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-2xs uppercase text-muted-foreground">
           Template
         </span>
       </div>
@@ -184,7 +184,7 @@ function TemplateCompatibilityNodeComponent(
         {definition.inputs.map((handle) => (
           <span
             key={`in-${handle.id}`}
-            className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-[10px] text-muted-foreground"
+            className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-2xs text-muted-foreground"
           >
             in: {handle.label}
           </span>
@@ -192,7 +192,7 @@ function TemplateCompatibilityNodeComponent(
         {definition.outputs.map((handle) => (
           <span
             key={`out-${handle.id}`}
-            className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-[10px] text-muted-foreground"
+            className="rounded-full border border-border/80 bg-secondary/40 px-2 py-0.5 text-2xs text-muted-foreground"
           >
             out: {handle.label}
           </span>

@@ -29,7 +29,7 @@ export function PlatformBanner(): ReactElement | null {
       <span className={`text-xs font-medium ${display.color}`}>
         {display.name}
       </span>
-      <span className="text-[10px] text-muted-foreground">
+      <span className="text-2xs text-muted-foreground">
         Content will be optimized for this platform
       </span>
     </div>

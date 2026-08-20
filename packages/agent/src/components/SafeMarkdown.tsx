@@ -192,12 +192,12 @@ const SAFE_MARKDOWN_COMPONENTS: Components = {
     </p>
   ),
   ul: ({ children }): ReactElement => (
-    <ul className="my-2 list-disc space-y-1 pl-5 marker:text-muted">
+    <ul className="my-2 list-disc space-y-1 pl-5 marker:text-muted-foreground">
       {children}
     </ul>
   ),
   ol: ({ children }): ReactElement => (
-    <ol className="my-2 list-decimal space-y-1.5 pl-5 marker:text-muted">
+    <ol className="my-2 list-decimal space-y-1.5 pl-5 marker:text-muted-foreground">
       {children}
     </ol>
   ),

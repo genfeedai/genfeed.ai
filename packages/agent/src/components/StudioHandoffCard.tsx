@@ -42,7 +42,7 @@ export function StudioHandoffCard({
 
         {/* Editor type badge */}
         <div className="mb-3">
-          <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+          <span className="rounded-full bg-violet-50 px-2 py-0.5 text-2xs font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
             {editorType}
           </span>
         </div>

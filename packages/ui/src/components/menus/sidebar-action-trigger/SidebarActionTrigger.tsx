@@ -32,19 +32,19 @@ export default function SidebarActionTrigger({
       className={cn(
         'group relative flex h-7 w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left text-foreground/72 transition-[background-color,color] duration-200',
         'hover:bg-foreground/[0.06] hover:text-foreground',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,
       )}
     >
       <span className="flex size-4 items-center justify-center text-foreground/42 transition-colors duration-200 group-hover:text-foreground/78">
         {icon}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200">
         {label}
       </span>
       <Kbd
         variant="ghost"
-        className="ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        className="ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-2xs text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
       >
         {shortcut}
       </Kbd>

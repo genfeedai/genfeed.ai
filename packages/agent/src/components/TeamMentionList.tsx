@@ -90,7 +90,7 @@ export function TeamMentionList({
           </div>
           <span
             className={cn(
-              'ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium',
+              'ml-auto rounded-full px-2 py-0.5 text-2xs font-medium',
               item.isAgent
                 ? 'bg-violet-500/20 text-violet-400'
                 : 'bg-emerald-500/20 text-emerald-400',

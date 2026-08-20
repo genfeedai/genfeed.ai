@@ -62,7 +62,7 @@ export function CloudCreditsIndicator() {
   return (
     <div
       title="Estimated workflow cost in credits"
-      className="flex items-center gap-1.5 rounded border border-[var(--border)] px-2 py-1 text-sm text-[var(--muted-foreground)]"
+      className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-sm text-muted-foreground"
     >
       <CreditCard className="size-3.5" />
       <span className="font-mono text-xs">

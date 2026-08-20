@@ -268,7 +268,7 @@ export function AgentThreadListRow({
       ) : (
         <Link
           href={getThreadHref(conv.id)}
-          className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
+          className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
           onClick={() => {
             // Do not abort an in-flight prefetch for this row. The switch
             // adopts that flight so hover-then-click cannot stack a second
@@ -299,7 +299,7 @@ export function AgentThreadListRow({
               ) : null}
               <span
                 className={cn(
-                  'min-w-0 flex-1 truncate text-[13px] font-medium',
+                  'min-w-0 flex-1 truncate text-sm font-medium',
                   // Default studio tokens: >=7.56:1 dark and >=4.92:1 light
                   // across archived, hover, and selected row surfaces.
                   isArchived ? 'text-foreground/65' : 'text-foreground/90',
@@ -308,13 +308,13 @@ export function AgentThreadListRow({
                 {threadTitle}
               </span>
               {relativeTime ? (
-                <span className="shrink-0 text-[11px] tabular-nums text-foreground/36">
+                <span className="shrink-0 text-2xs tabular-nums text-foreground/36">
                   {relativeTime}
                 </span>
               ) : null}
             </div>
             {preview ? (
-              <div className="mt-0.5 min-w-0 truncate text-[11px] text-foreground/38">
+              <div className="mt-0.5 min-w-0 truncate text-2xs text-foreground/38">
                 {preview}
               </div>
             ) : null}

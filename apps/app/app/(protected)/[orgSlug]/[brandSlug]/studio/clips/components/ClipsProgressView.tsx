@@ -38,8 +38,7 @@ export default function ClipsProgressView({
         : 'Generating clips';
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="sr-only">Clips</h1>
+    <div>
       <div className="mb-8">
         <div className="flex items-center gap-3">
           <Film className="size-6 text-primary" />
@@ -97,7 +96,7 @@ export default function ClipsProgressView({
           variant={ButtonVariant.LINK}
           className="text-sm text-muted-foreground hover:text-foreground"
           onClick={onReset}
-          label="Start new project"
+          label="Back to projects"
         />
       </div>
     </div>

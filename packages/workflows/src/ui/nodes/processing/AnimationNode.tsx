@@ -111,15 +111,15 @@ function AnimationNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Curve Type Toggle */}
-        <div className="flex gap-1 p-1 bg-[var(--background)] rounded">
+        <div className="flex gap-1 p-1 bg-background rounded">
           <Button
             variant={nodeData.curveType === 'preset' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => handleCurveTypeChange('preset')}
             className={`flex-1 text-xs h-auto py-1 px-2 ${
               nodeData.curveType === 'preset'
-                ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90'
-                : 'text-[var(--muted-foreground)] hover:bg-[var(--border)]'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'text-muted-foreground hover:bg-border'
             }`}
           >
             Preset
@@ -130,8 +130,8 @@ function AnimationNodeComponent(props: NodeProps) {
             onClick={() => handleCurveTypeChange('custom')}
             className={`flex-1 text-xs h-auto py-1 px-2 ${
               nodeData.curveType === 'custom'
-                ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90'
-                : 'text-[var(--muted-foreground)] hover:bg-[var(--border)]'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'text-muted-foreground hover:bg-border'
             }`}
           >
             Custom
@@ -142,7 +142,7 @@ function AnimationNodeComponent(props: NodeProps) {
         {nodeData.curveType === 'preset' && (
           <div>
             <label
-              className="text-xs text-[var(--muted-foreground)]"
+              className="text-xs text-muted-foreground"
               htmlFor={`animation-easing-preset-${id}`}
             >
               Easing Preset
@@ -178,7 +178,7 @@ function AnimationNodeComponent(props: NodeProps) {
 
         {/* Curve Preview (preset only) */}
         {nodeData.curveType === 'preset' && (
-          <div className="h-20 bg-[var(--background)] rounded border border-[var(--border)] p-2">
+          <div className="h-20 bg-background rounded border border-border p-2">
             <svg viewBox="0 0 100 100" className="size-full">
               <path
                 d={pathD}
@@ -206,7 +206,7 @@ function AnimationNodeComponent(props: NodeProps) {
 
         {/* Speed Multiplier */}
         <div>
-          <label className="text-xs text-[var(--muted-foreground)]">
+          <label className="text-xs text-muted-foreground">
             Speed: {nodeData.speedMultiplier.toFixed(1)}x
           </label>
           <Slider
@@ -217,7 +217,7 @@ function AnimationNodeComponent(props: NodeProps) {
             onValueChange={handleSpeedChange}
             className="nodrag w-full"
           />
-          <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>0.25x</span>
             <span>4x</span>
           </div>
@@ -266,7 +266,7 @@ function AnimationNodeComponent(props: NodeProps) {
 
         {/* Help text for required inputs */}
         {!hasRequiredInputs && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <CircleAlert className="size-3" />
             Connect a video to animate
           </div>

@@ -40,10 +40,10 @@ export default function PricingStrip({ className }: PricingStripProps) {
                 isFeatured && 'bg-[var(--gen-accent-bg)]',
               )}
             >
-              <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-surface/50">
+              <div className="mb-2 flex items-center justify-center gap-2 text-2xs font-black uppercase tracking-widest text-surface/50">
                 {column.subtitle}
                 {isFeatured ? (
-                  <span className="text-[9px] font-bold text-surface/65">
+                  <span className="text-2xs font-bold text-surface/65">
                     ★ Popular
                   </span>
                 ) : null}

@@ -44,11 +44,11 @@ export function WorkspaceTaskRow({ onOpen, task }: WorkspaceTaskRowProps) {
             <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
               {task.title}
             </p>
-            <span className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/65">
+            <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
               {formatTaskStatus(task)}
             </span>
             {needsAttention ? (
-              <span className="rounded-full bg-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
+              <span className="rounded-full bg-muted px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/55">
                 Needs attention
               </span>
             ) : null}

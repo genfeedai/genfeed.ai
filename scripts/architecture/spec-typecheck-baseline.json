@@ -2920,14 +2920,7 @@
       "message": "Property 'callbackId' is missing in type '{ avatarId: string; organizationId: string; script: string; userId: string; voiceId: string; }' but required in type 'AvatarVideoJobInput'.",
       "workspace": "api"
     },
-    {
-      "code": 2352,
-      "count": 2,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation.controller.spec.ts",
-      "fingerprint": "00455bb7eda52ae8822f",
-      "message": "Conversion of type 'Mocked<BatchGenerationService>' to type 'Record<string, Mock<Procedure | Constructable>>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Index signature for type 'string' is missing in type '{ createBatch: MockInstance<(dto: CreateBatchDto, userId: string, orgId: string, idempotencyKey?: string | undefined) => Promise<IBatchSummary>>; ... 9 more ...; updateBatch: MockInstance<...>; } & BatchGenerationService'.",
-      "workspace": "api"
-    },
+
     {
       "code": 2352,
       "count": 1,

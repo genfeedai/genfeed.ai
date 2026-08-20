@@ -356,13 +356,13 @@ export class LifecycleEmailDeliveryService {
       this.unsubscribeUrl(unsubscribeToken),
     );
     const unsubscribeHtml = unsubscribeUrl
-      ? `No longer want lifecycle emails? <a href="${escapeSystemEmailHtml(unsubscribeUrl)}" style="color:#b4b4bc;text-decoration:underline;">Unsubscribe</a>.`
+      ? `No longer want lifecycle emails? <a href="${escapeSystemEmailHtml(unsubscribeUrl)}" style="color:#A1A1A1;text-decoration:underline;">Unsubscribe</a>.`
       : 'No longer want lifecycle emails? Reply to this email to unsubscribe.';
     const bodyHtml = [
       ...template.paragraphs.map((paragraph) =>
         buildSystemEmailParagraph(paragraph),
       ),
-      `<p style="margin:8px 0 20px;color:#8c8c96;font-size:12px;line-height:18px;">${unsubscribeHtml}</p>`,
+      `<p style="margin:8px 0 20px;color:#949494;font-size:12px;line-height:18px;">${unsubscribeHtml}</p>`,
     ].join('');
 
     return buildSystemEmailHtml({

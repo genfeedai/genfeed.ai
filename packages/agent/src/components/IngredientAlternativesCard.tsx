@@ -140,7 +140,7 @@ export function IngredientAlternativesCard({
                 <p className="mb-1 text-xs font-semibold text-foreground">
                   {alt.label}
                 </p>
-                <p className="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                <p className="line-clamp-2 text-2xs leading-relaxed text-muted-foreground">
                   {alt.prompt}
                 </p>
               </Button>

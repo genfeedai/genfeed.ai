@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   resolveAvatarProviderSelection,
+  resolveClipsStepFromStatus,
   resolveQuickAvatarIdentity,
   resolveStudioClipIdentityDefaults,
 } from './useStudioClipsPage';
@@ -15,6 +16,20 @@ const identityDefaults = {
   source: 'brand' as const,
   voiceId: 'saved-heygen-voice',
 };
+
+describe('resolveClipsStepFromStatus', () => {
+  it('opens completed and generating projects on the results surface', () => {
+    expect(resolveClipsStepFromStatus('completed')).toBe('progress');
+    expect(resolveClipsStepFromStatus('generating')).toBe('progress');
+    expect(resolveClipsStepFromStatus('failed')).toBe('progress');
+  });
+
+  it('opens analyzed and in-flight analysis on review', () => {
+    expect(resolveClipsStepFromStatus('analyzed')).toBe('review');
+    expect(resolveClipsStepFromStatus('analyzing')).toBe('review');
+    expect(resolveClipsStepFromStatus('pending')).toBe('review');
+  });
+});
 
 describe('resolveStudioClipIdentityDefaults', () => {
   it('prefills saved brand HeyGen avatar and voice defaults', () => {

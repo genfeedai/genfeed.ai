@@ -27,7 +27,7 @@ export const TERMINAL_PRESETS: Array<{
 ];
 
 export const TERMINAL_CONTROL_CLASS =
-  'inline-flex h-7 shrink-0 items-center rounded-md border border-border/60 bg-background/30 px-2 text-[11px] leading-none text-foreground/58 transition-colors hover:border-foreground/22 hover:bg-foreground/[0.04] hover:text-foreground/84';
+  'inline-flex h-7 shrink-0 items-center rounded-md border border-border/60 bg-background/30 px-2 text-2xs leading-none text-foreground/58 transition-colors hover:border-foreground/22 hover:bg-foreground/[0.04] hover:text-foreground/84';
 export const TERMINAL_ICON_CONTROL_CLASS =
   'inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/30 text-foreground/50 transition-colors hover:border-foreground/22 hover:bg-foreground/[0.04] hover:text-foreground/84';
 

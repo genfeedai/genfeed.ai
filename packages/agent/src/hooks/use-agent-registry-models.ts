@@ -3,10 +3,12 @@ import {
   AGENT_CHAT_CAPABILITY,
   isRetiredAgentChatModel,
 } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
+import { resolveOrgAllowlistedModels } from '@helpers/model-allowlist.helper';
 import { ModelsService } from '@services/ai/models.service';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const REGISTRY_PAGE_LIMIT = 100;
 
@@ -45,22 +47,21 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
   isLoading: boolean;
   models: readonly IModel[];
 } {
-  const [models, setModels] = useState<readonly IModel[]>([]);
-  const [defaultModelKey, setDefaultModelKey] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(apiService));
+  const { organizationId, settings, settingsLoading } = useBrand();
+  const [catalogModels, setCatalogModels] = useState<readonly IModel[]>([]);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(Boolean(apiService));
 
   useEffect(() => {
     if (!apiService) {
-      setModels([]);
-      setDefaultModelKey(null);
-      setIsLoading(false);
+      setCatalogModels([]);
+      setIsCatalogLoading(false);
       return;
     }
 
     const controller = new AbortController();
     let isCancelled = false;
 
-    setIsLoading(true);
+    setIsCatalogLoading(true);
 
     void (async () => {
       try {
@@ -100,21 +101,14 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
             return left.label.localeCompare(right.label);
           });
 
-        const defaultRow =
-          agentRows.find((row) => row.isDefault) ??
-          agentRows.find((row) => row.isHighlighted) ??
-          agentRows[0];
-
-        setModels(agentRows);
-        setDefaultModelKey(defaultRow?.key ?? null);
+        setCatalogModels(agentRows);
       } catch {
         if (!isCancelled) {
-          setModels([]);
-          setDefaultModelKey(null);
+          setCatalogModels([]);
         }
       } finally {
         if (!isCancelled) {
-          setIsLoading(false);
+          setIsCatalogLoading(false);
         }
       }
     })();
@@ -124,6 +118,28 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
       controller.abort();
     };
   }, [apiService]);
+
+  const models = useMemo(
+    () =>
+      resolveOrgAllowlistedModels(catalogModels, {
+        enabledModelIds: settings?.enabledModelIds,
+        isSettingsReady: !settingsLoading,
+        organizationId,
+      }),
+    [catalogModels, organizationId, settings?.enabledModelIds, settingsLoading],
+  );
+
+  const defaultModelKey = useMemo(() => {
+    const defaultRow =
+      models.find((row) => row.isDefault) ??
+      models.find((row) => row.isHighlighted) ??
+      models[0];
+    return defaultRow?.key ?? null;
+  }, [models]);
+
+  const isLoading =
+    Boolean(apiService) &&
+    (isCatalogLoading || (Boolean(organizationId) && settingsLoading));
 
   return { defaultModelKey, isLoading, models };
 }

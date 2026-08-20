@@ -148,13 +148,13 @@ export default function SkillCatalogCard({
                     {skill.name}
                   </span>
                   <Badge
-                    className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                    className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
                     variant={getSourceBadgeVariant(skill.source)}
                   >
                     {skill.source.replace('_', ' ')}
                   </Badge>
                   <Badge
-                    className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                    className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
                     variant="ghost"
                   >
                     {skill.workflowStage}
@@ -165,10 +165,10 @@ export default function SkillCatalogCard({
                   {skill.description}
                 </p>
 
-                <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.14em] text-foreground/45">
+                <div className="flex flex-wrap gap-2 text-2xs uppercase tracking-[0.14em] text-foreground/45">
                   {skill.modalities.map((modality) => (
                     <Badge
-                      className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                      className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
                       key={`${skill.id}-${modality}`}
                       variant={getModalityBadgeVariant(modality)}
                     >
@@ -177,7 +177,7 @@ export default function SkillCatalogCard({
                   ))}
                   {skill.channels.map((channel) => (
                     <Badge
-                      className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                      className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
                       key={`${skill.id}-${channel}`}
                       variant="outline"
                     >

@@ -73,11 +73,11 @@ export default function MenuItem({
     ? isHorizontalLayout
       ? cn(
           'group relative flex h-8 w-full flex-row items-center gap-2.5 rounded px-2.5 py-1.5 text-left transition-[background-color,color] duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
       : cn(
           'group relative flex w-full flex-col items-center gap-2 p-2 text-center transition-all duration-200',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         )
     : 'group flex h-8 items-center gap-2.5 rounded px-2.5 py-1.5 text-left transition-[background-color,color] duration-150';
 
@@ -104,7 +104,7 @@ export default function MenuItem({
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <span
           className={cn(
-            'min-w-0 truncate text-[13px] font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200',
+            'min-w-0 truncate text-sm font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200',
             isActive && 'text-foreground font-semibold',
           )}
         >
@@ -124,7 +124,7 @@ export default function MenuItem({
       // Vertical card layout: uppercase small label
       <span
         className={cn(
-          'text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/58 transition-colors duration-200',
+          'text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/58 transition-colors duration-200',
           isActive && 'text-foreground',
         )}
       >

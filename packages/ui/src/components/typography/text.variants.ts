@@ -17,9 +17,10 @@ export const textVariants = cva('', {
       'subtle-70': 'text-foreground/70',
     },
     size: {
-      '2xs': 'text-[10px]',
+      '2xs': 'text-2xs',
       base: 'text-base',
       lg: 'text-lg',
+      md: 'text-md',
       sm: 'text-sm',
       xl: 'text-xl',
       xs: 'text-xs',

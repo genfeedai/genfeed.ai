@@ -174,7 +174,7 @@ export default function CrossPlatformLeaderboardSection({
                         </span>
                         <Badge
                           variant="outline"
-                          className="text-xs text-[10px] uppercase tracking-wide"
+                          className="text-xs text-2xs uppercase tracking-wide"
                         >
                           +{brand.growthRate}% 30d
                         </Badge>
@@ -182,7 +182,7 @@ export default function CrossPlatformLeaderboardSection({
                       <p className="text-xs text-foreground/60">
                         {brand.displayName} • {brand.contentPillar}
                       </p>
-                      <p className="text-[11px] text-foreground/60">
+                      <p className="text-2xs text-foreground/60">
                         Posting cadence: {brand.postingCadence}
                       </p>
                     </div>

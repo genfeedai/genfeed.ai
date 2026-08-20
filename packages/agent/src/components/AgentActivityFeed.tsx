@@ -148,7 +148,7 @@ export function AgentActivityFeed({
             >
               <div className="flex items-center gap-3">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.className}`}
+                  className={`rounded-full px-2 py-0.5 text-2xs font-medium ${badge.className}`}
                 >
                   {badge.label}
                 </span>
@@ -156,7 +156,7 @@ export function AgentActivityFeed({
                   <p className="text-xs font-medium text-foreground">
                     {run.contentGenerated} content generated
                   </p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-2xs text-muted-foreground">
                     {formatRunTime(run.startedAt)}
                     {run.completedAt &&
                       ` — ${Math.round(

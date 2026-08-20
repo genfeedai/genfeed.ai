@@ -42,7 +42,7 @@ function ConnectionState({
             <Terminal aria-hidden="true" className="size-4" />
           </div>
           <div className="min-w-0 space-y-1.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/40">
+            <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/40">
               Connection required
             </p>
             <h2 className="text-base font-semibold tracking-[-0.02em] text-foreground sm:text-lg">

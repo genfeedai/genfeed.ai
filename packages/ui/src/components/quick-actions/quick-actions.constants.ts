@@ -11,7 +11,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
  */
 export const QUICK_ACTION_TRIGGER_CLASS = cn(
   'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium',
-  'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
   'disabled:pointer-events-none disabled:opacity-50',
   '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   'h-8 px-3 text-xs',

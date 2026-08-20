@@ -50,13 +50,13 @@ export function TemplateCard({
       onClick={onSelect}
       className={`flex flex-col items-start border p-3 text-left transition-colors hover:bg-secondary/50 ${borderColor}`}
     >
-      <span className="mb-1.5 flex size-6 items-center justify-center rounded bg-secondary text-[10px] font-bold text-muted-foreground">
+      <span className="mb-1.5 flex size-6 items-center justify-center rounded bg-secondary text-2xs font-bold text-muted-foreground">
         {platformLabel}
       </span>
       <span className="text-xs font-medium text-foreground">
         {template.label}
       </span>
-      <span className="mt-0.5 text-[10px] text-muted-foreground">
+      <span className="mt-0.5 text-2xs text-muted-foreground">
         {template.description}
       </span>
     </Button>

@@ -30,7 +30,7 @@ export function BrandInterviewCompleteCard({
 
       {completenessScore !== null ? (
         <div className="border border-emerald-500/20 bg-emerald-500/5 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Brand context completeness
           </p>
           <p className="mt-1 text-sm font-semibold text-emerald-600">

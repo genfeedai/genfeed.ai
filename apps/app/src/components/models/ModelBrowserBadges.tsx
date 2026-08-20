@@ -21,7 +21,7 @@ const PROVIDER_LABELS: Record<ProviderType, string> = {
 export function ProviderBadge({ provider }: { provider: ProviderType }) {
   return (
     <span
-      className={`rounded border px-1.5 py-0.5 text-[10px] font-medium ${PROVIDER_COLORS[provider]}`}
+      className={`rounded border px-1.5 py-0.5 text-2xs font-medium ${PROVIDER_COLORS[provider]}`}
     >
       {PROVIDER_LABELS[provider]}
     </span>

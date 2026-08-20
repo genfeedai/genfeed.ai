@@ -48,7 +48,7 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
-import AgentWorkflowRunDialog from '../library/AgentWorkflowRunDialog';
+import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
 import AgentRunHistorySection from './AgentRunHistorySection';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
@@ -224,7 +224,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       <Container label="Agent Detail" icon={Cpu}>
         <div className="py-16 text-center text-foreground/50">
           Agent not found.{' '}
-          <Link href={APP_ROUTES.AUTOMATE.ROOT} className="underline">
+          <Link href={APP_ROUTES.AUTOMATE.AGENTS} className="underline">
             Back to Agent Hub
           </Link>
         </div>
@@ -238,7 +238,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       description={`${typeLabel} agent`}
       icon={Cpu}
       left={
-        <Link href={APP_ROUTES.AUTOMATE.ROOT}>
+        <Link href={APP_ROUTES.AUTOMATE.AGENTS}>
           <Button
             label={
               <>

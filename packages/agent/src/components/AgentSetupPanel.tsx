@@ -59,7 +59,7 @@ function ConnectedAccountChip({
               className="object-cover"
             />
           ) : null}
-          <AvatarFallback className="text-[10px] font-semibold text-foreground/70">
+          <AvatarFallback className="text-2xs font-semibold text-foreground/70">
             {getConnectionInitials(connection)}
           </AvatarFallback>
         </Avatar>
@@ -78,7 +78,7 @@ function ConnectedAccountChip({
           {label}
         </span>
         {connection.handle ? (
-          <span className="block truncate text-[11px] text-muted-foreground">
+          <span className="block truncate text-2xs text-muted-foreground">
             @{connection.handle.replace(/^@/, '')}
           </span>
         ) : null}
@@ -114,7 +114,7 @@ export function AgentSetupPanel({
       data-testid="agent-setup-panel"
     >
       <div className="gen-shell-toolbar shrink-0 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+        <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-foreground/35">
           Setup
         </p>
         <h2 className="mt-1 text-base font-semibold text-foreground">
@@ -134,10 +134,10 @@ export function AgentSetupPanel({
           data-testid="agent-setup-social-card"
         >
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-foreground/60">
+            <span className="text-2xs font-semibold text-foreground/60">
               Social channels
             </span>
-            <span className="text-[10px] font-medium text-foreground/30">
+            <span className="text-2xs font-medium text-foreground/30">
               {connectedPlatformsCount} connected
             </span>
           </div>
@@ -152,7 +152,7 @@ export function AgentSetupPanel({
               ))}
             </div>
           ) : (
-            <div className="mb-3 flex items-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-[11px] text-muted-foreground shadow-border">
+            <div className="mb-3 flex items-center gap-2 rounded-md bg-background-secondary px-3 py-2.5 text-2xs text-muted-foreground shadow-border">
               <LayoutGrid className="size-4 shrink-0 text-foreground/40" />
               No channels connected yet.
             </div>

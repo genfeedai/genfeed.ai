@@ -128,7 +128,7 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
           ))}
         </div>
         {enabledPlatformCount === 0 && (
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-2xs text-muted-foreground mt-1">
             Select at least one platform
           </p>
         )}

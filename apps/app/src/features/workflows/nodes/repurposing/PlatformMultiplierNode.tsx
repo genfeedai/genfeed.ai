@@ -139,7 +139,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
               className="text-left flex-col items-start"
             >
               <div className="font-medium">{platform.label}</div>
-              <div className="text-[10px] text-muted-foreground">
+              <div className="text-2xs text-muted-foreground">
                 {PLATFORM_SPECS[platform.value].width}x
                 {PLATFORM_SPECS[platform.value].height}
               </div>

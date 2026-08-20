@@ -143,12 +143,12 @@ export function AgentComposerStatusStack({
               {composerError.summary}
             </p>
             {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-destructive/80">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-destructive/80">
                 {composerError.detail}
               </p>
             ) : null}
             {composerError.recovery ? (
-              <p className="text-[11px] leading-5 text-destructive/75">
+              <p className="text-2xs leading-5 text-destructive/75">
                 {composerError.recovery}
               </p>
             ) : null}
@@ -224,7 +224,7 @@ export function AgentComposerStatusStack({
             )}
           </div>
           {meaningfulWorkEvent.detail ? (
-            <p className="mt-1 truncate text-[11px] text-muted-foreground">
+            <p className="mt-1 truncate text-2xs text-muted-foreground">
               {meaningfulWorkEvent.detail}
             </p>
           ) : null}

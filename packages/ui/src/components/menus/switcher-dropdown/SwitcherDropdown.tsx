@@ -279,7 +279,7 @@ function SwitcherItem({
         ) : (
           <div
             className={cn(
-              'flex size-5 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold',
+              'flex size-5 flex-shrink-0 items-center justify-center rounded-md text-2xs font-bold',
               item.isActive
                 ? 'bg-primary/30 text-primary'
                 : 'bg-foreground/10 text-foreground/50',

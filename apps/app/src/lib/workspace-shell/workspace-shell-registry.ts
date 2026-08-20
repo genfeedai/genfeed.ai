@@ -159,6 +159,9 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/analytics': 'Overview',
   '/:orgSlug/~/automate': 'Overview',
   '/:orgSlug/:brandSlug/automate/:agentId': 'Agent',
+  '/:orgSlug/:brandSlug/automate/agents': 'Team',
+  '/:orgSlug/:brandSlug/automate/agents/:agentId': 'Agent',
+  '/:orgSlug/:brandSlug/automate/agents/new': 'New Agent',
   '/:orgSlug/:brandSlug/automate/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automate/library/:type': ':type',
   '/:orgSlug/:brandSlug/publish/posts': 'Posts',
@@ -173,6 +176,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/discover/:platform': ':platform',
   '/:orgSlug/:brandSlug/platforms/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
+  '/:orgSlug/:brandSlug/studio/clips/:projectId': 'Project',
   '/:orgSlug/:brandSlug/studio/edit': 'Edit',
   '/:orgSlug/:brandSlug/studio/edit/:id': 'Project',
   '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
@@ -225,6 +229,8 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/~/discover/ads/tiktok': 'Ads',
   // Content desk lives under Posts, not Overview.
   '/:orgSlug/:brandSlug/publish/posts/:id': 'Posts',
+  '/:orgSlug/:brandSlug/automate/agents/:agentId': 'Team',
+  '/:orgSlug/:brandSlug/automate/agents/new': 'Team',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
@@ -233,6 +239,8 @@ const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
 
 const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/publish/posts/:id': '/publish/posts',
+  '/:orgSlug/:brandSlug/automate/agents/:agentId': '/automate/agents',
+  '/:orgSlug/:brandSlug/automate/agents/new': '/automate/agents',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -709,12 +717,14 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/studio/batch',
       '/:orgSlug/:brandSlug/studio/clips',
+      '/:orgSlug/:brandSlug/studio/clips/:projectId',
       '/:orgSlug/:brandSlug/studio/fastlane',
+      '/:orgSlug/:brandSlug/studio/generate',
       '/:orgSlug/:brandSlug/studio/storyboard',
     ],
     {
       adapterStatus: 'ready',
-      fallback: '/:orgSlug/:brandSlug/studio/storyboard',
+      fallback: '/:orgSlug/:brandSlug/studio/generate',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -846,6 +856,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/automate',
       '/:orgSlug/:brandSlug/automate/:agentId',
+      '/:orgSlug/:brandSlug/automate/agents/:agentId',
       '/:orgSlug/:brandSlug/automate/overview',
       // /automate/analytics permanently redirects to Analytics Overview
       '/:orgSlug/:brandSlug/automate/analytics',
@@ -913,6 +924,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/automate/new',
+      '/:orgSlug/:brandSlug/automate/agents',
+      '/:orgSlug/:brandSlug/automate/agents/new',
       '/:orgSlug/:brandSlug/automate/configuration',
       '/:orgSlug/:brandSlug/automate/hire',
       '/:orgSlug/:brandSlug/automate/orchestrator',

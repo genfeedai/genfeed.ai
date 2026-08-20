@@ -54,15 +54,15 @@ export default function MenuSharedConversations({
             href={newAgentThreadHref}
             onFocus={prefetchNewAgentThreadHref}
             onMouseEnter={prefetchNewAgentThreadHref}
-            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             <Plus className="size-4 text-foreground/42 group-hover:text-foreground/78" />
-            <span className="text-[13px] font-medium tracking-[-0.01em] text-foreground/88">
+            <span className="text-sm font-medium tracking-[-0.01em] text-foreground/88">
               New Thread
             </span>
             <Kbd
               variant="ghost"
-              className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-[10px] text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-2xs text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
             >
               ⌘⇧N
             </Kbd>

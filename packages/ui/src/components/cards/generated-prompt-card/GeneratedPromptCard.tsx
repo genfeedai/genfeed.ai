@@ -152,7 +152,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         </div>
 
         {/* Media type indicator */}
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">
           <MediaIcon className="size-3" />
           <span className="capitalize">{targetMedia}</span>
           <span className="text-foreground/20">|</span>
@@ -168,7 +168,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
  */
 function MetadataTag({ icon, label }: PromptMetadataTagProps) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-[11px] text-muted-foreground">
+    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-2xs text-muted-foreground">
       {icon}
       {label}
     </span>

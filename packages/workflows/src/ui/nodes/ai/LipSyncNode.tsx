@@ -96,7 +96,7 @@ function LipSyncNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`lipsync-model-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Model
           </label>
@@ -122,7 +122,7 @@ function LipSyncNodeComponent(props: NodeProps) {
           <div>
             <label
               htmlFor={`lipsync-sync-mode-${id}`}
-              className="text-xs text-[var(--muted-foreground)]"
+              className="text-xs text-muted-foreground"
             >
               Sync Mode
             </label>
@@ -151,7 +151,7 @@ function LipSyncNodeComponent(props: NodeProps) {
         <div>
           <div
             id={`lipsync-temperature-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Temperature: {nodeData.temperature.toFixed(2)}
           </div>
@@ -176,7 +176,7 @@ function LipSyncNodeComponent(props: NodeProps) {
             />
             <label
               htmlFor={`active-speaker-${id}`}
-              className="text-xs text-[var(--muted-foreground)] cursor-pointer"
+              className="text-xs text-muted-foreground cursor-pointer"
             >
               Active speaker detection
             </label>
@@ -190,7 +190,7 @@ function LipSyncNodeComponent(props: NodeProps) {
               src={nodeData.outputVideo}
               aria-label="Lip-synced video output"
               controls
-              className="w-full rounded border border-[var(--border)]"
+              className="w-full rounded border border-border"
             />
             <Button
               variant="ghost"
@@ -226,7 +226,7 @@ function LipSyncNodeComponent(props: NodeProps) {
 
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <Mic className="size-3" />
             {supportsImage
               ? 'Connect audio + image to generate'

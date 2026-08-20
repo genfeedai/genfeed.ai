@@ -95,7 +95,7 @@ function CategorySection({
           {nodes.map(([nodeType, definition]) => (
             <div
               key={nodeType}
-              className="cursor-grab bg-card px-3 py-2 text-sm shadow-border transition-colors hover:border-primary hover:bg-background active:cursor-grabbing"
+              className="cursor-grab bg-card px-3 py-2 text-sm shadow-border transition-colors hover:border-primary hover:bg-accent active:cursor-grabbing"
               draggable
               onDragStart={(e) => onDragStart(e, nodeType)}
               title={definition.description}

@@ -11,7 +11,7 @@ export const SWITCHER_AVATAR_CLASSNAME =
   'flex size-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-foreground/20 text-xs font-semibold text-foreground';
 
 export const SWITCHER_LABEL_CLASSNAME =
-  'min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-foreground';
+  'min-w-0 flex-1 truncate text-left text-sm font-semibold text-foreground';
 
 export const SWITCHER_CHEVRON_CLASSNAME =
   'size-3.5 flex-shrink-0 text-foreground/45 transition-transform duration-200';

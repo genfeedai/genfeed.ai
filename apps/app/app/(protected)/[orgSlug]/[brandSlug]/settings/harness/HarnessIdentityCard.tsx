@@ -62,7 +62,7 @@ export default function HarnessIdentityCard({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-2xs text-muted-foreground">
             Locked to brand on this settings page.
           </p>
         </div>

@@ -9,7 +9,7 @@ export default function PromptBarGenerationMeter({
   return (
     <output
       aria-label={meter.ariaLabel}
-      className="min-w-0 max-w-[8.5rem] truncate px-1 text-[10px] font-medium tabular-nums text-foreground/45"
+      className="min-w-0 max-w-[8.5rem] truncate px-1 text-2xs font-medium tabular-nums text-foreground/45"
       data-testid="studio-generation-meter"
       title={meter.ariaLabel}
     >

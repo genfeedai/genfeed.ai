@@ -100,7 +100,7 @@ export function OverviewTrendsPanel({
             >
               <span
                 className={cn(
-                  'shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]',
+                  'shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-2xs font-semibold uppercase tracking-[0.12em]',
                   getPlatformBadgeClass(trend.platform),
                 )}
               >
@@ -114,7 +114,7 @@ export function OverviewTrendsPanel({
                 {trend.topic}
               </span>
 
-              <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/45">
+              <span className="shrink-0 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/45">
                 {formatViralityScore(trend.viralityScore)}
               </span>
             </div>

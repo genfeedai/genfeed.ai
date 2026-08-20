@@ -54,7 +54,7 @@ export function VoiceCloneDropzone({
             <p className="text-xs font-medium text-foreground">
               Drop audio file here
             </p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
+            <p className="mt-0.5 text-2xs text-muted-foreground">
               or click to browse (MP3, WAV, M4A)
             </p>
           </div>

@@ -152,7 +152,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
       <div className="relative flex flex-col gap-2 flex-1">
         {/* Warning badge for unresolved variables */}
         {unresolvedVars.length > 0 && (
-          <div className="px-2 py-1 bg-warning/10 border border-warning/30 rounded text-[10px] text-warning">
+          <div className="px-2 py-1 bg-warning/10 border border-warning/30 rounded text-2xs text-warning">
             <span className="font-semibold">Unresolved:</span>{' '}
             {unresolvedVars.map((v) => `@${v}`).join(', ')}
           </div>
@@ -189,7 +189,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
                     e.preventDefault();
                     handleAutocompleteSelect(variable.name);
                   }}
-                  className={`w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 h-auto items-start ${
+                  className={`w-full px-3 py-2 text-left text-2xs flex flex-col gap-0.5 h-auto items-start ${
                     index === selectedAutocompleteIndex
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent'
@@ -209,7 +209,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
 
         {/* Available variables info */}
         {availableVariables.length > 0 && (
-          <div className="text-[10px] text-muted-foreground px-2">
+          <div className="text-2xs text-muted-foreground px-2">
             Available: {availableVariables.map((v) => `@${v.name}`).join(', ')}
           </div>
         )}

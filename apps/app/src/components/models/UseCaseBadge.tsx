@@ -9,7 +9,7 @@ export function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
   const Icon = config.icon;
 
   return (
-    <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground border border-border">
+    <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-2xs font-medium text-muted-foreground border border-border">
       <Icon className="size-2.5" />
       {config.label}
     </span>

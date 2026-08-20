@@ -46,7 +46,7 @@ describe('Text', () => {
 
     it('renders 2xs size', () => {
       render(<Text size="2xs">2XS text</Text>);
-      expect(screen.getByText('2XS text')).toHaveClass('text-[10px]');
+      expect(screen.getByText('2XS text')).toHaveClass('text-2xs');
     });
 
     it('renders sm size', () => {

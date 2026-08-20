@@ -213,7 +213,7 @@ export default function LowCreditsBanner({
                 </p>
                 <span
                   className={cn(
-                    'rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]',
+                    'rounded-full border px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.12em]',
                     isCritical
                       ? 'border-red-400/20 bg-red-500/[0.12] text-red-200'
                       : 'border-amber-400/20 bg-amber-500/[0.12] text-amber-200',
@@ -226,7 +226,7 @@ export default function LowCreditsBanner({
               <p
                 className={cn(
                   'mt-1 max-w-3xl leading-5 text-foreground/70',
-                  isInline ? 'text-[13px]' : 'text-sm',
+                  isInline ? 'text-sm' : 'text-sm',
                 )}
               >
                 {description}

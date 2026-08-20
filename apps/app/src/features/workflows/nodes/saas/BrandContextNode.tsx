@@ -86,7 +86,7 @@ function BrandContextNodeComponent(props: NodeProps): React.JSX.Element {
                       className="inline-block size-5 rounded border border-white/[0.08]"
                       style={{ backgroundColor: color }}
                     />
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-2xs text-muted-foreground mt-0.5">
                       {key}
                     </p>
                   </div>

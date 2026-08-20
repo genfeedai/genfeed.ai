@@ -1,10 +1,12 @@
 import { WorkflowExecutionStatus, WorkflowLifecycle } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
+  formatLifecycleLabel,
   getLifecycleBadgeClass,
   getStatusBorderColor,
   getStatusColor,
   getStatusIcon,
+  isNonDefaultWorkflowLifecycle,
 } from '@/features/workflows/utils/status-helpers';
 
 describe('getStatusIcon', () => {
@@ -79,4 +81,31 @@ describe('getLifecycleBadgeClass', () => {
     ));
   it('undefined', () =>
     expect(getLifecycleBadgeClass(undefined)).toContain('warning'));
+});
+
+describe('formatLifecycleLabel', () => {
+  it('published', () =>
+    expect(formatLifecycleLabel(WorkflowLifecycle.PUBLISHED)).toBe(
+      'Published',
+    ));
+  it('archived', () =>
+    expect(formatLifecycleLabel(WorkflowLifecycle.ARCHIVED)).toBe('Archived'));
+  it('draft/default', () =>
+    expect(formatLifecycleLabel(WorkflowLifecycle.DRAFT)).toBe('Draft'));
+});
+
+describe('isNonDefaultWorkflowLifecycle', () => {
+  it('hides draft', () => {
+    expect(isNonDefaultWorkflowLifecycle(WorkflowLifecycle.DRAFT)).toBe(false);
+    expect(isNonDefaultWorkflowLifecycle(undefined)).toBe(false);
+  });
+
+  it('keeps published and archived', () => {
+    expect(isNonDefaultWorkflowLifecycle(WorkflowLifecycle.PUBLISHED)).toBe(
+      true,
+    );
+    expect(isNonDefaultWorkflowLifecycle(WorkflowLifecycle.ARCHIVED)).toBe(
+      true,
+    );
+  });
 });

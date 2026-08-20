@@ -12,8 +12,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findAll = vi.fn();
 
+const { brandState } = vi.hoisted(() => ({
+  brandState: {
+    organizationId: '',
+    settings: null as { enabledModelIds?: string[] } | null,
+    settingsLoading: false,
+  },
+}));
+
 vi.mock('@services/ai/models.service', () => ({
   ModelsService: { getInstance: () => ({ findAll }) },
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => brandState,
 }));
 
 function registryModel(overrides: Partial<IModel> = {}): IModel {
@@ -119,6 +131,9 @@ const expectedRegistryFilterKeys = [
 describe('useAgentRegistryModels', () => {
   beforeEach(() => {
     findAll.mockReset();
+    brandState.organizationId = '';
+    brandState.settings = null;
+    brandState.settingsLoading = false;
   });
 
   it('maps active registry rows into picker options', async () => {
@@ -192,6 +207,46 @@ describe('useAgentRegistryModels', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     // Phase D (#2422/#2472): the registry is the only source. An empty list
     // means the seed or API is incomplete — never a silent constants fallback.
+    expect(result.current.models).toEqual([]);
+    expect(result.current.defaultModelKey).toBeNull();
+  });
+
+  it('keeps an allowlisted chat model and hides disabled catalog rows', async () => {
+    const allowed = registryModel({
+      id: 'allowed-model',
+      key: 'fixture/allowed-model',
+      label: 'Allowed model',
+    });
+    const disabled = registryModel({
+      id: 'disabled-model',
+      key: 'fixture/disabled-model',
+      label: 'Disabled model',
+    });
+    brandState.organizationId = 'org_demo';
+    brandState.settings = { enabledModelIds: [allowed.key] };
+    findAll.mockResolvedValue([allowed, disabled]);
+
+    const { result } = renderHook(() =>
+      useAgentRegistryModels(apiServiceStub()),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.models.map((model) => model.key)).toEqual([
+      'fixture/allowed-model',
+    ]);
+    expect(result.current.defaultModelKey).toBe('fixture/allowed-model');
+  });
+
+  it('returns no chat models when the org allowlist is empty', async () => {
+    brandState.organizationId = 'org_demo';
+    brandState.settings = { enabledModelIds: [] };
+    findAll.mockResolvedValue([registryModel()]);
+
+    const { result } = renderHook(() =>
+      useAgentRegistryModels(apiServiceStub()),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.models).toEqual([]);
     expect(result.current.defaultModelKey).toBeNull();
   });

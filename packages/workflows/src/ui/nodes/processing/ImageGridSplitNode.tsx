@@ -45,7 +45,7 @@ function GridConfiguration({
     <div className="grid grid-cols-2 gap-2">
       <div>
         <label
-          className="text-xs text-[var(--muted-foreground)]"
+          className="text-xs text-muted-foreground"
           htmlFor={`image-grid-rows-${id}`}
         >
           Rows
@@ -58,12 +58,12 @@ function GridConfiguration({
           max="10"
           value={nodeData.gridRows}
           onChange={onRowsChange}
-          className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+          className="w-full px-2 py-1.5 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
       <div>
         <label
-          className="text-xs text-[var(--muted-foreground)]"
+          className="text-xs text-muted-foreground"
           htmlFor={`image-grid-columns-${id}`}
         >
           Columns
@@ -76,7 +76,7 @@ function GridConfiguration({
           max="10"
           value={nodeData.gridCols}
           onChange={onColsChange}
-          className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+          className="w-full px-2 py-1.5 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
     </div>
@@ -93,12 +93,12 @@ function GridPreview({
   totalCells: number;
 }) {
   return (
-    <div className="p-2 bg-[var(--background)] rounded border border-[var(--border)]">
-      <div className="text-xs text-[var(--muted-foreground)] text-center">
+    <div className="p-2 bg-background rounded border border-border">
+      <div className="text-xs text-muted-foreground text-center">
         Output: {totalCells} images ({rows}×{cols} grid)
       </div>
       <div
-        className="mt-2 grid gap-0.5 mx-auto w-20 aspect-square bg-[var(--border)] rounded overflow-hidden"
+        className="mt-2 grid gap-0.5 mx-auto w-20 aspect-square bg-border rounded overflow-hidden"
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -107,7 +107,7 @@ function GridPreview({
         {Array.from({ length: totalCells }).map((_, index) => (
           <div
             key={`cell-${index + 1}`}
-            className="bg-[var(--primary)]/20 text-[8px] flex items-center justify-center text-[var(--primary)]"
+            className="bg-primary/20 text-2xs flex items-center justify-center text-primary"
           >
             {index + 1}
           </div>
@@ -136,7 +136,7 @@ function GridOutputSettings({
     <>
       <div>
         <div
-          className="text-xs text-[var(--muted-foreground)]"
+          className="text-xs text-muted-foreground"
           id={`image-grid-border-inset-${id}`}
         >
           Border Inset: {nodeData.borderInset}px
@@ -154,7 +154,7 @@ function GridOutputSettings({
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
             htmlFor={`image-grid-format-${id}`}
           >
             Format
@@ -177,7 +177,7 @@ function GridOutputSettings({
         </div>
         <div>
           <div
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
             id={`image-grid-quality-${id}`}
           >
             Quality: {nodeData.quality}%
@@ -225,7 +225,7 @@ function OutputGallery({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[var(--muted-foreground)]">
+        <span className="text-xs text-muted-foreground">
           Output ({images.length} images)
         </span>
         <Button
@@ -247,7 +247,7 @@ function OutputGallery({
         {images.map((img, index) => (
           <div
             key={img}
-            className="relative group aspect-square rounded overflow-hidden border border-[var(--border)]"
+            className="relative group aspect-square rounded overflow-hidden border border-border"
           >
             <button
               type="button"
@@ -278,7 +278,7 @@ function OutputGallery({
                 <Download className="size-3 text-white" />
               </Button>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">
+            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-2xs text-center py-0.5">
               {index + 1}
             </div>
           </div>
@@ -291,7 +291,7 @@ function OutputGallery({
             alt={`Preview ${selectedPreview + 1}`}
             width={320}
             height={240}
-            className="h-auto w-full rounded border border-[var(--border)]"
+            className="h-auto w-full rounded border border-border"
             unoptimized
           />
           <Button
@@ -482,7 +482,7 @@ function ImageGridSplitNodeComponent(props: NodeProps) {
           />
         )}
         {!nodeData.inputImage && nodeData.outputImages.length === 0 && (
-          <div className="text-xs text-[var(--muted-foreground)] text-center">
+          <div className="text-xs text-muted-foreground text-center">
             Connect an image input to split
           </div>
         )}

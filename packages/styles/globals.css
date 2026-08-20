@@ -83,8 +83,45 @@
   --radius-full: var(--radius-full);
   --radius-card: var(--radius-card);
 
+  /* Neutral ladder — the readability spine. Values live once in
+     packages/ui/web-tokens.css and are re-declared per theme, so `bg-gray-200`
+     is theme-aware here. Tailwind's own gray (a fixed, blue-tinted oklch ramp)
+     is cleared first so the two can never be mixed on one surface.
+     Step jobs: 100 raised fill · 200 hover · 300 active/selected · 400 border ·
+     500 border-strong · 600 disabled text · 700 muted icon · 800 placeholder ·
+     900 secondary text · 1000 primary text. */
+  --color-gray-*: initial;
+  --color-gray-100: hsl(var(--gray-100));
+  --color-gray-200: hsl(var(--gray-200));
+  --color-gray-300: hsl(var(--gray-300));
+  --color-gray-400: hsl(var(--gray-400));
+  --color-gray-500: hsl(var(--gray-500));
+  --color-gray-600: hsl(var(--gray-600));
+  --color-gray-700: hsl(var(--gray-700));
+  --color-gray-800: hsl(var(--gray-800));
+  --color-gray-900: hsl(var(--gray-900));
+  --color-gray-1000: hsl(var(--gray-1000));
+
+  /* Translucent twin of the ladder: same step, same job, composites to the
+     solid value on the theme canvas. Use it over media, gradients, and any
+     surface whose colour is not known at author time. */
+  --color-gray-alpha-100: var(--gray-alpha-100);
+  --color-gray-alpha-200: var(--gray-alpha-200);
+  --color-gray-alpha-300: var(--gray-alpha-300);
+  --color-gray-alpha-400: var(--gray-alpha-400);
+  --color-gray-alpha-500: var(--gray-alpha-500);
+  --color-gray-alpha-600: var(--gray-alpha-600);
+  --color-gray-alpha-700: var(--gray-alpha-700);
+  --color-gray-alpha-800: var(--gray-alpha-800);
+  --color-gray-alpha-900: var(--gray-alpha-900);
+  --color-gray-alpha-1000: var(--gray-alpha-1000);
+
+  /* Two-step canvas: 100 is the page, 200 the raised content plane. */
+  --color-background-100: hsl(var(--background-100));
+  --color-background-200: hsl(var(--background-200));
+
   /* Semantic colors layered on shipshitdev/ui ship-* tokens */
-  --color-border-strong: var(--ship-border-strong);
+  --color-border-strong: hsl(var(--border-strong));
   --color-accent-hover: var(--ship-accent-hover);
   /*
    * Ship Badge `danger` uses text-danger / bg-danger/*. Point danger at the
@@ -94,28 +131,81 @@
   --color-danger: hsl(var(--destructive));
   --color-agent: var(--ship-agent);
   --color-done: var(--ship-done);
+
+  /* 11px is the hard floor for product type: below it Satoshi's low x-height
+     stops resolving at 1x. `text-2xs` replaces every text-[10px] / text-[11px]
+     one-off and carries its own leading, which the arbitrary values did not. */
+  --text-2xs: var(--font-size-xs);
+  --text-2xs--line-height: var(--line-height-caption);
+
+  /* The one size Tailwind has no slot for: 15px/24px, the comfortable reading
+     step between `text-sm` controls and `text-base` lede. */
+  --text-md: var(--font-size-lg);
+  --text-md--line-height: var(--line-height-lede);
+
+  /* Elevation is themed, not fixed. Dark stacks a hairline + a tight direct
+     shadow + a wide ambient one (a single blurry shadow reads as smudge on a
+     near-black canvas); light runs the same geometry at a fraction of the
+     opacity. Values live in packages/ui/web-tokens.css. */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  /* Control + icon rhythm (32 / 36 / 40 and 14 / 16 / 20). Every control that
+     sits on a toolbar row should pick one of these instead of a bare h-[34px]. */
+  --spacing-control-sm: var(--control-sm);
+  --spacing-control-md: var(--control-md);
+  --spacing-control-lg: var(--control-lg);
+  --spacing-icon-sm: var(--icon-sm);
+  --spacing-icon-md: var(--icon-md);
+  --spacing-icon-lg: var(--icon-lg);
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   ShipCode palette → semantic tokens.
+   `--ship-*` is the vocabulary the shipshitdev/ui primitives were authored
+   against. It is no longer a second palette: every entry now points at the
+   same neutral ladder and semantic roles as the rest of the product, so a Ship
+   primitive and a Genfeed primitive sitting side by side paint identical
+   surfaces in both themes.
+
+   Hoisted to `:root` as well as `.ship-ui` because `@theme inline` reads
+   `--ship-accent-hover` / `--ship-agent` / `--ship-done` for the
+   `accent-hover` / `agent` / `done` colour utilities, which are used outside
+   any `.ship-ui` subtree.
+   ────────────────────────────────────────────────────────────────────────── */
+:root,
 .ship-ui {
-  --ship-bg-primary: #050607;
-  --ship-bg-secondary: #0c0d10;
-  --ship-bg-tertiary: #131518;
-  --ship-bg-elevated: #1a1c21;
-  --ship-bg-hover: #20232a;
-  --ship-border: rgba(255, 255, 255, 0.1);
-  --ship-border-strong: rgba(255, 255, 255, 0.18);
-  --ship-text-primary: #ffffff;
-  --ship-text-secondary: #c8c8d0;
-  --ship-text-muted: #8a8a8a;
-  --ship-accent: #fafafa;
-  --ship-accent-foreground: #050607;
-  --ship-accent-hover: #e4e4e7;
-  --ship-success: #10b981;
-  --ship-warning: #f59e0b;
-  --ship-danger: #dc2626;
-  --ship-info: #3b82f6;
+  /* Four planes, one step apart, in this order — the whole depth system:
+     canvas → card/panel → nested fill → hover. `tertiary` and `accent` are the
+     same step on purpose: "one above the card" is both the fill of a panel
+     nested in a card and the hover state of a row sitting on one. `hover` is a
+     further step up so it stays visible on all three planes below it. */
+  --ship-bg-primary: hsl(var(--background));
+  --ship-bg-secondary: hsl(var(--background-secondary));
+  --ship-bg-tertiary: hsl(var(--background-tertiary));
+  --ship-bg-elevated: hsl(var(--popover));
+  --ship-bg-hover: hsl(var(--gray-300));
+  --ship-border: hsl(var(--border));
+  --ship-border-strong: hsl(var(--border-strong));
+  /* The three-step text ladder: 1000 primary, 900 secondary (7.5:1+),
+     800 muted (4.5:1+). Nothing below 800 is allowed to carry words. */
+  --ship-text-primary: hsl(var(--gray-1000));
+  --ship-text-secondary: hsl(var(--gray-900));
+  --ship-text-muted: hsl(var(--gray-800));
+  --ship-accent: hsl(var(--primary));
+  --ship-accent-foreground: hsl(var(--primary-foreground));
+  /* One notch off a full-strength foreground fill — the only place the product
+     dims `gray-1000`, so it has no scale step of its own. */
+  --ship-accent-hover: #cccccc;
+  --ship-success: hsl(var(--success));
+  --ship-warning: hsl(var(--warning));
+  --ship-danger: hsl(var(--destructive));
+  --ship-info: hsl(var(--info));
+  /* Agent + done are the only two product hues outside the status set. Both are
+     checked as text against their own canvas: 9.25:1 and 7.49:1 on #0A0A0A. */
   --ship-agent: #38bdf8;
-  --ship-done: #a855f7;
+  --ship-done: #c084fc;
 
   /*
    * Ship primitives also reference unprefixed theme vars
@@ -132,90 +222,39 @@
   --bg-elevated: var(--ship-bg-elevated);
 }
 
-[data-theme="light"] .ship-ui {
-  --ship-bg-primary: #f6f4ef;
-  --ship-bg-secondary: #efeae1;
-  --ship-bg-tertiary: #e6dfd3;
-  --ship-bg-elevated: #fbfaf7;
-  --ship-bg-hover: #ddd3c2;
-  --ship-border: rgba(28, 25, 23, 0.1);
-  --ship-border-strong: rgba(28, 25, 23, 0.18);
-  --ship-text-primary: #18181b;
-  --ship-text-secondary: #57534e;
-  --ship-text-muted: #8a8175;
-  --ship-accent: #111827;
-  --ship-accent-foreground: #fafaf9;
-  --ship-accent-hover: #1f2937;
-  --ship-success: #0f9f6e;
-  --ship-warning: #d97706;
-  --ship-danger: #dc2626;
-  --ship-info: #2563eb;
-  --ship-agent: #0284c7;
+/*
+ * Light overrides the three raw hues only. Every other `--ship-*` above is a
+ * `var()` onto a themed token, so it inverts on its own — that is the whole
+ * point of a role-parallel scale.
+ */
+[data-theme="light"] {
+  --ship-accent-hover: #383838;
+  --ship-agent: #0369a1; /* #0284c7 is 3.92:1 on #FAFAFA — fails AA as text */
   --ship-done: #7c3aed;
-
-  --bg-hover: var(--ship-bg-hover);
-  --text-primary: var(--ship-text-primary);
-  --text-secondary: var(--ship-text-secondary);
-  --text-muted: var(--ship-text-muted);
-  --bg-primary: var(--ship-bg-primary);
-  --bg-secondary: var(--ship-bg-secondary);
-  --bg-tertiary: var(--ship-bg-tertiary);
-  --bg-elevated: var(--ship-bg-elevated);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Studio app token unification.
-   Clone the ShipCode palette onto the shadcn HSL semantic vars, scoped to the
-   studio app body (apps/app sets `gf-studio-app`). This collapses the two
-   drifting colour systems (ship-* hex vs shadcn HSL) into one ShipCode-sourced
-   set, so in-tree surfaces (Card, gen-shell, bg-background) AND body-level
-   portals (Radix Dialog/Dropdown/Select/Tooltip render to document.body) match.
-   The marketing site shares the `gf-app` class but never carries
-   `gf-studio-app`, so it is unaffected. Unlayered → wins over web-tokens.css
-   @layer base regardless of specificity.
+   Studio app typography.
+   This block used to clone a third palette (ShipCode hex → shadcn HSL) onto the
+   studio body, unlayered so it beat `@layer base`. That fork is gone: the studio
+   now reads the same generated tokens as every other surface, so the two themes
+   stay role-parallel and a fix in `packages/ui/src/core/*` actually reaches the
+   app. Only the optical tracking correction is app-specific and survives.
    ────────────────────────────────────────────────────────────────────────── */
 body.gf-studio-app {
-  --background: 210 17% 2%; /* #050607 bg-primary */
-  --background-secondary: 225 14% 5%; /* #0c0d10 bg-secondary (sidebar plane) */
-  --background-tertiary: 216 12% 8%; /* #131518 bg-tertiary */
-  --foreground: 0 0% 100%; /* #ffffff text-primary */
-  --card: 0 0% 3%; /* #080808 card / pricing-card black surface */
-  --card-foreground: 0 0% 100%;
-  --popover: 225 14% 5%; /* #0c0d10 bg-secondary — elevated is too light */
-  --popover-foreground: 0 0% 100%;
-  --secondary: 216 12% 8%; /* #131518 */
-  --secondary-foreground: 0 0% 100%;
-  --muted: 216 12% 8%; /* #131518 */
-  --muted-foreground: 0 0% 54%; /* #8a8a8a — AA on void */
-  --accent: 222 14% 15%; /* #20232a bg-hover (shadcn hover/selected surface) */
-  --accent-foreground: 240 6% 96%;
-  --border: 210 3% 12%; /* #1e1f20 ≈ rgba(255,255,255,0.1) on #050607 */
-  --border-strong: 225 4% 19%; /* #2f3033 */
-  --input: 210 3% 12%;
   letter-spacing: -0.01em;
 }
 
-[data-theme="light"] body.gf-studio-app {
-  --background: 41 28% 95%; /* #f6f4ef parchment */
-  --background-secondary: 39 30% 91%; /* #efeae1 */
-  --background-tertiary: 38 28% 87%; /* #e6dfd3 */
-  --foreground: 240 6% 10%; /* #18181b */
-  --card: 45 44% 98%; /* #fbfaf7 bg-elevated (lightest layer in parchment) */
-  --card-foreground: 240 6% 10%;
-  --popover: 45 44% 98%; /* #fbfaf7 */
-  --popover-foreground: 240 6% 10%;
-  --secondary: 38 28% 87%; /* #e6dfd3 */
-  --secondary-foreground: 240 6% 10%;
-  --muted: 38 28% 87%;
-  --muted-foreground: 33 10% 38%; /* darker than ShipCode #8a8175 → WCAG AA on parchment */
-  --accent: 38 28% 81%; /* #ddd3c2 bg-hover */
-  --accent-foreground: 240 6% 10%;
-  --border: 39 20% 81%; /* ≈ rgba(28,25,23,0.1) on parchment */
-  --border-strong: 41 20% 72%;
-  --input: 39 20% 81%;
-}
-
-/* Shadow utilities — inset containment borders matching ShipCode/Linear */
+/* ──────────────────────────────────────────────────────────────────────────
+   Elevation utilities.
+   Two layers, always: a hairline that draws the edge and a shadow that lifts
+   the plane. On a near-black canvas a single blurry shadow has nothing to
+   darken and reads as a smudge, so the hairline is what actually separates the
+   surface — the shadow only supplies depth. The ambient stacks come from
+   `--shadow-*` in packages/ui/web-tokens.css, which is themed: light runs the
+   same geometry at roughly a tenth of the opacity, because on white a
+   dark-mode shadow is a bruise.
+   ────────────────────────────────────────────────────────────────────────── */
 @utility shadow-border {
   box-shadow: inset 0 0 0 1px hsl(var(--border));
 }
@@ -228,25 +267,27 @@ body.gf-studio-app {
 @utility shadow-composer {
   box-shadow:
     inset 0 0 0 1px hsl(var(--border)),
-    0 -4px 16px -8px rgba(0, 0, 0, 0.35),
-    0 18px 44px -12px rgba(0, 0, 0, 0.55);
+    var(--shadow-lg);
 }
 @utility shadow-composer-strong {
   box-shadow:
     inset 0 0 0 1px hsl(var(--border-strong, var(--border))),
-    0 -4px 16px -8px rgba(0, 0, 0, 0.35),
-    0 18px 44px -12px rgba(0, 0, 0, 0.55);
+    var(--shadow-lg);
 }
 @utility shadow-dropdown {
   box-shadow:
     inset 0 0 0 1px hsl(var(--border)),
-    0 10px 15px -3px rgba(0, 0, 0, 0.3),
-    0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    var(--shadow-md);
 }
 @utility shadow-dialog {
   box-shadow:
     inset 0 0 0 1px hsl(var(--border)),
-    0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    var(--shadow-lg);
+}
+/* Tooltips sit above everything and are never clipped, so they can carry the
+   full Geist stack (hairline + tight + ambient) as one token. */
+@utility shadow-tooltip {
+  box-shadow: var(--shadow-tooltip);
 }
 
 /* ship-ui scoped utilities */
@@ -394,11 +435,14 @@ a {
 }
 
 /* Form focus styling utility */
+/* One focus shape for the whole product. `--focus-ring` is a 2px gap in the
+   canvas colour followed by a 2px ring, so the ring stays visible on top of a
+   filled control instead of blending into it. */
 .form-focus {
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--primary));
-    border-color: hsl(var(--primary));
+    box-shadow: var(--focus-ring);
+    border-color: hsl(var(--ring));
   }
 }
 
@@ -419,14 +463,16 @@ a {
   transition-duration: 300ms;
 }
 
-/* Theme-aware scrollbars */
+/* Scrollbars ride the translucent ladder, so they invert with the theme on
+   their own — no light-mode override, and no assumption about what colour the
+   surface underneath them happens to be. */
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
 
 *:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: var(--gray-alpha-300) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -439,27 +485,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--gray-alpha-300);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* Light theme scrollbar overrides */
-[data-theme="light"] {
-  *:hover {
-    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.1);
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.2);
-  }
+  background: var(--gray-alpha-500);
 }
 
 /* Respect user preference for reduced motion */
@@ -572,8 +603,8 @@ a {
   background: hsl(var(--background-tertiary) / 0.96);
   color: hsl(var(--foreground));
   box-shadow:
-    0 12px 28px -20px rgba(0, 0, 0, 0.72),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    var(--shadow-md),
+    inset 0 1px 0 var(--gray-alpha-100);
 }
 
 .gen-shell-control {
@@ -599,15 +630,15 @@ a {
   background: hsl(var(--background-tertiary) / 0.94);
   color: hsl(var(--foreground));
   box-shadow:
-    0 12px 26px -22px rgba(0, 0, 0, 0.76),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    var(--shadow-sm),
+    inset 0 1px 0 var(--gray-alpha-100);
 }
 
 .gen-shell-control[data-tone="accent"] {
   border-color: hsl(var(--foreground) / 0.18);
   background: hsl(var(--foreground));
   color: hsl(var(--background));
-  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.88);
+  box-shadow: var(--shadow-lg);
 }
 
 .gen-shell-control[data-tone="accent"]:hover,
@@ -684,8 +715,8 @@ a {
   background: hsl(var(--background-secondary) / 0.94);
   color: hsl(var(--foreground));
   box-shadow:
-    0 12px 24px -18px rgba(0, 0, 0, 0.72),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    var(--shadow-md),
+    inset 0 1px 0 var(--gray-alpha-100);
 }
 
 [data-agent-console="true"] .gen-shell-control {

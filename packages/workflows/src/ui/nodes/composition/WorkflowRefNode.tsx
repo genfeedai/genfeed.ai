@@ -164,7 +164,7 @@ function WorkflowInterfaceSummary({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground font-medium">
+        <span className="text-2xs text-muted-foreground font-medium">
           Interface
         </span>
         <Button
@@ -206,7 +206,7 @@ function HandleList({
   if (handles.length === 0) return null;
 
   return (
-    <div className="text-[10px]">
+    <div className="text-2xs">
       <span className="text-muted-foreground">{label}: </span>
       {handles.map((handle, index) => (
         <span key={handle.nodeId}>
@@ -238,14 +238,14 @@ function WorkflowRefMessages({
   return (
     <>
       {!isFetchingWorkflows && workflowCount === 0 && (
-        <div className="text-[10px] text-muted-foreground text-center py-2">
+        <div className="text-2xs text-muted-foreground text-center py-2">
           No reusable workflows found. Create a workflow with
           WorkflowInput/Output nodes first.
         </div>
       )}
 
       {childExecutionId && (
-        <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1">
+        <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1">
           Child execution: {childExecutionId.substring(0, 8)}...
         </div>
       )}

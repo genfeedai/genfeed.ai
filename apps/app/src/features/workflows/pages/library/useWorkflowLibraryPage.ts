@@ -2,6 +2,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -18,6 +19,7 @@ export function useWorkflowLibraryPage() {
   const { href } = useOrgUrl();
   const { push } = useRouter();
   const { isConnected, isCapable } = useCloudSession();
+  const notificationsService = NotificationsService.getInstance();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,9 +155,14 @@ export function useWorkflowLibraryPage() {
           error: err,
           workflowId: id,
         });
+        notificationsService.error(
+          err instanceof Error
+            ? err.message
+            : 'Could not update workflow schedule',
+        );
       }
     },
-    [getService, workflows],
+    [getService, notificationsService, workflows],
   );
 
   /** Merge a schedule mutation result back into the loaded summaries. */

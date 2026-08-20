@@ -26,7 +26,7 @@ export default function WorkspaceSnapshotSection({
             className="h-full"
             bodyClassName="space-y-1 p-3"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
+            <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/55">
               {item.label}
             </p>
             {isLoading ? (

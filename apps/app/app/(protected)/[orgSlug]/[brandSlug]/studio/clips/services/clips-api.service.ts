@@ -5,11 +5,14 @@ import type {
   ClipReferenceFrameSet,
 } from '@genfeedai/interfaces';
 import type {
+  ClipProjectSummary,
   ClipResult,
   ClipResultMode,
   IHighlight,
 } from '@props/studio/clips.props';
 import { EnvironmentService } from '@services/core/environment.service';
+
+import { mapClipProjectSummary } from '../utils/map-clip-project-summary';
 
 // ─── API Response Types ───────────────────────────────────────────
 
@@ -245,6 +248,20 @@ export class ClipsApiService {
         body: JSON.stringify(payload),
         method: 'POST',
       },
+    );
+  }
+
+  async listProjects(signal?: AbortSignal): Promise<ClipProjectSummary[]> {
+    const data = await this.fetchJson<unknown>(
+      `${this.apiEndpoint}/clip-projects?sort=-createdAt`,
+      { signal },
+    );
+
+    return this.extractCollection<ClipResultRawItem>(data).map((item) =>
+      mapClipProjectSummary({
+        attributes: item.attributes,
+        id: item.id,
+      }),
     );
   }
 

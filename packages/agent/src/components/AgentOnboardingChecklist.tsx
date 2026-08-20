@@ -70,7 +70,7 @@ export function AgentOnboardingChecklist({
           </div>
           <Link
             href={journeyHref}
-            className="text-[11px] font-medium text-primary hover:underline"
+            className="text-2xs font-medium text-primary hover:underline"
           >
             Open journey
           </Link>
@@ -78,7 +78,7 @@ export function AgentOnboardingChecklist({
 
         <div className="mt-3 border border-border/60 bg-background/80 p-3">
           {isCreditRewardsVisible ? (
-            <div className="space-y-2 text-[11px] text-muted-foreground">
+            <div className="space-y-2 text-2xs text-muted-foreground">
               <div className="flex items-center justify-between">
                 <span>Signup gift</span>
                 <span className="font-medium text-foreground">
@@ -150,7 +150,7 @@ export function AgentOnboardingChecklist({
                     {step.title}
                   </p>
                   {isCreditRewardsVisible ? (
-                    <span className="shrink-0 text-[11px] font-medium text-amber-300">
+                    <span className="shrink-0 text-2xs font-medium text-amber-300">
                       +{step.rewardCredits ?? 0}
                     </span>
                   ) : null}
@@ -161,7 +161,7 @@ export function AgentOnboardingChecklist({
                 {step.status !== 'complete' && step.ctaHref ? (
                   <Link
                     href={step.ctaHref}
-                    className="mt-2 inline-flex text-[11px] font-medium text-primary hover:underline"
+                    className="mt-2 inline-flex text-2xs font-medium text-primary hover:underline"
                   >
                     {step.ctaLabel ?? 'Start'}
                   </Link>

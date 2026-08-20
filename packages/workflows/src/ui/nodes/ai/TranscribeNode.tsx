@@ -96,7 +96,7 @@ function TranscribeNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Model Info */}
-        <div className="text-xs text-[var(--muted-foreground)]">
+        <div className="text-xs text-muted-foreground">
           Using: Whisper Large V3
         </div>
 
@@ -104,7 +104,7 @@ function TranscribeNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`transcribe-language-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Language
           </label>
@@ -137,7 +137,7 @@ function TranscribeNodeComponent(props: NodeProps) {
           />
           <label
             htmlFor={`timestamps-${id}`}
-            className="text-xs text-[var(--muted-foreground)] cursor-pointer"
+            className="text-xs text-muted-foreground cursor-pointer"
           >
             Include timestamps
           </label>
@@ -146,7 +146,7 @@ function TranscribeNodeComponent(props: NodeProps) {
         {/* Output Transcript */}
         {nodeData.outputText && (
           <div className="relative">
-            <div className="p-2 bg-[var(--background)] border border-[var(--border)] rounded text-sm max-h-32 overflow-y-auto whitespace-pre-wrap">
+            <div className="p-2 bg-background border border-border rounded text-sm max-h-32 overflow-y-auto whitespace-pre-wrap">
               {nodeData.outputText}
             </div>
             <Button
@@ -183,7 +183,7 @@ function TranscribeNodeComponent(props: NodeProps) {
 
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <CircleAlert className="size-3" />
             Connect video or audio to transcribe
           </div>

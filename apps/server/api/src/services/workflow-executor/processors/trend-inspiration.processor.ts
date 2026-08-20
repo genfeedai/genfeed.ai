@@ -457,11 +457,11 @@ export class TrendInspirationProcessor {
 
     if (summary.topVideos.length > 0) {
       sections.push(
-        '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Top Viral Videos</h2>',
-        `<ul style="color:#b4b4bc;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topVideos
+        '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Top Viral Videos</h2>',
+        `<ul style="color:#A1A1A1;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topVideos
           .map(
             (video) =>
-              `<li><strong style="color:#f4f4f5;">${escapeSystemEmailHtml(video.title)}</strong> - Viral Score: ${video.viralScore}</li>`,
+              `<li><strong style="color:#EDEDED;">${escapeSystemEmailHtml(video.title)}</strong> - Viral Score: ${video.viralScore}</li>`,
           )
           .join('')}</ul>`,
       );
@@ -469,8 +469,8 @@ export class TrendInspirationProcessor {
 
     if (summary.topHashtags.length > 0) {
       sections.push(
-        '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Hashtags</h2>',
-        `<ul style="color:#b4b4bc;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topHashtags
+        '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Hashtags</h2>',
+        `<ul style="color:#A1A1A1;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topHashtags
           .map(
             (hashtag) =>
               `<li>#${escapeSystemEmailHtml(hashtag.hashtag.replace('#', ''))} - ${this.formatNumber(hashtag.postCount)} posts</li>`,
@@ -481,8 +481,8 @@ export class TrendInspirationProcessor {
 
     if (summary.topSounds.length > 0) {
       sections.push(
-        '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Sounds</h2>',
-        `<ul style="color:#b4b4bc;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topSounds
+        '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Sounds</h2>',
+        `<ul style="color:#A1A1A1;font-size:14px;line-height:22px;margin:0 0 16px;padding-left:18px;">${summary.topSounds
           .map(
             (sound) =>
               `<li>${escapeSystemEmailHtml(sound.soundName)} - ${this.formatNumber(sound.usageCount)} uses</li>`,
@@ -492,7 +492,7 @@ export class TrendInspirationProcessor {
     }
 
     sections.push(
-      `<p style="color:#8c8c96;font-size:12px;line-height:18px;margin:24px 0 0;">Generated at ${escapeSystemEmailHtml(summary.generatedAt.toLocaleString())}</p>`,
+      `<p style="color:#949494;font-size:12px;line-height:18px;margin:24px 0 0;">Generated at ${escapeSystemEmailHtml(summary.generatedAt.toLocaleString())}</p>`,
     );
 
     return buildSystemEmailHtml({

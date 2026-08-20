@@ -244,7 +244,7 @@ const PostsGrid = memo(
           return (
             <div
               key={post.id}
-              className="group rounded-xl bg-card p-4 text-left shadow-border transition-all duration-200 hover:bg-background hover:shadow-border-strong"
+              className="group rounded-xl bg-card p-4 text-left shadow-border transition-all duration-200 hover:bg-accent hover:shadow-border-strong"
             >
               <div className="flex items-start justify-between gap-3">
                 <Button

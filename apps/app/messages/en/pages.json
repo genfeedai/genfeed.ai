@@ -193,5 +193,26 @@
         }
       }
     }
+  },
+  "publish": {
+    "calendar": {
+      "bookedHole": "Booked calendar hole",
+      "cancel": "Cancel",
+      "deleteCadence": "Delete cadence",
+      "description": "Book missing shorts, tweets, articles, or posts on the calendar. Generate or write each hole later.",
+      "editCadence": "Edit cadence",
+      "generate": "Generate",
+      "generateCadenceHint": "Generate writes the next campaign post from brand voice and already scheduled content. Write opens the composer.",
+      "generateFailed": "Last generate failed.",
+      "generateOneOffHint": "Write is the default for a one-off booking. Generate still writes from brand voice and nearby scheduled posts.",
+      "landingDraft": "Save as draft",
+      "landingScheduled": "Schedule at the slot time",
+      "missingSlot": "Missing slot",
+      "newCadence": "New cadence",
+      "saveCadence": "Save cadence",
+      "saveChanges": "Save changes",
+      "skip": "Skip",
+      "write": "Write"
+    }
   }
 }

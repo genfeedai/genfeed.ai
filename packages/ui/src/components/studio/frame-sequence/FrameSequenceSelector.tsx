@@ -27,12 +27,7 @@ const FORMAT_ASPECT_CLASSES: Record<IngredientFormat, string> = {
   [IngredientFormat.PORTRAIT]: 'aspect-[9/16]',
 };
 
-const FORMAT_GRID_CLASSES: Record<IngredientFormat, string> = {
-  [IngredientFormat.LANDSCAPE]: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4',
-  [IngredientFormat.SQUARE]: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5',
-  [IngredientFormat.PORTRAIT]:
-    'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6',
-};
+const TILE_SIZE_CLASS = 'relative h-52 w-auto shrink-0 rounded-md';
 
 export default function FrameSequenceSelector({
   frames,
@@ -55,7 +50,6 @@ export default function FrameSequenceSelector({
             ? [selected]
             : [];
 
-        // Deduplicate within the selected array itself (gallery may return duplicates)
         const seenIds = new Set<string>();
         const deduplicatedFrames = rawFrames.filter((f) => {
           if (seenIds.has(f.id)) {
@@ -65,7 +59,6 @@ export default function FrameSequenceSelector({
           return true;
         });
 
-        // Filter out frames already in the list
         const uniqueNewFrames = deduplicatedFrames.filter(
           (f) => !existingIds.has(f.id),
         );
@@ -101,98 +94,97 @@ export default function FrameSequenceSelector({
   const aspectClass =
     FORMAT_ASPECT_CLASSES[format] ??
     FORMAT_ASPECT_CLASSES[IngredientFormat.PORTRAIT];
-  const gridClass =
-    FORMAT_GRID_CLASSES[format] ??
-    FORMAT_GRID_CLASSES[IngredientFormat.PORTRAIT];
 
   return (
     <Card
       label="Frame Sequence"
       icon={ImageIcon}
+      className="overflow-visible"
+      data-testid="frame-sequence-card"
       description="Select images in order. Each frame will be used as start and end frame for interpolation."
     >
       <div className="space-y-4">
-        {/* Frame Grid */}
-        <div className={cn('grid gap-3', gridClass)}>
+        <div
+          className="flex items-end gap-3 overflow-x-auto overflow-y-visible pb-1"
+          data-testid="frame-sequence-strip"
+        >
           {frames.map((frame, frameIndex) => (
             <div
               key={frame.id}
-              className="group relative bg-background overflow-hidden"
+              className={cn(
+                'group overflow-hidden bg-background',
+                TILE_SIZE_CLASS,
+                aspectClass,
+              )}
             >
-              <div className={cn(aspectClass, 'relative')}>
-                <Image
-                  src={frame.ingredientUrl || ''}
-                  alt={`Frame ${frameIndex + 1}`}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 220px"
-                  className="object-cover"
+              <Image
+                src={frame.ingredientUrl || ''}
+                alt={`Frame ${frameIndex + 1}`}
+                fill
+                sizes="220px"
+                className="object-cover"
+              />
+              <div className="absolute top-1 left-1 z-10 bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground">
+                {frameIndex + 1}
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center gap-1.5 bg-background/80 opacity-0 transition-opacity group-hover:opacity-100">
+                <Button
+                  ariaLabel={`Move frame ${frameIndex + 1} earlier`}
+                  label={<ChevronLeft />}
+                  onClick={() => handleMoveFrame(frameIndex, frameIndex - 1)}
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.XS}
+                  isDisabled={frameIndex === 0}
+                  tooltip="Move earlier"
                 />
-                {/* Frame Number Badge */}
-                <div className="absolute top-1 left-1 bg-primary text-primary-foreground px-1.5 py-0.5 text-xs font-semibold z-10">
-                  {frameIndex + 1}
-                </div>
-                {/* Remove Button */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
-                  <Button
-                    ariaLabel={`Move frame ${frameIndex + 1} earlier`}
-                    label={<ChevronLeft />}
-                    onClick={() => handleMoveFrame(frameIndex, frameIndex - 1)}
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.XS}
-                    isDisabled={frameIndex === 0}
-                    tooltip="Move earlier"
-                  />
-                  <Button
-                    ariaLabel={`Move frame ${frameIndex + 1} later`}
-                    label={<ChevronRight />}
-                    onClick={() => handleMoveFrame(frameIndex, frameIndex + 1)}
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.XS}
-                    isDisabled={frameIndex === frames.length - 1}
-                    tooltip="Move later"
-                  />
-                  <Button
-                    ariaLabel={`Remove frame ${frameIndex + 1}`}
-                    label={<Trash2 />}
-                    onClick={() => handleRemoveFrame(frameIndex)}
-                    variant={ButtonVariant.DESTRUCTIVE}
-                    size={ButtonSize.XS}
-                  />
-                </div>
+                <Button
+                  ariaLabel={`Move frame ${frameIndex + 1} later`}
+                  label={<ChevronRight />}
+                  onClick={() => handleMoveFrame(frameIndex, frameIndex + 1)}
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.XS}
+                  isDisabled={frameIndex === frames.length - 1}
+                  tooltip="Move later"
+                />
+                <Button
+                  ariaLabel={`Remove frame ${frameIndex + 1}`}
+                  label={<Trash2 />}
+                  onClick={() => handleRemoveFrame(frameIndex)}
+                  variant={ButtonVariant.DESTRUCTIVE}
+                  size={ButtonSize.XS}
+                />
               </div>
             </div>
           ))}
 
-          {/* Add Frame Button */}
           <Button
             type="button"
             onClick={handleAddFrames}
             variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             className={cn(
+              TILE_SIZE_CLASS,
               aspectClass,
-              'bg-background border-2 border-dashed border-white/[0.08] flex flex-col items-center justify-center gap-2 hover:border-primary transition-colors cursor-pointer',
+              'flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border bg-background hover:border-primary',
             )}
           >
-            <Plus className="text-2xl text-foreground/40" />
-            <span className="text-xs text-foreground/60">Add Frame</span>
+            <Plus className="size-6 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Add Frame</span>
           </Button>
         </div>
 
-        {/* Sequence Info */}
-        {frames.length > 0 && (
-          <div className="bg-background/50 p-3 text-sm">
-            <p className="text-foreground/70">
-              <strong>{frames.length}</strong> frame
-              {frames.length !== 1 ? 's' : ''} selected.
-              {frames.length >= 2 && (
-                <span className="ml-2">
-                  Pairs: {frames.length - 1} transition
-                  {frames.length - 1 !== 1 ? 's' : ''} (1-&gt;2, 2-&gt;3, ...)
-                </span>
-              )}
-            </p>
-          </div>
-        )}
+        {frames.length > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{frames.length}</span>{' '}
+            frame{frames.length !== 1 ? 's' : ''} selected.
+            {frames.length >= 2 ? (
+              <span className="ml-2">
+                Pairs: {frames.length - 1} transition
+                {frames.length - 1 !== 1 ? 's' : ''} (1-&gt;2, 2-&gt;3, ...)
+              </span>
+            ) : null}
+          </p>
+        ) : null}
       </div>
     </Card>
   );

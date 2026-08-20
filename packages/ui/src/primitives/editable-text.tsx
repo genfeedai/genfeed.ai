@@ -120,7 +120,7 @@ function EditableText({
   };
 
   const editorClassName = cn(
-    'block w-full min-w-0 rounded-sm border-0 bg-transparent px-1 py-0.5 font-[inherit] outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60',
+    'block w-full min-w-0 rounded-sm border-0 bg-transparent px-1 py-0.5 font-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60',
     isMultiline && 'field-sizing-content max-h-48 resize-none overflow-y-auto',
     displayClassName,
   );

@@ -70,7 +70,7 @@ function NewsletterPreview({
       className="overflow-hidden rounded-lg bg-background-secondary shadow-border"
     >
       <header className="space-y-2 border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <div className="flex items-center gap-2 text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           <Mail className="size-3.5" />
           Newsletter preview
         </div>

@@ -272,7 +272,7 @@ export default function QuickActionsMenu({
                         <div className="mb-0.5 border-t border-border" />
                       )}
                       {action.sectionLabel && (
-                        <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                        <div className="px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                           {action.sectionLabel}
                         </div>
                       )}

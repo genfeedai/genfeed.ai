@@ -96,7 +96,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         {...buttonProps}
       >
         <div
-          className="size-4 rounded-sm border border-white/8 flex items-center justify-center text-[9px] font-bold shrink-0"
+          className="size-4 rounded-sm border border-white/8 flex items-center justify-center text-2xs font-bold shrink-0"
           style={{
             backgroundColor: `${brandConfig.color}20`,
             color: brandConfig.color,

@@ -51,7 +51,7 @@ export default function PostDetailOverlay({
           <div className="flex items-start justify-between gap-4 pr-8">
             <SheetHeader className="space-y-3 text-left">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-border bg-foreground/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-foreground/55">
+                <span className="rounded-full border border-border bg-foreground/[0.04] px-3 py-1 text-2xs uppercase tracking-[0.22em] text-foreground/55">
                   Post Review
                 </span>
                 <span className="rounded-full border border-border bg-foreground/[0.03] px-3 py-1 text-xs text-foreground/70">
