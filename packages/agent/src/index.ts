@@ -1,5 +1,9 @@
 // Components
 export { AgentActivityFeed } from '@genfeedai/agent/components/AgentActivityFeed';
+export {
+  AgentApiServiceProvider,
+  useAgentApiService,
+} from '@genfeedai/agent/components/AgentApiServiceContext';
 export { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 export type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
 export { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';

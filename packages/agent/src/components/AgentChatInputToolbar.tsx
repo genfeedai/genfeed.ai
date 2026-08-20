@@ -22,18 +22,11 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { Input } from '@ui/primitives/input';
-import {
-  ArrowUp,
-  Link,
-  Mic,
-  Paperclip,
-  RefreshCw,
-  Square,
-  Zap,
-} from 'lucide-react';
+import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
+import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
+import { ArrowUp, Square, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ChangeEvent, memo, type ReactElement, useRef } from 'react';
+import { memo, type ReactElement } from 'react';
 
 export interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
@@ -95,7 +88,6 @@ function AgentChatInputToolbarInner({
   density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
   const translate = useTranslations('agent.composerToolbar');
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isCompact = density === 'compact';
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   const hasSelectableModels = models.length > 0;
@@ -169,14 +161,6 @@ function AgentChatInputToolbarInner({
     />
   ) : null;
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>): void {
-    const files = Array.from(event.target.files ?? []);
-    if (files.length > 0) {
-      onAddFiles?.(files);
-    }
-    event.target.value = '';
-  }
-
   // Match paperclip / link / actions: square ICON control with default
   // design-system radius (rounded-md via ButtonSize.ICON) — never a full pill.
   const controlSize = isCompact ? 'size-8' : 'size-9';
@@ -193,40 +177,16 @@ function AgentChatInputToolbarInner({
   // only when the field has text to queue.
   let trailingPrimary: ReactElement | null = null;
 
-  if (isTranscribing) {
+  if (isTranscribing || isListening) {
     trailingPrimary = (
-      <Button
-        ariaLabel="Transcribing"
-        className={trailingControlClass}
-        icon={
-          <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
-        }
-        isDisabled
-        size={ButtonSize.ICON}
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
+      <PromptBarVoiceControl
+        density={density}
+        isDisabled={disabled}
+        isListening={isListening}
+        isTranscribing={isTranscribing}
+        onStartListening={onStartListening}
+        onStopListening={onStopListening}
       />
-    );
-  } else if (isListening) {
-    trailingPrimary = (
-      <Button
-        ariaLabel="Stop listening"
-        className={cn(
-          trailingControlClass,
-          'relative bg-destructive/15 text-destructive',
-        )}
-        onClick={onStopListening}
-        size={ButtonSize.ICON}
-        tooltip="Stop listening"
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
-      >
-        <Mic className="size-4" />
-        <span
-          aria-hidden="true"
-          className="absolute right-0.5 top-0.5 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
-        />
-      </Button>
     );
   } else {
     const stopButton =
@@ -250,16 +210,13 @@ function AgentChatInputToolbarInner({
     let actionButton: ReactElement | null = null;
     if (shouldShowVoiceInput && !showStop) {
       actionButton = (
-        <Button
-          ariaLabel="Start voice input"
-          className={trailingControlClass}
-          icon={<Mic className="size-4" />}
+        <PromptBarVoiceControl
+          density={density}
           isDisabled={disabled}
-          onClick={onStartListening}
-          size={ButtonSize.ICON}
-          tooltip="Voice input"
-          variant={ButtonVariant.DEFAULT}
-          withWrapper={false}
+          isListening={false}
+          isTranscribing={false}
+          onStartListening={onStartListening}
+          onStopListening={onStopListening}
         />
       );
     } else if (shouldShowSendButton) {
@@ -301,41 +258,12 @@ function AgentChatInputToolbarInner({
       <div className="flex min-w-0 shrink items-center gap-0.5">
         {modelSelector}
 
-        {onAddFiles ? (
-          <>
-            <Input
-              ref={fileInputRef}
-              accept="image/*,video/*,audio/*"
-              aria-label="Choose composer attachments"
-              className="sr-only"
-              multiple
-              onChange={handleFileChange}
-              type="file"
-            />
-            <Button
-              ariaLabel="Attach files"
-              className={cn('shrink-0', controlSize)}
-              icon={<Paperclip className="size-4" />}
-              isDisabled={disabled}
-              onClick={() => fileInputRef.current?.click()}
-              size={ButtonSize.ICON}
-              tooltip="Attach files"
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          </>
-        ) : null}
-
-        <Button
-          ariaLabel="Reference library content"
-          className={cn('shrink-0', controlSize)}
-          icon={<Link className="size-4" />}
-          isDisabled={disabled || !hasEditor}
-          onClick={onInsertReference}
-          size={ButtonSize.ICON}
-          tooltip="Reference library content"
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
+        <PromptBarReferenceControls
+          density={density}
+          isAttachmentDisabled={disabled}
+          isLibraryDisabled={disabled || !hasEditor}
+          onAddFiles={onAddFiles}
+          onOpenLibrary={onInsertReference}
         />
 
         <DropdownMenu>

@@ -23,10 +23,13 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarBody from '@ui/prompt-bars/components/shell/PromptBarBody';
 import PromptBarShell, {
   PROMPT_BAR_SURFACE_CLASS,
 } from '@ui/prompt-bars/components/shell/PromptBarShell';
+import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
+import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -44,16 +47,27 @@ const PROMPT_PLACEHOLDER = 'Describe what you want to generate…';
  * the controls the new type actually supports.
  */
 export default function StudioGenerateComposer({
+  attachedAssets,
+  isDragActive = false,
   isGenerating,
+  isListening,
   isLoadingModels,
+  isTranscribing,
+  isUploading,
   models,
+  onAddFiles,
+  onOpenLibrary,
   onPromptChange,
+  onRemoveAttachedAsset,
   onResetSettings,
   onSettingsChange,
+  onStartListening,
+  onStopListening,
   onSubmit,
   onTypeChange,
   prompt,
   settings,
+  shouldShowVoiceInput,
   type,
 }: StudioGenerateComposerProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
@@ -64,7 +78,13 @@ export default function StudioGenerateComposer({
   // Submitting mid-catalog-load would resolve the model against an empty or
   // stale list, so the send button waits for the type's models to land.
   const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
-  const isSubmitBlocked = isGenerating || isPromptEmpty || isAwaitingModels;
+  const isSubmitBlocked =
+    isGenerating ||
+    isPromptEmpty ||
+    isAwaitingModels ||
+    isListening ||
+    isTranscribing ||
+    isUploading;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
 
   const handleModelChange = (_name: string, values: string[]) => {
@@ -73,9 +93,23 @@ export default function StudioGenerateComposer({
 
   return (
     <PromptBarShell
-      className={PROMPT_BAR_SURFACE_CLASS}
+      className={cn(
+        PROMPT_BAR_SURFACE_CLASS,
+        isDragActive && 'ring-1 ring-primary/40',
+      )}
       data-testid="studio-generate-composer-shell"
     >
+      {attachedAssets.length > 0 ? (
+        <div className="px-3 pb-1 pt-3">
+          <PromptBarAttachedAssetsTray
+            assets={attachedAssets}
+            isDisabled={isGenerating}
+            onBrowseAssets={onOpenLibrary}
+            onRemoveAttachedAsset={onRemoveAttachedAsset}
+          />
+        </div>
+      ) : null}
+
       <PromptBarBody>
         <Textarea
           className="min-h-9 w-full resize-none border-0 bg-transparent px-0 py-1.5 text-sm shadow-none focus-visible:ring-0"
@@ -96,7 +130,11 @@ export default function StudioGenerateComposer({
             onSubmit();
           }}
           placeholder={
-            capabilities.hasSpeech ? SCRIPT_PLACEHOLDER : PROMPT_PLACEHOLDER
+            isDragActive
+              ? 'drop it here?'
+              : capabilities.hasSpeech
+                ? SCRIPT_PLACEHOLDER
+                : PROMPT_PLACEHOLDER
           }
           rows={PROMPT_ROWS}
           value={prompt}
@@ -162,20 +200,40 @@ export default function StudioGenerateComposer({
               settings={settings}
               type={type}
             />
+
+            {capabilities.hasReferences ? (
+              <PromptBarReferenceControls
+                accept="image/*"
+                isAttachmentDisabled={isGenerating || isUploading}
+                isLibraryDisabled={isGenerating}
+                onAddFiles={onAddFiles}
+                onOpenLibrary={onOpenLibrary}
+              />
+            ) : null}
           </div>
 
           <div className="-mr-2 flex shrink-0 items-center">
-            <Button
-              ariaLabel="Generate"
-              className="size-9 shrink-0 min-h-0 min-w-0 p-0"
-              icon={<ArrowUp className="size-4" />}
-              isDisabled={isSubmitBlocked}
-              isLoading={isGenerating}
-              onClick={onSubmit}
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-            />
+            {isListening || isTranscribing || shouldShowVoiceInput ? (
+              <PromptBarVoiceControl
+                isDisabled={isGenerating}
+                isListening={isListening}
+                isTranscribing={isTranscribing}
+                onStartListening={onStartListening}
+                onStopListening={onStopListening}
+              />
+            ) : (
+              <Button
+                ariaLabel="Generate"
+                className="size-9 shrink-0 min-h-0 min-w-0 p-0"
+                icon={<ArrowUp className="size-4" />}
+                isDisabled={isSubmitBlocked}
+                isLoading={isGenerating}
+                onClick={onSubmit}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
+              />
+            )}
           </div>
         </div>
       </PromptBarBody>
