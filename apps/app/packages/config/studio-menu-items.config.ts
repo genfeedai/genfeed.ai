@@ -1,22 +1,33 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { Clapperboard, Film, Layers, Mic, Scissors, Zap } from 'lucide-react';
+import { Clapperboard, Film, Layers, Scissors, Wand2, Zap } from 'lucide-react';
 
 /**
- * Studio ships production surfaces only. One-off media generation moved to the
- * Agent, so the standalone Image/Video/Avatar/Music prompt-bar tabs are gone.
- *
  * Flat nav under the Studio app chrome (no Edit / Automation subgroups) —
- * same shape as Automate and Library. Storyboard is the production home;
- * Edit is the Remotion timeline (route `/studio/edit` from the #2309 merge of
- * the old top-level Editor app).
+ * same shape as Automate and Library.
+ *
+ * Generate is the Studio home: one prompt bar for every asset type Genfeed can
+ * make, brand-enriched, with the asset type as composer state rather than a
+ * route segment. Edit is the Remotion timeline (route `/studio/edit` from the
+ * #2309 merge of the old top-level Editor app).
+ *
+ * Every entry stays inside `/studio` on purpose — a Studio menu item must never
+ * hand the operator off to another module app.
  */
 export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
+    href: APP_ROUTES.STUDIO.GENERATE,
+    label: 'Generate',
+    matchPaths: [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.GENERATE],
+    outline: Wand2,
+    solid: Wand2,
+  },
+  {
+    group: '',
     href: APP_ROUTES.STUDIO.STORYBOARD,
     label: 'Storyboard',
-    matchPaths: [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.STORYBOARD],
+    matchPaths: [APP_ROUTES.STUDIO.STORYBOARD],
     outline: Clapperboard,
     solid: Clapperboard,
   },
@@ -47,16 +58,6 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     solid: Zap,
   },
   {
-    // One-off /studio/audio retired. Audio/voices live in Library — link
-    // there directly so Studio nav does not 404 or bounce.
-    group: '',
-    href: APP_ROUTES.LIBRARY.VOICES,
-    label: 'Audio',
-    matchPaths: [APP_ROUTES.LIBRARY.VOICES, APP_ROUTES.STUDIO.AUDIO],
-    outline: Mic,
-    solid: Mic,
-  },
-  {
     // Remotion timeline. Path stays `/studio/edit` (Editor → Studio Edit surface);
     // label is "Edit" so nav matches the route segment users see in the URL.
     group: '',
@@ -68,4 +69,4 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const STUDIO_LOGO_HREF = APP_ROUTES.STUDIO.STORYBOARD;
+export const STUDIO_LOGO_HREF = APP_ROUTES.STUDIO.GENERATE;

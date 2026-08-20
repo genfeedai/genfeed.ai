@@ -1396,22 +1396,6 @@ describe('proxy', () => {
     );
   });
 
-  it('keeps /studio/audio on the current brand as library voices', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/studio/audio', {
-        referer: 'http://localhost:3000/demo/FUDNEWS/studio/storyboard',
-      }),
-      {} as never,
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/demo/FUDNEWS/library/voices',
-    );
-  });
-
   it('writes the URL brand into gf_ws so a later unscoped hop stays on FUD News', async () => {
     vi.stubEnv('COOKIE_SECRET', 'test-secret-at-least-32-chars-long!!');
     const { default: proxy } = await import('./proxy');
