@@ -3,6 +3,7 @@ import { BrandsAgentConfigController } from '@api/collections/brands/controllers
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -37,9 +38,11 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
   };
 
   let app: INestApplication;
+  let assertAccessibleSkillSlugs: ReturnType<typeof vi.fn>;
   let updateAgentConfig: ReturnType<typeof vi.fn>;
 
   beforeAll(async () => {
+    assertAccessibleSkillSlugs = vi.fn().mockResolvedValue(undefined);
     updateAgentConfig = vi.fn().mockResolvedValue(mockBrand);
 
     vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
@@ -59,6 +62,10 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
         {
           provide: OrganizationSettingsService,
           useValue: { findOne: vi.fn().mockResolvedValue(null) },
+        },
+        {
+          provide: SkillsService,
+          useValue: { assertAccessibleSkillSlugs },
         },
       ],
     })
@@ -97,6 +104,7 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
   });
 
   beforeEach(() => {
+    assertAccessibleSkillSlugs.mockClear();
     updateAgentConfig.mockClear();
     updateAgentConfig.mockResolvedValue(mockBrand);
   });
@@ -232,6 +240,71 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
       .expect(400);
 
     expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects null enabledSkills instead of reaching the service', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ enabledSkills: null })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicate enabled skill slugs', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config/enabled-skills`)
+      .send({ enabledSkills: ['content-writing', 'content-writing'] })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('also rejects duplicate enabled skill slugs on the general agent-config endpoint', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ enabledSkills: ['content-writing', 'content-writing'] })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects more than 100 enabled skill slugs', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config/enabled-skills`)
+      .send({
+        enabledSkills: Array.from(
+          { length: 101 },
+          (_, index) => `skill-${index}`,
+        ),
+      })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects blank enabled skill slugs', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config/enabled-skills`)
+      .send({ enabledSkills: ['   '] })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('accepts an empty enabled skill list', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config/enabled-skills`)
+      .send({ enabledSkills: [] })
+      .expect(200);
+
+    expect(assertAccessibleSkillSlugs).toHaveBeenCalledWith(orgId, []);
+    expect(updateAgentConfig).toHaveBeenCalledTimes(1);
   });
 
   it('still rejects a nested voice field of the wrong type', async () => {

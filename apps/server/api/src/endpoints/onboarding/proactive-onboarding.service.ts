@@ -266,8 +266,10 @@ export class ProactiveOnboardingService {
         }) as unknown as Parameters<BrandsService['create']>[0],
       );
 
-      await this.brandsService.patch(brand.id.toString(), {
-        agentConfig: {
+      await this.brandsService.updateAgentConfig(
+        brand.id.toString(),
+        shadowOrgId,
+        {
           enabledSkills: [],
           prompting: brandVoice?.prompting,
           strategy: brandVoice
@@ -295,7 +297,7 @@ export class ProactiveOnboardingService {
               }
             : undefined,
         },
-      });
+      );
 
       // 6. Seed credits
       await this.creditsUtilsService.addOrganizationCreditsWithExpiration(

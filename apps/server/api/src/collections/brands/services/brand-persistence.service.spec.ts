@@ -19,6 +19,7 @@ describe('BrandPersistenceService', () => {
     importBrandKitAssets: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     selectBrandForUser: ReturnType<typeof vi.fn>;
+    updateAgentConfig: ReturnType<typeof vi.fn>;
   };
   let linksService: {
     create: ReturnType<typeof vi.fn>;
@@ -42,6 +43,7 @@ describe('BrandPersistenceService', () => {
       importBrandKitAssets: vi.fn(),
       patch: vi.fn(),
       selectBrandForUser: vi.fn(),
+      updateAgentConfig: vi.fn(),
     };
     linksService = {
       create: vi.fn(),
@@ -267,12 +269,12 @@ describe('BrandPersistenceService', () => {
     it('returns silently when the brand is missing', async () => {
       brandsService.findOne.mockResolvedValue(null);
 
-      await service.updateBrandGuidance('brand_1', {
+      await service.updateBrandGuidance('brand_1', 'org_1', {
         scrapedAt: new Date(),
         sourceUrl: 'https://acme.com',
       } as IExtractedBrandData);
 
-      expect(brandsService.patch).not.toHaveBeenCalled();
+      expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
     });
 
     it('merges the extracted voice into the agent config patch', async () => {
@@ -281,7 +283,7 @@ describe('BrandPersistenceService', () => {
         agentConfig: { persona: 'friendly' },
       });
 
-      await service.updateBrandGuidance('brand_1', {
+      await service.updateBrandGuidance('brand_1', 'org_1', {
         brandVoice: {
           audience: 'founders',
           hashtags: [],
@@ -294,8 +296,10 @@ describe('BrandPersistenceService', () => {
         sourceUrl: 'https://acme.com',
       } as IExtractedBrandData);
 
-      expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
-        agentConfig: expect.objectContaining({
+      expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+        'brand_1',
+        'org_1',
+        expect.objectContaining({
           persona: 'friendly',
           voice: expect.objectContaining({
             audience: ['founders'],
@@ -303,7 +307,7 @@ describe('BrandPersistenceService', () => {
             tone: 'bold',
           }),
         }),
-      });
+      );
     });
   });
 

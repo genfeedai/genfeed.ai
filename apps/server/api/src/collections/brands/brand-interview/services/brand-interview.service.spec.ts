@@ -12,6 +12,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
@@ -100,6 +101,7 @@ describe('BrandInterviewService', () => {
   };
   let cacheService: { invalidate: ReturnType<typeof vi.fn> };
   let logger: LoggerService;
+  let brandsService: { updateAgentConfig: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     brandDelegate = {
@@ -121,6 +123,9 @@ describe('BrandInterviewService', () => {
       invalidate: vi.fn().mockResolvedValue(undefined),
     };
     logger = makeLogger();
+    brandsService = {
+      updateAgentConfig: vi.fn().mockResolvedValue(makeEmptyBrand()),
+    };
 
     const prisma = {
       brand: brandDelegate,
@@ -132,6 +137,7 @@ describe('BrandInterviewService', () => {
       creditsService as unknown as CreditsUtilsService,
       cacheService as unknown as CacheInvalidationService,
       logger,
+      brandsService as unknown as BrandsService,
     );
   });
 
@@ -309,10 +315,8 @@ describe('BrandInterviewService', () => {
       });
 
       interviewDelegate.findFirst.mockResolvedValue(session);
-      brandDelegate.findFirst
-        .mockResolvedValueOnce(brandWithTone) // read for agentConfig merge
-        .mockResolvedValueOnce(brandAfterWrite); // reload after write for completeness
-      brandDelegate.update.mockResolvedValue(brandAfterWrite);
+      brandDelegate.findFirst.mockResolvedValue(brandAfterWrite);
+      brandsService.updateAgentConfig.mockResolvedValue(brandAfterWrite);
       interviewDelegate.update.mockResolvedValue({
         ...session,
         answeredFields: { style: 'Punchy sentences', tone: 'Bold' },
@@ -326,12 +330,12 @@ describe('BrandInterviewService', () => {
         'Punchy sentences',
       );
 
-      // The update call must preserve tone as well as writing style
-      const updateCall = brandDelegate.update.mock.calls[0][0];
-      const writtenCfg = updateCall.data.agentConfig as Record<string, unknown>;
-      const voiceGrp = writtenCfg.voice as Record<string, unknown>;
-      expect(voiceGrp.tone).toBe('Bold');
-      expect(voiceGrp.style).toBe('Punchy sentences');
+      expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+        'brand-1',
+        'org-1',
+        { voice: { style: 'Punchy sentences' } },
+      );
+      expect(brandWithTone.agentConfig).toEqual(agentConfig);
     });
 
     it('advances to next in-scope gap after answering', async () => {

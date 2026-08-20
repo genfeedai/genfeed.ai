@@ -1,10 +1,20 @@
+import {
+  BUILT_IN_SKILL_CATALOG,
+  isBuiltInSkillIdentity,
+  isReservedBuiltInSkillSlug,
+  MAX_CONFIGURED_SKILL_SLUGS,
+  MAX_SKILL_SLUG_LENGTH,
+} from '@api/collections/skills/constants/skill-validation.constant';
 import type {
   CreateSkillDto,
   CustomizeSkillDto,
   ImportSkillDto,
   UpdateSkillDto,
 } from '@api/collections/skills/dto/skill.dto';
-import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import {
+  SKILL_STATUSES,
+  type SkillDocument,
+} from '@api/collections/skills/schemas/skill.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
@@ -35,7 +45,7 @@ export class SkillsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly byokProviderFactoryService: ByokProviderFactoryService,
-    private readonly loggerService: LoggerService,
+    _loggerService: LoggerService,
   ) {}
 
   private readString(value: unknown): string | undefined {
@@ -44,7 +54,10 @@ export class SkillsService {
 
   private readStringArray(value: unknown): string[] {
     return Array.isArray(value)
-      ? value.filter((entry): entry is string => typeof entry === 'string')
+      ? value.filter(
+          (entry): entry is string =>
+            typeof entry === 'string' && entry.trim().length > 0,
+        )
       : [];
   }
 
@@ -83,7 +96,9 @@ export class SkillsService {
       source: payload['source'],
       sourceListingId: payload['sourceListingId'],
       status: payload['status'],
+      systemPromptTemplate: payload['systemPromptTemplate'],
       title: payload['title'],
+      toolOverrides: payload['toolOverrides'],
       workflowStage: payload['workflowStage'],
     };
   }
@@ -92,16 +107,38 @@ export class SkillsService {
     organizationId: string,
     payload: CreateSkillDto,
   ): Promise<SkillDocument> {
-    const isBuiltIn = payload.isBuiltIn ?? payload.source === 'built_in';
+    this.requireOrganizationId(organizationId);
+    this.assertSkillStatus(payload.status);
 
-    if (organizationId && !isBuiltIn) {
-      this.requireOrganizationId(organizationId);
+    if (payload.isBuiltIn === true) {
+      throw new ValidationException(
+        'Built-in skills can only be created by internal catalog provisioning',
+        'isBuiltIn',
+        true,
+      );
+    }
+
+    if (payload.source === 'built_in') {
+      throw new ValidationException(
+        'Built-in skills can only be created by internal catalog provisioning',
+        'source',
+        payload.source,
+      );
+    }
+
+    if (isReservedBuiltInSkillSlug(payload.slug)) {
+      throw new ValidationException(
+        'This slug is reserved for the built-in skill catalog',
+        'slug',
+        payload.slug,
+      );
     }
 
     const config = this.buildSkillConfig({
       ...(payload as unknown as Record<string, unknown>),
-      isBuiltIn,
-      source: payload.source ?? (isBuiltIn ? 'built_in' : 'custom'),
+      isBuiltIn: false,
+      isEnabled: payload.status !== 'disabled',
+      source: payload.source ?? 'custom',
       status: payload.status ?? 'published',
     });
 
@@ -110,7 +147,7 @@ export class SkillsService {
         config: config as Prisma.InputJsonValue,
         isDeleted: false,
         label: payload.name,
-        organizationId: isBuiltIn ? null : organizationId,
+        organizationId,
       },
     });
 
@@ -121,6 +158,8 @@ export class SkillsService {
     organizationId: string,
     payload: ImportSkillDto,
   ): Promise<SkillDocument> {
+    this.requireOrganizationId(organizationId);
+
     return this.createSkill(organizationId, {
       ...payload,
       isBuiltIn: false,
@@ -149,6 +188,14 @@ export class SkillsService {
         this.readString(baseConfig.slug) ?? String(baseSkill.id),
       );
 
+    if (isReservedBuiltInSkillSlug(customizedSlug)) {
+      throw new ValidationException(
+        'This slug is reserved for the built-in skill catalog',
+        'slug',
+        customizedSlug,
+      );
+    }
+
     const customName =
       payload.name?.trim() ||
       `${this.readString(baseConfig.name) ?? 'Skill'} Custom`;
@@ -170,6 +217,8 @@ export class SkillsService {
       slug: customizedSlug,
       source: 'custom',
       status: 'draft',
+      systemPromptTemplate: baseConfig['systemPromptTemplate'],
+      toolOverrides: baseConfig['toolOverrides'],
       workflowStage: baseConfig['workflowStage'],
     });
 
@@ -194,6 +243,7 @@ export class SkillsService {
     payload: UpdateSkillDto,
   ): Promise<SkillDocument> {
     this.requireOrganizationId(organizationId);
+    this.assertSkillStatus(payload.status);
     const skill = await this.getSkillById(organizationId, idOrSlug);
 
     // `getSkillById` resolves through `buildAccessibleSkillWhere`, which also
@@ -204,6 +254,17 @@ export class SkillsService {
     // `customizeSkill`, which forks it into an organization-owned copy.
     if (!skill || skill.organizationId !== organizationId) {
       throw new NotFoundException('Skill', idOrSlug);
+    }
+
+    if (
+      payload.slug !== undefined &&
+      isReservedBuiltInSkillSlug(payload.slug)
+    ) {
+      throw new ValidationException(
+        'This slug is reserved for the built-in skill catalog',
+        'slug',
+        payload.slug,
+      );
     }
 
     const existingConfig = this.getConfig(skill);
@@ -219,6 +280,10 @@ export class SkillsService {
       }
     }
 
+    if (payload.status !== undefined) {
+      mergedConfig.isEnabled = payload.status !== 'disabled';
+    }
+
     const updated = await this.prisma.skill.update({
       data: {
         config: mergedConfig as Prisma.InputJsonValue,
@@ -232,6 +297,8 @@ export class SkillsService {
   }
 
   async listAllForOrg(organizationId: string): Promise<SkillDocument[]> {
+    this.requireOrganizationId(organizationId);
+
     const results = await this.prisma.skill.findMany({
       orderBy: [{ createdAt: 'desc' }],
       where: this.buildAccessibleSkillWhere(
@@ -242,6 +309,8 @@ export class SkillsService {
   }
 
   async getAvailableForOrg(organizationId: string): Promise<SkillDocument[]> {
+    this.requireOrganizationId(organizationId);
+
     const allSkills = await this.prisma.skill.findMany({
       where: this.buildAccessibleSkillWhere(
         organizationId,
@@ -274,6 +343,24 @@ export class SkillsService {
     organizationId: string,
     idOrSlug: string,
   ): Promise<SkillDocument | null> {
+    this.requireOrganizationId(organizationId);
+
+    const builtInIdentity = BUILT_IN_SKILL_CATALOG.find(
+      ({ id, slug }) => id === idOrSlug || slug === idOrSlug,
+    );
+
+    if (builtInIdentity) {
+      // tenant-scope-ignore: trusted catalog lookup ORs this tenant with fixed migration-owned global ids; both arms require isDeleted false
+      const builtIn = await this.prisma.skill.findFirst({
+        where: {
+          ...this.buildAccessibleSkillWhere(organizationId),
+          id: builtInIdentity.id,
+        } as Prisma.SkillWhereInput,
+      });
+
+      return builtIn ? this.normalizeSkill(builtIn) : null;
+    }
+
     const result = await this.prisma.skill.findFirst({
       where: {
         ...this.buildAccessibleSkillWhere(organizationId),
@@ -303,6 +390,8 @@ export class SkillsService {
     brandId: string,
     skillSlug: string,
   ): Promise<void> {
+    this.requireOrganizationId(organizationId);
+
     const enabledSkills = await this.getEnabledSkillSlugs(
       organizationId,
       brandId,
@@ -315,11 +404,39 @@ export class SkillsService {
     }
   }
 
+  async assertAccessibleSkillSlugs(
+    organizationId: string,
+    skillSlugs: string[],
+  ): Promise<void> {
+    this.requireOrganizationId(organizationId);
+    this.assertConfiguredSkillSlugs(skillSlugs);
+
+    if (skillSlugs.length === 0) {
+      return;
+    }
+
+    const accessibleSkillSlugs =
+      await this.getAccessibleSkillSlugSet(organizationId);
+    const inaccessibleSkillSlugs = [...new Set(skillSlugs)].filter(
+      (slug) => !accessibleSkillSlugs.has(slug),
+    );
+
+    if (inaccessibleSkillSlugs.length > 0) {
+      throw new ValidationException(
+        `Unknown or inaccessible skill slugs: ${inaccessibleSkillSlugs.join(', ')}`,
+        'enabledSkills',
+        inaccessibleSkillSlugs,
+      );
+    }
+  }
+
   async getEnabledSkillSlugs(
     organizationId: string,
     brandId: string,
     requestedSlugs?: string[],
   ): Promise<string[]> {
+    this.requireOrganizationId(organizationId);
+
     const brand = await findOrThrow(
       this.prisma.brand,
       { where: scopedWhere(organizationId, { id: brandId }) },
@@ -328,8 +445,21 @@ export class SkillsService {
     );
 
     const agentConfig = brand.agentConfig as Record<string, unknown> | null;
-    const enabledSkills: string[] =
-      (agentConfig?.enabledSkills as string[]) || [];
+    const storedEnabledSkills = [
+      ...new Set(this.readStringArray(agentConfig?.enabledSkills)),
+    ];
+
+    if (storedEnabledSkills.length === 0) {
+      return [];
+    }
+
+    const accessibleSkillSlugs = await this.getAccessibleSkillSlugSet(
+      organizationId,
+      true,
+    );
+    const enabledSkills = storedEnabledSkills.filter((slug) =>
+      accessibleSkillSlugs.has(slug),
+    );
 
     if (!requestedSlugs || requestedSlugs.length === 0) {
       return enabledSkills;
@@ -343,6 +473,8 @@ export class SkillsService {
     brandId: string,
     options: ResolveBrandSkillsOptions = {},
   ): Promise<ResolvedBrandSkill[]> {
+    this.requireOrganizationId(organizationId);
+
     const enabledSlugs = await this.getEnabledSkillSlugs(
       organizationId,
       brandId,
@@ -429,20 +561,122 @@ export class SkillsService {
   private buildAccessibleSkillWhere(
     organizationId: string,
   ): Record<string, unknown> {
+    this.requireOrganizationId(organizationId);
+
     return {
       AND: [
         { isDeleted: false },
         {
-          OR: [{ organizationId }, { organizationId: null }],
+          OR: [{ organizationId }, this.buildBuiltInCatalogWhere()],
         },
       ],
     };
   }
 
-  private requireOrganizationId(organizationId: string): void {
-    if (!organizationId) {
+  private buildBuiltInCatalogWhere(): Record<string, unknown> {
+    return {
+      AND: [
+        { organizationId: null },
+        { config: { equals: true, path: ['isBuiltIn'] } },
+        { config: { equals: 'built_in', path: ['source'] } },
+        {
+          OR: BUILT_IN_SKILL_CATALOG.map(({ id, slug }) => ({
+            AND: [{ id }, { config: { equals: slug, path: ['slug'] } }],
+          })),
+        },
+      ],
+    };
+  }
+
+  private assertConfiguredSkillSlugs(
+    skillSlugs: unknown,
+  ): asserts skillSlugs is string[] {
+    const isValid =
+      Array.isArray(skillSlugs) &&
+      skillSlugs.length <= MAX_CONFIGURED_SKILL_SLUGS &&
+      new Set(skillSlugs).size === skillSlugs.length &&
+      skillSlugs.every(
+        (slug) =>
+          typeof slug === 'string' &&
+          slug.trim().length > 0 &&
+          slug.length <= MAX_SKILL_SLUG_LENGTH,
+      );
+
+    if (!isValid) {
+      throw new ValidationException(
+        'Enabled skills must be a unique list of valid skill slugs',
+        'enabledSkills',
+        skillSlugs,
+      );
+    }
+  }
+
+  private requireOrganizationId(
+    organizationId: string | null | undefined,
+  ): void {
+    if (typeof organizationId !== 'string' || !organizationId.trim()) {
       throw new ValidationException('Organization context is required');
     }
+  }
+
+  private assertSkillStatus(status: unknown): void {
+    if (
+      status !== undefined &&
+      !SKILL_STATUSES.some((allowedStatus) => allowedStatus === status)
+    ) {
+      throw new ValidationException('Invalid skill status', 'status', status);
+    }
+  }
+
+  private async getAccessibleSkillSlugSet(
+    organizationId: string,
+    onlyEnabled = false,
+  ): Promise<Set<string>> {
+    this.requireOrganizationId(organizationId);
+
+    // tenant-scope-ignore: catalog read ORs this tenant with fixed migration-owned global ids and explicitly requires isDeleted false
+    const rows = await this.prisma.skill.findMany({
+      // Skills are either owned by this organization or immutable catalog
+      // entries with null ownership. Keep both arms explicit at this Prisma
+      // call so the tenant-scope guard can prove there is no foreign-org path.
+      where: {
+        AND: [
+          { isDeleted: false },
+          {
+            OR: [{ organizationId }, this.buildBuiltInCatalogWhere()],
+          },
+        ],
+      },
+    });
+
+    return new Set(
+      rows
+        .filter(
+          (row) =>
+            (row.organizationId === organizationId ||
+              this.isTrustedBuiltInSkill(row)) &&
+            (!onlyEnabled || this.isEnabledSkill(row)),
+        )
+        .map((row) => this.readString(this.getConfig(row).slug))
+        .filter((slug): slug is string => slug !== undefined),
+    );
+  }
+
+  private isTrustedBuiltInSkill(row: Record<string, unknown>): boolean {
+    const config = this.getConfig(row);
+
+    return (
+      row.organizationId === null &&
+      config.isBuiltIn === true &&
+      config.source === 'built_in' &&
+      isBuiltInSkillIdentity(row.id, config.slug)
+    );
+  }
+
+  private isEnabledSkill(row: Record<string, unknown>): boolean {
+    const config = this.getConfig(row);
+
+    return config.isEnabled === true && config.status !== 'disabled';
   }
 
   private buildCustomizedSlug(baseSlug: string): string {

@@ -8,6 +8,7 @@
  */
 import { BrandInterviewController } from '@api/collections/brands/brand-interview/controllers/brand-interview.controller';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { Module } from '@nestjs/common';
 
@@ -15,6 +16,7 @@ import { Module } from '@nestjs/common';
   controllers: [BrandInterviewController],
   exports: [BrandInterviewService],
   imports: [
+    BrandsCoreModule,
     // CreditsUtilsService — swapped to OSS no-op in community mode
     CreditsModule,
     // PrismaService, CacheInvalidationService, and LoggerService are all @Global

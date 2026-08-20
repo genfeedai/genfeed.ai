@@ -123,4 +123,54 @@ describe('AgentStrategiesService', () => {
       'nextRunAt',
     );
   });
+
+  it('preserves an explicit empty skill list to inherit brand defaults', async () => {
+    const create = vi.fn().mockResolvedValue({
+      config: { skillSlugs: [] },
+      id: 'strategy-1',
+      policies: {},
+    });
+
+    await service.createWithClient(
+      {
+        agentType: AgentType.VIDEO_CREATOR,
+        brandId: 'brand-1',
+        isActive: false,
+        label: 'Short Creator',
+        organizationId: 'org-1',
+        skillSlugs: [],
+        userId: 'user-1',
+      },
+      { agentStrategy: { create } } as never,
+    );
+
+    expect(create.mock.calls[0]?.[0].data.config).toMatchObject({
+      skillSlugs: [],
+    });
+  });
+
+  it('preserves an explicit nonempty skill override', async () => {
+    const create = vi.fn().mockResolvedValue({
+      config: { skillSlugs: ['brand-voice'] },
+      id: 'strategy-1',
+      policies: {},
+    });
+
+    await service.createWithClient(
+      {
+        agentType: AgentType.VIDEO_CREATOR,
+        brandId: 'brand-1',
+        isActive: false,
+        label: 'Short Creator',
+        organizationId: 'org-1',
+        skillSlugs: ['brand-voice'],
+        userId: 'user-1',
+      },
+      { agentStrategy: { create } } as never,
+    );
+
+    expect(create.mock.calls[0]?.[0].data.config).toMatchObject({
+      skillSlugs: ['brand-voice'],
+    });
+  });
 });

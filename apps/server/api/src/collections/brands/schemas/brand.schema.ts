@@ -79,6 +79,7 @@ export interface BrandAgentConfig {
   defaultModel?: string;
   defaultVoiceId?: string;
   defaultVoiceRef?: DefaultVoiceRef;
+  enabledSkills?: string[];
   persona?: string;
   platformOverrides?:
     | Map<string, BrandAgentPlatformOverride>

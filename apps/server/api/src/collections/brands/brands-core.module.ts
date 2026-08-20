@@ -5,6 +5,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
 import { CommonModule } from '@api/common/common.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -29,6 +30,7 @@ import { Module } from '@nestjs/common';
     BrandScraperModule,
     FilesClientModule,
     LlmDispatcherModule,
+    SkillsCoreModule,
   ],
   providers: [
     BrandsService,

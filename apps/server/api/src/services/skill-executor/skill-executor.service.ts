@@ -1,4 +1,5 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
+import { isBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
@@ -56,16 +57,7 @@ export class SkillExecutorService {
   ): Promise<SkillExecutionResult> {
     const startedAt = Date.now();
 
-    const skill = await this.skillsService.getSkillById(
-      context.organizationId,
-      skillSlug,
-    );
-
-    if (!skill?.isEnabled) {
-      throw new NotFoundException(`Skill not found: ${skillSlug}`);
-    }
-
-    await this.skillsService.assertBrandSkillEnabled(
+    const skill = await this.assertSkillExecutable(
       context.organizationId,
       context.brandId,
       skillSlug,
@@ -172,6 +164,12 @@ export class SkillExecutorService {
     skillSlug: string,
     params?: Record<string, unknown>,
   ): Promise<GatewayExecutionResult> {
+    await this.assertSkillExecutable(
+      context.organizationId,
+      context.brandId,
+      skillSlug,
+    );
+
     const executionContext: SkillExecutionContext = {
       brandId: context.brandId,
       brandVoice: '',
@@ -243,6 +241,33 @@ export class SkillExecutorService {
 
       throw error;
     }
+  }
+
+  private async assertSkillExecutable(
+    organizationId: string,
+    brandId: string,
+    skillSlug: string,
+  ) {
+    const skill = await this.skillsService.getSkillById(
+      organizationId,
+      skillSlug,
+    );
+
+    if (
+      !skill?.isEnabled ||
+      skill.status === 'disabled' ||
+      !isBuiltInSkillIdentity(skill.id, skill.slug)
+    ) {
+      throw new NotFoundException(`Skill not found: ${skillSlug}`);
+    }
+
+    await this.skillsService.assertBrandSkillEnabled(
+      organizationId,
+      brandId,
+      skillSlug,
+    );
+
+    return skill;
   }
 
   private buildRunBrief(

@@ -26,6 +26,7 @@ import {
   nextSlugCandidate,
   slugAllocationBase,
 } from '@api/collections/shared/slug-allocation.util';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
@@ -129,6 +130,7 @@ function mergeDefinedKeys(
 }
 
 type BrandCreateInput = CreateBrandDto & {
+  agentConfig?: UpdateBrandAgentConfigDto & Record<string, unknown>;
   organizationId?: string;
   userId?: string;
 };
@@ -153,16 +155,29 @@ export class BrandsService extends BaseService<
     private readonly brandKitAssetsService: BrandKitAssetsService,
     private readonly brandKitDraftService: BrandKitDraftService,
     private readonly defaultRecurringContentService: DefaultRecurringContentService,
+    private readonly skillsService: SkillsService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
 
   async create(createBrandDto: BrandCreateInput): Promise<BrandDocument> {
     const {
+      agentConfig: initialAgentConfig,
       organizationId: resolvedOrganizationId,
       userId: resolvedUserId,
       ...brandFields
     } = createBrandDto;
+
+    if (!resolvedOrganizationId?.trim()) {
+      throw new BadRequestException('Organization context is required');
+    }
+
+    if (initialAgentConfig?.enabledSkills !== undefined) {
+      await this.skillsService.assertAccessibleSkillSlugs(
+        resolvedOrganizationId,
+        initialAgentConfig.enabledSkills,
+      );
+    }
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
@@ -197,10 +212,9 @@ export class BrandsService extends BaseService<
         brand = await super.create(
           omitUndefinedFields({
             ...sanitizedBrandFields,
+            ...(initialAgentConfig ? { agentConfig: initialAgentConfig } : {}),
             slug: candidate,
-            ...(resolvedOrganizationId
-              ? { organizationId: resolvedOrganizationId }
-              : {}),
+            organizationId: resolvedOrganizationId,
             ...(resolvedUserId ? { userId: resolvedUserId } : {}),
           }) as unknown as CreateBrandDto,
         );
@@ -328,6 +342,12 @@ export class BrandsService extends BaseService<
       service: this.constructorName,
     });
 
+    if (updateBrandDto.agentConfig !== undefined) {
+      throw new BadRequestException(
+        'Use updateAgentConfig for agent configuration changes',
+      );
+    }
+
     const brand = await super.patch(
       id,
       omitUndefinedFields(
@@ -452,6 +472,7 @@ export class BrandsService extends BaseService<
     brandId: string,
     orgId: string,
     agentConfig: UpdateBrandAgentConfigDto,
+    retryCount = 0,
   ): Promise<BrandDocument | null> {
     this.logger.debug('Updating brand agent config', {
       brandId,
@@ -459,6 +480,13 @@ export class BrandsService extends BaseService<
       orgId,
       service: this.constructorName,
     });
+
+    if (agentConfig.enabledSkills !== undefined) {
+      await this.skillsService.assertAccessibleSkillSlugs(
+        orgId,
+        agentConfig.enabledSkills,
+      );
+    }
 
     const existing = await this.delegate.findFirst({
       where: scopedWhere(orgId, { id: brandId }),
@@ -468,11 +496,8 @@ export class BrandsService extends BaseService<
       return null;
     }
 
-    const currentConfig =
-      ((existing as Record<string, unknown>).agentConfig as Record<
-        string,
-        unknown
-      >) ?? {};
+    const storedConfig = (existing as Record<string, unknown>).agentConfig;
+    const currentConfig = isMergeableRecord(storedConfig) ? storedConfig : {};
     const updatedConfig = { ...currentConfig };
     const incomingSchedule = isMergeableRecord(agentConfig.schedule)
       ? agentConfig.schedule
@@ -542,20 +567,34 @@ export class BrandsService extends BaseService<
       }
     }
 
-    // Scope the WRITE, not just the lookup above. `update({ where: { id } })`
-    // is a cross-tenant write primitive: the read and the write are separate
-    // statements, so an id that resolved under this org at read time is still
-    // written unconditionally. `updateMany` + `scopedWhere` puts the tenant
-    // predicate in the mutating statement itself, and a zero count reports
-    // "not found for this org" through the same contract as the read.
+    // Scope the WRITE, not just the lookup above, and compare the exact JSON
+    // snapshot that was merged. The JSON predicate prevents concurrent config
+    // writers from overwriting sibling keys even when both writes happen in
+    // the same database timestamp tick.
+    const expectedAgentConfig =
+      storedConfig === null
+        ? Prisma.JsonNull
+        : (storedConfig as Prisma.InputJsonValue);
     const result = await this.delegate.updateMany({
       data: {
         agentConfig: updatedConfig as Record<string, unknown>,
       },
-      where: scopedWhere(orgId, { id: brandId }),
+      where: scopedWhere(orgId, {
+        agentConfig: { equals: expectedAgentConfig },
+        id: brandId,
+      }),
     });
 
     if (result.count !== 1) {
+      if (retryCount < 2) {
+        return this.updateAgentConfig(
+          brandId,
+          orgId,
+          agentConfig,
+          retryCount + 1,
+        );
+      }
+
       return null;
     }
 

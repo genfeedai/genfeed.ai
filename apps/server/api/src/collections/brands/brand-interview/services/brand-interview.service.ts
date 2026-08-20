@@ -1,3 +1,5 @@
+import type { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -16,7 +18,7 @@ import type {
   IBrandInterviewStartResult,
   IBrandInterviewStep,
 } from '@genfeedai/interfaces';
-import { type BrandInterview, Prisma } from '@genfeedai/prisma';
+import type { BrandInterview } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -37,6 +39,7 @@ export class BrandInterviewService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly logger: LoggerService,
+    private readonly brandsService: BrandsService,
   ) {}
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -480,10 +483,8 @@ export class BrandInterviewService {
 
   /**
    * Write a single field value back to the Brand record.
-   * Uses a read-modify-write for nested agentConfig fields to preserve siblings.
-   * This writes one leaf key at a time (`voice.tone`, not `voice`), which is a
-   * finer granularity than `BrandsService.updateAgentConfig` takes, so it stays
-   * on the direct Prisma path.
+   * Nested agentConfig fields go through the canonical merge boundary so they
+   * preserve siblings and cannot bypass enabled-skill validation.
    */
   private async writeFieldToBrand(
     brandId: string,
@@ -507,24 +508,17 @@ export class BrandInterviewService {
         throw new NotFoundException('Brand', brandId);
       }
     } else {
-      // Nested agentConfig update — must read first to preserve sibling fields
-      const brand = await this.prisma.brand.findFirst({
-        where: scopedWhere(organizationId, { id: brandId }),
-      });
+      const updated = await this.brandsService.updateAgentConfig(
+        brandId,
+        organizationId,
+        {
+          [meta.storage]: { [fieldKey]: value },
+        } as UpdateBrandAgentConfigDto,
+      );
 
-      if (!brand) {
+      if (!updated) {
         throw new NotFoundException('Brand', brandId);
       }
-
-      const cfg = (brand.agentConfig as Record<string, unknown>) ?? {};
-      const grpKey = meta.storage; // 'voice' | 'strategy'
-      const grp = (cfg[grpKey] as Record<string, unknown>) ?? {};
-      cfg[grpKey] = { ...grp, [fieldKey]: value };
-
-      await this.prisma.brand.update({
-        data: { agentConfig: cfg as Prisma.InputJsonValue },
-        where: { id: brandId },
-      });
     }
 
     // Invalidate brand caches after write
