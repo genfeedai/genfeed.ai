@@ -162,6 +162,32 @@ describe('MembersService', () => {
     expect(prisma.member.findMany).not.toHaveBeenCalled();
   });
 
+  it('finds active memberships by canonical user id during identity bootstrap', async () => {
+    prisma.member.findMany.mockResolvedValue([
+      { id: 'member-1', organizationId: 'org-1', userId: 'user-1' },
+    ]);
+
+    const result = await service.findActiveForIdentityBootstrap('user-1');
+
+    expect(result).toEqual([
+      { id: 'member-1', organizationId: 'org-1', userId: 'user-1' },
+    ]);
+    expect(prisma.member.findMany).toHaveBeenCalledWith({
+      where: {
+        isActive: true,
+        isDeleted: false,
+        userId: 'user-1',
+      },
+    });
+  });
+
+  it('rejects identity bootstrap membership lookup without a user id', async () => {
+    await expect(service.findActiveForIdentityBootstrap('')).rejects.toThrow(
+      'findActiveForIdentityBootstrap requires userId',
+    );
+    expect(prisma.member.findMany).not.toHaveBeenCalled();
+  });
+
   it('counts members via a database count instead of loading every row', async () => {
     prisma.member.count.mockResolvedValue(3);
 

@@ -84,6 +84,26 @@ export class MembersService extends BaseService<
     return members as unknown as MemberDocument[];
   }
 
+  async findActiveForIdentityBootstrap(
+    userId: string,
+  ): Promise<MemberDocument[]> {
+    if (!userId) {
+      throw new TypeError('findActiveForIdentityBootstrap requires userId');
+    }
+
+    // tenant-scope-ignore: Better Auth must recover organizationId from the
+    // canonical users.id before request tenant context can exist.
+    const members = await this.prisma.member.findMany({
+      where: {
+        isActive: true,
+        isDeleted: false,
+        userId,
+      },
+    });
+
+    return members as unknown as MemberDocument[];
+  }
+
   count(filter: Prisma.MemberWhereInput): Promise<number> {
     return this.delegate.count({ where: filter });
   }
