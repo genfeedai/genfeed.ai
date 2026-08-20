@@ -168,6 +168,7 @@ export * from './integrations/replicate.interface';
 export * from './integrations/research-finding-reference.interface';
 export * from './integrations/social-api.interface';
 export * from './knowledge-base/knowledge-base.interface';
+export * from './management/folder-tree-node.interface';
 export * from './management/folder.interface';
 export * from './marketplace/checkout.interface';
 export * from './marketplace/listing.interface';

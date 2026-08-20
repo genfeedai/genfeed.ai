@@ -1,12 +1,16 @@
-import { render, screen } from '@testing-library/react';
+import type { IFolder } from '@genfeedai/interfaces';
+import { fireEvent, render, screen } from '@testing-library/react';
 import FoldersSidebar from '@ui/folders/sidebar/FoldersSidebar';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/drag-drop/zone-folder/DropZoneFolder', () => ({
   default: ({
+    children,
     folder,
     isSelected,
   }: {
+    children?: ReactNode;
     folder: unknown;
     isSelected: boolean;
   }) => (
@@ -14,7 +18,7 @@ vi.mock('@ui/drag-drop/zone-folder/DropZoneFolder', () => ({
       data-testid={folder ? 'folder-item' : 'all-folder'}
       data-selected={isSelected}
     >
-      {folder ? (folder as { name: string }).name : 'All'}
+      {children ?? (folder ? (folder as { label: string }).label : 'All')}
     </div>
   ),
 }));
@@ -34,10 +38,71 @@ describe('FoldersSidebar', () => {
 
   it('should render folder items', () => {
     const folders = [
-      { id: '1', name: 'Folder 1' },
-      { id: '2', name: 'Folder 2' },
-    ];
+      { id: '1', label: 'Folder 1' },
+      { id: '2', label: 'Folder 2' },
+    ] as IFolder[];
     render(<FoldersSidebar folders={folders} onSelectFolder={vi.fn()} />);
     expect(screen.getAllByTestId('folder-item')).toHaveLength(2);
+  });
+});
+
+describe('FoldersSidebar navigation tree', () => {
+  const nestedFolders = [
+    { id: '1', label: 'Campaigns' },
+    { id: '2', label: 'Spring', parentId: '1' },
+  ] as IFolder[];
+
+  it('should keep a child folder closed until its parent is expanded', () => {
+    render(
+      <FoldersSidebar
+        folders={nestedFolders}
+        onSelectFolder={vi.fn()}
+        variant="navigation"
+      />,
+    );
+
+    expect(screen.getByText('Campaigns')).toBeInTheDocument();
+    expect(screen.queryByText('Spring')).not.toBeInTheDocument();
+  });
+
+  it('should reveal children when the parent is expanded', () => {
+    render(
+      <FoldersSidebar
+        folders={nestedFolders}
+        onSelectFolder={vi.fn()}
+        variant="navigation"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Campaigns' }));
+
+    expect(screen.getByText('Spring')).toBeInTheDocument();
+  });
+
+  it('should open the branch holding the selected folder', () => {
+    render(
+      <FoldersSidebar
+        folders={nestedFolders}
+        onSelectFolder={vi.fn()}
+        selectedFolderId="2"
+        variant="navigation"
+      />,
+    );
+
+    expect(screen.getByText('Spring')).toBeInTheDocument();
+  });
+
+  it('should not offer a disclosure for a folder without children', () => {
+    render(
+      <FoldersSidebar
+        folders={[{ id: '1', label: 'Campaigns' }] as IFolder[]}
+        onSelectFolder={vi.fn()}
+        variant="navigation"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /Expand|Collapse/ }),
+    ).not.toBeInTheDocument();
   });
 });

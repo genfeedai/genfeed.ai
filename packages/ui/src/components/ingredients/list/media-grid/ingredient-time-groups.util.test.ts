@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test';
 import type { IIngredient } from '@genfeedai/interfaces';
+import { describe, expect, it } from 'vitest';
 
 import {
   getIsChronologicalDescending,
