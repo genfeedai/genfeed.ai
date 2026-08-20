@@ -162,7 +162,7 @@ export default function StudioGenerateComposer({
               >
                 <ModelSelectorPopover
                   autoLabel="Auto"
-                  className="max-w-[12rem] min-w-0 border border-border bg-background hover:bg-accent/50"
+                  className="max-w-[12rem] min-w-0"
                   favoriteModelKeys={favoriteModelKeys}
                   models={models}
                   name="studioGenerateModel"

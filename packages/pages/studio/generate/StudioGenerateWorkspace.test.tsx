@@ -117,19 +117,19 @@ describe('StudioGenerateWorkspace', () => {
     });
   });
 
-  it('uses the shared section topbar for filters and search', () => {
+  it('uses the composer asset type as the only gallery type control', () => {
     render(<StudioGenerateWorkspace />);
 
     const topbar = screen.getByTestId('section-topbar');
     expect(topbar).toContainElement(
-      screen.getByRole('button', { name: 'All' }),
-    );
-    expect(topbar).toContainElement(
-      screen.getByRole('button', { name: 'Image' }),
-    );
-    expect(topbar).toContainElement(
       screen.getByPlaceholderText('Search generations'),
     );
+    expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
+    expect(mocks.gallery).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      filter: 'image',
+    });
     expect(screen.getByTestId('studio-results')).not.toContainElement(
       screen.getByPlaceholderText('Search generations'),
     );

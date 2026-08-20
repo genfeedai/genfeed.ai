@@ -9,10 +9,7 @@ import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { ComponentSize } from '@genfeedai/enums';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
-import type {
-  StudioGenerateComposerProps,
-  StudioGenerateFilter,
-} from '@genfeedai/props/studio/studio-generate.props';
+import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
@@ -24,20 +21,13 @@ import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
 } from '@pages/studio/generate/utils/studio-generate-asset';
-import { listStudioGalleryFilters } from '@pages/studio/generate/utils/studio-generate-gallery';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { NotificationsService } from '@services/core/notifications.service';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
-import Tabs from '@ui/navigation/tabs/Tabs';
 import Searchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
-
-const FILTER_TABS = listStudioGalleryFilters().map((id) => ({
-  id,
-  label: id === 'all' ? 'All' : getStudioGenerateTypeConfig(id).label,
-}));
 
 const STUDIO_REFERENCE_TYPES = ['image/*'];
 
@@ -54,7 +44,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
     useStudioGenerateSettings();
 
   const [prompt, setPrompt] = useState('');
-  const [filter, setFilter] = useState<StudioGenerateFilter>('all');
   const [search, setSearch] = useState('');
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
   const [contentReferences, setContentReferences] = useState<
@@ -134,7 +123,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const { isLoadingModels, models } = useStudioGenerateModels(modelCategory);
   const { isLoadingGallery, refresh, storedJobs } = useStudioGenerateGallery({
     brandId,
-    filter,
+    filter: type,
   });
 
   const { isGenerating, jobs, submit } = useStudioGeneration({
@@ -149,9 +138,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
     () =>
       filterStudioGenerateJobs(mergeStudioGenerateJobs(jobs, storedJobs), {
         search,
-        type: filter,
+        type,
       }),
-    [filter, jobs, search, storedJobs],
+    [jobs, search, storedJobs, type],
   );
 
   const referenceUrls = useMemo(
@@ -232,13 +221,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
       prompt.trim().length === 0,
   );
 
-  const handleFilterChange = useCallback((value: string) => {
-    const selectedFilter = FILTER_TABS.find((option) => option.id === value);
-    if (selectedFilter) {
-      setFilter(selectedFilter.id);
-    }
-  }, []);
-
   // Reprompt reloads the composer rather than firing immediately — the
   // operator almost always wants to change one thing before running it again.
   const handleReprompt = useCallback(
@@ -263,16 +245,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
           />
         }
         subtitle={translate('description')}
-        tabs={
-          <Tabs
-            activeTab={filter}
-            fullWidth={false}
-            items={FILTER_TABS}
-            onTabChange={handleFilterChange}
-            size="sm"
-            variant="default"
-          />
-        }
         title={translate('title')}
       />
 

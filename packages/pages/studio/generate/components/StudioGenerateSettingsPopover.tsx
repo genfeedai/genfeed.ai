@@ -44,7 +44,7 @@ interface StudioSettingsSection {
   label: string;
 }
 
-const SECTION_ICON_CLASS = 'size-3.5';
+const SECTION_ICON_CLASS = 'size-4';
 
 /** Value used by every "no element picked" option — Radix rejects `''`. */
 const NONE_VALUE = EMPTY_SELECT_ITEM_VALUE;
@@ -322,7 +322,7 @@ function StandardStudioGenerateSettingsPopover({
         <Button
           ariaLabel="Generation settings"
           className={cn(
-            'gap-1.5 border border-border bg-background px-2.5 text-xs font-medium hover:bg-accent/50',
+            'gap-1.5 px-2.5 text-xs font-medium',
             SHELL_CONTROL_HEIGHT_CLASS,
           )}
           icon={<Settings2 className="size-3.5" />}
