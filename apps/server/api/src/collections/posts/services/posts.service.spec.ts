@@ -44,10 +44,19 @@ describe('PostsService batchSchedule', () => {
       })),
       findFirst: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
-      update: vi.fn(({ where }: { where: { id: string } }) => ({
-        kind: 'update',
-        postId: where.id,
-      })),
+      update: vi.fn(
+        ({
+          data,
+          where,
+        }: {
+          data?: Record<string, unknown>;
+          where: { id: string };
+        }) => ({
+          data,
+          kind: 'update',
+          postId: where.id,
+        }),
+      ),
       updateMany: vi.fn(({ where }: { where: { parentId: string } }) => ({
         kind: 'cascade',
         parentId: where.parentId,

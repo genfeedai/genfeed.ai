@@ -359,6 +359,7 @@ describe('PostGroupContractService', () => {
       {
         credentialId: 'credential-twitter',
         platform: CredentialPlatform.TWITTER,
+        visibility: PostVisibility.PUBLIC,
       },
       'publish_now',
     );
@@ -368,6 +369,7 @@ describe('PostGroupContractService', () => {
         caption: 'Short X caption',
         credentialId: 'credential-twitter',
         platform: CredentialPlatform.TWITTER,
+        visibility: PostVisibility.PUBLIC,
       },
       'publish_now',
     );
