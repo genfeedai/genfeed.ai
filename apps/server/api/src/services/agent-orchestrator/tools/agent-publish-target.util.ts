@@ -100,6 +100,10 @@ export function resolvePublishMediaKind(category: unknown): string | undefined {
   return media[0]?.kind;
 }
 
+function isChannelMediaKind(kind: string): kind is ChannelMediaKind {
+  return CHANNEL_MEDIA_KINDS.has(kind as ChannelMediaKind);
+}
+
 function toValidationMedia(
   media: AgentPublishTargetMedia[] | undefined,
 ): Array<{ id?: string; isAnimated?: boolean; kind: ChannelMediaKind }> {
@@ -108,7 +112,7 @@ function toValidationMedia(
   }
 
   return media.flatMap((item) =>
-    CHANNEL_MEDIA_KINDS.has(item.kind)
+    isChannelMediaKind(item.kind)
       ? [
           {
             ...(item.id ? { id: item.id } : {}),

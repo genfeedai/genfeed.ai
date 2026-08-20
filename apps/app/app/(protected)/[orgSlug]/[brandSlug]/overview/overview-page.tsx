@@ -80,7 +80,9 @@ function readChartValue(
   point: PlatformTimeSeriesDataPoint,
   platform: OverviewSocialPlatform,
 ): number {
-  return Number((point as Record<string, number | undefined>)[platform] ?? 0);
+  return Number(
+    (point as unknown as Record<string, number | undefined>)[platform] ?? 0,
+  );
 }
 
 function getChartPlatforms(
