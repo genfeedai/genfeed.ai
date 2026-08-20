@@ -53,7 +53,7 @@ export default function PricingStrip({
               <div
                 className={cn(
                   'mb-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest',
-                  inverted ? 'text-inv-fg/30' : 'text-surface/30',
+                  inverted ? 'text-inv-fg/65' : 'text-surface/55',
                 )}
               >
                 {column.subtitle}
@@ -61,7 +61,7 @@ export default function PricingStrip({
                   <span
                     className={cn(
                       'text-[9px] font-bold',
-                      inverted ? 'text-inv-fg/50' : 'text-surface/50',
+                      inverted ? 'text-inv-fg/65' : 'text-surface/50',
                     )}
                   >
                     ★ Popular
@@ -81,7 +81,7 @@ export default function PricingStrip({
               <div
                 className={cn(
                   'mt-1 text-xs',
-                  inverted ? 'text-inv-fg/40' : 'text-surface/40',
+                  inverted ? 'text-inv-fg/65' : 'text-surface/55',
                 )}
               >
                 {column.label}
@@ -102,8 +102,8 @@ export default function PricingStrip({
           className={cn(
             'inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all hover:gap-3',
             inverted
-              ? 'text-inv-fg/50 hover:text-inv-fg/70'
-              : 'text-surface/40 hover:text-surface/60',
+              ? 'text-inv-fg/65 hover:text-inv-fg/85'
+              : 'text-surface/55 hover:text-surface/75',
           )}
         >
           View all plans <ArrowRight className="size-3" />

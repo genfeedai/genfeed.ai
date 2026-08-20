@@ -133,6 +133,7 @@ const BREADCRUMB_WORD_LABELS = Object.freeze({
 const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/': 'Workspace',
   '/:orgSlug': 'Overview',
+  '/:orgSlug/:brandSlug': 'Overview',
   '/:orgSlug/:brandSlug/agent': 'New Conversation',
   '/:orgSlug/:brandSlug/agent/:id': 'Conversation',
   '/:orgSlug/:brandSlug/agent/new': 'New Conversation',
@@ -597,6 +598,14 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
 ] as const;
 
 const BRAND_ROUTE_REGISTRATIONS = [
+  ...registerRoutes(['/:orgSlug/:brandSlug'], {
+    fallback: '/:orgSlug/:brandSlug/workspace',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'brand',
+    surfaceKey: 'workspace-overview',
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/workspace',

@@ -206,7 +206,7 @@ export default function PricingContent() {
                   <div className="mb-2">
                     {plan.launchPrice != null ? (
                       <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-medium text-surface/40 line-through">
+                        <span className="text-2xl font-medium text-surface/55 line-through">
                           {formatPrice(plan.price)}
                         </span>
                         <span className="text-5xl font-semibold tracking-[-0.03em]">
@@ -291,7 +291,7 @@ export default function PricingContent() {
               className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:justify-between"
             >
               <div className="max-w-2xl">
-                <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/45">
+                <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/55">
                   {enterprisePlan.label}
                 </div>
                 <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">

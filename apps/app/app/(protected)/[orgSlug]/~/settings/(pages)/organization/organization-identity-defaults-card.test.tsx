@@ -96,6 +96,12 @@ vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
   }),
 }));
 
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    assetsEndpoint: 'https://cdn.genfeed.ai/assets',
+  },
+}));
+
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,
@@ -139,9 +145,17 @@ vi.mock('@ui/card/Card', () => ({
 }));
 
 vi.mock('@ui/display/selected-avatar-preview/SelectedAvatarPreview', () => ({
-  default: ({ imageAlt, title }: { imageAlt: string; title: string }) => (
+  default: ({
+    imageAlt,
+    imageUrl,
+    title,
+  }: {
+    imageAlt: string;
+    imageUrl: string;
+    title: string;
+  }) => (
     <figure>
-      <div aria-label={imageAlt} role="img" />
+      <div aria-label={imageAlt} data-image-url={imageUrl} role="img" />
       <figcaption>{title}</figcaption>
     </figure>
   ),
@@ -270,6 +284,29 @@ describe('OrganizationIdentityDefaultsCard', () => {
       screen.getByRole('button', { name: 'Browse Voice Library' }),
     );
     expect(mocks.push).toHaveBeenCalledWith('/org/brand/library/voices');
+  });
+
+  it('falls back to the CDN placeholder when the avatar has no image', () => {
+    render(<OrganizationIdentityDefaultsCard />);
+
+    expect(screen.getByRole('img', { name: 'Founder Avatar' })).toHaveAttribute(
+      'data-image-url',
+      'https://example.test/avatar.png',
+    );
+
+    // avatar-2 has no ingredientUrl. The fallback used to be the
+    // site-relative '/placeholders/portrait.jpg', which the app does not
+    // serve from `public/` — it 404s. It must resolve against the CDN.
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
+      target: { value: 'avatar-2' },
+    });
+
+    expect(
+      screen.getByRole('img', { name: 'Operator Avatar' }),
+    ).toHaveAttribute(
+      'data-image-url',
+      'https://cdn.genfeed.ai/assets/placeholders/portrait.jpg',
+    );
   });
 
   it('saves selected avatar and voice defaults', async () => {

@@ -11,7 +11,7 @@ export default function ProfileFooter() {
     <div className="text-center pt-8 pb-4">
       <Link
         href="/"
-        className="flex flex-col items-center gap-3 text-surface/40 hover:text-surface/60 transition-colors"
+        className="flex flex-col items-center gap-3 text-surface/55 hover:text-surface/75 transition-colors"
       >
         {logoUrl && (
           <Image

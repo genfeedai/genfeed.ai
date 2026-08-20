@@ -63,6 +63,7 @@ export class WorkflowWebhookManagementController {
 
     const result = await this.workflowWebhookService.generateWebhook(
       workflowId,
+      user.organizationId,
       body.authType || 'secret',
     );
 
@@ -104,8 +105,10 @@ export class WorkflowWebhookManagementController {
       );
     }
 
-    const result =
-      await this.workflowWebhookService.regenerateWebhookSecret(workflowId);
+    const result = await this.workflowWebhookService.regenerateWebhookSecret(
+      workflowId,
+      user.organizationId,
+    );
     return { data: result };
   }
 
@@ -120,7 +123,10 @@ export class WorkflowWebhookManagementController {
       userId: user.userId ?? user.id,
     });
 
-    await this.workflowWebhookService.deleteWebhook(workflowId);
+    await this.workflowWebhookService.deleteWebhook(
+      workflowId,
+      user.organizationId,
+    );
     return { data: { message: 'Webhook deleted' } };
   }
 

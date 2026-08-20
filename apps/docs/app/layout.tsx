@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Head } from 'nextra/components';
 import { getPageMap } from 'nextra/page-map';
 import { Footer, Layout, Navbar } from 'nextra-theme-docs';
@@ -7,7 +8,14 @@ import {
   docsMdxComponentRegistry,
 } from '../content/meta-registry';
 import '../styles/globals.css';
-import { DOCS_ORIGIN } from './seo';
+import {
+  DOCS_DEFAULT_TITLE,
+  DOCS_DESCRIPTION,
+  DOCS_ORIGIN,
+  DOCS_SITE_NAME,
+  DOCS_SOCIAL_CARD_URL,
+  DOCS_TITLE_TEMPLATE,
+} from './seo';
 
 function normalizeStoredTheme() {
   try {
@@ -108,18 +116,25 @@ function normalizeStoredTheme() {
 
 export const DOCS_THEME_STORAGE_BOOTSTRAP_SOURCE = `(${normalizeStoredTheme.toString()})()`;
 
-export const metadata = {
-  description:
-    'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.',
+export const metadata: Metadata = {
+  description: DOCS_DESCRIPTION,
   icons: { icon: '/favicon.ico' },
   metadataBase: new URL(DOCS_ORIGIN),
   openGraph: {
-    description:
-      'Documentation for Genfeed Community, Cloud, deployment, content workflows, provider-backed generation, publishing, and APIs.',
-    images: ['https://cdn.genfeed.ai/assets/cards/default.jpg'],
-    title: 'Genfeed.ai Documentation',
+    description: DOCS_DESCRIPTION,
+    images: [DOCS_SOCIAL_CARD_URL],
+    siteName: DOCS_SITE_NAME,
+    title: DOCS_DEFAULT_TITLE,
+    type: 'website',
+    url: DOCS_ORIGIN,
   },
-  title: 'Genfeed.ai Documentation',
+  title: { default: DOCS_DEFAULT_TITLE, template: DOCS_TITLE_TEMPLATE },
+  twitter: {
+    card: 'summary_large_image',
+    description: DOCS_DESCRIPTION,
+    images: [DOCS_SOCIAL_CARD_URL],
+    title: DOCS_DEFAULT_TITLE,
+  },
 };
 
 const navbar = (
@@ -182,6 +197,14 @@ export default async function RootLayout({
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <Head>
+        {/*
+          The navbar logo is a CSS background-image on cdn.genfeed.ai, so the
+          browser cannot discover that origin until it has parsed and applied
+          the stylesheet. No `crossOrigin` here on purpose: a background-image
+          is fetched without CORS, and an anonymous preconnect would warm a
+          different connection pool than the one the request actually uses.
+        */}
+        <link href="https://cdn.genfeed.ai" rel="preconnect" />
         <script
           id="genfeed-theme-storage-bootstrap"
           suppressHydrationWarning
