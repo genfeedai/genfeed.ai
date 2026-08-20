@@ -7,7 +7,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -534,6 +534,251 @@ describe('FoldersController', () => {
         }),
       ).rejects.toThrow(HttpException);
       expect(foldersService.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('folder tree parenting', () => {
+    const parentId = 'cmfolder000000000000000002';
+    const grandParentId = 'cmfolder000000000000000003';
+
+    /**
+     * `super.patch` loads the target with `findOne({ id }, [])` while parent
+     * resolution loads ancestors with a scoped single-argument query, so the
+     * mock answers by id.
+     */
+    const mockFoldersById = (
+      folders: Record<string, Record<string, unknown> | null>,
+    ) => {
+      foldersService.findOne.mockImplementation(
+        (query: Record<string, unknown>) =>
+          Promise.resolve(folders[String(query.id)] ?? null),
+      );
+    };
+
+    it('files a new folder under a parent in the same scope', async () => {
+      mockFoldersById({
+        [parentId]: {
+          brandId: mockBrandId,
+          id: parentId,
+          label: 'Campaigns',
+          organizationId: mockOrganizationId,
+        },
+      });
+      foldersService.create.mockResolvedValue({ id: folderId });
+
+      await controller.create(mockRequest, mockUser, {
+        label: 'Q3',
+        parentId,
+      });
+
+      expect(foldersService.create).toHaveBeenCalledWith(
+        {
+          brandId: mockBrandId,
+          label: 'Q3',
+          organizationId: mockOrganizationId,
+          parentId,
+          userId: mockUserId,
+        },
+        [],
+      );
+    });
+
+    it('inherits an organization-shared parent scope', async () => {
+      mockFoldersById({
+        [parentId]: {
+          brandId: null,
+          id: parentId,
+          label: 'Shared',
+          organizationId: mockOrganizationId,
+        },
+      });
+      foldersService.create.mockResolvedValue({ id: folderId });
+
+      await controller.create(mockRequest, mockUser, {
+        brandId: mockBrandId,
+        label: 'Child',
+        parentId,
+      });
+
+      expect(foldersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: null, parentId }),
+        [],
+      );
+    });
+
+    it('creates a root folder when no parent is given', async () => {
+      foldersService.create.mockResolvedValue({ id: folderId });
+
+      await controller.create(mockRequest, mockUser, { label: 'Root' });
+
+      expect(foldersService.findOne).not.toHaveBeenCalled();
+      expect(foldersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: null, label: 'Root' }),
+        [],
+      );
+    });
+
+    it('rejects a parent in another organization', async () => {
+      mockFoldersById({
+        [parentId]: {
+          brandId: null,
+          id: parentId,
+          label: 'Foreign',
+          organizationId: foreignOrganizationId,
+        },
+      });
+
+      await expect(
+        controller.create(mockRequest, mockUser, { label: 'Child', parentId }),
+      ).rejects.toThrow(HttpException);
+      expect(foldersService.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a parent owned by another brand', async () => {
+      mockFoldersById({
+        [parentId]: {
+          brandId: foreignBrandId,
+          id: parentId,
+          label: 'Other Brand',
+          organizationId: mockOrganizationId,
+        },
+      });
+
+      await expect(
+        controller.create(mockRequest, mockUser, { label: 'Child', parentId }),
+      ).rejects.toThrow(HttpException);
+      expect(foldersService.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing parent', async () => {
+      mockFoldersById({});
+
+      await expect(
+        controller.create(mockRequest, mockUser, { label: 'Child', parentId }),
+      ).rejects.toThrow(HttpException);
+      expect(foldersService.create).not.toHaveBeenCalled();
+    });
+
+    it('moves a folder under a new parent', async () => {
+      mockFoldersById({
+        [folderId]: {
+          brandId: mockBrandId,
+          id: folderId,
+          label: 'Q3',
+          organizationId: mockOrganizationId,
+        },
+        [parentId]: {
+          brandId: mockBrandId,
+          id: parentId,
+          label: 'Campaigns',
+          organizationId: mockOrganizationId,
+        },
+      });
+      foldersService.patch.mockResolvedValue({ id: folderId });
+
+      await controller.update(mockRequest, mockUser, folderId, { parentId });
+
+      expect(foldersService.patch).toHaveBeenCalledWith(
+        folderId,
+        { brandId: mockBrandId, parentId },
+        [],
+      );
+    });
+
+    it('moves a folder to the root without clearing its brand scope', async () => {
+      mockFoldersById({
+        [folderId]: {
+          brandId: mockBrandId,
+          id: folderId,
+          label: 'Q3',
+          organizationId: mockOrganizationId,
+        },
+      });
+      foldersService.patch.mockResolvedValue({ id: folderId });
+
+      await controller.update(mockRequest, mockUser, folderId, {
+        parentId: null,
+      });
+
+      expect(foldersService.patch).toHaveBeenCalledWith(
+        folderId,
+        { parentId: null },
+        [],
+      );
+    });
+
+    it('rejects a folder parented to itself', async () => {
+      mockFoldersById({
+        [folderId]: {
+          brandId: mockBrandId,
+          id: folderId,
+          label: 'Q3',
+          organizationId: mockOrganizationId,
+        },
+      });
+
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, {
+          parentId: folderId,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(foldersService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects a move that would nest a folder inside its own descendant', async () => {
+      mockFoldersById({
+        [folderId]: {
+          brandId: mockBrandId,
+          id: folderId,
+          label: 'Campaigns',
+          organizationId: mockOrganizationId,
+        },
+        // grandParent -> parent -> folderId, so moving folderId under
+        // grandParent closes the loop.
+        [grandParentId]: {
+          brandId: mockBrandId,
+          id: grandParentId,
+          label: 'Grandchild',
+          organizationId: mockOrganizationId,
+          parentId,
+        },
+        [parentId]: {
+          brandId: mockBrandId,
+          id: parentId,
+          label: 'Child',
+          organizationId: mockOrganizationId,
+          parentId: folderId,
+        },
+      });
+
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, {
+          parentId: grandParentId,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(foldersService.patch).not.toHaveBeenCalled();
+    });
+
+    it('leaves the parent untouched when the payload omits it', async () => {
+      mockFoldersById({
+        [folderId]: {
+          brandId: mockBrandId,
+          id: folderId,
+          label: 'Q3',
+          organizationId: mockOrganizationId,
+        },
+      });
+      foldersService.patch.mockResolvedValue({ id: folderId });
+
+      await controller.update(mockRequest, mockUser, folderId, {
+        label: 'Q4',
+      });
+
+      expect(foldersService.patch).toHaveBeenCalledWith(
+        folderId,
+        { label: 'Q4' },
+        [],
+      );
     });
   });
 

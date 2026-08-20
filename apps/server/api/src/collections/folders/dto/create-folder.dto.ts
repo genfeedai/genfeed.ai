@@ -12,6 +12,17 @@ export class CreateFolderDto {
   brandId?: string;
 
   @ApiProperty({
+    description:
+      'Parent folder ID. Omit for a root folder. The parent must live in the ' +
+      'same organization and brand scope as the caller.',
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  parentId?: string | null;
+
+  @ApiProperty({
     description: 'Display label for the folder',
     example: 'My Ingredients',
   })
