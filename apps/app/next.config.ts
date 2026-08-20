@@ -91,27 +91,30 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 /**
- * Complete-path app home: bare `/[app]` permanently redirects to
- * `/[app]/overview` so Overview is a complete path that does not prefix-match
- * siblings (Workspace, Analytics, Automate, Library). Covers unscoped,
- * brand-scoped, and org-scoped (`~/`) routes.
+ * Complete-path app home: bare `/[app]` permanently redirects to a named child
+ * so the home is a complete path that does not prefix-match its siblings.
+ * Defaults to `/[app]/overview` (Workspace, Analytics, Automate, Publish);
+ * Library passes All assets, because its home is the asset browser itself
+ * rather than a tile grid. Covers unscoped, brand-scoped, and org-scoped (`~/`)
+ * routes.
  */
-function appHomeToOverviewRedirects(appRoot: `/${string}`) {
-  const overviewPath = `${appRoot}/overview` as const;
-
+function appHomeRedirects(
+  appRoot: `/${string}`,
+  homePath: `/${string}` = `${appRoot}/overview`,
+) {
   return [
     {
-      destination: overviewPath,
+      destination: homePath,
       permanent: true,
       source: appRoot,
     },
     {
-      destination: createBrandAppRoute(':orgSlug', ':brandSlug', overviewPath),
+      destination: createBrandAppRoute(':orgSlug', ':brandSlug', homePath),
       permanent: true,
       source: createBrandAppRoute(':orgSlug', ':brandSlug', appRoot),
     },
     {
-      destination: createOrganizationAppRoute(':orgSlug', overviewPath),
+      destination: createOrganizationAppRoute(':orgSlug', homePath),
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', appRoot),
     },
@@ -376,29 +379,6 @@ const config = createAppNextConfig({
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/settings/agents'),
     },
-    // Library IA: Assets is a destination; /library/assets never shipped.
-    {
-      destination: APP_ROUTES.LIBRARY.VIDEOS,
-      permanent: true,
-      source: '/library/assets',
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.VIDEOS,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/library/assets'),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.LIBRARY.VIDEOS,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', '/library/assets'),
-    },
     // One-off Studio audio retired; voices live under Library.
     {
       destination: APP_ROUTES.LIBRARY.VOICES,
@@ -514,7 +494,7 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.LIBRARY.OVERVIEW,
+      destination: APP_ROUTES.LIBRARY.ASSETS,
       permanent: false,
       source: APP_ROUTES.LIBRARY.INGREDIENTS,
     },
@@ -522,13 +502,43 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ASSETS,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
         APP_ROUTES.LIBRARY.INGREDIENTS,
+      ),
+    },
+    // The tile-grid Overview held no assets; All assets is the Library home.
+    {
+      destination: APP_ROUTES.LIBRARY.ASSETS,
+      permanent: false,
+      source: APP_ROUTES.LIBRARY.OVERVIEW,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.ASSETS,
+      ),
+      permanent: false,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.LIBRARY.OVERVIEW,
+      ),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.LIBRARY.ASSETS,
+      ),
+      permanent: false,
+      source: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.LIBRARY.OVERVIEW,
       ),
     },
     {
@@ -557,14 +567,14 @@ const config = createAppNextConfig({
     },
     ...retiredStudioTabRedirects(),
     ...legacyNewsletterRedirects(),
-    // Complete-path homes: bare `/[app]` → `/[app]/overview` (Workspace,
-    // Analytics, Automate, Library, Publish). Discover/Studio already redirect
-    // ROOT to a named child (discovery / storyboard).
-    ...appHomeToOverviewRedirects(APP_ROUTES.WORKSPACE.ROOT),
-    ...appHomeToOverviewRedirects(APP_ROUTES.AUTOMATE.ROOT),
-    ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
-    ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
-    ...appHomeToOverviewRedirects(APP_ROUTES.PUBLISH.ROOT),
+    // Complete-path homes: bare `/[app]` → a named child. Discover/Studio
+    // already redirect ROOT to one (discovery / storyboard); Library's home is
+    // the asset browser, not an overview tile grid.
+    ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
+    ...appHomeRedirects(APP_ROUTES.AUTOMATE.ROOT),
+    ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS),
+    ...appHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
+    ...appHomeRedirects(APP_ROUTES.PUBLISH.ROOT),
     // Agent Programs stay under Automate. Outreach / reply drip moved to Messages.
     ...legacyPathRedirects('/publish/campaigns', APP_ROUTES.AUTOMATE.CAMPAIGNS),
     ...legacyPathRedirects(

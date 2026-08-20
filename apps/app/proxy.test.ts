@@ -1380,7 +1380,7 @@ describe('proxy', () => {
     );
   });
 
-  it('keeps /library/assets on the current brand from the referer', async () => {
+  it('brand-scopes /library/assets from the referer without leaving the page', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
@@ -1392,7 +1392,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/demo/FUDNEWS/library/videos',
+      'http://localhost:3000/demo/FUDNEWS/library/assets',
     );
   });
 
@@ -1436,7 +1436,7 @@ describe('proxy', () => {
 
     expect(unscopedResponse.status).toBe(307);
     expect(unscopedResponse.headers.get('location')).toBe(
-      'http://localhost:3000/demo/FUDNEWS/library/videos',
+      'http://localhost:3000/demo/FUDNEWS/library/assets',
     );
   });
 

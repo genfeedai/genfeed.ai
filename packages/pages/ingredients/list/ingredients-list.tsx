@@ -6,6 +6,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   ButtonVariant,
+  FleetReviewStatus,
   IngredientCategory,
   ModalEnum,
   PageScope,
@@ -24,6 +25,37 @@ import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo } from 'react';
+
+/**
+ * Categories the merge action actually supports. Kept local to this file
+ * rather than a shared constant because the merge endpoint
+ * (`use-ingredients-actions.ts`) is video/image-specific by design — this is
+ * not a general "which categories exist" list.
+ */
+const MERGEABLE_CATEGORIES: readonly IngredientCategory[] = [
+  IngredientCategory.VIDEO,
+  IngredientCategory.IMAGE,
+];
+
+/**
+ * `type` is the plural URL/filter token (e.g. "images", "ingredients"). Most
+ * types pluralize/singularize by trailing "s", but the all-types view uses
+ * the generic "ingredients" token while the product language for that view is
+ * "assets".
+ */
+const TYPE_LABEL_OVERRIDES: Readonly<
+  Record<string, { singular: string; plural: string }>
+> = {
+  ingredients: { plural: 'assets', singular: 'asset' },
+};
+
+function getItemLabel(type: string, count: number): string {
+  const override = TYPE_LABEL_OVERRIDES[type];
+  if (override) {
+    return count === 1 ? override.singular : override.plural;
+  }
+  return count === 1 ? type.slice(0, -1) : type;
+}
 
 export default function IngredientsList({
   folderNavigation = 'content',
@@ -108,9 +140,6 @@ export default function IngredientsList({
     },
   });
 
-  const canMerge =
-    singularType === IngredientCategory.VIDEO ||
-    singularType === IngredientCategory.IMAGE;
   const selectedIngredients = useMemo(
     () =>
       filteredIngredients.filter((ingredient) =>
@@ -118,6 +147,18 @@ export default function IngredientsList({
       ),
     [filteredIngredients, selectedIngredientIds],
   );
+  // Mergeable only when every selected asset is the same mergeable category —
+  // the merge endpoint is video/image-specific, not a generic bulk action.
+  const firstSelectedCategory = selectedIngredients[0]?.category;
+  const canMerge =
+    selectedIngredients.length >= 2 &&
+    Boolean(
+      firstSelectedCategory &&
+        MERGEABLE_CATEGORIES.includes(firstSelectedCategory),
+    ) &&
+    selectedIngredients.every(
+      (ingredient) => ingredient.category === firstSelectedCategory,
+    );
   const selectedCampaign = selectedIngredients[0]?.campaign;
   const canPublishCampaign =
     Boolean(selectedBrand?.isFleetEnabled) &&
@@ -125,7 +166,7 @@ export default function IngredientsList({
     selectedIngredients.every(
       (ingredient) =>
         ingredient.category === IngredientCategory.IMAGE &&
-        ingredient.reviewStatus === 'approved' &&
+        ingredient.reviewStatus === FleetReviewStatus.APPROVED &&
         ingredient.campaign &&
         ingredient.campaign === selectedCampaign,
     );
@@ -151,8 +192,7 @@ export default function IngredientsList({
   });
 
   useEffect(() => {
-    const itemLabel =
-      filteredIngredients.length === 1 ? type.slice(0, -1) : type;
+    const itemLabel = getItemLabel(type, filteredIngredients.length);
     setHeaderMeta(`${filteredIngredients.length} ${itemLabel}`);
 
     return () => {

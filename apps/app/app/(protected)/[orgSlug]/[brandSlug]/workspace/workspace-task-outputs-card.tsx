@@ -55,7 +55,7 @@ export function WorkspaceTaskOutputsCard({
           size={ButtonSize.SM}
           className="font-semibold"
         >
-          <Link href={href(APP_ROUTES.LIBRARY.OVERVIEW)}>Open library</Link>
+          <Link href={href(APP_ROUTES.LIBRARY.ASSETS)}>Open library</Link>
         </Button>
       </div>
 

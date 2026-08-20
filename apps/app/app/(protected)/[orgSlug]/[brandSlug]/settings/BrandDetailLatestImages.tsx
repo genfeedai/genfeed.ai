@@ -29,7 +29,7 @@ export default function BrandDetailLatestImages({
           withWrapper={false}
         >
           <Link
-            href={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.OVERVIEW)}`}
+            href={`${EnvironmentService.apps.app}${href(APP_ROUTES.LIBRARY.ASSETS)}`}
           >
             View all
           </Link>

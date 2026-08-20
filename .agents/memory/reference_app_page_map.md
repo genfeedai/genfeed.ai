@@ -257,7 +257,12 @@ Focused artifact editing:
 
 Library:
 
-- `/:orgSlug/:brandSlug/library/overview`
+- `/:orgSlug/:brandSlug/library/assets`
+- `/:orgSlug/:brandSlug/library/recent`
+- `/:orgSlug/:brandSlug/library/starred`
+- `/:orgSlug/:brandSlug/library/trash`
+- `/:orgSlug/:brandSlug/library/shelf/:shelf`
+- `/:orgSlug/:brandSlug/library/moodboard`
 - `/:orgSlug/:brandSlug/library/videos`
 - `/:orgSlug/:brandSlug/library/images`
 - `/:orgSlug/:brandSlug/library/gifs`
@@ -265,13 +270,18 @@ Library:
 - `/:orgSlug/:brandSlug/library/voices`
 - `/:orgSlug/:brandSlug/library/music`
 - `/:orgSlug/:brandSlug/library/captions`
-- `/:orgSlug/:brandSlug/library/moodboard`
 
-`/:orgSlug/:brandSlug/library/overview` is the canonical Library landing.
-Overview, Assets, Mood board, and shared Activity are navigation destinations.
-The remaining Library type routes encode the selected asset-type filter as
-shareable deep links; they are not separate sidebar modules. Folder selection
-is a URL-backed secondary sidebar filter.
+`/:orgSlug/:brandSlug/library/assets` is the canonical Library landing — one
+unified asset browser. Assets, Recent, Starred, Trash, `library/shelf/:shelf`,
+and Mood board are navigation destinations. The retired tile-grid Overview
+route (`/library/overview`) no longer resolves and redirects to Assets; it is
+not part of the executable route set. The remaining Library type routes
+(videos, images, gifs, avatars, voices, music, captions) are not separate
+sidebar modules — they are shareable deep links that seed the same browser
+with its type chips pre-selected, and the operator can widen or clear the
+filter without leaving the page. A shelf is a saved query over generation
+state, not a location; folder selection is a URL-backed secondary sidebar
+filter layered on top of any of these destinations.
 
 Publish:
 

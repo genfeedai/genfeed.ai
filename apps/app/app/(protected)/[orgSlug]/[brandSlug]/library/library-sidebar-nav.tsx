@@ -182,7 +182,7 @@ export default function LibrarySidebarNav() {
             <ul className="flex flex-col gap-px">
               {LIBRARY_MENU_ITEMS.map((item) => {
                 const scopedHref = withTaskContextHref(
-                  href(item.href ?? APP_ROUTES.LIBRARY.OVERVIEW),
+                  href(item.href ?? APP_ROUTES.LIBRARY.ASSETS),
                   taskContextSearchParams,
                 );
 
