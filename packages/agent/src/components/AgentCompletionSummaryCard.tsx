@@ -61,7 +61,7 @@ function renderOutputPreview(
   if (variant.kind === 'text' && variant.textContent) {
     return (
       <div className="flex aspect-square flex-col justify-between border border-border/60 bg-background/80 p-3">
-        <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        <div className="flex items-center gap-2 text-2xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
           <Sparkles className="size-3.5" />
           {variant.title ?? 'Text'}
         </div>
@@ -170,11 +170,11 @@ export function AgentCompletionSummaryCard({
       <CircleCheck className="size-3.5 shrink-0 text-emerald-500" />
       <div className="min-w-0 flex-1 basis-32">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="text-[13px] font-medium text-foreground/90">
+          <span className="text-sm font-medium text-foreground/90">
             {action.title || 'Done'}
           </span>
           {!isExpanded && oneLiner ? (
-            <span className="min-w-0 truncate text-[12px] text-muted-foreground">
+            <span className="min-w-0 truncate text-xs text-muted-foreground">
               · {oneLiner}
             </span>
           ) : null}
@@ -227,13 +227,13 @@ export function AgentCompletionSummaryCard({
 
       <div className="space-y-2.5 border-t border-border/50 px-3 pb-2.5 pt-2">
         {action.summaryText ? (
-          <p className="text-[13px] leading-5 text-foreground/90">
+          <p className="text-sm leading-5 text-foreground/90">
             {action.summaryText}
           </p>
         ) : null}
 
         {action.outcomeBullets?.length ? (
-          <ul className="space-y-1 text-[13px] text-foreground/80">
+          <ul className="space-y-1 text-sm text-foreground/80">
             {action.outcomeBullets.slice(0, 4).map((bullet) => (
               <li key={bullet} className="flex gap-2">
                 <span className="mt-[0.4rem] size-1.5 shrink-0 rounded-full bg-primary/80" />
@@ -324,7 +324,7 @@ export function AgentCompletionSummaryCard({
             Bad
           </Button>
           {feedbackState ? (
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
+            <span className="inline-flex items-center gap-1 text-2xs text-muted-foreground/80">
               {feedbackState === 'positive' ? (
                 <CircleCheck className="size-3.5 text-emerald-500" />
               ) : (

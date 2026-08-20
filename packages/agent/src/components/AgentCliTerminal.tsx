@@ -625,7 +625,7 @@ export function AgentCliTerminalBody({
 
   return (
     <div
-      className="relative flex h-full flex-col font-mono text-[13px] leading-relaxed"
+      className="relative flex h-full flex-col font-mono text-sm leading-relaxed"
       data-testid="agent-cli-terminal"
       onClick={() => containerRef.current?.querySelector('textarea')?.focus()}
       onContextMenu={handleContextMenu}
@@ -637,7 +637,7 @@ export function AgentCliTerminalBody({
           <Input
             aria-label="Terminal search"
             autoFocus
-            className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-[11px] text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
+            className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-2xs text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
             onChange={(event) => onSearchQueryChange?.(event.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder="Search..."
@@ -646,7 +646,7 @@ export function AgentCliTerminalBody({
           />
           <Button
             aria-label="Close search"
-            className="h-6 rounded border border-border/60 px-2 text-[11px] text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200"
+            className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200"
             label="✕"
             onClick={(event) => {
               event.stopPropagation();
@@ -663,7 +663,7 @@ export function AgentCliTerminalBody({
       <div
         ref={containerRef}
         aria-label="Genfeed terminal"
-        className="min-h-0 flex-1 overflow-hidden bg-[#050806] px-3 py-2 text-[13px] text-foreground/78 outline-none focus-visible:ring-1 focus-visible:ring-emerald-300/35 [&_.xterm-screen]:outline-none [&_.xterm-viewport]:overflow-y-auto"
+        className="min-h-0 flex-1 overflow-hidden bg-[#050806] px-3 py-2 text-sm text-foreground/78 outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/35 [&_.xterm-screen]:outline-none [&_.xterm-viewport]:overflow-y-auto"
         role="textbox"
         tabIndex={0}
       />
@@ -675,7 +675,7 @@ export function AgentCliTerminalBody({
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           <Button
-            className="w-full px-3 py-2 text-left text-[12px] text-foreground/80 transition-colors hover:bg-foreground/5"
+            className="w-full px-3 py-2 text-left text-xs text-foreground/80 transition-colors hover:bg-foreground/5"
             label="Send selection to agent"
             onClick={handleSendSelection}
             type="button"
@@ -730,7 +730,7 @@ export function AgentCliTerminalControls({
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-        <span className="min-w-[4.5rem] max-w-[10rem] truncate text-[11px] text-foreground/42">
+        <span className="min-w-[4.5rem] max-w-[10rem] truncate text-2xs text-foreground/42">
           {status}
         </span>
 
@@ -786,7 +786,7 @@ export function AgentCliTerminalControls({
       >
         <Input
           aria-label="Terminal working directory"
-          className="h-7 min-w-0 flex-1 rounded-md border border-border/50 bg-background/30 px-2 text-[11px] leading-none text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
+          className="h-7 min-w-0 flex-1 rounded-md border border-border/50 bg-background/30 px-2 text-2xs leading-none text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
           onChange={(event) => setCwdInput(event.target.value)}
           onBlur={persistCwdInput}
           placeholder="$HOME or /path/to/project"
@@ -827,10 +827,8 @@ export function AgentCliTerminalControls({
               onSelect={() => startSession(preset.kind)}
             >
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-medium">
-                  {preset.label}
-                </p>
-                <p className="truncate text-[11px] text-muted">
+                <p className="truncate text-xs font-medium">{preset.label}</p>
+                <p className="truncate text-2xs text-muted">
                   {preset.description}
                 </p>
               </div>

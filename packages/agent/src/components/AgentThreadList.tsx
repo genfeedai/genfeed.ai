@@ -177,7 +177,7 @@ export function AgentThreadList({
       {showTitle || shouldShowHeader ? (
         <div className="flex w-full items-center gap-2 px-3 py-1.5">
           {showTitle ? (
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/40">
+            <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
               Conversations
             </span>
           ) : null}

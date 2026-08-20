@@ -250,16 +250,16 @@ export default function ButtonCredits({
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
                     <div className="size-1.5 rounded-full bg-white/50" />
-                    <span className="text-[11px] text-white/40">Plan</span>
+                    <span className="text-2xs text-white/40">Plan</span>
                   </div>
                   {extraBalance > 0 && (
                     <div className="flex items-center gap-1.5">
                       <div className="size-1.5 rounded-full bg-primary/60" />
-                      <span className="text-[11px] text-white/40">Extra</span>
+                      <span className="text-2xs text-white/40">Extra</span>
                     </div>
                   )}
                 </div>
-                <span className="text-[11px] text-white/30">
+                <span className="text-2xs text-white/30">
                   {formatCompactNumber(planLimit - planBalance)} /{' '}
                   {formatCompactNumber(planLimit)} used
                 </span>

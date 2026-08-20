@@ -121,7 +121,7 @@ export default function CollapsibleGroup({
             headerClassName,
           )}
         >
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
+          <span className="text-2xs font-bold uppercase tracking-[0.15em]">
             {label}
           </span>
           {actions && <div className="ml-auto">{actions}</div>}
@@ -151,7 +151,7 @@ export default function CollapsibleGroup({
               isCollapsed && '-rotate-90',
             )}
           />
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
+          <span className="text-2xs font-bold uppercase tracking-[0.15em]">
             {label}
           </span>
         </Button>

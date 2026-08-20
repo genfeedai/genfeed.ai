@@ -309,7 +309,7 @@ export default function DesktopLocalProviderSettings({
           {translate('inactive.action')}
         </Button>
         {status ? (
-          <p className="mt-2 break-words text-[11px] text-foreground/48">
+          <p className="mt-2 break-words text-2xs text-foreground/48">
             {status}
           </p>
         ) : null}
@@ -345,7 +345,7 @@ export default function DesktopLocalProviderSettings({
               withWrapper={false}
               onClick={() => applyPreset(key)}
               className={cn(
-                'rounded border border-white/[0.08] px-1.5 py-1 text-[10px] text-foreground/56',
+                'rounded border border-white/[0.08] px-1.5 py-1 text-2xs text-foreground/56',
                 provider === key && 'border-border bg-hover text-foreground',
                 isCard && 'py-2 text-xs',
               )}
@@ -412,9 +412,7 @@ export default function DesktopLocalProviderSettings({
         </Button>
       </div>
       {status && (
-        <p className="mt-2 break-words text-[11px] text-foreground/48">
-          {status}
-        </p>
+        <p className="mt-2 break-words text-2xs text-foreground/48">{status}</p>
       )}
     </>
   );

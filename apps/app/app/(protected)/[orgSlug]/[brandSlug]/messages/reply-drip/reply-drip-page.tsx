@@ -263,9 +263,7 @@ function ReplyCampaignsContent({
         />
 
         <div className="space-y-1.5">
-          <p className="text-[11px] font-medium text-foreground/54">
-            Reply body
-          </p>
+          <p className="text-2xs font-medium text-foreground/54">Reply body</p>
           <Textarea
             onChange={(event) => {
               setDraft((current) => ({
@@ -281,9 +279,7 @@ function ReplyCampaignsContent({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <p className="text-[11px] font-medium text-foreground/54">
-              Platform
-            </p>
+            <p className="text-2xs font-medium text-foreground/54">Platform</p>
             <Select
               onValueChange={(value) => {
                 setDraft((current) => ({
@@ -307,7 +303,7 @@ function ReplyCampaignsContent({
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-[11px] font-medium text-foreground/54">
+            <p className="text-2xs font-medium text-foreground/54">
               Message type
             </p>
             <Select

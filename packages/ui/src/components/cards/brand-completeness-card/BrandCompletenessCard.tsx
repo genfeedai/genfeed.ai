@@ -72,7 +72,7 @@ function GroupRow({
         )}
         <span
           className={cn(
-            'flex-1 text-[12px]',
+            'flex-1 text-xs',
             isComplete
               ? 'text-foreground/30 line-through'
               : 'text-foreground/60',
@@ -87,7 +87,7 @@ function GroupRow({
               style={{ width: `${group.score}%` }}
             />
           </div>
-          <span className="w-7 text-right text-[10px] font-medium text-foreground/30">
+          <span className="w-7 text-right text-2xs font-medium text-foreground/30">
             {group.score}%
           </span>
         </div>
@@ -99,7 +99,7 @@ function GroupRow({
             <Link
               key={field.key}
               href={href(field.href)}
-              className="flex items-center gap-2 rounded px-2 py-1 text-[11px] text-foreground/45 transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground/70"
+              className="flex items-center gap-2 rounded px-2 py-1 text-2xs text-foreground/45 transition-colors duration-150 hover:bg-foreground/[0.04] hover:text-foreground/70"
             >
               <ChevronRight className="size-3 flex-shrink-0 text-foreground/15" />
               {field.label}
@@ -128,10 +128,10 @@ export default function BrandCompletenessCard({
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold text-foreground/60">
+        <span className="text-2xs font-semibold text-foreground/60">
           Brand context
         </span>
-        <span className="text-[10px] font-medium text-foreground/30">
+        <span className="text-2xs font-medium text-foreground/30">
           {result.overallScore}%
         </span>
       </div>
@@ -152,7 +152,7 @@ export default function BrandCompletenessCard({
       </div>
 
       {/* Hint */}
-      <p className="mt-3 text-[10px] leading-relaxed text-foreground/30">
+      <p className="mt-3 text-2xs leading-relaxed text-foreground/30">
         Filling in brand context improves AI content quality.
       </p>
 
@@ -164,7 +164,7 @@ export default function BrandCompletenessCard({
           <Button variant={ButtonVariant.UNSTYLED} withWrapper={false}>
             <Link
               href={href('/settings/interview')}
-              className="text-[11px] text-primary/70 hover:text-primary transition-colors duration-150"
+              className="text-2xs text-primary/70 hover:text-primary transition-colors duration-150"
             >
               Interview me to fill gaps →
             </Link>

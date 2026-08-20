@@ -128,7 +128,7 @@ export default function TopbarPublicDesktopDropdown({
           {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
             <div key={groupLabel}>
               {groupLabel && (
-                <div className="px-4 pb-1 pt-2 text-[10px] font-bold uppercase tracking-widest text-foreground/40">
+                <div className="px-4 pb-1 pt-2 text-2xs font-bold uppercase tracking-widest text-foreground/40">
                   {groupLabel}
                 </div>
               )}

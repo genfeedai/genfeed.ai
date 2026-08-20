@@ -71,7 +71,7 @@ export default function ReviewHistoryPanel({
                     src={event.reviewer.avatar}
                   />
                 ) : null}
-                <AvatarFallback className="text-[10px] font-semibold text-muted-foreground">
+                <AvatarFallback className="text-2xs font-semibold text-muted-foreground">
                   {event.reviewer
                     ? getReviewerInitials(event.reviewer.displayName)
                     : '?'}

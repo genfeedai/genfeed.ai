@@ -36,7 +36,7 @@ export function WorkflowExecuteCardInputsForm({
         return (
           <div key={key}>
             <label
-              className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+              className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
               htmlFor={fieldId}
             >
               {label}

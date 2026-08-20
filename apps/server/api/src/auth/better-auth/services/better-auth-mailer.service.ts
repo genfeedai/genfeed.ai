@@ -179,8 +179,8 @@ export class BetterAuthMailerService {
     const escapedUrl = escapeSystemEmailHtml(safeUrl);
 
     return [
-      '<p style="margin:0 0 10px;color:#8c8c96;font-size:12px;line-height:18px;">If the button does not work, copy and paste this URL into your browser:</p>',
-      `<p style="background:#131518;border:1px solid #333538;border-radius:8px;color:#b4b4bc;font-size:12px;line-height:18px;margin:0 0 22px;padding:12px;word-break:break-all;"><a href="${escapedUrl}" style="color:#f4f4f5;text-decoration:underline;">${escapedUrl}</a></p>`,
+      '<p style="margin:0 0 10px;color:#949494;font-size:12px;line-height:18px;">If the button does not work, copy and paste this URL into your browser:</p>',
+      `<p style="background:#1F1F1F;border:1px solid #333333;border-radius:8px;color:#A1A1A1;font-size:12px;line-height:18px;margin:0 0 22px;padding:12px;word-break:break-all;"><a href="${escapedUrl}" style="color:#EDEDED;text-decoration:underline;">${escapedUrl}</a></p>`,
     ].join('');
   }
 

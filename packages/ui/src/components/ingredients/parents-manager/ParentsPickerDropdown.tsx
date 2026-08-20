@@ -107,7 +107,7 @@ export default function ParentsPickerDropdown({
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-1">
-                      <span className="text-white text-[9px] font-medium truncate px-1">
+                      <span className="text-white text-2xs font-medium truncate px-1">
                         {(ing.metadata as IMetadata)?.label ||
                           ing.id.slice(0, 8)}
                       </span>

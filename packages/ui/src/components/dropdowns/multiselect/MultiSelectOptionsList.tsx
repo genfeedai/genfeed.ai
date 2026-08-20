@@ -43,7 +43,7 @@ export default function MultiSelectOptionsList({
       elements.push(
         <div
           key={`group-${optionGroup}`}
-          className={`px-3 ${lastGroup ? 'pt-3' : 'pt-2'} pb-1 text-[11px] font-semibold uppercase tracking-wide text-foreground/50`}
+          className={`px-3 ${lastGroup ? 'pt-3' : 'pt-2'} pb-1 text-2xs font-semibold uppercase tracking-wide text-foreground/50`}
         >
           {headerLabel}
         </div>,

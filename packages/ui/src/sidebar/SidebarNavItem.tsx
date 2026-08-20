@@ -39,7 +39,7 @@ export function SidebarNavItem({
   linkComponent: LinkComponent,
 }: SidebarNavItemProps) {
   const classes = cn(
-    'flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors',
+    'flex items-center gap-2.5 px-3 py-2 text-sm font-medium transition-colors',
     isActive
       ? 'bg-accent text-foreground'
       : 'text-foreground/80 hover:bg-accent/50 hover:text-foreground',
@@ -58,7 +58,7 @@ export function SidebarNavItem({
       {textBadge && (
         <span
           className={cn(
-            'ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none',
+            'ml-auto rounded-full px-1.5 py-0.5 text-2xs font-medium leading-none',
             textBadgeTone === 'amber'
               ? 'bg-warning/10 text-warning'
               : 'bg-muted text-muted-foreground',
@@ -73,7 +73,7 @@ export function SidebarNavItem({
             <span className="absolute inline-flex size-full animate-pulse rounded-full bg-foreground/40" />
             <span className="relative inline-flex size-2 rounded-full bg-foreground/70" />
           </span>
-          <span className="text-[11px] font-medium text-muted-foreground">
+          <span className="text-2xs font-medium text-muted-foreground">
             {liveCount} live
           </span>
         </span>

@@ -68,7 +68,7 @@ export default function SceneFrameRow({
           </span>
           <span
             className={cn(
-              'flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground',
+              'flex items-center gap-1 text-2xs uppercase tracking-wide text-muted-foreground',
               isFailed && 'text-error',
               isCompleted && 'text-success',
               isGenerating && 'text-primary',

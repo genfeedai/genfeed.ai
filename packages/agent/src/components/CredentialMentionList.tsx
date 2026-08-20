@@ -88,7 +88,7 @@ export function CredentialMentionList({
               <span className="text-xs text-muted-foreground">{item.name}</span>
             )}
           </div>
-          <span className="ml-auto text-[10px] text-muted-foreground capitalize">
+          <span className="ml-auto text-2xs text-muted-foreground capitalize">
             {item.platform}
           </span>
         </Button>

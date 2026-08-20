@@ -85,7 +85,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
           />
           <label
             htmlFor={`preserve-${id}`}
-            className="text-xs text-[var(--muted-foreground)] cursor-pointer"
+            className="text-xs text-muted-foreground cursor-pointer"
           >
             Mix with original audio
           </label>
@@ -94,7 +94,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
         {/* Audio Mix Level (only when preserving original) */}
         {nodeData.preserveOriginalAudio && (
           <div>
-            <label className="text-xs text-[var(--muted-foreground)]">
+            <label className="text-xs text-muted-foreground">
               Mix Level: {Math.round(nodeData.audioMixLevel * 100)}%
             </label>
             <Slider
@@ -105,7 +105,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
               onValueChange={handleMixLevelChange}
               className="nodrag w-full"
             />
-            <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+            <div className="flex justify-between text-2xs text-muted-foreground">
               <span>Original</span>
               <span>New</span>
             </div>
@@ -119,7 +119,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
               src={nodeData.outputVideo}
               aria-label="Voice-changed video output"
               controls
-              className="w-full rounded border border-[var(--border)]"
+              className="w-full rounded border border-border"
             />
             <Button
               variant="ghost"
@@ -157,7 +157,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
 
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <AudioLines className="size-3" />
             Connect video + new audio
           </div>

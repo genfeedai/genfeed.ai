@@ -42,7 +42,7 @@ export default function ProactiveOutputsCard({ outputs }: Props) {
                   {getOutputTitle(post)}
                 </h3>
                 <Badge
-                  className="px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/40"
+                  className="px-2 py-1 text-2xs font-black uppercase tracking-[0.18em] text-white/40"
                   variant="outline"
                 >
                   {post.platform}

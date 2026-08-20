@@ -85,12 +85,12 @@ export function AgentRunFailureCard({
               {formatted.summary}
             </p>
             {formatted.detail ? (
-              <p className="line-clamp-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-snug text-destructive/70">
+              <p className="line-clamp-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-snug text-destructive/70">
                 {formatted.detail}
               </p>
             ) : null}
             {formatted.recovery ? (
-              <p className="text-[11px] leading-snug text-destructive/75">
+              <p className="text-2xs leading-snug text-destructive/75">
                 {formatted.recovery}
               </p>
             ) : null}

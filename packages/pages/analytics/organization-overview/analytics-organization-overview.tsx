@@ -141,13 +141,13 @@ function OrganizationMetricStrip({
                 {metric.value}
               </div>
             )}
-            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
+            <p className="mt-1 text-2xs font-medium uppercase tracking-[0.14em] text-foreground/55">
               {metric.label}
             </p>
             {isLoading ? (
               <Skeleton variant="text" height={12} className="mt-2 w-28" />
             ) : (
-              <p className="mt-1.5 text-[11px] text-foreground/45">
+              <p className="mt-1.5 text-2xs text-foreground/45">
                 {metric.accent}
               </p>
             )}

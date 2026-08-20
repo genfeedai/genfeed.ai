@@ -74,7 +74,7 @@ export default function UserDropdown({
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           ariaLabel="Open account menu"
         >
           {imageUrl ? (

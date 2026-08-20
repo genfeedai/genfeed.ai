@@ -73,7 +73,7 @@ export function BrandCreateCard({
       {/* Name input */}
       <div className="mb-3">
         <label
-          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
           htmlFor="brand-create-name"
         >
           Brand Name
@@ -90,7 +90,7 @@ export function BrandCreateCard({
       {/* Description input */}
       <div className="mb-3">
         <label
-          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
           htmlFor="brand-create-description"
         >
           Description

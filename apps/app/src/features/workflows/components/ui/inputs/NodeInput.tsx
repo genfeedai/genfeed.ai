@@ -8,7 +8,7 @@ interface NodeInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const baseInputClasses =
-  'w-full px-2 py-1.5 text-sm bg-background border border-[var(--border)] focus:outline-none focus:ring-1 focus:ring-primary';
+  'w-full px-2 py-1.5 text-sm bg-background border border-border focus:outline-none focus:ring-2 focus:ring-ring';
 
 /**
  * Standardized input component for workflow nodes

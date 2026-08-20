@@ -93,10 +93,10 @@ export function GenerationActionCanvas({
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <LayoutGrid className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Canvas
           </span>
-          <span className="text-[10px] text-muted-foreground/70">
+          <span className="text-2xs text-muted-foreground/70">
             {assets.length} asset{assets.length === 1 ? '' : 's'}
           </span>
         </div>
@@ -106,7 +106,7 @@ export function GenerationActionCanvas({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={onOpenCanvas}
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/10"
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-2xs font-medium text-primary hover:bg-primary/10"
           >
             <Paintbrush className="size-3" />
             Expand
@@ -114,7 +114,7 @@ export function GenerationActionCanvas({
         ) : null}
       </div>
 
-      <p className="text-[10px] leading-snug text-muted-foreground">
+      <p className="text-2xs leading-snug text-muted-foreground">
         Select assets to use as generation references, or open them to edit.
       </p>
 
@@ -178,7 +178,7 @@ export function GenerationActionCanvas({
               <div className="flex border-t border-border">
                 <a
                   href={libraryHref(generationType, asset.id)}
-                  className="flex flex-1 items-center justify-center gap-0.5 px-1 py-1 text-[9px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="flex flex-1 items-center justify-center gap-0.5 px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                   title="Open in library"
                 >
                   <ImageIcon className="size-3" />
@@ -186,7 +186,7 @@ export function GenerationActionCanvas({
                 </a>
                 <a
                   href={studioEditHref(generationType, asset.id)}
-                  className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-[9px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                   title="Open in Studio"
                 >
                   <ExternalLink className="size-3" />
@@ -199,7 +199,7 @@ export function GenerationActionCanvas({
       </div>
 
       {referenceIds.length > 0 ? (
-        <p className="text-[10px] text-primary">
+        <p className="text-2xs text-primary">
           {referenceIds.length} reference
           {referenceIds.length === 1 ? '' : 's'} selected for next generate
         </p>

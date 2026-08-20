@@ -245,7 +245,7 @@ export default function BatchComposer({
                       >
                         Remove
                       </Button>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[11px] text-white">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-2xs text-white">
                         {file.ingredientId ? 'Uploaded' : 'Uploading…'}
                       </div>
                     </div>

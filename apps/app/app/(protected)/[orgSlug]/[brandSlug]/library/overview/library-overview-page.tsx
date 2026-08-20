@@ -123,7 +123,7 @@ function LibraryCategoryTile({
       className={cn(
         'group block h-full rounded-card bg-card text-card-foreground shadow-border transition-[background-color,box-shadow] duration-200 ease-out',
         'hover:bg-white/[0.02] hover:shadow-border-strong',
-        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
       )}
     >
       <article className="flex h-full flex-col gap-5 p-4">
@@ -138,7 +138,7 @@ function LibraryCategoryTile({
               iconClassName="h-5 w-5"
             />
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
+              <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
                 {config.kicker}
               </p>
               <h2

@@ -22,10 +22,10 @@ export default function SetupCard() {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-semibold text-foreground/60">
+        <span className="text-2xs font-semibold text-foreground/60">
           Complete setup
         </span>
-        <span className="text-[10px] font-medium text-foreground/30">
+        <span className="text-2xs font-medium text-foreground/30">
           {completedCount}/{totalCount}
         </span>
       </div>
@@ -45,7 +45,7 @@ export default function SetupCard() {
             key={step.key}
             href={step.href}
             className={cn(
-              'flex items-center gap-2.5 px-2 py-1.5 text-[12px] transition-colors duration-150',
+              'flex items-center gap-2.5 px-2 py-1.5 text-xs transition-colors duration-150',
               step.isCompleted
                 ? 'text-foreground/30'
                 : 'text-foreground/60 hover:bg-foreground/[0.04] hover:text-foreground/80',

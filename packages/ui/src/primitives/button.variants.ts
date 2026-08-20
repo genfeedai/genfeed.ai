@@ -58,7 +58,7 @@ export function getMappedButtonSize(size?: ButtonSize | null) {
 
 export function getSizeOverrideClassName(size?: ButtonSize | null) {
   if (size === ButtonSize.PUBLIC) {
-    return 'h-10 px-5 text-[14px] uppercase tracking-[0.18em]';
+    return 'h-10 px-5 text-sm uppercase tracking-[0.18em]';
   }
 
   return '';

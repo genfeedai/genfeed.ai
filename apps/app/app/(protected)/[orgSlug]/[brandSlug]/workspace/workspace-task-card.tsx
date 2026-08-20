@@ -35,7 +35,7 @@ export function WorkspaceTaskCard({
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{task.title}</p>
-          <span className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/65">
+          <span className="rounded-full border border-border px-2 py-1 text-2xs font-semibold uppercase tracking-[0.14em] text-foreground/65">
             {formatTaskStatus(task)}
           </span>
         </div>

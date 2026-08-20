@@ -120,7 +120,7 @@ export function ClipRunCard({
           <span className="text-sm font-medium text-foreground">Clip Run</span>
         </div>
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.className}`}
+          className={`rounded-full px-2 py-0.5 text-2xs font-medium ${badge.className}`}
         >
           {badge.label}
         </span>

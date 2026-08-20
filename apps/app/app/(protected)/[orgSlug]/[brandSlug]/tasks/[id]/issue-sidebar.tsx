@@ -56,7 +56,7 @@ export default function IssueSidebar({
               <DefinitionDetail variant="inline" className="mt-1">
                 <span
                   className={cn(
-                    'inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+                    'inline-flex items-center px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
                     statusColors[issue.status],
                   )}
                 >
@@ -70,7 +70,7 @@ export default function IssueSidebar({
                         type="button"
                         variant={ButtonVariant.SECONDARY}
                         size={ButtonSize.XS}
-                        className="px-1.5 py-0.5 text-[9px] text-white/50 hover:text-white/70"
+                        className="px-1.5 py-0.5 text-2xs text-white/50 hover:text-white/70"
                         onClick={() => onStatusUpdate(s)}
                       >
                         {statusLabels[s]}
@@ -155,7 +155,7 @@ export default function IssueSidebar({
                     <span className="block truncate text-xs text-white/60">
                       {entityModelLabels[entity.entityModel]}
                     </span>
-                    <span className="block truncate text-[10px] font-mono text-white/30">
+                    <span className="block truncate text-2xs font-mono text-white/30">
                       {entity.entityId}
                     </span>
                   </div>

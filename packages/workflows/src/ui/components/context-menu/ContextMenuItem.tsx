@@ -76,32 +76,30 @@ export function ContextMenuItem({
         disabled={disabled}
         className={`
           w-full flex items-center gap-3 px-3 py-2 text-left text-sm h-auto justify-start
-          ${isSelected || showSubmenu ? 'bg-[var(--secondary)]' : ''}
-          ${danger && !disabled ? 'text-red-400 hover:text-red-300' : 'text-[var(--foreground)]'}
+          ${isSelected || showSubmenu ? 'bg-secondary' : ''}
+          ${danger && !disabled ? 'text-red-400 hover:text-red-300' : 'text-foreground'}
         `}
       >
         {icon && (
           <span
-            className={`size-4 flex items-center justify-center ${danger ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}
+            className={`size-4 flex items-center justify-center ${danger ? 'text-red-400' : 'text-muted-foreground'}`}
           >
             {icon}
           </span>
         )}
         {label && <span className="flex-1">{label}</span>}
         {shortcut && !hasSubmenu && (
-          <span className="text-xs text-[var(--muted-foreground)] ml-4">
-            {shortcut}
-          </span>
+          <span className="text-xs text-muted-foreground ml-4">{shortcut}</span>
         )}
         {hasSubmenu && (
-          <ChevronRight className="size-4 text-[var(--muted-foreground)]" />
+          <ChevronRight className="size-4 text-muted-foreground" />
         )}
       </Button>
 
       {/* Submenu */}
       {hasSubmenu && showSubmenu && (
         <div
-          className="absolute left-full top-0 ml-1 min-w-[200px] py-1 bg-[var(--card)] border border-[var(--border)] shadow-lg backdrop-blur-sm z-50"
+          className="absolute left-full top-0 ml-1 min-w-[200px] py-1 bg-card border border-border shadow-lg backdrop-blur-sm z-50"
           onPointerEnter={handleMouseEnter}
           onPointerLeave={handleMouseLeave}
         >
@@ -118,19 +116,19 @@ export function ContextMenuItem({
                 disabled={item.disabled}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2 text-left text-sm h-auto justify-start
-                  ${item.danger && !item.disabled ? 'text-red-400 hover:text-red-300' : 'text-[var(--foreground)]'}
+                  ${item.danger && !item.disabled ? 'text-red-400 hover:text-red-300' : 'text-foreground'}
                 `}
               >
                 {item.icon && (
                   <span
-                    className={`size-4 flex items-center justify-center ${item.danger ? 'text-red-400' : 'text-[var(--muted-foreground)]'}`}
+                    className={`size-4 flex items-center justify-center ${item.danger ? 'text-red-400' : 'text-muted-foreground'}`}
                   >
                     {item.icon}
                   </span>
                 )}
                 {item.label && <span className="flex-1">{item.label}</span>}
                 {item.shortcut && (
-                  <span className="text-xs text-[var(--muted-foreground)] ml-4">
+                  <span className="text-xs text-muted-foreground ml-4">
                     {item.shortcut}
                   </span>
                 )}

@@ -376,7 +376,7 @@ export default function WorkflowNewPageClient() {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                       {workflowEstimateLabel && (
-                        <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-[11px] text-muted-foreground">
+                        <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground">
                           {workflowEstimateLabel}
                         </span>
                       )}

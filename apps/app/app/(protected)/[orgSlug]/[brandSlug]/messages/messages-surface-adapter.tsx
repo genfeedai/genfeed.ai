@@ -96,7 +96,7 @@ function MessagesSurfaceInspector({
           <ul className="mt-2 space-y-2">
             {references.map((reference) => (
               <li
-                className="truncate rounded bg-background-secondary px-2 py-1.5 font-mono text-[11px] text-foreground/75"
+                className="truncate rounded bg-background-secondary px-2 py-1.5 font-mono text-2xs text-foreground/75"
                 key={getSocialInboxReferenceKey(reference)}
               >
                 {reference.kind === 'social-message'

@@ -248,7 +248,7 @@ describe('EmailDigestService', () => {
         'Acme Co',
       );
 
-      expect(html).toContain('#ef4444');
+      expect(html).toContain('#FF6166');
       expect(html).toContain('-50.0%');
       expect(html).toContain('Down from');
     });
@@ -266,7 +266,7 @@ describe('EmailDigestService', () => {
         'Acme Co',
       );
 
-      expect(html).toContain('#8c8c96');
+      expect(html).toContain('#949494');
       expect(html).toContain('Flat from');
     });
 

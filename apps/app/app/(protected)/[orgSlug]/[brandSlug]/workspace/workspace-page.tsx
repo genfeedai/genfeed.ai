@@ -243,7 +243,7 @@ function WorkspacePageContentContent({
                     className="opacity-70"
                   />
                 ) : (
-                  <span className="text-[11px] opacity-70">{count}</span>
+                  <span className="text-2xs opacity-70">{count}</span>
                 ),
                 href: href(`/workspace/inbox/${option.id}`),
                 id: option.id,

@@ -1,7 +1,16 @@
 import type { SemanticColorRole } from '@ui/core/colors';
 import { semanticColorRoles, semanticColorTokens } from '@ui/core/colors';
+import { elevationTokens, focusTokens } from '@ui/core/elevation';
 import { motionTokens } from '@ui/core/motion';
 import { radiusTokens } from '@ui/core/radius';
+import {
+  backgroundScale,
+  neutralAlphaScale,
+  neutralScale,
+  neutralScaleJobs,
+  neutralScaleSteps,
+} from '@ui/core/scales';
+import { sizingTokens } from '@ui/core/sizing';
 import { spacingTokens } from '@ui/core/spacing';
 import { typographyTokens } from '@ui/core/typography';
 import { generateNativeTokens } from '@ui/generators/native-ts';
@@ -20,24 +29,50 @@ export type {
   SemanticColorValue,
   SemanticThemeColors,
 } from '@ui/core/colors';
+export type {
+  ElevationTokenName,
+  ElevationTokens,
+  FocusTokenName,
+} from '@ui/core/elevation';
 export type { MotionTokenName } from '@ui/core/motion';
 export type { RadiusTokenName } from '@ui/core/radius';
+export type {
+  BackgroundScale,
+  BackgroundScaleStep,
+  NeutralAlphaScale,
+  NeutralScale,
+  NeutralScaleStep,
+  ScaleValue,
+} from '@ui/core/scales';
+export type { SizingTokenName } from '@ui/core/sizing';
 export type { SpacingTokenName } from '@ui/core/spacing';
 export type { TypographyTokenName } from '@ui/core/typography';
 export type { NativeThemeColors } from '@ui/semantic/mobile';
 
 export interface DesignTokens {
+  backgroundScale: typeof backgroundScale;
   colors: typeof semanticColorTokens;
+  elevation: typeof elevationTokens;
+  focus: typeof focusTokens;
   motion: typeof motionTokens;
+  neutralAlphaScale: typeof neutralAlphaScale;
+  neutralScale: typeof neutralScale;
   radius: typeof radiusTokens;
+  sizing: typeof sizingTokens;
   spacing: typeof spacingTokens;
   typography: typeof typographyTokens;
 }
 
 export const designTokens: DesignTokens = {
+  backgroundScale,
   colors: semanticColorTokens,
+  elevation: elevationTokens,
+  focus: focusTokens,
   motion: motionTokens,
+  neutralAlphaScale,
+  neutralScale,
   radius: radiusTokens,
+  sizing: sizingTokens,
   spacing: spacingTokens,
   typography: typographyTokens,
 };
@@ -47,15 +82,23 @@ export {
   staticSurfaceCss,
 } from './static/surface';
 export {
+  backgroundScale,
+  elevationTokens,
+  focusTokens,
   generateNativeTokens,
   generateWebTokenCss,
   generateWebviewTokenCss,
   motionTokens,
   nativeThemeColors,
   nativeTokenMap,
+  neutralAlphaScale,
+  neutralScale,
+  neutralScaleJobs,
+  neutralScaleSteps,
   radiusTokens,
   semanticColorRoles,
   semanticColorTokens,
+  sizingTokens,
   spacingTokens,
   tailwindSemanticColors,
   typographyTokens,

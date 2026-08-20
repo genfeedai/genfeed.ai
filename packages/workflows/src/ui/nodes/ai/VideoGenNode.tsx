@@ -158,7 +158,7 @@ function VideoGenNodeComponent(props: NodeProps) {
 
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <CircleAlert className="size-3" />
             Connect a prompt to generate
           </div>

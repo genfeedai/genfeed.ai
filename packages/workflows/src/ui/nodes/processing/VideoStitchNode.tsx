@@ -100,8 +100,8 @@ function VideoStitchNodeComponent(props: NodeProps) {
     <BaseNode {...props}>
       <div className="space-y-3">
         {/* Input Videos Info */}
-        <div className="p-2 bg-[var(--background)] rounded border border-[var(--border)]">
-          <div className="text-xs text-[var(--muted-foreground)]">
+        <div className="p-2 bg-background rounded border border-border">
+          <div className="text-xs text-muted-foreground">
             Input Videos: {inputVideos.length}
           </div>
           {inputVideos.length > 0 && (
@@ -109,7 +109,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
               {inputVideos.map((video, index) => (
                 <div
                   key={video}
-                  className="size-6 bg-[var(--primary)]/20 rounded text-xs flex items-center justify-center text-[var(--primary)]"
+                  className="size-6 bg-primary/20 rounded text-xs flex items-center justify-center text-primary"
                 >
                   {index + 1}
                 </div>
@@ -121,7 +121,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
         {/* Transition Type */}
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
             htmlFor={`video-stitch-transition-${id}`}
           >
             Transition
@@ -150,7 +150,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
         {nodeData.transitionType !== 'cut' && (
           <div>
             <div
-              className="text-xs text-[var(--muted-foreground)]"
+              className="text-xs text-muted-foreground"
               id={`video-stitch-duration-${id}`}
             >
               Duration: {nodeData.transitionDuration.toFixed(1)}s
@@ -176,7 +176,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
           />
           <label
             htmlFor={`seamless-loop-${id}`}
-            className="text-sm text-[var(--foreground)] cursor-pointer"
+            className="text-sm text-foreground cursor-pointer"
           >
             Seamless Loop
           </label>
@@ -185,7 +185,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
         {/* Audio Codec */}
         <div>
           <label
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
             htmlFor={`video-stitch-audio-codec-${id}`}
           >
             Audio Codec
@@ -219,13 +219,13 @@ function VideoStitchNodeComponent(props: NodeProps) {
           />
           <label
             htmlFor={`draft-quality-${id}`}
-            className="text-sm text-[var(--foreground)] cursor-pointer flex items-center gap-1"
+            className="text-sm text-foreground cursor-pointer flex items-center gap-1"
           >
             <Zap className="size-3" />
             Draft Quality
           </label>
           {nodeData.outputQuality === 'draft' && (
-            <span className="text-xs text-[var(--muted-foreground)]">
+            <span className="text-xs text-muted-foreground">
               (720p, faster)
             </span>
           )}
@@ -276,7 +276,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
         )}
 
         {inputVideos.length < 2 && !nodeData.outputVideo && (
-          <div className="text-xs text-[var(--muted-foreground)] text-center">
+          <div className="text-xs text-muted-foreground text-center">
             Connect at least 2 videos to stitch
           </div>
         )}

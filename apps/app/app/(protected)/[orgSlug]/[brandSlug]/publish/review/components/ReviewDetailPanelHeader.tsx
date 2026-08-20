@@ -23,7 +23,7 @@ export default function ReviewDetailPanelHeader({
   return (
     <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Review
         </p>
         <h2 className="mt-1 line-clamp-2 text-base font-semibold text-foreground">

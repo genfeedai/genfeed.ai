@@ -205,7 +205,7 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
                 height={600}
               />
             </div>
-            <div className="space-y-1 text-[11px] text-muted-foreground">
+            <div className="space-y-1 text-2xs text-muted-foreground">
               {mediaConfig.label && <p>{mediaConfig.label}</p>}
               {mediaConfig.dimensions && (
                 <p>

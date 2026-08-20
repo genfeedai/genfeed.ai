@@ -34,53 +34,60 @@ interface ColorDoor {
 }
 
 const BACKGROUND_LAYERS: Swatch[] = [
-  { hex: '#050607', name: 'bg-primary', role: 'Main canvas, sidebar' },
-  { hex: '#0c0d10', name: 'bg-secondary', role: 'Cards, panels' },
-  { hex: '#131518', name: 'bg-tertiary', role: 'Inputs, nested surfaces' },
-  { hex: '#1a1c21', name: 'bg-elevated', role: 'Popovers, dropdowns' },
-  { hex: '#20232a', name: 'bg-hover', role: 'Interactive hover states' },
+  { hex: '#0A0A0A', name: 'bg-primary', role: 'Main canvas, sidebar' },
+  { hex: '#161616', name: 'bg-secondary', role: 'Cards, panels' },
+  { hex: '#1F1F1F', name: 'bg-tertiary', role: 'Inputs, nested surfaces' },
+  {
+    hex: '#161616',
+    name: 'bg-elevated',
+    role: 'Popovers, dropdowns — separated by hairline + shadow, not lightness',
+  },
+  { hex: '#2A2A2A', name: 'bg-hover', role: 'Interactive hover states' },
 ];
 
 const TEXT_TIERS: Swatch[] = [
-  { hex: '#f4f4f5', name: 'text-primary', role: 'Primary content' },
-  { hex: '#b4b4bc', name: 'text-secondary', role: 'Secondary labels' },
-  { hex: '#6b6b78', name: 'text-muted', role: 'Muted / metadata' },
+  { hex: '#EDEDED', name: 'text-primary', role: 'Primary content — 16.9:1' },
+  { hex: '#A1A1A1', name: 'text-secondary', role: 'Secondary labels — 7.7:1' },
+  { hex: '#949494', name: 'text-muted', role: 'Muted / metadata — 6.5:1' },
 ];
 
 const ACCENT: Swatch[] = [
-  { hex: '#fafafa', name: 'accent', role: 'Primary CTA on dark' },
-  { hex: '#050607', name: 'accent-foreground', role: 'Text on accent' },
-  { hex: '#e4e4e7', name: 'accent-hover', role: 'CTA hover' },
+  { hex: '#EDEDED', name: 'accent', role: 'Primary CTA on dark' },
+  { hex: '#0A0A0A', name: 'accent-foreground', role: 'Text on accent' },
+  { hex: '#CCCCCC', name: 'accent-hover', role: 'CTA hover' },
 ];
 
 const SEMANTIC: Swatch[] = [
-  { hex: '#10b981', name: 'Success', role: 'Completed, passing, published' },
+  { hex: '#10B981', name: 'Success', role: 'Completed, passing, published' },
   {
-    hex: '#f59e0b',
+    hex: '#F59E0B',
     name: 'Warning',
     role: 'Needs attention, awaiting approval',
   },
-  { hex: '#ef4444', name: 'Danger', role: 'Failed, errored, rejected' },
-  { hex: '#3b82f6', name: 'Info', role: 'Informational, neutral status' },
+  { hex: '#FF6166', name: 'Danger', role: 'Failed, errored, rejected' },
+  { hex: '#52A8FF', name: 'Info', role: 'Informational, neutral status' },
 ];
 
 const DOMAIN: Swatch[] = [
-  { hex: '#38bdf8', name: 'Agent', role: 'AI agent activity states' },
-  { hex: '#a855f7', name: 'Done', role: 'Completed workflows' },
+  { hex: '#38BDF8', name: 'Agent', role: 'AI agent activity states' },
+  { hex: '#C084FC', name: 'Done', role: 'Completed workflows' },
 ];
 
 const PLATFORMS: { hex: string; name: string }[] = [
   { hex: '#FCD34D', name: 'Beehiiv' },
+  { hex: '#0A0A0A', name: 'DEV Community' },
   { hex: '#5865F2', name: 'Discord' },
   { hex: '#1877F2', name: 'Facebook' },
   { hex: '#6C63FF', name: 'Fanvue' },
   { hex: '#15171A', name: 'Ghost' },
+  { hex: '#FF6600', name: 'Hacker News' },
   { hex: '#E1306C', name: 'Instagram' },
   { hex: '#0A66C2', name: 'LinkedIn' },
   { hex: '#6364FF', name: 'Mastodon' },
   { hex: '#00AB6C', name: 'Medium' },
   { hex: '#000000', name: 'Notion' },
   { hex: '#E60023', name: 'Pinterest' },
+  { hex: '#DA552F', name: 'Product Hunt' },
   { hex: '#FF4500', name: 'Reddit' },
   { hex: '#96BF48', name: 'Shopify' },
   { hex: '#4A154B', name: 'Slack' },
@@ -90,24 +97,25 @@ const PLATFORMS: { hex: string; name: string }[] = [
   { hex: '#000000', name: 'Threads' },
   { hex: '#FE2C55', name: 'TikTok' },
   { hex: '#9146FF', name: 'Twitch' },
-  { hex: '#1DA1F2', name: 'Twitter' },
   { hex: '#25D366', name: 'WhatsApp' },
   { hex: '#21759B', name: 'WordPress' },
+  { hex: '#1DA1F2', name: 'X (Twitter)' },
   { hex: '#FF0000', name: 'YouTube' },
 ];
 
 const TYPE_SCALE: ScaleRow[] = [
-  { element: 'Badge / chip', size: '10px' },
-  { element: 'Table head', size: '11px' },
-  { element: 'Table cell', size: '12px' },
-  { element: 'Body / button', size: '13px' },
-  { element: 'Card title', size: '14px' },
+  { element: 'Caption / chip', size: '11px' },
+  { element: 'Label / table head', size: '12px' },
+  { element: 'Body / button / table cell', size: '14px' },
+  { element: 'Lede', size: '15px' },
+  { element: 'Card title', size: '18px' },
 ];
 
 const RADIUS_STEPS: RadiusStep[] = [
-  { name: 'sm', px: 2, use: 'Badges, tags, inline chips' },
-  { name: 'md', px: 6, use: 'Cards, buttons, inputs, tooltips, popovers' },
-  { name: 'lg', px: 8, use: 'Toasts, overlay panels' },
+  { name: 'xs', px: 2, use: 'Tag dots, inline chips' },
+  { name: 'sm', px: 4, use: 'Badges, tags' },
+  { name: 'md', px: 6, use: 'Buttons, inputs, tooltips' },
+  { name: 'lg', px: 8, use: 'Popovers, toasts, overlay panels' },
   { name: 'xl', px: 10, use: 'Dialogs, command palette' },
 ];
 
@@ -135,16 +143,16 @@ const COLOR_DOORS: ColorDoor[] = [
 ];
 
 const DOS: string[] = [
-  'Use background layering for hierarchy instead of heavy borders.',
-  'Use inset box-shadow borders on elevated surfaces: cards, dialogs, dropdowns.',
-  'Reserve the border token for structural dividers: sidebar edges, header bottoms.',
+  'Use background layering for hierarchy; a hairline confirms the edge, it does not carry it.',
+  'Give every raised surface a hairline: shadow-border on cards, shadow-dropdown on overlays.',
+  'Move one step for hover, two for selected — never jump to an absolute color.',
   'Use ghost buttons for toolbar and topbar actions.',
   'Apply semantic status colors consistently across every surface.',
-  'Use −0.01em letter-spacing on body, tighter on headings.',
+  'Use −0.011em letter-spacing on body, −0.02em on headings.',
 ];
 
 const DONTS: string[] = [
-  'Use a CSS border for card, dialog, or dropdown containment; use inset shadow.',
+  'Paint pure #FFF on pure #000; capped ends (#EDEDED on #0A0A0A) read better at UI sizes.',
   'Mix hardcoded colors with token references.',
   'Use the accent for status; it is for primary CTAs only.',
   'Add a new semantic color without updating DESIGN.md.',
@@ -154,7 +162,7 @@ const DONTS: string[] = [
 
 function SectionLabel({ children }: { children: string }): React.ReactElement {
   return (
-    <Text className="text-[10px] font-black uppercase tracking-[0.2em] text-surface/55">
+    <Text className="text-2xs font-black uppercase tracking-[0.2em] text-surface/55">
       {children}
     </Text>
   );
@@ -174,11 +182,11 @@ function SwatchTile({ swatch }: { swatch: Swatch }): React.ReactElement {
           <Text className="text-xs font-semibold text-surface">
             {swatch.name}
           </Text>
-          <Text className="font-mono text-[10px] uppercase text-surface/55">
+          <Text className="font-mono text-2xs uppercase text-surface/55">
             {swatch.hex}
           </Text>
         </div>
-        <Text className="text-[11px] leading-4 text-surface/60">
+        <Text className="text-2xs leading-4 text-surface/60">
           {swatch.role}
         </Text>
       </div>
@@ -197,10 +205,10 @@ export default function BrandOSContent(): React.ReactElement {
         <section className="border-b border-edge/5 bg-background py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto px-6">
             <div className="flex flex-col max-w-4xl gap-6">
-              <div className="flex flex-row w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-surface/55">
+              <div className="flex flex-row w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-2xs font-black uppercase tracking-[0.15em] text-surface/45">
                 <Layers className="size-3.5" />
                 <Text>Brand OS</Text>
-                <span className="text-surface/55">/</span>
+                <span className="text-surface/45">/</span>
                 <Text className="text-surface/55">version alpha</Text>
               </div>
 
@@ -344,7 +352,7 @@ export default function BrandOSContent(): React.ReactElement {
                     <Text className="text-xs font-medium text-surface/80">
                       {platform.name}
                     </Text>
-                    <Text className="font-mono text-[10px] uppercase text-surface/55">
+                    <Text className="font-mono text-2xs uppercase text-surface/55">
                       {platform.hex}
                     </Text>
                   </div>
@@ -381,7 +389,7 @@ export default function BrandOSContent(): React.ReactElement {
                     <Text className="text-sm text-surface/70">
                       {row.element}
                     </Text>
-                    <Text className="font-mono text-[11px] uppercase text-surface/60">
+                    <Text className="font-mono text-2xs uppercase text-surface/60">
                       {row.size}
                     </Text>
                   </div>
@@ -418,11 +426,11 @@ export default function BrandOSContent(): React.ReactElement {
                       <Text className="text-xs font-semibold text-surface">
                         {step.name}
                       </Text>
-                      <Text className="font-mono text-[10px] uppercase text-surface/60">
+                      <Text className="font-mono text-2xs uppercase text-surface/60">
                         {step.px}px
                       </Text>
                     </div>
-                    <Text className="text-[11px] leading-4 text-surface/60">
+                    <Text className="text-2xs leading-4 text-surface/60">
                       {step.use}
                     </Text>
                   </div>

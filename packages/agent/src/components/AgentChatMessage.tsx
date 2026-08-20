@@ -257,7 +257,7 @@ function AgentChatMessageInner({
           isUser
             ? AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS
             : // Free-text assistant: no card chrome — document flow like T3/chat
-              'w-full max-w-full border-0 bg-transparent px-0.5 py-1 text-[15px] leading-7 text-foreground shadow-none',
+              'w-full max-w-full border-0 bg-transparent px-0.5 py-1 text-md leading-7 text-foreground shadow-none',
         )}
       >
         <h3 className="sr-only">
@@ -281,7 +281,7 @@ function AgentChatMessageInner({
                 // the track instead of expanding the conversation column.
                 'min-w-0 max-w-full break-words [overflow-wrap:anywhere] text-inherit',
                 isUser
-                  ? 'text-[15px] leading-6 text-foreground [&_p]:my-1'
+                  ? 'text-md leading-6 text-foreground [&_p]:my-1'
                   : AGENT_ASSISTANT_PROSE_CLASS,
               )}
             />
@@ -302,7 +302,7 @@ function AgentChatMessageInner({
           <Button
             variant={ButtonVariant.GHOST}
             withWrapper={false}
-            className="mt-2 text-[10px] font-semibold text-primary hover:text-primary/80"
+            className="mt-2 text-2xs font-semibold text-primary hover:text-primary/80"
             onClick={() => setIsExpanded((prev) => !prev)}
           >
             {isExpanded ? 'Show less' : 'Show more'}

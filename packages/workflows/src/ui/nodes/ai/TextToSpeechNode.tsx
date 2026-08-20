@@ -152,7 +152,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`tts-provider-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Provider
           </label>
@@ -180,7 +180,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`tts-voice-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Voice
           </label>
@@ -202,7 +202,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         <div>
           <div
             id={`tts-stability-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Stability: {Math.round(nodeData.stability * 100)}%
           </div>
@@ -215,7 +215,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
             onValueChange={handleStabilityChange}
             className="nodrag w-full"
           />
-          <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+          <div className="flex justify-between text-2xs text-muted-foreground">
             <span>Variable</span>
             <span>Stable</span>
           </div>
@@ -225,7 +225,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         <div>
           <div
             id={`tts-similarity-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Clarity: {Math.round(nodeData.similarityBoost * 100)}%
           </div>
@@ -238,7 +238,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
             onValueChange={handleSimilarityChange}
             className="nodrag w-full"
           />
-          <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
+          <div className="flex justify-between text-2xs text-muted-foreground">
             <span>Low</span>
             <span>High</span>
           </div>
@@ -246,10 +246,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Speed Slider */}
         <div>
-          <div
-            id={`tts-speed-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
-          >
+          <div id={`tts-speed-${id}`} className="text-xs text-muted-foreground">
             Speed: {nodeData.speed.toFixed(1)}x
           </div>
           <Slider
@@ -297,7 +294,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
 
         {/* Help text for required input */}
         {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <AudioLines className="size-3" />
             Connect text input to generate speech
           </div>

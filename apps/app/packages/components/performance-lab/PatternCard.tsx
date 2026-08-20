@@ -46,7 +46,7 @@ function ScoreBar({ score }: ScoreBarProps) {
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-foreground/50 uppercase tracking-wider">
+        <span className="text-2xs text-foreground/50 uppercase tracking-wider">
           Avg Score
         </span>
         <span className="text-xs font-mono font-medium text-foreground/80">
@@ -77,7 +77,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
           <Badge variant={typeVariant}>{typeLabel}</Badge>
           <Badge variant="ghost">{sourceLabel}</Badge>
         </div>
-        <span className="text-[10px] text-foreground/40 font-mono">
+        <span className="text-2xs text-foreground/40 font-mono">
           n={pattern.sampleSize}
         </span>
       </div>
@@ -107,7 +107,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
       {/* Example texts */}
       {previewExamples.length > 0 && (
         <div className="space-y-1.5">
-          <span className="text-[10px] text-foreground/40 uppercase tracking-wider">
+          <span className="text-2xs text-foreground/40 uppercase tracking-wider">
             Examples
           </span>
           <ul className="space-y-1">

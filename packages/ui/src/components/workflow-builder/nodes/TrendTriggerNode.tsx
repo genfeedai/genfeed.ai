@@ -115,7 +115,7 @@ function TrendTriggerNodeComponent({
               variant={ButtonVariant.UNSTYLED}
               className={`py-1.5 text-xs transition ${
                 data.platform === p.value
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground hover:bg-border'
               }`}
             >
@@ -220,7 +220,7 @@ function TrendTriggerNodeComponent({
             onClick={handleAddKeyword}
             type="button"
             variant={ButtonVariant.UNSTYLED}
-            className="px-2 py-1.5 bg-primary text-white text-xs"
+            className="px-2 py-1.5 bg-primary text-primary-foreground text-xs"
           >
             Add
           </Button>

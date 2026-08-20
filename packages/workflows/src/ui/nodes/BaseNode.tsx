@@ -426,7 +426,7 @@ function BaseNodeContent({
 
 function LockBadge() {
   return (
-    <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-[10px] font-bold text-background">
+    <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-2xs font-bold text-background">
       LOCKED
     </div>
   );
@@ -650,7 +650,7 @@ function BaseNodeComponent({
       <div
         ref={nodeRef}
         className={clsx(
-          'relative flex flex-col bg-[var(--card)] shadow-border hover:shadow-border-strong transition-all duration-200',
+          'relative flex flex-col bg-card shadow-border hover:shadow-border-strong transition-all duration-200',
           // Only apply min/max width if node hasn't been manually resized
           // Output nodes get larger minimums for better preview visibility
           !isResized && type === 'download' && 'min-w-[200px] min-h-[280px]',

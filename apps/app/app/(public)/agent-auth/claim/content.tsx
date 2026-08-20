@@ -309,7 +309,7 @@ export default function AgentAuthClaimContent() {
           </CardContent>
         </Card>
 
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground/50">
+        <p className="mt-5 text-center text-2xs leading-relaxed text-muted-foreground/50">
           {translate('footer')}
         </p>
       </div>

@@ -117,7 +117,7 @@ function ImageInputNodeComponent(props: NodeProps) {
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
             aria-label="Image URL"
-            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <Button
             variant="secondary"
@@ -151,7 +151,7 @@ function ImageInputNodeComponent(props: NodeProps) {
             <X className="size-3" />
           </Button>
           {nodeData.dimensions && (
-            <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px]">
+            <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-2xs">
               {nodeData.dimensions.width}x{nodeData.dimensions.height}
             </div>
           )}
@@ -166,14 +166,14 @@ function ImageInputNodeComponent(props: NodeProps) {
           {isUploading ? (
             <>
               <LoaderCircle className="size-5 text-muted-foreground/50 animate-spin" />
-              <span className="text-[10px] text-muted-foreground/70">
+              <span className="text-2xs text-muted-foreground/70">
                 Uploading…
               </span>
             </>
           ) : (
             <>
               <ImageIcon className="size-5 text-muted-foreground/50" />
-              <span className="text-[10px] text-muted-foreground/70">
+              <span className="text-2xs text-muted-foreground/70">
                 Drop or click
               </span>
             </>

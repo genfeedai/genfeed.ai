@@ -290,7 +290,7 @@ export function PaymentCtaCard({
           >
             <p className="text-xs font-medium text-foreground">{pack.label}</p>
             <p className="text-lg font-bold text-primary">{pack.price}</p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {pack.credits} credits
             </p>
           </Button>

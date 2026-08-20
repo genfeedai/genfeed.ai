@@ -73,11 +73,11 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                   {suggestion.icon}
                 </span>
               ) : null}
-              <span className="break-words text-left text-[13px] font-medium leading-snug text-foreground/88">
+              <span className="break-words text-left text-sm font-medium leading-snug text-foreground/88">
                 {suggestion.label}
               </span>
               {suggestion.description ? (
-                <span className="break-words text-left text-[11px] leading-snug text-foreground/48">
+                <span className="break-words text-left text-2xs leading-snug text-foreground/48">
                   {suggestion.description}
                 </span>
               ) : null}
@@ -89,7 +89,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                   {suggestion.icon}
                 </span>
               ) : null}
-              <span className="truncate text-[13px] font-medium text-foreground/88">
+              <span className="truncate text-sm font-medium text-foreground/88">
                 {suggestion.label}
               </span>
             </span>

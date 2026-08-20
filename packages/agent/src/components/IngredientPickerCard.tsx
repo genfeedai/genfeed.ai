@@ -56,7 +56,7 @@ function IngredientThumbnail({
       {/* Hover overlay with title */}
       {ingredient.title && (
         <div className="absolute inset-0 flex items-end bg-black/0 p-1 opacity-0 transition-all duration-150 group-hover:bg-black/40 group-hover:opacity-100">
-          <span className="line-clamp-2 text-[10px] font-medium leading-tight text-white">
+          <span className="line-clamp-2 text-2xs font-medium leading-tight text-white">
             {ingredient.title}
           </span>
         </div>

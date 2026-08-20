@@ -110,7 +110,7 @@ export default function ClipReferenceFrameSelector({
                 aria-busy={isPending}
                 aria-label={`${isSelected ? 'Selected' : 'Select'} reference frame at ${timestamp}`}
                 aria-pressed={isSelected}
-                className={`group relative overflow-hidden rounded-lg border p-0 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                className={`group relative overflow-hidden rounded-lg border p-0 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   isSelected
                     ? 'border-primary bg-primary/10'
                     : 'border-border bg-secondary hover:border-primary/60'
@@ -141,7 +141,7 @@ export default function ClipReferenceFrameSelector({
                   <span className="text-xs font-medium text-foreground">
                     {timestamp}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-2xs text-muted-foreground">
                     {isPending
                       ? 'Saving…'
                       : isSelected

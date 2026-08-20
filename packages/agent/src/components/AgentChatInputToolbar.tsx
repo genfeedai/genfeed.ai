@@ -366,10 +366,10 @@ function AgentChatInputToolbarInner({
                 }}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium text-primary">
+                  <p className="truncate text-xs font-medium text-primary">
                     {action.label}
                   </p>
-                  <p className="truncate text-[11px] text-muted">
+                  <p className="truncate text-2xs text-muted">
                     {action.description}
                   </p>
                 </div>

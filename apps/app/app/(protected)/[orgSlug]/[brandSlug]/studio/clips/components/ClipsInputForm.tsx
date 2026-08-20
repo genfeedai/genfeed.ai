@@ -65,7 +65,7 @@ export default function ClipsInputForm({
             onChange={(e) => onSetMaxClips(Number(e.target.value))}
             className="w-full accent-primary"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/70">
+          <div className="mt-1 flex justify-between text-2xs text-muted-foreground/70">
             <span>1</span>
             <span>15</span>
             <span>30</span>
@@ -92,7 +92,7 @@ export default function ClipsInputForm({
             onChange={(e) => onSetMinViralityScore(Number(e.target.value))}
             className="w-full accent-primary"
           />
-          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground/70">
+          <div className="mt-1 flex justify-between text-2xs text-muted-foreground/70">
             <span>0</span>
             <span>50</span>
             <span>100</span>

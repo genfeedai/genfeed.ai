@@ -78,7 +78,7 @@ function AnalyticsComposerQueryChip({
 }) {
   return (
     <span
-      className="ml-2 inline-flex max-w-56 items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-[10px] text-foreground/78"
+      className="ml-2 inline-flex max-w-56 items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-2xs text-foreground/78"
       data-testid="analytics-composer-query-reference"
       title={`${reference.route} · ${reference.dateRange.startDate} to ${reference.dateRange.endDate}`}
     >

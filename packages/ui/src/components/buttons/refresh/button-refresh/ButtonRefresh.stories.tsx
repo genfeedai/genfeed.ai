@@ -205,7 +205,7 @@ export const AutoRefresh: Story = {
         <label className="flex items-center gap-2 justify-center cursor-pointer">
           <input
             type="checkbox"
-            className="size-4 border-white/[0.08] text-primary focus:ring-primary"
+            className="size-4 border-white/[0.08] text-primary focus:ring-ring"
             checked={autoRefresh}
             onChange={(e) => setAutoRefresh(e.target.checked)}
           />

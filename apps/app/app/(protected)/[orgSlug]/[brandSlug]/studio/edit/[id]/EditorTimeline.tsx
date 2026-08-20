@@ -46,7 +46,7 @@ function TimeRuler({
             className={`w-px ${marker.major ? 'h-4 bg-foreground/60' : 'h-2 bg-foreground/30'}`}
           />
           {marker.major && (
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            <span className="text-2xs text-muted-foreground whitespace-nowrap">
               {marker.label}
             </span>
           )}
@@ -88,7 +88,7 @@ function TrackRow({
     <div className="flex border-b border-white/[0.08]">
       {/* Track header */}
       <div className="flex w-48 shrink-0 items-center gap-2 border-r border-white/[0.08] bg-card px-3 py-2">
-        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-foreground/60">
+        <span className="rounded bg-muted px-1.5 py-0.5 text-2xs font-semibold uppercase text-foreground/60">
           {trackLabel}
         </span>
         <span className="truncate text-sm font-medium">{track.name}</span>

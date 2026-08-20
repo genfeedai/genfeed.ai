@@ -16,7 +16,7 @@ export function AgentUiActionCard({
         <span className="font-medium text-foreground">{action.title}</span>
         {action.riskLevel && action.riskLevel !== 'low' && (
           <span
-            className={`rounded px-1.5 py-0.5 text-[10px] ${
+            className={`rounded px-1.5 py-0.5 text-2xs ${
               action.riskLevel === 'high'
                 ? 'bg-red-100 text-red-700'
                 : 'bg-amber-100 text-amber-700'

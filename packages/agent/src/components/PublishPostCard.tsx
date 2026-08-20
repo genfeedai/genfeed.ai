@@ -447,7 +447,7 @@ export function PublishPostCard({
       <div className="mb-3">
         <label
           htmlFor="publish-caption"
-          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
         >
           {translate('caption')}
         </label>
@@ -462,7 +462,7 @@ export function PublishPostCard({
 
       {targetProposals.length > 0 ? (
         <div className="mb-3">
-          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             {translate('channels')}
           </span>
           <div className="space-y-3">
@@ -503,7 +503,7 @@ export function PublishPostCard({
                       <div className="mb-2">
                         <label
                           htmlFor={`publish-caption-${target.id}`}
-                          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+                          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
                         >
                           {translate('channelCaption', {
                             platform: target.label,
@@ -528,7 +528,7 @@ export function PublishPostCard({
                       </div>
 
                       <div className="mb-2">
-                        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
                           {translate('visibility')}
                         </span>
                         <Select
@@ -561,7 +561,7 @@ export function PublishPostCard({
 
                       {settingFields.length > 0 ? (
                         <div className="mb-2 space-y-2">
-                          <span className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                          <span className="block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
                             {translate('channelSettings')}
                           </span>
                           {settingFields.map((field) => {
@@ -571,7 +571,7 @@ export function PublishPostCard({
                                 {field.type === 'boolean' ? null : (
                                   <label
                                     htmlFor={fieldId}
-                                    className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+                                    className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
                                   >
                                     {field.label}
                                     {field.required ? ' *' : ''}
@@ -601,7 +601,7 @@ export function PublishPostCard({
 
                       {blockers.length > 0 ? (
                         <div className="mb-2 space-y-1 border border-destructive/30 bg-destructive/5 p-2">
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-destructive">
+                          <p className="text-2xs font-medium uppercase tracking-wider text-destructive">
                             {translate('cannotPublish')}
                           </p>
                           {blockers.map((blocker) => (
@@ -617,7 +617,7 @@ export function PublishPostCard({
 
                       {warnings.length > 0 ? (
                         <div className="space-y-1 border border-amber-500/30 bg-amber-500/5 p-2">
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-amber-600">
+                          <p className="text-2xs font-medium uppercase tracking-wider text-amber-600">
                             {translate('reviewWarnings')}
                           </p>
                           {warnings.map((warning) => (
@@ -639,7 +639,7 @@ export function PublishPostCard({
         </div>
       ) : (
         <div className="mb-3">
-          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             {translate('platforms')}
           </span>
           <div className="flex flex-wrap gap-2">
@@ -667,7 +667,7 @@ export function PublishPostCard({
       )}
 
       <div className="mb-4">
-        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
           {translate('visibility')}
         </span>
         <Select
@@ -692,7 +692,7 @@ export function PublishPostCard({
       <div className="mb-4">
         <label
           htmlFor="publish-schedule"
-          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
         >
           <Calendar className="mr-1 inline size-3" />
           {translate('scheduleForLater')}

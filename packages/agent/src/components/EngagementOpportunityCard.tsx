@@ -76,7 +76,7 @@ export function EngagementOpportunityCard({
               {originalPost.author}
             </span>
             {originalPost.platform && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-2xs text-muted-foreground">
                 on {originalPost.platform}
               </span>
             )}
@@ -91,7 +91,7 @@ export function EngagementOpportunityCard({
       <div className="mb-3">
         <label
           htmlFor="engagement-reply"
-          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground"
         >
           Draft Reply
         </label>

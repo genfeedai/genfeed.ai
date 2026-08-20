@@ -211,7 +211,7 @@ export default function PublishOverviewPage() {
             variant={CardVariant.DEFAULT}
           >
             <div className="space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
                 Pipeline
               </p>
               <p className="text-sm text-foreground/80">

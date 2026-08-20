@@ -140,7 +140,7 @@ function HistorySidebar({
             variant="ghost"
             size="sm"
             onClick={onClear}
-            className="text-[10px] text-muted-foreground hover:text-destructive p-0 h-auto"
+            className="text-2xs text-muted-foreground hover:text-destructive p-0 h-auto"
             title="Clear all history"
           >
             Clear All
@@ -178,10 +178,10 @@ function HistorySidebar({
               />
             </div>
             <div className="flex-1 min-w-0 flex flex-col justify-center">
-              <p className="text-[11px] text-foreground truncate">
+              <p className="text-2xs text-foreground truncate">
                 {item.prompt?.substring(0, 60) || 'No prompt'}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
+              <p className="text-2xs text-muted-foreground mt-0.5">
                 {formatRelativeTime(item.timestamp)}
                 {item.model ? ` · ${item.model}` : ''}
               </p>
@@ -191,7 +191,7 @@ function HistorySidebar({
       </div>
 
       <div className="px-4 py-2 border-t border-border bg-secondary/50 shrink-0">
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-2xs text-muted-foreground">
           Drag images to canvas to create nodes
         </span>
       </div>
@@ -293,11 +293,11 @@ export function GlobalImageHistory() {
         variant="secondary"
         size="icon-sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-secondary hover:bg-muted border-border text-muted-foreground hover:text-foreground shadow-dropdown"
+        className="relative bg-secondary hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-dropdown"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <Clock3 className="size-4" />
-        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-muted-foreground rounded-full text-[10px] text-background flex items-center justify-center font-bold">
+        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-muted-foreground rounded-full text-2xs text-background flex items-center justify-center font-bold">
           {history.length > 99 ? '99+' : history.length}
         </span>
       </Button>
@@ -330,7 +330,7 @@ export function GlobalImageHistory() {
                   variant="secondary"
                   size="sm"
                   onClick={handleShowAll}
-                  className="absolute animate-fan-enter bg-secondary hover:bg-muted border-border text-[10px] text-foreground hover:text-foreground shadow-dropdown whitespace-nowrap px-2 py-1 h-auto"
+                  className="absolute animate-fan-enter bg-secondary hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-dropdown whitespace-nowrap px-2 py-1 h-auto"
                   style={
                     {
                       '--fan-x': `${topItemPos.x}px`,

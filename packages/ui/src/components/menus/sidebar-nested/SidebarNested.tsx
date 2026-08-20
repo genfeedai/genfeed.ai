@@ -60,7 +60,7 @@ export default function SidebarNested({
           className={cn(
             'flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200 group cursor-pointer',
             'text-foreground/80 hover:bg-foreground/[0.06] hover:text-foreground',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
           )}
           ariaLabel={`Back to ${backLabel ?? groupLabel}`}
         >
@@ -90,7 +90,7 @@ export default function SidebarNested({
                 {isFirstDynamic && (
                   <li className="my-2">
                     <div className="border-t border-foreground/[0.06]" />
-                    <span className="px-3 pt-2 text-[10px] uppercase tracking-wider text-foreground/30 block">
+                    <span className="px-3 pt-2 text-2xs uppercase tracking-wider text-foreground/30 block">
                       Accounts
                     </span>
                   </li>

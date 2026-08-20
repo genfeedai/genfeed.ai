@@ -124,7 +124,7 @@ function DropdownMenuCheckboxItem({
     <DropdownMenuPrimitive.CheckboxItem
       ref={ref}
       className={cn(
-        'ship-ui relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-[13px] text-primary outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'ship-ui relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-primary outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}
       checked={checked}
@@ -152,7 +152,7 @@ function DropdownMenuRadioItem({
     <DropdownMenuPrimitive.RadioItem
       ref={ref}
       className={cn(
-        'ship-ui relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-[13px] text-primary outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'ship-ui relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-primary outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}
       {...props}
@@ -180,7 +180,7 @@ function DropdownMenuLabel({
     <DropdownMenuPrimitive.Label
       ref={ref}
       className={cn(
-        'ship-ui px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted',
+        'ship-ui px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-muted',
         inset && 'pl-8',
         className,
       )}
@@ -212,7 +212,7 @@ const DropdownMenuShortcut = ({
   return (
     <span
       className={cn(
-        'ml-auto text-[10px] uppercase tracking-[0.16em] text-muted',
+        'ml-auto text-2xs uppercase tracking-[0.16em] text-muted',
         className,
       )}
       {...props}

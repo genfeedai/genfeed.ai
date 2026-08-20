@@ -104,7 +104,7 @@ export function TimelineStreamingRow({
     <div className="mb-2 flex min-w-0 w-full justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
       <div className="w-full min-w-0 max-w-full space-y-1.5 border-0 bg-transparent px-0.5 py-1">
         {showStatusHeader ? (
-          <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-foreground/50">
+          <div className="flex min-w-0 items-center gap-1.5 text-2xs text-foreground/50">
             <Sparkles className="size-3.5 shrink-0 text-primary/70" />
             <AnimatedStatusText
               text={progressSummary.label}
@@ -114,7 +114,7 @@ export function TimelineStreamingRow({
         ) : null}
 
         {progressSummary.detail && showStatusHeader ? (
-          <p className="min-w-0 break-words text-[12px] leading-relaxed text-foreground/55">
+          <p className="min-w-0 break-words text-xs leading-relaxed text-foreground/55">
             {progressSummary.detail}
           </p>
         ) : null}
@@ -129,7 +129,7 @@ export function TimelineStreamingRow({
 
         {hasContent ? (
           <div className="min-w-0 px-0 py-0.5">
-            <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-[15px] leading-7 text-foreground">
+            <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-md leading-7 text-foreground">
               {displayedText}
               {(streamState.isStreaming || isAnimating) && (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />

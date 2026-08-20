@@ -106,7 +106,7 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
             height={600}
           />
           {data.dimensions && (
-            <p className="text-[10px] text-muted-foreground text-center py-1">
+            <p className="text-2xs text-muted-foreground text-center py-1">
               {data.dimensions.width}x{data.dimensions.height}
               {data.mimeType ? ` - ${data.mimeType}` : ''}
             </p>

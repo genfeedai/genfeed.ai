@@ -74,12 +74,12 @@ export default function DropZoneIngredient({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative ${isDragOver && isEnabled ? 'ring-4 ring-primary ring-offset-2' : ''}`}
+      className={`relative ${isDragOver && isEnabled ? 'ring-4 ring-primary ring-offset-2 ring-offset-background' : ''}`}
     >
       {children}
       {isDragOver && isEnabled && (
         <div className="absolute inset-0 bg-primary/30 pointer-events-none z-50 flex items-center justify-center">
-          <div className="bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">
+          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
             Set as parent
           </div>
         </div>

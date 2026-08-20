@@ -103,7 +103,7 @@ export function CloudWorkflowToolbar({
                   onBlur={() => void commitRename()}
                   onChange={(event) => setEditedName(event.target.value)}
                   onKeyDown={(event) => void handleNameKeyDown(event)}
-                  className="cloud-workflow-title-input h-7 w-full rounded border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground transition focus-visible:border-primary/60 focus-visible:bg-card focus-visible:ring-1 focus-visible:ring-primary/40"
+                  className="cloud-workflow-title-input h-7 w-full rounded border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground transition focus-visible:border-primary/60 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
               ) : (
                 <Button

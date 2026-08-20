@@ -44,7 +44,7 @@ export default function RunAnomaliesPanel({ stats }: RunAnomaliesPanelProps) {
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-medium">{anomaly.title}</span>
-                <span className="text-[10px] uppercase tracking-wider">
+                <span className="text-2xs uppercase tracking-wider">
                   {anomaly.severity}
                 </span>
               </div>

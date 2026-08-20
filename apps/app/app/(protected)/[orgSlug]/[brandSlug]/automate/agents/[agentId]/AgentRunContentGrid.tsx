@@ -160,7 +160,7 @@ function ContentCard({ item }: { item: IAgentRunContentItem }) {
       )}
 
       {item.category && (
-        <p className="text-[10px] uppercase tracking-wide text-foreground/40">
+        <p className="text-2xs uppercase tracking-wide text-foreground/40">
           {formatEnumLabel(item.category)}
         </p>
       )}

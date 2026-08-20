@@ -224,7 +224,7 @@ function ExecutionContextSection({
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Execution Context
         </p>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-2xs text-muted-foreground">
           {activeBrandLabel
             ? `Brand: ${activeBrandLabel}`
             : 'No brand selected'}
@@ -263,7 +263,7 @@ function ActiveRunSection({
           <p className="text-sm text-foreground">{run.id}</p>
         </div>
         <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+          className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
             run.status === 'completed'
               ? 'bg-emerald-500/15 text-emerald-500'
               : run.status === 'failed'
@@ -280,17 +280,17 @@ function ActiveRunSection({
           style={{ width: `${Math.max(2, Math.min(100, run.progress || 0))}%` }}
         />
       </div>
-      <p className="mt-1 text-[11px] text-muted-foreground">
+      <p className="mt-1 text-2xs text-muted-foreground">
         Progress {formatPercent(run.progress || 0)}
       </p>
       {events.length > 0 ? (
         <div className="mt-2 max-h-28 space-y-1 overflow-y-auto border border-border bg-background p-2">
           {events.slice(-5).map((event) => (
             <div key={`${event.type}-${event.createdAt}`}>
-              <p className="text-[11px] text-foreground">
+              <p className="text-2xs text-foreground">
                 {event.message || event.type}
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-2xs text-muted-foreground">
                 {event.createdAt.split('T')[1]?.slice(0, 8) ?? event.createdAt}
               </p>
             </div>
@@ -345,7 +345,7 @@ function WorkflowTemplatesSection({
             <p className="text-xs font-medium text-foreground">
               {template.label}
             </p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
+            <p className="mt-0.5 text-2xs text-muted-foreground">
               {template.description}
             </p>
           </Button>
@@ -523,7 +523,7 @@ function PostSection({
                 result.timestamp ||
                 `${result.platform || 'platform'}-${result.status}`
               }
-              className="text-[11px]"
+              className="text-2xs"
             >
               <p className="font-medium text-foreground">
                 {result.platform || 'platform'} · {result.status}
@@ -589,26 +589,26 @@ function AnalyticsSection({
 
       <div className="mt-2 grid grid-cols-2 gap-2">
         <div className="border border-border bg-background p-2">
-          <p className="text-[10px] text-muted-foreground">Generated</p>
+          <p className="text-2xs text-muted-foreground">Generated</p>
           <p className="text-sm font-semibold text-foreground">
             {kpis.generated}
           </p>
         </div>
         <div className="border border-border bg-background p-2">
-          <p className="text-[10px] text-muted-foreground">Published</p>
+          <p className="text-2xs text-muted-foreground">Published</p>
           <p className="text-sm font-semibold text-foreground">
             {kpis.published}
           </p>
         </div>
         <div className="border border-border bg-background p-2">
-          <p className="text-[10px] text-muted-foreground">Publish Success</p>
+          <p className="text-2xs text-muted-foreground">Publish Success</p>
           <p className="text-sm font-semibold text-foreground">
             {formatPercent(kpis.publishSuccessRate)}
           </p>
         </div>
         <div className="border border-border bg-background p-2">
-          <p className="text-[10px] text-muted-foreground">Last Snapshot</p>
-          <p className="text-[11px] font-medium text-foreground">
+          <p className="text-2xs text-muted-foreground">Last Snapshot</p>
+          <p className="text-2xs font-medium text-foreground">
             {formatSnapshotTime(kpis.lastSnapshotAt)}
           </p>
         </div>
@@ -652,7 +652,7 @@ function RunningFooter({
   }
 
   return (
-    <div className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
+    <div className="border-t border-border px-3 py-2 text-2xs text-muted-foreground">
       Processing {currentRun.actionType} run…
     </div>
   );

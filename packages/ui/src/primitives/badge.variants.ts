@@ -8,7 +8,7 @@ import { cva } from 'class-variance-authority';
  * design-token classes so status chips always paint color on the UI.
  */
 export const badgeVariants = cva(
-  'ship-ui focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+  'ship-ui focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
   {
     defaultVariants: {
       variant: 'default',

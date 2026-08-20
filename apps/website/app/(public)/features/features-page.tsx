@@ -83,7 +83,7 @@ export default function FeaturesPage(): React.ReactElement {
                     <p className="text-surface/65 text-sm leading-relaxed mb-8">
                       {feature.description}
                     </p>
-                    <span className="mt-auto text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
+                    <span className="mt-auto text-2xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-4 transition-all cursor-pointer">
                       Learn More <ArrowRight className="size-3" />
                     </span>
                   </div>
@@ -107,7 +107,7 @@ export default function FeaturesPage(): React.ReactElement {
                     className="object-cover group-hover:scale-110 transition-transform duration-1000"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-12 flex flex-col justify-end">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/60 mb-2">
+                    <span className="text-2xs font-black uppercase tracking-widest text-surface/60 mb-2">
                       Case Study 01
                     </span>
                     <h4 className="text-3xl font-semibold text-surface">
@@ -133,7 +133,7 @@ export default function FeaturesPage(): React.ReactElement {
                     <span className="text-4xl font-semibold block mb-2">
                       250%
                     </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/55">
+                    <span className="text-2xs font-black uppercase tracking-widest text-surface/55">
                       Efficiency Increase
                     </span>
                   </div>
@@ -141,7 +141,7 @@ export default function FeaturesPage(): React.ReactElement {
                     <span className="text-4xl font-semibold block mb-2">
                       0.4s
                     </span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-surface/55">
+                    <span className="text-2xs font-black uppercase tracking-widest text-surface/55">
                       Average Latency
                     </span>
                   </div>

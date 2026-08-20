@@ -23,7 +23,7 @@ function FoldersSidebar({
     return (
       <div className="mt-3 border-t border-border pt-2">
         <div className="mb-1 flex items-center justify-between gap-1 px-1">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
+          <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
             Folders
           </span>
           {onCreateFolder ? (
@@ -60,7 +60,7 @@ function FoldersSidebar({
           >
             <div className="flex min-w-0 items-center gap-2.5">
               <Folder className="size-5 shrink-0 text-foreground/42" />
-              <span className="truncate text-[13px] font-medium tracking-[-0.01em]">
+              <span className="truncate text-sm font-medium tracking-[-0.01em]">
                 All assets
               </span>
             </div>
@@ -88,7 +88,7 @@ function FoldersSidebar({
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Folder className="size-5 shrink-0 text-foreground/42" />
-                  <span className="truncate text-[13px] font-medium tracking-[-0.01em]">
+                  <span className="truncate text-sm font-medium tracking-[-0.01em]">
                     {folder.label}
                   </span>
                 </div>
@@ -104,7 +104,7 @@ function FoldersSidebar({
     <div className="w-full space-y-3">
       <div className="px-1">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/35">
+          <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-white/35">
             Folders
           </div>
           <div className="mt-1 text-sm font-medium text-white/78">

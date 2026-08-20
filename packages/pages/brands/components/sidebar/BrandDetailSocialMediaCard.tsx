@@ -465,7 +465,7 @@ export default function BrandDetailSocialMediaCard({
             </div>
           </div>
           {isConnected ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-success/30 bg-success/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-success">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-success/30 bg-success/10 px-2 py-0.5 text-2xs font-semibold uppercase text-success">
               <Check className="size-3" />
               Linked
             </span>
@@ -505,7 +505,7 @@ export default function BrandDetailSocialMediaCard({
             {isConnected ? `Reconnect ${item.label}` : `Connect ${item.label}`}
           </Button>
           {isConnected ? (
-            <p className="mt-1.5 text-center text-[11px] leading-4 text-muted-foreground">
+            <p className="mt-1.5 text-center text-2xs leading-4 text-muted-foreground">
               One {item.label} account per brand for now — reconnect replaces
               the linked profile.
             </p>
@@ -565,7 +565,7 @@ export default function BrandDetailSocialMediaCard({
                     </p>
                   </div>
                   <span
-                    className={`shrink-0 rounded-sm border px-2 py-1 text-[10px] font-semibold uppercase ${getHealthToneClass(summary)}`}
+                    className={`shrink-0 rounded-sm border px-2 py-1 text-2xs font-semibold uppercase ${getHealthToneClass(summary)}`}
                   >
                     {STATE_LABELS[summary.state]}
                   </span>

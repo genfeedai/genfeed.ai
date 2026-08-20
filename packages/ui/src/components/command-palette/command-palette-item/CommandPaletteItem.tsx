@@ -23,7 +23,7 @@ export function CommandPaletteItem({
       onClick={onClick}
       className={cn(
         'flex w-full items-center gap-3 px-4 py-3 text-left transition-all duration-200',
-        'hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+        'hover:bg-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
         isSelected && 'bg-background',
       )}
     >

@@ -156,7 +156,7 @@ export function ContentLibraryPicker({
                       <span className="truncate text-xs font-medium text-foreground/90">
                         {item.contentTitle}
                       </span>
-                      <span className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+                      <span className="truncate text-2xs uppercase tracking-wide text-muted-foreground">
                         {item.contentType}
                       </span>
                     </div>

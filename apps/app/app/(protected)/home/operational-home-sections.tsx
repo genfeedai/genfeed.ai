@@ -210,7 +210,7 @@ function ApprovalsSurface({
             ) : (
               reviewInbox.recentItems.slice(0, 3).map((item) => (
                 <Button
-                  className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 text-sm shadow-border transition hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 text-sm shadow-border transition hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   asChild
                   key={item.id}
                   variant={ButtonVariant.UNSTYLED}

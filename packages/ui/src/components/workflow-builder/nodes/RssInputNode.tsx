@@ -112,7 +112,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
           variant={ButtonVariant.UNSTYLED}
           className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition ${
             data.inputMode === 'url'
-              ? 'bg-primary text-white'
+              ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -125,7 +125,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
           variant={ButtonVariant.UNSTYLED}
           className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition ${
             data.inputMode === 'text'
-              ? 'bg-primary text-white'
+              ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
@@ -148,7 +148,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
             isDisabled={!data.feedUrl || isFetching}
             type="button"
             variant={ButtonVariant.UNSTYLED}
-            className="w-full py-1.5 bg-primary text-white text-xs font-medium hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-1.5 bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isFetching ? (
               <>
@@ -169,14 +169,14 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
             value={data.rawXml || ''}
             onChange={handleRawXmlChange}
             placeholder="Paste RSS XML here…"
-            className="w-full h-20 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
+            className="w-full h-20 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-2 focus:ring-ring font-mono text-xs"
           />
           <Button
             onClick={handleFetchFeed}
             isDisabled={!data.rawXml || isFetching}
             type="button"
             variant={ButtonVariant.UNSTYLED}
-            className="w-full py-1.5 bg-primary text-white text-xs font-medium hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-1.5 bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isFetching ? (
               <>

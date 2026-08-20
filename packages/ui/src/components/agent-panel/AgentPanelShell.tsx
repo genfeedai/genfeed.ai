@@ -59,7 +59,7 @@ function AgentPanelShell({
             !isOpen && 'w-0 overflow-hidden opacity-0 pointer-events-none',
           )}
         >
-          <span className="shrink-0 text-[11px] font-semibold text-foreground">
+          <span className="shrink-0 text-2xs font-semibold text-foreground">
             {title}
           </span>
 
@@ -75,7 +75,7 @@ function AgentPanelShell({
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => handleTabChange('chat')}
-                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-2xs font-semibold uppercase tracking-[0.12em]"
                 data-active={activeTab === 'chat' ? 'true' : 'false'}
               >
                 Terminal
@@ -84,7 +84,7 @@ function AgentPanelShell({
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => handleTabChange('outputs')}
-                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                className="gen-shell-segmented-button h-6 rounded-[5px] px-2 text-2xs font-semibold uppercase tracking-[0.12em]"
                 data-active={activeTab === 'outputs' ? 'true' : 'false'}
               >
                 Outputs

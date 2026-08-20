@@ -47,7 +47,7 @@ export default function EditorialPoster({
       <div className="relative z-10 flex min-h-[420px] flex-col justify-between gap-10">
         <div className="space-y-5">
           {eyebrow ? (
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gen-accent-text)]">
+            <div className="text-2xs font-semibold uppercase tracking-[0.14em] text-[var(--gen-accent-text)]">
               {eyebrow}
             </div>
           ) : null}
@@ -58,7 +58,7 @@ export default function EditorialPoster({
             </h2>
 
             {subtitle ? (
-              <p className="max-w-xl text-sm font-medium leading-6 tracking-[-0.01em] text-[var(--gen-accent-text)] sm:text-[13px]">
+              <p className="max-w-xl text-sm font-medium leading-6 tracking-[-0.01em] text-[var(--gen-accent-text)] sm:text-sm">
                 {subtitle}
               </p>
             ) : null}
@@ -76,7 +76,7 @@ export default function EditorialPoster({
             <div className="grid gap-3 border-t border-[var(--gen-accent-border)] pt-5 sm:grid-cols-2">
               {items.map((item) => (
                 <div key={item.label} className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--gen-accent-text)]">
+                  <p className="text-2xs font-bold uppercase tracking-[0.18em] text-[var(--gen-accent-text)]">
                     {item.label}
                   </p>
                   <div className="text-sm font-medium text-foreground/88 sm:text-base">
@@ -88,7 +88,7 @@ export default function EditorialPoster({
           ) : null}
 
           {footer ? (
-            <div className="flex items-center justify-between gap-3 border-t border-[var(--gen-accent-border)] pt-4 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--gen-accent-text)]">
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--gen-accent-border)] pt-4 text-2xs font-bold uppercase tracking-[0.18em] text-[var(--gen-accent-text)]">
               {footer}
             </div>
           ) : null}

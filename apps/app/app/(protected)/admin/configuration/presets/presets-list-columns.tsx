@@ -67,7 +67,7 @@ export function PresetDefaultsCell({ preset }: { preset: Preset }) {
       {defaults.map((def) => (
         <Badge
           key={def}
-          className="text-[10px] border border-white/[0.08] bg-transparent font-mono"
+          className="text-2xs border border-white/[0.08] bg-transparent font-mono"
         >
           {def}
         </Badge>

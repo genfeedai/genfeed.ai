@@ -32,7 +32,7 @@ const VALUE_SKELETON: Record<MetricCardSize, string> = {
 };
 
 const LABEL_CLASS =
-  'text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35';
+  'text-2xs font-bold uppercase tracking-[0.16em] text-foreground/35';
 
 const VALUE_CLASS =
   'font-semibold tracking-[-0.03em] tabular-nums text-foreground';

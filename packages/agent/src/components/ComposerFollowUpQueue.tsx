@@ -50,7 +50,7 @@ export function ComposerFollowUpQueue({
       role="region"
     >
       <div className="flex min-w-0 items-center gap-1 px-1 py-0.5">
-        <p className="min-w-0 flex-1 truncate text-[10px] font-medium uppercase tracking-wide text-foreground/45">
+        <p className="min-w-0 flex-1 truncate text-2xs font-medium uppercase tracking-wide text-foreground/45">
           {translate('count', { count: queue.length })}
           {isBusy ? ` · ${translate('sendNowHint')}` : null}
         </p>
@@ -84,7 +84,7 @@ export function ComposerFollowUpQueue({
                 data-follow-up-status={status}
                 key={item.id}
               >
-                <p className="min-w-0 flex-1 truncate px-1 text-[12px] leading-5 text-foreground/80">
+                <p className="min-w-0 flex-1 truncate px-1 text-xs leading-5 text-foreground/80">
                   {item.content}
                   {isSending ? ` · ${translate('sending')}` : null}
                   {isFailed ? ` · ${translate('failed')}` : null}

@@ -196,22 +196,22 @@ function ConversationRow({
           {getParticipantLabel(conversation)}
         </span>
         {relativeTime ? (
-          <span className="shrink-0 text-[11px] text-foreground/34">
+          <span className="shrink-0 text-2xs text-foreground/34">
             {relativeTime}
           </span>
         ) : null}
       </span>
       <span className="mt-1 flex min-w-0 items-center gap-2 pl-4">
-        <span className="min-w-0 flex-1 truncate text-[11px] text-foreground/42">
+        <span className="min-w-0 flex-1 truncate text-2xs text-foreground/42">
           {conversation.latestMessageText || 'No message preview available'}
         </span>
         {conversation.unreadCount > 0 ? (
-          <span className="shrink-0 rounded-full bg-info/15 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-info">
+          <span className="shrink-0 rounded-full bg-info/15 px-1.5 py-0.5 text-2xs font-semibold tabular-nums text-info">
             {conversation.unreadCount}
           </span>
         ) : null}
       </span>
-      <span className="mt-1 flex items-center gap-1.5 pl-4 text-[10px] font-medium uppercase tracking-wider text-foreground/28">
+      <span className="mt-1 flex items-center gap-1.5 pl-4 text-2xs font-medium uppercase tracking-wider text-foreground/28">
         <span>{conversation.platform}</span>
         <span aria-hidden="true">·</span>
         <span
@@ -370,7 +370,7 @@ export function MessagesConversationSidebar({
           <Select value={brandFilter} onValueChange={onBrandFilterChange}>
             <SelectTrigger
               aria-label="Filter conversations by brand"
-              className="h-7 w-full rounded-md border-border bg-foreground/[0.025] px-2.5 text-[11px] text-foreground/58"
+              className="h-7 w-full rounded-md border-border bg-foreground/[0.025] px-2.5 text-2xs text-foreground/58"
             >
               <SelectValue placeholder="All brands" />
             </SelectTrigger>
@@ -393,7 +393,7 @@ export function MessagesConversationSidebar({
           >
             <SelectTrigger
               aria-label="Filter conversations by platform"
-              className="h-7 min-w-0 flex-1 rounded-md border-border bg-foreground/[0.025] px-2.5 text-[11px] text-foreground/58"
+              className="h-7 min-w-0 flex-1 rounded-md border-border bg-foreground/[0.025] px-2.5 text-2xs text-foreground/58"
             >
               <SelectValue placeholder="All platforms" />
             </SelectTrigger>
@@ -555,7 +555,7 @@ export function MessagesConversationSidebar({
         )}
         <span
           aria-live="polite"
-          className="ml-2 flex items-center gap-1.5 text-[10px] capitalize text-foreground/30"
+          className="ml-2 flex items-center gap-1.5 text-2xs capitalize text-foreground/30"
           role="status"
         >
           <span

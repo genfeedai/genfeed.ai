@@ -47,7 +47,7 @@ export function AgentInputRequestOverlay({
         }
       >
         <div className={isComposer ? 'mb-3' : 'mb-4'}>
-          <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="mb-1 text-2xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Interaction
           </p>
           <h3

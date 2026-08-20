@@ -97,7 +97,7 @@ export function WorkflowPickerOverlay({
                       <h3 className="truncate text-sm font-medium text-foreground">
                         {workflow.label}
                       </h3>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] capitalize text-muted-foreground">
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-2xs capitalize text-muted-foreground">
                         {workflow.lifecycle}
                       </span>
                     </div>

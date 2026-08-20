@@ -97,7 +97,7 @@ export default function ServicesContent() {
                 >
                   {isFeatured && (
                     <div className="absolute top-6 right-6">
-                      <span className="border border-edge/40 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-surface/70">
+                      <span className="border border-edge/40 px-2.5 py-1 text-2xs font-bold uppercase tracking-widest text-surface/70">
                         Most Popular
                       </span>
                     </div>

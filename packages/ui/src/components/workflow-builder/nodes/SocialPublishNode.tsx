@@ -122,7 +122,7 @@ function SocialPublishNodeComponent({
             variant={ButtonVariant.UNSTYLED}
             className={`py-1.5 px-1 text-xs transition ${
               data.platform === p.value
-                ? 'bg-primary text-white'
+                ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-border'
             }`}
           >
@@ -159,7 +159,7 @@ function SocialPublishNodeComponent({
           value={data.description}
           onChange={handleDescriptionChange}
           placeholder="Video description…"
-          className="w-full h-16 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full h-16 px-2 py-1.5 text-sm bg-background border border-white/[0.08] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
@@ -222,7 +222,7 @@ function SocialPublishNodeComponent({
           isDisabled={!data.inputVideo}
           type="button"
           variant={ButtonVariant.UNSTYLED}
-          className="w-full py-2 bg-primary text-white text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2 bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Share2 className="size-4" />
           Publish to {PLATFORMS.find((p) => p.value === data.platform)?.label}

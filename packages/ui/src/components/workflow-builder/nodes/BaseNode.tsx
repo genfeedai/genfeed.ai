@@ -36,7 +36,7 @@ function BaseNode({
         'min-w-node border-2 transition-[background-color,border-color,box-shadow]',
         bgColor,
         borderColor,
-        selected && 'ring-2 ring-primary ring-offset-2',
+        selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
       )}
     >
       {/* Input Handles */}

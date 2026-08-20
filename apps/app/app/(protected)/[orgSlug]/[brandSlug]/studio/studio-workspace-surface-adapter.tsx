@@ -81,7 +81,7 @@ function InspectorSection({
 }) {
   return (
     <section className="space-y-2 bg-background p-3 shadow-border">
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <h3 className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
         {label}
       </h3>
       {children}

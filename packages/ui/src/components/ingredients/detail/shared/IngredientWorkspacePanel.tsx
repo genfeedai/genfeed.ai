@@ -23,7 +23,7 @@ export default function IngredientWorkspacePanel({
     <div className="rounded-3xl bg-secondary p-5 shadow-border md:p-6">
       <div className="space-y-5">
         <div className="space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Asset Workspace
           </p>
           <h2 className="text-sm font-semibold tracking-tight text-foreground">

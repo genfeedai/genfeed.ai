@@ -30,7 +30,7 @@ export function ThreadItem({ thread, onOpen }: ThreadItemProps): ReactElement {
       className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary/50"
     >
       {platformIcon && (
-        <span className="flex size-7 shrink-0 items-center justify-center rounded bg-secondary text-[10px] font-bold text-muted-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded bg-secondary text-2xs font-bold text-muted-foreground">
           {platformIcon}
         </span>
       )}
@@ -44,7 +44,7 @@ export function ThreadItem({ thread, onOpen }: ThreadItemProps): ReactElement {
           </p>
         )}
       </div>
-      <span className="shrink-0 text-[10px] text-muted-foreground">
+      <span className="shrink-0 text-2xs text-muted-foreground">
         {formatRelativeTime(thread.updatedAt)}
       </span>
     </Button>

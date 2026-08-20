@@ -49,7 +49,7 @@ export default function FeatureGrid({
                   {feature.description}
                 </p>
                 {feature.href ? (
-                  <span className="mt-auto flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest transition-all hover:gap-4">
+                  <span className="mt-auto flex items-center gap-2 text-2xs font-semibold uppercase tracking-widest transition-all hover:gap-4">
                     View Spec <ArrowRight className="size-3" />
                   </span>
                 ) : null}

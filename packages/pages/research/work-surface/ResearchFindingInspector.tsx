@@ -21,7 +21,7 @@ export default function ResearchFindingInspector(): ReactElement {
         <Card bodyClassName="gap-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 {finding.reference.kind.replaceAll('-', ' ')}
               </p>
               <h2 className="mt-2 text-sm font-semibold leading-5 text-foreground">

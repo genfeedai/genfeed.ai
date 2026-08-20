@@ -62,7 +62,7 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
         <Globe className="size-4 text-white/40" />
       )}
       <span className="text-xs text-white/50 truncate">{domain}</span>
-      <span className="text-[10px] text-white/20 ml-auto">
+      <span className="text-2xs text-white/20 ml-auto">
         We&apos;ll extract colors, logo &amp; voice
       </span>
     </output>

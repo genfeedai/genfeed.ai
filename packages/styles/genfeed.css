@@ -1,45 +1,32 @@
 /* ==========================================================================
    Genfeed Design System - Reusable CSS Utilities
-   Supports both dark and light themes via CSS variables
+
+   Translucent surfaces ride the neutral alpha ladder (`--gray-alpha-*`), which
+   is redefined per theme in packages/ui/web-tokens.css. That is why almost
+   nothing here carries a light-mode override any more: step N does the same job
+   in both themes and composites to the matching solid `--gray-N` on the canvas
+   it sits on.
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
    Glass Utilities
    -------------------------------------------------------------------------- */
 .gen-glass {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--gray-alpha-100);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-
-  :root[data-theme="light"] &,
-  .light & {
-    background: rgba(0, 0, 0, 0.02);
-    border-color: rgba(0, 0, 0, 0.06);
-  }
+  border: 1px solid var(--gray-alpha-200);
 }
 
 .gen-glass-strong {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--gray-alpha-200);
   backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-
-  :root[data-theme="light"] &,
-  .light & {
-    background: rgba(0, 0, 0, 0.03);
-    border-color: rgba(0, 0, 0, 0.08);
-  }
+  border: 1px solid var(--gray-alpha-300);
 }
 
 .gen-glass-subtle {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--gray-alpha-100);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-
-  :root[data-theme="light"] &,
-  .light & {
-    background: rgba(0, 0, 0, 0.01);
-    border-color: rgba(0, 0, 0, 0.04);
-  }
+  border: 1px solid var(--gray-alpha-100);
 }
 
 /* --------------------------------------------------------------------------
@@ -110,32 +97,29 @@
 }
 
 .gen-dot-success {
-  background: hsl(142 71% 45%);
+  background: hsl(var(--success));
 }
 
 .gen-dot-warning {
-  background: hsl(38 92% 50%);
+  background: hsl(var(--warning));
 }
 
 .gen-dot-error {
-  background: hsl(0 84% 60%);
+  background: hsl(var(--destructive));
 }
 
 .gen-dot-info {
-  background: hsl(199 89% 48%);
+  background: hsl(var(--info));
 }
 
+/* gray-700 is the muted-icon step: 5.01:1 dark / 3.10:1 light, which clears the
+   3:1 floor for non-text graphics without competing with a live status. */
 .gen-dot-muted {
-  background: hsl(0 0% 45%);
-
-  :root[data-theme="light"] &,
-  .light & {
-    background: hsl(0 0% 65%);
-  }
+  background: hsl(var(--gray-700));
 }
 
 .gen-dot-processing {
-  background: hsl(262 83% 58%);
+  background: var(--ship-done);
 }
 
 .gen-dot-pulse {
@@ -150,29 +134,14 @@
   background: linear-gradient(
     to right,
     transparent,
-    rgba(255, 255, 255, 0.06),
+    var(--gray-alpha-200),
     transparent
   );
-
-  :root[data-theme="light"] &,
-  .light & {
-    background: linear-gradient(
-      to right,
-      transparent,
-      rgba(0, 0, 0, 0.08),
-      transparent
-    );
-  }
 }
 
 .gen-divider-solid {
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-
-  :root[data-theme="light"] &,
-  .light & {
-    background: rgba(0, 0, 0, 0.08);
-  }
+  background: var(--gray-alpha-200);
 }
 
 .gen-divider-vertical {
@@ -181,19 +150,9 @@
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(255, 255, 255, 0.06),
+    var(--gray-alpha-200),
     transparent
   );
-
-  :root[data-theme="light"] &,
-  .light & {
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(0, 0, 0, 0.08),
-      transparent
-    );
-  }
 }
 
 /* --------------------------------------------------------------------------
@@ -230,21 +189,19 @@
 /* --------------------------------------------------------------------------
    Trend Indicators
    -------------------------------------------------------------------------- */
+/* These are text, not dots — they take the semantic status roles, which are
+   the theme-checked pair (dark #FF6166 at 6.74:1, light #DC2626 at 4.83:1).
+   The old literals sat at 3.8:1 and 3.5:1 on the light canvas. */
 .gen-trend-up {
-  color: hsl(142 71% 45%);
+  color: hsl(var(--success));
 }
 
 .gen-trend-down {
-  color: hsl(0 84% 60%);
+  color: hsl(var(--destructive));
 }
 
 .gen-trend-neutral {
-  color: hsl(0 0% 45%);
-
-  :root[data-theme="light"] &,
-  .light & {
-    color: hsl(0 0% 55%);
-  }
+  color: hsl(var(--muted-foreground));
 }
 
 /* --------------------------------------------------------------------------
@@ -298,18 +255,10 @@
     background: radial-gradient(
       ellipse at center,
       transparent 40%,
-      hsl(0 0% 1%) 100%
+      hsl(var(--background)) 100%
     );
     pointer-events: none;
     z-index: 1;
-  }
-
-  :root[data-theme="light"] &::before {
-    background: radial-gradient(
-      ellipse at center,
-      transparent 40%,
-      hsl(60 10% 98%) 100%
-    );
   }
 }
 
@@ -443,7 +392,10 @@
 }
 
 .gen-contact-sheet {
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+  /* Photographic vignette, not a hairline: the inset bleeds the canvas colour
+     back over the frame edges, so it darkens on dark and lightens on light
+     instead of smearing black across a white sheet. */
+  box-shadow: inset 0 0 30px hsl(var(--background) / 0.9);
   border: 1px solid var(--gen-accent-border);
   transition: border-color 0.3s ease;
 

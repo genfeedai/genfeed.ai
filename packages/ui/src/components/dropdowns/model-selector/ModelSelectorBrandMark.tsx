@@ -14,7 +14,7 @@ export default function ModelSelectorBrandMark({
       {BrandIcon ? (
         <BrandIcon className="size-3.5" data-testid={testId} />
       ) : (
-        <span className="text-[10px] font-semibold leading-none">
+        <span className="text-2xs font-semibold leading-none">
           {brandLabel.charAt(0)}
         </span>
       )}

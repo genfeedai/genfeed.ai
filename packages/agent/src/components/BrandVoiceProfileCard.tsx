@@ -101,7 +101,7 @@ export function BrandVoiceProfileCard({
 
       <div className="grid gap-3">
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Tone
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -110,7 +110,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Style
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -119,7 +119,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Voice Source
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -128,7 +128,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Audience
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -137,7 +137,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Messaging Pillars
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -146,7 +146,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Approved Hooks
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -155,7 +155,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Core Values
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -164,7 +164,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Banned Phrases
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -173,7 +173,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Avoid
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -182,7 +182,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Writing Rules
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -191,7 +191,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Exemplars
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -200,7 +200,7 @@ export function BrandVoiceProfileCard({
         </div>
 
         <div className="border border-border bg-card/40 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Sample Output
           </p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">

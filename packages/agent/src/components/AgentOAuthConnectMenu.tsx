@@ -117,7 +117,7 @@ export function AgentOAuthConnectMenu({
           <span
             className={
               isShellControl
-                ? 'text-[11px] font-medium text-foreground'
+                ? 'text-2xs font-medium text-foreground'
                 : undefined
             }
           >
@@ -139,7 +139,7 @@ export function AgentOAuthConnectMenu({
         className="w-[20rem] rounded-md p-2"
       >
         <div className="px-2.5 py-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/42">
+          <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-foreground/42">
             Connect a channel
           </p>
           <p className="mt-1 text-xs text-foreground/58">
@@ -157,7 +157,7 @@ export function AgentOAuthConnectMenu({
         <div className="max-h-72 space-y-3 overflow-y-auto px-1 pb-1">
           {groups.map((group) => (
             <div key={group.id} className="space-y-1">
-              <p className="px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-foreground/42">
+              <p className="px-2 text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/42">
                 {group.label}
               </p>
               <div className="grid grid-cols-2 gap-1">

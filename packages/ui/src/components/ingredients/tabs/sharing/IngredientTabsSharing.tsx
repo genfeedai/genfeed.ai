@@ -42,7 +42,7 @@ export default function IngredientTabsSharing({
   return (
     <div className="space-y-5">
       <div className="rounded-2xl bg-background-tertiary p-4 shadow-border">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Access Control
         </p>
         <p className="mt-1 text-sm text-muted-foreground">

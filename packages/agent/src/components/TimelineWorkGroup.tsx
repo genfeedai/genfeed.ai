@@ -173,7 +173,7 @@ function TimelineWorkGroupInner({
             </span>
             <span
               className={cn(
-                'inline-flex items-center gap-1 text-[11px]',
+                'inline-flex items-center gap-1 text-2xs',
                 terminalStatus === 'failed'
                   ? 'font-medium text-destructive'
                   : 'text-muted',
@@ -191,7 +191,7 @@ function TimelineWorkGroupInner({
                 <span aria-hidden="true" className="text-foreground/25">
                   ·
                 </span>
-                <span className="text-[11px] text-muted">
+                <span className="text-2xs text-muted">
                   {stepCount} step{stepCount !== 1 ? 's' : ''}
                 </span>
               </>
@@ -202,7 +202,7 @@ function TimelineWorkGroupInner({
             <span aria-hidden="true" className="text-foreground/25">
               ·
             </span>
-            <span className="text-[11px] text-muted">
+            <span className="text-2xs text-muted">
               {stepCount} step{stepCount !== 1 ? 's' : ''}
             </span>
           </>
@@ -212,7 +212,7 @@ function TimelineWorkGroupInner({
             <span aria-hidden="true" className="text-foreground/25">
               ·
             </span>
-            <span className="truncate text-[11px] text-muted">
+            <span className="truncate text-2xs text-muted">
               {failureDetail}
             </span>
           </>

@@ -49,12 +49,12 @@ export function TrendingTopicsCard({
                   </span>
                   <div className="flex items-center gap-1.5">
                     {trend.platform && (
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-2xs text-muted-foreground">
                         {trend.platform}
                       </span>
                     )}
                     {trend.score != null && (
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-2xs text-muted-foreground">
                         Score: {trend.score}
                       </span>
                     )}
@@ -67,7 +67,7 @@ export function TrendingTopicsCard({
                 onClick={() =>
                   onCreatePost?.({ id: trend.id, label: trend.label })
                 }
-                className="ml-2 flex shrink-0 items-center gap-1 rounded bg-orange-50 px-2 py-1 text-[10px] font-medium text-orange-600 transition-colors hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
+                className="ml-2 flex shrink-0 items-center gap-1 rounded bg-orange-50 px-2 py-1 text-2xs font-medium text-orange-600 transition-colors hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
               >
                 <SquarePen className="size-3" />
                 Create Post

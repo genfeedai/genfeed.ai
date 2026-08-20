@@ -128,14 +128,14 @@ export function NodeSearch() {
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div
-        className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-full max-w-lg"
+        className="bg-background border border-border shadow-xl w-full max-w-lg"
         role="dialog"
         aria-label="Find Node"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <Search className="size-4 text-[var(--muted-foreground)]" />
+            <Search className="size-4 text-muted-foreground" />
             <span className="text-sm font-medium">Find Node</span>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={handleClose}>
@@ -159,7 +159,7 @@ export function NodeSearch() {
               aria-label="Search nodes"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 

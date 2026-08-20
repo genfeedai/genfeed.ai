@@ -19,7 +19,7 @@ export default function MetricItem({
 }: MetricItemProps) {
   return (
     <div className={cn(className)}>
-      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/35">
         {label}
       </p>
       <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">

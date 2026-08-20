@@ -156,10 +156,10 @@ function ComparisonSliderComponent({
       </div>
 
       {/* Labels */}
-      <div className="absolute top-1.5 left-1.5 px-1 py-0.5 bg-black/60 rounded text-[9px] text-white font-medium pointer-events-none">
+      <div className="absolute top-1.5 left-1.5 px-1 py-0.5 bg-black/60 rounded text-2xs text-white font-medium pointer-events-none">
         {beforeLabel}
       </div>
-      <div className="absolute top-1.5 right-1.5 px-1 py-0.5 bg-black/60 rounded text-[9px] text-white font-medium pointer-events-none">
+      <div className="absolute top-1.5 right-1.5 px-1 py-0.5 bg-black/60 rounded text-2xs text-white font-medium pointer-events-none">
         {afterLabel}
       </div>
     </div>

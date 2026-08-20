@@ -150,7 +150,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
                   STATUS_DOT_CLASSES[campaign.status],
                 )}
               />
-              <span className="text-[11px] text-foreground/45">
+              <span className="text-2xs text-foreground/45">
                 {campaign.status}
               </span>
             </div>
@@ -173,7 +173,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
 
       {campaign.brief && (
         <div className="min-h-[40px] rounded bg-secondary px-3 py-2">
-          <p className="line-clamp-2 text-[11px] text-foreground/40 leading-relaxed">
+          <p className="line-clamp-2 text-2xs text-foreground/40 leading-relaxed">
             {campaign.brief}
           </p>
         </div>
@@ -198,7 +198,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
       </div>
 
       {campaign.nextOrchestratedAt && (
-        <p className="text-[10px] text-foreground/30">
+        <p className="text-2xs text-foreground/30">
           Next run {formatRelativeTime(campaign.nextOrchestratedAt)}
         </p>
       )}
@@ -219,7 +219,7 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
   return (
     <section data-testid="campaign-active-cards">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+        <h2 className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
           Active Programs
         </h2>
         {campaigns.filter((c) => c.status === 'active').length > 3 && (
@@ -368,7 +368,7 @@ export default function AgentCampaignsPage() {
           <ActiveCampaignCards campaigns={campaigns} />
           <section data-testid="campaign-table">
             <div className="mb-4">
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+              <h2 className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
                 All Programs
               </h2>
             </div>

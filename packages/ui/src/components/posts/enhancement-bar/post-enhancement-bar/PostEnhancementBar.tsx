@@ -278,7 +278,7 @@ export default function PostEnhancementBar({
                         priority
                       />
                       {mediaCount > 1 && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-[10px] font-bold">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-2xs font-bold">
                           {mediaCount}
                         </div>
                       )}

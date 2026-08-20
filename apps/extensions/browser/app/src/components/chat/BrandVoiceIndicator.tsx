@@ -19,7 +19,7 @@ export function BrandVoiceIndicator(): ReactElement | null {
 
   return (
     <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
-      <div className="size-4 shrink-0 rounded-full bg-primary/20 text-center text-[10px] leading-4 text-primary">
+      <div className="size-4 shrink-0 rounded-full bg-primary/20 text-center text-2xs leading-4 text-primary">
         {activeBrand.label.charAt(0).toUpperCase()}
       </div>
       <span className="truncate text-xs font-medium text-foreground">
@@ -27,8 +27,8 @@ export function BrandVoiceIndicator(): ReactElement | null {
       </span>
       {voiceSummary && (
         <>
-          <span className="text-[10px] text-muted-foreground">&middot;</span>
-          <span className="truncate text-[10px] text-muted-foreground">
+          <span className="text-2xs text-muted-foreground">&middot;</span>
+          <span className="truncate text-2xs text-muted-foreground">
             {voiceSummary}
           </span>
         </>

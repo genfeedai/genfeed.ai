@@ -38,7 +38,7 @@ export function ThemeSelector(): ReactElement {
         >
           Appearance
         </label>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-2xs text-muted-foreground">
           Match your device or choose a theme
         </p>
       </div>

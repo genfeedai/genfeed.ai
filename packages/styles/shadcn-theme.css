@@ -54,57 +54,53 @@
   --accent-pink: #ec4899;
   --accent-rose: #f472b6;
   --accent-orange: #f97316;
+
+  /*
+   * Editorial accent surface used by the marketing pages. Every translucent
+   * step is a rung of the neutral alpha ladder, so it inverts with the theme
+   * on its own and lands on the same value a solid `--gray-*` would.
+   *
+   * `--gen-accent-text` and `--gen-accent-heading` carry running copy, so they
+   * start at step 800 — the first rung that clears 4.5:1 in both themes. The
+   * old values (0.4 / 0.5 alpha) measured 2.9:1 and 3.9:1 respectively.
+   */
+  --gen-accent-bg: var(--gray-alpha-100);
+  --gen-accent-tint: var(--gray-alpha-200);
+  --gen-accent-border: var(--gray-alpha-300);
+  --gen-accent-border-strong: var(--gray-alpha-400);
+  --gen-accent-glow: var(--gray-alpha-300);
+  --gen-accent-hover: var(--gray-alpha-500);
+  --gen-accent-selection: var(--gray-alpha-600);
+  --gen-accent-text: var(--gray-alpha-800);
+  --gen-accent-heading: var(--gray-alpha-900);
+
+  --nn-bg-glass: var(--gray-alpha-100);
+  --nn-bg-glass-hover: var(--gray-alpha-200);
+  --nn-border-subtle: var(--gray-alpha-200);
+  --nn-border-hover: var(--gray-alpha-300);
+  --nn-border-active: var(--gray-alpha-400);
 }
 
 @layer base {
+  /*
+   * The two solid steps of the accent pair stay per-theme: they are HSL triples
+   * consumed through `hsl()`, not alpha composites. Neither reaches pure
+   * black or pure white — a full-strength foreground blooms against the
+   * canvas at body sizes and flattens every elevation cue above it.
+   *
+   * `--shadow-sm/md/lg` used to be redefined here. They now come from
+   * packages/ui/web-tokens.css (imported at the top of this file); redefining
+   * them below that import in the same layer silently overrode the generated
+   * elevation scale.
+   */
   :root,
   [data-theme="light"] {
-    --gen-accent: 0 0% 0%;
-    --gen-accent-bright: 0 0% 15%;
-    --gen-accent-bg: rgba(0, 0, 0, 0.03);
-    --gen-accent-tint: rgba(0, 0, 0, 0.05);
-    --gen-accent-border: rgba(0, 0, 0, 0.08);
-    --gen-accent-border-strong: rgba(0, 0, 0, 0.15);
-    --gen-accent-glow: rgba(0, 0, 0, 0.06);
-    --gen-accent-hover: rgba(0, 0, 0, 0.15);
-    --gen-accent-selection: rgba(0, 0, 0, 0.2);
-    /* 0.6 alpha = 5.74:1 on white; 0.5 measured 3.98:1 and failed WCAG 1.4.3. */
-    --gen-accent-text: rgba(0, 0, 0, 0.6);
-    --gen-accent-heading: rgba(0, 0, 0, 0.7);
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
-
-    --nn-bg-glass: var(--overlay-black-5);
-    --nn-bg-glass-hover: var(--overlay-black-5);
-    --nn-border-subtle: var(--overlay-black-10);
-    --nn-border-hover: var(--overlay-black-10);
-    --nn-border-active: var(--overlay-black-20);
+    --gen-accent: 0 0% 9%;
+    --gen-accent-bright: 0 0% 20%;
   }
 
   [data-theme="dark"] {
-    --gen-accent: 0 0% 100%;
-    --gen-accent-bright: 0 0% 90%;
-    --gen-accent-bg: rgba(255, 255, 255, 0.05);
-    --gen-accent-tint: rgba(255, 255, 255, 0.08);
-    --gen-accent-border: rgba(255, 255, 255, 0.14);
-    --gen-accent-border-strong: rgba(255, 255, 255, 0.2);
-    --gen-accent-glow: rgba(255, 255, 255, 0.15);
-    --gen-accent-hover: rgba(255, 255, 255, 0.25);
-    --gen-accent-selection: rgba(255, 255, 255, 0.3);
-    /* 0.55 alpha = 6.29:1 on the near-black canvas; 0.4 measured 3.69:1. */
-    --gen-accent-text: rgba(255, 255, 255, 0.55);
-    --gen-accent-heading: rgba(255, 255, 255, 0.6);
-
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
-
-    --nn-bg-glass: var(--overlay-white-5);
-    --nn-bg-glass-hover: var(--overlay-white-8);
-    --nn-border-subtle: var(--overlay-white-8);
-    --nn-border-hover: var(--overlay-white-15);
-    --nn-border-active: var(--overlay-white-20);
+    --gen-accent: 0 0% 93%;
+    --gen-accent-bright: 0 0% 85%;
   }
 }

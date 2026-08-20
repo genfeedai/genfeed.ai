@@ -367,18 +367,18 @@ function MediaTile({
       ) : null}
       <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
         {item.isAnimated ? (
-          <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+          <span className="rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white">
             Animated
           </span>
         ) : null}
         {item.durationLabel ? (
-          <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-white">
+          <span className="rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white">
             {item.durationLabel}
           </span>
         ) : null}
       </div>
       {consequence ? (
-        <span className="absolute inset-x-0 bottom-0 bg-warning/90 px-2 py-1 text-left text-[10px] font-medium leading-tight text-warning-foreground">
+        <span className="absolute inset-x-0 bottom-0 bg-warning/90 px-2 py-1 text-left text-2xs font-medium leading-tight text-warning-foreground">
           {consequence}
         </span>
       ) : null}

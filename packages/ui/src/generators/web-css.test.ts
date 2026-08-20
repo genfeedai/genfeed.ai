@@ -7,6 +7,6 @@ describe('generateWebTokenCss', () => {
 
     expect(css).toContain('@media (prefers-color-scheme: dark)');
     expect(css).toContain(':root:not([data-theme])');
-    expect(css).toContain('--background: 0 0% 1%');
+    expect(css).toContain('--background: 0 0% 4%');
   });
 });
