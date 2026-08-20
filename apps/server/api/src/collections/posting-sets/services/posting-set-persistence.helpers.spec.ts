@@ -1,4 +1,5 @@
 import { CredentialPlatform } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import {
   parseCreatePostingSetInput,
@@ -27,12 +28,21 @@ describe('posting-set persistence helpers', () => {
   });
 
   it('rejects a posting set without targets', () => {
-    expect(() =>
+    let thrown: unknown;
+
+    try {
       parseCreatePostingSetInput({
         label: 'Empty',
         targets: [],
-      }),
-    ).toThrow('Invalid posting set payload');
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(BadRequestException);
+    expect((thrown as BadRequestException).getResponse()).toMatchObject({
+      title: 'Invalid posting set payload',
+    });
   });
 
   it('drops malformed stored targets instead of throwing', () => {
