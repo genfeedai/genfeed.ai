@@ -68,7 +68,8 @@
     --gen-accent-glow: rgba(0, 0, 0, 0.06);
     --gen-accent-hover: rgba(0, 0, 0, 0.15);
     --gen-accent-selection: rgba(0, 0, 0, 0.2);
-    --gen-accent-text: rgba(0, 0, 0, 0.5);
+    /* 0.6 alpha = 5.74:1 on white; 0.5 measured 3.98:1 and failed WCAG 1.4.3. */
+    --gen-accent-text: rgba(0, 0, 0, 0.6);
     --gen-accent-heading: rgba(0, 0, 0, 0.7);
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -92,7 +93,8 @@
     --gen-accent-glow: rgba(255, 255, 255, 0.15);
     --gen-accent-hover: rgba(255, 255, 255, 0.25);
     --gen-accent-selection: rgba(255, 255, 255, 0.3);
-    --gen-accent-text: rgba(255, 255, 255, 0.4);
+    /* 0.55 alpha = 6.29:1 on the near-black canvas; 0.4 measured 3.69:1. */
+    --gen-accent-text: rgba(255, 255, 255, 0.55);
     --gen-accent-heading: rgba(255, 255, 255, 0.6);
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);

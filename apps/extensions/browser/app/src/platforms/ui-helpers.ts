@@ -1,6 +1,7 @@
 // UI helper functions for creating buttons and icons
 
 import { findElement } from '~platforms/twitter-selectors';
+import { logoWhiteURL } from '~services/environment.service';
 import { applyContentThemeToElement } from '~theme/content-theme';
 import { logger } from '~utils/logger.util';
 
@@ -984,7 +985,7 @@ export function createGenFeedDropdown(
   const button = document.createElement('button');
   button.className = 'genfeed-dropdown-btn';
   const logoImg = document.createElement('img');
-  logoImg.src = 'https://assets.genfeed.ai/branding/logo-white.png';
+  logoImg.src = logoWhiteURL;
   logoImg.alt = 'Genfeed';
   logoImg.style.cssText = 'width: 16px; height: 16px;';
   button.appendChild(logoImg);

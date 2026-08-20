@@ -101,7 +101,7 @@ export default function CloudContent() {
                   <div className="size-3 rounded-full bg-fill/20" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="bg-fill/[0.03] border border-edge/5 px-3 py-1.5 text-xs text-surface/45 text-center font-mono uppercase tracking-widest">
+                  <div className="bg-fill/[0.03] border border-edge/5 px-3 py-1.5 text-xs text-surface/55 text-center font-mono uppercase tracking-widest">
                     app.genfeed.ai
                   </div>
                 </div>
@@ -147,7 +147,7 @@ export default function CloudContent() {
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-3 mb-6">
               <Users className="size-5 text-surface/60" />
-              <span className="text-xs font-black uppercase tracking-widest text-surface/45">
+              <span className="text-xs font-black uppercase tracking-widest text-surface/55">
                 Built for Growing Teams
               </span>
             </div>

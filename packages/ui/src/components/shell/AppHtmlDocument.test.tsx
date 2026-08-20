@@ -66,6 +66,43 @@ describe('AppHtmlDocument', () => {
     },
   );
 
+  it('emits real connection hints as link tags, not inert meta tags', () => {
+    const html = renderToStaticMarkup(
+      <AppHtmlDocument fontVariables="font-test" initialTheme="dark">
+        <main>Content</main>
+      </AppHtmlDocument>,
+    );
+
+    // `<meta name="preconnect">` is ignored by every browser — only the link
+    // form opens a socket.
+    expect(html).not.toContain('name="preconnect"');
+    expect(html).toContain(
+      '<link crossorigin="anonymous" href="https://api.genfeed.ai" rel="preconnect"/>',
+    );
+    expect(html).toContain(
+      '<link crossorigin="anonymous" href="https://cdn.genfeed.ai" rel="preconnect"/>',
+    );
+    expect(html).toContain(
+      '<link href="https://notifications.genfeed.ai" rel="dns-prefetch"/>',
+    );
+  });
+
+  it('lets an app override the hinted origins', () => {
+    const html = renderToStaticMarkup(
+      <AppHtmlDocument
+        dnsPrefetch={[]}
+        fontVariables="font-test"
+        initialTheme="dark"
+        preconnect={['https://example.test']}
+      >
+        <main>Content</main>
+      </AppHtmlDocument>,
+    );
+
+    expect(html).toContain('href="https://example.test" rel="preconnect"');
+    expect(html).not.toContain('rel="dns-prefetch"');
+  });
+
   it('applies an explicit stored Light preference before paint even when the OS is dark', () => {
     const html = renderToStaticMarkup(
       <AppHtmlDocument fontVariables="font-test" initialTheme="system">

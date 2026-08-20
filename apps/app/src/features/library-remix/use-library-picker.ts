@@ -3,7 +3,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { PagesService } from '@genfeedai/services/content/pages.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -106,7 +105,7 @@ export function useLibraryPicker(params: {
   });
   const categoryConfig = useMemo(() => getCategoryConfig(category), [category]);
   const getIngredientsService = useAuthedService((token: string) =>
-    IngredientsService.getInstance<Ingredient>(categoryConfig.key, token),
+    IngredientsService.getInstance(categoryConfig.key, token),
   );
 
   const loadPage = useCallback(

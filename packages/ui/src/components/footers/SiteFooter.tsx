@@ -124,9 +124,9 @@ export default function SiteFooter({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
             {sections.map((section) => (
               <div key={section.title}>
-                <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10">
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10">
                   {section.title}
-                </h4>
+                </h3>
                 <ul className="space-y-6 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   {section.links.map((link) => (
                     <li key={link.href}>
@@ -149,10 +149,10 @@ export default function SiteFooter({
             {/* Newsletter Column */}
             {showNewsletter && (
               <div>
-                <h4 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
                   <Mail className="size-4" />
                   Newsletter
-                </h4>
+                </h3>
                 <p className="mb-6 text-sm font-medium leading-relaxed text-muted-foreground">
                   AI content tips and product updates delivered weekly.
                 </p>
@@ -180,9 +180,9 @@ export default function SiteFooter({
                 </div>
 
                 <div>
-                  <h4 className="mb-1 text-xl font-semibold uppercase tracking-wide text-foreground">
+                  <h3 className="mb-1 text-xl font-semibold uppercase tracking-wide text-foreground">
                     Want to chat?
-                  </h4>
+                  </h3>
 
                   <p className="text-sm font-medium text-muted-foreground">
                     Schedule a 30-minute call to discuss your content needs.

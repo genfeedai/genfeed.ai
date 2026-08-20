@@ -149,7 +149,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         }
         heroVisual={
           <div className="overflow-hidden rounded-lg bg-card shadow-border-strong">
-            <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-surface/45">
+            <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-surface/55">
               Connect your agent
             </p>
             <Pre className="overflow-x-auto bg-background/80 p-6 text-sm leading-6">

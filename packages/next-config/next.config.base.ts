@@ -39,6 +39,12 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     // during `next build` / `next dev`, so two levels up is the repo root.
     outputFileTracingRoot: path.resolve(process.cwd(), '..', '..'),
     experimental: {
+      // Inline the route's CSS into <head> instead of emitting a blocking
+      // <link rel="stylesheet">. Our single Tailwind chunk is ~55 KiB and was
+      // the largest render-blocking resource on every public page (580ms on
+      // genfeed.ai, 320ms on app.genfeed.ai), delaying FCP and LCP by exactly
+      // that much. Inlining removes the extra round trip entirely.
+      inlineCss: true,
       // Do NOT add lucide-react here. Turbopack rewrites multi-alias default
       // re-exports (ChartColumn / BarChart3 → chart-column.mjs) into a broken
       // binding that crashes client render as "X is not a function".

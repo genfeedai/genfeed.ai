@@ -18,6 +18,10 @@ export {
   default as PublicShell,
   type PublicShellProps,
 } from '@ui/shell/PublicShell';
+export {
+  DNS_PREFETCH_ORIGINS,
+  PRECONNECT_ORIGINS,
+} from '@ui/shell/resource-hints';
 export { default as Sidebar } from '@ui/shell/Sidebar';
 export { default as Topbar } from '@ui/shell/Topbar';
 export type {

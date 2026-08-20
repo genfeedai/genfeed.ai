@@ -174,9 +174,10 @@ export class WatchlistsService extends BaseService<
   ): Promise<WatchlistDocument | null> {
     this.logOperation('updateMetrics', 'started', { id, metrics });
 
-    const existing = await this.prisma.watchlist.findUnique({
+    // tenant-scope-ignore: bootstrap read recovers organizationId for the scoped write; watchlist id is globally unique
+    const existing = await this.prisma.watchlist.findFirst({
       select: { config: true, organizationId: true },
-      where: { id: String(id) },
+      where: { id: String(id), isDeleted: false },
     });
 
     if (!existing?.organizationId) {

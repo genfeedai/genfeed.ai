@@ -1,6 +1,14 @@
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 
 describe('WorkflowExecutionController RBAC', () => {
+  it('should require owner, admin, or creator role for execute', () => {
+    const metadata = Reflect.getMetadata(
+      'roles',
+      WorkflowExecutionController.prototype.execute,
+    );
+    expect(metadata).toEqual(['owner', 'admin', 'creator']);
+  });
+
   it('should require owner, admin, or creator role for executePartial', () => {
     const metadata = Reflect.getMetadata(
       'roles',

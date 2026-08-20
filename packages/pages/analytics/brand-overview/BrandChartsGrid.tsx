@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, parsePlatform } from '@genfeedai/enums';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
@@ -85,18 +85,10 @@ export default function BrandChartsGrid({
       <Card label="Performance Trends">
         <PlatformTimeSeriesChart
           data={timeSeriesData}
-          platforms={
-            connectedPlatforms.length > 0
-              ? (connectedPlatforms as Array<
-                  | 'instagram'
-                  | 'tiktok'
-                  | 'youtube'
-                  | 'twitter'
-                  | 'facebook'
-                  | 'linkedin'
-                >)
-              : []
-          }
+          platforms={connectedPlatforms.flatMap((platform) => {
+            const parsed = parsePlatform(platform);
+            return parsed ? [parsed] : [];
+          })}
           isLoading={isLoadingTimeSeries}
           height={300}
         />
