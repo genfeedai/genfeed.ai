@@ -588,7 +588,7 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" brandSlug="my-brand" />);
       expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/studio/storyboard',
+        '/acme/my-brand/studio/generate',
       );
     });
 
