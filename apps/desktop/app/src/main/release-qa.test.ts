@@ -78,6 +78,16 @@ describe('desktop release QA', () => {
     );
   });
 
+  it('does not inline CSS into the desktop standalone app shell', () => {
+    const nextConfig = readText('packages/next-config/next.config.base.ts');
+    const buildShell = readText('apps/desktop/app/scripts/build-app-shell.cjs');
+
+    expect(buildShell).toContain("GENFEED_DESKTOP_BUNDLE: '1'");
+    expect(nextConfig).toContain(
+      "inlineCss: process.env.GENFEED_DESKTOP_BUNDLE !== '1'",
+    );
+  });
+
   it('packages the canonical app instead of a desktop-local renderer', () => {
     const buildShell = readText('apps/desktop/app/scripts/build-app-shell.cjs');
     const copyShell = readText('apps/desktop/app/scripts/copy-app-shell.cjs');

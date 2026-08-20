@@ -133,7 +133,7 @@ export class YoutubeUploadService {
 
       const playlistId = readChannelSettingString(settings, 'playlistId');
 
-      const res = await this.youtubeAPI.videos.insert({
+      const insertParams: youtube_v3.Params$Resource$Videos$Insert = {
         auth,
         media: {
           body: fs.createReadStream(filePath),
@@ -147,7 +147,8 @@ export class YoutubeUploadService {
           },
           status: statusConfig,
         },
-      });
+      };
+      const res = await this.youtubeAPI.videos.insert(insertParams, {});
 
       if (!res.data?.id) {
         throw new Error('Failed to upload video');

@@ -153,7 +153,7 @@ export class YoutubeService {
         throw new Error('YouTube API not initialized');
       }
 
-      const res = await this.youtubeAPI.videos.insert({
+      const insertParams: youtube_v3.Params$Resource$Videos$Insert = {
         media: {
           body: fs.createReadStream(filePath),
         },
@@ -166,7 +166,8 @@ export class YoutubeService {
           },
           status: statusConfig,
         },
-      });
+      };
+      const res = await this.youtubeAPI.videos.insert(insertParams, {});
 
       if (!res.data.id) {
         throw new Error('Failed to upload video to YouTube');
