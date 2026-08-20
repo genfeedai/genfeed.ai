@@ -281,10 +281,11 @@ export class TrendSourcePreviewService {
       sourcePreviewState,
     };
     const trendId = String(trend.id);
+    const organizationId = trend.organizationId ?? null;
     const where =
-      trend.organizationId === null
+      organizationId === null
         ? { id: trendId, isDeleted: false, organizationId: null }
-        : scopedWhere(trend.organizationId, { id: trendId });
+        : scopedWhere(organizationId, { id: trendId });
 
     const existingDoc = await this.prisma.trend.findFirst({
       where,

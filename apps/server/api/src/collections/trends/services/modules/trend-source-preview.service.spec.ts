@@ -273,6 +273,15 @@ describe('TrendSourcePreviewService', () => {
       });
       expect(prisma.trend.update).toHaveBeenCalledWith(
         expect.objectContaining({
+          data: {
+            data: expect.objectContaining({
+              metadata: expect.objectContaining({
+                sourcePreviewCache: [expect.objectContaining({ id: 'live-1' })],
+                sourcePreviewCachedAt: expect.any(String),
+                sourcePreviewState: 'live',
+              }),
+            }),
+          },
           where: {
             id: 'trend-1',
             isDeleted: false,
@@ -293,6 +302,37 @@ describe('TrendSourcePreviewService', () => {
         id: 'trend-1',
         isDeleted: false,
         organizationId: 'org-1',
+      };
+      expect(prisma.trend.findFirst).toHaveBeenCalledWith({
+        where: expectedWhere,
+      });
+      expect(prisma.trend.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            data: expect.objectContaining({
+              metadata: expect.objectContaining({
+                sourcePreviewCache: [],
+                sourcePreviewCachedAt: expect.any(String),
+                sourcePreviewState: 'empty',
+              }),
+            }),
+          },
+          where: expectedWhere,
+        }),
+      );
+    });
+
+    it('treats a missing organization scope as global', async () => {
+      prisma.trend.findFirst.mockResolvedValue({ data: {} });
+      vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
+      const trend = makeTrend({ organizationId: undefined });
+
+      await service.precomputeTrendSourcePreview([trend], { force: true });
+
+      const expectedWhere = {
+        id: 'trend-1',
+        isDeleted: false,
+        organizationId: null,
       };
       expect(prisma.trend.findFirst).toHaveBeenCalledWith({
         where: expectedWhere,
