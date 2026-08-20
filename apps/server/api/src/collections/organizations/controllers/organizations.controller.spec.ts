@@ -343,6 +343,35 @@ describe('OrganizationsController', () => {
         },
       ]);
     });
+
+    it('defaults a regular user to their membership organizations without a mine flag', async () => {
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
+        { id: 'member_1', isActive: true, organizationId: 'org_active' },
+      ]);
+      mockOrganizationsService.findOne.mockResolvedValue({
+        id: 'org_active',
+        label: 'Active Org',
+        slug: 'active-org',
+        userId: 'user_1',
+      });
+      mockBrandsService.findOne.mockResolvedValue(null);
+
+      const result = await controller.findAll({} as never, currentUser, {});
+
+      expect(result).toEqual([
+        {
+          brand: null,
+          id: 'org_active',
+          isActive: true,
+          isOwner: true,
+          label: 'Active Org',
+          slug: 'active-org',
+        },
+      ]);
+      expect(mockMembersService.findActiveForUserAccess).toHaveBeenCalledWith(
+        'user_1',
+      );
+    });
   });
 
   describe('createOrganization', () => {

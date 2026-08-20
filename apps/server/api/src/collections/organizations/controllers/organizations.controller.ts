@@ -162,8 +162,9 @@ export class OrganizationsController extends BaseCRUDController<
   /**
    * List organizations.
    *
-   * - `?mine=true` — membership summaries for the current user (cross-org).
-   * - default — platform-wide list (superadmin only).
+   * - regular users — membership summaries for the current user (cross-org).
+   * - platform superadmins — platform-wide list by default; `?mine=true`
+   *   narrows the response to their own memberships.
    */
   findAll(
     request: Request,
@@ -182,22 +183,9 @@ export class OrganizationsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: OrganizationQueryDto,
   ): Promise<JsonApiCollectionResponse | OrganizationOption[]> {
-    if (query.mine) {
+    const isSuperAdmin = getIsSuperAdmin(user, request);
+    if (query.mine || !isSuperAdmin) {
       return this.findMine(user);
-    }
-
-    // Must pass request: self-host hydrates the request-context admin flag,
-    // while hosted auth derives the same capability from users.platformRole.
-    // Checking user alone 403s platform admins who only have the context bit
-    // (local Portless / self-host) — same split that SuperAdminGuard avoids.
-    if (!getIsSuperAdmin(user, request)) {
-      throw new HttpException(
-        {
-          detail: 'Platform superadmin access is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
     }
 
     const options = {
