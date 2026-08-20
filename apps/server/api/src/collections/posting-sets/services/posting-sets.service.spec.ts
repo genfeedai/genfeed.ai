@@ -155,7 +155,7 @@ describe('PostingSetsService', () => {
 
     expect(postingSet.update).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { id: 'set-1' },
+      where: scopedWhere('org-1', { id: 'set-1' }),
     });
   });
 

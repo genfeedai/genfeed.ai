@@ -5,16 +5,17 @@ import { PostingSetsQueryDto } from '@api/collections/posting-sets/dto/posting-s
 import { UpdatePostingSetDto } from '@api/collections/posting-sets/dto/update-posting-set.dto';
 import { PostingSetsService } from '@api/collections/posting-sets/services/posting-sets.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import {
-  extractRequestContext,
-  type RequestContext,
-} from '@api/helpers/utils/auth/auth.util';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import type { IPostingSetScope } from '@genfeedai/interfaces';
 import { PostingSetSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -50,6 +51,7 @@ export class PostingSetsController {
   }
 
   @Post()
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -78,6 +80,7 @@ export class PostingSetsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -96,6 +99,7 @@ export class PostingSetsController {
   }
 
   @Delete(':id')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(
     @CurrentUser() user: User,
@@ -108,6 +112,7 @@ export class PostingSetsController {
   }
 
   @Post(':id/expand')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async expand(
     @CurrentUser() user: User,
@@ -127,13 +132,24 @@ export class PostingSetsController {
   private requireScope(
     user: User,
     query?: PostingSetsQueryDto,
-  ): RequestContext {
-    const context = extractRequestContext(user, query);
-    if (!context.organizationId || !context.userId) {
+  ): IPostingSetScope {
+    const authorized = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query ?? {},
+      user,
+      getIsSuperAdmin(user),
+    );
+    const organizationId = authorized.organizationId ?? user.organizationId;
+    const userId = user.userId ?? user.id;
+    if (!organizationId || !userId) {
       throw new BadRequestException(
         'Organization and user context are required',
       );
     }
-    return context;
+    const brandId = authorized.brandId ?? user.brandId;
+    return {
+      ...(brandId ? { brandId } : {}),
+      organizationId,
+      userId,
+    };
   }
 }

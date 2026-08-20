@@ -14,10 +14,14 @@ export type ApiKeyPublishingContext = Pick<
   'isApiKey' | 'scopes'
 >;
 
-export const API_KEY_POST_CREATION_SCOPES = [
+export const API_KEY_POSTING_CONFIGURATION_SCOPES = [
   ApiKeyScope.POSTS_DRAFT,
   ApiKeyScope.POSTS_CREATE,
   ApiKeyScope.POSTS_SCHEDULE,
+] as const;
+
+export const API_KEY_POST_CREATION_SCOPES = [
+  ...API_KEY_POSTING_CONFIGURATION_SCOPES,
   ApiKeyScope.POSTS_PUBLISH,
 ] as const;
 

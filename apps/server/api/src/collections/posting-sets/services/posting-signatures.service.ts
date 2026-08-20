@@ -100,7 +100,7 @@ export class PostingSignaturesService {
           ? {}
           : { platforms: input.platforms }),
       },
-      where: { id: existing.id },
+      where: scopedWhere(context.organizationId, { id: existing.id }),
     });
     return this.toDocument(updated);
   }
@@ -109,7 +109,7 @@ export class PostingSignaturesService {
     const existing = await this.requireSignatureRow(id, context);
     await this.delegate().update({
       data: { isDeleted: true },
-      where: { id: existing.id },
+      where: scopedWhere(context.organizationId, { id: existing.id }),
     });
   }
 

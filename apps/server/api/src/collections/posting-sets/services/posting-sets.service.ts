@@ -122,7 +122,7 @@ export class PostingSetsService {
           ? {}
           : { targets: toPrismaJson(input.targets) }),
       },
-      where: { id: existing.id },
+      where: scopedWhere(context.organizationId, { id: existing.id }),
     });
     return this.hydrate(updated, context.organizationId);
   }
@@ -131,7 +131,7 @@ export class PostingSetsService {
     const existing = await this.requireRow(id, context);
     await this.delegate().update({
       data: { isDeleted: true },
-      where: { id: existing.id },
+      where: scopedWhere(context.organizationId, { id: existing.id }),
     });
   }
 

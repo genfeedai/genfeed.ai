@@ -106,7 +106,7 @@ describe('PostingSignaturesService', () => {
 
     expect(postingSignature.update).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { id: 'sig-1' },
+      where: scopedWhere('org-1', { id: 'sig-1' }),
     });
   });
 });

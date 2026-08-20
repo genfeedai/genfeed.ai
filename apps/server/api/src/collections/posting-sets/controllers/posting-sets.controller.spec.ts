@@ -1,14 +1,14 @@
 import { PostingSetsController } from '@api/collections/posting-sets/controllers/posting-sets.controller';
 import type { PostingSetsService } from '@api/collections/posting-sets/services/posting-sets.service';
-import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
+import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { ApiKeyScope } from '@genfeedai/enums';
+import { ForbiddenException } from '@nestjs/common';
 
-vi.mock('@api/helpers/utils/auth/auth.util', () => ({
-  extractRequestContext: vi.fn(() => ({
-    brandId: 'brand-1',
-    organizationId: 'org-1',
-    userId: 'user-1',
-  })),
-}));
+const MUTATION_SCOPES = [
+  ApiKeyScope.POSTS_DRAFT,
+  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.POSTS_SCHEDULE,
+];
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =
@@ -30,7 +30,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 describe('PostingSetsController', () => {
   const request = {} as never;
-  const user = { id: 'user-1' } as never;
+  const user = {
+    brandId: 'brand-1',
+    id: 'user-1',
+    isSuperAdmin: false,
+    organizationId: 'org-1',
+    userId: 'user-1',
+  } as never;
   const service = {
     createScoped: vi.fn(),
     expandScoped: vi.fn(),
@@ -56,12 +62,38 @@ describe('PostingSetsController', () => {
 
     await controller.create(request, user, body as never);
 
-    expect(extractRequestContext).toHaveBeenCalledWith(user);
     expect(service.createScoped).toHaveBeenCalledWith(body, {
       brandId: 'brand-1',
       organizationId: 'org-1',
       userId: 'user-1',
     });
+  });
+
+  it('rejects a cross-tenant organization override before mutation', async () => {
+    await expect(
+      controller.update(
+        request,
+        user,
+        { organizationId: 'org-2' } as never,
+        'set-1',
+        { label: 'Hijacked' } as never,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(service.updateScoped).not.toHaveBeenCalled();
+  });
+
+  it('declares posting write scopes on every mutation and expansion route', () => {
+    for (const handler of [
+      PostingSetsController.prototype.create,
+      PostingSetsController.prototype.update,
+      PostingSetsController.prototype.remove,
+      PostingSetsController.prototype.expand,
+    ]) {
+      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual(
+        MUTATION_SCOPES,
+      );
+    }
   });
 
   it('passes tenant scope through read, update, remove, and expand', async () => {
