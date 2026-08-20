@@ -19,6 +19,10 @@ import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orche
 import { AgentOrchestratorStreamLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-stream-loop.service';
 import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-sync-loop.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
+import { AgentOrchestratorUiActionBrandIdentityService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-brand-identity.service';
+import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
+import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
@@ -632,51 +636,141 @@ describe('AgentOrchestratorService', () => {
             ),
         },
         {
+          provide: AgentOrchestratorUiActionFinalizerService,
+          useFactory: (
+            agentMessagesSvc: AgentMessagesService,
+            agentRunsSvc: AgentRunsService,
+            creditsUtilsSvc: CreditsUtilsService,
+            completionCardBuilderSvc: AgentCompletionCardBuilderService,
+            threadEventRecorderSvc: AgentThreadEventRecorderService,
+          ) =>
+            new AgentOrchestratorUiActionFinalizerService(
+              agentMessagesSvc,
+              agentRunsSvc,
+              creditsUtilsSvc,
+              completionCardBuilderSvc,
+              threadEventRecorderSvc,
+            ),
+          inject: [
+            AgentMessagesService,
+            AgentRunsService,
+            CreditsUtilsService,
+            AgentCompletionCardBuilderService,
+            AgentThreadEventRecorderService,
+          ],
+        },
+        {
+          provide: AgentOrchestratorUiActionBrandIdentityService,
+          useFactory: (
+            agentMessagesSvc: AgentMessagesService,
+            creditsUtilsSvc: CreditsUtilsService,
+            toolExecutorSvc: AgentToolExecutorService,
+            threadEventRecorderSvc: AgentThreadEventRecorderService,
+            agentScopeContextSvc: AgentScopeContextService,
+            agentRunsSvc: AgentRunsService,
+            cacheSvc: CacheService,
+            finalizerSvc: AgentOrchestratorUiActionFinalizerService,
+          ) =>
+            new AgentOrchestratorUiActionBrandIdentityService(
+              agentMessagesSvc,
+              creditsUtilsSvc,
+              toolExecutorSvc,
+              threadEventRecorderSvc,
+              agentScopeContextSvc,
+              agentRunsSvc,
+              cacheSvc,
+              finalizerSvc,
+            ),
+          inject: [
+            AgentMessagesService,
+            CreditsUtilsService,
+            AgentToolExecutorService,
+            AgentThreadEventRecorderService,
+            AgentScopeContextService,
+            AgentRunsService,
+            CacheService,
+            AgentOrchestratorUiActionFinalizerService,
+          ],
+        },
+        {
+          provide: AgentOrchestratorUiActionConfirmedToolService,
+          useFactory: (
+            toolExecutorSvc: AgentToolExecutorService,
+            threadEventRecorderSvc: AgentThreadEventRecorderService,
+            finalizerSvc: AgentOrchestratorUiActionFinalizerService,
+            cacheSvc: CacheService,
+          ) =>
+            new AgentOrchestratorUiActionConfirmedToolService(
+              toolExecutorSvc,
+              threadEventRecorderSvc,
+              finalizerSvc,
+              cacheSvc,
+            ),
+          inject: [
+            AgentToolExecutorService,
+            AgentThreadEventRecorderService,
+            AgentOrchestratorUiActionFinalizerService,
+            CacheService,
+          ],
+        },
+        {
+          provide: AgentOrchestratorUiActionPlanService,
+          useFactory: (
+            agentChatModelRegistry: AgentChatModelRegistryService,
+            threadEventRecorderSvc: AgentThreadEventRecorderService,
+            threadEngineSvc: AgentThreadEngineService,
+          ) =>
+            new AgentOrchestratorUiActionPlanService(
+              agentChatModelRegistry,
+              threadEventRecorderSvc,
+              threadEngineSvc,
+            ),
+          inject: [
+            AgentChatModelRegistryService,
+            AgentThreadEventRecorderService,
+            AgentThreadEngineService,
+          ],
+        },
+        {
           inject: [
             AgentChatModelRegistryService,
             AgentThreadsService,
             AgentScopeContextService,
-            AgentMessagesService,
-            CreditsUtilsService,
-            AgentToolExecutorService,
-            AgentCompletionCardBuilderService,
             AgentThreadEventRecorderService,
             OrganizationSettingsService,
             AgentRunsService,
             CacheService,
+            AgentOrchestratorUiActionBrandIdentityService,
+            AgentOrchestratorUiActionConfirmedToolService,
+            AgentOrchestratorUiActionPlanService,
             AgentRuntimeSessionService,
-            AgentThreadEngineService,
           ],
           provide: AgentOrchestratorUiActionService,
           useFactory: (
             agentChatModelRegistry: AgentChatModelRegistryService,
             agentThreadsSvc: AgentThreadsService,
             agentScopeContextSvc: AgentScopeContextService,
-            agentMessagesSvc: AgentMessagesService,
-            creditsUtilsSvc: CreditsUtilsService,
-            toolExecutorSvc: AgentToolExecutorService,
-            completionCardBuilderSvc: AgentCompletionCardBuilderService,
             threadEventRecorderSvc: AgentThreadEventRecorderService,
             organizationSettingsSvc: OrganizationSettingsService,
             agentRunsSvc: AgentRunsService,
             cacheSvc: CacheService,
+            brandIdentityActionsSvc: AgentOrchestratorUiActionBrandIdentityService,
+            confirmedToolActionsSvc: AgentOrchestratorUiActionConfirmedToolService,
+            planActionsSvc: AgentOrchestratorUiActionPlanService,
             runtimeSessionSvc: AgentRuntimeSessionService,
-            threadEngineSvc: AgentThreadEngineService,
           ) =>
             new AgentOrchestratorUiActionService(
               agentChatModelRegistry,
               agentThreadsSvc,
               agentScopeContextSvc,
-              agentMessagesSvc,
-              creditsUtilsSvc,
-              toolExecutorSvc,
-              completionCardBuilderSvc,
               threadEventRecorderSvc,
               organizationSettingsSvc,
               agentRunsSvc,
               cacheSvc,
+              brandIdentityActionsSvc,
+              confirmedToolActionsSvc,
+              planActionsSvc,
               runtimeSessionSvc,
-              threadEngineSvc,
             ),
         },
         {

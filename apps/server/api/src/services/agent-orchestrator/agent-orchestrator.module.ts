@@ -49,6 +49,10 @@ import { AgentOrchestratorRecurringTaskService } from '@api/services/agent-orche
 import { AgentOrchestratorStreamLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-stream-loop.service';
 import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrator/agent-orchestrator-sync-loop.service';
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
+import { AgentOrchestratorUiActionBrandIdentityService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-brand-identity.service';
+import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
+import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
@@ -187,6 +191,10 @@ import { Module } from '@nestjs/common';
     AgentOrchestratorService,
     AgentOrchestratorStreamLoopService,
     AgentOrchestratorSyncLoopService,
+    AgentOrchestratorUiActionBrandIdentityService,
+    AgentOrchestratorUiActionConfirmedToolService,
+    AgentOrchestratorUiActionFinalizerService,
+    AgentOrchestratorUiActionPlanService,
     AgentOrchestratorUiActionService,
     AgentRouteRewriteService,
     AgentStreamEffectsService,
