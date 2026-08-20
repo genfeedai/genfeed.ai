@@ -2,7 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
-import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AuthenticationTokenUnavailableError,
   useAuthedService,
@@ -90,7 +90,7 @@ const EXECUTIONS_PER_PAGE = 20;
  */
 export default function WorkflowExecutionsPage() {
   const { href } = useOrgUrl();
-  const { orgId } = useAuthIdentity();
+  const { isReady, organizationId } = useBrand();
   const [state, dispatch] = useReducer(executionsReducer, initialState);
   const { executions, workflowLabels, isLoading, error, offset, hasMore } =
     state;
@@ -99,13 +99,13 @@ export default function WorkflowExecutionsPage() {
 
   const loadExecutions = useCallback(
     async (signal: AbortSignal, pageOffset = 0) => {
-      dispatch({ type: 'FETCH_START' });
-
       try {
         const service = await getService();
         if (signal.aborted) {
           return;
         }
+
+        dispatch({ type: 'FETCH_START' });
 
         const [data, workflows] = await Promise.all([
           service.listExecutions({
@@ -134,6 +134,10 @@ export default function WorkflowExecutionsPage() {
           return;
         }
         if (err instanceof AuthenticationTokenUnavailableError) {
+          dispatch({
+            type: 'FETCH_ERROR',
+            error: 'Authentication token unavailable',
+          });
           return;
         }
         const message =
@@ -146,14 +150,14 @@ export default function WorkflowExecutionsPage() {
   );
 
   useEffect(() => {
-    if (!orgId) {
+    if (!isReady || !organizationId) {
       return;
     }
 
     const controller = new AbortController();
     loadExecutions(controller.signal, offset);
     return () => controller.abort();
-  }, [loadExecutions, offset, orgId]);
+  }, [isReady, loadExecutions, offset, organizationId]);
 
   if (isLoading && executions.length === 0) {
     return (
