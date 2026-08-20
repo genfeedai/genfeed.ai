@@ -683,7 +683,7 @@ describe('WorkspacePageContent', () => {
     ).toBeInTheDocument();
     expect(
       within(inspector).getByRole('link', { name: 'Open library' }),
-    ).toHaveAttribute('href', '/acme-org/acme-creator/library/overview');
+    ).toHaveAttribute('href', '/acme-org/acme-creator/library/assets');
   });
 
   it('surfaces the linked issue deep-link inside the task inspector', async () => {
