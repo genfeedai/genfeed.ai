@@ -229,7 +229,9 @@ export function buildStudioPromptData({
 
   return {
     autoSelectModel: isAutoSelectModel,
-    avatarId: capabilities.hasIdentity ? settings.avatarId : undefined,
+    // Studio posts the portrait as `photoUrl`; `avatarId` on the shared
+    // schema means a HeyGen catalog id we never hold here.
+    avatarId: undefined,
     blacklist: settings.blacklist,
     brand: brandId,
     brandingMode: settings.brandingMode,
@@ -244,7 +246,8 @@ export function buildStudioPromptData({
     format: resolveIngredientFormat(settings.aspectRatio),
     height,
     isAudioEnabled: settings.isAudioEnabled,
-    isBrandingEnabled: settings.brandingMode === 'brand',
+    isBrandingEnabled:
+      capabilities.hasBrandEnrichment && settings.brandingMode === 'brand',
     isValid,
     lens: capabilities.hasLook ? optionalText(settings.lens) : undefined,
     lighting: capabilities.hasLook
@@ -302,7 +305,7 @@ export function describeStudioGenerateSettings(
     segments.push(`${settings.outputs}x`);
   }
 
-  if (settings.brandingMode === 'brand') {
+  if (capabilities.hasBrandEnrichment && settings.brandingMode === 'brand') {
     segments.push('Brand');
   }
 

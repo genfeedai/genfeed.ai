@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
+  resolveJsonApiIngredientId,
   resolveStudioAssetUrl,
   resolveStudioTypeFromCategory,
   STUDIO_GENERATE_CATEGORIES,
@@ -191,4 +192,32 @@ describe('filterStudioGenerateJobs', () => {
       filterStudioGenerateJobs(jobs, { search: 'sofa', type: 'video' }),
     ).toEqual([]);
   });
+});
+
+describe('resolveJsonApiIngredientId', () => {
+  it('reads the id out of a JSON:API single-resource document', () => {
+    expect(
+      resolveJsonApiIngredientId({
+        data: {
+          attributes: { status: 'PROCESSING' },
+          id: 'ing-9',
+          type: 'ingredients',
+        },
+      }),
+    ).toBe('ing-9');
+  });
+
+  it('accepts a bare ingredient object and a numeric id', () => {
+    expect(resolveJsonApiIngredientId({ id: 'ing-3' })).toBe('ing-3');
+    expect(resolveJsonApiIngredientId({ data: { id: 7 } })).toBe('7');
+  });
+
+  it.each([undefined, null, {}, { data: {} }, { data: { id: '' } }])(
+    'throws rather than tracking a job that can never complete for %p',
+    (response) => {
+      expect(() => resolveJsonApiIngredientId(response)).toThrow(
+        'Avatar generation response carried no ingredient id',
+      );
+    },
+  );
 });

@@ -7,7 +7,8 @@ import type {
   StudioGenerateResultsProps,
 } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
-import { listStudioGenerateTypeConfigs } from '@pages/studio/generate/utils/studio-generate-types';
+import { listStudioGalleryFilters } from '@pages/studio/generate/utils/studio-generate-gallery';
+import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
 import { Loader2 } from 'lucide-react';
@@ -17,13 +18,10 @@ import type { ReactElement } from 'react';
 const FILTER_OPTIONS: ReadonlyArray<{
   label: string;
   value: StudioGenerateFilter;
-}> = [
-  { label: 'All', value: 'all' },
-  ...listStudioGenerateTypeConfigs().map((config) => ({
-    label: config.label,
-    value: config.type as StudioGenerateFilter,
-  })),
-];
+}> = listStudioGalleryFilters().map((value) => ({
+  label: value === 'all' ? 'All' : getStudioGenerateTypeConfig(value).label,
+  value,
+}));
 
 /**
  * Everything this brand has generated, newest first — live jobs from the

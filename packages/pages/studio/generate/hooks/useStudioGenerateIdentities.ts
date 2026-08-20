@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import { resolveStudioAssetUrl } from '@pages/studio/generate/utils/studio-generate-asset';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useMemo } from 'react';
 
@@ -23,10 +24,14 @@ function getVoiceName(voice: Voice): string {
 }
 
 /**
- * Avatars and speaking voices for the composer's Identity section. Voice
- * option values are the provider-side `externalVoiceId` because that is what
- * `POST /voices/generate` and the avatar video endpoint hand to the provider —
- * the ingredient row id would be rejected upstream.
+ * Avatars and speaking voices for the composer's Identity section.
+ *
+ * Both option values are provider-facing, never Genfeed row ids:
+ * - Avatar values are the portrait's public URL, sent as `photoUrl`. The
+ *   endpoint's `avatarId` field means a HeyGen *catalog* id, so posting an
+ *   ingredient id there 404s in `resolvePhotoUrl`.
+ * - Voice values are the provider-side `externalVoiceId`, which is what
+ *   `POST /voices/generate` hands upstream.
  */
 export function useStudioGenerateIdentities(): UseStudioGenerateIdentitiesReturn {
   const { organizationId } = useBrand();
@@ -38,10 +43,12 @@ export function useStudioGenerateIdentities(): UseStudioGenerateIdentitiesReturn
 
   const avatarOptions = useMemo(
     () =>
-      avatars.map((avatar) => ({
-        label: getIngredientDisplayLabel(avatar),
-        value: String(avatar.id),
-      })),
+      avatars
+        .map((avatar) => ({
+          label: getIngredientDisplayLabel(avatar),
+          value: resolveStudioAssetUrl(avatar) ?? '',
+        }))
+        .filter((option) => Boolean(option.value)),
     [avatars],
   );
 

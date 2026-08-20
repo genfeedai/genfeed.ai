@@ -69,6 +69,13 @@ export type StudioGenerateType =
  */
 export interface StudioGenerateCapabilities {
   hasAspectRatio: boolean;
+  /**
+   * Whether the generation payload for this type actually carries the brand
+   * enrichment fields. Only the router-backed image and video endpoints do —
+   * music, avatar, and voice reach their providers without them, so the Brand
+   * switch must not be offered there.
+   */
+  hasBrandEnrichment: boolean;
   hasDuration: boolean;
   hasIdentity: boolean;
   hasLook: boolean;
@@ -97,7 +104,8 @@ export interface StudioGenerateTypeConfig {
  */
 export interface StudioGenerateSettings {
   aspectRatio: string;
-  avatarId?: string;
+  /** Public URL of the chosen portrait, posted as `photoUrl`. */
+  avatarPhotoUrl?: string;
   blacklist: string[];
   brandingMode: 'brand' | 'off';
   camera?: string;

@@ -37,6 +37,10 @@ export function useStudioGenerateModels(
     const controller = new AbortController();
     let isCancelled = false;
 
+    // Drop the previous category's catalog before fetching. Keeping it would
+    // let `resolveModelKey` fall back to an image model on a video submit
+    // during the window between the type switch and the new rows landing.
+    setModels([]);
     setIsLoadingModels(true);
 
     void (async () => {

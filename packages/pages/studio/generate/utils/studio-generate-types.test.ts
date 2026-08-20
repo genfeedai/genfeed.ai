@@ -38,6 +38,7 @@ describe('getStudioGenerateTypeConfig', () => {
     expect(config.resourceSegment).toBe('images');
     expect(config.capabilities).toMatchObject({
       hasAspectRatio: true,
+      hasBrandEnrichment: true,
       hasDuration: false,
       hasLook: true,
       hasOutputs: true,
@@ -45,16 +46,18 @@ describe('getStudioGenerateTypeConfig', () => {
     });
   });
 
-  it('gives video duration and speech but no output multiplier', () => {
+  it('gives video duration but neither speech nor an output multiplier', () => {
     const config = getStudioGenerateTypeConfig('video');
 
     expect(config.ingredientCategory).toBe(IngredientCategory.VIDEO);
     expect(config.modelCategory).toBe(ModelCategory.VIDEO);
     expect(config.capabilities).toMatchObject({
       hasAspectRatio: true,
+      hasBrandEnrichment: true,
       hasDuration: true,
       hasOutputs: false,
-      hasSpeech: true,
+      // A video prompt describes a scene; spoken scripts are the Avatar type.
+      hasSpeech: false,
     });
   });
 
@@ -65,6 +68,7 @@ describe('getStudioGenerateTypeConfig', () => {
     expect(config.modelCategory).toBe(ModelCategory.MUSIC);
     expect(config.capabilities).toMatchObject({
       hasAspectRatio: false,
+      hasBrandEnrichment: false,
       hasDuration: true,
       hasLook: false,
       hasReferences: false,
@@ -77,10 +81,19 @@ describe('getStudioGenerateTypeConfig', () => {
     expect(config.ingredientCategory).toBe(IngredientCategory.AVATAR);
     expect(config.modelCategory).toBeNull();
     expect(config.capabilities).toMatchObject({
+      hasBrandEnrichment: false,
       hasIdentity: true,
       hasModelSelection: false,
       hasSpeech: true,
     });
+  });
+
+  it('waits on the videos collection for a finished avatar clip', () => {
+    // `POST /videos/avatar` persists a video ingredient and publishes
+    // `WebSocketPaths.video(id)`; `/avatars` holds the source portraits.
+    expect(getStudioGenerateTypeConfig('avatar').resourceSegment).toBe(
+      'videos',
+    );
   });
 
   it('picks a catalog voice instead of a router model', () => {
@@ -89,6 +102,7 @@ describe('getStudioGenerateTypeConfig', () => {
     expect(config.ingredientCategory).toBe(IngredientCategory.VOICE);
     expect(config.modelCategory).toBeNull();
     expect(config.capabilities).toMatchObject({
+      hasBrandEnrichment: false,
       hasIdentity: true,
       hasLook: false,
       hasModelSelection: false,

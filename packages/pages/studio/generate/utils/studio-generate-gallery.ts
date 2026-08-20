@@ -18,12 +18,41 @@ export function resolveStudioGallerySegments(
   filter: StudioGenerateFilter,
 ): readonly string[] {
   if (filter === 'all') {
-    return STUDIO_GENERATE_TYPES.map(
-      (type) => getStudioGenerateTypeConfig(type).resourceSegment,
+    // Avatar clips are persisted as videos, so both types point at `/videos`.
+    // De-duplicate rather than paging the same collection twice.
+    return Array.from(
+      new Set(
+        STUDIO_GENERATE_TYPES.map(
+          (type) => getStudioGenerateTypeConfig(type).resourceSegment,
+        ),
+      ),
     );
   }
 
   return [getStudioGenerateTypeConfig(filter).resourceSegment];
+}
+
+/**
+ * Filter pills for the results grid. A type only earns a pill when it owns its
+ * output collection — Avatar shares `/videos` with Video and its finished
+ * clips carry the video category, so a second pill would list the same rows.
+ */
+export function listStudioGalleryFilters(): readonly StudioGenerateFilter[] {
+  const seenSegments = new Set<string>();
+  const filters: StudioGenerateFilter[] = ['all'];
+
+  for (const type of STUDIO_GENERATE_TYPES) {
+    const { resourceSegment } = getStudioGenerateTypeConfig(type);
+
+    if (seenSegments.has(resourceSegment)) {
+      continue;
+    }
+
+    seenSegments.add(resourceSegment);
+    filters.push(type);
+  }
+
+  return filters;
 }
 
 /**

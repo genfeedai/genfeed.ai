@@ -148,14 +148,23 @@ export default function StudioGenerateSettingsPopover({
       id: 'output',
       label: 'Output',
     });
-    entries.push({
-      icon: <Sparkles className={SECTION_ICON_CLASS} />,
-      id: 'brand',
-      label: 'Brand',
-    });
+    // Music, avatar, and voice payloads carry neither brand enrichment nor a
+    // router priority, so the section is dropped rather than shown inert.
+    if (capabilities.hasBrandEnrichment || capabilities.hasModelSelection) {
+      entries.push({
+        icon: <Sparkles className={SECTION_ICON_CLASS} />,
+        id: 'brand',
+        label: capabilities.hasBrandEnrichment ? 'Brand' : 'Routing',
+      });
+    }
 
     return entries;
-  }, [capabilities.hasIdentity, capabilities.hasLook]);
+  }, [
+    capabilities.hasBrandEnrichment,
+    capabilities.hasIdentity,
+    capabilities.hasLook,
+    capabilities.hasModelSelection,
+  ]);
 
   const [activeSection, setActiveSection] = useState<StudioSettingsSectionId>(
     () => sections[0]?.id ?? 'output',
@@ -304,12 +313,12 @@ export default function StudioGenerateSettingsPopover({
                   <SettingRow label="Avatar">
                     <OptionSelect
                       ariaLabel="Avatar"
-                      onChange={(value) => onChange({ avatarId: value })}
+                      onChange={(value) => onChange({ avatarPhotoUrl: value })}
                       options={avatarOptions}
                       placeholder={
                         isLoadingIdentities ? 'Loading…' : 'Pick an avatar'
                       }
-                      value={settings.avatarId}
+                      value={settings.avatarPhotoUrl}
                     />
                   </SettingRow>
                 ) : null}
@@ -419,14 +428,16 @@ export default function StudioGenerateSettingsPopover({
 
             {visibleSection === 'brand' ? (
               <>
-                <Switch
-                  description="Enrich the prompt with your brand voice, palette, and guidelines before it reaches the model."
-                  isChecked={settings.brandingMode === 'brand'}
-                  label="Brand enrichment"
-                  onCheckedChange={(isEnabled) =>
-                    onChange({ brandingMode: isEnabled ? 'brand' : 'off' })
-                  }
-                />
+                {capabilities.hasBrandEnrichment ? (
+                  <Switch
+                    description="Enrich the prompt with your brand voice, palette, and guidelines before it reaches the model."
+                    isChecked={settings.brandingMode === 'brand'}
+                    label="Brand enrichment"
+                    onCheckedChange={(isEnabled) =>
+                      onChange({ brandingMode: isEnabled ? 'brand' : 'off' })
+                    }
+                  />
+                ) : null}
                 <SettingRow label="Routing">
                   <OptionSelect
                     ariaLabel="Routing priority"
