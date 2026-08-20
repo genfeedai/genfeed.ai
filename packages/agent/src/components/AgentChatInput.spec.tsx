@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   fireEvent,
   render,
@@ -133,6 +135,17 @@ describe('AgentChatInput', () => {
     storeState.draftPlanModeEnabled = false;
     storeState.composerSeed = null;
     storeState.threads = [];
+  });
+
+  it('resolves toolbar copy through the host agent catalog', () => {
+    const source = readFileSync(
+      join(__dirname, 'AgentChatInputToolbar.tsx'),
+      'utf8',
+    );
+    expect(source).toContain("useTranslations('agent.composerToolbar')");
+    expect(source).toContain("translate('noModelsEnabled')");
+    expect(source).toContain("{translate('actions')}");
+    expect(source).not.toContain('const COPY =');
   });
 
   it('renders inside the shared prompt bar shell', () => {

@@ -32,6 +32,7 @@ import {
   Square,
   Zap,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, memo, type ReactElement, useRef } from 'react';
 
 export interface AgentChatInputToolbarProps {
@@ -93,6 +94,7 @@ function AgentChatInputToolbarInner({
   willQueueFollowUp = false,
   density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
+  const translate = useTranslations('agent.composerToolbar');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isCompact = density === 'compact';
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
@@ -107,7 +109,7 @@ function AgentChatInputToolbarInner({
   const emptyAllowlistControl =
     onModelChange && !hasSelectableModels && !isModelsLoading ? (
       <Button
-        ariaLabel="No models enabled"
+        ariaLabel={translate('noModelsEnabled')}
         className={cn(
           'max-w-[12rem] justify-start text-muted-foreground',
           isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
@@ -115,11 +117,11 @@ function AgentChatInputToolbarInner({
         isDisabled
         size={ButtonSize.SM}
         textTransform="none"
-        title="No models enabled for this workspace"
+        title={translate('noModelsEnabledTitle')}
         variant={ButtonVariant.SECONDARY}
         withWrapper={false}
       >
-        <span className="truncate text-xs">No models enabled</span>
+        <span className="truncate text-xs">{translate('noModelsEnabled')}</span>
       </Button>
     ) : null;
   const modelSelector = emptyAllowlistControl ? (
@@ -339,12 +341,12 @@ function AgentChatInputToolbarInner({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              ariaLabel="Open composer actions"
+              ariaLabel={translate('actionsAria')}
               className={cn('shrink-0', controlSize)}
               icon={<Zap className="size-4" />}
               isDisabled={disabled || !hasEditor}
               size={ButtonSize.ICON}
-              tooltip="Actions"
+              tooltip={translate('actions')}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
@@ -355,7 +357,7 @@ function AgentChatInputToolbarInner({
             side="top"
             sideOffset={8}
           >
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>{translate('actions')}</DropdownMenuLabel>
             {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
               <DropdownMenuItem
                 key={action.name}

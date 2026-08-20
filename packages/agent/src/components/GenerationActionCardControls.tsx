@@ -120,7 +120,7 @@ export function GenerationActionCardControls({
     <>
       <div>
         <label htmlFor="gen-action-prompt" className="sr-only">
-          Prompt
+          {translate('promptLabel')}
         </label>
         <div className="flex items-center gap-1.5">
           <Textarea
@@ -201,25 +201,27 @@ export function GenerationActionCardControls({
                 <SelectTrigger
                   className={cn('w-44', SHELL_CONTROL_HEIGHT_CLASS)}
                 >
-                  <SelectValue placeholder="Loading Genfeed models…" />
+                  <SelectValue placeholder={translate('loadingModels')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="loading-models">
-                    Loading Genfeed models…
+                    {translate('loadingModels')}
                   </SelectItem>
                 </SelectContent>
               </Select>
             ) : isAllowlistEmpty ? (
               <Button
-                ariaLabel="No models enabled"
+                ariaLabel={translate('noModelsEnabled')}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 isDisabled
                 className={cn('w-44 justify-start', SHELL_CONTROL_HEIGHT_CLASS)}
                 textTransform="none"
-                title="No models enabled for this workspace"
+                title={translate('noModelsEnabledTitle')}
               >
-                <span className="truncate text-xs">No models enabled</span>
+                <span className="truncate text-xs">
+                  {translate('noModelsEnabled')}
+                </span>
               </Button>
             ) : modelsError || hasNoSelectableModels ? (
               <Button
@@ -311,7 +313,7 @@ export function GenerationActionCardControls({
                 <SelectContent>
                   {durationOptions.map((option) => (
                     <SelectItem key={option} value={String(option)}>
-                      {option}s
+                      {translate('durationSeconds', { seconds: option })}
                     </SelectItem>
                   ))}
                 </SelectContent>

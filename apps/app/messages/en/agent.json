@@ -19,13 +19,24 @@
     "slugField": "Brand slug",
     "slugPlaceholder": "brand-slug"
   },
+  "composerToolbar": {
+    "actions": "Actions",
+    "actionsAria": "Open composer actions",
+    "noModelsEnabled": "No models enabled",
+    "noModelsEnabledTitle": "No models enabled for this workspace"
+  },
   "generationActionCard": {
+    "durationSeconds": "{seconds}s",
     "generateAria": "Generate image",
     "generateTooltip": "Generate",
     "generateVideoAria": "Generate video",
+    "loadingModels": "Loading Genfeed models…",
+    "noModelsEnabled": "No models enabled",
+    "noModelsEnabledTitle": "No models enabled for this workspace",
     "previewDescription": "Read and edit the full generation prompt",
     "previewEditorAria": "Full prompt",
     "previewTitle": "Prompt",
+    "promptLabel": "Prompt",
     "readFull": "Read & edit",
     "readFullAria": "Read and edit the full prompt",
     "stop": "Stop",

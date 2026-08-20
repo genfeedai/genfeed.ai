@@ -160,9 +160,23 @@ describe('loadMessages', () => {
       'Brand label',
     );
     expect(english.agent.settings.autoLabel).toBe('Auto');
+    expect(english.agent.composerToolbar.actions).toBe('Actions');
+    expect(english.agent.composerToolbar.noModelsEnabled).toBe(
+      'No models enabled',
+    );
+    expect(english.agent.generationActionCard.durationSeconds).toBe(
+      '{seconds}s',
+    );
+    expect(english.agent.generationActionCard.loadingModels).toBe(
+      'Loading Genfeed models…',
+    );
+    expect(english.agent.generationActionCard.noModelsEnabled).toBe(
+      'No models enabled',
+    );
     expect(english.agent.generationActionCard.previewEditorAria).toBe(
       'Full prompt',
     );
+    expect(english.agent.generationActionCard.promptLabel).toBe('Prompt');
     expect(english.agent.generationActionCard.readFull).toBe('Read & edit');
     expect(english.pages.posts.list.loadError).toBe(
       'Posts could not be loaded. Refresh to try again.',

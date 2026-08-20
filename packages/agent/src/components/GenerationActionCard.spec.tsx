@@ -18,19 +18,30 @@ vi.mock('@genfeedai/services/core/clipboard.service', () => ({
 }));
 
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) =>
-    ({
-      previewDescription: 'Read and edit the full generation prompt',
-      previewEditorAria: 'Full prompt',
-      previewTitle: 'Prompt',
-      readFull: 'Read & edit',
-      readFullAria: 'Read and edit the full prompt',
-      stop: 'Stop',
-      stopAria: 'Stop generation',
-      generateAria: 'Generate image',
-      generateVideoAria: 'Generate video',
-      generateTooltip: 'Generate',
-    })[key] ?? key,
+  useTranslations:
+    () => (key: string, values?: Record<string, string | number>) => {
+      const template =
+        {
+          durationSeconds: '{seconds}s',
+          generateAria: 'Generate image',
+          generateTooltip: 'Generate',
+          generateVideoAria: 'Generate video',
+          loadingModels: 'Loading Genfeed models…',
+          noModelsEnabled: 'No models enabled',
+          noModelsEnabledTitle: 'No models enabled for this workspace',
+          previewDescription: 'Read and edit the full generation prompt',
+          previewEditorAria: 'Full prompt',
+          previewTitle: 'Prompt',
+          promptLabel: 'Prompt',
+          readFull: 'Read & edit',
+          readFullAria: 'Read and edit the full prompt',
+          stop: 'Stop',
+          stopAria: 'Stop generation',
+        }[key] ?? key;
+      return template.replace(/\{(\w+)\}/g, (token, name: string) =>
+        values?.[name] === undefined ? token : String(values[name]),
+      );
+    },
 }));
 
 vi.mock('@helpers/generation-controls.helper', async (importOriginal) => {
@@ -289,6 +300,11 @@ describe('GenerationActionCard', () => {
       'utf8',
     );
     expect(source).toContain("useTranslations('agent.generationActionCard')");
+    expect(source).toContain("translate('promptLabel')");
+    expect(source).toContain("translate('loadingModels')");
+    expect(source).toContain("translate('noModelsEnabled')");
+    expect(source).toContain("translate('durationSeconds'");
+    expect(source).not.toContain('{option}s');
     expect(source).not.toContain('const COPY =');
     expect(source).toContain('ButtonDropdown');
     expect(source).toContain('name="outputs"');
