@@ -3,6 +3,7 @@ import type {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
+  QualityStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
 import type {
@@ -98,6 +99,7 @@ export interface IIngredient extends IBaseEntity {
   publishedAt?: string;
   personaSlug?: string;
   reviewStatus?: string;
+  qualityStatus?: QualityStatus;
   contentRating?: string;
   campaign?: string;
   evaluation?: IEvaluation | null;

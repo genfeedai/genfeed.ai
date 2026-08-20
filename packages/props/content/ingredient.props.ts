@@ -86,6 +86,11 @@ export interface IngredientsMediaGridProps {
   onReprompt?: (ingredient: IIngredient) => void;
 }
 
+export interface IngredientInspectorRailProps {
+  ingredient: IIngredient;
+  className?: string;
+}
+
 export interface IngredientsTypeProps {
   type: string;
 }

@@ -18,6 +18,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import { Eye } from 'lucide-react';
@@ -263,28 +264,53 @@ export default function IngredientsListContent({
     type,
   ]);
 
+  /**
+   * The rail inspects one asset. A multi-selection is a bulk action, so it
+   * stays closed rather than picking an arbitrary member to describe.
+   */
+  const inspectedIngredient = useMemo(() => {
+    if (selectedIngredientIds.length !== 1) {
+      return null;
+    }
+
+    return (
+      filteredIngredients.find(
+        (ingredient: IIngredient) => ingredient.id === selectedIngredientIds[0],
+      ) ?? null
+    );
+  }, [filteredIngredients, selectedIngredientIds]);
+
   return (
-    <div
-      className={`flex-1 min-w-0 overflow-hidden ${
-        isAudioCategory
-          ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
-          : ''
-      }`}
-    >
-      {hasFilteredEmptyState ? (
-        <CardEmptyContent
-          label={EMPTY_STATES.RESULTS_FOUND}
-          description="Try adjusting your filters or search terms."
-          action={{
-            label: 'Clear Filters',
-            onClick: onClearFilters,
-            variant: ButtonVariant.SECONDARY,
-          }}
-          className="w-full max-w-lg"
+    <div className="flex min-w-0 flex-1 overflow-hidden">
+      <div
+        className={`flex-1 min-w-0 overflow-hidden ${
+          isAudioCategory
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2'
+            : ''
+        }`}
+      >
+        {hasFilteredEmptyState ? (
+          <CardEmptyContent
+            label={EMPTY_STATES.RESULTS_FOUND}
+            description="Try adjusting your filters or search terms."
+            action={{
+              label: 'Clear Filters',
+              onClick: onClearFilters,
+              variant: ButtonVariant.SECONDARY,
+            }}
+            className="w-full max-w-lg"
+          />
+        ) : (
+          content
+        )}
+      </div>
+
+      {inspectedIngredient ? (
+        <IngredientInspectorRail
+          className="hidden lg:flex"
+          ingredient={inspectedIngredient}
         />
-      ) : (
-        content
-      )}
+      ) : null}
     </div>
   );
 }

@@ -25,6 +25,8 @@ export const ingredientAttributes = createEntityAttributes([
   'publications',
   'category',
   'status',
+  'reviewStatus',
+  'qualityStatus',
   'transformations',
   'order',
   'version',
