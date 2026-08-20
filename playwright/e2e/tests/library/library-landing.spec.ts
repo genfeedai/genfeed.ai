@@ -1,91 +1,128 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, createLibraryShelfRoute } from '@genfeedai/constants';
+import { LibraryShelf } from '@genfeedai/enums';
 import {
   mockActiveSubscription,
   mockContentLibrary,
   mockLibraryData,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { assertRouteRenders } from '../../utils/route-assertions';
 
-test.describe('Library Landing', () => {
-  test.fixme(
-    true,
-    'Protected Library landing remains behind the route loading shell in app-core E2E; enable once the route stabilizes in browser automation.',
-  );
+/**
+ * The Library is one asset browser read along three orthogonal axes: type
+ * (chips), shelf (generation state), and folder (where a person filed it).
+ * These specs guard the axes staying independent — the regression that keeps
+ * biting is one axis silently clearing another.
+ */
+const BRAND = '/test-org/brand-1';
 
+const brandRoute = (route: string): string => `${BRAND}${route}`;
+
+test.describe('Library', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
       plan: 'pro',
     });
     await mockLibraryData(authenticatedPage);
-  });
-
-  test('loads the Library landing with workspace controls', async ({
-    authenticatedPage,
-  }) => {
-    await authenticatedPage.goto(APP_ROUTES.LIBRARY.ASSETS);
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    await expect(authenticatedPage).toHaveURL(/library\/overview/);
-    await expect(
-      authenticatedPage.getByTestId('library-landing'),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByRole('heading', { name: 'Library' }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('organization-switcher-trigger'),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('brand-switcher-trigger'),
-    ).toBeVisible();
-  });
-
-  test('shows a compact inline low-credit notice on the Library landing', async ({
-    authenticatedPage,
-  }) => {
-    await mockActiveSubscription(authenticatedPage, {
-      credits: 250,
-      plan: 'pro',
-    });
-
-    await authenticatedPage.goto(APP_ROUTES.LIBRARY.ASSETS);
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    await expect(
-      authenticatedPage.getByTestId('library-credit-notice'),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('shell-credit-notice'),
-    ).toHaveCount(0);
-  });
-
-  test('exposes usable category entry points from the Library landing', async ({
-    authenticatedPage,
-  }) => {
     await mockContentLibrary(authenticatedPage, 'videos', 3);
+  });
 
-    await authenticatedPage.goto(APP_ROUTES.LIBRARY.ASSETS);
-    await authenticatedPage.waitForLoadState('domcontentloaded');
-
-    const videosEntry = authenticatedPage.getByTestId(
-      'library-category-videos',
+  test('opens the asset browser at the Library root', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(
+      authenticatedPage,
+      brandRoute(APP_ROUTES.LIBRARY.ASSETS),
     );
 
-    await expect(videosEntry).toHaveAttribute('href', '/library/videos');
+    await expect(authenticatedPage).not.toHaveURL(/library\/overview/);
     await expect(
-      authenticatedPage.getByTestId('library-category-images'),
+      authenticatedPage.getByRole('link', { name: 'All assets' }),
     ).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('library-category-gifs'),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByTestId('library-category-voices'),
-    ).toBeVisible();
+  });
 
-    await videosEntry.click();
+  test('lists places, shelves, and folders in the sidebar', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(
+      authenticatedPage,
+      brandRoute(APP_ROUTES.LIBRARY.ASSETS),
+    );
 
-    await authenticatedPage.waitForLoadState('domcontentloaded');
+    for (const label of ['All assets', 'Recent', 'Starred']) {
+      await expect(
+        authenticatedPage.getByRole('link', { name: label }),
+      ).toBeVisible();
+    }
+
+    await expect(authenticatedPage.getByText('Shelves')).toBeVisible();
+
+    for (const label of ['Unsorted', 'Needs review', 'Approved']) {
+      await expect(
+        authenticatedPage.getByRole('link', { name: label }),
+      ).toBeVisible();
+    }
+
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Trash' }),
+    ).toBeVisible();
+  });
+
+  test('keeps a shelf selected across a reload', async ({
+    authenticatedPage,
+  }) => {
+    const shelfRoute = brandRoute(
+      createLibraryShelfRoute(LibraryShelf.NEEDS_REVIEW),
+    );
+
+    await assertRouteRenders(authenticatedPage, shelfRoute);
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(authenticatedPage).toHaveURL(/library\/shelf\/needs-review/);
+    await expect(authenticatedPage.locator('[data-nextjs-dialog]')).toHaveCount(
+      0,
+    );
+  });
+
+  test('composes the folder and type axes in one URL', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(
+      authenticatedPage,
+      `${brandRoute(APP_ROUTES.LIBRARY.ASSETS)}?folder=folder-1&categories=VIDEO`,
+    );
+
+    const url = new URL(authenticatedPage.url());
+
+    expect(url.searchParams.get('folder')).toBe('folder-1');
+    expect(url.searchParams.get('categories')).toBe('VIDEO');
+  });
+
+  test('serves Recent, Starred, and Trash as their own destinations', async ({
+    authenticatedPage,
+  }) => {
+    for (const route of [
+      APP_ROUTES.LIBRARY.RECENT,
+      APP_ROUTES.LIBRARY.STARRED,
+      APP_ROUTES.LIBRARY.TRASH,
+    ]) {
+      await assertRouteRenders(authenticatedPage, brandRoute(route));
+      await expect(authenticatedPage).toHaveURL(new RegExp(`${route}$`));
+    }
+  });
+
+  test('keeps type routes working as seeded deep links', async ({
+    authenticatedPage,
+  }) => {
+    await assertRouteRenders(
+      authenticatedPage,
+      brandRoute(APP_ROUTES.LIBRARY.VIDEOS),
+    );
+
     await expect(authenticatedPage).toHaveURL(/library\/videos/);
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'All assets' }),
+    ).toBeVisible();
   });
 });
