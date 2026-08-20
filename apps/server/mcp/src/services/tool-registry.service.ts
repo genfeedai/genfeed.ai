@@ -2,6 +2,7 @@ import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
 import {
   getToolByName,
   getToolsForSurface,
+  type McpToolOutput,
   toMcpTools,
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -10,10 +11,7 @@ import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
-import type {
-  McpResource,
-  McpTool,
-} from '@mcp/shared/interfaces/mcp-server.interface';
+import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
 import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
@@ -206,7 +204,7 @@ export class ToolRegistryService implements OnModuleInit {
    * make the tool unreachable while still claiming to need approval).
    */
   static validateDispatchCoverage(): void {
-    const mcpTools = toMcpTools(getToolsForSurface('mcp')) as McpTool[];
+    const mcpTools = toMcpTools(getToolsForSurface('mcp'));
     const mcpNames = new Set(mcpTools.map((tool) => tool.name));
 
     const unroutable = mcpTools
@@ -249,8 +247,8 @@ export class ToolRegistryService implements OnModuleInit {
    * anything a client sees — an unfiltered list advertises tools the caller
    * cannot invoke.
    */
-  getAllTools(): McpTool[] {
-    return toMcpTools(getToolsForSurface('mcp')) as McpTool[];
+  getAllTools(): McpToolOutput[] {
+    return toMcpTools(getToolsForSurface('mcp'));
   }
 
   /**
@@ -259,7 +257,10 @@ export class ToolRegistryService implements OnModuleInit {
    * the per-call {@link McpAuthGuard.checkToolRole} in {@link handleToolCall}
    * and, ultimately, the API's own role guards.
    */
-  static filterToolsByRole(tools: McpTool[], role: McpRole): McpTool[] {
+  static filterToolsByRole(
+    tools: McpToolOutput[],
+    role: McpRole,
+  ): McpToolOutput[] {
     return tools.filter(
       (tool) =>
         !tool.requiredRole ||
@@ -267,11 +268,11 @@ export class ToolRegistryService implements OnModuleInit {
     );
   }
 
-  getToolsForRole(role: McpRole): McpTool[] {
+  getToolsForRole(role: McpRole): McpToolOutput[] {
     return ToolRegistryService.filterToolsByRole(this.getAllTools(), role);
   }
 
-  getTools(): McpTool[] {
+  getTools(): McpToolOutput[] {
     return this.getToolsForRole(this.requestRole);
   }
 

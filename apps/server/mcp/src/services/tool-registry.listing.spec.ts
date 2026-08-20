@@ -1,7 +1,7 @@
+import type { McpToolOutput } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
-import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
 
 /**
  * Unit coverage for the role-aware `tools/list` filter. This is the UX gate that
@@ -18,25 +18,28 @@ import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
  */
 
 const USER_TOOL = {
+  _meta: {},
   description: 'user tool',
   inputSchema: { properties: {}, type: 'object' },
   name: 'list_posts',
   requiredRole: 'user',
-} as McpTool;
+} as McpToolOutput;
 
 const ADMIN_TOOL = {
+  _meta: {},
   description: 'admin tool',
   inputSchema: { properties: {}, type: 'object' },
   name: 'admin_scoped_tool',
   requiredRole: 'admin',
-} as McpTool;
+} as McpToolOutput;
 
 const SUPERADMIN_TOOL = {
+  _meta: {},
   description: 'superadmin tool',
   inputSchema: { properties: {}, type: 'object' },
   name: 'resolve_approval',
   requiredRole: 'superadmin',
-} as McpTool;
+} as McpToolOutput;
 
 const ALL_TOOLS = [USER_TOOL, ADMIN_TOOL, SUPERADMIN_TOOL];
 
@@ -60,7 +63,8 @@ function build(role: 'user' | 'admin' | 'superadmin') {
   );
 }
 
-const names = (tools: McpTool[]): string[] => tools.map((t) => t.name).sort();
+const names = (tools: McpToolOutput[]): string[] =>
+  tools.map((tool) => tool.name).sort();
 
 describe('ToolRegistryService.filterToolsByRole', () => {
   it('gives a user only user-tier tools', () => {

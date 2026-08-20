@@ -1,5 +1,4 @@
 import path from 'node:path';
-import process from 'node:process';
 import type { Readable } from 'node:stream';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
@@ -195,13 +194,6 @@ export class FilesClientService {
       this.loggerService.error('Failed to overlay audio', error);
       throw error;
     }
-  }
-
-  // Compatibility methods to match the original FilesService interface
-  getPath(type: string, ingredientId: string): string {
-    // This should be handled by the files service internally
-    // Return a placeholder path for compatibility
-    return path.join(process.cwd(), 'public', 'tmp', type, ingredientId);
   }
 
   /**
