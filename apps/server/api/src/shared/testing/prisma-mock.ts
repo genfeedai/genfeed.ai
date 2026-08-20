@@ -106,6 +106,11 @@ export const mockPrismaNamespace = {
   },
 };
 
+/** Mirror the production JSON round-trip without importing the Prisma client. */
+export function mockToPrismaJson(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value ?? null));
+}
+
 /**
  * Stub `PrismaClient` — matches the real class shape closely enough for
  * services that construct/inject it directly (e.g. `PrismaService`).
@@ -150,5 +155,6 @@ export function canonicalPrismaMock() {
     ...prismaTesting,
     Prisma: mockPrismaNamespace,
     PrismaClient: MockPrismaClient,
+    toPrismaJson: mockToPrismaJson,
   };
 }
