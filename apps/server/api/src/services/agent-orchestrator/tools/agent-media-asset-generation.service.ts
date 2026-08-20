@@ -467,7 +467,6 @@ export class AgentMediaAssetGenerationService {
         params.response,
         this.configService.ingredientsEndpoint,
       );
-    const hrefSegment = params.endpoint === 'music' ? 'music' : params.endpoint;
     return {
       creditsUsed: 0,
       data: { id, status: Status.GENERATED, url: assetUrl },
@@ -476,7 +475,10 @@ export class AgentMediaAssetGenerationService {
         ? [
             {
               ctas: [
-                { href: `/g/${hrefSegment}/${id}`, label: 'View in gallery' },
+                {
+                  href: `/g/${params.endpoint}/${id}`,
+                  label: 'View in gallery',
+                },
               ],
               description: params.description,
               id: `${params.idPrefix ?? `${params.endpoint}-gen`}-${id}`,

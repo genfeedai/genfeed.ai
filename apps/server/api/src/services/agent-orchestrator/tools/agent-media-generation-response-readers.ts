@@ -52,6 +52,8 @@ export function readMediaAssetUrl(
 
   const s3Key = readMediaResponseString(response, 's3Key');
   if (!s3Key) {
+    // An id is a gallery identifier, not a renderable URL. Never invent a
+    // gallery path here or chat renders a blank media preview.
     return undefined;
   }
 

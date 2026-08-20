@@ -1,3 +1,4 @@
+import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
@@ -114,7 +115,26 @@ describe('AgentMediaGenerationToolHandler ownership', () => {
 });
 
 describe('AgentMediaGenerationToolHandler text previews', () => {
-  it('preserves organization scope and action mapping for AI text actions', async () => {
+  it.each([
+    ['adapt-platform', AiActionType.ADAPT_PLATFORM],
+    ['add-hashtags', AiActionType.ADD_HASHTAGS],
+    ['analytics-insight', AiActionType.ANALYTICS_INSIGHT],
+    ['content-suggest', AiActionType.CONTENT_SUGGEST],
+    ['enhance', AiActionType.ENHANCE_PROMPT],
+    ['enhance-prompt', AiActionType.ENHANCE_PROMPT],
+    ['expand', AiActionType.EXPAND],
+    ['explain-metric', AiActionType.EXPLAIN_METRIC],
+    ['grammar-check', AiActionType.GRAMMAR_CHECK],
+    ['hashtags', AiActionType.ADD_HASHTAGS],
+    ['hook-generator', AiActionType.HOOK_GENERATOR],
+    ['rewrite', AiActionType.REWRITE],
+    ['seo-optimize', AiActionType.SEO_OPTIMIZE],
+    ['shorten', AiActionType.SHORTEN],
+    ['suggest-keywords', AiActionType.SUGGEST_KEYWORDS],
+    ['tone-adjust', AiActionType.TONE_ADJUST],
+    ['translate', AiActionType.ADAPT_PLATFORM],
+    ['unknown-action', AiActionType.ENHANCE_PROMPT],
+  ])('maps %s to the preserved AI action', async (action, expectedAction) => {
     const { aiActionsService, handler } = createHandler();
     aiActionsService.execute.mockResolvedValue({
       result: 'Shorter copy',
@@ -122,13 +142,13 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     });
 
     const result = await handler.aiAction(
-      { action: 'shorten', text: 'Long copy' },
+      { action, text: 'Long copy' },
       context,
     );
 
     expect(aiActionsService.execute).toHaveBeenCalledWith(
       'organization-1',
-      expect.objectContaining({ content: 'Long copy' }),
+      expect.objectContaining({ action: expectedAction, content: 'Long copy' }),
     );
     expect(result).toEqual({
       creditsUsed: 1,

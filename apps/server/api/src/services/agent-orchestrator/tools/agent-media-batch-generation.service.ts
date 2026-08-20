@@ -76,6 +76,9 @@ const CONTENT_MIX_PERCENT_KEYS: Readonly<
   [ContentFormat.STORY]: 'storyPercent',
 };
 
+// The estimator keys by ContentFormat, while the tool DTO exposes *Percent
+// fields. Re-key explicitly so media-heavy mixes are not priced as defaults.
+
 function parseContentMixPercents(
   input: unknown,
 ): ContentMixPercents | undefined {
@@ -114,6 +117,8 @@ function toContentFormatMix(
 
 @Injectable()
 export class AgentMediaBatchGenerationService {
+  // Preserve the legacy log category so operational searches and alerts keep
+  // matching after ownership moved out of the public facade.
   private readonly logContext = 'AgentMediaGenerationToolHandler';
 
   constructor(
@@ -183,10 +188,13 @@ export class AgentMediaBatchGenerationService {
     const handle = params.handle as string | undefined;
 
     if (handle && !brandId && this.credentialsService) {
-      const credential = await this.credentialsService.findByHandle(
-        handle,
-        ctx.organizationId,
-      );
+      const credential =
+        typeof this.credentialsService.findByHandle === 'function'
+          ? await this.credentialsService.findByHandle(
+              handle,
+              ctx.organizationId,
+            )
+          : null;
       if (!credential) {
         return {
           error: {
@@ -272,6 +280,8 @@ export class AgentMediaBatchGenerationService {
       };
     }
     let batch: BatchRecord;
+    // createBatch persists items before credits move; if reserve fails, the
+    // compensation below must cancel them or #2696 leaves an orphan batch.
     try {
       batch = await this.batchGenerationService.createBatch(
         {
@@ -379,6 +389,7 @@ export class AgentMediaBatchGenerationService {
       threadId: ctx.threadId,
     };
     const streamedItems: StreamedBatchItem[] = [];
+    const streamedBlocks: string[] = [];
     let streamedTranscript =
       `Creating ${execution.batch.totalCount} ${execution.platformLabel} post${execution.batch.totalCount === 1 ? '' : 's'}. ` +
       'I will stream each draft as soon as it is ready.';
@@ -394,6 +405,7 @@ export class AgentMediaBatchGenerationService {
       this.buildStreamingCallbacks(
         execution.batchId,
         streamedItems,
+        streamedBlocks,
         streamContext,
       ),
     );
@@ -401,9 +413,7 @@ export class AgentMediaBatchGenerationService {
       `\n\nBatch complete. ${summary.completedCount} of ${summary.totalCount} ` +
       `post${summary.totalCount === 1 ? '' : 's'} ready` +
       `${summary.failedCount > 0 ? `, ${summary.failedCount} failed.` : '.'}`;
-    streamedTranscript += streamedItems
-      .map((item) => this.formatStreamedItemBlock(item, summary.totalCount))
-      .join('');
+    streamedTranscript += streamedBlocks.join('');
     streamedTranscript += summaryText;
     await runEffectPromise(
       this.publishTokenEffect({
@@ -426,6 +436,7 @@ export class AgentMediaBatchGenerationService {
   private buildStreamingCallbacks(
     batchId: string,
     streamedItems: StreamedBatchItem[],
+    streamedBlocks: string[],
     ctx: StreamToolExecutionContext,
   ): Parameters<BatchGenerationService['processBatch']>[2] {
     return {
@@ -441,6 +452,9 @@ export class AgentMediaBatchGenerationService {
           topic: event.topic,
         };
         streamedItems.push(item);
+        streamedBlocks.push(
+          this.formatStreamedItemBlock(item, event.totalCount),
+        );
         await this.publishStreamedItem(item, event.totalCount, batchId, ctx, {
           detail: `Draft ${event.completedCount}/${event.totalCount} is ready.`,
           progress: Math.round((event.completedCount / event.totalCount) * 100),
@@ -461,6 +475,9 @@ export class AgentMediaBatchGenerationService {
         const completedCount = streamedItems.filter(
           (entry) => entry.status === 'completed',
         ).length;
+        streamedBlocks.push(
+          this.formatStreamedItemBlock(item, event.totalCount),
+        );
         await this.publishStreamedItem(item, event.totalCount, batchId, ctx, {
           detail: event.error || 'Draft generation failed.',
           progress: Math.round(
@@ -600,6 +617,7 @@ export class AgentMediaBatchGenerationService {
       params.streamedItems,
       { limit: BATCH_POST_PREVIEW_LIMIT },
     );
+    // Previews are already limited server-side; the card links to the full set.
     const readyCount = params.summary.completedCount;
     const viewAllLabel =
       readyCount > BATCH_POST_PREVIEW_LIMIT
@@ -670,6 +688,8 @@ export class AgentMediaBatchGenerationService {
       userId: ctx.userId,
     });
     if (!queuedJobId) {
+      // #2501: the queue owns durable execution. Only self-hosted deployments
+      // without a queue fall back to the legacy in-process path.
       this.runBatchInProcess({
         batchId: execution.batchId,
         organizationId: ctx.organizationId,
@@ -699,6 +719,7 @@ export class AgentMediaBatchGenerationService {
     threadId?: string;
     userId: string;
   }): void {
+    // Deliberately not awaited: the public tool returns once ownership starts.
     if (!this.batchGenerationService) return;
     const streamOptions =
       context.threadId && this.batchStreamService
@@ -739,12 +760,12 @@ export class AgentMediaBatchGenerationService {
     const state = item.status === 'completed' ? 'ready' : 'failed';
     const detail =
       item.status === 'completed'
-        ? item.previewText || item.topic
+        ? (item.previewText || item.topic).trim()
         : item.error || 'Unknown error';
     return (
       `\n\nPost ${item.index + 1}/${totalCount} ${state}` +
       `${item.platform ? ` (${item.platform})` : ''}` +
-      `\n${detail.trim()}`
+      `\n${detail}`
     );
   }
 
