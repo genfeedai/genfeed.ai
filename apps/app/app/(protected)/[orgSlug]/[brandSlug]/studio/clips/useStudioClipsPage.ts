@@ -1,13 +1,16 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { GenerationType } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type {
-  AgentClipRunIdentity,
-  ClipProjectReadResponse,
-  IBrand,
-  IOrganizationSetting,
+import {
+  type AgentClipRunIdentity,
+  type ClipProjectReadResponse,
+  type IBrand,
+  type IOrganizationSetting,
+  isClipResultMode,
 } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import type {
   AvatarProvider,
@@ -16,6 +19,7 @@ import type {
   IHighlight,
   ProjectState,
 } from '@props/studio/clips.props';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
@@ -175,9 +179,39 @@ export function resolveAvatarProviderSelection({
     : { avatarId: '', voiceId: '' };
 }
 
-export function useStudioClipsPage() {
+const REVIEW_STATUSES = new Set([
+  'analyzed',
+  'analyzing',
+  'pending',
+  'transcribing',
+]);
+
+const PROGRESS_STATUSES = new Set([
+  'captioning',
+  'clipping',
+  'completed',
+  'failed',
+  'generating',
+]);
+
+export function resolveClipsStepFromStatus(status?: string): ClipsStep {
+  if (status && PROGRESS_STATUSES.has(status)) {
+    return 'progress';
+  }
+
+  if (status && REVIEW_STATUSES.has(status)) {
+    return 'review';
+  }
+
+  return 'review';
+}
+
+export function useStudioClipsPage(options?: { projectId?: string }) {
+  const projectIdFromRoute = options?.projectId;
   const { getToken } = useAuthIdentity();
   const { selectedBrand, settings } = useBrand();
+  const router = useRouter();
+  const { href } = useOrgUrl();
 
   const resolveToken = useCallback(async (): Promise<string> => {
     return (await resolveAuthToken(getToken)) ?? '';
@@ -188,8 +222,17 @@ export function useStudioClipsPage() {
     [resolveToken],
   );
 
+  const goToProject = useCallback(
+    (projectId: string) => {
+      router.push(href(`${APP_ROUTES.STUDIO.CLIPS}/${projectId}`));
+    },
+    [href, router],
+  );
+
   // Step tracking
-  const [step, setStep] = useState<ClipsStep>('input');
+  const [step, setStep] = useState<ClipsStep>(
+    projectIdFromRoute ? 'review' : 'input',
+  );
 
   // Form state
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -202,6 +245,7 @@ export function useStudioClipsPage() {
   const [maxClips, setMaxClips] = useState(10);
   const [minViralityScore, setMinViralityScore] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(Boolean(projectIdFromRoute));
   const [error, setError] = useState<string | null>(null);
 
   // Project state
@@ -295,6 +339,65 @@ export function useStudioClipsPage() {
     voiceId,
   ]);
 
+  useEffect(() => {
+    if (!projectIdFromRoute) {
+      setIsHydrating(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+    let cancelled = false;
+    setIsHydrating(true);
+
+    void clipsService
+      .getProject(projectIdFromRoute, abortController.signal)
+      .then((data) => {
+        if (cancelled) {
+          return;
+        }
+
+        const status = data.status ?? 'pending';
+        const mode = isClipResultMode(data.settings?.mode)
+          ? data.settings.mode
+          : 'avatar';
+
+        setProject({
+          clips: [],
+          highlights: [],
+          mode,
+          projectId: projectIdFromRoute,
+          referenceFrames: data.referenceFrames,
+          status,
+        });
+        setGenerationMode(mode);
+        setStep(resolveClipsStepFromStatus(status));
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
+
+        setError(
+          err instanceof Error ? err.message : 'Could not load this project.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsHydrating(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+    };
+  }, [clipsService, projectIdFromRoute]);
+
   // ─── Step 1: Analyze ─────────────────────────────────────────
   const handleAnalyze = useCallback(async () => {
     if (!youtubeUrl) {
@@ -323,6 +426,7 @@ export function useStudioClipsPage() {
         status: 'analyzing',
       });
       setStep('review');
+      goToProject(data.projectId);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -335,6 +439,7 @@ export function useStudioClipsPage() {
     minViralityScore,
     generationMode,
     clipsService,
+    goToProject,
   ]);
 
   // ─── Step 1: One-click YouTube clip factory ───────────────────
@@ -398,6 +503,7 @@ export function useStudioClipsPage() {
       setSelectedIds(new Set());
       setEditedHighlights([]);
       setStep('progress');
+      goToProject(data.projectId);
     } catch (err: unknown) {
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
         generationType: GenerationType.CLIP,
@@ -418,12 +524,13 @@ export function useStudioClipsPage() {
     maxClips,
     minViralityScore,
     clipsService,
+    goToProject,
   ]);
 
   // ─── Poll for analysis completion ─────────────────────────────
   useEffect(() => {
     if (step !== 'review' || !project?.projectId) return;
-    if (project.status === 'analyzed' || project.status === 'failed') return;
+    if (project.status === 'failed') return;
     if (!isDocumentVisible) return;
 
     let cancelled = false;
@@ -765,7 +872,8 @@ export function useStudioClipsPage() {
     setFailedReferenceFrameId(null);
     setReferenceFrameError(null);
     setResolvedIdentity(null);
-  }, []);
+    router.push(href(APP_ROUTES.STUDIO.CLIPS));
+  }, [href, router]);
 
   const selectedCount = selectedIds.size;
 
@@ -781,6 +889,7 @@ export function useStudioClipsPage() {
     handleSelectReferenceFrame,
     handleStartFromYoutube,
     identityDefaults,
+    isHydrating,
     isSubmitting,
     maxClips,
     minViralityScore,

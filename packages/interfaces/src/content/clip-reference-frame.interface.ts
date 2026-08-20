@@ -69,6 +69,19 @@ export interface ClipReferenceFrameExtractionInput {
  * surface. Shared so the API client and the page hook cannot drift.
  */
 export interface ClipProjectReadResponse {
+  brandId?: string;
+  createdAt?: string;
+  error?: string | null;
+  failedClipCount?: number;
+  name?: string;
+  pendingClipCount?: number;
+  progress?: number;
+  readyClipCount?: number;
   referenceFrames?: ClipReferenceFrameSet;
+  settings?: {
+    maxClips?: number;
+    mode?: string;
+  };
+  sourceVideoUrl?: string;
   status?: string;
 }

@@ -3,9 +3,11 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const CLIPS_CHROME_SOURCES = [
+  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/ClipsWorkspace.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipModeSelector.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsProgressView.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsProjectCard.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/page.tsx',
 ] as const;
 
