@@ -280,7 +280,7 @@ function WorkspaceInspectorChrome({
     <div className="flex h-9 shrink-0 items-center justify-between gap-1 border-b border-border px-2">
       <div className="flex min-w-0 flex-1 items-center gap-0.5">
         <TabsList
-          className="h-9 min-w-0 overflow-x-auto overflow-y-hidden"
+          className="h-9 min-w-0 overflow-x-auto overflow-y-hidden border-b-0"
           data-variant="underline"
         >
           {layout.openKinds.map((kind) => (

@@ -407,6 +407,34 @@ describe('Tabs', () => {
     expect(panel).toHaveTextContent('Home panel');
   });
 
+  it('moves stale active content to the first enabled tab', () => {
+    const handleTabChange = vi.fn();
+    const { rerender } = render(
+      <Tabs
+        activeTab="captions"
+        onTabChange={handleTabChange}
+        tabs={['info', 'captions']}
+      >
+        <div>Captions panel</div>
+      </Tabs>,
+    );
+
+    rerender(
+      <Tabs activeTab="captions" onTabChange={handleTabChange} tabs={['info']}>
+        <div>Captions panel</div>
+      </Tabs>,
+    );
+
+    const fallbackTab = screen.getByRole('tab', { name: /info/i });
+    const panel = screen.getByRole('tabpanel');
+
+    expect(fallbackTab).toHaveAttribute('data-state', 'active');
+    expect(fallbackTab).toHaveAttribute('aria-controls', panel.id);
+    expect(panel).toHaveAttribute('aria-labelledby', fallbackTab.id);
+    expect(screen.queryByText('Captions panel')).not.toBeInTheDocument();
+    expect(handleTabChange).toHaveBeenLastCalledWith('info');
+  });
+
   it('applies segmented variant and compact sizing', () => {
     mockPathname = '/dashboard';
     mockSearch = '';

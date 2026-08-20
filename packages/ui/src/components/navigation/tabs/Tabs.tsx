@@ -22,7 +22,7 @@ import {
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 
 function isNavigationTab(
   tab: NavigationTab | RouteTabItem | TabItem,
@@ -116,6 +116,7 @@ function TabsContent({
 
   // Check if we're in navigation mode (any tab has href)
   const hasNavigationTabs = normalizedTabs.some(isNavigationTab);
+  const firstEnabledTab = normalizedTabs.find((tab) => !tab.isDisabled);
 
   const getActiveValue = () => {
     if (activeTab) {
@@ -130,11 +131,17 @@ function TabsContent({
         );
       });
 
-      return activeMatch ? getTabId(activeMatch) : activeTab;
+      if (activeMatch && !activeMatch.isDisabled) {
+        return getTabId(activeMatch);
+      }
+
+      if (!hasNavigationTabs) {
+        return firstEnabledTab ? getTabId(firstEnabledTab) : undefined;
+      }
     }
 
     if (!hasNavigationTabs) {
-      return activeTab;
+      return firstEnabledTab ? getTabId(firstEnabledTab) : undefined;
     }
 
     const activeNavTab = normalizedTabs.reduce<{
@@ -176,6 +183,21 @@ function TabsContent({
   };
 
   const activeValue = getActiveValue();
+  const isContentSynchronized =
+    activeTab === undefined || activeTab === activeValue;
+
+  useEffect(() => {
+    if (
+      hasNavigationTabs ||
+      !activeValue ||
+      activeTab === activeValue ||
+      !onTabChange
+    ) {
+      return;
+    }
+
+    onTabChange(activeValue);
+  }, [activeTab, activeValue, hasNavigationTabs, onTabChange]);
 
   const handleValueChange = (value: string) => {
     // For non-navigation tabs, call onTabChange
@@ -325,7 +347,7 @@ function TabsContent({
       </TabsList>
       {children != null && activeValue ? (
         <TabsPanel className={contentClassName} value={activeValue}>
-          {children}
+          {isContentSynchronized ? children : null}
         </TabsPanel>
       ) : null}
     </TabsRoot>
