@@ -3,8 +3,10 @@
 // to a dev-server `/@fs/` URL under the default jsdom (client) transform. This
 // is route-handler code that only ever runs on the server, so test it there.
 
-import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
+// biome-ignore assist/source/organizeImports: External packages precede project aliases.
 import { describe, expect, it } from 'vitest';
+
+import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
 
 /**
  * Lives with the card rather than with the font package because this guards the

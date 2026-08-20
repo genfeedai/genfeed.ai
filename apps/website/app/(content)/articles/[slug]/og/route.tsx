@@ -1,7 +1,11 @@
+// biome-ignore assist/source/organizeImports: External packages precede project aliases.
+import { ImageResponse } from 'next/og';
+
 import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
+
 import { getPublicArticleBySlugCached } from '@website/(content)/articles/[slug]/article-loader';
 import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
-import { ImageResponse } from 'next/og';
+
 import { BrandMark } from './brand-mark';
 import { getHeadlineSize, truncateHeadline } from './headline';
 

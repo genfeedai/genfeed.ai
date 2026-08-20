@@ -16,6 +16,23 @@ describe('truncateHeadline', () => {
     expect(result.length).toBeLessThanOrEqual(HEADLINE_CAP);
   });
 
+  it('truncates repeated emoji as complete Unicode code points', () => {
+    const result = truncateHeadline('🚀'.repeat(12), 10);
+
+    expect(result).toBe(`${'🚀'.repeat(9)}…`);
+    expect(Array.from(result)).toHaveLength(10);
+  });
+
+  it('keeps an emoji whole when it lands at the truncation boundary', () => {
+    expect(truncateHeadline('12345678🚀xy', 10)).toBe('12345678🚀…');
+  });
+
+  it('preserves the word-boundary policy for mixed text and emoji', () => {
+    expect(truncateHeadline('Launch 🚀 update now please', 20)).toBe(
+      'Launch 🚀 update…',
+    );
+  });
+
   it('falls back to a hard slice when there is no word break to back up to', () => {
     const result = truncateHeadline('x'.repeat(400));
 
@@ -25,9 +42,9 @@ describe('truncateHeadline', () => {
 
   it('never emits a headline longer than the cap', () => {
     for (const length of [149, 150, 151, 200, 1000]) {
-      expect(truncateHeadline('ab '.repeat(length)).length).toBeLessThanOrEqual(
-        HEADLINE_CAP,
-      );
+      const result = truncateHeadline('ab '.repeat(length));
+
+      expect(Array.from(result).length).toBeLessThanOrEqual(HEADLINE_CAP);
     }
   });
 });
@@ -44,6 +61,11 @@ describe('getHeadlineSize', () => {
     [HEADLINE_CAP, 58],
   ])('sizes a %i-character headline at %ipx', (length, expected) => {
     expect(getHeadlineSize('a'.repeat(length))).toBe(expected);
+  });
+
+  it('sizes emoji by Unicode code point count', () => {
+    expect(getHeadlineSize('🚀'.repeat(48))).toBe(92);
+    expect(getHeadlineSize('🚀'.repeat(49))).toBe(78);
   });
 
   it('never drops below the size the longest allowed headline was verified at', () => {
