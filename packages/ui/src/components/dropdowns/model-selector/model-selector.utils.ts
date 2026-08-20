@@ -3,10 +3,14 @@ import {
   extractBrandFromKey,
   getBrandConfig,
 } from '@genfeedai/constants';
-import type { CostTier } from '@genfeedai/enums';
+import { CostTier, SpeedTier } from '@genfeedai/enums';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { IModel } from '@genfeedai/interfaces';
-import type { ModelSelectorOption } from '@genfeedai/props/ui/model-selector/model-selector.props';
+import type {
+  ModelSelectorCapability,
+  ModelSelectorOption,
+} from '@genfeedai/props/ui/model-selector/model-selector.props';
+import { Film, Images, Layers, Volume2, Wand2, Zap } from 'lucide-react';
 
 type ModelWithLifecycle = IModel & {
   deprecatedAt?: string | Date;
@@ -84,6 +88,11 @@ function getFallbackFamilyLabel(label: string): string {
   return label.replace(/\s*\(([^)]+)\)\s*$/, '').trim() || label;
 }
 
+/**
+ * Family and variant no longer draw an accordion — the list is flat. They are
+ * still parsed so siblings sort next to each other and so a search for the
+ * family name ("veo") surfaces every variant.
+ */
 export function parseModelFamilyAndVariant(
   model: Pick<IModel, 'key' | 'label'>,
 ): {
@@ -149,22 +158,6 @@ function stripKnownVariantSuffixes(modelSlug: string): {
   };
 }
 
-export function shouldRenderModelFamilyHeader(variantCount: number): boolean {
-  return variantCount > 1;
-}
-
-export function isModelFamilyExpanded({
-  familyKey,
-  hasSearchMatch,
-  toggledFamilyKeys,
-}: {
-  familyKey: string;
-  hasSearchMatch: boolean;
-  toggledFamilyKeys: readonly string[];
-}): boolean {
-  return hasSearchMatch || toggledFamilyKeys.includes(familyKey);
-}
-
 export function transformModelsToOptions(
   models: IModel[],
   favoriteModelKeys: string[],
@@ -220,28 +213,172 @@ export function getCostTierDisplay(
   return COST_TIER_DISPLAY[costTier] ?? null;
 }
 
-export function collectBrandsFromOptions(
-  options: ModelSelectorOption[],
-): Array<{ slug: string; label: string; color: string; count: number }> {
-  const brandMap = new Map<
-    string,
-    { label: string; color: string; count: number }
-  >();
+export function hasModelAudio(model: IModel): boolean {
+  return model.hasSpeech === true || model.hasAudioToggle === true;
+}
 
-  for (const option of options) {
-    const existing = brandMap.get(option.brandSlug);
-    if (existing) {
-      existing.count++;
-    } else {
-      brandMap.set(option.brandSlug, {
-        color: option.brandColor,
-        count: 1,
-        label: option.brandLabel,
-      });
-    }
+/**
+ * Capabilities the row shows as icons. Audio and speed are the two facts that
+ * change which model an operator picks at a glance — everything else stays in
+ * the hover spec so the row can hold one line.
+ */
+export function getModelRowCapabilities(
+  model: IModel,
+): ModelSelectorCapability[] {
+  const capabilities: ModelSelectorCapability[] = [];
+
+  if (hasModelAudio(model)) {
+    capabilities.push({ icon: Volume2, id: 'audio', label: 'Audio' });
   }
 
-  return Array.from(brandMap.entries())
-    .map(([slug, data]) => ({ slug, ...data }))
-    .sort((a, b) => b.count - a.count);
+  if (model.speedTier === SpeedTier.FAST) {
+    capabilities.push({ icon: Zap, id: 'fast', label: 'Fast' });
+  }
+
+  return capabilities;
+}
+
+/** The full capability set, shown as chips inside the hover spec panel. */
+export function getModelSpecCapabilities(
+  model: IModel,
+): ModelSelectorCapability[] {
+  const capabilities = getModelRowCapabilities(model);
+
+  if (model.hasEndFrame) {
+    capabilities.push({ icon: Film, id: 'end-frame', label: 'End frame' });
+  }
+
+  if (model.hasInterpolation) {
+    capabilities.push({
+      icon: Layers,
+      id: 'interpolation',
+      label: 'Interpolation',
+    });
+  }
+
+  if (typeof model.maxReferences === 'number' && model.maxReferences > 0) {
+    capabilities.push({
+      icon: Images,
+      id: 'references',
+      label: `${model.maxReferences} reference${model.maxReferences === 1 ? '' : 's'}`,
+    });
+  }
+
+  if (model.hasResolutionOptions) {
+    capabilities.push({
+      icon: Wand2,
+      id: 'resolutions',
+      label: 'Resolution options',
+    });
+  }
+
+  return capabilities;
+}
+
+export const MODEL_FILTER_ALL = 'all';
+export const MODEL_FILTER_LEGACY = 'legacy';
+export const MODEL_FILTER_AUDIO = 'audio';
+export const MODEL_FILTER_FAST = 'fast';
+export const MODEL_FILTER_CHEAP = 'cheap';
+export const MODEL_FILTER_SOURCE_PREFIX = 'source:';
+
+export function isSourceFilter(filterId: string): boolean {
+  return filterId.startsWith(MODEL_FILTER_SOURCE_PREFIX);
+}
+
+export function getSourceFilterGroup(filterId: string): string {
+  return filterId.slice(MODEL_FILTER_SOURCE_PREFIX.length);
+}
+
+/**
+ * One active filter at a time. Legacy is the only filter that opts *into*
+ * deprecated rows; every other view hides them unless a search matches.
+ */
+export function matchesModelFilter(
+  option: ModelSelectorOption,
+  filterId: string,
+): boolean {
+  if (filterId === MODEL_FILTER_LEGACY) {
+    return option.isDeprecated;
+  }
+
+  if (option.isDeprecated) {
+    return false;
+  }
+
+  switch (filterId) {
+    case MODEL_FILTER_ALL:
+      return true;
+    case MODEL_FILTER_AUDIO:
+      return hasModelAudio(option.model);
+    case MODEL_FILTER_FAST:
+      return option.model.speedTier === SpeedTier.FAST;
+    case MODEL_FILTER_CHEAP:
+      return option.costTier === CostTier.LOW;
+    default:
+      return isSourceFilter(filterId)
+        ? option.sourceGroup === getSourceFilterGroup(filterId)
+        : true;
+  }
+}
+
+export function buildModelSearchText(option: ModelSelectorOption): string {
+  return [
+    option.model.label,
+    option.brandLabel,
+    option.familyLabel,
+    option.variantLabel,
+    option.model.description ?? '',
+  ]
+    .join(' ')
+    .toLowerCase();
+}
+
+export function matchesModelSearch(
+  option: ModelSelectorOption,
+  normalizedSearchTerm: string,
+): boolean {
+  return buildModelSearchText(option).includes(normalizedSearchTerm);
+}
+
+/**
+ * Ranked flat order: brand, then family, then variant. Variants of one family
+ * stay adjacent without needing a header to hold them together.
+ */
+export function sortModelOptions(
+  options: ModelSelectorOption[],
+): ModelSelectorOption[] {
+  return [...options].sort((left, right) => {
+    const byBrand = left.brandLabel.localeCompare(right.brandLabel);
+    if (byBrand !== 0) {
+      return byBrand;
+    }
+
+    const byFamily = left.familyLabel.localeCompare(right.familyLabel);
+    if (byFamily !== 0) {
+      return byFamily;
+    }
+
+    return left.variantLabel.localeCompare(right.variantLabel, undefined, {
+      numeric: true,
+    });
+  });
+}
+
+/** Recents keep their own recency order, so they are ordered by key, not name. */
+export function orderOptionsByKeys(
+  options: ModelSelectorOption[],
+  orderedKeys: readonly string[],
+): ModelSelectorOption[] {
+  const optionsByKey = new Map(
+    options.map((option) => [option.model.key, option]),
+  );
+
+  return orderedKeys.reduce<ModelSelectorOption[]>((acc, key) => {
+    const option = optionsByKey.get(key);
+    if (option) {
+      acc.push(option);
+    }
+    return acc;
+  }, []);
 }

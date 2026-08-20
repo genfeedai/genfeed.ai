@@ -17,6 +17,27 @@ export interface ModelSelectorOption {
   sourceGroup?: string;
 }
 
+/**
+ * One capability the row advertises with an icon and the spec panel spells out.
+ * The icon carries the meaning on the row; `label` is its accessible name.
+ */
+export interface ModelSelectorCapability {
+  id: string;
+  label: string;
+  icon: IconType;
+}
+
+/**
+ * A single-select filter chip. `all` plus the catalog's source groups and the
+ * capability shortcuts — the flat list has no rail and no accordion, so this
+ * row is the only structural filter.
+ */
+export interface ModelSelectorFilter {
+  id: string;
+  label: string;
+  icon?: IconType;
+}
+
 export interface ModelSelectorPopoverProps {
   models: readonly IModel[];
   values: string[];
@@ -49,18 +70,10 @@ export interface ModelSelectorPopoverProps {
   creditsAvailable?: number | null;
 }
 
-export interface ModelSelectorProviderSidebarProps {
-  brands: Array<{
-    slug: string;
-    label: string;
-    color: string;
-    count: number;
-  }>;
-  activeBrand: string | null;
-  onBrandSelect: (brand: string | null) => void;
-  hasFavorites: boolean;
-  /** When true, show a Legacy filter after brand icons. */
-  hasLegacy?: boolean;
+export interface ModelSelectorFilterPillsProps {
+  filters: ModelSelectorFilter[];
+  activeFilterId: string;
+  onFilterSelect: (filterId: string) => void;
 }
 
 export interface ModelSelectorModelItemProps {
@@ -73,8 +86,12 @@ export interface ModelSelectorModelItemProps {
   /** Credit lock — row is visible but not selectable. */
   isLocked?: boolean;
   lockReason?: string;
-  /** Single-variant families skip the nest header and show the brand mark here. */
-  isStandalone?: boolean;
+}
+
+export interface ModelSelectorModelSpecProps {
+  option: ModelSelectorOption;
+  /** Rendered when the model is priced out of the current credit balance. */
+  lockReason?: string;
 }
 
 export interface ModelSelectorBrandMarkProps {
@@ -82,17 +99,6 @@ export interface ModelSelectorBrandMarkProps {
   brandIcon?: IconType;
   brandLabel: string;
   testId?: string;
-}
-
-export interface ModelSelectorFamilyItemProps {
-  accessibleName?: string;
-  brandColor: string;
-  brandIcon?: IconType;
-  brandLabel: string;
-  count: number;
-  familyLabel: string;
-  isExpanded: boolean;
-  onToggle: () => void;
 }
 
 export interface ModelSelectorTriggerProps {
