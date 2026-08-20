@@ -46,6 +46,7 @@ type GenerationActionCardControlsProps = {
   isDisabled: boolean;
   modelsLoading: boolean;
   modelsError: string | null;
+  isAllowlistEmpty?: boolean;
   onRetryLoadModels: () => void;
   filteredModels: GenerationModel[];
   isAutoMode: boolean;
@@ -79,6 +80,7 @@ export function GenerationActionCardControls({
   isDisabled,
   modelsLoading,
   modelsError,
+  isAllowlistEmpty = false,
   onRetryLoadModels,
   filteredModels,
   isAutoMode,
@@ -207,6 +209,18 @@ export function GenerationActionCardControls({
                   </SelectItem>
                 </SelectContent>
               </Select>
+            ) : isAllowlistEmpty ? (
+              <Button
+                ariaLabel="No models enabled"
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+                isDisabled
+                className={cn('w-44 justify-start', SHELL_CONTROL_HEIGHT_CLASS)}
+                textTransform="none"
+                title="No models enabled for this workspace"
+              >
+                <span className="truncate text-xs">No models enabled</span>
+              </Button>
             ) : modelsError || hasNoSelectableModels ? (
               <Button
                 variant={ButtonVariant.SECONDARY}
@@ -334,7 +348,7 @@ export function GenerationActionCardControls({
               }
               className={trailingControlClass}
               icon={<ArrowUp className="size-4" />}
-              isDisabled={isPromptEmpty}
+              isDisabled={isPromptEmpty || isAllowlistEmpty}
               onClick={onGenerate}
               size={ButtonSize.ICON}
               tooltip={translate('generateTooltip')}

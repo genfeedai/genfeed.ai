@@ -414,7 +414,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   // Single-select chat pickers never show Auto priority cards unless a host
   // explicitly opts in with autoLabel (studio generation keeps the full surface).
+  // An empty allowlist must not offer Auto — confirm would 403 in RouterService.
   const shouldShowAutoCard =
+    models.length > 0 &&
     (!isSingleSelect || Boolean(autoLabel)) &&
     (isAutoSelected || shouldShowAuto);
 

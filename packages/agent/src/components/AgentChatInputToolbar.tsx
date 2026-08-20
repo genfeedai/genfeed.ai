@@ -96,15 +96,37 @@ function AgentChatInputToolbarInner({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isCompact = density === 'compact';
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  const hasSelectableModels = models.length > 0;
   const isAutoSelected =
-    !selectedModel || selectedModel === AUTO_MODEL_OPTION_VALUE;
+    hasSelectableModels &&
+    (!selectedModel || selectedModel === AUTO_MODEL_OPTION_VALUE);
   const autoLabel = prioritize ? getAutoModelLabel(prioritize) : 'Auto';
   // One shared picker for agent chat + studio/generation (selectionMode=single).
   // autoLabel opts single mode into Auto + priority cards (user settings:
   // empty defaultAgentModel + generationPriority).
-  const modelSelector = onModelChange ? (
+  const emptyAllowlistControl =
+    onModelChange && !hasSelectableModels && !isModelsLoading ? (
+      <Button
+        ariaLabel="No models enabled"
+        className={cn(
+          'max-w-[12rem] justify-start text-muted-foreground',
+          isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
+        )}
+        isDisabled
+        size={ButtonSize.SM}
+        textTransform="none"
+        title="No models enabled for this workspace"
+        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
+      >
+        <span className="truncate text-xs">No models enabled</span>
+      </Button>
+    ) : null;
+  const modelSelector = emptyAllowlistControl ? (
+    emptyAllowlistControl
+  ) : onModelChange ? (
     <ModelSelectorPopover
-      autoLabel={autoLabel}
+      autoLabel={hasSelectableModels ? autoLabel : undefined}
       className={cn(
         'max-w-[12rem] text-muted-foreground hover:text-foreground',
         isCompact ? 'h-8 px-1.5' : 'h-9 px-2',

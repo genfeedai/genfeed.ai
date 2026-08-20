@@ -378,13 +378,45 @@ describe('ModelSelectorPopover', () => {
     expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.BALANCED);
   });
 
+  it('does not offer Auto when the allowlisted catalog is empty', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <ModelSelectorPopover
+        autoLabel="Auto · Lowest Cost"
+        models={[]}
+        values={['__auto_model__']}
+        onChange={onChange}
+        onPrioritizeChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /auto|select models/i }),
+    );
+
+    expect(screen.queryByText('Lowest Cost')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fastest')).not.toBeInTheDocument();
+    expect(screen.queryByText('FLUX Schnell')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kling 2.6')).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('selects auto mode when a routing option is chosen from the flat list', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
     render(
       <ModelSelectorPopover
-        models={[]}
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
         values={[]}
         onChange={onChange}
         onPrioritizeChange={vi.fn()}

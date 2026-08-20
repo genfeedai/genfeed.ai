@@ -150,16 +150,19 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('keeps Auto selectable when the required registry catalog is empty', async () => {
-    const user = userEvent.setup();
+  it('does not offer Auto when the required registry catalog is empty', () => {
     const onModelChange = vi.fn();
 
     render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
 
-    expect(screen.getByTestId('model-catalog-size')).toHaveTextContent('0');
-    await user.click(screen.getByRole('button', { name: 'Use Auto' }));
-
-    expect(onModelChange).toHaveBeenCalledWith('__auto_model__');
+    expect(
+      screen.getByRole('button', { name: /no models enabled/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Use Auto' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('model-catalog-size')).not.toBeInTheDocument();
+    expect(onModelChange).not.toHaveBeenCalled();
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {

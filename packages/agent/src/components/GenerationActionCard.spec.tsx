@@ -199,13 +199,22 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-const { storeState } = vi.hoisted(() => ({
+const { brandState, storeState } = vi.hoisted(() => ({
+  brandState: {
+    organizationId: '',
+    settings: null as { enabledModelIds?: string[] } | null,
+    settingsLoading: false,
+  },
   storeState: {
     activeThreadId: 'thread-1',
     error: null as string | null,
     setError: vi.fn(),
     setThreadUiBusy: vi.fn(),
   },
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => brandState,
 }));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
@@ -314,6 +323,9 @@ describe('GenerationActionCard', () => {
   });
 
   beforeEach(() => {
+    brandState.organizationId = '';
+    brandState.settings = null;
+    brandState.settingsLoading = false;
     storeState.activeThreadId = 'thread-1';
     storeState.error = null;
     storeState.setError.mockReset();
@@ -1177,5 +1189,93 @@ describe('GenerationActionCard', () => {
       ).toBeInTheDocument();
     });
     expect(rejectGenerate).toBeDefined();
+  });
+
+  it('shows an allowlisted generate model and hides disabled catalog rows', async () => {
+    const flux = createModel({
+      key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+      label: 'FLUX Schnell',
+    });
+    const kling = createModel({
+      category: ModelCategory.VIDEO,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+      label: 'Kling 2.6',
+    });
+    const nanoBanana = createModel({
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      label: 'Nano Banana',
+    });
+    brandState.organizationId = 'org_demo';
+    brandState.settings = { enabledModelIds: [nanoBanana.key] };
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-allowlist-visible',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [flux, kling, nanoBanana],
+        })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedModelSelectorPopoverProps.models).toEqual([nanoBanana]);
+    });
+    expect(capturedModelSelectorPopoverProps.autoLabel).toMatch(/Auto/);
+  });
+
+  it('does not offer Auto, Flux, or Kling when the org allowlist is empty', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+    brandState.organizationId = 'org_demo';
+    brandState.settings = { enabledModelIds: [] };
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-allowlist-empty',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+              label: 'FLUX Schnell',
+            }),
+            createModel({
+              category: ModelCategory.VIDEO,
+              key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+              label: 'Kling 2.6',
+            }),
+          ],
+        })}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    expect(
+      await screen.findByRole('button', { name: /no models enabled/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('model-selector-popover'),
+    ).not.toBeInTheDocument();
+    expect(capturedModelSelectorPopoverProps.models).toBeUndefined();
+    expect(capturedModelSelectorPopoverProps.autoLabel).toBeUndefined();
+
+    const generate = screen.getByRole('button', { name: /generate image/i });
+    expect(generate).toBeDisabled();
+    fireEvent.click(generate);
+    expect(onUiAction).not.toHaveBeenCalled();
   });
 });

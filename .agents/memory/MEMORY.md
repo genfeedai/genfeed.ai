@@ -67,6 +67,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_article_card_editorial_system](feedback_article_card_editorial_system.md) — article covers and OG cards use the dark physical-studio Genfeed system with article-specific metaphors
 - [feedback_generation_card_manual_collapse_on_error](feedback_generation_card_manual_collapse_on_error.md) — failed generation cards stay expandable; the operator can collapse them by hand
 - [feedback_ui_action_403_not_provider](feedback_ui_action_403_not_provider.md) — confirm-generate 403s are our API (allowlist/brand/org), not a provider block
+- [feedback_generate_picker_reads_allowlist](feedback_generate_picker_reads_allowlist.md) — generate/agent pickers honor enabledModelIds; Settings → Models stays the catalog
 - [feedback_request_abort_not_body_close](feedback_request_abort_not_body_close.md) — cancel Replicate only on response.close; request.close is the body finishing
 - [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
 - [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
