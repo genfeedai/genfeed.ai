@@ -7,6 +7,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -36,6 +37,7 @@ export class WorkflowWebhookService {
   @HandleErrors('generate webhook', 'workflows')
   async generateWebhook(
     workflowId: string,
+    organizationId: string,
     authType: WorkflowWebhookAuthType = 'secret',
   ): Promise<{
     webhookId: string;
@@ -48,7 +50,7 @@ export class WorkflowWebhookService {
       authType !== 'none' ? this.generateWebhookSecret() : null;
     const baseUrl = this.configService.apiUrl;
 
-    await this.patchWorkflowConfig(workflowId, {
+    await this.patchWorkflowConfig(workflowId, organizationId, {
       webhookAuthType: authType,
       webhookId,
       webhookSecret,
@@ -68,10 +70,13 @@ export class WorkflowWebhookService {
   @HandleErrors('regenerate webhook secret', 'workflows')
   async regenerateWebhookSecret(
     workflowId: string,
+    organizationId: string,
   ): Promise<{ webhookSecret: string }> {
     const webhookSecret = this.generateWebhookSecret();
 
-    await this.patchWorkflowConfig(workflowId, { webhookSecret });
+    await this.patchWorkflowConfig(workflowId, organizationId, {
+      webhookSecret,
+    });
 
     return { webhookSecret };
   }
@@ -80,8 +85,11 @@ export class WorkflowWebhookService {
    * Delete webhook configuration
    */
   @HandleErrors('delete webhook', 'workflows')
-  async deleteWebhook(workflowId: string): Promise<void> {
-    await this.patchWorkflowConfig(workflowId, {
+  async deleteWebhook(
+    workflowId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.patchWorkflowConfig(workflowId, organizationId, {
       webhookAuthType: 'secret',
       webhookId: null,
       webhookLastTriggeredAt: null,
@@ -133,16 +141,6 @@ export class WorkflowWebhookService {
       });
     }
 
-    // Update webhook stats
-    const currentWebhookTriggerCount =
-      typeof workflow.webhookTriggerCount === 'number'
-        ? workflow.webhookTriggerCount
-        : 0;
-    await this.patchWorkflowConfig(String(workflow.id), {
-      webhookLastTriggeredAt: new Date().toISOString(),
-      webhookTriggerCount: currentWebhookTriggerCount + 1,
-    });
-
     // Systemic workflow templates legitimately have no scalar owner IDs.
     const userId = workflow.userId ?? undefined;
     const organizationId = workflow.organizationId ?? undefined;
@@ -152,6 +150,15 @@ export class WorkflowWebhookService {
         'Systemic workflow templates cannot be executed directly. Clone the workflow first.',
       );
     }
+
+    const currentWebhookTriggerCount =
+      typeof workflow.webhookTriggerCount === 'number'
+        ? workflow.webhookTriggerCount
+        : 0;
+    await this.patchWorkflowConfig(String(workflow.id), organizationId, {
+      webhookLastTriggeredAt: new Date().toISOString(),
+      webhookTriggerCount: currentWebhookTriggerCount + 1,
+    });
 
     if (!this.shouldUseNodeExecutor(workflow)) {
       if (!this.workflowStepRunner) {
@@ -216,11 +223,12 @@ export class WorkflowWebhookService {
 
   private async patchWorkflowConfig(
     workflowId: string,
+    organizationId: string,
     updates: Record<string, unknown>,
   ): Promise<void> {
     const workflow = await this.prisma.workflow.findFirst({
-      select: { config: true, id: true },
-      where: { id: workflowId, isDeleted: false },
+      select: { config: true, id: true, organizationId: true },
+      where: scopedWhere(organizationId, { id: workflowId }),
     });
 
     if (!workflow) {
@@ -236,7 +244,7 @@ export class WorkflowWebhookService {
       data: {
         config: toPrismaJson(nextConfig),
       },
-      where: { id: workflow.id },
+      where: scopedWhere(workflow.organizationId, { id: workflow.id }),
     });
   }
 

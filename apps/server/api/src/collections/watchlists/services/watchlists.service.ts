@@ -9,6 +9,7 @@ import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.
 import { WatchlistPlatform } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -173,13 +174,18 @@ export class WatchlistsService extends BaseService<
   ): Promise<WatchlistDocument | null> {
     this.logOperation('updateMetrics', 'started', { id, metrics });
 
-    const existing = await this.prisma.watchlist.findUnique({
-      select: { config: true },
-      where: { id: String(id) },
+    // tenant-scope-ignore: bootstrap read recovers organizationId for the scoped write; watchlist id is globally unique
+    const existing = await this.prisma.watchlist.findFirst({
+      select: { config: true, organizationId: true },
+      where: { id: String(id), isDeleted: false },
     });
 
+    if (!existing?.organizationId) {
+      return null;
+    }
+
     const currentConfig =
-      (existing?.config as Record<string, unknown> | null) ?? {};
+      (existing.config as Record<string, unknown> | null) ?? {};
 
     const result = await this.prisma.watchlist.update({
       data: {
@@ -188,7 +194,7 @@ export class WatchlistsService extends BaseService<
           metrics,
         }),
       },
-      where: { id: String(id) },
+      where: scopedWhere(existing.organizationId, { id: String(id) }),
     });
 
     this.logOperation('updateMetrics', 'completed', { id, updated: !!result });

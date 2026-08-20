@@ -173,7 +173,7 @@ export class AgentPublishToolHandler {
     }
 
     const createdPlatforms = Array.from(
-      new Set(resolvedTargets.targets.map((target) => target.platform)),
+      new Set(resolvedTargets.targets.map((target) => String(target.platform))),
     );
     const missingPlatforms = platforms.filter(
       (platform) => !createdPlatforms.includes(platform),

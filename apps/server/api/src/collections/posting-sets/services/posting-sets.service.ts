@@ -27,6 +27,7 @@ import {
 import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import { TargetValidationState } from '@genfeedai/enums';
 import type { IPostingSetScope } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -56,7 +57,7 @@ export class PostingSetsService {
         isEnabled: input.isEnabled ?? true,
         label: input.label,
         organizationId: context.organizationId,
-        targets: input.targets,
+        targets: toPrismaJson(input.targets),
         userId: context.userId,
       },
     });
@@ -117,7 +118,9 @@ export class PostingSetsService {
           ? {}
           : { isEnabled: input.isEnabled }),
         ...(input.label === undefined ? {} : { label: input.label }),
-        ...(input.targets === undefined ? {} : { targets: input.targets }),
+        ...(input.targets === undefined
+          ? {}
+          : { targets: toPrismaJson(input.targets) }),
       },
       where: { id: existing.id },
     });
@@ -227,10 +230,9 @@ export class PostingSetsService {
 
     const rows = (await this.prisma.credential.findMany({
       select: CREDENTIAL_REF_SELECT,
-      where: {
+      where: scopedWhere(organizationId, {
         id: { in: [...credentialIds] },
-        organizationId,
-      },
+      }),
     })) as StoredCredentialRefRow[];
 
     return toCredentialRefs(rows);

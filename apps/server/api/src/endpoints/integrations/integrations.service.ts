@@ -172,7 +172,7 @@ export class IntegrationsService {
           : {}),
         ...(dto.status ? { status: this.toPrismaStatus(dto.status) } : {}),
       },
-      where: { id: integrationId },
+      where: scopedWhere(orgId, { id: integrationId }),
     });
 
     // Emit Redis event

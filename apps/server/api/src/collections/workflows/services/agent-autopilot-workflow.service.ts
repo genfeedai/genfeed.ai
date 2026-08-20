@@ -362,7 +362,7 @@ export class AgentAutopilotWorkflowService {
           config: toPrismaJson(updatedConfig),
           ...(shouldPause ? { isActive: false } : {}),
         },
-        where: { id: strategyId },
+        where: scopedWhere(organizationId, { id: strategyId }),
       });
 
       if (newFailureCount >= MAX_CONSECUTIVE_FAILURES) {
@@ -373,7 +373,7 @@ export class AgentAutopilotWorkflowService {
               requiresManualReactivation: true,
             }),
           },
-          where: { id: strategyId },
+          where: scopedWhere(organizationId, { id: strategyId }),
         });
       }
 
@@ -488,7 +488,7 @@ export class AgentAutopilotWorkflowService {
       if (updated) {
         await this.prisma.agentStrategy.update({
           data: { config: toPrismaJson(updatedConfig) },
-          where: { id: strategy.id },
+          where: scopedWhere(organizationId, { id: strategy.id }),
         });
       }
     }
@@ -533,7 +533,7 @@ export class AgentAutopilotWorkflowService {
           nextRunAt: nextRun.toISOString(),
         }),
       },
-      where: { id: strategyId },
+      where: scopedWhere(record.organizationId, { id: strategyId }),
     });
   }
 

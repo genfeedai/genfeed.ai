@@ -2,6 +2,7 @@ import {
   REPLY_POST_WATCH_DELAYS_MINUTES,
   REPLY_POST_WATCH_MAX_ATTEMPTS,
 } from '@api/services/reply-bot/reply-post-watch.constants';
+import { Platform } from '@genfeedai/enums';
 import {
   REPLY_INBOUND_QUEUE,
   REPLY_POST_WATCH_QUEUE,
@@ -52,12 +53,15 @@ export class ReplyInboundQueueService {
   async schedulePostWatch(params: {
     brandId: string;
     organizationId: string;
-    platform?: 'twitter' | 'youtube';
+    platform?: Platform.TWITTER | Platform.YOUTUBE | 'twitter' | 'youtube';
     postId: string;
     postPreview?: string;
   }): Promise<{ scheduled: number }> {
     let scheduled = 0;
-    const platform = params.platform === 'youtube' ? 'youtube' : 'twitter';
+    const platform =
+      String(params.platform) === 'youtube'
+        ? Platform.YOUTUBE
+        : Platform.TWITTER;
 
     for (let attempt = 0; attempt < REPLY_POST_WATCH_MAX_ATTEMPTS; attempt++) {
       const delayMinutes = REPLY_POST_WATCH_DELAYS_MINUTES[attempt] ?? 1440;

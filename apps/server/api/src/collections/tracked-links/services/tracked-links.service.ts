@@ -447,7 +447,7 @@ export class TrackedLinksService {
           },
         });
 
-        await this.refreshLinkStats(tx, dto.linkId);
+        await this.refreshLinkStats(tx, dto.linkId, link.organizationId);
       },
       { isolationLevel: 'Serializable' },
     );
@@ -492,6 +492,7 @@ export class TrackedLinksService {
   private async refreshLinkStats(
     tx: Pick<PrismaService, 'linkClick' | 'trackedLink'>,
     linkId: string,
+    organizationId: string,
   ): Promise<void> {
     const clicks = await tx.linkClick.findMany({
       select: { sessionId: true },
@@ -511,7 +512,7 @@ export class TrackedLinksService {
           uniqueClicks,
         }),
       },
-      where: { id: linkId },
+      where: scopedWhere(organizationId, { id: linkId }),
     });
   }
 

@@ -455,7 +455,9 @@ export class SystemWorkflowProvenanceService {
           ? PrismaWorkflowExecutionStatus.FAILED
           : PrismaWorkflowExecutionStatus.COMPLETED,
       },
-      where: { id: input.executionId },
+      where: scopedWhere(input.input.organizationId, {
+        id: input.executionId,
+      }),
     });
 
     await this.prisma.workflow.update({
@@ -463,7 +465,9 @@ export class SystemWorkflowProvenanceService {
         executionCount: { increment: 1 },
         lastExecutedAt: completedAt,
       },
-      where: { id: input.workflowId },
+      where: scopedWhere(input.input.organizationId, {
+        id: input.workflowId,
+      }),
     });
   }
 

@@ -3,8 +3,7 @@ import type { IVideo } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export class Video extends Ingredient {
-  public readonly category =
-    IngredientCategory.VIDEO as IngredientCategory.VIDEO;
+  public readonly category: IngredientCategory = IngredientCategory.VIDEO;
 
   constructor(partial: Partial<IVideo>) {
     super(partial);

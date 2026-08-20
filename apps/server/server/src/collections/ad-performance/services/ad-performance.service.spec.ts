@@ -608,7 +608,7 @@ describe('AdPerformanceService', () => {
           data: { ctr: 0.1, scope: 'organization' },
           scope: 'organization',
         },
-        where: { id: 'a' },
+        where: { id: 'a', isDeleted: false, organizationId: 'org-1' },
       });
     });
 
