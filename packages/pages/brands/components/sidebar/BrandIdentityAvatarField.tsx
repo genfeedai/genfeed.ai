@@ -1,6 +1,7 @@
 'use client';
 
 import type { IAvatar } from '@genfeedai/interfaces';
+import { EnvironmentService } from '@services/core/environment.service';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
 import {
   Select,
@@ -68,7 +69,8 @@ export default function BrandIdentityAvatarField({
             getIngredientDisplayLabel(selectedAvatar) || 'Selected avatar'
           }
           imageUrl={
-            selectedAvatar.ingredientUrl || '/placeholders/portrait.jpg'
+            selectedAvatar.ingredientUrl ||
+            `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
           }
           title={getIngredientDisplayLabel(selectedAvatar) || 'Selected avatar'}
           wrapperClassName="mt-3"
