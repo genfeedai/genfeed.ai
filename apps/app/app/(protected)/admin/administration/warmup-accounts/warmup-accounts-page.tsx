@@ -617,7 +617,8 @@ export default function WarmupAccountsPage({
           <WarmupAccountDetail
             account={selectedAccount}
             invitationAction={
-              invitationAction?.accountId === selectedAccount?.id
+              invitationAction &&
+              invitationAction.accountId === selectedAccount?.id
                 ? invitationAction.action
                 : null
             }
