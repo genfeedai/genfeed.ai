@@ -185,7 +185,7 @@ export class AdCreativeMappingsService {
 
       await this.prisma.adCreativeMapping.update({
         data: { isDeleted: true },
-        where: { id },
+        where: scopedWhere(organizationId, { id }),
       });
 
       this.logger.log(`${caller} soft-deleted mapping ${id}`);
