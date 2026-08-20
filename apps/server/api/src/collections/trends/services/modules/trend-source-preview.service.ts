@@ -280,16 +280,21 @@ export class TrendSourcePreviewService {
       sourcePreviewCachedAt: new Date().toISOString(),
       sourcePreviewState,
     };
+    const trendId = String(trend.id);
+    const where =
+      trend.organizationId === null
+        ? { id: trendId, isDeleted: false, organizationId: null }
+        : scopedWhere(trend.organizationId, { id: trendId });
 
     const existingDoc = await this.prisma.trend.findFirst({
-      where: scopedWhere(trend.organizationId, { id: String(trend.id) }),
+      where,
     });
     if (existingDoc) {
       const existingData =
         (existingDoc.data as unknown as Record<string, unknown>) ?? {};
       await this.prisma.trend.update({
         data: { data: toPrismaJson({ ...existingData, metadata }) },
-        where: scopedWhere(trend.organizationId, { id: String(trend.id) }),
+        where,
       });
     }
 

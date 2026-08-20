@@ -15,6 +15,7 @@ const makeTrend = (overrides: Record<string, unknown> = {}): TrendEntity =>
     id: 'trend-1',
     mentions: 1000,
     metadata: {},
+    organizationId: null,
     platform: 'instagram',
     requiresAuth: false,
     topic: 'AI trends',
@@ -33,6 +34,12 @@ describe('TrendSourcePreviewService', () => {
     invalidateByTags: ReturnType<typeof vi.fn>;
   };
   let apify: { [key: string]: ReturnType<typeof vi.fn> };
+  let prisma: {
+    trend: {
+      findFirst: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+  };
 
   beforeEach(async () => {
     apify = {
@@ -48,21 +55,19 @@ describe('TrendSourcePreviewService', () => {
       invalidateByTags: vi.fn().mockResolvedValue(1),
       set: vi.fn().mockResolvedValue(true),
     };
+    prisma = {
+      trend: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        update: vi.fn(),
+      },
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrendSourcePreviewService,
         TrendSourceItemsService,
         { provide: ApifyService, useValue: apify },
-        {
-          provide: PrismaService,
-          useValue: {
-            trend: {
-              findFirst: vi.fn().mockResolvedValue(null),
-              update: vi.fn(),
-            },
-          },
-        },
+        { provide: PrismaService, useValue: prisma },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
@@ -240,6 +245,7 @@ describe('TrendSourcePreviewService', () => {
     });
 
     it('resolves and persists a preview when the cache is empty', async () => {
+      prisma.trend.findFirst.mockResolvedValue({ data: {} });
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([
         {
           contentType: 'post',
@@ -258,6 +264,42 @@ describe('TrendSourcePreviewService', () => {
         expect.objectContaining({ id: 'live-1' }),
       ]);
       expect(result.metadata?.sourcePreviewState).toBe('live');
+      expect(prisma.trend.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'trend-1',
+          isDeleted: false,
+          organizationId: null,
+        },
+      });
+      expect(prisma.trend.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'trend-1',
+            isDeleted: false,
+            organizationId: null,
+          },
+        }),
+      );
+    });
+
+    it('preserves tenant scope while persisting a preview', async () => {
+      prisma.trend.findFirst.mockResolvedValue({ data: {} });
+      vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
+      const trend = makeTrend({ organizationId: 'org-1' });
+
+      await service.precomputeTrendSourcePreview([trend], { force: true });
+
+      const expectedWhere = {
+        id: 'trend-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      };
+      expect(prisma.trend.findFirst).toHaveBeenCalledWith({
+        where: expectedWhere,
+      });
+      expect(prisma.trend.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expectedWhere }),
+      );
     });
   });
 });
