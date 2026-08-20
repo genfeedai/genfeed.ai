@@ -139,14 +139,14 @@ export function ShortcutHelpModal() {
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       >
         <div
-          className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-full max-w-2xl pointer-events-auto"
+          className="bg-background border border-border shadow-xl w-full max-w-2xl pointer-events-auto"
           role="dialog"
           aria-label="Keyboard Shortcuts"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
-              <Keyboard className="size-4 text-[var(--muted-foreground)]" />
+              <Keyboard className="size-4 text-muted-foreground" />
               <span className="text-sm font-medium">Keyboard Shortcuts</span>
             </div>
             <Button variant="ghost" size="icon-sm" onClick={handleClose}>
@@ -164,7 +164,7 @@ export function ShortcutHelpModal() {
                 aria-label="Search shortcuts"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-secondary border border-border outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 

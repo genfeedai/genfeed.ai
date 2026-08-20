@@ -202,7 +202,7 @@ function ImageGenNodeComponent(props: NodeProps) {
                       <Download className="size-3 text-white" />
                     </Button>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-2xs text-center py-0.5">
                     {i + 1}
                   </div>
                 </Button>
@@ -255,7 +255,7 @@ function ImageGenNodeComponent(props: NodeProps) {
 
         {/* Help text for required inputs */}
         {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <CircleAlert className="size-3" />
             Connect a prompt to generate
           </div>

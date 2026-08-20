@@ -49,28 +49,28 @@ function PayloadCard({ payload }: PayloadCardProps) {
   const timestamp = new Date(payload.timestamp).toLocaleTimeString();
 
   return (
-    <div className="border border-[var(--border)] overflow-hidden">
+    <div className="border border-border overflow-hidden">
       {/* Header - always visible */}
       <Button
         variant="ghost"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 p-3 text-left hover:bg-[var(--muted)]/50 h-auto"
+        className="w-full flex items-center gap-2 p-3 text-left hover:bg-muted/50 h-auto"
       >
         {isExpanded ? (
-          <ChevronDown className="size-4 text-[var(--muted-foreground)] shrink-0" />
+          <ChevronDown className="size-4 text-muted-foreground shrink-0" />
         ) : (
-          <ChevronRight className="size-4 text-[var(--muted-foreground)] shrink-0" />
+          <ChevronRight className="size-4 text-muted-foreground shrink-0" />
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-[var(--foreground)] truncate">
+            <span className="text-xs font-medium text-foreground truncate">
               {payload.nodeName || payload.nodeId}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
+            <span className="text-2xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
               {payload.nodeType}
             </span>
           </div>
-          <div className="text-[10px] text-[var(--muted-foreground)] mt-0.5">
+          <div className="text-2xs text-muted-foreground mt-0.5">
             {payload.model} &bull; {timestamp}
           </div>
         </div>
@@ -78,22 +78,22 @@ function PayloadCard({ payload }: PayloadCardProps) {
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="border-t border-[var(--border)] p-3 bg-[var(--muted)]/30">
+        <div className="border-t border-border p-3 bg-muted/30">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
+            <span className="text-2xs font-medium text-muted-foreground uppercase">
               Payload
             </span>
             <Button
               variant="link"
               size="sm"
               onClick={handleCopy}
-              className="flex items-center gap-1 text-[10px] text-[var(--primary)] h-auto p-0"
+              className="flex items-center gap-1 text-2xs text-primary h-auto p-0"
             >
               <Copy className="size-3" />
               {copied ? 'Copied!' : 'Copy'}
             </Button>
           </div>
-          <Pre variant="debug" size="xs" className="text-[11px]">
+          <Pre variant="debug" size="xs" className="text-2xs">
             {JSON.stringify(payload.input, null, 2)}
           </Pre>
         </div>
@@ -112,14 +112,14 @@ function DebugPanelComponent() {
   }, [setShowDebugPanel]);
 
   return (
-    <PanelContainer className="w-80 h-full border-l border-[var(--border)] bg-[var(--background)] flex flex-col">
+    <PanelContainer className="w-80 h-full border-l border-border bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-[var(--border)]">
+      <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Bug className="size-4 text-muted-foreground" />
           <span className="font-medium text-sm">Debug Console</span>
           {debugPayloads.length > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">
+            <span className="text-2xs px-1.5 py-0.5 bg-muted text-muted-foreground rounded-full">
               {debugPayloads.length}
             </span>
           )}
@@ -132,7 +132,7 @@ function DebugPanelComponent() {
               onClick={clearDebugPayloads}
               title="Clear all payloads"
             >
-              <Trash2 className="size-4 text-[var(--muted-foreground)]" />
+              <Trash2 className="size-4 text-muted-foreground" />
             </Button>
           )}
           <Button variant="ghost" size="icon-sm" onClick={handleClose}>
@@ -144,7 +144,7 @@ function DebugPanelComponent() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {debugPayloads.length === 0 ? (
-          <div className="text-center py-8 text-[var(--muted-foreground)]">
+          <div className="text-center py-8 text-muted-foreground">
             <Bug className="size-12 mx-auto mb-3 opacity-50 text-muted-foreground" />
             <p className="text-sm font-medium mb-2">No payloads captured</p>
             <p className="text-xs">
@@ -163,8 +163,8 @@ function DebugPanelComponent() {
 
       {/* Footer info */}
       {debugPayloads.length > 0 && (
-        <div className="p-3 border-t border-[var(--border)] bg-[var(--muted)]/30">
-          <p className="text-[10px] text-[var(--muted-foreground)]">
+        <div className="p-3 border-t border-border bg-muted/30">
+          <p className="text-2xs text-muted-foreground">
             {debugPayloads.length} payload
             {debugPayloads.length !== 1 ? 's' : ''} captured. Click to expand
             and view details.

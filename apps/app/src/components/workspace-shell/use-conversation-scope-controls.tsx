@@ -179,7 +179,7 @@ function ScopeTrigger({
   return (
     <Button
       ariaLabel={`Change ${label} scope`}
-      className="h-7 max-w-44 gap-1.5 px-2 text-[11px]"
+      className="h-7 max-w-44 gap-1.5 px-2 text-2xs"
       icon={icon}
       size={ButtonSize.SM}
       variant={ButtonVariant.GHOST}
@@ -561,7 +561,7 @@ export function useConversationScopeControls({
     <>
       {isStale ? (
         <Button
-          className="h-7 px-2 text-[11px]"
+          className="h-7 px-2 text-2xs"
           isDisabled={isMutating}
           onClick={() => void synchronize()}
           size={ButtonSize.SM}
@@ -695,7 +695,7 @@ export function useConversationScopeControls({
     >
       <p className="text-xs font-medium text-foreground">{organizationLabel}</p>
       <p className="mt-1 text-xs text-muted-foreground">{brandLabel}</p>
-      <p className="mt-1 text-[11px] text-muted-foreground">
+      <p className="mt-1 text-2xs text-muted-foreground">
         {activeThread
           ? `Thread context v${activeThread.contextVersion}`
           : 'New thread scope'}

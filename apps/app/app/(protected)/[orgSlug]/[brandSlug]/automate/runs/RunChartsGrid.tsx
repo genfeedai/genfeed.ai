@@ -66,7 +66,7 @@ function MiniChartCard({ children, subtitle, title }: MiniChartCardProps) {
     <Card bodyClassName="p-4">
       <div className="mb-2 space-y-0.5">
         <h3 className="text-xs font-semibold text-foreground">{title}</h3>
-        <p className="text-[10px] uppercase tracking-wider text-foreground/40">
+        <p className="text-2xs uppercase tracking-wider text-foreground/40">
           {subtitle}
         </p>
       </div>

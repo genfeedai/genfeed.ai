@@ -235,7 +235,7 @@ export default function OAuthConsentContent() {
           </CardContent>
         </Card>
 
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground/50">
+        <p className="mt-5 text-center text-2xs leading-relaxed text-muted-foreground/50">
           Access is limited to the Genfeed MCP resource and can be revoked from
           API key settings.
         </p>

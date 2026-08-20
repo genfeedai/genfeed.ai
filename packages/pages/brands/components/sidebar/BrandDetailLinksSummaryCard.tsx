@@ -34,7 +34,7 @@ export default function BrandDetailLinksSummaryCard({
       }
     >
       <div className="rounded-md bg-background-secondary/50 px-3 py-2.5">
-        <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           External
         </p>
         <p className="mt-1 text-sm text-foreground/90">

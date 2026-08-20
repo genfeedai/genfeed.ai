@@ -38,7 +38,7 @@ export default function ArtifactEditorShell({
             ) : null}
 
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="gen-label rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-[11px] text-foreground/55">
+              <span className="gen-label rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-2xs text-foreground/55">
                 {artifactLabel}
               </span>
               {badges}

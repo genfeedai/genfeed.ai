@@ -69,7 +69,7 @@ export default function PromptBarNotice({
         <p className="truncate text-xs font-semibold leading-4 text-foreground">
           {title}
         </p>
-        <p className="mt-0.5 truncate text-[11px] leading-4 text-foreground/60">
+        <p className="mt-0.5 truncate text-2xs leading-4 text-foreground/60">
           {description}
         </p>
       </div>

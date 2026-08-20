@@ -140,7 +140,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
           value={data.rawText || ''}
           onChange={handleRawTextChange}
           placeholder="Paste tweet text here…"
-          className="h-20 w-full resize-none border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          className="h-20 w-full resize-none border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       )}
 

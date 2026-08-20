@@ -56,7 +56,7 @@ function EdgeToolbarComponent() {
 
   return (
     <div
-      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] shadow-dropdown px-1.5 py-1"
+      className="fixed z-30 flex items-center gap-1 bg-background shadow-dropdown px-1.5 py-1"
       style={{
         left: position.x,
         top: position.y - 40,
@@ -75,7 +75,7 @@ function EdgeToolbarComponent() {
           <Pause className="size-3.5" />
         )}
       </Button>
-      <div className="h-4 w-px bg-[var(--border)]" />
+      <div className="h-4 w-px bg-border" />
       <Button
         variant="ghost"
         size="icon-sm"

@@ -36,7 +36,7 @@ export function AgentGeneratedTextCard({
     >
       {(title || hasActions) && (
         <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] px-3 py-2">
-          <p className="truncate text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          <p className="truncate text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             {title || 'Generated Content'}
           </p>
           {hasActions && (

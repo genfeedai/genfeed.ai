@@ -108,7 +108,7 @@ export function OverviewStatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex rounded-full border px-2 py-1 text-[11px] font-medium',
+        'inline-flex rounded-full border px-2 py-1 text-2xs font-medium',
         resolveStatusTone(status),
       )}
     >

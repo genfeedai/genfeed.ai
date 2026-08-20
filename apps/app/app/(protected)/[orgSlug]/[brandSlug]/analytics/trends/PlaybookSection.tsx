@@ -60,7 +60,7 @@ export default function PlaybookSection({
                       <Badge
                         key={`${pattern.id}-${platformId}`}
                         variant="outline"
-                        className="text-xs text-[10px] uppercase tracking-wide"
+                        className="text-xs text-2xs uppercase tracking-wide"
                       >
                         <span className="flex items-center gap-2">
                           {Icon && <Icon className="text-sm" />}

@@ -121,16 +121,16 @@ export function BatchGenerationResultCard({
         )}
         <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="truncate text-[13px] font-medium text-foreground">
+            <span className="truncate text-sm font-medium text-foreground">
               {action.title ||
                 (isAllFailed ? 'Batch failed' : 'Batch complete')}
             </span>
             {action.status ? (
-              <Badge status={action.status} className="h-5 text-[10px]" />
+              <Badge status={action.status} className="h-5 text-2xs" />
             ) : null}
           </div>
           {isCollapsed && (action.description || metricsLine) ? (
-            <p className="truncate text-[12px] leading-5 text-foreground/70">
+            <p className="truncate text-xs leading-5 text-foreground/70">
               {action.description?.trim() || metricsLine}
             </p>
           ) : null}
@@ -150,12 +150,12 @@ export function BatchGenerationResultCard({
       {!isCollapsed ? (
         <div className="space-y-2.5 border-t border-border/50 px-3 pb-2.5 pt-2.5">
           {action.description ? (
-            <p className="text-[12px] leading-5 text-foreground/70">
+            <p className="text-xs leading-5 text-foreground/70">
               {action.description}
             </p>
           ) : null}
           {metricsLine ? (
-            <p className="text-[11px] leading-4 text-muted-foreground">
+            <p className="text-2xs leading-4 text-muted-foreground">
               {metricsLine}
             </p>
           ) : null}
@@ -208,7 +208,7 @@ export function BatchGenerationResultCard({
               {remainingCount > 0 && reviewHref ? (
                 <a
                   href={reviewHref}
-                  className="inline-flex text-[12px] font-medium text-primary hover:underline"
+                  className="inline-flex text-xs font-medium text-primary hover:underline"
                 >
                   +{remainingCount} more post{remainingCount === 1 ? '' : 's'}{' '}
                   in review

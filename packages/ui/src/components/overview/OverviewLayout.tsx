@@ -28,7 +28,7 @@ export default function OverviewLayout({
         {cards.length > 0 ? (
           <section className="max-w-6xl">
             <div className="mb-5 space-y-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+              <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
                 Launch
               </p>
               <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
@@ -51,7 +51,7 @@ export default function OverviewLayout({
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-2">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
+                        <p className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/35">
                           {card.label}
                         </p>
                         <p className="max-w-[16rem] text-sm leading-6 text-foreground/60">

@@ -53,7 +53,7 @@ export default function SkillDetailCard({
                 {selectedSkill.name}
               </h2>
               <Badge
-                className="px-2 py-1 text-[11px] uppercase tracking-[0.14em]"
+                className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
                 variant="outline"
               >
                 {selectedSkill.slug}

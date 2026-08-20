@@ -140,7 +140,7 @@ export default function ReviewItemsTable({
               </span>
             </ReviewPostHoverPreview>
           ) : (
-            <span className="inline-flex size-10 items-center justify-center rounded-md border border-dashed border-border text-[10px] text-muted-foreground">
+            <span className="inline-flex size-10 items-center justify-center rounded-md border border-dashed border-border text-2xs text-muted-foreground">
               —
             </span>
           ),
@@ -203,7 +203,7 @@ export default function ReviewItemsTable({
               {performanceLabel ? (
                 <span
                   className={cn(
-                    'inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+                    'inline-flex items-center rounded-md border px-1.5 py-0.5 text-2xs font-medium',
                     performanceSignal === 'winning'
                       ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
                       : performanceSignal === 'underperforming'

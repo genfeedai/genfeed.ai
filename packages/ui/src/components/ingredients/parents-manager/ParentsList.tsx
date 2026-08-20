@@ -69,7 +69,7 @@ export default function ParentsList({
 
               {/* Label overlay */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-                <span className="text-white text-[10px] font-medium truncate block">
+                <span className="text-white text-2xs font-medium truncate block">
                   {metadata.label || parent.id.slice(0, 8)}
                 </span>
               </div>

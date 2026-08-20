@@ -123,7 +123,7 @@ export function buildTrendDigestHtml(
 
   if (videos.length > 0) {
     sections.push(
-      '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Viral Videos</h2>',
+      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Viral Videos</h2>',
     );
     videos.slice(0, 5).forEach((video) => {
       sections.push(buildTrendRow(video, 'views'));
@@ -132,7 +132,7 @@ export function buildTrendDigestHtml(
 
   if (hashtags.length > 0) {
     sections.push(
-      '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Hashtags</h2>',
+      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Hashtags</h2>',
     );
     hashtags.slice(0, 5).forEach((hashtag) => {
       sections.push(buildTrendRow(hashtag, 'posts'));
@@ -141,7 +141,7 @@ export function buildTrendDigestHtml(
 
   if (sounds.length > 0) {
     sections.push(
-      '<h2 style="border-bottom:1px solid #333538;color:#f4f4f5;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Sounds</h2>',
+      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Sounds</h2>',
     );
     sounds.slice(0, 5).forEach((sound) => {
       sections.push(buildTrendRow(sound, 'uses'));
@@ -159,15 +159,15 @@ export function buildTrendDigestHtml(
 
 function buildTrendRow(trend: TrendDigestItem, usageLabel: string): string {
   const usage = trend.usageCount
-    ? `<span style="color:#8c8c96;"> - ${formatTrendCount(trend.usageCount)} ${usageLabel}</span>`
+    ? `<span style="color:#949494;"> - ${formatTrendCount(trend.usageCount)} ${usageLabel}</span>`
     : '';
 
   return `
-    <div style="border-bottom:1px solid #1e2022;padding:10px 0;">
-      <div style="color:#f4f4f5;font-size:14px;font-weight:700;line-height:20px;">${escapeTrendHtml(trend.topic)}</div>
+    <div style="border-bottom:1px solid #333333;padding:10px 0;">
+      <div style="color:#EDEDED;font-size:14px;font-weight:700;line-height:20px;">${escapeTrendHtml(trend.topic)}</div>
       <div style="font-size:12px;line-height:18px;margin-top:4px;">
-        <span style="background:#10b981;border-radius:4px;color:#050607;display:inline-block;font-weight:700;padding:2px 6px;">Score: ${trend.viralScore}</span>
-        <span style="background:#20232a;border-radius:4px;color:#b4b4bc;display:inline-block;margin-left:4px;padding:2px 6px;">${escapeTrendHtml(trend.platform)}</span>${usage}
+        <span style="background:#10b981;border-radius:4px;color:#0A0A0A;display:inline-block;font-weight:700;padding:2px 6px;">Score: ${trend.viralScore}</span>
+        <span style="background:#2A2A2A;border-radius:4px;color:#A1A1A1;display:inline-block;margin-left:4px;padding:2px 6px;">${escapeTrendHtml(trend.platform)}</span>${usage}
       </div>
     </div>`;
 }

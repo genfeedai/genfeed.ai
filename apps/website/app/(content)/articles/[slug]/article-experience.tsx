@@ -221,7 +221,7 @@ function EffectPreview({
           }}
         />
 
-        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-surface/70 backdrop-blur-sm">
+        <div className="absolute left-3 top-3 bg-background/80 px-2 py-1 text-2xs font-medium uppercase tracking-[0.14em] text-surface/70 backdrop-blur-sm">
           {isApplied ? effect.label : 'Before'}
         </div>
       </div>

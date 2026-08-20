@@ -15,7 +15,7 @@ export const kbdVariants = cva(
         ghost: 'bg-transparent text-white/30',
       },
       size: {
-        xs: 'px-1 py-0.5 text-[10px]',
+        xs: 'px-1 py-0.5 text-2xs',
         sm: 'px-1.5 py-0.5 text-xs',
       },
     },

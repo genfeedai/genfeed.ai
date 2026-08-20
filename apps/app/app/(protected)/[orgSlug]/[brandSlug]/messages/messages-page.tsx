@@ -69,7 +69,7 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+        'inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
         STATUS_STYLES[status] ?? 'bg-white/[0.08] text-white/50',
       )}
     >
@@ -80,7 +80,7 @@ function StatusPill({ status }: { status: string }) {
 
 function PlatformPill({ platform }: { platform: string }) {
   return (
-    <span className="inline-flex items-center rounded bg-white/[0.07] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/45">
+    <span className="inline-flex items-center rounded bg-white/[0.07] px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-white/45">
       {platform}
     </span>
   );
@@ -117,7 +117,7 @@ function MessageBubble({
             : 'border-white/[0.08] bg-white/[0.035] text-white/78',
         )}
       >
-        <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wider text-white/32">
+        <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-white/32">
           <span>{isOutbound ? 'Manager' : message.senderName || 'Sender'}</span>
           <span>{formatMessageTime(message.createdAt)}</span>
           <span>{message.status}</span>
@@ -128,7 +128,7 @@ function MessageBubble({
         {provenanceItems.length > 0 ? (
           <dl
             aria-label="Message provenance"
-            className="mt-3 grid gap-1 border-t border-white/[0.08] pt-2 text-[11px] text-white/46"
+            className="mt-3 grid gap-1 border-t border-white/[0.08] pt-2 text-2xs text-white/46"
           >
             {provenanceItems.map((item) => (
               <div className="flex min-w-0 gap-2" key={item.label}>
@@ -361,7 +361,7 @@ export default function MessagesPage() {
   const advancedFilters = (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <p className="text-[11px] font-medium text-foreground/54">Automation</p>
+        <p className="text-2xs font-medium text-foreground/54">Automation</p>
         <Select
           value={filters.automationState}
           onValueChange={(value) => {
@@ -492,7 +492,7 @@ export default function MessagesPage() {
                       <PlatformPill platform={selectedConversation.platform} />
                       <StatusPill status={selectedConversation.status} />
                       {selectedConversation.needsReview ? (
-                        <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-warning">
+                        <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
                           Review
                         </span>
                       ) : null}

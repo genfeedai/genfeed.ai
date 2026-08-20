@@ -143,7 +143,7 @@ function CubicBezierEditorComponent({
         ref={svgRef}
         width={width}
         height={height}
-        className={`bg-[var(--background)] rounded border border-[var(--border)] ${
+        className={`bg-background rounded border border-border ${
           disabled ? 'opacity-50 pointer-events-none' : 'cursor-crosshair'
         }`}
         onPointerMove={handlePointerMove}
@@ -221,7 +221,7 @@ function CubicBezierEditorComponent({
       </svg>
 
       {/* Coordinate display */}
-      <div className="flex justify-between text-[10px] text-[var(--muted-foreground)] font-mono px-1">
+      <div className="flex justify-between text-2xs text-muted-foreground font-mono px-1">
         <span>
           P1: ({value[0].toFixed(2)}, {value[1].toFixed(2)})
         </span>

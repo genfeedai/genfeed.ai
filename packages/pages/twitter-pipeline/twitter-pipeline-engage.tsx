@@ -180,7 +180,7 @@ export default function TwitterPipelineEngage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="e.g. AI content creation, social media automation"
-              className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handleSearch();
@@ -201,7 +201,7 @@ export default function TwitterPipelineEngage() {
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
               placeholder="@yourhandle"
-              className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
         </div>
@@ -219,7 +219,7 @@ export default function TwitterPipelineEngage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Friendly AI expert who shares practical tips"
-            className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 

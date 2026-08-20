@@ -60,7 +60,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
           Headlines
         </div>
         <div className="space-y-2">
@@ -76,7 +76,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
           Primary Text
         </div>
         <p className="whitespace-pre-wrap text-sm text-foreground/85">
@@ -86,13 +86,13 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
             CTA
           </div>
           <p className="text-sm text-foreground/85">{adPack.cta}</p>
         </div>
         <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
             Channel
           </div>
           <p className="text-sm text-foreground/85">
@@ -107,7 +107,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
           Creative Brief
         </div>
         <p className="text-sm text-foreground/85">
@@ -116,14 +116,14 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
           Targeting Notes
         </div>
         <p className="text-sm text-foreground/85">{adPack.targetingNotes}</p>
       </div>
 
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
           Campaign Recipe
         </div>
         <p className="text-sm text-foreground/85">
@@ -168,7 +168,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
             Objective
           </div>
           <p className="text-sm text-foreground/85">
@@ -176,7 +176,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
           </p>
         </div>
         <div>
-          <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+          <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
             Optimization Goal
           </div>
           <p className="text-sm text-foreground/85">
@@ -186,7 +186,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
       </div>
 
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+        <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
           Launch Notes
         </div>
         <ul className="space-y-2 text-sm text-foreground/85">
@@ -305,7 +305,7 @@ export function DetailSidebar({
 
                 {detail.creative.headline && (
                   <div>
-                    <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                    <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-foreground/45">
                       Headline
                     </div>
                     <p className="text-sm text-foreground/85">
@@ -316,7 +316,7 @@ export function DetailSidebar({
 
                 {detail.creative.body && (
                   <div>
-                    <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                    <div className="mb-1 text-2xs uppercase tracking-[0.18em] text-foreground/45">
                       Primary Text
                     </div>
                     <p className="whitespace-pre-wrap text-sm text-foreground/85">
@@ -337,7 +337,7 @@ export function DetailSidebar({
                 </div>
 
                 <div>
-                  <div className="mb-2 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                  <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
                     Detected Patterns
                   </div>
                   {detail.patternSummary && detail.patternSummary.length > 0 ? (

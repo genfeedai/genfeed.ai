@@ -59,7 +59,7 @@ export default function BrandDetailExternalLinksCard({
       <div className="flex flex-col gap-3">
         {hasSocialConnections ? (
           <div className="space-y-2">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Connected social
             </p>
             <div className="flex flex-col gap-1.5">
@@ -82,7 +82,7 @@ export default function BrandDetailExternalLinksCard({
                       <span className="min-w-0 flex-1 truncate font-medium">
                         {label}
                       </span>
-                      <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                      <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
                         {connection.platform}
                       </span>
                     </Link>
@@ -95,7 +95,7 @@ export default function BrandDetailExternalLinksCard({
                     <span className="min-w-0 flex-1 truncate font-medium">
                       {label}
                     </span>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
                       {connection.platform}
                     </span>
                   </div>
@@ -117,7 +117,7 @@ export default function BrandDetailExternalLinksCard({
         ) : null}
 
         <div className="space-y-2">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
             Websites & other
           </p>
           {hasManualLinks ? (

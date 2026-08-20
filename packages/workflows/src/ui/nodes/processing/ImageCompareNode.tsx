@@ -79,27 +79,27 @@ function ImageCompareNodeComponent(props: NodeProps) {
             style={{ height: '100%', width: '100%' }}
           />
           {/* Corner labels */}
-          <div className="absolute top-2 left-2 bg-black/50 text-white text-[10px] font-medium px-2 py-1 rounded pointer-events-none">
+          <div className="absolute top-2 left-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none">
             A
           </div>
-          <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] font-medium px-2 py-1 rounded pointer-events-none">
+          <div className="absolute top-2 right-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none">
             B
           </div>
         </div>
       ) : (
         <div className="w-full flex-1 min-h-[200px] border border-dashed border-border rounded flex flex-col items-center justify-center gap-2">
-          <span className="text-muted-foreground text-[10px] text-center px-4">
+          <span className="text-muted-foreground text-2xs text-center px-4">
             {!imageA && !imageB
               ? 'Connect 2 images to compare'
               : 'Connect another image to compare'}
           </span>
           {imageA && !imageB && (
-            <div className="text-[9px] text-muted-foreground">
+            <div className="text-2xs text-muted-foreground">
               Image A connected
             </div>
           )}
           {!imageA && imageB && (
-            <div className="text-[9px] text-muted-foreground">
+            <div className="text-2xs text-muted-foreground">
               Image B connected
             </div>
           )}

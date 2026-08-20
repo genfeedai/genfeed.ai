@@ -74,7 +74,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="flex flex-col gap-3">
-        <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
+        <div className="text-2xs text-muted-foreground bg-secondary/50 rounded px-2 py-1.5 text-center">
           Defines an output port when this workflow is used as a subworkflow
         </div>
 
@@ -90,7 +90,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             value={nodeData.outputName || 'output'}
             onChange={handleNameChange}
             placeholder="Enter output name..."
-            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
 
@@ -128,7 +128,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             value={nodeData.description || ''}
             onChange={handleDescriptionChange}
             placeholder="Describe this output..."
-            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
 
@@ -185,13 +185,13 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
         )}
 
         {!hasValue && (
-          <div className="mt-1 text-[10px] text-muted-foreground text-center">
+          <div className="mt-1 text-2xs text-muted-foreground text-center">
             Connect an input to define the workflow output
           </div>
         )}
 
         {/* Current Type Indicator */}
-        <div className="text-[10px] text-muted-foreground text-center">
+        <div className="text-2xs text-muted-foreground text-center">
           Input type:{' '}
           <span className="font-medium capitalize">{outputType}</span>
         </div>

@@ -330,7 +330,7 @@ export default function SocialWarmupProgram({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {translate('readiness')}
           </p>
           <p className="text-sm">
@@ -340,7 +340,7 @@ export default function SocialWarmupProgram({
           </p>
         </div>
         <div className="space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {translate('progress', {
               completed: model.progress.completed,
               total: model.progress.total,
@@ -358,7 +358,7 @@ export default function SocialWarmupProgram({
 
       {model.nextAction ? (
         <div className="rounded-md bg-background-secondary px-3 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {translate('nextAction')}
           </p>
           <Button

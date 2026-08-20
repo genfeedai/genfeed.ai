@@ -263,7 +263,7 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
     <textarea
       {...props}
       className={cn(
-        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
+        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
         'min-h-textarea h-auto resize-y',
         hasError && 'border-destructive focus-visible:border-destructive',
         className,
@@ -340,7 +340,7 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
       {...registerProps}
       {...props}
       className={cn(
-        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
+        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
         'min-h-textarea h-auto resize-y',
         hasError && 'border-destructive focus-visible:border-destructive',
         className,

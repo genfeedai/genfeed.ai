@@ -87,7 +87,7 @@ export function AiTextActionCard({
 
       {/* Action pills */}
       <div className="mb-3">
-        <p className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
           Choose action
         </p>
         <div className="flex flex-wrap gap-1.5">

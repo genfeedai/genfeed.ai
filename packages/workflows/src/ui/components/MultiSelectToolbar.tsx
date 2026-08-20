@@ -167,7 +167,7 @@ function MultiSelectToolbarComponent({
 
   return (
     <div
-      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] shadow-lg px-1.5 py-1"
+      className="fixed z-30 flex items-center gap-1 bg-background border border-border shadow-lg px-1.5 py-1"
       style={{
         left: toolbarPosition.x,
         top: toolbarPosition.y,
@@ -175,11 +175,11 @@ function MultiSelectToolbarComponent({
       }}
     >
       {/* Selection count */}
-      <span className="px-1.5 text-xs font-medium text-[var(--muted-foreground)]">
+      <span className="px-1.5 text-xs font-medium text-muted-foreground">
         {selectedNodeIds.length}
       </span>
 
-      <div className="h-4 w-px bg-[var(--border)]" />
+      <div className="h-4 w-px bg-border" />
 
       {/* Stack Horizontal */}
       <Button
@@ -213,7 +213,7 @@ function MultiSelectToolbarComponent({
 
       {onDownloadAsZip && (
         <>
-          <div className="h-4 w-px bg-[var(--border)]" />
+          <div className="h-4 w-px bg-border" />
           <Button
             variant="ghost"
             size="icon-sm"
@@ -225,7 +225,7 @@ function MultiSelectToolbarComponent({
         </>
       )}
 
-      <div className="h-4 w-px bg-[var(--border)]" />
+      <div className="h-4 w-px bg-border" />
 
       {/* Group / Ungroup */}
       {selectedGroup ? (

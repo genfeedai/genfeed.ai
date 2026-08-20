@@ -55,7 +55,7 @@ function Calendar({
           'size-9 p-0 font-normal',
           'inline-flex items-center justify-center',
           'hover:bg-accent hover:text-accent-foreground',
-          'focus:outline-none focus:ring-1 focus:ring-ring',
+          'focus:outline-none focus:ring-2 focus:ring-ring',
           'transition-colors',
         ),
         disabled: 'text-muted-foreground opacity-50',
@@ -84,7 +84,7 @@ function Calendar({
         today: 'bg-accent text-accent-foreground',
         week: '',
         weekday:
-          'w-9 p-2 text-center text-[0.8rem] font-normal text-muted-foreground',
+          'w-9 p-2 text-center text-xs font-normal text-muted-foreground',
         weekdays: '',
         ...classNames,
       }}

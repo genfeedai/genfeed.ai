@@ -33,7 +33,7 @@ export default function IssueHeader({
         <span className="text-sm font-mono text-white/40">{identifier}</span>
         <span
           className={cn(
-            'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+            'rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
             statusColors[status],
           )}
         >
@@ -41,7 +41,7 @@ export default function IssueHeader({
         </span>
         <span
           className={cn(
-            'text-[10px] font-medium uppercase tracking-wider',
+            'text-2xs font-medium uppercase tracking-wider',
             priorityColors[priority],
           )}
         >

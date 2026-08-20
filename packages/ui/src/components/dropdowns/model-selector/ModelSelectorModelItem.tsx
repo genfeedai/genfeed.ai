@@ -112,13 +112,13 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           <ModelSelectorCostBadge costTier={costTier} />
 
           {isLocked ? (
-            <span className="shrink-0 rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-destructive">
+            <span className="shrink-0 rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.12em] text-destructive">
               Credits
             </span>
           ) : null}
 
           {option.isDeprecated ? (
-            <span className="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-300">
+            <span className="shrink-0 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.12em] text-amber-300">
               Legacy
             </span>
           ) : null}

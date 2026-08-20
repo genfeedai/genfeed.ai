@@ -88,7 +88,7 @@ function PhaseTransitionLogInner() {
                 <span className="text-white/70">{PHASE_LABELS[t.to]}</span>
                 <span
                   className={cn(
-                    'ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded',
+                    'ml-auto text-2xs font-medium px-1.5 py-0.5 rounded',
                     config.color,
                     'bg-current/10',
                   )}

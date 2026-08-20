@@ -56,7 +56,7 @@ export function ContentCalendarCard({
                     : 'bg-muted'
                 }`}
               >
-                <span className="text-[9px] text-muted-foreground">
+                <span className="text-2xs text-muted-foreground">
                   {dayName}
                 </span>
                 <span className="text-xs font-medium text-foreground">
@@ -73,7 +73,7 @@ export function ContentCalendarCard({
                     <Plus className="size-3" />
                   </Button>
                 ) : (
-                  <span className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-medium text-teal-600 dark:text-teal-400">
+                  <span className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-500/10 text-2xs font-medium text-teal-600 dark:text-teal-400">
                     {day.postCount}
                   </span>
                 )}

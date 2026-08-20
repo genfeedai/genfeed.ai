@@ -791,7 +791,7 @@ export function WorkflowCanvas({
           className="absolute top-3 left-3 z-10"
           title="Open sidebar (M)"
         >
-          <PanelLeft className="size-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
+          <PanelLeft className="size-4 text-muted-foreground group-hover:text-foreground" />
         </Button>
       )}
       <ReactFlow<WorkflowNode, WorkflowEdge>

@@ -51,7 +51,7 @@ function MessageBubble({
         </div>
         <p
           className={cn(
-            'text-[10px] text-white/30 mt-1',
+            'text-2xs text-white/30 mt-1',
             isAgent ? 'text-left' : 'text-right',
           )}
         >
@@ -78,7 +78,7 @@ function PhaseSection({ phase }: { phase: WorkflowPhase }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <div className="h-px flex-1 bg-white/10" />
-        <span className="text-[10px] font-medium text-white/30 uppercase tracking-wider px-2">
+        <span className="text-2xs font-medium text-white/30 uppercase tracking-wider px-2">
           {PHASE_LABELS[phase]}
         </span>
         <div className="h-px flex-1 bg-white/10" />

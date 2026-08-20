@@ -154,7 +154,7 @@ export default function SettingsOrganizationPage() {
 
         {isFleetConnected ? (
           <div className="border-t border-border pt-3">
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <p className="mb-2 text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Fleet
             </p>
             <Switch

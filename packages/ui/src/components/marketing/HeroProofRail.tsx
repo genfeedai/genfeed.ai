@@ -24,13 +24,13 @@ export default function HeroProofRail({
         className,
       )}
     >
-      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--gen-accent-text)]">
+      <p className="text-2xs font-black uppercase tracking-[0.22em] text-[var(--gen-accent-text)]">
         {title}
       </p>
       <div className="mt-4 space-y-4">
         {items.map((item) => (
           <div key={item.label} className="space-y-1">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/38">
+            <p className="text-2xs font-bold uppercase tracking-[0.18em] text-foreground/38">
               {item.label}
             </p>
             <div className="text-sm leading-relaxed text-foreground/84">

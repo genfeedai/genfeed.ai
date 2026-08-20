@@ -186,7 +186,7 @@ export default function HighlightReviewCard({
             {/* Virality score */}
             <Badge
               variant="outline"
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${viralityColor}`}
+              className={`rounded-full px-2 py-0.5 text-2xs font-medium ${viralityColor}`}
             >
               {highlight.virality_score}
             </Badge>
@@ -194,7 +194,7 @@ export default function HighlightReviewCard({
             {/* Clip type */}
             <Badge
               variant="outline"
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${CLIP_TYPE_BADGE_CLASSES}`}
+              className={`rounded-full px-2 py-0.5 text-2xs font-medium capitalize ${CLIP_TYPE_BADGE_CLASSES}`}
             >
               {highlight.clip_type}
             </Badge>
@@ -202,7 +202,7 @@ export default function HighlightReviewCard({
             {/* Duration */}
             <Badge
               variant="outline"
-              className="rounded-full border-transparent bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+              className="rounded-full border-transparent bg-secondary px-2 py-0.5 text-2xs font-medium text-muted-foreground"
             >
               {duration}
             </Badge>
@@ -229,7 +229,7 @@ export default function HighlightReviewCard({
               dispatch({ type: 'SET_PLATFORM', platform: v })
             }
           >
-            <SelectTrigger className="h-7 w-auto px-2 py-1 text-[11px]">
+            <SelectTrigger className="h-7 w-auto px-2 py-1 text-2xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -246,7 +246,7 @@ export default function HighlightReviewCard({
             value={tone}
             onValueChange={(v) => dispatch({ type: 'SET_TONE', tone: v })}
           >
-            <SelectTrigger className="h-7 w-auto px-2 py-1 text-[11px]">
+            <SelectTrigger className="h-7 w-auto px-2 py-1 text-2xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -261,7 +261,7 @@ export default function HighlightReviewCard({
           {/* Make it viral button */}
           <Button
             variant={ButtonVariant.DEFAULT}
-            className="flex items-center gap-1 rounded px-3 py-1 text-[11px] font-medium"
+            className="flex items-center gap-1 rounded px-3 py-1 text-2xs font-medium"
             onClick={handleViralRewrite}
             disabled={isRewriting}
           >
@@ -278,7 +278,7 @@ export default function HighlightReviewCard({
           {hasBeenRewritten && (
             <Button
               variant={ButtonVariant.UNSTYLED}
-              className="text-[11px] text-muted-foreground hover:text-foreground"
+              className="text-2xs text-muted-foreground hover:text-foreground"
               onClick={handleRestoreOriginal}
             >
               Restore original
@@ -289,9 +289,7 @@ export default function HighlightReviewCard({
 
       {/* Rewrite error */}
       {rewriteError && (
-        <div className="mt-1.5 text-[11px] text-destructive">
-          {rewriteError}
-        </div>
+        <div className="mt-1.5 text-2xs text-destructive">{rewriteError}</div>
       )}
 
       {/* Tags */}
@@ -301,7 +299,7 @@ export default function HighlightReviewCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
             >
               #{tag}
             </Badge>

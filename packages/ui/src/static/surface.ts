@@ -1,11 +1,19 @@
 import { semanticColorTokens } from '../core/colors';
 import { radiusTokens } from '../core/radius';
+import { neutralAlphaScale } from '../core/scales';
 
 type StaticSurfaceTheme = keyof typeof semanticColorTokens;
 
+/**
+ * Solid one notch off `gray-1000`, used for the hover state of the inverted
+ * primary button. It has no scale step of its own because it is the only place
+ * the product dims a full-strength foreground fill.
+ */
+const accentHover = { dark: '#CCCCCC', light: '#383838' } as const;
+
 function staticSurfaceThemeVariables(theme: StaticSurfaceTheme): string {
   const colors = semanticColorTokens[theme];
-  const isDark = theme === 'dark';
+  const alpha = neutralAlphaScale[theme];
 
   return `
   --gf-bg-primary: ${colors.background.hex};
@@ -14,17 +22,17 @@ function staticSurfaceThemeVariables(theme: StaticSurfaceTheme): string {
   --gf-bg-elevated: ${colors.popover.hex};
   --gf-bg-hover: ${colors.backgroundTertiary.hex};
   --gf-border: ${colors.border.hex};
-  --gf-border-strong: ${isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(13, 13, 13, 0.18)'};
-  --gf-divider-subtle: ${isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(13, 13, 13, 0.08)'};
-  --gf-grid-line: ${isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(13, 13, 13, 0.08)'};
-  --gf-fill-subtle: ${isDark ? 'rgba(255, 255, 255, 0.035)' : 'rgba(13, 13, 13, 0.04)'};
+  --gf-border-strong: ${alpha['500']};
+  --gf-divider-subtle: ${alpha['200']};
+  --gf-grid-line: ${alpha['300']};
+  --gf-fill-subtle: ${alpha['100']};
   --gf-text-primary: ${colors.foreground.hex};
   --gf-text-secondary: ${colors.secondaryForeground.hex};
   --gf-text-muted: ${colors.mutedForeground.hex};
-  --gf-text-faint: ${isDark ? 'rgba(244, 244, 245, 0.52)' : 'rgba(13, 13, 13, 0.58)'};
+  --gf-text-faint: ${alpha['800']};
   --gf-accent: ${colors.primary.hex};
   --gf-accent-foreground: ${colors.primaryForeground.hex};
-  --gf-accent-hover: ${isDark ? '#E4E4E7' : '#262626'};
+  --gf-accent-hover: ${accentHover[theme]};
   --gf-success: ${colors.success.hex};
   --gf-warning: ${colors.warning.hex};
   --gf-danger: ${colors.destructive.hex};
@@ -134,8 +142,9 @@ ${darkThemeVariables}
 .gf-feature-card-kicker {
   margin: 0;
   color: var(--gf-text-faint);
-  font-size: 10px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
 }
@@ -152,8 +161,8 @@ ${darkThemeVariables}
   max-width: 330px;
   margin: 14px 0 0;
   color: var(--gf-text-muted);
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 22px;
 }
 .gf-info-card {
   min-height: 190px;
@@ -163,20 +172,22 @@ ${darkThemeVariables}
   margin: 14px 0 0;
   color: var(--gf-text-primary);
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 600;
+  line-height: 24px;
 }
 .gf-info-card p {
   margin: 9px 0 0;
   color: var(--gf-text-muted);
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 22px;
 }
 .gf-info-card a {
   display: inline-flex;
   margin-top: 16px;
   color: var(--gf-text-secondary);
-  font-size: 10px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -193,8 +204,9 @@ ${darkThemeVariables}
   background: transparent;
   color: var(--gf-text-primary);
   padding: 0 14px;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -226,8 +238,9 @@ ${darkThemeVariables}
   border-radius: var(--gf-surface-radius);
   background: var(--gf-fill-subtle);
   color: var(--gf-text-muted);
-  font-size: 10px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -239,7 +252,7 @@ ${darkThemeVariables}
   padding: 6px 8px;
   color: var(--gf-text-secondary);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -264,7 +277,7 @@ ${darkThemeVariables}
   color: var(--gf-text-secondary);
   box-shadow: var(--gf-shadow-border);
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 20px;
   padding: 13px;
   white-space: pre;
 }
@@ -278,7 +291,7 @@ ${darkThemeVariables}
   color: var(--gf-text-secondary);
   padding: 14px;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 20px;
 }
 @media (max-width: 920px) {
   .gf-feature-card {

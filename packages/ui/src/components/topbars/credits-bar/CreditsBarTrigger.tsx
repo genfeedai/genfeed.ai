@@ -125,7 +125,7 @@ export default function CreditsBarTrigger({
         >
           <span
             className={cn(
-              'text-[13px] font-semibold tabular-nums tracking-[-0.02em]',
+              'text-sm font-semibold tabular-nums tracking-[-0.02em]',
               isCritical && 'text-destructive',
               isWarning && 'text-amber-600 dark:text-amber-400',
               (isLoadingState || isUnavailable) &&
@@ -137,7 +137,7 @@ export default function CreditsBarTrigger({
           </span>
           <span
             className={cn(
-              'text-[11px] font-medium uppercase tracking-[0.06em]',
+              'text-2xs font-medium uppercase tracking-[0.06em]',
               isCritical && 'text-destructive/80',
               isWarning && 'text-amber-600/80 dark:text-amber-400/80',
               (isLoadingState || !isLow) && 'text-muted-foreground',
@@ -176,7 +176,7 @@ export default function CreditsBarTrigger({
                 <span className="tabular-nums">{fullBalance}</span>
                 <span
                   className={cn(
-                    'ml-1 text-[11px] font-medium uppercase tracking-[0.08em]',
+                    'ml-1 text-2xs font-medium uppercase tracking-[0.08em]',
                     isCritical
                       ? 'text-destructive/80'
                       : 'text-muted-foreground',
@@ -230,14 +230,14 @@ export default function CreditsBarTrigger({
           <>
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
-              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="mb-1.5 text-2xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Providers
               </p>
               <div className="flex flex-col gap-1">
                 {visibleProviderSegments.map((segment) => (
                   <div
                     key={segment.provider}
-                    className="flex items-center justify-between gap-2 text-[12px] text-foreground/70"
+                    className="flex items-center justify-between gap-2 text-xs text-foreground/70"
                   >
                     <span className="truncate">{segment.label}</span>
                     <span className="shrink-0 tabular-nums text-muted-foreground">
@@ -266,7 +266,7 @@ export default function CreditsBarTrigger({
           {isLow ? (
             <p
               className={cn(
-                'px-0.5 text-[11px] leading-snug',
+                'px-0.5 text-2xs leading-snug',
                 isCritical && 'font-medium text-destructive',
                 isWarning && 'text-amber-700 dark:text-amber-400',
               )}

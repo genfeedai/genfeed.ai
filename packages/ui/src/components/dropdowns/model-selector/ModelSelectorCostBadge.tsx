@@ -16,7 +16,7 @@ const ModelSelectorCostBadge = memo(function ModelSelectorCostBadge({
   return (
     <span
       className={cn(
-        'rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none',
+        'rounded-full px-1.5 py-0.5 text-2xs font-bold leading-none',
         display.colorClass,
       )}
     >

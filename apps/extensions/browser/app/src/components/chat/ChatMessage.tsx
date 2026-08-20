@@ -28,7 +28,7 @@ export function ChatMessage({ message }: ChatMessageProps): ReactElement {
           <p className="whitespace-pre-wrap break-words">{message.content}</p>
         )}
         <time
-          className={`mt-1 block text-[10px] ${isUser ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}
+          className={`mt-1 block text-2xs ${isUser ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}
         >
           {formatTime(message.createdAt)}
         </time>

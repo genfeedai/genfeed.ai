@@ -36,7 +36,7 @@ function RunSeries({ points, seriesKey }: RunSeriesProps) {
                 }}
               />
             </div>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-2xs text-muted-foreground">
               {point.bucket.slice(5)}
             </span>
           </div>

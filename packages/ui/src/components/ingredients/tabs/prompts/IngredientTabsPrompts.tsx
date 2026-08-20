@@ -29,7 +29,7 @@ export default function IngredientTabsPrompts({
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/35">
+        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/35">
           Prompt Context
         </p>
         <p className="mt-1 text-sm text-white/65">

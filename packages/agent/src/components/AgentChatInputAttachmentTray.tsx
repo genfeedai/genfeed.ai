@@ -108,7 +108,7 @@ export function AgentChatInputAttachmentTray({
               {status !== 'completed' ? (
                 <span
                   className={cn(
-                    'absolute inset-x-1 bottom-1 truncate rounded bg-background/90 px-1 py-0.5 text-center text-[9px] font-medium',
+                    'absolute inset-x-1 bottom-1 truncate rounded bg-background/90 px-1 py-0.5 text-center text-2xs font-medium',
                     status === 'failed'
                       ? 'text-destructive'
                       : 'text-muted-foreground',
@@ -144,7 +144,7 @@ export function AgentChatInputAttachmentTray({
             ) : (
               <div className="flex size-full flex-col items-center justify-center gap-0.5 px-1 text-muted-foreground">
                 <ImageIcon aria-hidden="true" className="size-5" />
-                <span className="max-w-full truncate text-[9px] font-medium text-foreground/55">
+                <span className="max-w-full truncate text-2xs font-medium text-foreground/55">
                   {reference.contentType ?? 'content'}
                 </span>
               </div>
@@ -161,7 +161,7 @@ export function AgentChatInputAttachmentTray({
                 <X className="size-3.5" />
               </Button>
             ) : null}
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-background/80 px-1 py-0.5 text-center text-[9px] font-medium text-foreground/70">
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-background/80 px-1 py-0.5 text-center text-2xs font-medium text-foreground/70">
               {reference.label}
             </span>
           </div>

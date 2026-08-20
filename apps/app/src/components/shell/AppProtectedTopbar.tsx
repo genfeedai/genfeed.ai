@@ -298,7 +298,7 @@ function AppProtectedTopbarContent({
 
         <div className="flex min-w-0 items-center justify-end gap-1.5">
           {taskId ? (
-            <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-[11px] lg:flex">
+            <div className="hidden items-center gap-2 rounded border border-border bg-background-secondary px-2 py-1 text-2xs lg:flex">
               <span className="font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Task context
               </span>

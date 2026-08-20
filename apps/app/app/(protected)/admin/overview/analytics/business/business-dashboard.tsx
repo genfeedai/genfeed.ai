@@ -185,7 +185,7 @@ function DailySeriesChart({
           );
         })}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+      <div className="mt-1 flex justify-between text-2xs text-muted-foreground">
         <span>{data[0]?.date?.slice(5)}</span>
         <span>{data[data.length - 1]?.date?.slice(5)}</span>
       </div>
@@ -217,7 +217,7 @@ function ProjectionCard({ projections }: ProjectionCardProps) {
       <h3 className="mb-1 text-sm font-semibold text-foreground">
         30-Day Projections
       </h3>
-      <p className="mb-3 text-[10px] text-muted-foreground uppercase tracking-wider">
+      <p className="mb-3 text-2xs text-muted-foreground uppercase tracking-wider">
         Estimates based on recent weekly growth
       </p>
       <div className="grid grid-cols-3 gap-4">

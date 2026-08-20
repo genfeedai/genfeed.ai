@@ -46,7 +46,7 @@ export function WorkspaceTaskInspectorBody({
     <div className="flex-1 space-y-6 p-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <Card bodyClassName="space-y-2 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/35">
+          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/35">
             Routing
           </p>
           <p className="text-sm text-foreground">
@@ -54,7 +54,7 @@ export function WorkspaceTaskInspectorBody({
           </p>
         </Card>
         <Card bodyClassName="space-y-2 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/35">
+          <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/35">
             Progress
           </p>
           <div className="space-y-1 text-sm text-foreground/60">

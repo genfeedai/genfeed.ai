@@ -23,6 +23,7 @@
       "!**/.env",
       "!**/.env.*",
       "!**/next-env.d.ts",
+      "!packages/ui/web-tokens.css",
       "!**/.agents",
       "!**/.agents",
       "!.agents",

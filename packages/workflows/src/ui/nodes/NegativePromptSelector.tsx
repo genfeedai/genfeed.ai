@@ -147,7 +147,7 @@ function NegativePromptSelectorComponent({
         <span className="text-xs text-muted-foreground">Negative Prompt</span>
         <div className="flex items-center gap-1.5">
           {selectedCount > 0 && (
-            <span className="text-[10px] text-muted-foreground/70">
+            <span className="text-2xs text-muted-foreground/70">
               {selectedCount} selected
             </span>
           )}
@@ -207,7 +207,7 @@ function NegativePromptSelectorComponent({
               value={customText}
               onChange={(e) => handleCustomChange(e.target.value)}
               placeholder="ugly, deformed, ..."
-              className="nodrag nopan w-full h-7 border border-input bg-background px-2 text-xs shadow-sm placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="nodrag nopan w-full h-7 border border-input bg-background px-2 text-xs shadow-sm placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
         </>

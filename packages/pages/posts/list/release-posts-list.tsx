@@ -367,7 +367,7 @@ export default function ReleasePostsList({
             const scheduledAt = releaseInstant(release);
             return (
               <article
-                className="bg-card p-4 shadow-border transition-colors hover:bg-background hover:shadow-border-strong"
+                className="bg-card p-4 shadow-border transition-colors hover:bg-accent hover:shadow-border-strong"
                 key={release.id}
               >
                 <div className="flex items-start justify-between gap-3">

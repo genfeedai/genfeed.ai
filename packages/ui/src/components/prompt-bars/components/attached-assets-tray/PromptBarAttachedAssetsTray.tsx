@@ -95,7 +95,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
               <p
                 className={cn(
                   'truncate font-medium',
-                  isCompact ? 'text-[12px]' : 'text-[13px]',
+                  isCompact ? 'text-xs' : 'text-sm',
                 )}
               >
                 {asset.name || getAssetRoleLabel(asset)}
@@ -119,7 +119,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           variant={undefined}
           className={cn(
             'bg-transparent font-medium text-white/70 shadow-border hover:bg-white/5 hover:text-white',
-            isCompact ? 'h-9 px-2.5 text-[11px]' : 'h-10 px-3 text-[12px]',
+            isCompact ? 'h-9 px-2.5 text-2xs' : 'h-10 px-3 text-xs',
           )}
           icon={<FolderOpen className="size-3.5" />}
           onClick={onBrowseAssets}

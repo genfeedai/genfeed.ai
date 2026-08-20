@@ -79,7 +79,7 @@ function GridPositionSelectorComponent({
           ))}
         </div>
       </fieldset>
-      <span className="text-[10px] text-muted-foreground">
+      <span className="text-2xs text-muted-foreground">
         Where original content appears in the new frame
       </span>
     </div>

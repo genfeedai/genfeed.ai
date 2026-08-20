@@ -55,7 +55,7 @@ describe('BrandOSContent', () => {
 
     // Background layer token from DESIGN.md
     expect(screen.getByText('bg-primary')).toBeInTheDocument();
-    expect(screen.getAllByText('#050607').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('#0A0A0A').length).toBeGreaterThan(0);
     // Platform identifier token from DESIGN.md
     expect(screen.getByText('Discord')).toBeInTheDocument();
   });

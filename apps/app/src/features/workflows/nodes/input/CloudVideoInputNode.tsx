@@ -154,7 +154,7 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
                 playsInline
               />
             </div>
-            <div className="space-y-1 text-[11px] text-muted-foreground">
+            <div className="space-y-1 text-2xs text-muted-foreground">
               {mediaConfig.label && <p>{mediaConfig.label}</p>}
               {mediaConfig.dimensions && (
                 <p>

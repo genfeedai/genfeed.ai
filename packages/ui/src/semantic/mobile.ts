@@ -72,7 +72,19 @@ export const nativeTokenMap = {
     durationNormal: motionTokens.durationNormal,
     durationSlow: motionTokens.durationSlow,
   },
-  radius: radiusTokens,
+  // Web-only radius aliases (`card`, `workspace*`) resolve through CSS vars and
+  // are excluded — native consumers use `borderRadius` above.
+  radius: {
+    '2xl': radiusTokens['2xl'],
+    '3xl': radiusTokens['3xl'],
+    full: radiusTokens.full,
+    lg: radiusTokens.lg,
+    md: radiusTokens.md,
+    none: radiusTokens.none,
+    sm: radiusTokens.sm,
+    xl: radiusTokens.xl,
+    xs: radiusTokens.xs,
+  },
   spacing: {
     lg: 16,
     md: 12,

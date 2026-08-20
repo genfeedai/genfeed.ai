@@ -22,7 +22,7 @@ export default function SidebarBackRow({ label, href }: SidebarBackRowProps) {
         className={cn(
           'flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 group',
           'text-foreground/80 hover:bg-foreground/[0.06] hover:text-foreground',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
         )}
         aria-label={`Back to ${label}`}
       >

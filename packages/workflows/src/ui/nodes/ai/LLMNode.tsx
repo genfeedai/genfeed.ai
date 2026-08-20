@@ -116,16 +116,14 @@ function LLMNodeComponent(props: NodeProps) {
       <div className="space-y-3">
         {nodeData.inputPrompt ? (
           <div>
-            <div className="text-xs text-[var(--muted-foreground)]">
-              Input Prompt
-            </div>
-            <div className="mt-1 p-2 bg-[var(--secondary)]/30 border border-[var(--border)] rounded text-xs text-[var(--muted-foreground)] max-h-16 overflow-hidden line-clamp-3">
+            <div className="text-xs text-muted-foreground">Input Prompt</div>
+            <div className="mt-1 p-2 bg-secondary/30 border border-border rounded text-xs text-muted-foreground max-h-16 overflow-hidden line-clamp-3">
               {nodeData.inputPrompt}
             </div>
           </div>
         ) : (
           !isProcessing && (
-            <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
               <CircleAlert className="size-3" />
               Connect a prompt to generate
             </div>
@@ -135,16 +133,16 @@ function LLMNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`llm-system-prompt-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
-            System Prompt <span className="text-[var(--destructive)]">*</span>
+            System Prompt <span className="text-destructive">*</span>
           </label>
           <Textarea
             id={`llm-system-prompt-${id}`}
             value={nodeData.systemPrompt}
             onChange={handleSystemPromptChange}
             placeholder="Define the AI's behavior..."
-            className={`w-full h-16 resize-none ${!hasSystemPrompt ? 'border-[var(--destructive)]/50' : ''}`}
+            className={`w-full h-16 resize-none ${!hasSystemPrompt ? 'border-destructive/50' : ''}`}
             isDisabled={isProcessing}
           />
         </div>
@@ -152,7 +150,7 @@ function LLMNodeComponent(props: NodeProps) {
         <div>
           <div
             id={`llm-temperature-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Temperature: {nodeData.temperature.toFixed(2)}
           </div>
@@ -166,7 +164,7 @@ function LLMNodeComponent(props: NodeProps) {
             className="nodrag w-full"
             disabled={isProcessing}
           />
-          <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Precise</span>
             <span>Creative</span>
           </div>
@@ -175,7 +173,7 @@ function LLMNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`llm-max-tokens-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Max Tokens
           </label>
@@ -187,7 +185,7 @@ function LLMNodeComponent(props: NodeProps) {
             max="4096"
             value={nodeData.maxTokens}
             onChange={handleMaxTokensChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="w-full px-2 py-1.5 text-sm bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
             disabled={isProcessing}
           />
         </div>
@@ -195,7 +193,7 @@ function LLMNodeComponent(props: NodeProps) {
         {nodeData.outputText && (
           <div>
             <div className="flex items-center justify-between mb-1">
-              <div className="text-xs text-[var(--muted-foreground)]">
+              <div className="text-xs text-muted-foreground">
                 Generated Output
               </div>
               <div className="flex items-center gap-1">
@@ -220,7 +218,7 @@ function LLMNodeComponent(props: NodeProps) {
                 </Button>
               </div>
             </div>
-            <div className="p-2 bg-[var(--primary)]/5 border border-[var(--primary)]/20 rounded text-sm max-h-48 overflow-y-auto whitespace-pre-wrap nodrag nopan nowheel">
+            <div className="p-2 bg-primary/5 border border-primary/20 rounded text-sm max-h-48 overflow-y-auto whitespace-pre-wrap nodrag nopan nowheel">
               {nodeData.outputText}
             </div>
           </div>

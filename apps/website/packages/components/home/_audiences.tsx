@@ -107,7 +107,7 @@ export default function HomeAudiences(): React.ReactElement {
                 </Text>
               </div>
               <div className="flex flex-row items-center gap-1.5 rounded-full bg-surface/10 px-2.5 py-1">
-                <Text className="text-[11px] font-semibold uppercase tracking-wider text-surface/70">
+                <Text className="text-2xs font-semibold uppercase tracking-wider text-surface/70">
                   Talk to us
                 </Text>
               </div>

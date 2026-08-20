@@ -149,7 +149,7 @@ function VideoInputNodeComponent(props: NodeProps) {
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
             aria-label="Video URL"
-            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <Button
             variant="secondary"
@@ -180,7 +180,7 @@ function VideoInputNodeComponent(props: NodeProps) {
           >
             <X className="size-3" />
           </Button>
-          <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px]">
+          <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-2xs">
             {nodeData.dimensions &&
               `${nodeData.dimensions.width}x${nodeData.dimensions.height}`}
             {nodeData.duration && ` • ${formatDuration(nodeData.duration)}`}
@@ -196,14 +196,14 @@ function VideoInputNodeComponent(props: NodeProps) {
           {isUploading ? (
             <>
               <LoaderCircle className="size-5 text-muted-foreground/50 animate-spin" />
-              <span className="text-[10px] text-muted-foreground/70">
+              <span className="text-2xs text-muted-foreground/70">
                 Uploading…
               </span>
             </>
           ) : (
             <>
               <Video className="size-5 text-muted-foreground/50" />
-              <span className="text-[10px] text-muted-foreground/70">
+              <span className="text-2xs text-muted-foreground/70">
                 Drop or click
               </span>
             </>

@@ -17,7 +17,7 @@ export function CapabilityBadge({
   capability: ModelCapability;
 }) {
   return (
-    <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+    <span className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground">
       {CAPABILITY_LABELS[capability]}
     </span>
   );

@@ -65,7 +65,7 @@ export function LivestreamBotCard({
             </p>
           ) : null}
           {action.sessionStatus ? (
-            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-1 text-[11px] font-medium text-muted-foreground">
+            <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-1 text-2xs font-medium text-muted-foreground">
               <CircleCheck className="size-3.5" />
               <span>{action.sessionStatus}</span>
             </div>

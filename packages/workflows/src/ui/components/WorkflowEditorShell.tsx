@@ -36,7 +36,7 @@ export function WorkflowEditorShell({
 
   return (
     <>
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--background)]">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         {toolbar}
 
         <div className="flex flex-1 overflow-hidden">

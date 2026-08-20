@@ -192,21 +192,21 @@ export default function ClipResultCard({
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"
-            className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${statusConfig.color}`}
+            className={`rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wider ${statusConfig.color}`}
           >
             {statusConfig.label}
           </Badge>
           {clip.clipType && (
             <Badge
               variant="secondary"
-              className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
             >
               {clip.clipType}
             </Badge>
           )}
           <Badge
             variant="secondary"
-            className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
           >
             {(clip.mode ?? mode ?? 'avatar') === 'raw-cut'
               ? 'Raw cut'
@@ -215,7 +215,7 @@ export default function ClipResultCard({
           {isInLibrary && (
             <Badge
               variant="secondary"
-              className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded bg-secondary px-1.5 py-0.5 text-2xs text-muted-foreground"
             >
               {t('inLibrary')}
             </Badge>
@@ -251,7 +251,7 @@ export default function ClipResultCard({
       </p>
 
       {/* Metadata */}
-      <div className="mb-3 flex items-center gap-3 text-[10px] text-muted-foreground/80">
+      <div className="mb-3 flex items-center gap-3 text-2xs text-muted-foreground/80">
         <span>{formatDuration(clip.duration)}</span>
         <span>
           {formatDuration(clip.startTime)} → {formatDuration(clip.endTime)}
@@ -265,13 +265,13 @@ export default function ClipResultCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="rounded bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded bg-secondary/50 px-1.5 py-0.5 text-2xs text-muted-foreground"
             >
               #{tag}
             </Badge>
           ))}
           {clip.tags.length > 3 && (
-            <span className="text-[10px] text-muted-foreground/80">
+            <span className="text-2xs text-muted-foreground/80">
               +{clip.tags.length - 3}
             </span>
           )}

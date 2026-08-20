@@ -22,7 +22,7 @@ const CURRENT_RING = 'ring-1 ring-border-strong';
 
 function CurrentBadge() {
   return (
-    <span className="absolute -top-2 right-3 z-10 rounded-full bg-hover px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
+    <span className="absolute -top-2 right-3 z-10 rounded-full bg-hover px-2 py-0.5 text-2xs font-semibold uppercase tracking-wide text-foreground">
       Current
     </span>
   );
@@ -120,7 +120,7 @@ export default function ProvidersActionBar({
           Back
         </Button>
 
-        <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+        <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-2xs font-black uppercase tracking-[0.2em] text-white/60">
           <Sparkles className="size-3" />
           Step 2 of 3
         </div>

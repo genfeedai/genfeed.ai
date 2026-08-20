@@ -35,7 +35,7 @@ export function CommentItem({ comment }: CommentItemProps) {
         >
           {isAgent ? 'Agent' : 'User'}
         </span>
-        <span className="text-[10px] text-white/25">
+        <span className="text-2xs text-white/25">
           {getRelativeTime(comment.createdAt)}
         </span>
       </div>

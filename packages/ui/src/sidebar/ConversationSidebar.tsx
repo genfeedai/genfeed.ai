@@ -72,7 +72,7 @@ export function ConversationSidebarFilters<TValue extends string>({
           <Button
             aria-pressed={isActive}
             className={cn(
-              'h-7 shrink-0 gap-1.5 rounded-md border px-2.5 text-[11px] font-medium transition-colors',
+              'h-7 shrink-0 gap-1.5 rounded-md border px-2.5 text-2xs font-medium transition-colors',
               isActive
                 ? 'border-border-strong bg-foreground/[0.08] text-foreground'
                 : 'border-border bg-transparent text-foreground/48 hover:bg-foreground/[0.04] hover:text-foreground/78',
@@ -89,7 +89,7 @@ export function ConversationSidebarFilters<TValue extends string>({
             {typeof filter.count === 'number' && filter.count > 0 ? (
               <span
                 className={cn(
-                  'tabular-nums text-[10px]',
+                  'tabular-nums text-2xs',
                   isActive ? 'text-foreground/62' : 'text-foreground/30',
                 )}
               >
@@ -118,7 +118,7 @@ export function ConversationSidebarSection({
 }: ConversationSidebarSectionProps) {
   return (
     <section aria-label={label}>
-      <div className="flex h-7 items-center gap-2 px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
+      <div className="flex h-7 items-center gap-2 px-3 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
         <span>{label}</span>
         {typeof count === 'number' ? (
           <span className="font-mono font-medium tracking-normal text-foreground/22">

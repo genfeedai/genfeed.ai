@@ -32,7 +32,7 @@ const getScoreLabel = (score: number) => {
 const sizeClasses = {
   md: 'text-xs px-2 py-1 min-w-badge-md',
   sm: 'text-xs px-1.5 py-0.5 min-w-badge-sm',
-  xs: 'text-[10px] px-1 py-0.5 min-w-badge-xs',
+  xs: 'text-2xs px-1 py-0.5 min-w-badge-xs',
 };
 
 export default function EvaluationBadge({

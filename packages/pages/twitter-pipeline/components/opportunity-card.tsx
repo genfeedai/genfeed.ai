@@ -144,7 +144,7 @@ export default function OpportunityCard({
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={3}
-          className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+          className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
         />
         <div className="flex items-center justify-between mt-1">
           <span className="flex items-center gap-1 text-xs text-muted-foreground">

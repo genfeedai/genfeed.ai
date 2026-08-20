@@ -157,7 +157,8 @@ const SmartAlertsPanel = memo(function SmartAlertsPanel({
                 'relative flex items-start gap-3 p-3 border transition-all',
                 styles.bg,
                 styles.border,
-                !alert.isRead && 'ring-2 ring-offset-2 ring-primary/20',
+                !alert.isRead &&
+                  'ring-2 ring-offset-2 ring-offset-background ring-primary/20',
               )}
               onClick={markAlertRead}
               type="button"

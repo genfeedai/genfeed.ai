@@ -162,7 +162,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
       <BaseNode {...props}>
         {displayImages.length === 0 ? (
           <div className="w-full flex-1 min-h-[200px] border border-dashed border-border rounded flex items-center justify-center">
-            <span className="text-muted-foreground text-[10px] text-center px-4">
+            <span className="text-muted-foreground text-2xs text-center px-4">
               Connect image nodes to view gallery
             </span>
           </div>

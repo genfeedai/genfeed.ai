@@ -46,11 +46,11 @@ export function WorkspaceTaskFacecamPanel({
   return (
     <Card variant={CardVariant.DEFAULT} bodyClassName="space-y-3 p-3">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/55">
+        <p className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/55">
           Facecam settings
         </p>
         {isLoading ? (
-          <span className="text-[11px] text-foreground/40">
+          <span className="text-2xs text-foreground/40">
             Loading avatars & voices…
           </span>
         ) : null}
@@ -60,7 +60,7 @@ export function WorkspaceTaskFacecamPanel({
         <div className="space-y-1.5">
           <label
             htmlFor="facecam-avatar"
-            className="text-[11px] text-foreground/55"
+            className="text-2xs text-foreground/55"
           >
             Avatar
           </label>
@@ -85,7 +85,7 @@ export function WorkspaceTaskFacecamPanel({
         <div className="space-y-1.5">
           <label
             htmlFor="facecam-voice"
-            className="text-[11px] text-foreground/55"
+            className="text-2xs text-foreground/55"
           >
             Voice
           </label>
@@ -118,7 +118,7 @@ export function WorkspaceTaskFacecamPanel({
         onCheckedChange={(checked) => onSaveAsDefaultChange(checked === true)}
       />
 
-      {error ? <p className="text-[11px] text-rose-300">{error}</p> : null}
+      {error ? <p className="text-2xs text-rose-300">{error}</p> : null}
     </Card>
   );
 }

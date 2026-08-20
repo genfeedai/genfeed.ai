@@ -33,7 +33,7 @@ export function AgentThreadListErrorBanner({
         <Button
           withWrapper={false}
           variant={ButtonVariant.SECONDARY}
-          className="h-7 w-full px-2 text-[11px]"
+          className="h-7 w-full px-2 text-2xs"
           onClick={onRetry}
         >
           Retry

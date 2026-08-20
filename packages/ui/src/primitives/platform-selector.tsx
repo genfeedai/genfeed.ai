@@ -118,7 +118,7 @@ export default function PlatformSelector({
             variant={ButtonVariant.UNSTYLED}
             className={cn(
               'flex items-center gap-2 px-3 py-2 border border-white/[0.08] transition-all min-w-0',
-              'hover:bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary gap-2',
+              'hover:bg-background/50 focus:outline-none focus:ring-2 focus:ring-ring gap-2',
               isSelected ? 'bg-foreground/10 border-foreground/20' : 'bg-card',
               !isDisabled && 'cursor-pointer',
             )}

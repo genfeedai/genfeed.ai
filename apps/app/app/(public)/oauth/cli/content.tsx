@@ -641,7 +641,7 @@ function CliAuthPageContent() {
           </CardContent>
         </Card>
 
-        <p className="mt-5 text-center text-[11px] text-muted-foreground/50 leading-relaxed">
+        <p className="mt-5 text-center text-2xs text-muted-foreground/50 leading-relaxed">
           {isDesktopMode
             ? 'Desktop mode uses a server-minted API key and redirects back to the installed app.'
             : 'This page redirects credentials to 127.0.0.1 (localhost) only.'}

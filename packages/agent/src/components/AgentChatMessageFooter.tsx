@@ -95,7 +95,7 @@ export function AgentChatMessageFooter({
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-2 text-[10px]',
+        'flex items-center justify-between gap-2 text-2xs',
         isUser ? 'mt-2' : 'mt-2.5',
       )}
     >

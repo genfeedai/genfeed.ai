@@ -106,7 +106,7 @@ function TableHead({
     <th
       ref={ref}
       className={cn(
-        'ship-ui h-9 px-2 text-left align-middle text-[11px] font-medium uppercase tracking-wide text-muted [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'ship-ui h-9 px-2 text-left align-middle text-2xs font-medium uppercase tracking-wide text-muted [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className,
       )}
       {...props}
@@ -126,7 +126,7 @@ function TableCell({
     <td
       ref={ref}
       className={cn(
-        'ship-ui px-2 py-2 align-middle text-[12px] text-primary [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'ship-ui px-2 py-2 align-middle text-xs text-primary [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className,
       )}
       {...props}
@@ -145,7 +145,7 @@ function TableCaption({
   return (
     <caption
       ref={ref}
-      className={cn('ship-ui mt-4 text-[11px] text-muted', className)}
+      className={cn('ship-ui mt-4 text-2xs text-muted', className)}
       {...props}
     />
   );

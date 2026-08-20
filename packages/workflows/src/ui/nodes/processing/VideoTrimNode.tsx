@@ -99,7 +99,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Duration Info */}
-        <div className="text-xs text-[var(--muted-foreground)]">
+        <div className="text-xs text-muted-foreground">
           {nodeData.duration
             ? `Source: ${formatTime(nodeData.duration)}`
             : 'Connect video to get duration'}
@@ -109,7 +109,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`trim-start-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             Start: {formatTime(nodeData.startTime)}
           </label>
@@ -128,7 +128,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             value={formatTime(nodeData.startTime)}
             onChange={handleStartTimeChange}
             placeholder="0:00"
-            className="w-full mt-1 px-2 py-1 text-xs bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
@@ -136,7 +136,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
         <div>
           <label
             htmlFor={`trim-end-${id}`}
-            className="text-xs text-[var(--muted-foreground)]"
+            className="text-xs text-muted-foreground"
           >
             End: {formatTime(nodeData.endTime)}
           </label>
@@ -155,12 +155,12 @@ function VideoTrimNodeComponent(props: NodeProps) {
             value={formatTime(nodeData.endTime)}
             onChange={handleEndTimeChange}
             placeholder="1:00"
-            className="w-full mt-1 px-2 py-1 text-xs bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="w-full mt-1 px-2 py-1 text-xs bg-background border border-border rounded focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         {/* Trim Duration Display */}
-        <div className="p-2 bg-[var(--background)] border border-[var(--border)] rounded text-center">
+        <div className="p-2 bg-background border border-border rounded text-center">
           <span className="text-sm font-medium">
             Clip Length: {formatTime(trimDuration)}
           </span>
@@ -209,7 +209,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
 
         {/* Help text for required inputs */}
         {!hasRequiredInputs && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
             <CircleAlert className="size-3" />
             Connect a video to trim
           </div>

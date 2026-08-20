@@ -176,7 +176,7 @@ export default function LibrarySidebarNav() {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2 scrollbar-thin">
           <div className="mt-2">
-            <div className="p-1 text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
+            <div className="p-1 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
               Library
             </div>
             <ul className="flex flex-col gap-px">

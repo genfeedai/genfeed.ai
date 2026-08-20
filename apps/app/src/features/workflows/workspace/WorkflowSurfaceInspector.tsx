@@ -378,7 +378,7 @@ export function WorkflowSurfaceInspector({
             </p>
           </div>
           {execution ? (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+            <span className="rounded-full bg-muted px-2 py-0.5 text-2xs text-foreground">
               {formatEnumLabel(execution.status)}
             </span>
           ) : null}

@@ -57,14 +57,14 @@ export function CostModal() {
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div
-        className="bg-[var(--background)] shadow-dialog w-full max-w-lg"
+        className="bg-background shadow-dialog w-full max-w-lg"
         role="dialog"
         aria-label="Cost Breakdown"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <DollarSign className="size-4 text-[var(--muted-foreground)]" />
+            <DollarSign className="size-4 text-muted-foreground" />
             <span className="text-sm font-medium">Cost Breakdown</span>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={handleClose}>
@@ -75,7 +75,7 @@ export function CostModal() {
         {/* Content */}
         <div className="p-4">
           {breakdown.items.length === 0 ? (
-            <div className="text-center text-[var(--muted-foreground)] py-8">
+            <div className="text-center text-muted-foreground py-8">
               No billable nodes in workflow
             </div>
           ) : (
@@ -84,7 +84,7 @@ export function CostModal() {
               <div className="max-h-[40vh] overflow-y-auto">
                 <Table className="w-full text-sm">
                   <TableHeader>
-                    <TableRow className="text-left text-xs text-[var(--muted-foreground)]">
+                    <TableRow className="text-left text-xs text-muted-foreground">
                       <TableHead className="pb-2 font-medium">Node</TableHead>
                       <TableHead className="pb-2 font-medium">Model</TableHead>
                       <TableHead className="pb-2 font-medium">Unit</TableHead>
@@ -102,10 +102,10 @@ export function CostModal() {
                         >
                           {estimate.nodeLabel}
                         </TableCell>
-                        <TableCell className="py-2 text-[var(--muted-foreground)] font-mono text-xs">
+                        <TableCell className="py-2 text-muted-foreground font-mono text-xs">
                           {estimate.model}
                         </TableCell>
-                        <TableCell className="py-2 text-[var(--muted-foreground)] text-xs">
+                        <TableCell className="py-2 text-muted-foreground text-xs">
                           {estimate.unit}
                         </TableCell>
                         <TableCell className="py-2 text-right font-mono">
@@ -118,11 +118,9 @@ export function CostModal() {
               </div>
 
               {/* Summary */}
-              <div className="mt-4 pt-3 border-t border-[var(--border)] space-y-1.5">
+              <div className="mt-4 pt-3 border-t border-border space-y-1.5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[var(--muted-foreground)]">
-                    Estimated Total
-                  </span>
+                  <span className="text-muted-foreground">Estimated Total</span>
                   <span className="font-mono font-medium">
                     {formatCost(breakdown.total)}
                   </span>
@@ -130,24 +128,20 @@ export function CostModal() {
                 {hasActualCost && (
                   <>
                     <div className="flex justify-between text-sm">
-                      <span className="text-[var(--muted-foreground)]">
-                        Actual Cost
-                      </span>
+                      <span className="text-muted-foreground">Actual Cost</span>
                       <span className="font-mono font-medium text-foreground">
                         {formatCost(actualCost)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-[var(--muted-foreground)]">
-                        Variance
-                      </span>
+                      <span className="text-muted-foreground">Variance</span>
                       <span
                         className={`font-mono text-xs ${
                           variance > 0
                             ? 'text-red-400'
                             : variance < 0
                               ? 'text-green-400'
-                              : 'text-[var(--muted-foreground)]'
+                              : 'text-muted-foreground'
                         }`}
                       >
                         {variance > 0 ? '+' : ''}

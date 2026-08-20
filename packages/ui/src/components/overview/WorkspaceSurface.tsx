@@ -72,7 +72,7 @@ export function WorkspaceSurface({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 space-y-1">
                 {eyebrow ? (
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+                  <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
                     {eyebrow}
                   </p>
                 ) : null}

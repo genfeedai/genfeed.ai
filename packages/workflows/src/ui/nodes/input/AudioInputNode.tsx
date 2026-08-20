@@ -161,7 +161,7 @@ function AudioInputNodeComponent(props: NodeProps) {
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
             aria-label="Audio URL"
-            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring"
           />
           <Button
             variant="secondary"
@@ -196,7 +196,7 @@ function AudioInputNodeComponent(props: NodeProps) {
               <X className="size-3" />
             </Button>
           </div>
-          <div className="text-[10px] text-muted-foreground truncate">
+          <div className="text-2xs text-muted-foreground truncate">
             {nodeData.filename}
             {nodeData.duration && ` • ${formatDuration(nodeData.duration)}`}
           </div>
@@ -208,7 +208,7 @@ function AudioInputNodeComponent(props: NodeProps) {
           className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"
         >
           <Music className="size-5 text-muted-foreground/50" />
-          <span className="text-[10px] text-muted-foreground/70">
+          <span className="text-2xs text-muted-foreground/70">
             Drop or click
           </span>
         </Button>

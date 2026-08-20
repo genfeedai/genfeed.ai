@@ -48,7 +48,7 @@ function ContextSection({
   return (
     <Card bodyClassName="gap-0 p-3 sm:p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold text-foreground/60">
+        <span className="text-2xs font-semibold text-foreground/60">
           {title}
         </span>
         {action}
@@ -64,7 +64,7 @@ function ContextRow({
 }: AgentThreadContextRowProps): ReactElement {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1">
-      <span className="shrink-0 text-[11px] text-foreground/45">{label}</span>
+      <span className="shrink-0 text-2xs text-foreground/45">{label}</span>
       <span className="min-w-0 truncate text-right text-xs font-medium text-foreground/85">
         {value}
       </span>
@@ -79,7 +79,7 @@ function SectionLink({
   return (
     <Link
       href={href}
-      className="shrink-0 text-[11px] font-medium text-foreground/45 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      className="shrink-0 text-2xs font-medium text-foreground/45 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       {label}
     </Link>
@@ -130,7 +130,7 @@ export default function AgentThreadContextPanel({
       data-testid="agent-thread-context-panel"
     >
       <div className="gen-shell-toolbar shrink-0 p-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/35">
+        <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-foreground/35">
           {AGENT_THREAD_CONTEXT_COPY.eyebrow}
         </p>
         <h2 className="mt-1 truncate text-base font-semibold text-foreground">
@@ -169,7 +169,7 @@ export default function AgentThreadContextPanel({
               ) : null}
             </>
           ) : (
-            <p className="text-[11px] leading-5 text-muted-foreground">
+            <p className="text-2xs leading-5 text-muted-foreground">
               {AGENT_THREAD_CONTEXT_COPY.brandEmpty}
             </p>
           )}
@@ -207,7 +207,7 @@ export default function AgentThreadContextPanel({
               ))}
             </div>
           ) : (
-            <p className="text-[11px] leading-5 text-muted-foreground">
+            <p className="text-2xs leading-5 text-muted-foreground">
               {AGENT_THREAD_CONTEXT_COPY.channelsEmpty}
             </p>
           )}
@@ -245,7 +245,7 @@ export default function AgentThreadContextPanel({
                 key={action.name}
                 href={resolveDestination(action.route)}
                 title={action.description}
-                className="gen-shell-control inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-medium text-foreground/75 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="gen-shell-control inline-flex items-center rounded-md px-2.5 py-1 text-2xs font-medium text-foreground/75 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 {action.label}
               </Link>
