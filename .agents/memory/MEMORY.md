@@ -51,7 +51,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_no_nested_claude_md](feedback_no_nested_claude_md.md) — only the repo-root CLAUDE.md; no apps/* or packages/* copies
 - [feedback_simple_mode_minimal_prompt_bar](feedback_simple_mode_minimal_prompt_bar.md) — Advanced Mode off = prompt/voice/generate only; Cursor-style sticky turns, queued follow-ups, real Studio Stop
 - [feedback_no_composer_context_meter](feedback_no_composer_context_meter.md) — no token / context-window meter on the agent composer
-- [feedback_model_picker_family_rows](feedback_model_picker_family_rows.md) — All view lists collapsed families; no second provider accordion
+- [feedback_model_picker_family_rows](feedback_model_picker_family_rows.md) — model picker is one flat ranked list: filter pills, capability icons, hover spec
 - [feedback_generation_card_model_survives_refresh](feedback_generation_card_model_survives_refresh.md) — generation-card model/priority/outputs persist in a Zustand store separate from chat
 - [feedback_generation_card_single_model_outputs_stepper](feedback_generation_card_single_model_outputs_stepper.md) — one model per generate; N images via the Outputs ButtonDropdown
 - [feedback_generation_card_one_line_prompt](feedback_generation_card_one_line_prompt.md) — generation-card prompt is one line; Read & edit sits on that row
