@@ -374,14 +374,37 @@ describe('Tabs', () => {
       />,
     );
 
-    expect(screen.getByRole('tablist')).toHaveAttribute(
-      'data-variant',
-      'underline',
-    );
+    const tabList = screen.getByRole('tablist');
+    expect(tabList).toHaveAttribute('data-variant', 'underline');
+    expect(tabList).toHaveClass('border-b', 'border-border');
+    expect(tabList).not.toHaveClass('border-0');
     expect(screen.getByRole('tab', { name: /selected/i })).toHaveAttribute(
       'data-variant',
       'underline',
     );
+  });
+
+  it('connects active content to its tab with Radix tabpanel semantics', () => {
+    render(
+      <Tabs
+        activeTab="home"
+        contentClassName="panel-class"
+        listClassName="list-class"
+        onTabChange={vi.fn()}
+        tabs={['home', 'profile']}
+      >
+        <div>Home panel</div>
+      </Tabs>,
+    );
+
+    const activeTab = screen.getByRole('tab', { name: /home/i });
+    const panel = screen.getByRole('tabpanel');
+
+    expect(activeTab).toHaveAttribute('aria-controls', panel.id);
+    expect(panel).toHaveAttribute('aria-labelledby', activeTab.id);
+    expect(panel).toHaveClass('panel-class');
+    expect(screen.getByRole('tablist')).toHaveClass('list-class');
+    expect(panel).toHaveTextContent('Home panel');
   });
 
   it('applies segmented variant and compact sizing', () => {

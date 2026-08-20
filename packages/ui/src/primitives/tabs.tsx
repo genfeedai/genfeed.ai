@@ -11,11 +11,17 @@ type TabsListProps = ComponentPropsWithRef<typeof TabsPrimitive.List> & {
   'data-variant'?: 'default' | 'pills' | 'segmented' | 'underline';
 };
 
-function TabsList({ ref, className, ...props }: TabsListProps) {
+function TabsList({
+  ref,
+  className,
+  'data-variant': dataVariant,
+  ...props
+}: TabsListProps) {
   return (
     <TabsPrimitive.List
       ref={ref}
-      className={getTabsListClassName(className)}
+      className={getTabsListClassName(className, dataVariant)}
+      data-variant={dataVariant}
       {...props}
     />
   );

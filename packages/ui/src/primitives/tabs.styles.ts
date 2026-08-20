@@ -1,12 +1,19 @@
 import { cn } from '../lib/utils';
 
-export function getTabsListClassName(className?: string) {
+type TabsListVariant = 'default' | 'pills' | 'segmented' | 'underline';
+
+export function getTabsListClassName(
+  className?: string,
+  variant?: TabsListVariant,
+) {
   return cn(
     'ship-ui inline-flex h-auto items-center gap-0.5 text-foreground/70',
-    // Segmented track for bare TabsList (no data-variant). Enhanced Tabs set
-    // data-variant and their own chrome via className — skip the default track.
-    'rounded-md border border-border bg-muted/40 p-0.5',
-    'data-[variant]:rounded-none data-[variant]:border-0 data-[variant]:bg-transparent data-[variant]:p-0',
+    variant === undefined &&
+      'rounded-md border border-border bg-muted/40 p-0.5',
+    variant === 'default' && 'gap-0.5',
+    variant === 'pills' && 'rounded-2xl bg-secondary/60 p-1 shadow-border',
+    variant === 'underline' && 'gap-0 border-b border-border',
+    variant === 'segmented' && 'rounded-xl bg-secondary/50 p-1 shadow-border',
     className,
   );
 }

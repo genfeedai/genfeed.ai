@@ -9,7 +9,12 @@ import type {
   TabsItem,
 } from '@genfeedai/props/ui/navigation/tabs.props';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
-import { TabsList, Tabs as TabsRoot, TabsTrigger } from '@ui/primitives/tabs';
+import {
+  TabsList,
+  TabsContent as TabsPanel,
+  Tabs as TabsRoot,
+  TabsTrigger,
+} from '@ui/primitives/tabs';
 import {
   getTabsListClassName,
   getTabsTriggerClassName,
@@ -81,11 +86,14 @@ function NavigationTabLink({
 }
 
 function TabsContent({
+  children,
   items,
   tabs,
   activeTab,
   onTabChange,
   className = '',
+  contentClassName,
+  listClassName,
   variant = 'default',
   size = 'md',
   fullWidth = true,
@@ -182,16 +190,8 @@ function TabsContent({
         <div
           className={cn(
             getTabsListClassName(
-              cn(
-                fullWidth && 'w-full',
-                variant === 'pills'
-                  ? 'rounded-2xl shadow-border bg-secondary/60 p-1'
-                  : variant === 'underline'
-                    ? 'gap-0 border-b border-border'
-                    : variant === 'segmented'
-                      ? 'rounded-xl shadow-border bg-secondary/50 p-1'
-                      : 'gap-0.5',
-              ),
+              cn(fullWidth && 'w-full', listClassName),
+              variant,
             ),
           )}
           data-size={size}
@@ -280,21 +280,16 @@ function TabsContent({
     <TabsRoot
       value={activeValue}
       onValueChange={handleValueChange}
-      className={cn('inline-flex', fullWidth && 'w-full', className)}
+      className={cn(
+        children == null ? 'inline-flex' : 'flex min-w-0 flex-col',
+        (fullWidth || children != null) && 'w-full',
+        className,
+      )}
     >
       <TabsList
         data-variant={variant}
         data-size={size}
-        className={cn(
-          fullWidth && 'w-full',
-          variant === 'pills'
-            ? 'rounded-2xl shadow-border bg-secondary/60 p-1'
-            : variant === 'underline'
-              ? 'gap-0 border-b border-border'
-              : variant === 'segmented'
-                ? 'rounded-xl shadow-border bg-secondary/50 p-1'
-                : 'gap-0.5',
-        )}
+        className={cn(fullWidth && 'w-full', listClassName)}
       >
         {normalizedTabs.map((tab) => {
           const tabItem =
@@ -328,6 +323,11 @@ function TabsContent({
           );
         })}
       </TabsList>
+      {children != null && activeValue ? (
+        <TabsPanel className={contentClassName} value={activeValue}>
+          {children}
+        </TabsPanel>
+      ) : null}
     </TabsRoot>
   );
 }
