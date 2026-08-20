@@ -45,3 +45,17 @@ export class FillCalendarSlotDto {
   @ApiProperty()
   readonly identityKey!: string;
 }
+
+export class SkipCalendarSlotDto {
+  @IsString()
+  @MaxLength(400)
+  @ApiProperty()
+  readonly identityKey!: string;
+}
+
+export class CancelCalendarSlotDto {
+  @IsString()
+  @MaxLength(400)
+  @ApiProperty()
+  readonly identityKey!: string;
+}

@@ -1,5 +1,15 @@
+<<<<<<< HEAD
+import {
+  CalendarSlotItemType,
+  CalendarSlotState,
+  PostCategory,
+  PostingCadenceStatus,
+  ReleaseStatus,
+} from '@genfeedai/enums';
+=======
 import { ApiKeyScope, PostCategory, ReleaseStatus } from '@genfeedai/enums';
 import { ForbiddenException } from '@nestjs/common';
+>>>>>>> origin/master
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostingCadencesService } from './posting-cadences.service';
 
@@ -10,8 +20,19 @@ const CREDENTIAL_ID = 'ccredential01';
 const CADENCE_ID = 'ccadence00001';
 const INSTANT = '2026-08-20T10:00:00.000Z';
 const IDENTITY_KEY = `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.REEL}|${INSTANT}`;
+const ARTICLE_IDENTITY_KEY = `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.ARTICLE}|${INSTANT}`;
+const RANGE = {
+  endDate: '2026-08-21T00:00:00.000Z',
+  startDate: '2026-08-20T00:00:00.000Z',
+};
 
-function cadenceRow() {
+function cadenceRow(
+  overrides: Partial<ReturnType<typeof baseCadenceRow>> = {},
+) {
+  return { ...baseCadenceRow(), ...overrides };
+}
+
+function baseCadenceRow() {
   return {
     brief: 'A short every two hours about shipping in public',
     brandId: BRAND_ID,
@@ -22,6 +43,7 @@ function cadenceRow() {
     generateLanding: 'draft',
     id: CADENCE_ID,
     intervalMinutes: 120,
+    isDeleted: false,
     label: 'August shorts',
     maxOccurrences: null,
     organizationId: ORG_ID,
@@ -35,7 +57,13 @@ function cadenceRow() {
   };
 }
 
-function generatingReservation() {
+function reservationRow(
+  overrides: Partial<ReturnType<typeof baseReservationRow>> = {},
+) {
+  return { ...baseReservationRow(), ...overrides };
+}
+
+function baseReservationRow() {
   return {
     brandId: BRAND_ID,
     cadenceId: CADENCE_ID,
@@ -52,11 +80,17 @@ function generatingReservation() {
   };
 }
 
+function generatingReservation() {
+  return reservationRow();
+}
+
 describe('PostingCadencesService', () => {
   const create = vi.fn();
   const findMany = vi.fn();
   const findFirst = vi.fn();
+  const cadenceUpdate = vi.fn();
   const postGroupsService = { create: vi.fn(), getOne: vi.fn() };
+  const articlesService = { createArticle: vi.fn() };
   const llmDispatcherService = { chatCompletion: vi.fn() };
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn(),
@@ -69,8 +103,10 @@ describe('PostingCadencesService', () => {
     findFirst: vi.fn(),
     findMany: vi.fn().mockResolvedValue([]),
     update: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
   };
   const prisma = {
+    article: { findMany: vi.fn().mockResolvedValue([]) },
     brand: { findFirst: vi.fn() },
     credential: {
       findFirst: vi.fn().mockResolvedValue({
@@ -79,7 +115,7 @@ describe('PostingCadencesService', () => {
       }),
     },
     post: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn() },
-    postingCadence: { create, findFirst, findMany },
+    postingCadence: { create, findFirst, findMany, update: cadenceUpdate },
     slotReservation,
   };
 
@@ -92,7 +128,9 @@ describe('PostingCadencesService', () => {
       platform: 'INSTAGRAM',
     });
     prisma.post.findMany.mockResolvedValue([]);
+    prisma.article.findMany.mockResolvedValue([]);
     slotReservation.findMany.mockResolvedValue([]);
+    slotReservation.updateMany.mockResolvedValue({ count: 0 });
     service = new PostingCadencesService(
       prisma as never,
       { error: vi.fn() } as never,
@@ -100,6 +138,7 @@ describe('PostingCadencesService', () => {
       llmDispatcherService as never,
       creditsUtilsService as never,
       modelsService as never,
+      articlesService as never,
     );
   });
 
@@ -232,6 +271,311 @@ describe('PostingCadencesService', () => {
     expect(result.releaseId).toBe('release-2');
   });
 
+<<<<<<< HEAD
+  it('persists skip and omits the skipped identity from listSlots', async () => {
+    slotReservation.findFirst.mockResolvedValue(null);
+    findFirst.mockResolvedValue(cadenceRow());
+    slotReservation.create.mockResolvedValue(
+      reservationRow({ state: CalendarSlotState.SKIPPED }),
+    );
+
+    const skipped = await service.skip(ORG_ID, IDENTITY_KEY);
+
+    expect(slotReservation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        identityKey: IDENTITY_KEY,
+        state: CalendarSlotState.SKIPPED,
+      }),
+    });
+    expect(skipped.state).toBe(CalendarSlotState.SKIPPED);
+
+    findMany.mockResolvedValue([cadenceRow()]);
+    slotReservation.findMany.mockResolvedValue([
+      reservationRow({ state: CalendarSlotState.SKIPPED }),
+    ]);
+
+    const slots = await service.listSlots(
+      ORG_ID,
+      BRAND_ID,
+      RANGE.startDate,
+      RANGE.endDate,
+    );
+
+    expect(slots.some((slot) => slot.identityKey === IDENTITY_KEY)).toBe(false);
+    expect(slots.length).toBeGreaterThan(0);
+  });
+
+  it('allows skip on a generate-failed slot', async () => {
+    slotReservation.findFirst.mockResolvedValue(
+      reservationRow({
+        lastFailureReason: 'The model returned empty copy.',
+        state: CalendarSlotState.GENERATE_FAILED,
+      }),
+    );
+    slotReservation.update.mockResolvedValue(
+      reservationRow({ state: CalendarSlotState.SKIPPED }),
+    );
+    findFirst.mockResolvedValue(cadenceRow());
+
+    const skipped = await service.skip(ORG_ID, IDENTITY_KEY);
+
+    expect(slotReservation.update).toHaveBeenCalledWith({
+      data: { state: CalendarSlotState.SKIPPED },
+      where: { id: 'reservation-1' },
+    });
+    expect(skipped.state).toBe(CalendarSlotState.SKIPPED);
+  });
+
+  it('rejects generate and write on a skipped slot', async () => {
+    slotReservation.findFirst.mockResolvedValue(
+      reservationRow({ state: CalendarSlotState.SKIPPED }),
+    );
+
+    await expect(
+      service.generate(ORG_ID, USER_ID, IDENTITY_KEY),
+    ).rejects.toThrow('skipped');
+    await expect(service.write(ORG_ID, USER_ID, IDENTITY_KEY)).rejects.toThrow(
+      'skipped',
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(articlesService.createArticle).not.toHaveBeenCalled();
+  });
+
+  it('records an article generate by reservation link and does not consume an unlinked article', async () => {
+    const articleCadence = cadenceRow({ format: PostCategory.ARTICLE });
+    slotReservation.findFirst.mockResolvedValue(null);
+    findFirst.mockResolvedValue(articleCadence);
+    slotReservation.create.mockResolvedValue(
+      reservationRow({
+        format: PostCategory.ARTICLE,
+        identityKey: ARTICLE_IDENTITY_KEY,
+      }),
+    );
+    slotReservation.update.mockResolvedValue(
+      reservationRow({
+        format: PostCategory.ARTICLE,
+        generatedItemId: 'article-1',
+        generatedItemType: CalendarSlotItemType.ARTICLE,
+        identityKey: ARTICLE_IDENTITY_KEY,
+        state: CalendarSlotState.FILLED,
+      }),
+    );
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: {},
+      description: 'Open-source AI OS',
+      label: 'Genfeed',
+      text: null,
+    });
+    modelsService.findOne.mockResolvedValue({ minCost: 1 });
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+      true,
+    );
+    llmDispatcherService.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: 'A linked essay about the slot.' } }],
+    });
+    articlesService.createArticle.mockResolvedValue({ id: 'article-1' });
+
+    const result = await service.generate(
+      ORG_ID,
+      USER_ID,
+      ARTICLE_IDENTITY_KEY,
+    );
+
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(articlesService.createArticle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'A linked essay about the slot.',
+      }),
+      USER_ID,
+      ORG_ID,
+      BRAND_ID,
+    );
+    expect(slotReservation.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        generatedItemId: 'article-1',
+        generatedItemType: CalendarSlotItemType.ARTICLE,
+        state: CalendarSlotState.FILLED,
+      }),
+      where: { id: 'reservation-1' },
+    });
+    expect(result.articleId).toBe('article-1');
+    expect(result.releaseId).toBeUndefined();
+    expect(result.targetId).toBe('article-1');
+
+    findMany.mockResolvedValue([articleCadence]);
+    slotReservation.findMany.mockResolvedValue([
+      reservationRow({
+        format: PostCategory.ARTICLE,
+        generatedItemId: 'article-1',
+        generatedItemType: CalendarSlotItemType.ARTICLE,
+        identityKey: ARTICLE_IDENTITY_KEY,
+        state: CalendarSlotState.FILLED,
+      }),
+    ]);
+    prisma.article.findMany.mockResolvedValue([
+      {
+        createdAt: new Date(INSTANT),
+        id: 'unlinked-article',
+      },
+    ]);
+
+    const slots = await service.listSlots(
+      ORG_ID,
+      BRAND_ID,
+      RANGE.startDate,
+      RANGE.endDate,
+    );
+    const noonKey = `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.ARTICLE}|2026-08-20T12:00:00.000Z`;
+
+    expect(
+      slots.some((slot) => slot.identityKey === ARTICLE_IDENTITY_KEY),
+    ).toBe(false);
+    expect(slots.some((slot) => slot.identityKey === noonKey)).toBe(true);
+  });
+
+  it('writes an article draft without calling the model or charging credits', async () => {
+    const articleCadence = cadenceRow({ format: PostCategory.ARTICLE });
+    slotReservation.findFirst.mockResolvedValue(null);
+    findFirst.mockResolvedValue(articleCadence);
+    slotReservation.create.mockResolvedValue(
+      reservationRow({
+        format: PostCategory.ARTICLE,
+        identityKey: ARTICLE_IDENTITY_KEY,
+      }),
+    );
+    slotReservation.update.mockResolvedValue(
+      reservationRow({
+        format: PostCategory.ARTICLE,
+        generatedItemId: 'article-2',
+        generatedItemType: CalendarSlotItemType.ARTICLE,
+        identityKey: ARTICLE_IDENTITY_KEY,
+        state: CalendarSlotState.FILLED,
+      }),
+    );
+    articlesService.createArticle.mockResolvedValue({ id: 'article-2' });
+
+    const result = await service.write(ORG_ID, USER_ID, ARTICLE_IDENTITY_KEY);
+
+    expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(articlesService.createArticle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Draft',
+        label: 'Untitled',
+      }),
+      USER_ID,
+      ORG_ID,
+      BRAND_ID,
+    );
+    expect(result.articleId).toBe('article-2');
+    expect(result.releaseId).toBeUndefined();
+  });
+
+  it('soft-deletes vanished missing reservations on edit and keeps filled or skipped survivors', async () => {
+    const shortened = cadenceRow({
+      endsAt: new Date('2026-08-20T12:00:00.000Z'),
+    });
+    findFirst.mockResolvedValue(cadenceRow());
+    cadenceUpdate.mockResolvedValue(shortened);
+    slotReservation.findMany.mockResolvedValue([
+      reservationRow({
+        id: 'missing-later',
+        identityKey: `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.REEL}|2026-08-20T16:00:00.000Z`,
+        instant: new Date('2026-08-20T16:00:00.000Z'),
+        state: CalendarSlotState.MISSING,
+      }),
+      reservationRow({
+        id: 'filled-surviving',
+        state: CalendarSlotState.FILLED,
+      }),
+      reservationRow({
+        id: 'skipped-surviving',
+        identityKey: `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.REEL}|2026-08-20T08:00:00.000Z`,
+        instant: new Date('2026-08-20T08:00:00.000Z'),
+        state: CalendarSlotState.SKIPPED,
+      }),
+    ]);
+    slotReservation.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.update(ORG_ID, CADENCE_ID, {
+      endsAt: '2026-08-20T12:00:00.000Z',
+    });
+
+    expect(cadenceUpdate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        endsAt: new Date('2026-08-20T12:00:00.000Z'),
+      }),
+      where: { id: CADENCE_ID },
+    });
+    expect(slotReservation.updateMany).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: expect.objectContaining({
+        cadenceId: CADENCE_ID,
+        id: { in: ['missing-later'] },
+        isDeleted: false,
+        organizationId: ORG_ID,
+      }),
+    });
+  });
+
+  it('archives a deleted cadence so unfilled derived slots disappear', async () => {
+    findFirst.mockResolvedValue(cadenceRow());
+    cadenceUpdate.mockResolvedValue(
+      cadenceRow({
+        isDeleted: true,
+        status: PostingCadenceStatus.ARCHIVED,
+      }),
+    );
+
+    const removed = await service.remove(ORG_ID, CADENCE_ID);
+
+    expect(cadenceUpdate).toHaveBeenCalledWith({
+      data: {
+        isDeleted: true,
+        status: PostingCadenceStatus.ARCHIVED,
+      },
+      where: { id: CADENCE_ID },
+    });
+    expect(removed.isDeleted).toBe(true);
+    expect(removed.status).toBe(PostingCadenceStatus.ARCHIVED);
+
+    findMany.mockResolvedValue([]);
+    slotReservation.findMany.mockResolvedValue([
+      reservationRow({ state: CalendarSlotState.MISSING }),
+    ]);
+
+    const slots = await service.listSlots(
+      ORG_ID,
+      BRAND_ID,
+      RANGE.startDate,
+      RANGE.endDate,
+    );
+
+    expect(slots).toEqual([]);
+  });
+
+  it('reverts a generating reservation to missing on cancel', async () => {
+    slotReservation.findFirst.mockResolvedValue(generatingReservation());
+    slotReservation.update.mockResolvedValue(
+      reservationRow({ state: CalendarSlotState.MISSING }),
+    );
+
+    const cancelled = await service.cancel(ORG_ID, IDENTITY_KEY);
+
+    expect(slotReservation.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        generatedItemId: null,
+        generatedItemType: null,
+        lastFailureReason: null,
+        state: CalendarSlotState.MISSING,
+      }),
+      where: { id: 'reservation-1' },
+    });
+    expect(cancelled.state).toBe(CalendarSlotState.MISSING);
+=======
   it('rejects a draft-only API key before generating a scheduled landing', async () => {
     slotReservation.findFirst.mockResolvedValue(null);
     findFirst.mockResolvedValue({
@@ -291,5 +635,6 @@ describe('PostingCadencesService', () => {
       { source: 'calendar-slot' },
       apiKeyContext,
     );
+>>>>>>> origin/master
   });
 });

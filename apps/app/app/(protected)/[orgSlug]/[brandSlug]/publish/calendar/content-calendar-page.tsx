@@ -20,6 +20,7 @@ import {
 import type {
   IArticle,
   ICalendarSlot,
+  IPostingCadence,
   IReleaseGroup,
 } from '@genfeedai/interfaces';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
@@ -154,7 +155,11 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [releases, setReleases] = useState<IReleaseGroup[]>([]);
   const [slots, setSlots] = useState<ICalendarSlot[]>([]);
+  const [cadences, setCadences] = useState<IPostingCadence[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<ICalendarSlot | null>(null);
+  const [editingCadence, setEditingCadence] = useState<IPostingCadence | null>(
+    null,
+  );
   const [isCadenceFormOpen, setIsCadenceFormOpen] = useState(false);
   const [isSlotPending, setIsSlotPending] = useState(false);
   const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(
@@ -207,21 +212,28 @@ export default function ContentCalendarPage(): React.JSX.Element {
           ...(filters.status.length ? { status: filters.status } : {}),
         };
 
-        const [fetchedArticles, fetchedReleases, fetchedSlots] =
-          await Promise.all([
-            articlesService.findAll(window),
-            releaseGroupsService.findAll(releasesQuery, controller.signal),
-            brandId
-              ? cadencesService.listSlots(
-                  {
-                    brandId,
-                    endDate: window.endDate,
-                    startDate: window.startDate,
-                  },
-                  controller.signal,
-                )
-              : Promise.resolve([]),
-          ]);
+        const [
+          fetchedArticles,
+          fetchedReleases,
+          fetchedSlots,
+          fetchedCadences,
+        ] = await Promise.all([
+          articlesService.findAll(window),
+          releaseGroupsService.findAll(releasesQuery, controller.signal),
+          brandId
+            ? cadencesService.listSlots(
+                {
+                  brandId,
+                  endDate: window.endDate,
+                  startDate: window.startDate,
+                },
+                controller.signal,
+              )
+            : Promise.resolve([]),
+          brandId
+            ? cadencesService.list(brandId, controller.signal)
+            : Promise.resolve([]),
+        ]);
 
         if (controller.signal.aborted) {
           return;
@@ -230,6 +242,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         setArticles(fetchedArticles);
         setReleases(fetchedReleases);
         setSlots(fetchedSlots);
+        setCadences(fetchedCadences);
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -654,6 +667,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
     if (!selectedSlot) {
       return;
     }
+    const format = selectedSlot.format;
     setIsSlotPending(true);
     void (async () => {
       try {
@@ -664,9 +678,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
         );
         setSelectedSlot(null);
         if (filled.generatedItemId) {
+          const kind = format === PostCategory.ARTICLE ? 'article' : 'post';
           push(
             withArtifactEditorReturn(
-              href(createArtifactEditorRoute('post', filled.generatedItemId)),
+              href(createArtifactEditorRoute(kind, filled.generatedItemId)),
               href(APP_ROUTES.PUBLISH.CALENDAR),
             ),
           );
@@ -684,6 +699,89 @@ export default function ContentCalendarPage(): React.JSX.Element {
     push,
     selectedSlot,
   ]);
+
+  const handleSkipSlot = useCallback(() => {
+    if (!selectedSlot) {
+      return;
+    }
+    setIsSlotPending(true);
+    void (async () => {
+      try {
+        const service = await getPostingCadencesService();
+        const skipped = await service.skip(selectedSlot.identityKey);
+        setSlots((current) =>
+          current.filter((slot) => slot.identityKey !== skipped.identityKey),
+        );
+        setSelectedSlot(null);
+        notificationsService.success('Slot skipped.');
+      } catch (error) {
+        notificationsService.error(mutationErrorMessage(error));
+      } finally {
+        setIsSlotPending(false);
+      }
+    })();
+  }, [getPostingCadencesService, notificationsService, selectedSlot]);
+
+  const handleCancelSlot = useCallback(() => {
+    if (!selectedSlot) {
+      return;
+    }
+    setIsSlotPending(true);
+    void (async () => {
+      try {
+        const service = await getPostingCadencesService();
+        const cancelled = await service.cancel(selectedSlot.identityKey);
+        setSlots((current) =>
+          current.map((slot) =>
+            slot.identityKey === cancelled.identityKey ? cancelled : slot,
+          ),
+        );
+        setSelectedSlot(null);
+        notificationsService.success('Generation cancelled.');
+      } catch (error) {
+        notificationsService.error(mutationErrorMessage(error));
+      } finally {
+        setIsSlotPending(false);
+      }
+    })();
+  }, [getPostingCadencesService, notificationsService, selectedSlot]);
+
+  const handleCloseSlot = useCallback(() => {
+    setSelectedSlot(null);
+  }, []);
+
+  const handleEditCadence = useCallback(() => {
+    if (!selectedSlot?.cadenceId) {
+      return;
+    }
+    const cadence = cadences.find(
+      (entry) => entry.id === selectedSlot.cadenceId,
+    );
+    if (!cadence) {
+      notificationsService.error('That cadence could not be loaded.');
+      return;
+    }
+    setEditingCadence(cadence);
+    setSelectedSlot(null);
+    setIsCadenceFormOpen(true);
+  }, [cadences, notificationsService, selectedSlot]);
+
+  const refreshSlots = useCallback(async () => {
+    if (!dateRange || !brandId) {
+      return;
+    }
+    const service = await getPostingCadencesService();
+    const [nextSlots, nextCadences] = await Promise.all([
+      service.listSlots({
+        brandId,
+        endDate: dateRange.end.toISOString(),
+        startDate: dateRange.start.toISOString(),
+      }),
+      service.list(brandId),
+    ]);
+    setSlots(nextSlots);
+    setCadences(nextCadences);
+  }, [brandId, dateRange, getPostingCadencesService]);
 
   const handleRetryTarget = useCallback(
     (targetId: string) => {
@@ -705,7 +803,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
       <Button
         aria-label="New cadence"
         isDisabled={!defaultCredentialId}
-        onClick={() => setIsCadenceFormOpen(true)}
+        onClick={() => {
+          setEditingCadence(null);
+          setIsCadenceFormOpen(true);
+        }}
         size={ButtonSize.SM}
         variant={ButtonVariant.SECONDARY}
       >
@@ -753,33 +854,60 @@ export default function ContentCalendarPage(): React.JSX.Element {
       ) : null}
       <CalendarSlotDrawer
         isPending={isSlotPending}
-        onClose={() => setSelectedSlot(null)}
+        onCancel={handleCancelSlot}
+        onClose={handleCloseSlot}
+        onEditCadence={selectedSlot?.cadenceId ? handleEditCadence : undefined}
         onGenerate={handleGenerateSlot}
+        onSkip={handleSkipSlot}
         onWrite={handleWriteSlot}
         slot={selectedSlot}
       />
       <CadenceFormSheet
         brandId={brandId}
+        cadence={editingCadence}
         credentialId={defaultCredentialId}
         isOpen={isCadenceFormOpen}
         isPending={isSlotPending}
-        onClose={() => setIsCadenceFormOpen(false)}
+        onClose={() => {
+          setIsCadenceFormOpen(false);
+          setEditingCadence(null);
+        }}
+        onDelete={
+          editingCadence
+            ? () => {
+                const cadenceId = editingCadence.id;
+                setIsSlotPending(true);
+                void (async () => {
+                  try {
+                    const service = await getPostingCadencesService();
+                    await service.delete(cadenceId);
+                    setIsCadenceFormOpen(false);
+                    setEditingCadence(null);
+                    notificationsService.success('Cadence deleted.');
+                    await refreshSlots();
+                  } catch (error) {
+                    notificationsService.error(mutationErrorMessage(error));
+                  } finally {
+                    setIsSlotPending(false);
+                  }
+                })();
+              }
+            : undefined
+        }
         onSubmit={(input) => {
           setIsSlotPending(true);
           void (async () => {
             try {
               const service = await getPostingCadencesService();
-              await service.create(input);
-              setIsCadenceFormOpen(false);
-              notificationsService.success('Cadence saved.');
-              if (dateRange && brandId) {
-                const nextSlots = await service.listSlots({
-                  brandId,
-                  endDate: dateRange.end.toISOString(),
-                  startDate: dateRange.start.toISOString(),
-                });
-                setSlots(nextSlots);
+              if (editingCadence) {
+                await service.update(editingCadence.id, input);
+              } else {
+                await service.create(input);
               }
+              setIsCadenceFormOpen(false);
+              setEditingCadence(null);
+              notificationsService.success('Cadence saved.');
+              await refreshSlots();
             } catch (error) {
               notificationsService.error(mutationErrorMessage(error));
             } finally {

@@ -1,10 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   BookCalendarSlotDto,
+  CancelCalendarSlotDto,
   FillCalendarSlotDto,
+  SkipCalendarSlotDto,
 } from '@api/collections/posting-cadences/dto/calendar-slot-action.dto';
 import { CalendarSlotQueryDto } from '@api/collections/posting-cadences/dto/calendar-slot-query.dto';
 import { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
+import { UpdatePostingCadenceDto } from '@api/collections/posting-cadences/dto/update-posting-cadence.dto';
 import { PostingCadencesService } from '@api/collections/posting-cadences/services/posting-cadences.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -18,7 +21,17 @@ import {
   CalendarSlotSerializer,
   PostingCadenceSerializer,
 } from '@genfeedai/serializers';
-import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -127,5 +140,49 @@ export class PostingCadencesController {
       ...data.slot,
       generatedItemId: data.targetId,
     });
+  }
+
+  @Post('slots/skip')
+  async skip(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: SkipCalendarSlotDto,
+  ) {
+    const data = await this.service.skip(user.organizationId, dto.identityKey);
+    return serializeSingle(request, CalendarSlotSerializer, data);
+  }
+
+  @Post('slots/cancel')
+  async cancel(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: CancelCalendarSlotDto,
+  ) {
+    const data = await this.service.cancel(
+      user.organizationId,
+      dto.identityKey,
+    );
+    return serializeSingle(request, CalendarSlotSerializer, data);
+  }
+
+  @Patch(':id')
+  async update(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: UpdatePostingCadenceDto,
+  ) {
+    const data = await this.service.update(user.organizationId, id, dto);
+    return serializeSingle(request, PostingCadenceSerializer, data);
+  }
+
+  @Delete(':id')
+  async remove(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const data = await this.service.remove(user.organizationId, id);
+    return serializeSingle(request, PostingCadenceSerializer, data);
   }
 }

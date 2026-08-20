@@ -1,3 +1,4 @@
+import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
@@ -9,7 +10,13 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [PostingCadencesController],
   exports: [PostingCadencesService],
-  imports: [CreditsModule, LlmDispatcherModule, ModelsModule, PostGroupsModule],
+  imports: [
+    ArticlesModule,
+    CreditsModule,
+    LlmDispatcherModule,
+    ModelsModule,
+    PostGroupsModule,
+  ],
   providers: [PostingCadencesService],
 })
 export class PostingCadencesModule {}

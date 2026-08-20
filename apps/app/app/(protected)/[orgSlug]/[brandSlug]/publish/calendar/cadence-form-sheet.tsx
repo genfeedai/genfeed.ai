@@ -1,9 +1,16 @@
 'use client';
 
-import { ButtonSize, PostCategory } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CadenceGenerateLanding,
+  PostCategory,
+} from '@genfeedai/enums';
+import type { IPostingCadence } from '@genfeedai/interfaces';
 import type { CreatePostingCadenceInput } from '@services/content/posting-cadences.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import {
   Sheet,
   SheetContent,
@@ -11,14 +18,26 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+const CADENCE_FORMATS = [
+  PostCategory.ARTICLE,
+  PostCategory.IMAGE,
+  PostCategory.POST,
+  PostCategory.REEL,
+  PostCategory.STORY,
+  PostCategory.TEXT,
+  PostCategory.VIDEO,
+] as const;
 
 type CadenceFormSheetProps = {
   brandId: string;
+  cadence?: IPostingCadence | null;
   credentialId: string;
   isOpen: boolean;
   isPending: boolean;
   onClose: () => void;
+  onDelete?: () => void;
   onSubmit: (input: CreatePostingCadenceInput) => void;
 };
 
@@ -40,20 +59,64 @@ function minutesFromTime(value: string, fallback: number): number {
   return hours * 60 + minutes;
 }
 
+function timeFromMinutes(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+}
+
+function isoDate(value: string): string {
+  return value.slice(0, 10);
+}
+
 export default function CadenceFormSheet({
   brandId,
+  cadence,
   credentialId,
   isOpen,
   isPending,
   onClose,
+  onDelete,
   onSubmit,
 }: CadenceFormSheetProps): React.JSX.Element {
   const [brief, setBrief] = useState('');
   const [endDate, setEndDate] = useState(plusDaysIsoDate(14));
+  const [format, setFormat] = useState<PostCategory>(PostCategory.REEL);
+  const [generateLanding, setGenerateLanding] = useState(
+    CadenceGenerateLanding.DRAFT,
+  );
   const [intervalHours, setIntervalHours] = useState('2');
   const [startDate, setStartDate] = useState(todayIsoDate());
   const [windowEnd, setWindowEnd] = useState('22:00');
   const [windowStart, setWindowStart] = useState('08:00');
+  const isEditing = Boolean(cadence);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    if (!cadence) {
+      setBrief('');
+      setEndDate(plusDaysIsoDate(14));
+      setFormat(PostCategory.REEL);
+      setGenerateLanding(CadenceGenerateLanding.DRAFT);
+      setIntervalHours('2');
+      setStartDate(todayIsoDate());
+      setWindowEnd('22:00');
+      setWindowStart('08:00');
+      return;
+    }
+
+    setBrief(cadence.brief ?? '');
+    setEndDate(cadence.endsAt ? isoDate(cadence.endsAt) : plusDaysIsoDate(14));
+    setFormat(cadence.format);
+    setGenerateLanding(cadence.generateLanding);
+    setIntervalHours(String(Math.max(1, cadence.intervalMinutes / 60)));
+    setStartDate(isoDate(cadence.startsAt));
+    setWindowEnd(timeFromMinutes(cadence.windowEndMinute));
+    setWindowStart(timeFromMinutes(cadence.windowStartMinute));
+  }, [cadence, isOpen]);
 
   return (
     <Sheet
@@ -66,13 +129,38 @@ export default function CadenceFormSheet({
     >
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>New cadence</SheetTitle>
+          <SheetTitle>{isEditing ? 'Edit cadence' : 'New cadence'}</SheetTitle>
           <SheetDescription>
-            Book missing shorts, tweets, or posts on the calendar. Generate or
-            write each hole later.
+            Book missing shorts, tweets, articles, or posts on the calendar.
+            Generate or write each hole later.
           </SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-3">
+          <SelectField
+            label="Format"
+            name="cadence-format"
+            onChange={(event) => setFormat(event.target.value as PostCategory)}
+            value={format}
+          >
+            {CADENCE_FORMATS.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="On generate"
+            name="cadence-landing"
+            onChange={(event) =>
+              setGenerateLanding(event.target.value as CadenceGenerateLanding)
+            }
+            value={generateLanding}
+          >
+            <option value={CadenceGenerateLanding.DRAFT}>Save as draft</option>
+            <option value={CadenceGenerateLanding.SCHEDULED}>
+              Schedule at the slot time
+            </option>
+          </SelectField>
           <Input
             label="Every (hours)"
             name="interval-hours"
@@ -115,28 +203,41 @@ export default function CadenceFormSheet({
             placeholder="YouTube Short about the brand"
             value={brief}
           />
-          <Button
-            isDisabled={isPending || !credentialId}
-            onClick={() => {
-              const hours = Number(intervalHours);
-              onSubmit({
-                brief: brief || undefined,
-                brandId,
-                credentialId,
-                endsAt: `${endDate}T23:59:59.000Z`,
-                format: PostCategory.REEL,
-                intervalMinutes: Number.isFinite(hours)
-                  ? Math.max(15, hours * 60)
-                  : 120,
-                startsAt: `${startDate}T00:00:00.000Z`,
-                windowEndMinute: minutesFromTime(windowEnd, 22 * 60),
-                windowStartMinute: minutesFromTime(windowStart, 8 * 60),
-              });
-            }}
-            size={ButtonSize.SM}
-          >
-            Save cadence
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              isDisabled={isPending || !credentialId}
+              onClick={() => {
+                const hours = Number(intervalHours);
+                onSubmit({
+                  brief: brief || undefined,
+                  brandId,
+                  credentialId,
+                  endsAt: `${endDate}T23:59:59.000Z`,
+                  format,
+                  generateLanding,
+                  intervalMinutes: Number.isFinite(hours)
+                    ? Math.max(15, hours * 60)
+                    : 120,
+                  startsAt: `${startDate}T00:00:00.000Z`,
+                  windowEndMinute: minutesFromTime(windowEnd, 22 * 60),
+                  windowStartMinute: minutesFromTime(windowStart, 8 * 60),
+                });
+              }}
+              size={ButtonSize.SM}
+            >
+              {isEditing ? 'Save changes' : 'Save cadence'}
+            </Button>
+            {isEditing && onDelete ? (
+              <Button
+                isDisabled={isPending}
+                onClick={onDelete}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.DESTRUCTIVE}
+              >
+                Delete cadence
+              </Button>
+            ) : null}
+          </div>
         </div>
       </SheetContent>
     </Sheet>

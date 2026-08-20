@@ -43,7 +43,8 @@ export interface ICalendarSlot {
 }
 
 export interface ICalendarSlotFillResult {
-  releaseId: string;
+  articleId?: string;
+  releaseId?: string;
   slot: ICalendarSlot;
   targetId: string;
 }

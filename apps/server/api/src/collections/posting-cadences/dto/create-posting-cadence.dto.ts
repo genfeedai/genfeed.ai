@@ -13,7 +13,8 @@ import {
   Min,
 } from 'class-validator';
 
-const POST_FORMATS = [
+export const CADENCE_FORMATS = [
+  PostCategory.ARTICLE,
   PostCategory.IMAGE,
   PostCategory.POST,
   PostCategory.REEL,
@@ -42,8 +43,8 @@ export class CreatePostingCadenceDto {
   @ApiProperty({ required: false })
   readonly endsAt?: string;
 
-  @IsIn(POST_FORMATS)
-  @ApiProperty({ enum: POST_FORMATS })
+  @IsIn(CADENCE_FORMATS)
+  @ApiProperty({ enum: CADENCE_FORMATS })
   readonly format!: PostCategory;
 
   @IsOptional()
