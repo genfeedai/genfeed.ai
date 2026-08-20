@@ -78,7 +78,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-page.tsx": 20,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-surface-adapter.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/reply-drip/reply-drip-page.tsx": 15,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/overview/overview-dashboard-sections.tsx": 11,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/calendar/content-calendar-page.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/calendar/evergreen-series-controls.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/calendar/release-analytics-table.tsx": 6,
