@@ -23,4 +23,9 @@ export const fieldControlTriggerClassName =
 export const overlayMenuSurfaceClassName =
   'bg-secondary text-primary shadow-dropdown';
 
-export const fieldControlPopoverClassName = `ship-ui rounded-xl ${overlayMenuSurfaceClassName}`;
+/**
+ * Field menus are commonly opened from an already-portalled panel. Keep this
+ * layer one step above panel/menu chrome (`z-[10001]`) so a Select or calendar
+ * cannot be painted behind the surface that owns its trigger.
+ */
+export const fieldControlPopoverClassName = `ship-ui z-[10002] rounded-xl ${overlayMenuSurfaceClassName}`;

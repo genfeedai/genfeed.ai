@@ -17,4 +17,8 @@ describe('overlayMenuSurfaceClassName', () => {
   it('is the surface used by field-control popovers', () => {
     expect(fieldControlPopoverClassName).toContain(overlayMenuSurfaceClassName);
   });
+
+  it('keeps field-control menus above the panel that opened them', () => {
+    expect(fieldControlPopoverClassName).toContain('z-[10002]');
+  });
 });
