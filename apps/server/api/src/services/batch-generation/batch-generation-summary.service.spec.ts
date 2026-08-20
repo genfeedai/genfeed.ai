@@ -110,4 +110,30 @@ describe('BatchGenerationSummaryService assignee projection', () => {
     expect(summary.items[0]?.assigneeId).toBe('user-deleted');
     expect(summary.items[0]?.reviewDecision).toBe(ReviewDecision.APPROVED);
   });
+
+  it('preserves content-run and variant lineage in returned batch items', async () => {
+    const summary = await service.toBatchSummary({
+      brandId: 'brand-1',
+      config: {},
+      createdAt: new Date('2026-08-19T10:00:00.000Z'),
+      id: 'batch-1',
+      items: [
+        {
+          contentRunId: 'run-1',
+          format: ContentFormat.VIDEO,
+          id: 'item-1',
+          reviewDecision: ReviewDecision.UNSET,
+          status: BatchItemStatus.COMPLETED,
+          variantId: 'variant-1',
+        },
+      ],
+      organizationId: 'org-1',
+      status: BatchStatus.COMPLETED,
+    } as never);
+
+    expect(summary.items[0]).toMatchObject({
+      contentRunId: 'run-1',
+      variantId: 'variant-1',
+    });
+  });
 });

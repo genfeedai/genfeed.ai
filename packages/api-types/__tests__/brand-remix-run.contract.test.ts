@@ -1,5 +1,6 @@
 import {
   brandRemixExecutionSchema,
+  brandRemixReadinessSchema,
   brandRemixRunViewSchema,
   createBrandRemixRunSchema,
   reviseBrandRemixRunSchema,
@@ -310,5 +311,25 @@ describe('brand remix run contract', () => {
         expectedRevision: 1,
       }).success,
     ).toBe(false);
+  });
+
+  test('accepts an actionable blocked state for unsupported strict fidelity', () => {
+    expect(
+      brandRemixReadinessSchema.parse({
+        issues: [
+          {
+            code: 'unsupported_fidelity',
+            field: 'fidelityMode',
+            message:
+              'Strict fidelity is not supported by the selected generation path. Use Guided fidelity instead.',
+            severity: 'blocked',
+          },
+        ],
+        state: 'blocked',
+      }),
+    ).toMatchObject({
+      issues: [{ code: 'unsupported_fidelity' }],
+      state: 'blocked',
+    });
   });
 });

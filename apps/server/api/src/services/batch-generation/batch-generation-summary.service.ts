@@ -163,6 +163,7 @@ export class BatchGenerationSummaryService {
             assigneeId: assigneeId || undefined,
             batchId: batch.id,
             caption: item.caption,
+            contentRunId: item.contentRunId,
             createdAt: item.createdAt ?? batch.createdAt.toISOString(),
             error: item.error,
             format: item.format,
@@ -213,6 +214,7 @@ export class BatchGenerationSummaryService {
             status: item.status,
             versionPinId:
               item.versionPinId ?? linkedPost?.reviewVersionPinId ?? undefined,
+            variantId: item.variantId,
           };
         }),
         pendingCount,

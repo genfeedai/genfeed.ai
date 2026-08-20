@@ -74,6 +74,7 @@ export default function AdsResearchPageClient({
     isLoading,
     launchPrepResult,
     metric,
+    openBrandRemix,
     platform,
     refetch,
     results,
@@ -334,7 +335,8 @@ export default function AdsResearchPageClient({
 
           {hasCredentials && results.summary.reviewPolicy ? (
             <p className="mb-4 text-xs text-foreground/45">
-              {results.summary.reviewPolicy}
+              Launch plans require review. No external campaign objects are
+              created from Ads Research.
             </p>
           ) : null}
 
@@ -367,6 +369,7 @@ export default function AdsResearchPageClient({
           href={href}
           selectedAd={selectedAd}
           onClose={handleCloseDetail}
+          onOpenRemix={openBrandRemix}
           onRunAction={runAction}
           busyAction={busyAction}
           actionError={actionError}

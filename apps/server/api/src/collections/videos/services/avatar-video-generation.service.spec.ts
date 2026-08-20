@@ -13,19 +13,35 @@ describe('AvatarVideoGenerationService', () => {
       ingredientsEndpoint: 'http://localhost:3010',
     };
     const byokService = {
-      resolveApiKey: vi.fn(),
+      resolveApiKey: vi.fn().mockResolvedValue(null),
     };
     const creditsUtilsService = {
-      deductCreditsFromOrganization: vi.fn(),
+      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
     };
-    const elevenlabsService = {};
-    const failedGenerationService = {};
-    const fleetService = {};
+    const elevenlabsService = {
+      generateAndUploadAudio: vi.fn().mockResolvedValue({
+        audioUrl: 'https://cdn.example.com/speech.mp3',
+        duration: 4,
+      }),
+    };
+    const failedGenerationService = {
+      handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
+    };
+    const fleetService = {
+      generateVoice: vi.fn().mockResolvedValue({ jobId: 'voice-job-1' }),
+      pollJob: vi
+        .fn()
+        .mockResolvedValue({ audioUrl: 'https://cdn.example.com/fleet.mp3' }),
+    };
     const heygenService = {
-      generatePhotoAvatarVideo: vi.fn(),
+      generatePhotoAvatarVideo: vi.fn().mockResolvedValue('heygen-job-1'),
+      getAvatars: vi.fn().mockResolvedValue([]),
     };
     const ingredientsService = {
-      findAvatarImageById: vi.fn(),
+      findAvatarImageById: vi.fn().mockResolvedValue({
+        cdnUrl: 'https://cdn.example.com/avatar.png',
+        id: 'avatar-1',
+      }),
     };
     const loggerService = {
       error: vi.fn(),
@@ -33,20 +49,23 @@ describe('AvatarVideoGenerationService', () => {
       warn: vi.fn(),
     } as unknown as LoggerService;
     const metadataService = {
-      patch: vi.fn(),
+      patch: vi.fn().mockResolvedValue(undefined),
     };
     const orgSettingsService = {
       findOne: vi.fn().mockResolvedValue(null),
     };
     const sharedService = {
-      createMediaDocumentsInternal: vi.fn(),
+      createMediaDocumentsInternal: vi.fn().mockResolvedValue({
+        ingredientData: { id: 'avatar-ingredient-1' },
+        metadataData: { id: 'avatar-metadata-1' },
+      }),
     };
-    const videosService = {};
+    const videosService = { patch: vi.fn() };
     const voicesService = {
       findOne: vi.fn(),
     };
     const websocketService = {
-      publishFileProcessing: vi.fn(),
+      publishFileProcessing: vi.fn().mockResolvedValue(undefined),
     };
 
     const service = new AvatarVideoGenerationService(
@@ -69,8 +88,14 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     return {
+      brandsService,
+      elevenlabsService,
+      fleetService,
+      heygenService,
+      ingredientsService,
       orgSettingsService,
       service,
+      sharedService,
       voicesService,
     };
   };
@@ -83,6 +108,130 @@ describe('AvatarVideoGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('links the placeholder before Fleet voice synthesis and HeyGen dispatch', async () => {
+    const {
+      brandsService,
+      fleetService,
+      heygenService,
+      service,
+      sharedService,
+      voicesService,
+    } = createService();
+    const order: string[] = [];
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {},
+      id: 'brand-1',
+    });
+    voicesService.findOne.mockResolvedValue({
+      externalVoiceId: null,
+      id: 'voice-fleet-1',
+      isCloned: true,
+      organizationId: context.organizationId,
+      provider: VoiceProvider.GENFEED_AI,
+      sampleAudioUrl: 'https://cdn.example.com/reference.wav',
+    });
+    sharedService.createMediaDocumentsInternal.mockImplementation(async () => {
+      order.push('placeholder');
+      return {
+        ingredientData: { id: 'avatar-ingredient-1' },
+        metadataData: { id: 'avatar-metadata-1' },
+      };
+    });
+    fleetService.generateVoice.mockImplementation(async () => {
+      order.push('fleet');
+      return { jobId: 'voice-job-1' };
+    });
+    fleetService.pollJob.mockImplementation(async () => {
+      order.push('fleet-poll');
+      return { audioUrl: 'https://cdn.example.com/fleet.mp3' };
+    });
+    heygenService.generatePhotoAvatarVideo.mockImplementation(async () => {
+      order.push('heygen');
+      return 'heygen-job-1';
+    });
+
+    await service.generateAvatarVideo(
+      {
+        clonedVoiceId: 'voice-fleet-1',
+        photoIngredientId: 'avatar-1',
+        text: 'Create the founder update',
+      },
+      context,
+      async (ingredientId) => {
+        order.push(`linked:${ingredientId}`);
+      },
+    );
+
+    expect(order).toEqual([
+      'placeholder',
+      'linked:avatar-ingredient-1',
+      'fleet',
+      'fleet-poll',
+      'heygen',
+    ]);
+  });
+
+  it('links the placeholder before ElevenLabs synthesis and HeyGen dispatch', async () => {
+    const {
+      brandsService,
+      elevenlabsService,
+      heygenService,
+      service,
+      sharedService,
+      voicesService,
+    } = createService();
+    const order: string[] = [];
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {},
+      id: 'brand-1',
+    });
+    voicesService.findOne.mockResolvedValue({
+      externalVoiceId: 'elevenlabs-voice-1',
+      id: 'voice-elevenlabs-1',
+      isCloned: false,
+      organizationId: context.organizationId,
+      provider: VoiceProvider.ELEVENLABS,
+      sampleAudioUrl: null,
+    });
+    sharedService.createMediaDocumentsInternal.mockImplementation(async () => {
+      order.push('placeholder');
+      return {
+        ingredientData: { id: 'avatar-ingredient-1' },
+        metadataData: { id: 'avatar-metadata-1' },
+      };
+    });
+    elevenlabsService.generateAndUploadAudio.mockImplementation(async () => {
+      order.push('elevenlabs');
+      return {
+        audioUrl: 'https://cdn.example.com/speech.mp3',
+        duration: 4,
+      };
+    });
+    heygenService.generatePhotoAvatarVideo.mockImplementation(async () => {
+      order.push('heygen');
+      return 'heygen-job-1';
+    });
+
+    await service.generateAvatarVideo(
+      {
+        clonedVoiceId: 'voice-elevenlabs-1',
+        photoIngredientId: 'avatar-1',
+        text: 'Create the founder update',
+      },
+      context,
+      async (ingredientId) => {
+        order.push(`linked:${ingredientId}`);
+      },
+    );
+
+    expect(order).toEqual([
+      'placeholder',
+      'linked:avatar-ingredient-1',
+      'elevenlabs',
+      'heygen',
+    ]);
   });
 
   it('prefers brand identity defaults before organization defaults', async () => {
@@ -185,5 +334,64 @@ describe('AvatarVideoGenerationService', () => {
       context.organizationId,
       'Create the founder update',
     );
+  });
+
+  it('preserves an authorized explicit photo ingredient without enabling defaults', async () => {
+    const { service } = createService();
+
+    const resolved = await (
+      service as unknown as {
+        resolveIdentityInputs: (
+          params: Record<string, unknown>,
+          contextValue: typeof context,
+          brand: BrandDocument | null,
+        ) => Promise<Record<string, string | undefined>>;
+      }
+    ).resolveIdentityInputs(
+      {
+        photoIngredientId: 'brand-avatar-1',
+        text: 'Create the founder update',
+      },
+      context,
+      { agentConfig: {} } as BrandDocument,
+    );
+
+    expect(resolved.photoIngredientId).toBe('brand-avatar-1');
+  });
+
+  it('resolves an explicit catalog voice Ingredient even when it is not cloned', async () => {
+    const { service, voicesService } = createService();
+    voicesService.findOne.mockResolvedValue({
+      externalVoiceId: 'catalog-elevenlabs-voice',
+      id: 'voice-catalog-1',
+      isCloned: false,
+      organizationId: context.organizationId,
+      provider: VoiceProvider.ELEVENLABS,
+      sampleAudioUrl: null,
+    });
+
+    const resolved = await (
+      service as unknown as {
+        resolveIdentityInputs: (
+          params: Record<string, unknown>,
+          contextValue: typeof context,
+          brand: BrandDocument | null,
+        ) => Promise<Record<string, string | undefined>>;
+      }
+    ).resolveIdentityInputs(
+      {
+        clonedVoiceId: 'voice-catalog-1',
+        text: 'Create the founder update',
+      },
+      context,
+      { agentConfig: {} } as BrandDocument,
+    );
+
+    expect(voicesService.findOne).toHaveBeenCalledWith({
+      id: 'voice-catalog-1',
+      isDeleted: false,
+      organizationId: context.organizationId,
+    });
+    expect(resolved.elevenlabsVoiceId).toBe('catalog-elevenlabs-voice');
   });
 });

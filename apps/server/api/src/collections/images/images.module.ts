@@ -63,7 +63,7 @@ import { Module } from '@nestjs/common';
     ImagesTransformationsController,
     ImagesUploadsController,
   ],
-  exports: [ImagesCoreModule],
+  exports: [ImageGenerationService, ImagesCoreModule],
   imports: [
     ImagesCoreModule,
     BrandsCoreModule,

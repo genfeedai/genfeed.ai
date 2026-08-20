@@ -1,21 +1,34 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { AlertCategory } from '@genfeedai/enums';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { StudioGenerateFilter } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
+import StudioRemixRunPanel from '@pages/studio/generate/components/StudioRemixRunPanel';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
 import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioGenerateModels';
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
+import { useStudioRemixRun } from '@pages/studio/generate/hooks/useStudioRemixRun';
+import { StudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import { buildStudioRemixRunEdits } from '@pages/studio/generate/utils/studio-remix-run';
+import Alert from '@ui/feedback/alert/Alert';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 /**
  * The Studio playground. One prompt bar generates every asset type Genfeed
@@ -25,8 +38,15 @@ import { type ReactElement, useCallback, useMemo, useState } from 'react';
 export default function StudioGenerateWorkspace(): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const { brandId } = useBrand();
-  const { resetSettings, settings, setType, type, updateSettings } =
-    useStudioGenerateSettings();
+  const {
+    applyTypeSettings,
+    isHydrated,
+    resetSettings,
+    settings,
+    setType,
+    type,
+    updateSettings,
+  } = useStudioGenerateSettings();
 
   const [prompt, setPrompt] = useState('');
   const [filter, setFilter] = useState<StudioGenerateFilter>('all');
@@ -46,6 +66,37 @@ export default function StudioGenerateWorkspace(): ReactElement {
     settings,
     type,
   });
+  const {
+    error: remixError,
+    run: remixRun,
+    start: startRemixRun,
+    status: remixStatus,
+    submitForReview,
+    vary,
+  } = useStudioRemixRun();
+  const appliedRemixRevisionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isHydrated || !remixRun) {
+      return;
+    }
+
+    const revisionKey = `${remixRun.id}:${remixRun.revision}`;
+    if (appliedRemixRevisionRef.current === revisionKey) {
+      return;
+    }
+    appliedRemixRevisionRef.current = revisionKey;
+
+    const output = remixRun.draft.output;
+    setPrompt(remixRun.draft.intent.objective);
+    applyTypeSettings(output.kind, {
+      aspectRatio: output.aspectRatio,
+      ...('durationSeconds' in output
+        ? { duration: output.durationSeconds }
+        : { duration: undefined }),
+      outputs: output.count,
+    });
+  }, [applyTypeSettings, isHydrated, remixRun]);
 
   const visibleJobs = useMemo(
     () =>
@@ -57,8 +108,17 @@ export default function StudioGenerateWorkspace(): ReactElement {
   );
 
   const handleSubmit = useCallback(() => {
+    if (remixRun) {
+      if (type === 'image' || type === 'video' || type === 'avatar') {
+        void startRemixRun(
+          buildStudioRemixRunEdits(remixRun, prompt, settings, type),
+        );
+      }
+      return;
+    }
+
     void submit(prompt);
-  }, [prompt, submit]);
+  }, [prompt, remixRun, settings, startRemixRun, submit, type]);
 
   // Reprompt reloads the composer rather than firing immediately — the
   // operator almost always wants to change one thing before running it again.
@@ -83,6 +143,22 @@ export default function StudioGenerateWorkspace(): ReactElement {
             </p>
           </div>
 
+          {remixRun ? (
+            <StudioRemixRunPanel
+              error={remixError}
+              isWorking={remixStatus === 'working'}
+              onReview={(variantIds) => {
+                void submitForReview(variantIds);
+              }}
+              onVary={() => {
+                void vary();
+              }}
+              run={remixRun}
+            />
+          ) : remixError ? (
+            <Alert type={AlertCategory.ERROR}>{remixError}</Alert>
+          ) : null}
+
           <StudioGenerateResults
             filter={filter}
             isLoading={isLoadingGallery}
@@ -97,19 +173,26 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
       <div className="shrink-0 border-t border-border bg-background px-6 py-4">
         <div className="mx-auto max-w-5xl">
-          <StudioGenerateComposer
-            isGenerating={isGenerating}
-            isLoadingModels={isLoadingModels}
-            models={models}
-            onPromptChange={setPrompt}
-            onResetSettings={resetSettings}
-            onSettingsChange={updateSettings}
-            onSubmit={handleSubmit}
-            onTypeChange={setType}
-            prompt={prompt}
-            settings={settings}
-            type={type}
-          />
+          <StudioRemixRunScope
+            canSelectAvatar={Boolean(
+              remixRun && 'avatarAssetId' in remixRun.draft.identity,
+            )}
+            isActive={Boolean(remixRun)}
+          >
+            <StudioGenerateComposer
+              isGenerating={isGenerating || remixStatus === 'working'}
+              isLoadingModels={isLoadingModels}
+              models={models}
+              onPromptChange={setPrompt}
+              onResetSettings={resetSettings}
+              onSettingsChange={updateSettings}
+              onSubmit={handleSubmit}
+              onTypeChange={setType}
+              prompt={prompt}
+              settings={settings}
+              type={type}
+            />
+          </StudioRemixRunScope>
         </div>
       </div>
     </div>

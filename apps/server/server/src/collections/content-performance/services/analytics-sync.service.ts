@@ -233,6 +233,7 @@ export class AnalyticsSyncService {
               userId: analytics.userId ?? undefined,
               variantId: post?.variantId ?? undefined,
               views: metrics.views,
+              workflowExecutionId: post?.workflowExecutionId ?? undefined,
             },
           });
 

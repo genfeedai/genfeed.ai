@@ -4,6 +4,7 @@ import { VideoGenerationCompletionService } from '@api/collections/videos/servic
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
+import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
@@ -26,6 +27,7 @@ export class VideoGenerationService {
     user: User,
     createVideoDto: CreateVideoDto,
     request: Request,
+    onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
   ): Promise<JsonApiSingleResponse> {
     const resolved = await this.preparationService.resolve(
       user,
@@ -39,6 +41,14 @@ export class VideoGenerationService {
       request,
     );
     const context = await this.preparationService.prepare(resolved);
+    try {
+      await onPlaceholderCreated?.(context.ingredientData.id.toString());
+    } catch (error: unknown) {
+      return this.executionService.failPlaceholderBeforeDispatch(
+        context,
+        error,
+      );
+    }
     await this.executionService.execute(context);
     return this.completionService.complete(context);
   }

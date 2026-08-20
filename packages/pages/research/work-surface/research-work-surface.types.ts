@@ -46,14 +46,32 @@ export function toAdsResearchFinding(
   item: AdsResearchItem,
 ): AuthorizedResearchFinding {
   const id = item.source === 'my_accounts' ? item.sourceId : item.id;
-  const kind: ResearchFindingReferenceKind =
-    item.source === 'my_accounts'
-      ? item.platform === 'meta'
-        ? 'research-ad-connected-meta'
-        : 'research-ad-connected-google'
-      : item.platform === 'meta'
-        ? 'research-ad-public-meta'
-        : 'research-ad-public-google';
+  const kindByPlatform = {
+    google: {
+      my_accounts: 'research-ad-connected-google',
+      public: 'research-ad-public-google',
+    },
+    meta: {
+      my_accounts: 'research-ad-connected-meta',
+      public: 'research-ad-public-meta',
+    },
+    tiktok: {
+      my_accounts: 'research-ad-connected-tiktok',
+      public: 'research-ad-public-tiktok',
+    },
+  } as const satisfies Readonly<
+    Record<
+      AdsResearchItem['platform'],
+      Record<AdsResearchItem['source'], ResearchFindingReferenceKind>
+    >
+  >;
+  const kind = kindByPlatform[item.platform][item.source];
+  const platformLabel =
+    item.platform === 'meta'
+      ? 'Meta'
+      : item.platform === 'tiktok'
+        ? 'TikTok'
+        : 'Google';
 
   return {
     description:
@@ -61,7 +79,7 @@ export function toAdsResearchFinding(
     metadata: [
       {
         label: 'Platform',
-        value: item.platform === 'meta' ? 'Meta' : 'Google',
+        value: platformLabel,
       },
       {
         label: 'Source',

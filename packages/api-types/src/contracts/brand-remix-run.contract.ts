@@ -223,6 +223,7 @@ export const brandRemixReadinessIssueCodeValues = [
   'missing_required_reference',
   'source_media_unavailable',
   'unsupported_reference_role',
+  'unsupported_fidelity',
   'unsupported_output',
   'unsupported_aspect_ratio',
   'unsupported_duration',

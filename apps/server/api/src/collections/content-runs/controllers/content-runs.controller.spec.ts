@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -20,6 +21,14 @@ describe('ContentRunsController', () => {
   };
   const mockRecommendationsService = {
     analyzeRun: vi.fn(),
+  };
+  const mockBrandRemixRunsService = {
+    create: vi.fn(),
+    get: vi.fn(),
+    preparePausedMetaDraft: vi.fn(),
+    revise: vi.fn(),
+    start: vi.fn(),
+    submitForReview: vi.fn(),
   };
 
   const mockReq = { headers: {}, url: '/' } as unknown as Request;
@@ -43,6 +52,10 @@ describe('ContentRunsController', () => {
         {
           provide: ContentRunRecommendationsService,
           useValue: mockRecommendationsService,
+        },
+        {
+          provide: BrandRemixRunsService,
+          useValue: mockBrandRemixRunsService,
         },
       ],
     })
@@ -205,6 +218,59 @@ describe('ContentRunsController', () => {
         'org-1',
         'brand-1',
         body,
+      );
+    });
+  });
+
+  describe('brand remix runs', () => {
+    it('creates a server-prefilled remix scoped to the route brand', async () => {
+      const body = {
+        source: { kind: 'source_post', sourcePostId: 'source-post-1' },
+      };
+      mockBrandRemixRunsService.create.mockResolvedValue({ id: 'run-1' });
+
+      await controller.createBrandRemixRun(mockReq, 'brand-1', mockUser, body);
+
+      expect(mockBrandRemixRunsService.create).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        body,
+      );
+    });
+
+    it('starts generation with the authenticated user and request context', async () => {
+      mockBrandRemixRunsService.start.mockResolvedValue({ id: 'run-1' });
+
+      await controller.startBrandRemixRun(mockReq, 'run-1', mockUser, {
+        expectedRevision: 1,
+      });
+
+      expect(mockBrandRemixRunsService.start).toHaveBeenCalledWith(
+        'org-1',
+        'run-1',
+        mockUser,
+        mockReq,
+        { expectedRevision: 1 },
+      );
+    });
+
+    it('hands selected variants to Review using the canonical user id', async () => {
+      mockBrandRemixRunsService.submitForReview.mockResolvedValue({
+        id: 'run-1',
+      });
+
+      await controller.submitBrandRemixRunForReview(
+        mockReq,
+        'run-1',
+        mockUser,
+        { variantIds: ['variant-1'] },
+      );
+
+      expect(mockBrandRemixRunsService.submitForReview).toHaveBeenCalledWith(
+        'org-1',
+        'run-1',
+        'user-1',
+        { variantIds: ['variant-1'] },
       );
     });
   });

@@ -20,6 +20,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
@@ -109,6 +110,7 @@ export class ImageGenerationService {
     user: User,
     createImageDto: CreateImageDto,
     request: Request,
+    onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
   ): Promise<JsonApiSingleResponse> {
     const { brand, model, modelEndpoint, modelProvider, promptOriginalText } =
       await this.resolveAndValidate(user, createImageDto, request);
@@ -207,6 +209,15 @@ export class ImageGenerationService {
       width,
       abortSignal: createRequestAbortSignal(request),
     };
+
+    try {
+      await onPlaceholderCreated?.(ingredientData.id.toString());
+    } catch (error: unknown) {
+      return this.imageGenerationProviderDispatchService.failPlaceholderBeforeDispatch(
+        context,
+        error,
+      );
+    }
 
     // Create activity + websocket update for image generation start
     await this.imageGenerationProviderDispatchService.createPlaceholderActivity(
