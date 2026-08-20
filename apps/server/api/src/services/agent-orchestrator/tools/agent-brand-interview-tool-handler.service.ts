@@ -56,7 +56,7 @@ export class AgentBrandInterviewToolHandler {
               id: `brand-interview-complete-${brandId}`,
               title: 'Brand Context Complete',
               type: 'brand_interview_complete_card',
-            } as never,
+            },
           ]
         : [];
 
@@ -117,7 +117,7 @@ export class AgentBrandInterviewToolHandler {
             id: `brand-interview-complete-${result.interviewId}`,
             title: 'Brand Context Complete',
             type: 'brand_interview_complete_card',
-          } as never,
+          },
         ]
       : [];
 

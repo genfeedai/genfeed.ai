@@ -8,7 +8,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
-import type { FormEvent, RefObject } from 'react';
+import type { RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   type DefaultValues,
@@ -41,7 +41,7 @@ export interface CrudModalReturn<Schema extends FieldValues> {
   formRef: RefObject<HTMLFormElement | null>;
   isSubmitting: boolean;
 
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  onSubmit: (e: { preventDefault: () => void }) => void;
   closeModal: (isSuccess?: boolean) => void;
   handleDelete?: () => Promise<void>;
 }

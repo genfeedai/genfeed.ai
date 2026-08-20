@@ -76,8 +76,9 @@ export class StripeService {
       this.configService.get('STRIPE_SECRET_KEY')!,
       {
         apiVersion:
-          (this.configService.get('STRIPE_API_VERSION') as never) ??
-          '2026-03-25.dahlia',
+          (this.configService.get('STRIPE_API_VERSION') as
+            | StripeConstructor.LatestApiVersion
+            | undefined) ?? '2026-03-25.dahlia',
       },
     );
   }

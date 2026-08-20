@@ -1,4 +1,4 @@
-import { getDeserializer } from '@genfeedai/helpers';
+import { getDeserializer, type JsonApiDocument } from '@genfeedai/helpers';
 import {
   type ArgumentMetadata,
   BadRequestException,
@@ -75,7 +75,7 @@ export class ValidationPipe implements PipeTransform<unknown> {
       // Deserialize the JSON API data
       let deserializedValue = value;
       try {
-        deserializedValue = getDeserializer(value as never);
+        deserializedValue = getDeserializer(value as JsonApiDocument);
       } catch {
         deserializedValue = value;
       }

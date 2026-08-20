@@ -38,6 +38,10 @@ type EditorPreviewPlayerProps = Omit<
   ref?: Ref<PlayerRef>;
 };
 
+const EditorPreviewPlayer = Player as unknown as ComponentType<
+  EditorPreviewPlayerProps & { ref?: Ref<PlayerRef> }
+>;
+
 function RemotionPlayer({
   component,
   inputProps,
@@ -45,11 +49,11 @@ function RemotionPlayer({
   ...props
 }: EditorPreviewPlayerProps) {
   return (
-    <Player
+    <EditorPreviewPlayer
       ref={ref}
       {...props}
-      component={component as never}
-      inputProps={inputProps as never}
+      component={component}
+      inputProps={inputProps}
     />
   );
 }

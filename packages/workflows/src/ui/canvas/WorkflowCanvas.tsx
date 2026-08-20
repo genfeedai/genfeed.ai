@@ -10,6 +10,7 @@ import {
   MiniMap,
   type Node,
   type NodeTypes,
+  type OnConnectEnd,
   ReactFlow,
   SelectionMode,
   useReactFlow,
@@ -545,12 +546,9 @@ function useWorkflowCanvasHandlers({
     setDraggingNodeId(null);
   }, [setDraggingNodeId]);
 
-  const handleConnectEnd = useCallback(
-    (event: MouseEvent | TouchEvent, connectionState: unknown) => {
-      const state = connectionState as {
-        fromHandle?: { id?: string | null } | null;
-        fromNode?: { id: string } | null;
-      };
+  const handleConnectEnd = useCallback<OnConnectEnd>(
+    (event, connectionState) => {
+      const state = connectionState;
       const sourceNodeId = state.fromNode?.id;
       const sourceHandleId = state.fromHandle?.id;
       if (!sourceNodeId || !sourceHandleId) return;
@@ -802,7 +800,7 @@ export function WorkflowCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onConnectEnd={handleConnectEnd as never}
+        onConnectEnd={handleConnectEnd}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         onSelectionChange={handleSelectionChange}

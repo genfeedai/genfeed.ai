@@ -305,7 +305,7 @@ export function useStoryboardWorkspace() {
                 references: frame.imageId ? [frame.imageId] : [],
                 text: frame.prompt,
                 useTemplate: true,
-              } as never,
+              },
               controller.signal,
             );
 

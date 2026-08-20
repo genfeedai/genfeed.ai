@@ -16,6 +16,7 @@ import type {
 import type { ModalReplyBotProps } from '@genfeedai/props/modals/modal.props';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { type ChangeEvent, useEffect } from 'react';
+import type { FieldPath, FieldPathValue } from 'react-hook-form';
 
 const DEFAULT_ACTIVE_DAYS = [
   'monday',
@@ -168,7 +169,7 @@ export function useModalReplyBot({
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
-        onSubmit(e as never);
+        onSubmit(e);
       }
     }
   };
@@ -177,7 +178,14 @@ export function useModalReplyBot({
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
-    form.setValue(name as never, value as never, { shouldValidate: true });
+    form.setValue(
+      name as FieldPath<ReplyBotConfigSchema>,
+      value as FieldPathValue<
+        ReplyBotConfigSchema,
+        FieldPath<ReplyBotConfigSchema>
+      >,
+      { shouldValidate: true },
+    );
   };
 
   const handleRateLimitChange = (field: string, value: number) => {

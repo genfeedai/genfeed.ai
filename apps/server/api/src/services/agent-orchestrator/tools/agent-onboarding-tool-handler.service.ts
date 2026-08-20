@@ -238,7 +238,7 @@ export class AgentOnboardingToolHandler {
       slug,
       text: (params.niche as string) || undefined,
       userId: ctx.userId,
-    } as never);
+    });
     const createdSlug =
       typeof brand.slug === 'string' && brand.slug.trim()
         ? brand.slug.trim()

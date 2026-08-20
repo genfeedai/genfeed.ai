@@ -36,7 +36,9 @@ export type AgentUiActionType =
   | 'workflow_created_card'
   | 'bot_created_card'
   | 'next_steps_card'
-  | 'livestream_bot_status_card';
+  | 'livestream_bot_status_card'
+  | 'brand_interview_offer_card'
+  | 'brand_interview_complete_card';
 
 export interface AgentUiActionBase {
   id: string;
