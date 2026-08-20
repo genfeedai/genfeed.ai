@@ -1,6 +1,6 @@
 ---
 name: nestjs-expert
-description: Design, implement, or review NestJS modules, controllers, services, guards, DTOs, and Prisma-backed API behavior in Genfeed.ai.
+description: Use when designing, implementing, or reviewing NestJS modules, controllers, services, guards, DTOs, and Prisma-backed API behavior in Genfeed.ai.
 ---
 
 # NestJS Expert

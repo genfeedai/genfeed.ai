@@ -13,8 +13,8 @@ on purpose: they are how this repository is built and are presented in the READM
 ## Trade-off
 
 Transparency and agent-contributor onboarding win over the risk that internal notes leak. The
-cost is discipline: strategy, credentials, customer detail, and private operations never
-enter `.agents/` (they live outside this public repository), and internal
+cost is discipline: strategy, credentials, customer detail, and console-side operations never
+enter `.agents/` (they live in private `genfeedai/vault` / `console.genfeed.ai`), and internal
 automation labels (`shipcode:*`) are described as internal rather than removed.
 
 ## Guardrail
