@@ -1,14 +1,7 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
-import AgentWizardPage from './AgentWizardPage';
+import { APP_ROUTES } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('New Agent');
-
-export default function AutomateWizardRoute() {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <AgentWizardPage />
-    </Suspense>
-  );
+/** Legacy `/automate/new` → nested `/automate/agents/new`. */
+export default function AutomateNewAgentLegacyRoute() {
+  permanentRedirect(APP_ROUTES.AUTOMATE.NEW);
 }

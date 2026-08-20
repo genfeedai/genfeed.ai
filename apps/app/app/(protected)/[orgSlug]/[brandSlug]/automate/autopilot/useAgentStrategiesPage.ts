@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -171,9 +172,9 @@ export function useAgentStrategiesPage() {
 
   const handleRowClick = useCallback(
     (strategy: AgentStrategy) => {
-      push(`/automate/${strategy.id}`);
+      push(href(`${APP_ROUTES.AUTOMATE.AGENTS}/${strategy.id}`));
     },
-    [push],
+    [href, push],
   );
 
   return {

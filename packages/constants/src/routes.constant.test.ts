@@ -59,6 +59,12 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.AUTOMATE.AUTOPILOT).toBe('/automate/autopilot');
   });
 
+  it('nests agent detail under the agents list', () => {
+    expect(APP_ROUTES.AUTOMATE.AGENTS).toBe('/automate/agents');
+    expect(APP_ROUTES.AUTOMATE.NEW).toBe('/automate/agents/new');
+    expect(APP_ROUTES.AUTOMATE.LIBRARY).toBe('/automate/library');
+  });
+
   it('keeps the retired cron-jobs lab path compatibility-only', () => {
     expect(LEGACY_APP_ROUTES.LAB_CRON_JOBS).toBe('/lab/cron-jobs');
     expect(APP_ROUTES.AUTOMATE.WORKFLOWS).toBe('/automate/workflows');

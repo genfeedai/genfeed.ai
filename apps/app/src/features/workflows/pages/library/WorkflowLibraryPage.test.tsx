@@ -25,6 +25,8 @@ vi.mock('next-intl', () => ({
       'library.local': 'local',
       'library.newWorkflow': 'New Workflow',
       'library.nextRun': 'Next run',
+      'library.paused': 'Paused',
+      'library.platformManaged': 'Platform-managed',
       'library.searchPlaceholder': 'Search workflows...',
       'library.synced': 'synced',
       'library.system': 'System',
@@ -156,7 +158,11 @@ vi.mock('@/features/workflows/services/workflow-api', () => ({
 }));
 
 vi.mock('@/features/workflows/utils/status-helpers', () => ({
+  formatLifecycleLabel: (lifecycle: string) =>
+    lifecycle.charAt(0).toUpperCase() + lifecycle.slice(1),
   getLifecycleBadgeClass: () => 'lifecycle-badge',
+  isNonDefaultWorkflowLifecycle: (lifecycle: string) =>
+    lifecycle === 'published' || lifecycle === 'archived',
 }));
 
 vi.mock('./EmptyWorkflowState', () => ({
@@ -268,5 +274,25 @@ describe('WorkflowLibraryPage card semantics', () => {
     render(<WorkflowLibraryPage />);
 
     expect(screen.getByText('System')).toHaveClass('bg-info/10', 'text-info');
+  });
+
+  it('labels published lifecycle and keeps the pause switch off the cramped header', () => {
+    render(<WorkflowLibraryPage />);
+
+    expect(screen.getByText('Published')).toHaveClass('lifecycle-badge');
+    expect(screen.queryByText('published')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('switch', {
+        name: 'Disable schedule for Scheduled workflow',
+      }),
+    ).toBeVisible();
+  });
+
+  it('explains why system workflows cannot be paused', () => {
+    mocks.isSystemWorkflow = true;
+    render(<WorkflowLibraryPage />);
+
+    expect(screen.getByText('Platform-managed')).toBeVisible();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
 });

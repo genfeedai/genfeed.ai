@@ -43,7 +43,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
   it.each([
     ['Autopilot', '/automate/autopilot'],
     ['Configuration', '/automate/configuration'],
-    ['Team', '/automate/library'],
+    ['Team', '/automate/agents'],
     ['Hire', '/automate/hire'],
     ['Programs', '/automate/campaigns'],
     ['Launch team', '/automate/orchestrator'],
@@ -123,7 +123,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     '/automate/content-runs',
     '/automate/hire',
     '/automate/orchestrator',
-    '/automate/new',
+    '/automate/agents/new',
     '/automate/workflows/templates',
     '/automate/workflows/new',
     '/automate/autopilot',
@@ -166,7 +166,12 @@ describe('AUTOMATE_MENU_ITEMS', () => {
       expect.arrayContaining(['/automate/hire', '/automate/orchestrator']),
     );
     expect(team?.matchPaths).toEqual(
-      expect.arrayContaining(['/automate/library', '/automate/new']),
+      expect.arrayContaining([
+        '/automate/agents',
+        '/automate/agents/new',
+        '/automate/library',
+        '/automate/new',
+      ]),
     );
   });
 });

@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   serviceRemove: vi.fn(),
   serviceUpdateSchedule: vi.fn(),
   getService: vi.fn(),
+  notificationsError: vi.fn(),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -43,6 +44,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: mocks.notificationsError,
+      success: vi.fn(),
+    }),
+  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -167,6 +177,7 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     // Should revert to the original isScheduleEnabled value (false)
     const wf = result.current.workflows.find((w) => w.id === 'wf-1');
     expect(wf?.isScheduleEnabled).toBe(false);
+    expect(mocks.notificationsError).toHaveBeenCalledWith('network error');
   });
 
   it('does nothing when toggling a workflow with no schedule', async () => {

@@ -84,3 +84,25 @@ export function getLifecycleBadgeClass(
       return 'border border-warning/20 bg-warning/10 text-warning';
   }
 }
+
+export function formatLifecycleLabel(
+  lifecycle: WorkflowLifecycleContract | undefined,
+): string {
+  switch (lifecycle) {
+    case WorkflowLifecycle.PUBLISHED:
+      return 'Published';
+    case WorkflowLifecycle.ARCHIVED:
+      return 'Archived';
+    default:
+      return 'Draft';
+  }
+}
+
+export function isNonDefaultWorkflowLifecycle(
+  lifecycle: WorkflowLifecycleContract | undefined,
+): boolean {
+  return (
+    lifecycle === WorkflowLifecycle.PUBLISHED ||
+    lifecycle === WorkflowLifecycle.ARCHIVED
+  );
+}

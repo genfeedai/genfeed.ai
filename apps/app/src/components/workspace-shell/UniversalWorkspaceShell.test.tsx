@@ -1544,6 +1544,7 @@ describe('UniversalWorkspaceShell', () => {
     ['/acme/moonrise/automate/runs'],
     ['/acme/moonrise/automate/skills'],
     ['/acme/moonrise/automate/library'],
+    ['/acme/moonrise/automate/agents'],
   ])('keeps the generic inspector on %s', (pathname) => {
     navigation.pathname = pathname;
     navigation.searchParams = new URLSearchParams();

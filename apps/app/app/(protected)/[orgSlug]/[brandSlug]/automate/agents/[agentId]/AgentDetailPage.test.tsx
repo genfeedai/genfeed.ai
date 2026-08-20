@@ -92,7 +92,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
-  usePathname: () => '/org-one/brand-one/automate/strategy-1',
+  usePathname: () => '/org-one/brand-one/automate/agents/strategy-1',
   useRouter: () => ({ push: vi.fn() }),
   useSearchParams: () => ({
     get: (key: string) => (key === 'opportunity' ? 'opp-1' : null),
@@ -101,7 +101,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
-    '../../../../../../tests/next-intl.stub'
+    '../../../../../../../tests/next-intl.stub'
   );
 
   return { useTranslations: translateFromCatalog };

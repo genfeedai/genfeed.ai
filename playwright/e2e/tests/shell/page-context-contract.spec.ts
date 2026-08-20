@@ -51,7 +51,7 @@ const CONTRACTS: PageContextContract[] = [
     pageLabels: ['Not posted', 'New content'],
   },
   {
-    route: `${BRAND_BASE}/automate/library`,
+    route: `${BRAND_BASE}/automate/agents`,
     currentApp: 'automate',
     sectionLabel: 'Automate',
   },
