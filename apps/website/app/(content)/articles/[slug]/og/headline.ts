@@ -19,15 +19,17 @@ export const HEADLINE_CAP = 150;
  * headline to just an ellipsis.
  */
 export function truncateHeadline(value: string, cap = HEADLINE_CAP): string {
-  if (value.length <= cap) {
+  const characters = Array.from(value);
+
+  if (characters.length <= cap) {
     return value;
   }
 
-  const clipped = value.slice(0, cap - 1);
+  const clipped = characters.slice(0, cap - 1);
   const lastSpace = clipped.lastIndexOf(' ');
   const cut = lastSpace > cap * 0.6 ? clipped.slice(0, lastSpace) : clipped;
 
-  return `${cut.trimEnd()}…`;
+  return `${cut.join('').trimEnd()}…`;
 }
 
 /**
@@ -37,15 +39,17 @@ export function truncateHeadline(value: string, cap = HEADLINE_CAP): string {
  * footer. Do not raise a step without re-rendering that band's maximum.
  */
 export function getHeadlineSize(headline: string): number {
-  if (headline.length > 96) {
+  const characterCount = Array.from(headline).length;
+
+  if (characterCount > 96) {
     return 58;
   }
 
-  if (headline.length > 72) {
+  if (characterCount > 72) {
     return 68;
   }
 
-  if (headline.length > 48) {
+  if (characterCount > 48) {
     return 78;
   }
 
