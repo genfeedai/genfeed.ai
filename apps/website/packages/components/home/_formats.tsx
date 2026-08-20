@@ -124,14 +124,14 @@ export default function HomeFormats(): React.ReactElement {
                   >
                     {format.title}
                   </Heading>
-                  <Text className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-surface/45">
+                  <Text className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-surface/55">
                     from {formatNumberWithCommas(format.credits)} credits
                   </Text>
                 </div>
                 <Text className="text-sm leading-6 text-surface/55">
                   {format.description}
                 </Text>
-                <Text className="mt-auto pt-2 text-xs text-surface/40">
+                <Text className="mt-auto pt-2 text-xs text-surface/55">
                   ≈ {formatCreditsPrice(format.credits)}
                   {format.priceSuffix ?? ''} at the pay-as-you-go rate
                 </Text>

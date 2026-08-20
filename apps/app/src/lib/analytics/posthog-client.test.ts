@@ -1,5 +1,5 @@
 import { GenerationType } from '@genfeedai/enums';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from './analytics-events';
 
 const mocks = vi.hoisted(() => ({
@@ -56,8 +56,17 @@ async function flushInit(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/** Run scheduled idle work synchronously, the way a fully idle browser would. */
+function stubImmediateIdleCallback(): void {
+  vi.stubGlobal('requestIdleCallback', (callback: () => void): number => {
+    callback();
+    return 1;
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  stubImmediateIdleCallback();
   mocks.posthogCapture.mockReset();
   mocks.isSaaS.mockReturnValue(true);
   mocks.posthogOnFeatureFlags.mockReturnValue(
@@ -66,6 +75,10 @@ beforeEach(() => {
   mocks.posthogGetGroups.mockReturnValue({});
   mocks.posthogGetProperty.mockReturnValue(undefined);
   vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_testkey');
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('isAnalyticsEnabled', () => {

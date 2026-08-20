@@ -120,6 +120,86 @@ function handleTrackedCtaClick(event: Event): void {
 }
 
 /**
+ * How long the browser may keep deferring the SDK before we load it anyway.
+ * Long enough to clear first paint and hydration on a slow phone, short enough
+ * that a visitor who leaves quickly is still counted.
+ */
+const ANALYTICS_IDLE_TIMEOUT_MS = 3000;
+
+/** Fallback delay for engines without `requestIdleCallback` (Safari). */
+const ANALYTICS_IDLE_FALLBACK_MS = 1500;
+
+interface IdleCapableWindow {
+  requestIdleCallback?: (
+    callback: () => void,
+    options?: { timeout: number },
+  ) => number;
+}
+
+/**
+ * Defer analytics bootstrap past the work the visitor is actually waiting on.
+ *
+ * `instrumentation-client` runs as part of the initial client bundle, so an
+ * eager `import('posthog-js')` puts the SDK request, its parse cost, and every
+ * follow-up ingestion call inside the dependency graph Lighthouse simulates for
+ * LCP. None of it is needed before the page is usable.
+ */
+function runWhenIdle(run: () => void): void {
+  const requestIdle = (window as Window & IdleCapableWindow)
+    .requestIdleCallback;
+
+  if (typeof requestIdle === 'function') {
+    requestIdle(run, { timeout: ANALYTICS_IDLE_TIMEOUT_MS });
+    return;
+  }
+
+  window.setTimeout(run, ANALYTICS_IDLE_FALLBACK_MS);
+}
+
+/** Pull in `posthog-js` and start it with the marketing configuration. */
+function loadWebsiteAnalyticsSdk(): void {
+  void import('posthog-js')
+    .then(({ default: posthog }) => {
+      posthog.init(POSTHOG_KEY as string, {
+        api_host: POSTHOG_HOST,
+        // Capture every semantic navigation/action control while avoiding
+        // form values and copied text. Explicit CTA events below add the
+        // stable conversion taxonomy on top of this journey-level signal.
+        autocapture: {
+          capture_copied_text: false,
+          dom_event_allowlist: ['click'],
+          element_allowlist: ['a', 'button'],
+        },
+        // Dead-click autocapture ships as a separate lazy bundle fetched from
+        // the PostHog asset CDN. It adds no signal we act on and its request
+        // sits on the marketing critical path — keep it off.
+        capture_dead_clicks: false,
+        // Web-vitals capture is redundant: field data already reaches us via
+        // CrUX/Lighthouse, and its lazy bundle is another CDN round trip.
+        capture_performance: false,
+        // Capture $pageview on the initial load AND every App Router
+        // (History API) navigation.
+        capture_pageview: 'history_change',
+        capture_pageleave: true,
+        cookieless_mode: 'always',
+        defaults: '2026-05-30',
+        // Replay is a non-goal on the marketing site.
+        disable_session_recording: true,
+        // Surveys are not used on the public site; skipping them avoids
+        // loading surveys.js and its bundled preact runtime.
+        disable_surveys: true,
+        // Public traffic is anonymous-only; never create person profiles.
+        person_profiles: 'never',
+      });
+      client = posthog;
+      flushPendingEvents();
+    })
+    .catch(() => {
+      // Best-effort: a failed SDK load must never surface as a site error.
+    });
+}
+
+/**
  * Initialise website analytics once per page load. Safe to call on every
  * boot: it no-ops on the server, when disabled, or when already started.
  * Never awaited — initialisation is best-effort.
@@ -138,35 +218,7 @@ export function initWebsiteAnalytics(): void {
     handleTrackedCtaClick,
   );
 
-  void import('posthog-js')
-    .then(({ default: posthog }) => {
-      posthog.init(POSTHOG_KEY as string, {
-        api_host: POSTHOG_HOST,
-        // Capture every semantic navigation/action control while avoiding
-        // form values and copied text. Explicit CTA events below add the
-        // stable conversion taxonomy on top of this journey-level signal.
-        autocapture: {
-          capture_copied_text: false,
-          dom_event_allowlist: ['click'],
-          element_allowlist: ['a', 'button'],
-        },
-        // Capture $pageview on the initial load AND every App Router
-        // (History API) navigation.
-        capture_pageview: 'history_change',
-        capture_pageleave: true,
-        cookieless_mode: 'always',
-        defaults: '2026-05-30',
-        // Replay is a non-goal on the marketing site.
-        disable_session_recording: true,
-        // Public traffic is anonymous-only; never create person profiles.
-        person_profiles: 'never',
-      });
-      client = posthog;
-      flushPendingEvents();
-    })
-    .catch(() => {
-      // Best-effort: a failed SDK load must never surface as a site error.
-    });
+  runWhenIdle(loadWebsiteAnalyticsSdk);
 }
 
 /** Test-only hook to reset module singleton state between cases. */

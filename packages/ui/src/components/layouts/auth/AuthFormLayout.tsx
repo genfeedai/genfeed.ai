@@ -24,7 +24,7 @@ export default function AuthFormLayout({
   // surfaces (oauth/cli, managed-credits success) that must not be boxed.
   if (logoSize === 'compact') {
     return (
-      <div className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground">
+      <main className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground">
         <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-border sm:p-10">
           {title ? (
             <div className="mb-8 flex items-center gap-5">
@@ -62,12 +62,12 @@ export default function AuthFormLayout({
 
           {children}
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center">
+    <main className="min-h-screen flex flex-col justify-center items-center">
       <div className="mb-4">
         {logoUrl && (
           <Image
@@ -82,6 +82,6 @@ export default function AuthFormLayout({
       </div>
 
       {children}
-    </div>
+    </main>
   );
 }

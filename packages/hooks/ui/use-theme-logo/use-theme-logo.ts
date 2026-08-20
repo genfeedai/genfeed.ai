@@ -2,7 +2,7 @@
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
-import { useMounted } from '@hooks/utils/use-mounted/use-mounted';
+import { useSyncExternalStore } from 'react';
 
 /**
  * The CDN object is the canonical brand mark. `apps/app/public/logo.svg` is a
@@ -16,16 +16,25 @@ import { useMounted } from '@hooks/utils/use-mounted/use-mounted';
 const DESKTOP_LOGO_URL = '/logo.svg';
 const WEB_LOGO_URL = cdnAsset('/assets/branding/logo.svg');
 
+const subscribeToClientSurface = () => () => {};
+const getLogoSnapshot = () =>
+  isDesktopClient() ? DESKTOP_LOGO_URL : WEB_LOGO_URL;
 /**
- * Custom hook to get the logo URL
- * Returns empty string until mounted (for SSR hydration)
+ * The desktop shell is only knowable after hydration, so the server snapshot is
+ * the web mark. Returning it (rather than an empty string) keeps the logo in the
+ * server HTML: on auth screens it is the first paint, and blanking it used to
+ * both delay paint and shift the heading once hydration filled the gap. React
+ * re-renders with the desktop path after hydration, with no mismatch.
+ */
+const getLogoServerSnapshot = () => WEB_LOGO_URL;
+
+/**
+ * Custom hook to get the logo URL for the current client surface.
  */
 export function useThemeLogo(): string {
-  const isMounted = useMounted();
-
-  if (!isMounted) {
-    return '';
-  }
-
-  return isDesktopClient() ? DESKTOP_LOGO_URL : WEB_LOGO_URL;
+  return useSyncExternalStore(
+    subscribeToClientSurface,
+    getLogoSnapshot,
+    getLogoServerSnapshot,
+  );
 }

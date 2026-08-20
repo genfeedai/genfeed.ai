@@ -147,10 +147,10 @@ export default function IntegrationsContent() {
                   >
                     {integration.name}
                   </Heading>
-                  <Text className="mb-6 flex-1 text-sm leading-relaxed text-surface/45">
+                  <Text className="mb-6 flex-1 text-sm leading-relaxed text-surface/55">
                     {integration.tagline}
                   </Text>
-                  <div className="flex flex-row items-center gap-1.5 text-xs font-medium text-surface/25 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
+                  <div className="flex flex-row items-center gap-1.5 text-xs font-medium text-surface/55 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
                     <Text>Explore</Text>
                     <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
                   </div>
