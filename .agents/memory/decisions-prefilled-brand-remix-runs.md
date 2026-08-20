@@ -19,9 +19,17 @@ Organic and paid sources use small source-kind adapters that resolve canonical d
 
 Navigation carries only a stable draft/run identity or stable typed selector. Full prompts, metrics, brand context, signed media URLs, and authorization claims never live in query strings or client state as source of truth. The server re-resolves scoped identities before dispatch. Existing workflow/generation/artifact persistence is extended where necessary; a standalone `Remix` persistence model is not introduced unless implementation proves no canonical run boundary can represent the lifecycle.
 
+`ContentRun` is the durable aggregate for this first implementation. Its versioned config stores the source snapshot, editable recipe revision, readiness, execution summary, review handoff, and paid-draft projection. Existing `Ingredient`, `ContentRunVariant`, `Batch`, `Post`, workflow, and performance records remain authoritative for generated assets and downstream state.
+
+The public contract uses a closed, versioned source-selector union for the supported sources. A dynamic adapter registry is deferred until additional source kinds demonstrate that the extra extension mechanism is necessary.
+
 ## Decision: Remix is an editable action card, not another destination
 
 Eligible Discover and Ads items open a compact Remix card or inspector panel in the current work surface. It exposes the inferred pattern, output kind, platform preset, count, fidelity, and selected brand assets. Confirming it opens or focuses the corresponding Studio run. This preserves context while keeping Studio the canonical media-generation workspace.
+
+Discover mounts one shared Remix inspector provider. Source cards feed typed selectors into that inspector; confirming a prefill persists the editable run and navigates only to `/studio/generate?run=<id>`. The workflow does not add another Remix page and does not serialize the brief into the URL.
+
+Run operations are explicit only at genuine human pauses: prepare or revise the editable run, start generation, submit usable variants for review, and prepare an approved paid variant as a paused campaign draft.
 
 ## Decision: explicit references outrank defaults
 

@@ -1,0 +1,197 @@
+import {
+  brandRemixRunViewSchema,
+  createBrandRemixRunSchema,
+  reviseBrandRemixRunSchema,
+} from '@api-types/contracts/brand-remix-run.contract';
+import { describe, expect, test } from 'vitest';
+
+const imageBrief = {
+  fidelityMode: 'guided',
+  intent: {
+    objective: 'Create an original product-led TikTok visual.',
+    subjects: ['Reusable bottle'],
+    visualDirection: 'Fast, tactile, creator-shot reveal',
+  },
+  mediaKind: 'image',
+  output: { aspectRatio: '9:16' },
+  provenance: [
+    { field: 'intent.objective', source: 'performance' },
+    { field: 'intent.visualDirection', source: 'brand' },
+  ],
+  references: [{ assetId: 'ingredient_product_1', role: 'product' }],
+  version: 1,
+} as const;
+
+describe('brand remix run contract', () => {
+  test('accepts a versioned TikTok trend run with durable semantic references', () => {
+    const run = brandRemixRunViewSchema.parse({
+      brand: {
+        contextMode: 'brand',
+        id: 'brand_1',
+        name: 'Acme',
+      },
+      brandId: 'brand_1',
+      createdAt: '2026-08-20T10:00:00.000Z',
+      draft: {
+        fidelityMode: 'guided',
+        identity: {},
+        intent: {
+          hook: 'Reveal the unexpected use before naming the product.',
+          objective: 'Create an original product-led TikTok visual.',
+          pacing: 'Fast opening, proof, then CTA.',
+        },
+        output: {
+          aspectRatio: '9:16',
+          count: 3,
+          kind: 'image',
+        },
+        references: [
+          {
+            assetId: 'ingredient_product_1',
+            role: 'product',
+            source: 'explicit',
+          },
+        ],
+        reviewRequired: true,
+        target: { kind: 'organic', platform: 'tiktok' },
+      },
+      execution: {
+        actualCount: 0,
+        generationBrief: imageBrief,
+        requestedCount: 3,
+        variants: [],
+      },
+      id: 'run_1',
+      phase: 'prefilled',
+      readiness: { issues: [], state: 'ready' },
+      recipeVersion: 1,
+      revision: 1,
+      source: {
+        capturedAt: '2026-08-20T09:55:00.000Z',
+        evidence: ['High completion rate'],
+        metrics: { engagementRate: 0.08, views: 12_000 },
+        pattern: {
+          hook: 'Reveal the unexpected use before naming the product.',
+          pacing: 'Fast opening, proof, then CTA.',
+        },
+        platform: 'tiktok',
+        selector: {
+          kind: 'trend_reference',
+          sourceReferenceId: 'trend_ref_1',
+          trendId: 'trend_1',
+        },
+        sourceId: 'trend_ref_1',
+        title: 'Unexpected product use reveal',
+      },
+      status: 'PENDING',
+      updatedAt: '2026-08-20T10:00:00.000Z',
+    });
+
+    expect(run.source.selector.kind).toBe('trend_reference');
+    expect(run.draft.references[0]).toEqual({
+      assetId: 'ingredient_product_1',
+      role: 'product',
+      source: 'explicit',
+    });
+    expect(JSON.stringify(run.draft.references)).not.toMatch(/https?:\/\//);
+  });
+
+  test('accepts connected Meta and public-ad source selectors without copied creative', () => {
+    expect(
+      createBrandRemixRunSchema.parse({
+        source: {
+          adAccountId: 'act_123',
+          adId: 'ad_456',
+          credentialId: 'credential_1',
+          kind: 'connected_ad',
+          platform: 'meta',
+        },
+      }).source,
+    ).toEqual({
+      adAccountId: 'act_123',
+      adId: 'ad_456',
+      credentialId: 'credential_1',
+      kind: 'connected_ad',
+      platform: 'meta',
+    });
+
+    expect(
+      createBrandRemixRunSchema.parse({
+        source: {
+          adPerformanceId: 'ad_performance_1',
+          kind: 'public_ad',
+        },
+      }).source.kind,
+    ).toBe('public_ad');
+  });
+
+  test('rejects client-supplied source prose, metrics, URLs, and provider identities', () => {
+    const result = createBrandRemixRunSchema.safeParse({
+      source: {
+        caption: 'Copy this winning caption.',
+        kind: 'trend_reference',
+        metrics: { views: 999_999 },
+        sourceReferenceId: 'trend_ref_1',
+        sourceUrl: 'https://untrusted.example/source',
+        trendId: 'trend_1',
+      },
+    });
+
+    expect(result.success).toBe(false);
+
+    expect(
+      reviseBrandRemixRunSchema.safeParse({
+        edits: {
+          identity: {
+            avatarUrl: 'https://signed.example/avatar?token=secret',
+            providerVoiceId: 'external-voice-id',
+          },
+        },
+        expectedRevision: 1,
+      }).success,
+    ).toBe(false);
+  });
+
+  test('bounds output counts and requires paired avatar identity', () => {
+    const base = {
+      edits: {
+        output: {
+          aspectRatio: '9:16',
+          count: 3,
+          kind: 'avatar',
+        },
+      },
+      expectedRevision: 1,
+    };
+
+    expect(
+      reviseBrandRemixRunSchema.safeParse({
+        ...base,
+        edits: {
+          ...base.edits,
+          identity: {
+            avatarAssetId: 'avatar_1',
+            speechVoiceId: 'voice_1',
+          },
+        },
+      }).success,
+    ).toBe(true);
+
+    expect(
+      reviseBrandRemixRunSchema.safeParse({
+        ...base,
+        edits: {
+          ...base.edits,
+          identity: { avatarAssetId: 'avatar_1' },
+        },
+      }).success,
+    ).toBe(false);
+
+    expect(
+      reviseBrandRemixRunSchema.safeParse({
+        edits: { output: { count: 9 } },
+        expectedRevision: 1,
+      }).success,
+    ).toBe(false);
+  });
+});
