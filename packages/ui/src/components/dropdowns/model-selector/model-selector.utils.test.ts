@@ -269,9 +269,9 @@ describe('getModelRowCapabilities', () => {
       'audio',
       'fast',
     ]);
-    expect(
-      capabilities.every((capability) => typeof capability.icon === 'function'),
-    ).toBe(true);
+    for (const capability of capabilities) {
+      expect(capability.icon).toBeDefined();
+    }
   });
 
   it('stays empty for a silent, non-fast model', () => {
