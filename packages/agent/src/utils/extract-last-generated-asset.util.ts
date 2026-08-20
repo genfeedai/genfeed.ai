@@ -71,6 +71,15 @@ function lastUrl(values: unknown): string | null {
   return urls.at(-1) ?? null;
 }
 
+function parseEpochTime(timestamp?: string): number | null {
+  if (!timestamp) {
+    return null;
+  }
+
+  const epochTime = Date.parse(timestamp);
+  return Number.isNaN(epochTime) ? null : epochTime;
+}
+
 function extractFromIngredient(value: unknown): LastGeneratedAsset | null {
   const ingredient = asRecord(value);
   if (!ingredient) {
@@ -193,11 +202,14 @@ export function resolveLastGeneratedAsset(input: {
     : null;
 
   if (fromMetadata && fromIngredient) {
-    if (!input.metadataCreatedAt || !input.ingredient?.createdAt) {
+    const metadataEpochTime = parseEpochTime(input.metadataCreatedAt);
+    const ingredientEpochTime = parseEpochTime(input.ingredient?.createdAt);
+
+    if (metadataEpochTime === null || ingredientEpochTime === null) {
       return fromMetadata;
     }
 
-    return input.metadataCreatedAt >= input.ingredient.createdAt
+    return metadataEpochTime >= ingredientEpochTime
       ? fromMetadata
       : fromIngredient;
   }

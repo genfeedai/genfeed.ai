@@ -156,4 +156,91 @@ describe('resolveLastGeneratedAsset', () => {
       url: 'https://cdn.test/later.png',
     });
   });
+
+  it('normalizes timezone offsets before choosing the latest asset', () => {
+    expect(
+      resolveLastGeneratedAsset({
+        ingredient: {
+          createdAt: '2026-08-02T04:45:00.000Z',
+          kind: 'image',
+          url: 'https://cdn.test/ingredient.png',
+        },
+        metadata: {
+          mediaUrl: 'https://cdn.test/metadata.png',
+        },
+        metadataCreatedAt: '2026-08-02T00:30:00.000-05:00',
+      }),
+    ).toEqual({
+      kind: 'image',
+      url: 'https://cdn.test/metadata.png',
+    });
+  });
+
+  it('treats equivalent fractional timestamp precision as the same instant', () => {
+    expect(
+      resolveLastGeneratedAsset({
+        ingredient: {
+          createdAt: '2026-08-02T10:00:00.1Z',
+          kind: 'image',
+          url: 'https://cdn.test/ingredient.png',
+        },
+        metadata: {
+          mediaUrl: 'https://cdn.test/metadata.png',
+        },
+        metadataCreatedAt: '2026-08-02T10:00:00.10Z',
+      }),
+    ).toEqual({
+      kind: 'image',
+      url: 'https://cdn.test/metadata.png',
+    });
+  });
+
+  it.each([
+    {
+      ingredientCreatedAt: 'invalid-ingredient-date',
+      metadataCreatedAt: '2026-08-02T10:00:00.000Z',
+    },
+    {
+      ingredientCreatedAt: '2026-08-02T10:00:00.000Z',
+      metadataCreatedAt: 'invalid-metadata-date',
+    },
+  ])(
+    'keeps the metadata fallback when a candidate timestamp is invalid',
+    ({ ingredientCreatedAt, metadataCreatedAt }) => {
+      expect(
+        resolveLastGeneratedAsset({
+          ingredient: {
+            createdAt: ingredientCreatedAt,
+            kind: 'image',
+            url: 'https://cdn.test/ingredient.png',
+          },
+          metadata: {
+            mediaUrl: 'https://cdn.test/metadata.png',
+          },
+          metadataCreatedAt,
+        }),
+      ).toEqual({
+        kind: 'image',
+        url: 'https://cdn.test/metadata.png',
+      });
+    },
+  );
+
+  it('keeps the metadata fallback when a candidate timestamp is missing', () => {
+    expect(
+      resolveLastGeneratedAsset({
+        ingredient: {
+          createdAt: '2026-08-02T10:00:00.000Z',
+          kind: 'image',
+          url: 'https://cdn.test/ingredient.png',
+        },
+        metadata: {
+          mediaUrl: 'https://cdn.test/metadata.png',
+        },
+      }),
+    ).toEqual({
+      kind: 'image',
+      url: 'https://cdn.test/metadata.png',
+    });
+  });
 });
