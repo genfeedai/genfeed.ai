@@ -518,9 +518,35 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(result.status).toBe('completed');
       expect(result.error).toBeUndefined();
-      expect(result.nodeResults.get('PyHRz6uB')?.output).toBe(
-        'Write a FUD News brief',
+      expect(result.nodeResults.get('PyHRz6uB')?.output).toEqual({
+        prompt: 'Write a FUD News brief',
+        text: 'Write a FUD News brief',
+      });
+    });
+
+    it('keeps a 1-node prompt on the graph after applyRuntimeInputValues', () => {
+      const workflowDoc = {
+        id: 'wf-prompt',
+        nodes: [
+          {
+            data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+            id: 'PyHRz6uB',
+            type: 'prompt',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+      const workflow = service.convertToExecutableWorkflow(workflowDoc);
+      const hydrated = service.applyRuntimeInputValues(
+        workflowDoc,
+        workflow,
+        {},
       );
+
+      expect(hydrated.nodes).toHaveLength(1);
+      expect(hydrated.nodes[0]?.id).toBe('PyHRz6uB');
+      expect(hydrated.nodes[0]?.config.prompt).toBe('Write a FUD News brief');
     });
 
     it('executes a prompt constructor from data.template', async () => {

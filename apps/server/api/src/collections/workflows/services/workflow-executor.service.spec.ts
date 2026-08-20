@@ -1,3 +1,4 @@
+import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
 import {
   EXECUTABLE_WORKFLOW_SELECT,
   WorkflowExecutorService,
@@ -8,6 +9,8 @@ import type {
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const converter = new WorkflowEngineConverterService();
 
 describe('WorkflowExecutorService', () => {
   const prisma = {
@@ -238,6 +241,122 @@ describe('WorkflowExecutorService', () => {
         resultId: 'execution-1',
         status: 'completed',
         taskId: 'execution-1',
+      }),
+    );
+  });
+
+  it('executes a 1-node prompt through the live Run path and records a node result', async () => {
+    const workflowDoc = {
+      config: {},
+      edges: [],
+      id: 'workflow-prompt',
+      inputVariables: [],
+      label: 'Curie prompt',
+      metadata: {},
+      nodes: [
+        {
+          data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+          id: 'PyHRz6uB',
+          type: 'prompt',
+        },
+      ],
+      organizationId: 'org-1',
+      steps: [],
+      userId: 'user-1',
+    };
+
+    prisma.workflow.findFirst.mockResolvedValue(workflowDoc);
+    prisma.workflow.update.mockResolvedValue({ id: 'workflow-prompt' });
+    engineAdapter.convertToExecutableWorkflow.mockImplementation((doc) =>
+      converter.convertToExecutableWorkflow(doc),
+    );
+    engineAdapter.applyRuntimeInputValues.mockImplementation(
+      (doc, workflow, values) =>
+        converter.applyRuntimeInputValues(doc, workflow, values),
+    );
+    executionsService.createExecution.mockResolvedValue({
+      id: 'execution-prompt',
+    });
+    executionsService.startExecution.mockResolvedValue({
+      id: 'execution-prompt',
+    });
+    executionsService.findOne.mockResolvedValue({
+      id: 'execution-prompt',
+      result: {},
+    });
+    executionsService.updateExecutionMetadata.mockResolvedValue({
+      id: 'execution-prompt',
+    });
+    executionsService.updateExecutionProgress.mockResolvedValue({
+      id: 'execution-prompt',
+      progress: 100,
+    });
+    executionsService.updateNodeResult.mockResolvedValue({
+      id: 'execution-prompt',
+      progress: 100,
+    });
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'execution-prompt',
+      metadata: {},
+    });
+
+    engineAdapter.executeWorkflow.mockImplementation(
+      async (workflow: ExecutableWorkflow) => {
+        const node = workflow.nodes.find((candidate) => !candidate.isLocked);
+        if (!node) {
+          return {
+            completedAt: new Date(),
+            nodeResults: new Map(),
+            runId: 'execution-prompt',
+            startedAt: new Date(),
+            status: 'completed' as const,
+            totalCreditsUsed: 0,
+            workflowId: workflow.id,
+          };
+        }
+
+        const nodeResult: NodeExecutionResult = {
+          completedAt: new Date(),
+          creditsUsed: 0,
+          nodeId: node.id,
+          output: String(node.config.prompt ?? ''),
+          retryCount: 0,
+          startedAt: new Date(),
+          status: 'completed',
+        };
+
+        return {
+          completedAt: new Date(),
+          nodeResults: new Map([[node.id, nodeResult]]),
+          runId: 'execution-prompt',
+          startedAt: new Date(),
+          status: 'completed' as const,
+          totalCreditsUsed: 0,
+          workflowId: workflow.id,
+        };
+      },
+    );
+
+    const result = await service.executeManualWorkflow(
+      'workflow-prompt',
+      'user-1',
+      'org-1',
+    );
+
+    expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
+    expect(result.nodeResults).toEqual([
+      expect.objectContaining({
+        nodeId: 'PyHRz6uB',
+        output: 'Write a FUD News brief',
+        status: WorkflowExecutionStatus.COMPLETED,
+      }),
+    ]);
+    expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(1);
+    expect(executionsService.updateNodeResult).toHaveBeenCalledWith(
+      'execution-prompt',
+      expect.objectContaining({
+        nodeId: 'PyHRz6uB',
+        nodeType: 'prompt',
       }),
     );
   });
