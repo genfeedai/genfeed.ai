@@ -182,6 +182,14 @@ export default async function RootLayout({
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <Head>
+        {/*
+          The navbar logo is a CSS background-image on cdn.genfeed.ai, so the
+          browser cannot discover that origin until it has parsed and applied
+          the stylesheet. No `crossOrigin` here on purpose: a background-image
+          is fetched without CORS, and an anonymous preconnect would warm a
+          different connection pool than the one the request actually uses.
+        */}
+        <link href="https://cdn.genfeed.ai" rel="preconnect" />
         <script
           id="genfeed-theme-storage-bootstrap"
           suppressHydrationWarning
