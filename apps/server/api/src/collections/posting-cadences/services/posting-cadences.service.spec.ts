@@ -62,17 +62,21 @@ function reservationRow(
 }
 
 function baseReservationRow() {
+  const generatedItemId: string | null = null;
+  const generatedItemType: CalendarSlotItemType | null = null;
+  const lastFailureReason: string | null = null;
+
   return {
     brandId: BRAND_ID,
     cadenceId: CADENCE_ID,
     credentialId: CREDENTIAL_ID,
     format: PostCategory.REEL,
-    generatedItemId: null,
-    generatedItemType: null,
+    generatedItemId,
+    generatedItemType,
     id: 'reservation-1',
     identityKey: IDENTITY_KEY,
     instant: new Date(INSTANT),
-    lastFailureReason: null,
+    lastFailureReason,
     state: 'generating',
     timezone: 'UTC',
   };
