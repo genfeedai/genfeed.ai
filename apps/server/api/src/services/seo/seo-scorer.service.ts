@@ -7,9 +7,9 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import {
@@ -52,7 +52,6 @@ export class SeoScorerService {
   private readonly defaultModel: string;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
     @Optional()
@@ -60,7 +59,7 @@ export class SeoScorerService {
     @Optional()
     private readonly openRouterService?: OpenRouterService,
   ) {
-    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
+    this.defaultModel = DEFAULT_AGENT_CHAT_MODEL_KEY;
   }
 
   /**

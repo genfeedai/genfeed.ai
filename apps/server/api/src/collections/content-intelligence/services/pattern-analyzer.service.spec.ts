@@ -10,10 +10,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
 
-const mockConfigService = {
-  get: vi.fn().mockReturnValue('x-ai/grok-4.5'),
-};
-
 const mockLogger = {
   error: vi.fn(),
   log: vi.fn(),
@@ -41,7 +37,6 @@ const mockPatternStoreService = {
 
 function makeService() {
   return new PatternAnalyzerService(
-    mockConfigService as any,
     mockLogger as any,
     mockOpenRouterService as any,
     mockContentIntelligenceService as any,
@@ -416,7 +411,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
         max_tokens: 1500,
-        model: 'x-ai/grok-4.5',
+        model: 'google/gemini-2.5-flash-lite',
         temperature: 0.3,
       }),
     );

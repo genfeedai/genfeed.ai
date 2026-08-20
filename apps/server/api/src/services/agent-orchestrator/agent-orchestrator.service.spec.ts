@@ -1935,7 +1935,7 @@ describe('AgentOrchestratorService', () => {
       assembledAt: new Date(),
       brandId: String(strategyBrandId),
       brandName: 'Brand',
-      defaultModel: 'x-ai/grok-4.5',
+      defaultModel: 'x-ai/grok-4.6',
       layersUsed: ['brandIdentity'],
     } as never);
 

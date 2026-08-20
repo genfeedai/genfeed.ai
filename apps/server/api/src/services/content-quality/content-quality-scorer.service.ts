@@ -6,8 +6,8 @@ import type {
   OpenRouterChatCompletionResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import { QualityStatus } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -80,7 +80,6 @@ export class ContentQualityScorerService {
   private readonly defaultModel: string;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly openRouterService: OpenRouterService,
     @Optional()
@@ -92,7 +91,7 @@ export class ContentQualityScorerService {
     @Optional()
     private readonly moduleRef?: ModuleRef,
   ) {
-    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
+    this.defaultModel = DEFAULT_AGENT_CHAT_MODEL_KEY;
   }
 
   private async resolveHarnessScoringContext(

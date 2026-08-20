@@ -144,8 +144,27 @@ describe('getAgentChatModelRoundCredits', () => {
   // model. Pin the direction so a brand-match cannot creep back in.
   it('retires a budget model onto a budget successor, not its premium sibling', () => {
     expect(getAgentChatModelRoundCredits('x-ai/grok-4-fast')).toBeLessThan(
-      getAgentChatModelRoundCredits(AGENT_CHAT_MODEL_KEYS.GROK_4_5),
+      getAgentChatModelRoundCredits(AGENT_CHAT_MODEL_KEYS.GROK_4_6),
     );
+  });
+
+  it('promotes retired Grok 4 / 4.5 bindings onto Grok 4.6', () => {
+    expect(resolveAgentChatModelKey('x-ai/grok-4')).toBe(
+      AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+    );
+    expect(resolveAgentChatModelKey('x-ai/grok-4.5')).toBe(
+      AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+    );
+    expect(
+      SELECTABLE_AGENT_CHAT_MODELS.some(
+        (model) => model.key === AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+      ),
+    ).toBe(true);
+    expect(
+      SELECTABLE_AGENT_CHAT_MODELS.some(
+        (model) => model.key === 'x-ai/grok-4.5',
+      ),
+    ).toBe(false);
   });
 });
 

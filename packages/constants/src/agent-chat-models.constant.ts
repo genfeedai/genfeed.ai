@@ -88,7 +88,7 @@ export const AGENT_CHAT_MODEL_KEYS = {
   GPT_5_6_LUNA: 'openai/gpt-5.6-luna',
   GPT_5_6_SOL: 'openai/gpt-5.6-sol',
   GPT_5_6_TERRA: 'openai/gpt-5.6-terra',
-  GROK_4_5: 'x-ai/grok-4.5',
+  GROK_4_6: 'x-ai/grok-4.6',
   KIMI_K3: 'moonshotai/kimi-k3',
   LOCAL_MISTRAL_SMALL: 'local/mistral-small',
   LOCAL_QWEN_32B: 'local/qwen-32b',
@@ -153,8 +153,8 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'x-ai',
     description: 'Real-time knowledge, fast responses',
     isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.GROK_4_5,
-    label: 'Grok 4.5',
+    key: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+    label: 'Grok 4.6',
     pricing: { completionPerMillion: 6, promptPerMillion: 2 },
   },
   {
@@ -264,7 +264,7 @@ export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY =
  * **A successor preserves price tier, not brand.** These are not aliases — a
  * retired key is a dead model, and the successor is whatever currently does its
  * job at its cost. Brand-matching is how `x-ai/grok-4-fast` ($0.20/$0.50) came
- * to point at Grok 4.5 ($2/$6): the only xAI row in the catalogue, so it looked
+ * to point at Grok 4.6 ($2/$6): the only xAI row in the catalogue, so it looked
  * right and silently moved every stale binding onto a 10x model. Cross-brand is
  * normal here — `openai/gpt-4o-mini` and `openai/o4-mini` both resolve to
  * Gemini 2.5 Flash Lite for the same reason.
@@ -287,7 +287,8 @@ export const RETIRED_AGENT_CHAT_MODELS: Record<string, AgentChatModelKey> = {
   'openai/o4-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
   'openrouter/auto': DEFAULT_AGENT_CHAT_MODEL_KEY,
   'openrouter/auto-beta': DEFAULT_AGENT_CHAT_MODEL_KEY,
-  'x-ai/grok-4': AGENT_CHAT_MODEL_KEYS.GROK_4_5,
+  'x-ai/grok-4': AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+  'x-ai/grok-4.5': AGENT_CHAT_MODEL_KEYS.GROK_4_6,
   'x-ai/grok-4-fast': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
 };
 
