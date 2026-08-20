@@ -6,7 +6,7 @@
  * credits, provider payloads, and downstream provenance.
  */
 
-import { ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
 import { z } from 'zod';
 import {
   generationBriefReferenceSchema,
@@ -186,6 +186,12 @@ export const brandRemixReferenceSchema = generationBriefReferenceSchema
   })
   .strict();
 
+export const brandRemixReferenceEditSchema = generationBriefReferenceSchema
+  .extend({
+    assetId: opaqueIdSchema,
+  })
+  .strict();
+
 const pairedBrandRemixIdentitySchema = z
   .object({
     avatarAssetId: opaqueIdSchema,
@@ -255,10 +261,23 @@ export const brandRemixOutputVariantSchema = z
   })
   .strict();
 
+const durableBrandRemixGenerationBriefSchema =
+  generationBriefSchema.superRefine((brief, context) => {
+    brief.references.forEach((reference, index) => {
+      if (!opaqueIdSchema.safeParse(reference.assetId).success) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Brand remix references must use durable asset IDs.',
+          path: ['references', index, 'assetId'],
+        });
+      }
+    });
+  });
+
 export const brandRemixExecutionSchema = z
   .object({
     actualCount: z.number().int().min(0).max(8),
-    generationBrief: generationBriefSchema,
+    generationBrief: durableBrandRemixGenerationBriefSchema,
     requestedCount: z.number().int().min(1).max(8),
     variants: z.array(brandRemixOutputVariantSchema).max(8),
   })
@@ -302,7 +321,8 @@ export const brandRemixRunConfigSchema = z
     recipeVersion: z.literal(BRAND_REMIX_RUN_VERSION),
     review: brandRemixReviewSchema.optional(),
     revision: z.number().int().positive(),
-    source: brandRemixSourceSnapshotSchema,
+    source: z.nativeEnum(ContentRunSource).optional(),
+    sourceSnapshot: brandRemixSourceSnapshotSchema,
     version: z.literal(BRAND_REMIX_RUN_VERSION),
   })
   .strict();
@@ -322,7 +342,8 @@ export const brandRemixRunViewSchema = z
     recipeVersion: z.literal(BRAND_REMIX_RUN_VERSION),
     review: brandRemixReviewSchema.optional(),
     revision: z.number().int().positive(),
-    source: brandRemixSourceSnapshotSchema,
+    source: z.nativeEnum(ContentRunSource).optional(),
+    sourceSnapshot: brandRemixSourceSnapshotSchema,
     status: z.nativeEnum(ContentRunStatus),
     updatedAt: z.string().datetime(),
     version: z.literal(BRAND_REMIX_RUN_VERSION),
@@ -355,7 +376,7 @@ export const brandRemixDraftEditsSchema = z
     identity: brandRemixIdentityPatchSchema.optional(),
     intent: brandRemixIntentPatchSchema.optional(),
     output: brandRemixOutputPatchSchema.optional(),
-    references: z.array(brandRemixReferenceSchema).max(20).optional(),
+    references: z.array(brandRemixReferenceEditSchema).max(20).optional(),
     target: brandRemixTargetSchema.optional(),
   })
   .strict()
@@ -409,6 +430,7 @@ export type BrandRemixSourceSnapshot = z.infer<
   typeof brandRemixSourceSnapshotSchema
 >;
 export type BrandRemixTarget = z.infer<typeof brandRemixTargetSchema>;
+export type BrandRemixReference = z.infer<typeof brandRemixReferenceSchema>;
 export type BrandRemixDraft = z.infer<typeof brandRemixDraftSchema>;
 export type BrandRemixDraftEdits = z.infer<typeof brandRemixDraftEditsSchema>;
 export type BrandRemixReadiness = z.infer<typeof brandRemixReadinessSchema>;

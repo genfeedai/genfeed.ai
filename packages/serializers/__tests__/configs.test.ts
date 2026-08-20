@@ -88,6 +88,7 @@ describe('Serializer Configurations', () => {
         sourceActionId: 'action-1',
         sourceWorkflowName: 'Clip Workflow',
         variantId: 'gen-123:1/3',
+        workflowExecutionId: 'workflow-execution-1',
       });
 
       expect(result.data.attributes).toHaveProperty('generation-id', 'gen-123');
@@ -115,6 +116,10 @@ describe('Serializer Configurations', () => {
       expect(result.data.attributes).toHaveProperty(
         'variant-id',
         'gen-123:1/3',
+      );
+      expect(result.data.attributes).toHaveProperty(
+        'workflow-execution-id',
+        'workflow-execution-1',
       );
     });
   });

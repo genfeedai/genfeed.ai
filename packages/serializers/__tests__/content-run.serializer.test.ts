@@ -28,7 +28,7 @@ describe('ContentRunSerializer brand remix projection', () => {
       recipeVersion: 1,
       review: undefined,
       revision: 1,
-      source: {
+      sourceSnapshot: {
         capturedAt: '2026-08-20T09:55:00.000Z',
         evidence: [],
         metrics: { views: 12_000 },
@@ -57,6 +57,7 @@ describe('ContentRunSerializer brand remix projection', () => {
         'recipeVersion',
         'review',
         'revision',
+        'sourceSnapshot',
         'version',
       ]),
     );
@@ -67,6 +68,10 @@ describe('ContentRunSerializer brand remix projection', () => {
       readiness: { issues: [], state: 'ready' },
       recipeVersion: 1,
       revision: 1,
+      sourceSnapshot: expect.objectContaining({
+        platform: 'tiktok',
+        sourceId: 'trend-ref-1',
+      }),
       version: 1,
     });
   });

@@ -27,4 +27,5 @@ export const contentRunAttributes = createEntityAttributes([
   'duration',
   'creditsUsed',
   'source',
+  'sourceSnapshot',
 ]);

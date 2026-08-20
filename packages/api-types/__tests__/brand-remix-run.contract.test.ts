@@ -1,4 +1,5 @@
 import {
+  brandRemixExecutionSchema,
   brandRemixRunViewSchema,
   createBrandRemixRunSchema,
   reviseBrandRemixRunSchema,
@@ -67,7 +68,7 @@ describe('brand remix run contract', () => {
       readiness: { issues: [], state: 'ready' },
       recipeVersion: 1,
       revision: 1,
-      source: {
+      sourceSnapshot: {
         capturedAt: '2026-08-20T09:55:00.000Z',
         evidence: ['High completion rate'],
         metrics: { engagementRate: 0.08, views: 12_000 },
@@ -89,7 +90,8 @@ describe('brand remix run contract', () => {
       version: 1,
     });
 
-    expect(run.source.selector.kind).toBe('trend_reference');
+    expect(run.source).toBeUndefined();
+    expect(run.sourceSnapshot.selector.kind).toBe('trend_reference');
     expect(run.draft.references[0]).toEqual({
       assetId: 'ingredient_product_1',
       role: 'product',
@@ -165,11 +167,59 @@ describe('brand remix run contract', () => {
             {
               assetId: 'https://signed.example/reference?token=secret',
               role: 'product',
-              source: 'explicit',
             },
           ],
         },
         expectedRevision: 1,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      reviseBrandRemixRunSchema.safeParse({
+        edits: {
+          references: [
+            {
+              assetId: 'ingredient_product_1',
+              role: 'product',
+              source: 'brand_default',
+            },
+          ],
+        },
+        expectedRevision: 1,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      reviseBrandRemixRunSchema.safeParse({
+        edits: {
+          references: [
+            {
+              assetId: 'ingredient_product_1',
+              description: 'Approved product packshot',
+              role: 'product',
+            },
+          ],
+        },
+        expectedRevision: 1,
+      }).success,
+    ).toBe(true);
+  });
+
+  test('rejects transient URLs from persisted execution briefs', () => {
+    expect(
+      brandRemixExecutionSchema.safeParse({
+        actualCount: 0,
+        generationBrief: {
+          ...imageBrief,
+          references: [
+            {
+              assetId: 'https://signed.example/reference?token=secret',
+              role: 'product',
+            },
+          ],
+        },
+        requestedCount: 3,
+        variants: [],
       }).success,
     ).toBe(false);
   });
@@ -198,7 +248,8 @@ describe('brand remix run contract', () => {
         readiness: { issues: [], state: 'ready' },
         recipeVersion: 1,
         revision: 1,
-        source: {
+        source: 'hosted',
+        sourceSnapshot: {
           capturedAt: '2026-08-20T09:55:00.000Z',
           evidence: [],
           metrics: {},
