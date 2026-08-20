@@ -14,4 +14,11 @@ describe('env-spec backend cloud flag', () => {
       expect(target.sharedKeys).toContain('NEXT_PUBLIC_GENFEED_CLOUD');
     }
   });
+
+  it('copies the AWS region onto the files service for S3 uploads', () => {
+    const filesTarget = ENV_TARGETS.find((target) => target.id === 'files');
+
+    expect(filesTarget).toBeDefined();
+    expect(filesTarget?.directKeys).toContain('AWS_REGION');
+  });
 });
