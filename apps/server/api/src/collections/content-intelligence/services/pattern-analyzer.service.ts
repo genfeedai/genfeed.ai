@@ -8,7 +8,7 @@ import {
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
@@ -43,7 +43,7 @@ export class PatternAnalyzerService {
     private readonly creatorScraperService: CreatorScraperService,
     private readonly patternStoreService: PatternStoreService,
   ) {
-    this.defaultModel = DEFAULT_AGENT_CHAT_MODEL_KEY;
+    this.defaultModel = LLM_DEFAULTS.background;
   }
 
   async analyzeCreator(creatorId: string): Promise<{

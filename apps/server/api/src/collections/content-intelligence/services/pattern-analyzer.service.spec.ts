@@ -1,5 +1,6 @@
 import type { ScrapedPost } from '@api/collections/content-intelligence/services/creator-scraper.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
@@ -411,7 +412,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
         max_tokens: 1500,
-        model: 'google/gemini-2.5-flash-lite',
+        model: LLM_DEFAULTS.background,
         temperature: 0.3,
       }),
     );

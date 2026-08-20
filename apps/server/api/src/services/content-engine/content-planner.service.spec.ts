@@ -3,6 +3,7 @@ import { ContentPlanItemsService } from '@api/collections/content-plan-items/ser
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -205,7 +206,7 @@ describe('ContentPlannerService', () => {
           expect.objectContaining({ role: 'system' }),
           expect.objectContaining({ role: 'user' }),
         ]),
-        model: 'anthropic/claude-sonnet-5',
+        model: LLM_DEFAULTS.planning,
         temperature: 0.7,
       }),
       mockOrgId,

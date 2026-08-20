@@ -1,4 +1,5 @@
 import { ORCHESTRATOR_AGENT_TYPE } from '@api/services/agent-orchestrator/constants/agent-type.constants';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { AgentType } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 
@@ -17,8 +18,8 @@ export interface AgentTypeConfig {
  * Volume types run high-frequency, low-stakes turns; creative types write
  * copy and direct generation, where the better model pays for itself.
  */
-const VOLUME_AGENT_MODEL = 'deepseek/deepseek-v4-flash-0731';
-const CREATIVE_AGENT_MODEL = 'anthropic/claude-sonnet-5';
+const VOLUME_AGENT_MODEL = LLM_DEFAULTS.volumeAgent;
+const CREATIVE_AGENT_MODEL = LLM_DEFAULTS.creativeAgent;
 
 /**
  * Workflow tools every content specialist needs so chat can list inputs,

@@ -5,6 +5,7 @@ import { SourcePostsService } from '@api/collections/source-posts/services/sourc
 import { SOURCE_CORPUS_CONFIG_LIMITS } from '@api/collections/workflows/registry/node-registry';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   fromPrismaCredentialPlatform,
   PostCategory,
@@ -17,7 +18,7 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 
-const POST_GEN_MODEL = 'openai/gpt-5.6-luna';
+const POST_GEN_MODEL = LLM_DEFAULTS.fastText;
 const POST_GEN_TEMPERATURE = 0.6;
 
 export class WorkflowContentExecutorRegistrarService {
@@ -99,7 +100,7 @@ export class WorkflowContentExecutorRegistrarService {
         messages: [{ content: prompt, role: 'user' }],
         model:
           this.helper.readConfigString(node.config, 'model') ??
-          'openai/gpt-5.6-luna',
+          LLM_DEFAULTS.fastText,
         temperature: this.helper.getOptionalNumberConfig(
           node.config,
           'temperature',

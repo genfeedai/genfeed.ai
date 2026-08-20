@@ -1,5 +1,7 @@
 import { CostTier } from '@genfeedai/enums';
 
+import { MODEL_KEYS } from './model-keys.constant';
+
 /**
  * Canonical agent chat model catalogue.
  *
@@ -96,6 +98,40 @@ export const AGENT_CHAT_MODEL_KEYS = {
 
 export type AgentChatModelKey =
   (typeof AGENT_CHAT_MODEL_KEYS)[keyof typeof AGENT_CHAT_MODEL_KEYS];
+
+/**
+ * Named LLM defaults. Bump a role here — every provider and background job
+ * follows. Services must import these members instead of copying
+ * `'provider/model'` strings.
+ *
+ * `grokFast` is the cheap xAI key used by the Twitter opportunity pipeline.
+ * It is deliberately not in the agent chat picker; do not retire it onto the
+ * frontier Grok row (that is how `grok-4-fast` became a silent 10x bill).
+ */
+export const LLM_DEFAULTS = {
+  /** Agent picker / chat turns (OpenRouter). */
+  agentChat: AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
+  /** Background scoring, intel, launch copy. */
+  background: AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
+  /** xAI / Grok jobs (trends, X realtime). */
+  grok: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
+  /** Cheap Grok for high-frequency X drafts. Not in the picker. */
+  grokFast: MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+  /** High-frequency volume agent types and mechanical compression. */
+  volumeAgent: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+  /** Creative agent types, captions, planning, insights. */
+  creativeAgent: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+  /** Fast cheap text — drafts, newsletters, workflow LLM nodes, vision scoring. */
+  fastText: AGENT_CHAT_MODEL_KEYS.GPT_5_6_LUNA,
+  /** Content planning and long-form reasoning jobs. */
+  planning: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+  /** Featured / recommended step-up in pickers (not the default). */
+  highlighted: AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
+  /** Org-owned inference fleet. */
+  localFleet: AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B,
+  /** When a `local/` model is requested but no GPU fleet is configured. */
+  selfHostedFallback: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+} as const;
 
 interface AgentChatModelDefinition {
   brandSlug: string;
@@ -233,24 +269,22 @@ const AGENT_CHAT_MODELS_BY_KEY = new Map(
 );
 
 /**
- * Default agent chat model (OpenRouter).
- * Gemini 2.5 Flash Lite is the cheap daily driver (live OpenRouter pricing
- * ~$0.10/$0.40 per 1M). Pick Terra/Sol/Opus only when a turn needs heavier
- * agentic reasoning.
+ * Default agent chat model (OpenRouter). Alias of {@link LLM_DEFAULTS.agentChat}
+ * so existing imports keep working.
  */
-export const DEFAULT_AGENT_CHAT_MODEL_KEY =
-  AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE;
+export const DEFAULT_AGENT_CHAT_MODEL_KEY = LLM_DEFAULTS.agentChat;
 
 /**
  * Featured / recommended step-up in pickers (not the default).
  * Keep separate so "highlighted" never drifts from a hard-coded string.
  */
-export const HIGHLIGHTED_AGENT_CHAT_MODEL_KEY =
-  AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA;
+export const HIGHLIGHTED_AGENT_CHAT_MODEL_KEY = LLM_DEFAULTS.highlighted;
 
 /** Default when the org runs its own inference fleet. */
-export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY =
-  AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B;
+export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY = LLM_DEFAULTS.localFleet;
+
+/** xAI / Grok default. Alias of {@link LLM_DEFAULTS.grok}. */
+export const DEFAULT_GROK_MODEL_KEY = LLM_DEFAULTS.grok;
 
 /**
  * Model keys that are no longer offered. Persisted rows (org settings, brand

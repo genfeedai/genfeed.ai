@@ -7,7 +7,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -59,7 +59,7 @@ export class SeoScorerService {
     @Optional()
     private readonly openRouterService?: OpenRouterService,
   ) {
-    this.defaultModel = DEFAULT_AGENT_CHAT_MODEL_KEY;
+    this.defaultModel = LLM_DEFAULTS.background;
   }
 
   /**

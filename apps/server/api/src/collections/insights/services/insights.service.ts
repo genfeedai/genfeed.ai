@@ -11,6 +11,7 @@ import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/t
 import { InsightGenerationQueueService } from '@api/queues/insight-generation/insight-generation-queue.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Timeframe } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -23,7 +24,7 @@ import {
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;
-const INSIGHTS_TEXT_MODEL = 'anthropic/claude-sonnet-5';
+const INSIGHTS_TEXT_MODEL = LLM_DEFAULTS.planning;
 
 type InsightData = {
   actionableSteps?: string[];

@@ -1,7 +1,7 @@
 import { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dto';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -31,7 +31,7 @@ export class XaiService {
     private readonly openRouterService: OpenRouterService,
   ) {
     this.defaultModel =
-      this.configService.get('XAI_MODEL') || AGENT_CHAT_MODEL_KEYS.GROK_4_6;
+      this.configService.get('XAI_MODEL') || LLM_DEFAULTS.grok;
   }
 
   /**

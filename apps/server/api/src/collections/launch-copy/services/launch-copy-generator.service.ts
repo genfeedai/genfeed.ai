@@ -5,7 +5,7 @@ import type {
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionParams } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Platform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -39,7 +39,7 @@ export class LaunchCopyGeneratorService {
     private readonly loggerService: LoggerService,
     private readonly llmDispatcherService: LlmDispatcherService,
   ) {
-    this.defaultModel = DEFAULT_AGENT_CHAT_MODEL_KEY;
+    this.defaultModel = LLM_DEFAULTS.background;
   }
 
   /**

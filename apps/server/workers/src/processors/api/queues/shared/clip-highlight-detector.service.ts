@@ -8,6 +8,7 @@
  */
 
 import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -108,7 +109,7 @@ Return a JSON array of clip objects sorted by virality_score descending.`;
             { content: HIGHLIGHT_SYSTEM_PROMPT, role: 'system' },
             { content: userPrompt, role: 'user' },
           ],
-          model: 'openai/gpt-5.6-terra',
+          model: LLM_DEFAULTS.highlighted,
           provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
           stream: false,
           temperature: 0.3,

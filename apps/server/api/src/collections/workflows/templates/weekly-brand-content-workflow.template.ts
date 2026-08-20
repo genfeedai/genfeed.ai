@@ -1,4 +1,5 @@
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 
 export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
   category: 'content',
@@ -69,7 +70,7 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       data: {
         config: {
           maxTokens: 1800,
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           temperature: 0.75,
         },
         label: 'Generate Thesis Brief',
@@ -147,7 +148,7 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       data: {
         config: {
           maxTokens: 500,
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           temperature: 0.8,
         },
         label: 'Generate Image Prompt',

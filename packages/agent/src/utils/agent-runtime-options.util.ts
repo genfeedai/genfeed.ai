@@ -4,6 +4,7 @@ import type {
   AgentRuntimeOption,
 } from '@genfeedai/agent/models/agent-runtime.model';
 import type { AgentInstallReadiness } from '@genfeedai/agent/services/agent-api.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 
 const LOCAL_HOSTNAMES = new Set(['127.0.0.1', '::1', 'localhost']);
 
@@ -52,7 +53,7 @@ const LOCAL_CLAUDE_OPTION: AgentRuntimeOption = {
   key: 'local/claude-cli',
   label: 'Claude CLI',
   provider: 'claude',
-  requestedModel: 'anthropic/claude-sonnet-5',
+  requestedModel: LLM_DEFAULTS.planning,
 };
 
 const LOCAL_CODEX_OPTION: AgentRuntimeOption = {
@@ -61,7 +62,7 @@ const LOCAL_CODEX_OPTION: AgentRuntimeOption = {
   key: 'local/codex-cli',
   label: 'Codex CLI',
   provider: 'codex',
-  requestedModel: 'openai/gpt-5.6-luna',
+  requestedModel: LLM_DEFAULTS.fastText,
 };
 
 function getLocalToolSummary(readiness?: AgentInstallReadiness | null): string {

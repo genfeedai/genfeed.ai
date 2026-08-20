@@ -6,7 +6,7 @@ import type {
   OpenRouterChatCompletionResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { QualityStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -91,7 +91,7 @@ export class ContentQualityScorerService {
     @Optional()
     private readonly moduleRef?: ModuleRef,
   ) {
-    this.defaultModel = DEFAULT_AGENT_CHAT_MODEL_KEY;
+    this.defaultModel = LLM_DEFAULTS.background;
   }
 
   private async resolveHarnessScoringContext(
@@ -360,7 +360,7 @@ export class ContentQualityScorerService {
             role: 'user',
           },
         ],
-        model: 'openai/gpt-5.6-luna',
+        model: LLM_DEFAULTS.fastText,
         temperature: 0.3,
       };
 

@@ -5,6 +5,7 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -16,10 +17,10 @@ const PLATFORM_CHAR_LIMITS: Record<string, number> = {
   youtube: 5000,
 };
 
-const TRUSTED_TREND_REMIX_MODELS = new Set([
-  'anthropic/claude-sonnet-5',
-  'openai/gpt-5.6-terra',
-  'openai/gpt-5.6-luna',
+const TRUSTED_TREND_REMIX_MODELS = new Set<string>([
+  LLM_DEFAULTS.planning,
+  LLM_DEFAULTS.highlighted,
+  LLM_DEFAULTS.fastText,
 ]);
 
 type RemixPackVariantDefinition = {
@@ -204,7 +205,7 @@ export class TrendRemixHandler implements SkillHandler {
       return value.trim();
     }
 
-    return 'openai/gpt-5.6-luna';
+    return LLM_DEFAULTS.fastText;
   }
 
   private buildRemixPackVariants(

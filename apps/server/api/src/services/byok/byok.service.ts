@@ -1,6 +1,7 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
 import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
 import {
@@ -617,7 +618,7 @@ export class ByokService {
           {
             max_tokens: 1,
             messages: [{ content: 'hi', role: 'user' }],
-            model: 'deepseek/deepseek-v4-flash-0731',
+            model: LLM_DEFAULTS.volumeAgent,
             provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
           },
           { headers: { Authorization: `Bearer ${apiKey}` } },

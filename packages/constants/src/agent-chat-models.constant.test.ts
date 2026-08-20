@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_CHAT_MODEL_KEYS,
@@ -5,15 +8,18 @@ import {
   AGENT_FALLBACK_ROUND_CREDITS,
   calculateAgentRoundCredits,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
+  DEFAULT_GROK_MODEL_KEY,
   getAgentChatModel,
   getAgentChatModelRoundCredits,
   isRetiredAgentChatModel,
+  LLM_DEFAULTS,
   LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
   RETIRED_AGENT_CHAT_MODELS,
   resolveAgentChatModelKey,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import { LOWEST_COST_AGENT_CHAT_MODEL_KEY } from './lowest-cost-models.constant';
+import { MODEL_KEYS } from './model-keys.constant';
 
 describe('calculateAgentRoundCredits', () => {
   it('derives credits from list price, prompt and completion tokens both', () => {
@@ -172,5 +178,124 @@ describe('isRetiredAgentChatModel', () => {
   it('flags a retired key and clears a current one', () => {
     expect(isRetiredAgentChatModel('openrouter/auto')).toBe(true);
     expect(isRetiredAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toBe(false);
+  });
+});
+
+describe('LLM_DEFAULTS', () => {
+  it('aliases the historical default exports', () => {
+    expect(DEFAULT_AGENT_CHAT_MODEL_KEY).toBe(LLM_DEFAULTS.agentChat);
+    expect(DEFAULT_GROK_MODEL_KEY).toBe(LLM_DEFAULTS.grok);
+    expect(LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY).toBe(LLM_DEFAULTS.localFleet);
+  });
+
+  it('points every picker-facing role at a catalogued model', () => {
+    for (const [role, key] of Object.entries(LLM_DEFAULTS)) {
+      if (role === 'grokFast') {
+        continue;
+      }
+
+      expect(getAgentChatModel(key), `${role} is not catalogued`).toBeDefined();
+    }
+  });
+
+  it('keeps grokFast on the cheap xAI key, not the frontier picker row', () => {
+    expect(LLM_DEFAULTS.grokFast).toBe(MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST);
+    expect(LLM_DEFAULTS.grokFast).not.toBe(LLM_DEFAULTS.grok);
+    expect(getAgentChatModel(LLM_DEFAULTS.grokFast)).toBeUndefined();
+  });
+});
+
+const constantsDir = fileURLToPath(new URL('./', import.meta.url));
+const monorepoRoot = join(constantsDir, '../../..');
+
+const LITERAL_ALLOWLIST = new Set([
+  'packages/constants/src/agent-chat-models.constant.ts',
+  'packages/constants/src/model-keys.constant.ts',
+]);
+
+const CATALOGUE_LITERALS = [
+  ...Object.values(AGENT_CHAT_MODEL_KEYS),
+  MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+];
+
+function walkProductionTsFiles(dir: string, out: string[] = []): string[] {
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
+
+  for (const name of entries) {
+    if (
+      name === 'node_modules' ||
+      name === 'dist' ||
+      name === '.next' ||
+      name === 'coverage' ||
+      name === 'scripts' ||
+      name === 'playwright'
+    ) {
+      continue;
+    }
+
+    const full = join(dir, name);
+    const st = statSync(full);
+    if (st.isDirectory()) {
+      walkProductionTsFiles(full, out);
+      continue;
+    }
+
+    if (
+      (name.endsWith('.ts') || name.endsWith('.tsx')) &&
+      !name.includes('.spec.') &&
+      !name.includes('.test.')
+    ) {
+      out.push(full);
+    }
+  }
+
+  return out;
+}
+
+function findForbiddenModelLiterals(source: string): string[] {
+  const hits: string[] = [];
+
+  for (const key of CATALOGUE_LITERALS) {
+    if (source.includes(`'${key}'`) || source.includes(`"${key}"`)) {
+      hits.push(key);
+    }
+  }
+
+  const grokLiterals = source.match(/['"]x-ai\/grok-[^'"]+['"]/g);
+  if (grokLiterals) {
+    hits.push(...grokLiterals);
+  }
+
+  if (/XAI_MODEL\s*\|\|\s*['"]/.test(source)) {
+    hits.push("XAI_MODEL || '…'");
+  }
+
+  return [...new Set(hits)];
+}
+
+describe('LLM default centralization ratchet', () => {
+  it('does not copy catalogue model ids into production providers', () => {
+    const offenders: string[] = [];
+
+    for (const root of ['apps', 'packages']) {
+      for (const file of walkProductionTsFiles(join(monorepoRoot, root))) {
+        const relative = file.replace(`${monorepoRoot}/`, '');
+        if (LITERAL_ALLOWLIST.has(relative)) {
+          continue;
+        }
+
+        const hits = findForbiddenModelLiterals(readFileSync(file, 'utf8'));
+        for (const hit of hits) {
+          offenders.push(`${relative} → ${hit}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
   });
 });

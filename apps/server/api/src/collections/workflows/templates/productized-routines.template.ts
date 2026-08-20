@@ -2,6 +2,7 @@ import type {
   ProductizedRoutineMetadata,
   WorkflowTemplate,
 } from '@api/collections/workflows/templates/workflow-templates';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export type ProductizedRoutineWorkflowTemplate = WorkflowTemplate & {
@@ -317,7 +318,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         data: {
           config: {
             maxTokens: 1400,
-            model: 'openai/gpt-5.6-luna',
+            model: LLM_DEFAULTS.fastText,
             temperature: 0.7,
           },
           label: 'Draft Release Assets',
@@ -458,7 +459,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
       {
         category: WorkflowStepCategory.GENERATE_ARTICLE,
         config: {
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           temperature: 0.7,
         },
         id: 'draft-release-assets',

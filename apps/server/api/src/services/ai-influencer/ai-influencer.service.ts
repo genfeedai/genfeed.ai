@@ -11,6 +11,7 @@ import {
   PersonaContentService,
 } from '@api/services/persona-content/persona-content.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   FleetReviewStatus,
   IngredientStatus,
@@ -67,7 +68,7 @@ const SUPPORTED_PLATFORMS: readonly AiInfluencerPlatform[] = [
 
 const DEFAULT_IMAGE_WIDTH = 1024;
 const DEFAULT_IMAGE_HEIGHT = 1024;
-const CAPTION_MODEL = 'anthropic/claude-sonnet-5';
+const CAPTION_MODEL = LLM_DEFAULTS.creativeAgent;
 const IMAGE_MODEL = 'fal-ai/flux-lora';
 const MAX_CAPTION_LENGTH = 2200; // Instagram caption limit
 const CAPTION_TEMPERATURE = 0.8;

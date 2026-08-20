@@ -4,6 +4,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { type ThreadContextState, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -18,7 +19,7 @@ const CACHE_TTL_SECONDS = 300; // 5 minutes
  * thread, so it defaults to the cheapest catalogued model rather than whatever
  * the thread itself is chatting with. Override via AGENT_CONTEXT_COMPRESSION_MODEL.
  */
-const COMPRESSION_FALLBACK_MODEL = 'deepseek/deepseek-v4-flash-0731';
+const COMPRESSION_FALLBACK_MODEL = LLM_DEFAULTS.volumeAgent;
 
 const COMPRESSION_PROMPT = `You are a thread context compressor. Given a conversation history between a user and an AI assistant, extract the following structured sections. Be concise but preserve all important information.
 
