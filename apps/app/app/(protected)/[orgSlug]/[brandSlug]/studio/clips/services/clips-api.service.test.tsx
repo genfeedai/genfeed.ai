@@ -36,6 +36,54 @@ describe('ClipsApiService', () => {
     vi.clearAllMocks();
   });
 
+  it('lists clip projects from the collection endpoint', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              attributes: {
+                name: 'Podcast ep 12',
+                readyClipCount: 4,
+                settings: { mode: 'raw-cut' },
+                sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+                status: 'completed',
+              },
+              id: 'project-1',
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-list'),
+    );
+    await expect(service.listProjects()).resolves.toEqual([
+      {
+        brandId: undefined,
+        createdAt: undefined,
+        failedClipCount: 0,
+        id: 'project-1',
+        mode: 'raw-cut',
+        name: 'Podcast ep 12',
+        pendingClipCount: 0,
+        progress: 0,
+        readyClipCount: 4,
+        sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+        status: 'completed',
+      },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects?sort=-createdAt',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer token-list' },
+      }),
+    );
+  });
+
   it('starts the one-click YouTube clip factory path', async () => {
     const getToken = vi.fn().mockResolvedValue('token-1');
     const service = new ClipsApiService(getToken);

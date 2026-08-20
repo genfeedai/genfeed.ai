@@ -16,6 +16,15 @@ const API_PROJECT = '**/clip-projects/*';
 const API_REWRITE = '**/clip-projects/*/highlights/*/rewrite';
 const API_CLIP_RESULTS = '**/clip-results**';
 
+function isClipProjectCollectionUrl(url: string): boolean {
+  try {
+    const pathname = new URL(url).pathname;
+    return /\/clip-projects\/?$/.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
 const MOCK_PROJECT_ID = '000000000000000000001234';
 const MOCK_YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
@@ -78,6 +87,54 @@ const mockCompletedClipResult = {
   viralityScore: 87,
 };
 
+async function mockGetProject(page: Page, status = 'analyzing') {
+  await page.route(API_PROJECT, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+
+    const pathname = new URL(route.request().url()).pathname;
+    if (
+      pathname.includes('/highlights') ||
+      pathname.includes('/generate') ||
+      pathname.includes('/analyze')
+    ) {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      body: JSON.stringify({
+        data: {
+          attributes: { status },
+          id: MOCK_PROJECT_ID,
+        },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}
+
+async function mockProjectList(page: Page, projects: unknown[] = []) {
+  await page.route(
+    (url) => isClipProjectCollectionUrl(url.toString()),
+    async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+
+      await route.fulfill({
+        body: JSON.stringify({ data: projects }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  );
+}
+
 async function mockAnalyzeRequest(page: Page) {
   await page.route(API_ANALYZE, async (route) => {
     await route.fulfill({
@@ -115,6 +172,11 @@ async function mockHighlightsPolling(
 }
 
 test.describe('Clip Factory', () => {
+  test.beforeEach(async ({ authenticatedPage }) => {
+    await mockProjectList(authenticatedPage);
+    await mockGetProject(authenticatedPage);
+  });
+
   test('should load the clip factory page', async ({ authenticatedPage }) => {
     await authenticatedPage.goto(CLIPS_URL);
     await authenticatedPage.waitForLoadState('networkidle');
@@ -137,6 +199,55 @@ test.describe('Clip Factory', () => {
       authenticatedPage.getByRole('button', {
         name: /review highlights first/i,
       }),
+    ).toBeVisible();
+  });
+
+  test('lists split videos and opens generated clips', async ({
+    authenticatedPage,
+  }) => {
+    await mockProjectList(authenticatedPage, [
+      {
+        attributes: {
+          createdAt: '2026-08-20T10:00:00.000Z',
+          name: 'Podcast ep 12',
+          readyClipCount: 8,
+          sourceVideoUrl: MOCK_YOUTUBE_URL,
+          status: 'completed',
+        },
+        id: MOCK_PROJECT_ID,
+      },
+    ]);
+    await mockGetProject(authenticatedPage, 'completed');
+    await authenticatedPage.route(API_CLIP_RESULTS, async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: mockCompletedClipResult,
+              id: 'clip-1',
+            },
+          ],
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+
+    await authenticatedPage.goto(CLIPS_URL);
+    await expect(
+      authenticatedPage.getByRole('link', { name: /podcast ep 12/i }),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByText(/8 clips/i)).toBeVisible();
+
+    await authenticatedPage
+      .getByRole('link', { name: /podcast ep 12/i })
+      .click();
+
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`),
+    );
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /clips ready/i }),
     ).toBeVisible();
   });
 

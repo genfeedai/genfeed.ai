@@ -1,6 +1,12 @@
 import type { StoryboardFrame } from '@genfeedai/client/schemas';
-import type { VideoEaseCurve, VideoTransition } from '@genfeedai/enums';
+import type {
+  IngredientFormat,
+  VideoEaseCurve,
+  VideoTransition,
+} from '@genfeedai/enums';
+import type { IImage } from '@genfeedai/interfaces';
 import type { IStoryboardMergeSettings } from '@genfeedai/interfaces/components/storyboard.interface';
+import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 import type { MergeProgressStep } from './merge.props';
 
 export interface EaseCurveSelectorProps {
@@ -43,4 +49,18 @@ export interface StoryboardMergeProgressPanelProps {
   overallProgress: number;
   steps: MergeProgressStep[];
   onDismiss: () => void;
+}
+
+export interface StoryboardPanelProps {
+  cameraMovementPreset: CameraMovementPreset;
+  customCameraPrompt: string;
+  format: IngredientFormat;
+  frames: IImage[];
+  hasInterpolationModel: boolean;
+  isGenerating: boolean;
+  onCameraMovementPresetChange: (preset: CameraMovementPreset) => void;
+  onClear: () => void;
+  onCustomCameraPromptChange: (prompt: string) => void;
+  onFramesChange: (frames: IImage[]) => void;
+  onGenerate: () => void;
 }

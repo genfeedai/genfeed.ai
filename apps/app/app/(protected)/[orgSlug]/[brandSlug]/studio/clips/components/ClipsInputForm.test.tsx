@@ -34,9 +34,6 @@ describe('ClipsInputForm', () => {
   it('starts the one-click clip factory from the primary action', () => {
     const { props } = renderForm();
 
-    expect(screen.getByRole('heading', { name: 'Clips' })).toHaveClass(
-      'sr-only',
-    );
     expect(screen.queryByText('AI Clip Factory')).not.toBeInTheDocument();
 
     fireEvent.click(

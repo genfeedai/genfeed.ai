@@ -19,6 +19,20 @@ export type { ClipLibraryLinkStatus, ClipReadyAction, ClipResultMode };
 
 export type ClipsStep = 'input' | 'review' | 'progress';
 
+export interface ClipProjectSummary {
+  brandId?: string;
+  createdAt?: string;
+  failedClipCount: number;
+  id: string;
+  mode?: ClipResultMode;
+  name: string;
+  pendingClipCount: number;
+  progress: number;
+  readyClipCount: number;
+  sourceVideoUrl?: string;
+  status: string;
+}
+
 // ─── Data Interfaces ──────────────────────────────────────────────
 
 export interface ProviderOption {
@@ -97,6 +111,7 @@ export interface ClipsInputFormProps {
   maxClips: number;
   minViralityScore: number;
   onAnalyze: () => void;
+  onCancel?: () => void;
   onModeChange: (mode: ClipResultMode) => void;
   onStartQuick: () => void;
   onSetMaxClips: (value: number) => void;
@@ -104,4 +119,18 @@ export interface ClipsInputFormProps {
   onSetYoutubeUrl: (value: string) => void;
   quickStartHint: string;
   youtubeUrl: string;
+}
+
+export interface ClipsProjectListProps {
+  isLoading: boolean;
+  projects: ClipProjectSummary[];
+}
+
+export interface ClipsProjectCardProps {
+  href: string;
+  project: ClipProjectSummary;
+}
+
+export interface ClipsWorkspaceProps {
+  projectId?: string;
 }

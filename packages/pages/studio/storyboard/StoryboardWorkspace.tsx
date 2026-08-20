@@ -17,6 +17,8 @@ import {
   useStoryboardWorkspace,
 } from '@pages/studio/storyboard/use-storyboard-workspace';
 import Card from '@ui/card/Card';
+import Container from '@ui/layout/container/Container';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import {
   Clapperboard,
@@ -137,18 +139,14 @@ export default function StoryboardWorkspace() {
   }, [addMergeVideos, format, openGallery]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex-1 overflow-auto px-6 py-6">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4">
-          <div className="space-y-1">
-            <h1 className="text-lg font-semibold text-foreground">
-              Storyboard
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Build multi-frame video: interpolate stills, script scenes from
-              your generated images, or merge finished clips.
-            </p>
-          </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <SectionTopbar title="Storyboard" />
+      <Container>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            Build multi-frame video: interpolate stills, script scenes from your
+            generated images, or merge finished clips.
+          </p>
 
           <div className="grid gap-2 sm:grid-cols-3">
             {MODE_OPTIONS.map((option) => {
@@ -410,7 +408,7 @@ export default function StoryboardWorkspace() {
             </Card>
           ) : null}
         </div>
-      </div>
+      </Container>
     </div>
   );
 }
