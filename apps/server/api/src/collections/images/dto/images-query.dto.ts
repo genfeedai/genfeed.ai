@@ -1,4 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { resolveFolderIdAlias } from '@api/helpers/dto/folder-id-alias.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -88,6 +89,7 @@ export class ImagesQueryDto extends BaseQueryDto {
     description: 'Filter by folder ID',
     required: false,
   })
+  @Transform(resolveFolderIdAlias)
   @IsOptional()
   @IsEntityId()
   folderId?: string;

@@ -1,4 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { resolveFolderIdAlias } from '@api/helpers/dto/folder-id-alias.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
@@ -17,6 +18,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
     required: false,
     type: String,
   })
+  @Transform(resolveFolderIdAlias)
   @IsOptional()
   @IsEntityId()
   folderId?: string | null;

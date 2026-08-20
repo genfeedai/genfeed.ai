@@ -21,7 +21,7 @@ const EXISTING_LIBRARY_ROUTES = new Set<string>([
   APP_ROUTES.LIBRARY.IMAGES,
   APP_ROUTES.LIBRARY.MOODBOARD,
   APP_ROUTES.LIBRARY.MUSIC,
-  APP_ROUTES.LIBRARY.OVERVIEW,
+  APP_ROUTES.LIBRARY.ASSETS,
   APP_ROUTES.LIBRARY.VIDEOS,
   APP_ROUTES.LIBRARY.VOICES,
 ]);
@@ -87,16 +87,16 @@ describe('library-asset-routes.constant', () => {
 
     it('falls back to Overview for unknown and non-string input', () => {
       expect(resolveLibraryRouteForCategory('nonsense')).toBe(
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ASSETS,
       );
       expect(resolveLibraryRouteForCategory(undefined)).toBe(
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ASSETS,
       );
       expect(resolveLibraryRouteForCategory(null)).toBe(
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ASSETS,
       );
       expect(resolveLibraryRouteForCategory(7)).toBe(
-        APP_ROUTES.LIBRARY.OVERVIEW,
+        APP_ROUTES.LIBRARY.ASSETS,
       );
     });
   });

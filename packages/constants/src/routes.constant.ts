@@ -204,20 +204,38 @@ export const APP_ROUTES = {
     TWITTER_ENGAGE: '/lab/twitter-engage',
   },
   LIBRARY: {
+    /**
+     * Canonical library home — the unified asset browser with no filter seeded.
+     * Bare ROOT redirects here. The Library has three orthogonal axes: type
+     * (`?categories=`), shelf (`/library/shelf/:shelf`), and folder
+     * (`?folder=`); this route is all three unset.
+     */
+    ASSETS: '/library/assets',
+    /**
+     * Type-seeded entry points into the same browser. They are shareable deep
+     * links (see `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`), not navigation — type
+     * is a filter chip, so the sidebar never lists them.
+     */
     AVATARS: '/library/avatars',
     CAPTIONS: '/library/captions',
     GIFS: '/library/gifs',
     IMAGES: '/library/images',
-    /** @deprecated Use OVERVIEW. Retained for legacy deep-link redirects. */
+    /** @deprecated Use ASSETS. Retained for legacy deep-link redirects. */
     INGREDIENTS: '/library/ingredients',
     MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
-    /**
-     * Canonical library home. Bare ROOT permanently redirects here so Overview
-     * is a complete path (same pattern as workspace/overview).
-     */
+    /** @deprecated Use ASSETS. The tile-grid Overview held no assets. */
     OVERVIEW: '/library/overview',
+    /** Assets touched most recently, newest first. */
+    RECENT: '/library/recent',
     ROOT: '/library',
+    /**
+     * Generation-state axis. Append a `LibraryShelf` value:
+     * `${SHELF}/needs-review`. A shelf is a saved query, not a location.
+     */
+    SHELF: '/library/shelf',
+    STARRED: '/library/starred',
+    TRASH: '/library/trash',
     VIDEOS: '/library/videos',
     VOICES: '/library/voices',
   },
