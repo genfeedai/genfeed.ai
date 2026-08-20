@@ -11,6 +11,7 @@ import { listStudioGenerateTypeConfigs } from '@pages/studio/generate/utils/stud
 import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 const FILTER_OPTIONS: ReadonlyArray<{
@@ -38,6 +39,8 @@ export default function StudioGenerateResults({
   onSearchChange,
   search,
 }: StudioGenerateResultsProps): ReactElement {
+  const translate = useTranslations('pages.studioGenerate');
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -76,9 +79,11 @@ export default function StudioGenerateResults({
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
           ) : (
             <>
-              <p className="text-sm text-foreground">Nothing here yet</p>
+              <p className="text-sm text-foreground">
+                {translate('emptyTitle')}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Write a prompt below and everything you generate lands here.
+                {translate('emptyDescription')}
               </p>
             </>
           )}

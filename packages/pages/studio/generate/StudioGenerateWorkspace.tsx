@@ -14,6 +14,7 @@ import {
   mergeStudioGenerateJobs,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 /**
@@ -22,6 +23,7 @@ import { type ReactElement, useCallback, useMemo, useState } from 'react';
  * brand has ever generated sits above it in one grid.
  */
 export default function StudioGenerateWorkspace(): ReactElement {
+  const translate = useTranslations('pages.studioGenerate');
   const { brandId } = useBrand();
   const { resetSettings, settings, setType, type, updateSettings } =
     useStudioGenerateSettings();
@@ -73,9 +75,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
       <div className="flex-1 overflow-auto px-6 py-6">
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
           <div className="space-y-1">
-            <h1 className="text-lg font-semibold text-foreground">Generate</h1>
+            <h1 className="text-lg font-semibold text-foreground">
+              {translate('title')}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              One prompt bar for every asset type, enriched with your brand.
+              {translate('description')}
             </p>
           </div>
 

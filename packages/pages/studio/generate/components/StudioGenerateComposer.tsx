@@ -27,6 +27,7 @@ import PromptBarShell, {
   PROMPT_BAR_SURFACE_CLASS,
 } from '@ui/prompt-bars/components/shell/PromptBarShell';
 import { ArrowUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 const PROMPT_MAX_HEIGHT = 200;
@@ -54,6 +55,7 @@ export default function StudioGenerateComposer({
   settings,
   type,
 }: StudioGenerateComposerProps): ReactElement {
+  const translate = useTranslations('pages.studioGenerate');
   const { capabilities } = getStudioGenerateTypeConfig(type);
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
@@ -112,10 +114,12 @@ export default function StudioGenerateComposer({
                   <SelectTrigger
                     className={cn('w-44', SHELL_CONTROL_HEIGHT_CLASS)}
                   >
-                    <SelectValue placeholder="Loading models…" />
+                    <SelectValue placeholder={translate('loadingModels')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="loading">Loading models…</SelectItem>
+                    <SelectItem value="loading">
+                      {translate('loadingModels')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               ) : (

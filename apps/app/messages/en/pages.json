@@ -61,11 +61,21 @@
     }
   },
   "studioClips": {
+    "allProjects": "All projects",
+    "description": "Split long-form videos into clips. Open a source to review every generated clip.",
     "edit": "Edit",
     "generationFailed": "Generation failed. The clip will be retried automatically.",
     "inLibrary": "In Library",
     "publish": "Publish",
     "retryLibraryLink": "Retry Library link"
+  },
+  "studioGenerate": {
+    "description": "One prompt bar for every asset type, enriched with your brand.",
+    "emptyDescription": "Write a prompt below and everything you generate lands here.",
+    "emptyTitle": "Nothing here yet",
+    "generating": "Generating…",
+    "loadingModels": "Loading models…",
+    "title": "Generate"
   },
   "warmupAccounts": {
     "invitation": {

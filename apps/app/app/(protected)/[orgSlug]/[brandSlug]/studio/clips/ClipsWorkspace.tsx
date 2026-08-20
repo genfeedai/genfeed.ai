@@ -15,6 +15,7 @@ import { Input } from '@ui/primitives/input';
 import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import ClipModeSelector from './components/ClipModeSelector';
@@ -42,6 +43,7 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
 ];
 
 export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
+  const t = useTranslations('pages.studioClips');
   const searchParams = useSearchParams();
   const { href } = useOrgUrl();
   const [isCreating, setIsCreating] = useState(searchParams.get('new') === '1');
@@ -82,9 +84,9 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
               asChild
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
-              label="All projects"
+              label={t('allProjects')}
             >
-              <Link href={listHref}>All projects</Link>
+              <Link href={listHref}>{t('allProjects')}</Link>
             </Button>
           ) : hasProjects ? (
             <Button
@@ -102,10 +104,7 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
 
       <Container>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            Split long-form videos into clips. Open a source to review every
-            generated clip.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('description')}</p>
 
           {projectId ? (
             <ClipsProjectDetail {...clipsPage} />
