@@ -186,6 +186,25 @@ describe('TrendSourcePreviewService', () => {
       expect(cache.set).toHaveBeenCalledOnce();
     });
 
+    it('hydrates a global preview without persisting it during a tenant refresh', async () => {
+      vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
+      const loadAccessControl = vi.fn().mockResolvedValue({
+        connectedPlatforms: [],
+        lockedPlatforms: [],
+        trends: [makeTrend({ organizationId: null })],
+      });
+
+      const result = await service.getTrendContent(
+        { organizationId: 'org-1' },
+        { refresh: true },
+        loadAccessControl,
+      );
+
+      expect(result.totalTrends).toBe(1);
+      expect(prisma.trend.findFirst).not.toHaveBeenCalled();
+      expect(prisma.trend.update).not.toHaveBeenCalled();
+    });
+
     it('dedupes items that share a source url and unions matched trends', async () => {
       const shared = (id: string, topic: string, virality: number) =>
         makeTrend({
@@ -225,7 +244,9 @@ describe('TrendSourcePreviewService', () => {
     it('passes through trends on non-content-feed platforms untouched', async () => {
       const trend = makeTrend({ platform: 'pinterest' });
 
-      const [result] = await service.precomputeTrendSourcePreview([trend]);
+      const [result] = await service.precomputeTrendSourcePreview([trend], {
+        writeScope: { organizationId: null },
+      });
 
       expect(result).toBe(trend);
     });
@@ -245,7 +266,9 @@ describe('TrendSourcePreviewService', () => {
         },
       });
 
-      const [result] = await service.precomputeTrendSourcePreview([trend]);
+      const [result] = await service.precomputeTrendSourcePreview([trend], {
+        writeScope: { organizationId: null },
+      });
 
       expect(result).toBe(trend);
       expect(fetchSpy).not.toHaveBeenCalled();
@@ -267,6 +290,7 @@ describe('TrendSourcePreviewService', () => {
 
       const [result] = await service.precomputeTrendSourcePreview([trend], {
         force: true,
+        writeScope: { organizationId: null },
       });
 
       expect(result.metadata?.sourcePreviewCache).toEqual([
@@ -286,6 +310,7 @@ describe('TrendSourcePreviewService', () => {
             data: expect.objectContaining({
               growthRate: 12,
               metadata: expect.objectContaining({
+                hashtags: ['#AI'],
                 sourcePreviewCache: [expect.objectContaining({ id: 'live-1' })],
                 sourcePreviewCachedAt: expect.any(String),
                 sourcePreviewState: 'live',
@@ -307,7 +332,10 @@ describe('TrendSourcePreviewService', () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
       const trend = makeTrend({ organizationId: 'org-1' });
 
-      await service.precomputeTrendSourcePreview([trend], { force: true });
+      await service.precomputeTrendSourcePreview([trend], {
+        force: true,
+        writeScope: { organizationId: 'org-1' },
+      });
 
       const expectedWhere = {
         id: 'trend-1',
@@ -333,44 +361,38 @@ describe('TrendSourcePreviewService', () => {
       );
     });
 
+    it('hydrates a global trend without persisting outside the tenant write scope', async () => {
+      vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
+      const trend = makeTrend({ organizationId: null });
+
+      const [result] = await service.precomputeTrendSourcePreview([trend], {
+        force: true,
+        writeScope: { organizationId: 'org-1' },
+      });
+
+      expect(result.metadata?.sourcePreviewState).toBe('empty');
+      expect(prisma.trend.findFirst).not.toHaveBeenCalled();
+      expect(prisma.trend.update).not.toHaveBeenCalled();
+    });
+
     it.each([
       { label: 'missing', organizationId: undefined },
       { label: 'empty', organizationId: '' },
     ])(
-      'treats a $label organization scope as global',
+      'rejects a $label organization scope instead of treating it as global',
       async ({ organizationId }) => {
-        prisma.trend.findFirst.mockResolvedValue({
-          data: { isCurrent: true },
-        });
         vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
         // Runtime entities can be malformed despite the stricter TrendEntity type.
         const trend = makeTrend({ organizationId });
 
-        await service.precomputeTrendSourcePreview([trend], { force: true });
-
-        const expectedWhere = {
-          id: 'trend-1',
-          isDeleted: false,
-          organizationId: null,
-        };
-        expect(prisma.trend.findFirst).toHaveBeenCalledWith({
-          where: expectedWhere,
-        });
-        expect(prisma.trend.update).toHaveBeenCalledWith(
-          expect.objectContaining({
-            data: {
-              data: expect.objectContaining({
-                isCurrent: true,
-                metadata: expect.objectContaining({
-                  sourcePreviewCache: [],
-                  sourcePreviewCachedAt: expect.any(String),
-                  sourcePreviewState: 'empty',
-                }),
-              }),
-            },
-            where: expectedWhere,
+        await expect(
+          service.precomputeTrendSourcePreview([trend], {
+            force: true,
+            writeScope: { organizationId: null },
           }),
-        );
+        ).rejects.toThrow('scopedWhere: organizationId is required');
+        expect(prisma.trend.findFirst).not.toHaveBeenCalled();
+        expect(prisma.trend.update).not.toHaveBeenCalled();
       },
     );
 
@@ -378,7 +400,10 @@ describe('TrendSourcePreviewService', () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
       const trend = makeTrend({ organizationId: 'org-1' });
 
-      await service.precomputeTrendSourcePreview([trend], { force: true });
+      await service.precomputeTrendSourcePreview([trend], {
+        force: true,
+        writeScope: { organizationId: 'org-1' },
+      });
 
       expect(logger.warn).toHaveBeenCalledWith(
         'Skipped trend source preview persistence because the trend row was not found',

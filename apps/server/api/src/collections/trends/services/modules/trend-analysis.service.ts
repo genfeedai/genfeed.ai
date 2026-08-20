@@ -6,6 +6,7 @@ import type {
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { crossOrgUnsafe } from '@libs/prisma/tenant-context';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -74,8 +75,9 @@ export class TrendAnalysisService {
       where.topic = { contains: options.topic, mode: 'insensitive' };
     }
 
-    where.organizationId = options.organizationId ?? null;
-    where.brandId = options.brandId ?? null;
+    const organizationId = options.organizationId?.trim() || null;
+    where.organizationId = organizationId;
+    where.brandId = options.brandId?.trim() || null;
 
     if (options.startDate || options.endDate) {
       const createdAtFilter: Record<string, Date> = {};
@@ -88,12 +90,17 @@ export class TrendAnalysisService {
       where.createdAt = createdAtFilter;
     }
 
-    // tenant-scope-ignore: this global-or-tenant corpus query always assigns organizationId, brandId, and isDeleted before Prisma sees the dynamic filters
-    const docs = await this.prisma.trend.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: options.limit ?? 1000,
-      where,
-    });
+    const findHistoricalTrends = () => {
+      // tenant-scope-ignore: global corpus reads use organizationId:null inside the reviewed crossOrgUnsafe hatch; tenant reads retain organizationId and isDeleted
+      return this.prisma.trend.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: options.limit ?? 1000,
+        where,
+      });
+    };
+    const docs = organizationId
+      ? await findHistoricalTrends()
+      : await crossOrgUnsafe(findHistoricalTrends);
     return docs.map(
       (doc) =>
         new TrendEntity({

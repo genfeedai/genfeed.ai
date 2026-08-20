@@ -3,6 +3,11 @@ import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  isCrossOrgUnsafe,
+  runWithTenantContext,
+} from '@libs/prisma/tenant-context';
+import { assertTenantScopedQuery } from '@libs/prisma/tenant-guard';
 import { Test, TestingModule } from '@nestjs/testing';
 
 function createMockPrisma() {
@@ -254,6 +259,50 @@ describe('TrendAnalysisService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toBeInstanceOf(TrendEntity);
+    });
+
+    it('opens the reviewed hatch for a global corpus read under tenant context', async () => {
+      let hatchWasOpen = false;
+      prisma.trend.findMany.mockImplementation(async (args) => {
+        hatchWasOpen = isCrossOrgUnsafe();
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'Trend',
+          operation: 'findMany',
+          tenantModelNames: new Set(['Trend']),
+        });
+        return [];
+      });
+
+      await expect(
+        runWithTenantContext({ organizationId: mockOrgId }, () =>
+          service.getHistoricalTrends(),
+        ),
+      ).resolves.toEqual([]);
+      expect(hatchWasOpen).toBe(true);
+    });
+
+    it('keeps an explicitly tenant-scoped corpus read inside the runtime guard', async () => {
+      let hatchWasOpen = false;
+      prisma.trend.findMany.mockImplementation(async (args) => {
+        hatchWasOpen = isCrossOrgUnsafe();
+        assertTenantScopedQuery({
+          args,
+          isCloud: true,
+          model: 'Trend',
+          operation: 'findMany',
+          tenantModelNames: new Set(['Trend']),
+        });
+        return [];
+      });
+
+      await expect(
+        runWithTenantContext({ organizationId: mockOrgId }, () =>
+          service.getHistoricalTrends({ organizationId: mockOrgId }),
+        ),
+      ).resolves.toEqual([]);
+      expect(hatchWasOpen).toBe(false);
     });
   });
 
