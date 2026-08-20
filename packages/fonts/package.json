@@ -8,6 +8,10 @@
     "./fonts": {
       "types": "./fonts.ts",
       "default": "./fonts.ts"
+    },
+    "./og": {
+      "types": "./og.ts",
+      "default": "./og.ts"
     }
   },
   "main": "./index.ts",

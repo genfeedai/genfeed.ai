@@ -14,4 +14,9 @@ globalThis.ResizeObserver = class ResizeObserver {
     /* noop mock */
   }
 } as unknown as typeof globalThis.ResizeObserver;
-window.ResizeObserver = globalThis.ResizeObserver;
+// Server-side files (route handlers) opt into `@vitest-environment node`,
+// where there is no `window`. Under jsdom `window` *is* `globalThis`, so this
+// assignment is a no-op there and only ever mattered as a crash here.
+if (typeof window !== 'undefined') {
+  window.ResizeObserver = globalThis.ResizeObserver;
+}
