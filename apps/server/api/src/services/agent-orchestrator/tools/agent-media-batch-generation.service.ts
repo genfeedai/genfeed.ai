@@ -196,7 +196,7 @@ export class AgentMediaBatchGenerationService {
           },
         };
       }
-      brandId = credential.brandId;
+      brandId = credential.brandId ?? undefined;
     }
 
     if (!brandId) {
