@@ -16,7 +16,10 @@ import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/too
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
+import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
+import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
+import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
@@ -924,23 +927,34 @@ describe('AgentToolExecutorService', () => {
       ),
     );
     const mediaGenerationHandler = new AgentMediaGenerationToolHandler(
-      loggerService,
-      configService as never,
-      internalApi,
-      aiActionsService as never,
-      contentGeneratorService as never,
-      onboardingHandler,
-      brandsService as never,
-      batchGenerationService as never,
-      credentialsService as never,
-      streamPublisher as never,
-      contentQualityScorerService as never,
-      creditsUtilsService as never,
-      undefined,
-      // Real, not mocked: the async batch path only streams into the thread
-      // when this builder hands back callbacks, so stubbing it would assert
-      // nothing about whether progress actually reaches the user.
-      new BatchGenerationStreamService(loggerService, streamPublisher as never),
+      new AgentMediaTextGenerationService(
+        internalApi,
+        aiActionsService as never,
+        contentGeneratorService as never,
+      ),
+      new AgentMediaAssetGenerationService(
+        loggerService,
+        configService as never,
+        internalApi,
+        onboardingHandler,
+        contentQualityScorerService as never,
+      ),
+      new AgentMediaBatchGenerationService(
+        loggerService,
+        brandsService as never,
+        batchGenerationService as never,
+        credentialsService as never,
+        streamPublisher as never,
+        creditsUtilsService as never,
+        undefined,
+        // Real, not mocked: the async batch path only streams into the thread
+        // when this builder hands back callbacks, so stubbing it would assert
+        // nothing about whether progress actually reaches the user.
+        new BatchGenerationStreamService(
+          loggerService,
+          streamPublisher as never,
+        ),
+      ),
     );
     const qualityHandler = new AgentQualityToolHandler(
       loggerService,
@@ -5307,17 +5321,24 @@ describe('AgentToolExecutorService', () => {
         ),
       ),
       new AgentMediaGenerationToolHandler(
-        loggerService,
-        { get: vi.fn() } as never,
-        internalApiWithoutScorer,
-        aiActionsService as never,
-        {} as never,
-        onboardingWithoutScorer,
-        brandsService as never,
-        {} as never,
-        credentialsService as never,
-        undefined,
-        undefined, // contentQualityScorerService intentionally absent
+        new AgentMediaTextGenerationService(
+          internalApiWithoutScorer,
+          aiActionsService as never,
+          {} as never,
+        ),
+        new AgentMediaAssetGenerationService(
+          loggerService,
+          { get: vi.fn() } as never,
+          internalApiWithoutScorer,
+          onboardingWithoutScorer,
+          undefined, // contentQualityScorerService intentionally absent
+        ),
+        new AgentMediaBatchGenerationService(
+          loggerService,
+          brandsService as never,
+          {} as never,
+          credentialsService as never,
+        ),
       ),
       new AgentToolCatalogHandler(),
       new AgentBrandContentToolHandler(

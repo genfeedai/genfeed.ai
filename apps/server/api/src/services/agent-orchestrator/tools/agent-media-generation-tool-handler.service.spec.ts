@@ -1,4 +1,7 @@
+import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
+import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
+import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHandler() {
@@ -15,14 +18,20 @@ function createHandler() {
     checkOnboardingStatus: vi.fn().mockResolvedValue({ nextActions: [] }),
     completeJourneyMission: vi.fn().mockResolvedValue(undefined),
   };
+  const logger = { error: vi.fn(), warn: vi.fn() };
   const handler = new AgentMediaGenerationToolHandler(
-    { error: vi.fn(), warn: vi.fn() } as never,
-    { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
-    internalApi as never,
-    aiActionsService as never,
-    contentGeneratorService as never,
-    onboardingHandler as never,
-    {} as never,
+    new AgentMediaTextGenerationService(
+      internalApi as never,
+      aiActionsService as never,
+      contentGeneratorService as never,
+    ),
+    new AgentMediaAssetGenerationService(
+      logger as never,
+      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
+      internalApi as never,
+      onboardingHandler as never,
+    ),
+    new AgentMediaBatchGenerationService(logger as never, {} as never),
   );
 
   return {
@@ -39,6 +48,70 @@ const context = {
   organizationId: 'organization-1',
   userId: 'user-1',
 };
+
+describe('AgentMediaGenerationToolHandler ownership', () => {
+  it('routes each public media tool to exactly one family owner', async () => {
+    const result = { creditsUsed: 0, success: true };
+    const textGeneration = {
+      aiAction: vi.fn().mockResolvedValue(result),
+      generateContent: vi.fn().mockResolvedValue(result),
+    };
+    const assetGeneration = {
+      generateAsIdentity: vi.fn().mockResolvedValue(result),
+      generateImage: vi.fn().mockResolvedValue(result),
+      generateMusic: vi.fn().mockResolvedValue(result),
+      generateVideo: vi.fn().mockResolvedValue(result),
+      generateVoice: vi.fn().mockResolvedValue(result),
+      reframeImage: vi.fn().mockResolvedValue(result),
+      upscaleImage: vi.fn().mockResolvedValue(result),
+    };
+    const batchGeneration = {
+      generateContentBatch: vi.fn().mockResolvedValue(result),
+    };
+    const handler = new AgentMediaGenerationToolHandler(
+      textGeneration as never,
+      assetGeneration as never,
+      batchGeneration as never,
+    );
+    const params = { prompt: 'A launch visual' };
+
+    await handler.aiAction(params, context);
+    await handler.generateContent(params, context);
+    await handler.generateImage(params, context);
+    await handler.reframeImage(params, context);
+    await handler.upscaleImage(params, context);
+    await handler.generateVideo(params, context);
+    await handler.generateMusic(params, context);
+    await handler.generateVoice(params, context);
+    await handler.generateAsIdentity(params, context);
+    await handler.generateContentBatch(params, context);
+
+    expect(textGeneration.aiAction).toHaveBeenCalledWith(params, context);
+    expect(textGeneration.generateContent).toHaveBeenCalledWith(
+      params,
+      context,
+    );
+    expect(assetGeneration.generateImage).toHaveBeenCalledWith(params, context);
+    expect(assetGeneration.reframeImage).toHaveBeenCalledWith(params, context);
+    expect(assetGeneration.upscaleImage).toHaveBeenCalledWith(params, context);
+    expect(assetGeneration.generateVideo).toHaveBeenCalledWith(params, context);
+    expect(assetGeneration.generateMusic).toHaveBeenCalledWith(params, context);
+    expect(assetGeneration.generateVoice).toHaveBeenCalledWith(params, context);
+    expect(assetGeneration.generateAsIdentity).toHaveBeenCalledWith(
+      params,
+      context,
+    );
+    expect(batchGeneration.generateContentBatch).toHaveBeenCalledWith(
+      params,
+      context,
+    );
+    for (const owner of [textGeneration, assetGeneration, batchGeneration]) {
+      for (const method of Object.values(owner)) {
+        expect(method).toHaveBeenCalledOnce();
+      }
+    }
+  });
+});
 
 describe('AgentMediaGenerationToolHandler text previews', () => {
   it('preserves organization scope and action mapping for AI text actions', async () => {
@@ -554,25 +627,21 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       queueBatch: vi.fn().mockResolvedValue('job-1'),
     };
 
-    const handler = new AgentMediaGenerationToolHandler(
+    const batchOwner = new AgentMediaBatchGenerationService(
       logger as never,
-      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
-      { callInternalApi: vi.fn() } as never,
-      {} as never,
-      { generateContent: vi.fn() } as never,
-      {
-        checkOnboardingStatus: vi.fn(),
-        completeJourneyMission: vi.fn(),
-      } as never,
       {} as never,
       batchGenerationService as never,
-      undefined,
       undefined,
       undefined,
       creditsUtilsService as never,
       batchCreditsService as never,
       undefined,
       batchGenerationQueueService as never,
+    );
+    const handler = new AgentMediaGenerationToolHandler(
+      {} as never,
+      {} as never,
+      batchOwner,
     );
 
     return {
@@ -758,22 +827,21 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       }),
     };
     const queue = { queueBatch: vi.fn().mockResolvedValue('job-handle-1') };
-    const handler = new AgentMediaGenerationToolHandler(
+    const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
-      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
-      { callInternalApi: vi.fn() } as never,
       {} as never,
-      { generateContent: vi.fn() } as never,
-      {} as never,
-      { findOne: vi.fn() } as never,
       batchGenerationService as never,
       credentialsService as never,
-      undefined,
       undefined,
       { deductCreditsFromOrganization: vi.fn() } as never,
       { recordUpfrontCharge: vi.fn() } as never,
       undefined,
       queue as never,
+    );
+    const handler = new AgentMediaGenerationToolHandler(
+      {} as never,
+      {} as never,
+      batchOwner,
     );
 
     await handler.generateContentBatch(
@@ -811,16 +879,10 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       }),
       processBatch,
     };
-    const handler = new AgentMediaGenerationToolHandler(
+    const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
-      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
-      { callInternalApi: vi.fn() } as never,
       {} as never,
-      { generateContent: vi.fn() } as never,
-      {} as never,
-      { findOne: vi.fn() } as never,
       batchGenerationService as never,
-      undefined,
       undefined,
       undefined,
       { deductCreditsFromOrganization: vi.fn() } as never,
@@ -830,6 +892,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       } as never,
       undefined,
       { queueBatch: vi.fn().mockResolvedValue(undefined) } as never,
+    );
+    const handler = new AgentMediaGenerationToolHandler(
+      {} as never,
+      {} as never,
+      batchOwner,
     );
 
     const result = await handler.generateContentBatch(
