@@ -287,12 +287,14 @@ export class TrendSourcePreviewService {
         ? { id: trendId, isDeleted: false, organizationId: null }
         : scopedWhere(organizationId, { id: trendId });
 
+    // tenant-scope-ignore: where is built immediately above and always pins organizationId plus isDeleted for both global and tenant rows
     const existingDoc = await this.prisma.trend.findFirst({
       where,
     });
     if (existingDoc) {
       const existingData =
         (existingDoc.data as unknown as Record<string, unknown>) ?? {};
+      // tenant-scope-ignore: reuse the same organizationId-and-isDeleted scope proven by the preceding lookup
       await this.prisma.trend.update({
         data: { data: toPrismaJson({ ...existingData, metadata }) },
         where,

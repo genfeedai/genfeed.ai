@@ -88,6 +88,7 @@ export class TrendAnalysisService {
       where.createdAt = createdAtFilter;
     }
 
+    // tenant-scope-ignore: this global-or-tenant corpus query always assigns organizationId, brandId, and isDeleted before Prisma sees the dynamic filters
     const docs = await this.prisma.trend.findMany({
       orderBy: { createdAt: 'desc' },
       take: options.limit ?? 1000,
