@@ -22,6 +22,9 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
   avatar: {
     capabilities: {
       hasAspectRatio: false,
+      // `POST /videos/avatar` takes a photo, a script, and a voice — no brand
+      // enrichment fields, so the Brand switch would be a lie here.
+      hasBrandEnrichment: false,
       hasDuration: false,
       hasIdentity: true,
       hasLook: false,
@@ -35,12 +38,16 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
     ingredientCategory: IngredientCategory.AVATAR,
     label: 'Avatar',
     modelCategory: null,
-    resourceSegment: 'avatars',
+    // An avatar clip is persisted as a *video* ingredient — the backend
+    // publishes `WebSocketPaths.video(id)` and stores it in `/videos`. The
+    // `/avatars` collection holds the source portraits, which are inputs.
+    resourceSegment: 'videos',
     type: 'avatar',
   },
   image: {
     capabilities: {
       hasAspectRatio: true,
+      hasBrandEnrichment: true,
       hasDuration: false,
       hasIdentity: false,
       hasLook: true,
@@ -59,6 +66,8 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
   music: {
     capabilities: {
       hasAspectRatio: false,
+      // The music payload carries model + duration only.
+      hasBrandEnrichment: false,
       hasDuration: true,
       hasIdentity: false,
       hasLook: false,
@@ -77,6 +86,7 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
   video: {
     capabilities: {
       hasAspectRatio: true,
+      hasBrandEnrichment: true,
       hasDuration: true,
       hasIdentity: false,
       hasLook: true,
@@ -84,7 +94,9 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       // Video providers bill per clip — one clip per generate, no multiplier.
       hasOutputs: false,
       hasReferences: true,
-      hasSpeech: true,
+      // A video prompt describes a scene. Spoken-script clips are the Avatar
+      // type — nothing in the video payload carries a script.
+      hasSpeech: false,
     },
     elementsType: 'video',
     ingredientCategory: IngredientCategory.VIDEO,
@@ -96,6 +108,8 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
   voice: {
     capabilities: {
       hasAspectRatio: false,
+      // `POST /voices/generate` takes text + voice id, nothing brand-shaped.
+      hasBrandEnrichment: false,
       hasDuration: false,
       hasIdentity: true,
       hasLook: false,

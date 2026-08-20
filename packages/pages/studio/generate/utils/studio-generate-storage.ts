@@ -1,3 +1,4 @@
+import { RouterPriority } from '@genfeedai/enums';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,
@@ -77,6 +78,13 @@ function pickOutputs(value: unknown, fallback: number): number {
     : fallback;
 }
 
+function isRouterPriority(value: unknown): value is RouterPriority {
+  return (
+    typeof value === 'string' &&
+    (Object.values(RouterPriority) as string[]).includes(value)
+  );
+}
+
 function pickStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -103,7 +111,7 @@ export function sanitizeStudioGenerateSettings(
   const durations = getStudioDurations(type);
   const {
     aspectRatio,
-    avatarId,
+    avatarPhotoUrl,
     blacklist,
     brandingMode,
     camera,
@@ -116,6 +124,7 @@ export function sanitizeStudioGenerateSettings(
     modelKey,
     mood,
     outputs,
+    prioritize,
     promptTemplate,
     resolution,
     scene,
@@ -131,7 +140,7 @@ export function sanitizeStudioGenerateSettings(
       getStudioAspectRatios(type),
       defaults.aspectRatio,
     ),
-    avatarId: pickFreeText(avatarId),
+    avatarPhotoUrl: pickFreeText(avatarPhotoUrl),
     blacklist: pickStringList(blacklist),
     brandingMode: brandingMode === 'off' ? 'off' : 'brand',
     camera: pickFreeText(camera),
@@ -147,6 +156,7 @@ export function sanitizeStudioGenerateSettings(
         : defaults.modelKey,
     mood: pickFreeText(mood),
     outputs: pickOutputs(outputs, defaults.outputs),
+    prioritize: isRouterPriority(prioritize) ? prioritize : defaults.prioritize,
     promptTemplate: pickFreeText(promptTemplate),
     resolution: pickString(
       resolution,

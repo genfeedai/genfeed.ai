@@ -15,13 +15,15 @@ import type {
   StudioGenerateType,
 } from '@pages/studio/generate/types';
 import {
-  buildAvatarPayload,
   buildBaseGenerationPayload,
   buildImagePayload,
   buildMusicPayload,
   buildVideoPayload,
 } from '@pages/studio/generate/utils/generation-payloads';
-import { resolveStudioAssetUrl } from '@pages/studio/generate/utils/studio-generate-asset';
+import {
+  resolveJsonApiIngredientId,
+  resolveStudioAssetUrl,
+} from '@pages/studio/generate/utils/studio-generate-asset';
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -149,6 +151,8 @@ export function useStudioGeneration({
         case 'image':
           return await getImagesService();
         case 'video':
+        // An avatar clip is stored as a video ingredient.
+        case 'avatar':
           return await getVideosService();
         case 'music':
           return await getMusicsService();
@@ -224,7 +228,13 @@ export function useStudioGeneration({
                 'Failed to load Studio generation result after socket event',
                 error,
               );
-              patchJob(pendingId, { status: IngredientStatus.GENERATED });
+              // The asset may well exist, but we could not read it — showing a
+              // finished card with no media would be a lie. Fail it loudly and
+              // let the gallery refresh surface the row if it did land.
+              patchJob(pendingId, {
+                error: 'Generation finished but the asset could not be loaded',
+                status: IngredientStatus.FAILED,
+              });
               onGeneratedRef.current?.();
             } finally {
               cleanup();
@@ -330,11 +340,23 @@ export function useStudioGeneration({
           }
 
           case 'avatar': {
+            if (!settings.avatarPhotoUrl) {
+              notificationsService.error('Pick an avatar before generating');
+              break;
+            }
+
             const service = await getHeyGenService();
-            const data = (await service.generate(
-              buildAvatarPayload(promptData),
-            )) as unknown as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            // `avatarId` on this endpoint means a HeyGen catalog id. Genfeed
+            // portraits are our own ingredients, so they travel as `photoUrl`.
+            const data = await service.generate({
+              photoUrl: settings.avatarPhotoUrl,
+              text: promptData.speech?.trim() || promptData.text?.trim() || '',
+              voiceId: settings.voiceId,
+            });
+            trackPendingIds([resolveJsonApiIngredientId(data)], {
+              modelKey,
+              promptText,
+            });
             break;
           }
 
@@ -374,9 +396,26 @@ export function useStudioGeneration({
         }
       } catch (error) {
         logger.error('Studio generation failed', error);
-        notificationsService.error(
-          toErrorMessage(error, `Failed to generate ${config.label}`),
+        const message = toErrorMessage(
+          error,
+          `Failed to generate ${config.label}`,
         );
+
+        // A toast disappears. Leave a failed card so the operator can see what
+        // died and reprompt it without retyping.
+        setJobs((previous) => [
+          {
+            createdAt: Date.now(),
+            error: message,
+            id: `failed-${crypto.randomUUID()}`,
+            modelKey: modelKey || undefined,
+            prompt: promptText,
+            status: IngredientStatus.FAILED,
+            type,
+          },
+          ...previous,
+        ]);
+        notificationsService.error(message);
       } finally {
         setIsGenerating(false);
       }

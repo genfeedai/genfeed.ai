@@ -199,7 +199,7 @@ describe('buildStudioPromptData', () => {
       promptText: '',
       settings: {
         ...getDefaultStudioGenerateSettings('avatar'),
-        avatarId: 'avatar-1',
+        avatarPhotoUrl: 'https://cdn.genfeed.test/portrait.png',
         speech: 'Hello from Genfeed',
         voiceId: 'voice-1',
       },
@@ -207,7 +207,9 @@ describe('buildStudioPromptData', () => {
     });
 
     expect(promptData.isValid).toBe(true);
-    expect(promptData.avatarId).toBe('avatar-1');
+    // `avatarId` on the avatar endpoint means a HeyGen catalog id we never
+    // hold; Genfeed portraits travel as `photoUrl` instead.
+    expect(promptData.avatarId).toBeUndefined();
     expect(promptData.voiceId).toBe('voice-1');
   });
 });
@@ -263,6 +265,22 @@ describe('studio prompt data feeding the Genfeed enrichment payload', () => {
     expect(payload.brandingMode).toBe('off');
     expect(payload.isBrandingEnabled).toBe(false);
   });
+
+  it('never claims enrichment on a type whose payload cannot carry it', () => {
+    // Music, avatar, and voice reach their providers without the brand
+    // fields, so an enabled Brand switch there would be a lie.
+    const promptData = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'Lo-fi loop',
+      settings: {
+        ...getDefaultStudioGenerateSettings('music'),
+        brandingMode: 'brand',
+      },
+      type: 'music',
+    });
+
+    expect(promptData.isBrandingEnabled).toBe(false);
+  });
 });
 
 describe('describeStudioGenerateSettings', () => {
@@ -298,12 +316,13 @@ describe('describeStudioGenerateSettings', () => {
   });
 
   it('omits visual segments for types without them', () => {
+    // No Brand chip on music: the music payload carries model + duration only.
     expect(
       describeStudioGenerateSettings(
         getDefaultStudioGenerateSettings('music'),
         'music',
       ),
-    ).toBe('10s \u00b7 Brand');
+    ).toBe('10s');
 
     expect(
       describeStudioGenerateSettings(

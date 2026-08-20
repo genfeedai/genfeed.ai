@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildStudioGalleryQuery,
+  listStudioGalleryFilters,
   resolveStudioGallerySegments,
   STUDIO_GALLERY_PAGE_SIZE,
 } from './studio-generate-gallery';
@@ -11,14 +12,35 @@ describe('resolveStudioGallerySegments', () => {
       'images',
       'videos',
       'musics',
-      'avatars',
       'voices',
     ]);
+  });
+
+  it('never pages one collection twice when two types share it', () => {
+    // Avatar clips are stored as videos — fanning out to `/videos` twice would
+    // double every video row in the grid.
+    const segments = resolveStudioGallerySegments('all');
+
+    expect(new Set(segments).size).toBe(segments.length);
   });
 
   it('reads a single collection for a concrete type', () => {
     expect(resolveStudioGallerySegments('music')).toEqual(['musics']);
     expect(resolveStudioGallerySegments('voice')).toEqual(['voices']);
+    expect(resolveStudioGallerySegments('avatar')).toEqual(['videos']);
+  });
+});
+
+describe('listStudioGalleryFilters', () => {
+  it('offers a pill per output collection, All first', () => {
+    // No Avatar pill: it would list the same `/videos` rows as Video.
+    expect([...listStudioGalleryFilters()]).toEqual([
+      'all',
+      'image',
+      'video',
+      'music',
+      'voice',
+    ]);
   });
 });
 

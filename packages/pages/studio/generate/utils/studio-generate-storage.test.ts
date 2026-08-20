@@ -99,6 +99,26 @@ describe('sanitizeStudioGenerateSettings', () => {
     );
   });
 
+  it('restores a persisted router priority and rejects an unknown one', () => {
+    expect(
+      sanitizeStudioGenerateSettings('image', {
+        prioritize: RouterPriority.QUALITY,
+      }).prioritize,
+    ).toBe(RouterPriority.QUALITY);
+    expect(
+      sanitizeStudioGenerateSettings('image', { prioritize: 'fastest' })
+        .prioritize,
+    ).toBe(RouterPriority.BALANCED);
+  });
+
+  it('restores the chosen portrait url for avatar', () => {
+    expect(
+      sanitizeStudioGenerateSettings('avatar', {
+        avatarPhotoUrl: 'https://cdn.genfeed.test/portrait.png',
+      }).avatarPhotoUrl,
+    ).toBe('https://cdn.genfeed.test/portrait.png');
+  });
+
   it('keeps Look elements and drops blank ones', () => {
     const settings = sanitizeStudioGenerateSettings('image', {
       lighting: '   ',

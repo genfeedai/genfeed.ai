@@ -58,7 +58,10 @@ export default function StudioGenerateComposer({
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
   const isPromptEmpty = prompt.trim().length === 0;
-  const isSubmitBlocked = isGenerating || isPromptEmpty;
+  // Submitting mid-catalog-load would resolve the model against an empty or
+  // stale list, so the send button waits for the type's models to land.
+  const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
+  const isSubmitBlocked = isGenerating || isPromptEmpty || isAwaitingModels;
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
 
   const handleModelChange = (_name: string, values: string[]) => {

@@ -124,3 +124,33 @@ export function filterStudioGenerateJobs(
     return true;
   });
 }
+
+/**
+ * Ingredient id out of a JSON:API single-resource document.
+ *
+ * `POST /videos/avatar` answers with the serialized ingredient
+ * (`{ data: { id, type, attributes } }`) rather than the `pendingIngredientIds`
+ * envelope every router-backed generation endpoint returns, so
+ * `resolvePendingIds` cannot read it.
+ */
+export function resolveJsonApiIngredientId(response: unknown): string {
+  const data =
+    typeof response === 'object' && response !== null && 'data' in response
+      ? (response as { data?: unknown }).data
+      : response;
+
+  const id =
+    typeof data === 'object' && data !== null && 'id' in data
+      ? (data as { id?: unknown }).id
+      : undefined;
+
+  if (typeof id === 'string' && id) {
+    return id;
+  }
+
+  if (typeof id === 'number') {
+    return String(id);
+  }
+
+  throw new Error('Avatar generation response carried no ingredient id');
+}
