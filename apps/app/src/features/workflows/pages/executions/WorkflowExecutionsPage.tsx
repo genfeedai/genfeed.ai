@@ -1,8 +1,8 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AuthenticationTokenUnavailableError,
   useAuthedService,
