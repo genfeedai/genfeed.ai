@@ -1,5 +1,4 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { isFalDestination } from '@api/collections/models/utils/model-key.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -84,20 +83,26 @@ export class CronFalModelWatcherService {
     };
 
     try {
-      // Step 1: Fetch all known model keys from the registry. The diff only
-      // needs keys, so read them straight off the delegate instead of pulling
-      // every row's JSONB config through `modelsService.find`.
+      // Step 1: Fetch all known provider identities from the registry. The diff
+      // only needs provider + endpoint, so read them straight off the delegate
+      // instead of pulling every row's JSONB config through
+      // `modelsService.find`.
       const registryRows = await this.modelsService.prisma.model.findMany({
-        select: { key: true },
+        select: { endpoint: true, key: true, provider: true },
         where: { isDeleted: false },
       });
-      const existingKeys = new Set(
+      const existingEndpoints = new Set(
         registryRows
-          .map((row) => row.key)
-          .filter((key): key is string => typeof key === 'string'),
+          .filter((row) => row.provider === ModelProvider.FAL)
+          .map((row) => row.endpoint || row.key)
+          .filter(
+            (endpoint): endpoint is string => typeof endpoint === 'string',
+          ),
       );
 
-      this.logger.log(`${url} loaded ${existingKeys.size} existing model keys`);
+      this.logger.log(
+        `${url} loaded ${existingEndpoints.size} existing fal endpoints`,
+      );
 
       // Step 2: Poll the fal model search API
       const falModels = await this.pollFalModels();
@@ -114,7 +119,7 @@ export class CronFalModelWatcherService {
 
       // Step 4: Diff against the registry
       const newModels = routableModels.filter(
-        (model) => !existingKeys.has(model.endpoint_id),
+        (model) => !existingEndpoints.has(model.endpoint_id),
       );
 
       summary.newModelsFound = newModels.length;
@@ -155,10 +160,13 @@ export class CronFalModelWatcherService {
       }
 
       // Step 6: Touch lastSyncedAt for fal models seen in this run.
-      const syncedKeys = routableModels
+      const syncedEndpoints = routableModels
         .map((model) => model.endpoint_id)
-        .filter((key) => existingKeys.has(key));
-      await this.modelDiscoveryService.touchLastSyncedAt(syncedKeys);
+        .filter((endpoint) => existingEndpoints.has(endpoint));
+      await this.modelDiscoveryService.touchLastSyncedAt(
+        ModelProvider.FAL,
+        syncedEndpoints,
+      );
 
       // Step 7: Log summary
       this.logger.log(`${url} completed`, {
@@ -267,26 +275,20 @@ export class CronFalModelWatcherService {
   /**
    * A fal endpoint is only worth drafting when generation can actually reach it.
    *
-   * Generation traffic is routed by key prefix (`isFalDestination`), so only the
-   * `fal-ai/` namespace reaches `FalService`. fal also hosts third-party
-   * namespaces (`google/…`, `openai/…`) whose endpoint ids collide with
-   * Replicate keys and would route to the wrong provider — discovery ignores
-   * everything outside `fal-ai/`, plus anything deprecated upstream.
+   * Provider-aware identity lets any active fal endpoint reach `FalService`,
+   * including partner namespaces that overlap Replicate `owner/model` keys.
+   * Discovery therefore filters only on upstream lifecycle state.
    */
   private isRoutableModel(model: IFalModel): boolean {
-    if (!isFalDestination(model.endpoint_id)) {
-      return false;
-    }
-
     const status = model.metadata?.status;
 
     return !status || status === FAL_MODEL_STATUS_ACTIVE;
   }
 
   /**
-   * Build the shared discovery input from a fal endpoint. The registry key is
-   * the fal endpoint id verbatim, so `owner` is its first segment and `name`
-   * carries the remaining (possibly nested) path.
+   * Build the shared discovery input from a Fal endpoint. The provider endpoint
+   * stays verbatim while the discovery service derives a collision-safe public
+   * key; `owner` is the first segment and `name` carries the remaining path.
    */
   private buildDiscoveryInput(model: IFalModel): IModelDiscoveryInput {
     const [owner, ...rest] = model.endpoint_id.split('/');
@@ -296,6 +298,7 @@ export class CronFalModelWatcherService {
     return {
       category: this.detectModelCategory(model),
       description: metadata?.description || '',
+      endpoint: model.endpoint_id,
       name: rest.join('/'),
       owner: owner as string,
       provider: ModelProvider.FAL,

@@ -124,17 +124,19 @@ export class VideoGenerationPreparationService {
     );
     const validationOrgId =
       user.organizationId || request.context?.organizationId;
-    if (validationOrgId) {
-      await this.modelRegistrationService.validateModelForOrg(
-        model,
-        validationOrgId,
-      );
-    }
+    const registeredModel = validationOrgId
+      ? await this.modelRegistrationService.validateModelForOrg(
+          model,
+          validationOrgId,
+        )
+      : undefined;
 
     return {
       brand,
       createVideoDto,
       model,
+      modelEndpoint: registeredModel?.endpoint || model,
+      modelProvider: registeredModel?.provider,
       referenceIds,
       request,
       user,

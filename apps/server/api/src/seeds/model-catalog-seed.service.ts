@@ -150,6 +150,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDiscovered: false,
       isHighlighted: entry.isHighlighted ?? false,
       isPublic: entry.isPublic ?? true,
+      endpoint: entry.key,
       key: entry.key,
       label: entry.label,
       provider: entry.provider,

@@ -10,6 +10,7 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
+import type { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -34,14 +35,17 @@ export class ImageGenerationProviderRegistryService {
     ];
   }
 
-  supports(model: string): boolean {
-    return this.adapters.some((adapter) => adapter.supports(model));
+  supports(model: string, provider?: ModelProvider | string): boolean {
+    return this.adapters.some((adapter) => adapter.supports(model, provider));
   }
 
-  providerFor(model: string): ImageGenerationProvider | null {
+  providerFor(
+    model: string,
+    provider?: ModelProvider | string,
+  ): ImageGenerationProvider | null {
     return (
-      this.adapters.find((candidate) => candidate.supports(model))?.provider ??
-      null
+      this.adapters.find((candidate) => candidate.supports(model, provider))
+        ?.provider ?? null
     );
   }
 
@@ -49,7 +53,7 @@ export class ImageGenerationProviderRegistryService {
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider | null> {
     const adapter = this.adapters.find((candidate) =>
-      candidate.supports(request.model),
+      candidate.supports(request.model, request.modelProvider),
     );
     return adapter ? adapter.prepare(request) : null;
   }

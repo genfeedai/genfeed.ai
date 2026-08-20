@@ -1,9 +1,13 @@
-import { isFalDestination } from '@api/collections/models/utils/model-key.util';
+import {
+  getFalEndpointFromModelKey,
+  isFalDestination,
+} from '@api/collections/models/utils/model-key.util';
 import type {
   DispatchVideoGenerationParams,
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
+import type { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 
@@ -15,18 +19,21 @@ export class FalVideoGenerationProviderAdapter
 
   constructor(private readonly falService: FalService) {}
 
-  supports(model: string): boolean {
-    return isFalDestination(model);
+  supports(model: string, provider?: ModelProvider | string): boolean {
+    return isFalDestination(model, provider);
   }
 
   async generate(
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult> {
-    const result = await this.falService.generateVideo(params.model, {
-      prompt: params.prompt,
-      ...(params.duration && { duration: params.duration }),
-      ...(params.imageUrl && { image_url: params.imageUrl }),
-    });
+    const result = await this.falService.generateVideo(
+      params.modelEndpoint ?? getFalEndpointFromModelKey(params.model),
+      {
+        prompt: params.prompt,
+        ...(params.duration && { duration: params.duration }),
+        ...(params.imageUrl && { image_url: params.imageUrl }),
+      },
+    );
     return {
       completion: 'remote-output',
       externalId: result.url,

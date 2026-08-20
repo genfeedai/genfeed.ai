@@ -39,6 +39,15 @@ export class CreateModelDto {
   })
   readonly key!: string;
 
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Provider-side endpoint. Defaults to key for backward compatibility.',
+    required: false,
+  })
+  readonly endpoint?: string;
+
   @IsString()
   @ApiProperty({
     description: 'The provider/service that hosts this model',

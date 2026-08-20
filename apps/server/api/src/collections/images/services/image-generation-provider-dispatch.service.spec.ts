@@ -8,7 +8,7 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus, ModelProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -281,6 +281,47 @@ describe('ImageGenerationProviderDispatchService', () => {
     ]);
     expect(activitiesService.create).toHaveBeenCalledTimes(1);
     expect(plan?.kind).toBe('background-only');
+  });
+
+  it('routes a non-prefix Fal partner endpoint by provider identity', async () => {
+    falService.generateImage.mockResolvedValueOnce({
+      url: 'https://fal.example.com/partner.png',
+    });
+    const context = buildContext({
+      model: 'fal/google/nano-banana-2-lite',
+      modelEndpoint: 'google/nano-banana-2-lite',
+      modelProvider: ModelProvider.FAL,
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(falService.generateImage).toHaveBeenCalledWith(
+      'google/nano-banana-2-lite',
+      expect.objectContaining({ prompt: 'A cinematic sunrise' }),
+    );
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
+  it('keeps a colliding endpoint on Replicate when its provider is Replicate', async () => {
+    promptBuilderService.buildPrompt.mockResolvedValue({
+      input: { prompt: 'provider prompt' },
+    });
+    replicateService.generateTextToImage.mockResolvedValue('replicate-job');
+    const context = buildContext({
+      model: 'google/nano-banana-2-lite',
+      modelEndpoint: 'google/nano-banana-2-lite',
+      modelProvider: ModelProvider.REPLICATE,
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+      'google/nano-banana-2-lite',
+      expect.any(Object),
+    );
+    expect(falService.generateImage).not.toHaveBeenCalled();
   });
 
   it('routes Leonardo with its existing request and polling result', async () => {

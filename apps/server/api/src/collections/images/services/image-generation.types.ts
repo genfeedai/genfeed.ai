@@ -10,6 +10,7 @@ import type {
   FluxSchnellDispatch,
   GenerationBriefPersistedEvidence,
 } from '@api-types/contracts/generation-brief-compiler.contract';
+import type { ModelProvider } from '@genfeedai/enums';
 
 export type ImageGenerationProvider =
   | 'genfeedai'
@@ -54,6 +55,8 @@ export interface ImageGenerationContext {
   ingredientData: ImageGenerationSavedIngredient;
   metadataData: ImageGenerationSavedMetadata;
   model: string;
+  modelEndpoint?: string;
+  modelProvider?: ModelProvider | string;
   outputs: number;
   pendingIngredientIds: string[];
   promptBuilderBrand: {
@@ -88,6 +91,8 @@ export interface ImageGenerationProviderRequest {
   createImageDto: CreateImageDto;
   height: number;
   model: string;
+  modelEndpoint?: string;
+  modelProvider?: ModelProvider | string;
   organizationId: string;
   outputs: number;
   prompt: string;
@@ -129,5 +134,5 @@ export interface ImageGenerationProviderAdapter {
   prepare(
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider>;
-  supports(model: string): boolean;
+  supports(model: string, provider?: ModelProvider | string): boolean;
 }

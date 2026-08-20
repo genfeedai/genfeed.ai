@@ -24,7 +24,7 @@ export class VideoGenerationProviderDispatchService {
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult> {
     const adapter = this.adapters.find((candidate) =>
-      candidate.supports(params.model),
+      candidate.supports(params.model, params.modelProvider),
     );
     if (!adapter) {
       throw new Error(`No video provider adapter for model ${params.model}`);

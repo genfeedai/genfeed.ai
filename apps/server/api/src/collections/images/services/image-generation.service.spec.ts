@@ -15,6 +15,7 @@ import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientStatus,
   ModelCategory,
+  ModelProvider,
   PromptStatus,
 } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -102,7 +103,14 @@ const createService = () => {
     findOne: vi.fn().mockResolvedValue(null),
   };
   const modelRegistrationService = {
-    validateModelForOrg: vi.fn().mockResolvedValue(undefined),
+    validateModelForOrg: vi
+      .fn<
+        (
+          model: string,
+          organizationId: string,
+        ) => Promise<{ endpoint: string; provider: ModelProvider } | undefined>
+      >()
+      .mockResolvedValue(undefined),
   };
   const modelsService = {
     findOne: vi.fn().mockResolvedValue({ cost: 10 }),
@@ -348,6 +356,33 @@ describe('ImageGenerationService', () => {
         ORG,
       );
       expect(falService.generateImage).toHaveBeenCalled();
+    });
+
+    it('dispatches a Fal partner selection key to its exact registered endpoint', async () => {
+      const {
+        service,
+        modelRegistrationService,
+        falService,
+        replicateService,
+      } = createService();
+      const selectionKey = 'fal/google/nano-banana-2-lite';
+      const endpoint = 'google/nano-banana-2-lite';
+      modelRegistrationService.validateModelForOrg.mockResolvedValue({
+        endpoint,
+        provider: ModelProvider.FAL,
+      });
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: selectionKey }),
+        buildRequest(),
+      );
+
+      expect(falService.generateImage).toHaveBeenCalledWith(
+        endpoint,
+        expect.any(Object),
+      );
+      expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
     });
 
     it('logs an error when the registry had nothing and the constant was used', async () => {

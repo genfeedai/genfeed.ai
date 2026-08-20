@@ -1,5 +1,7 @@
 import {
   baseModelKey,
+  getFalEndpointFromModelKey,
+  getProviderModelKey,
   isFalDestination,
   isGenfeedAiDestination,
   isReplicateDestination,
@@ -8,6 +10,7 @@ import {
   isTrainingKey,
 } from '@api/collections/models/utils/model-key.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
 
 // Contract tests for the model-routing heuristics that decide which provider a
 // given model key resolves to. These are string-prefix/regex heuristics on the
@@ -49,8 +52,21 @@ describe('model-key.util', () => {
       expect(isFalDestination('FAL-AI/Flux')).toBe(true);
     });
 
-    it('rejects lookalike prefixes that are not fal-ai/', () => {
-      expect(isFalDestination('fal/flux')).toBe(false);
+    it('detects collision-safe fal/ selection keys', () => {
+      expect(isFalDestination('fal/google/nano-banana-2-lite')).toBe(true);
+      expect(isFalDestination('fal/minimax/h3/text-to-video')).toBe(true);
+    });
+
+    it('uses an explicit provider for partner endpoints', () => {
+      expect(
+        isFalDestination('google/nano-banana-2-lite', ModelProvider.FAL),
+      ).toBe(true);
+      expect(
+        isFalDestination('google/nano-banana-2-lite', ModelProvider.REPLICATE),
+      ).toBe(false);
+    });
+
+    it('rejects lookalike prefixes that are not Fal selection keys', () => {
       expect(isFalDestination('fal-ai-studio/flux')).toBe(false);
       expect(isFalDestination('myfal-ai/flux')).toBe(false);
     });
@@ -109,6 +125,15 @@ describe('model-key.util', () => {
       expect(isReplicateDestination('Google/Imagen-4')).toBe(true);
     });
 
+    it('uses an explicit provider to resolve owner/model collisions', () => {
+      const endpoint = 'google/nano-banana-2-lite';
+
+      expect(isReplicateDestination(endpoint, ModelProvider.FAL)).toBe(false);
+      expect(isReplicateDestination(endpoint, ModelProvider.REPLICATE)).toBe(
+        true,
+      );
+    });
+
     it('excludes fal-ai destinations even when dot-versioned', () => {
       expect(isReplicateDestination('fal-ai/veo3.1')).toBe(false);
       expect(isReplicateDestination('fal-ai/seedance-2.0')).toBe(false);
@@ -146,6 +171,49 @@ describe('model-key.util', () => {
     it('rejects non-string inputs', () => {
       expect(isReplicateDestination(undefined)).toBe(false);
       expect(isReplicateDestination(null as unknown as string)).toBe(false);
+    });
+  });
+
+  describe('getProviderModelKey', () => {
+    it('preserves existing Fal and Replicate model keys', () => {
+      expect(getProviderModelKey(ModelProvider.FAL, 'fal-ai/flux/dev')).toBe(
+        'fal-ai/flux/dev',
+      );
+      expect(
+        getProviderModelKey(
+          ModelProvider.REPLICATE,
+          'google/nano-banana-2-lite',
+        ),
+      ).toBe('google/nano-banana-2-lite');
+    });
+
+    it('qualifies Fal partner endpoints without changing their endpoint', () => {
+      expect(
+        getProviderModelKey(ModelProvider.FAL, 'google/nano-banana-2-lite'),
+      ).toBe('fal/google/nano-banana-2-lite');
+      expect(
+        getProviderModelKey(ModelProvider.FAL, 'minimax/h3/text-to-video'),
+      ).toBe('fal/minimax/h3/text-to-video');
+    });
+
+    it('qualifies Fal endpoints whose provider namespace is literally fal', () => {
+      expect(getProviderModelKey(ModelProvider.FAL, 'fal/example')).toBe(
+        'fal/fal/example',
+      );
+    });
+  });
+
+  describe('getFalEndpointFromModelKey', () => {
+    it('unwraps collision-safe Fal selection keys', () => {
+      expect(getFalEndpointFromModelKey('fal/google/nano-banana-2-lite')).toBe(
+        'google/nano-banana-2-lite',
+      );
+    });
+
+    it('preserves historical fal-ai endpoints', () => {
+      expect(getFalEndpointFromModelKey('fal-ai/flux/dev')).toBe(
+        'fal-ai/flux/dev',
+      );
     });
   });
 
@@ -263,6 +331,12 @@ describe('model-key.util', () => {
       replicate: boolean;
     }> = [
       { fal: true, genfeedAi: false, key: 'fal-ai/flux/dev', replicate: false },
+      {
+        fal: true,
+        genfeedAi: false,
+        key: 'fal/google/nano-banana-2-lite',
+        replicate: false,
+      },
       {
         fal: false,
         genfeedAi: true,

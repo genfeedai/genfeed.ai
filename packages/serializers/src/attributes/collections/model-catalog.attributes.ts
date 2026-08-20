@@ -13,6 +13,7 @@
  */
 export const modelCatalogAttributes = [
   'key',
+  'endpoint',
   'label',
   'description',
   'category',

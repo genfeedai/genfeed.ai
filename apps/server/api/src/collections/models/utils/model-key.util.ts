@@ -1,4 +1,5 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
 
 export function baseModelKey(key?: string): string | undefined {
   if (!key || typeof key !== 'string') {
@@ -24,12 +25,46 @@ export function isTrainerKey(key?: string): boolean {
   return base === MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER;
 }
 
-export function isFalDestination(key?: string): boolean {
+export function isFalDestination(
+  key?: string,
+  provider?: ModelProvider | string,
+): boolean {
   if (!key || typeof key !== 'string') {
     return false;
   }
 
-  return key.toLowerCase().startsWith('fal-ai/');
+  if (provider) {
+    return provider === ModelProvider.FAL;
+  }
+
+  const normalized = key.toLowerCase();
+  return normalized.startsWith('fal-ai/') || normalized.startsWith('fal/');
+}
+
+/**
+ * Build the stable public selection key for a provider endpoint.
+ *
+ * Replicate and historical `fal-ai/*` keys remain unchanged. Fal partner
+ * endpoints receive a `fal/` selection namespace so they can coexist with a
+ * Replicate row that uses the same provider-side `owner/model` endpoint.
+ */
+export function getProviderModelKey(
+  provider: ModelProvider | string,
+  endpoint: string,
+): string {
+  if (
+    provider === ModelProvider.FAL &&
+    !endpoint.toLowerCase().startsWith('fal-ai/')
+  ) {
+    return `fal/${endpoint}`;
+  }
+
+  return endpoint;
+}
+
+/** Resolve a collision-safe Fal selection key back to its provider endpoint. */
+export function getFalEndpointFromModelKey(key: string): string {
+  return key.toLowerCase().startsWith('fal/') ? key.slice(4) : key;
 }
 
 export function isGenfeedAiDestination(key?: string): boolean {
@@ -40,9 +75,15 @@ export function isGenfeedAiDestination(key?: string): boolean {
   return key.toLowerCase().startsWith('genfeed-ai/');
 }
 
-export function isReplicateDestination(key?: string): boolean {
+export function isReplicateDestination(
+  key?: string,
+  provider?: ModelProvider | string,
+): boolean {
   if (!key || typeof key !== 'string') {
     return false;
+  }
+  if (provider) {
+    return provider === ModelProvider.REPLICATE;
   }
   if (isFalDestination(key) || isGenfeedAiDestination(key)) {
     return false;

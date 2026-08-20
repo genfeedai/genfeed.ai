@@ -13,6 +13,7 @@ export interface ServerModelRecord
     'category' | 'config' | 'maxDimensions' | 'minDimensions' | 'provider'
   > {
   category: ModelCategory | string;
+  endpoint: string;
   maxDimensions: ServerModelDimensions | null;
   minDimensions: ServerModelDimensions | null;
   provider: ModelProvider | string;

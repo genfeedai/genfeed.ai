@@ -2821,6 +2821,7 @@ model Model {
   childModels    Model[]       @relation("model_parent")
 
   key         String  @unique
+  endpoint    String
   label       String
   description String?
   category    String
@@ -2889,6 +2890,7 @@ model Model {
   @@index([category, isActive, isDeleted])
   @@index([provider, isActive, isDeleted])
   @@index([organizationId, isActive, isDeleted])
+  @@unique([provider, endpoint], map: "models_provider_endpoint_key")
   @@map("models")
 }
 

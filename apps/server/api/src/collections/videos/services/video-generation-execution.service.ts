@@ -218,6 +218,8 @@ export class VideoGenerationExecutionService {
       height: context.height,
       imageUrl: context.referenceImageUrls[0],
       model: context.model,
+      modelEndpoint: context.modelEndpoint,
+      modelProvider: context.modelProvider,
       prompt: context.promptInput.prompt || '',
       promptParams: context.promptParams,
       width: context.width,
