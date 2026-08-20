@@ -2529,22 +2529,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "adCreativeMapping",
-      "file": "apps/server/server/src/collections/ad-creative-mappings/services/ad-creative-mappings.service.ts",
-      "fingerprint": "7b1ed24af1aaa33805ae",
-      "method": "update",
-      "model": "AdCreativeMapping",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "adCreativeMapping",
-      "file": "apps/server/server/src/collections/ad-creative-mappings/services/ad-creative-mappings.service.ts",
-      "fingerprint": "47d5720ad04c4bd27110",
-      "method": "update",
-      "model": "AdCreativeMapping",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "adOptimizationConfig",
       "file": "apps/server/server/src/collections/ad-optimization-configs/services/ad-optimization-configs.service.ts",
       "fingerprint": "66ec2815a671f1806bd1",
