@@ -237,7 +237,13 @@ export function AgentChatContainer({
   );
 
   useEffect(() => {
-    if (isRegistryModelsLoading || registryModels.length === 0) {
+    if (isRegistryModelsLoading) {
+      return;
+    }
+    if (registryModels.length === 0) {
+      if (selectedModel) {
+        setSelectedModel(UNRESOLVED_RUNTIME_AGENT_MODEL);
+      }
       return;
     }
     // Explicit Auto is first-class — never replace it with a registry default.

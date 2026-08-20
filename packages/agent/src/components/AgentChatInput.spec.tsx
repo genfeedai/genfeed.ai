@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   fireEvent,
   render,
@@ -135,6 +137,17 @@ describe('AgentChatInput', () => {
     storeState.threads = [];
   });
 
+  it('resolves toolbar copy through the host agent catalog', () => {
+    const source = readFileSync(
+      join(__dirname, 'AgentChatInputToolbar.tsx'),
+      'utf8',
+    );
+    expect(source).toContain("useTranslations('agent.composerToolbar')");
+    expect(source).toContain("translate('noModelsEnabled')");
+    expect(source).toContain("{translate('actions')}");
+    expect(source).not.toContain('const COPY =');
+  });
+
   it('renders inside the shared prompt bar shell', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
@@ -150,16 +163,19 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('keeps Auto selectable when the required registry catalog is empty', async () => {
-    const user = userEvent.setup();
+  it('does not offer Auto when the required registry catalog is empty', () => {
     const onModelChange = vi.fn();
 
     render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
 
-    expect(screen.getByTestId('model-catalog-size')).toHaveTextContent('0');
-    await user.click(screen.getByRole('button', { name: 'Use Auto' }));
-
-    expect(onModelChange).toHaveBeenCalledWith('__auto_model__');
+    expect(
+      screen.getByRole('button', { name: /no models enabled/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Use Auto' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('model-catalog-size')).not.toBeInTheDocument();
+    expect(onModelChange).not.toHaveBeenCalled();
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {

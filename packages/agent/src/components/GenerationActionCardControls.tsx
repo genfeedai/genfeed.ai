@@ -46,6 +46,7 @@ type GenerationActionCardControlsProps = {
   isDisabled: boolean;
   modelsLoading: boolean;
   modelsError: string | null;
+  isAllowlistEmpty?: boolean;
   onRetryLoadModels: () => void;
   filteredModels: GenerationModel[];
   isAutoMode: boolean;
@@ -79,6 +80,7 @@ export function GenerationActionCardControls({
   isDisabled,
   modelsLoading,
   modelsError,
+  isAllowlistEmpty = false,
   onRetryLoadModels,
   filteredModels,
   isAutoMode,
@@ -118,7 +120,7 @@ export function GenerationActionCardControls({
     <>
       <div>
         <label htmlFor="gen-action-prompt" className="sr-only">
-          Prompt
+          {translate('promptLabel')}
         </label>
         <div className="flex items-center gap-1.5">
           <Textarea
@@ -199,14 +201,28 @@ export function GenerationActionCardControls({
                 <SelectTrigger
                   className={cn('w-44', SHELL_CONTROL_HEIGHT_CLASS)}
                 >
-                  <SelectValue placeholder="Loading Genfeed models…" />
+                  <SelectValue placeholder={translate('loadingModels')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="loading-models">
-                    Loading Genfeed models…
+                    {translate('loadingModels')}
                   </SelectItem>
                 </SelectContent>
               </Select>
+            ) : isAllowlistEmpty ? (
+              <Button
+                ariaLabel={translate('noModelsEnabled')}
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.SM}
+                isDisabled
+                className={cn('w-44 justify-start', SHELL_CONTROL_HEIGHT_CLASS)}
+                textTransform="none"
+                title={translate('noModelsEnabledTitle')}
+              >
+                <span className="truncate text-xs">
+                  {translate('noModelsEnabled')}
+                </span>
+              </Button>
             ) : modelsError || hasNoSelectableModels ? (
               <Button
                 variant={ButtonVariant.SECONDARY}
@@ -297,7 +313,7 @@ export function GenerationActionCardControls({
                 <SelectContent>
                   {durationOptions.map((option) => (
                     <SelectItem key={option} value={String(option)}>
-                      {option}s
+                      {translate('durationSeconds', { seconds: option })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -334,7 +350,7 @@ export function GenerationActionCardControls({
               }
               className={trailingControlClass}
               icon={<ArrowUp className="size-4" />}
-              isDisabled={isPromptEmpty}
+              isDisabled={isPromptEmpty || isAllowlistEmpty}
               onClick={onGenerate}
               size={ButtonSize.ICON}
               tooltip={translate('generateTooltip')}

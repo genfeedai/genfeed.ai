@@ -67,6 +67,7 @@ export function GenerationActionCard({
     setPrioritize,
     modelsLoading,
     modelsError,
+    isAllowlistEmpty,
     retryLoadModels,
     filteredModels,
     autoModelLabel,
@@ -161,6 +162,7 @@ export function GenerationActionCard({
             isDisabled={status === 'generating'}
             modelsLoading={modelsLoading}
             modelsError={modelsError}
+            isAllowlistEmpty={isAllowlistEmpty}
             onRetryLoadModels={retryLoadModels}
             filteredModels={filteredModels}
             isAutoMode={isAutoMode}
