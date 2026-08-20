@@ -575,7 +575,7 @@ describe('useAgentChatInput follow-up queue submit', () => {
     expect(result.current.editor?.getText()).toBe('With photo');
   });
 
-  it('does not submit, enqueue, or interrupt on Shift+Enter', async () => {
+  it('keeps Shift+Enter in the editor without submitting or promoting', async () => {
     writeConversationComposerDocument(
       draftScopeKey,
       {
@@ -619,7 +619,7 @@ describe('useAgentChatInput follow-up queue submit', () => {
       } as unknown as KeyboardEvent),
     );
 
-    expect(handled).not.toBe(true);
+    expect(handled).toBe(true);
     expect(onSend).not.toHaveBeenCalled();
     expect(onPromoteQueuedFollowUp).not.toHaveBeenCalled();
   });

@@ -47,6 +47,10 @@ const updateTargetMock = vi.fn();
 const pushMock = vi.fn();
 const setDateRangeMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
+const calendarDateRange = {
+  end: new Date('2026-03-16T00:00:00.000Z'),
+  start: new Date('2026-03-10T00:00:00.000Z'),
+};
 
 const getArticlesServiceMock = vi.fn(async () => ({
   findAll: findArticlesMock,
@@ -124,13 +128,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@hooks/utils/use-calendar-week-range/use-calendar-week-range', () => ({
-  useCalendarWeekRange: vi.fn(() => [
-    {
-      end: new Date('2026-03-16T00:00:00.000Z'),
-      start: new Date('2026-03-10T00:00:00.000Z'),
-    },
-    setDateRangeMock,
-  ]),
+  useCalendarWeekRange: vi.fn(() => [calendarDateRange, setDateRangeMock]),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
