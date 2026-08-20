@@ -327,6 +327,14 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 function makeStrategy(overrides: Record<string, unknown> = {}) {
   return {
     agentType: AgentType.X_CONTENT,

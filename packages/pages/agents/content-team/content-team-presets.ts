@@ -1,13 +1,9 @@
+import { AGENT_PROGRAM_TEMPLATES } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
 } from '@genfeedai/enums';
-import type { CreateAgentCampaignInput } from '@services/automation/agent-campaigns.service';
-import type {
-  AgentGoalMetric,
-  CreateAgentGoalInput,
-} from '@services/automation/agent-goals.service';
 import type { CreateAgentStrategyInput } from '@services/automation/agent-strategies.service';
 
 /**
@@ -67,13 +63,6 @@ export interface ContentTeamRolePreset {
   type: AgentType;
 }
 
-export interface ContentTeamBlueprintPreset {
-  description: string;
-  id: string;
-  label: string;
-  roleIds: string[];
-}
-
 export interface BuildRoleStrategyInputOptions {
   brandId?: string;
   budget?: number;
@@ -84,16 +73,6 @@ export interface BuildRoleStrategyInputOptions {
   rolePresetId: string;
   sharedTopic?: string;
   teamGroup?: string;
-}
-
-export interface BuildBlueprintOptions {
-  brandId?: string;
-  budgetOverrides?: Partial<Record<string, number>>;
-  goalId?: string;
-  persona?: string;
-  reportsToLabel?: string;
-  sharedTopic?: string;
-  teamGroupOverrides?: Partial<Record<string, string>>;
 }
 
 function withWorkflowDefaults(
@@ -111,47 +90,18 @@ function withWorkflowDefaults(
 }
 
 export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
-  withWorkflowDefaults({
-    defaultBudget: 180,
-    defaultLabel: 'Instagram Short Creator',
-    description: 'Produces short-form creator videos for Instagram and TikTok.',
-    displayRole: 'Instagram Short Creator',
-    id: 'instagram-short-creator',
-    platforms: ['instagram', 'tiktok'],
-    teamGroup: 'Production',
-    type: AgentType.VIDEO_CREATOR,
-  }),
-  withWorkflowDefaults({
-    defaultBudget: 80,
-    defaultLabel: 'X/Twitter Writer',
-    description:
-      'Turns ideas into posts, threads, and fast platform-native copy.',
-    displayRole: 'X/Twitter Writer',
-    id: 'x-twitter-writer',
-    platforms: ['twitter'],
-    teamGroup: 'Distribution',
-    type: AgentType.X_CONTENT,
-  }),
-  withWorkflowDefaults({
-    defaultBudget: 120,
-    defaultLabel: 'Script Writer',
-    description: 'Develops hooks, scripts, and long-form narrative drafts.',
-    displayRole: 'Script Writer',
-    id: 'script-writer',
-    platforms: ['instagram', 'youtube'],
-    teamGroup: 'Strategy',
-    type: AgentType.ARTICLE_WRITER,
-  }),
-  withWorkflowDefaults({
-    defaultBudget: 140,
-    defaultLabel: 'Image/Carousel Creator',
-    description: 'Builds carousels, stills, and visual support assets.',
-    displayRole: 'Image/Carousel Creator',
-    id: 'image-carousel-creator',
-    platforms: ['instagram', 'linkedin'],
-    teamGroup: 'Production',
-    type: AgentType.IMAGE_CREATOR,
-  }),
+  ...(AGENT_PROGRAM_TEMPLATES[0]?.roles ?? []).map((role) =>
+    withWorkflowDefaults({
+      defaultBudget: role.dailyCreditBudget,
+      defaultLabel: role.defaultLabel,
+      description: role.description,
+      displayRole: role.displayRole,
+      id: role.id,
+      platforms: role.platforms,
+      teamGroup: role.teamGroup,
+      type: role.agentType,
+    }),
+  ),
   withWorkflowDefaults({
     defaultBudget: 220,
     defaultLabel: 'AI Avatar Host',
@@ -219,21 +169,6 @@ export const CONTENT_TEAM_ROLE_PRESETS: ContentTeamRolePreset[] = [
   }),
 ];
 
-export const CONTENT_TEAM_BLUEPRINT_PRESETS: ContentTeamBlueprintPreset[] = [
-  {
-    description:
-      'Launches a compact creator team with strategy, short-form, distribution, and design coverage.',
-    id: 'creator-studio',
-    label: 'Creator Studio Blueprint',
-    roleIds: [
-      'script-writer',
-      'instagram-short-creator',
-      'x-twitter-writer',
-      'image-carousel-creator',
-    ],
-  },
-];
-
 function getRolePreset(rolePresetId: string): ContentTeamRolePreset {
   const preset = CONTENT_TEAM_ROLE_PRESETS.find(
     (item) => item.id === rolePresetId,
@@ -284,67 +219,5 @@ export function buildRoleStrategyInput(
     topics: options.sharedTopic?.trim() ? [options.sharedTopic.trim()] : [],
     voice: buildVoiceContext(options.persona, options.sharedTopic),
     weeklyCreditBudget: resolvedBudget * 5,
-  };
-}
-
-export function buildBlueprintStrategyInputs(
-  blueprintId: string,
-  options: BuildBlueprintOptions = {},
-): CreateAgentStrategyInput[] {
-  const blueprint = CONTENT_TEAM_BLUEPRINT_PRESETS.find(
-    (item) => item.id === blueprintId,
-  );
-
-  if (!blueprint) {
-    throw new Error(`Unknown content team blueprint: ${blueprintId}`);
-  }
-
-  return blueprint.roleIds.map((roleId) =>
-    buildRoleStrategyInput({
-      brandId: options.brandId,
-      budget: options.budgetOverrides?.[roleId],
-      goalId: options.goalId,
-      persona: options.persona,
-      reportsToLabel: options.reportsToLabel,
-      rolePresetId: roleId,
-      sharedTopic: options.sharedTopic,
-      teamGroup: options.teamGroupOverrides?.[roleId],
-    }),
-  );
-}
-
-export function buildContentTeamCampaignInput(options: {
-  agentIds: string[];
-  brief?: string;
-  campaignLeadStrategyId?: string;
-  creditsAllocated?: number;
-  label: string;
-  startDate?: string;
-}): CreateAgentCampaignInput {
-  return {
-    agentStrategyIds: options.agentIds,
-    brief: options.brief?.trim() || undefined,
-    campaignLeadStrategyId: options.campaignLeadStrategyId,
-    creditsAllocated: options.creditsAllocated ?? 0,
-    label: options.label.trim(),
-    startDate: options.startDate ?? new Date().toISOString(),
-    status: 'draft',
-  };
-}
-
-export function buildContentTeamGoalInput(options: {
-  brandId?: string;
-  description?: string;
-  label: string;
-  metric?: AgentGoalMetric;
-  targetValue: number;
-}): CreateAgentGoalInput {
-  return {
-    brandId: options.brandId,
-    description: options.description?.trim() || undefined,
-    isActive: true,
-    label: options.label.trim(),
-    metric: options.metric ?? 'views',
-    targetValue: options.targetValue,
   };
 }

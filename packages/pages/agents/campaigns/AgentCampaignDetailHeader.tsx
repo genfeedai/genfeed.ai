@@ -37,6 +37,7 @@ export default function AgentCampaignDetailHeader({
     <>
       <div className="flex items-center gap-4">
         <Button
+          ariaLabel="Back to Programs"
           label={<ArrowLeft />}
           variant={ButtonVariant.SECONDARY}
           onClick={onBack}
@@ -48,7 +49,7 @@ export default function AgentCampaignDetailHeader({
       </div>
 
       <KPISection
-        title="Campaign Overview"
+        title="Program Overview"
         gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
         items={[
           {

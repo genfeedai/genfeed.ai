@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@ui/primitives/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import ContentTeamHirePage from '../hire/ContentTeamHirePage';
 import AgentWizardPage from './new/AgentWizardPage';
@@ -27,6 +28,7 @@ export default function AddAgentDialog({
   onCreated,
   onOpenChange,
 }: AddAgentDialogProps) {
+  const translate = useTranslations('common.automation.agentCreation');
   const [mode, setMode] = useState<AddAgentMode>(initialMode);
 
   useEffect(() => {
@@ -44,23 +46,23 @@ export default function AddAgentDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add agent</DialogTitle>
-          <DialogDescription>
-            Start from a proven role or configure a custom agent for the
-            selected brand.
-          </DialogDescription>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
         <Tabs
           value={mode}
           onValueChange={(value) => setMode(value as AddAgentMode)}
         >
-          <TabsList aria-label="Agent creation mode" data-variant="segmented">
+          <TabsList
+            aria-label={translate('modeLabel')}
+            data-variant="segmented"
+          >
             <TabsTrigger value="library" data-variant="segmented">
-              Agent library
+              {translate('library')}
             </TabsTrigger>
             <TabsTrigger value="custom" data-variant="segmented">
-              Custom
+              {translate('custom')}
             </TabsTrigger>
           </TabsList>
 

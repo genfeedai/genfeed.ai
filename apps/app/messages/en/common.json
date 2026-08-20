@@ -71,17 +71,38 @@
     }
   },
   "agentCampaign": {
-    "agentStrategies": "Agent Strategies",
-    "brief": "Brief",
-    "campaignLabel": "Campaign Label *",
+    "agentStrategies": "Agents",
+    "agents": {
+      "add": "Add an agent",
+      "existingDescription": "Add existing agents to this Program. A selected team template creates its own roles as well.",
+      "existingTitle": "Existing agents",
+      "loadingDetails": "Loading agent details…",
+      "noneAssigned": "No agents are assigned to this Program yet.",
+      "noneForBrand": "No agents exist for this brand yet.",
+      "title": "Agents ({count})",
+      "unavailable": "Unavailable agent",
+      "unavailableRole": "Not available for this brand"
+    },
+    "brief": "Program Brief",
+    "campaignLabel": "Program Label *",
     "creditsAllocated": "Credits Allocated",
+    "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
-    "noAgentStrategies": "No agent strategies available. Create agents first.",
+    "loadingBrand": "Loading the selected brand…",
+    "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
     "status": {
       "active": "Active",
       "draft": "Draft",
       "label": "Status"
+    },
+    "template": {
+      "blankDescription": "Coordinate only the existing agents you select below.",
+      "blankLabel": "Blank Program",
+      "createsAgents": "Creates {count} agents: {roles}.",
+      "description": "A team template creates its agents and Program together, with no partial setup if one step fails.",
+      "selectionRequired": "Select at least one agent for a blank Program.",
+      "title": "Start from a template"
     }
   },
   "workspaceInspector": {
@@ -250,6 +271,14 @@
     }
   },
   "automation": {
+    "agentCreation": {
+      "custom": "Custom",
+      "description": "Start from a proven role or configure a custom agent for the selected brand.",
+      "library": "Agent library",
+      "loadingBrand": "Loading the selected brand…",
+      "modeLabel": "Agent creation mode",
+      "title": "Add agent"
+    },
     "agentHub": {
       "card": {
         "brand": "Brand: {brand}",
@@ -263,6 +292,22 @@
         "description": "Hire a content agent to fill workflow prompts and run production graphs",
         "title": "No agents yet"
       }
+    },
+    "autopilot": {
+      "agentType": "Agent Type",
+      "autonomy": "Autonomy",
+      "description": "Configure this agent's schedule, budget, and execution policy.",
+      "emptyAction": "Add agent",
+      "emptyDescription": "Add an agent first, then configure its schedule and autonomy here.",
+      "emptyTitle": "No agents available",
+      "goalProfile": "Goal Profile",
+      "platforms": "Platforms",
+      "policyLabel": "Policy Label",
+      "runFrequency": "Run Frequency",
+      "skillHelp": "Comma-separated skill slugs. Leave empty to use all brand-enabled skills.",
+      "skillSlugs": "Skill Slugs",
+      "title": "Edit Autopilot Policy",
+      "topics": "Topics"
     },
     "replies": {
       "actions": {

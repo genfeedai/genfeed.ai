@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetToken = vi.fn().mockResolvedValue('test-token');
 const mockUseAuthIdentity = vi.fn();
-const mockUseBrandId = vi.fn(() => 'brand-1');
+const mockUseBrand = vi.fn(() => ({ brandId: 'brand-1', isReady: true }));
 const mockList = vi.fn();
 const mockAgentCampaignsServiceInstance = {
   list: mockList,
@@ -16,7 +16,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrandId: () => mockUseBrandId(),
+  useBrand: () => mockUseBrand(),
 }));
 
 vi.mock('@helpers/auth/auth.helper', () => ({
@@ -35,6 +35,7 @@ describe('useAgentCampaigns', () => {
     mockList.mockResolvedValue([]);
     mockGetToken.mockResolvedValue('test-token');
     mockUseAuthIdentity.mockReturnValue({ getToken: mockGetToken });
+    mockUseBrand.mockReturnValue({ brandId: 'brand-1', isReady: true });
   });
 
   it('keys campaign queries by the selected brand and calls service', async () => {
@@ -55,7 +56,10 @@ describe('useAgentCampaigns', () => {
     expect(AgentCampaignsService.getInstance).toHaveBeenCalledWith(
       'test-token',
     );
-    expect(mockList).toHaveBeenCalledWith({ status: undefined });
+    expect(mockList).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      status: undefined,
+    });
     expect(result.current.campaigns).toEqual([]);
   });
 
@@ -74,7 +78,10 @@ describe('useAgentCampaigns', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(mockList).toHaveBeenCalledWith({ status: 'active' });
+    expect(mockList).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      status: 'active',
+    });
   });
 
   it('returns campaigns data from service', async () => {
@@ -111,6 +118,7 @@ describe('useAgentCampaigns', () => {
     });
 
     expect(result.current.campaigns).toEqual([]);
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('provides refresh function', async () => {
@@ -126,5 +134,21 @@ describe('useAgentCampaigns', () => {
     });
 
     expect(typeof result.current.refresh).toBe('function');
+  });
+
+  it('does not expose organization-wide Programs before brand resolution', async () => {
+    mockUseBrand.mockReturnValue({ brandId: '', isReady: false });
+
+    const { useAgentCampaigns } = await import('./use-agent-campaigns');
+    const { createQueryWrapper } = await import('@hooks/tests/query-wrapper');
+
+    const { result } = renderHook(() => useAgentCampaigns(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    expect(result.current.campaigns).toEqual([]);
+    expect(mockList).not.toHaveBeenCalled();
+    await result.current.refresh();
+    expect(mockList).not.toHaveBeenCalled();
   });
 });

@@ -126,7 +126,7 @@ describe('ContentEngineService', () => {
     const { agentCampaignsService, agentRuntimeService, service } =
       createService();
 
-    agentCampaignsService.findOne.mockResolvedValue(
+    agentCampaignsService.findOneById.mockResolvedValue(
       createCampaign({ status: 'paused' }),
     );
     agentCampaignsService.patch.mockResolvedValue(undefined);
@@ -150,6 +150,10 @@ describe('ContentEngineService', () => {
       }),
     );
     expect(agentRuntimeService.startTurn).not.toHaveBeenCalled();
+    expect(agentCampaignsService.findOneById).toHaveBeenCalledWith(
+      campaignId,
+      organizationId,
+    );
   });
 
   it('runOrchestrationCycle completes the campaign when the remaining credit budget is exhausted', async () => {
@@ -168,7 +172,7 @@ describe('ContentEngineService', () => {
       creditsUsed: 10,
     });
 
-    agentCampaignsService.findOne.mockResolvedValue(campaign);
+    agentCampaignsService.findOneById.mockResolvedValue(campaign);
     agentCampaignsService.patch.mockResolvedValue(undefined);
     agentStrategiesService.findOneById.mockResolvedValue(strategy);
     agentGoalsService.getGoalSummary.mockResolvedValue('Increase engagement');
@@ -229,7 +233,7 @@ describe('ContentEngineService', () => {
     const runId = 'test-object-id';
     const campaign = createCampaign({ agents: [strategy.id] });
 
-    agentCampaignsService.findOne.mockResolvedValue(campaign);
+    agentCampaignsService.findOneById.mockResolvedValue(campaign);
     agentCampaignsService.patch.mockResolvedValue(undefined);
     agentStrategiesService.findOneById.mockResolvedValue(strategy);
     agentGoalsService.getGoalSummary.mockResolvedValue(
@@ -326,7 +330,7 @@ describe('ContentEngineService', () => {
       },
     });
 
-    agentCampaignsService.findOne.mockResolvedValue(campaign);
+    agentCampaignsService.findOneById.mockResolvedValue(campaign);
     agentCampaignsService.patch.mockResolvedValue(undefined);
     agentStrategiesService.findOneById.mockImplementation((strategyId) =>
       Promise.resolve(
@@ -421,7 +425,7 @@ describe('ContentEngineService', () => {
       },
     });
 
-    agentCampaignsService.findOne.mockResolvedValue(campaign);
+    agentCampaignsService.findOneById.mockResolvedValue(campaign);
     agentCampaignsService.patch.mockResolvedValue(undefined);
     agentStrategiesService.findOneById.mockImplementation((strategyId) =>
       Promise.resolve(strategies.find((s) => s.id === strategyId)),

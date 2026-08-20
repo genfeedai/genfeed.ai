@@ -6,6 +6,7 @@ import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
@@ -124,6 +125,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
 /* ------------------------------------------------------------------ */
 
 function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
+  const { href } = useOrgUrl();
   const creditsPercent =
     campaign.creditsAllocated > 0
       ? Math.min(
@@ -163,7 +165,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${campaign.id}`}
+            href={href(`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${campaign.id}`)}
             aria-label={`Open ${campaign.label}`}
           >
             <ArrowRight className="size-3.5" />
@@ -207,6 +209,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
 }
 
 function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
+  const { href } = useOrgUrl();
   const activeCampaigns = useMemo(
     () => campaigns.filter((c) => c.status === 'active').slice(0, 3),
     [campaigns],
@@ -228,7 +231,7 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS}>View All</Link>
+            <Link href={href(APP_ROUTES.AUTOMATE.CAMPAIGNS)}>View All</Link>
           </Button>
         )}
       </div>
@@ -268,15 +271,21 @@ function ProgressBar({ allocated, used }: { allocated: number; used: number }) {
 
 export default function AgentCampaignsPage() {
   const { campaigns, isLoading } = useAgentCampaigns();
+  const { href } = useOrgUrl();
 
   const columns = useMemo(
     () => [
       {
-        header: 'Campaign',
+        header: 'Program',
         key: 'label',
         render: (campaign: AgentCampaign) => (
           <div className="flex flex-col">
-            <span className="font-medium">{campaign.label}</span>
+            <Link
+              className="font-medium hover:underline"
+              href={href(`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${campaign.id}`)}
+            >
+              {campaign.label}
+            </Link>
             {campaign.brief && (
               <span className="text-xs text-foreground/50 line-clamp-1">
                 {campaign.brief}
@@ -340,7 +349,7 @@ export default function AgentCampaignsPage() {
         ),
       },
     ],
-    [],
+    [href],
   );
 
   const hasCampaigns = campaigns.length > 0;
@@ -352,7 +361,7 @@ export default function AgentCampaignsPage() {
       icon={LayoutDashboard}
       right={
         <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-          <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW}>
+          <Link href={href(APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW)}>
             <Plus /> New Program
           </Link>
         </Button>
@@ -396,7 +405,7 @@ export default function AgentCampaignsPage() {
             </p>
           </div>
           <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-            <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW}>
+            <Link href={href(APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW)}>
               <Plus /> New Program
             </Link>
           </Button>

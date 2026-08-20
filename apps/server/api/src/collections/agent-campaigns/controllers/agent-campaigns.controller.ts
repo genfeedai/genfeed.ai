@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentCampaignsQueryDto } from '@api/collections/agent-campaigns/dto/agent-campaigns-query.dto';
 import { CreateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/create-agent-campaign.dto';
+import { CreateAgentCampaignFromTemplateDto } from '@api/collections/agent-campaigns/dto/create-agent-campaign-from-template.dto';
 import { UpdateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/update-agent-campaign.dto';
 import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
@@ -23,6 +24,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -49,8 +51,40 @@ export class AgentCampaignsController extends BaseCRUDController<
       agentCampaignsService,
       AgentCampaignSerializer,
       'AgentCampaign',
-      ['organization', 'brand', 'user'],
+      ['organization', 'brand', 'user', 'agents'],
     );
+  }
+
+  @Post('from-template')
+  @ApiOperation({ summary: 'Create an atomic Program from a team template' })
+  async createFromTemplate(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() createDto: CreateAgentCampaignFromTemplateDto,
+  ): Promise<JsonApiSingleResponse> {
+    const organizationId = user.organizationId?.toString();
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization not found');
+    }
+
+    const data = await this.agentCampaignsService.createFromTemplate({
+      ...createDto,
+      organizationId,
+      userId: await this.resolveDatabaseUserId(user),
+    });
+
+    return serializeSingle(request, AgentCampaignSerializer, data);
+  }
+
+  public override enrichCreateDto(
+    createDto: Partial<CreateAgentCampaignDto>,
+    user: User,
+  ): CreateAgentCampaignDto {
+    if (!user.organizationId) {
+      throw new UnauthorizedException('Organization not found');
+    }
+
+    return super.enrichCreateDto(createDto, user);
   }
 
   /**
@@ -73,7 +107,7 @@ export class AgentCampaignsController extends BaseCRUDController<
       const organizationId = user.organizationId?.toString();
 
       if (!organizationId) {
-        throw new Error('Organization not found');
+        throw new UnauthorizedException('Organization not found');
       }
 
       const data =
@@ -100,7 +134,7 @@ export class AgentCampaignsController extends BaseCRUDController<
     const organizationId = user.organizationId?.toString();
 
     if (!organizationId) {
-      throw new Error('Organization not found');
+      throw new UnauthorizedException('Organization not found');
     }
 
     return this.executionService.getStatus(id, organizationId);
@@ -112,11 +146,12 @@ export class AgentCampaignsController extends BaseCRUDController<
     };
 
     const organizationId = user.organizationId?.toString();
-    if (organizationId) {
-      match.organizationId = organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization not found');
     }
+    match.organizationId = organizationId;
 
-    const brandId = user.brandId?.toString();
+    const brandId = query.brandId ?? user.brandId?.toString();
     if (brandId) {
       match.brandId = brandId;
     }
@@ -147,7 +182,23 @@ export class AgentCampaignsController extends BaseCRUDController<
       return true;
     }
 
-    return Boolean(user?.isSuperAdmin);
+    return false;
+  }
+
+  public override async enrichUpdateDto(
+    updateDto: Partial<UpdateAgentCampaignDto>,
+    user: User,
+  ): Promise<UpdateAgentCampaignDto> {
+    const organizationId = user.organizationId?.toString();
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization not found');
+    }
+
+    const enriched = await super.enrichUpdateDto(updateDto, user);
+    return {
+      ...enriched,
+      organizationId,
+    } as UpdateAgentCampaignDto;
   }
 
   private async resolveDatabaseUserId(user: User): Promise<string> {

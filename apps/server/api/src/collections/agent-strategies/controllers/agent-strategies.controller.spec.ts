@@ -28,4 +28,24 @@ describe('AgentStrategiesController', () => {
       organizationId: 'org-1',
     });
   });
+
+  it('fails closed when the authenticated organization is missing', () => {
+    const controller = new AgentStrategiesController(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    expect(() =>
+      controller.buildFindAllQuery({} as AuthenticatedUser, {
+        brandId: 'brand-1',
+        isDeleted: false,
+        limit: 10,
+        page: 1,
+        sort: 'createdAt: -1',
+      }),
+    ).toThrow('Organization not found');
+  });
 });

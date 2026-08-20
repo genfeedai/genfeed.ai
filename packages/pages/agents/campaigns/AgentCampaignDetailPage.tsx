@@ -5,6 +5,8 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -14,7 +16,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Check, LayoutDashboard, Pause, Play } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import AgentCampaignAgentsList from './AgentCampaignAgentsList';
 import AgentCampaignContentQuota from './AgentCampaignContentQuota';
@@ -24,7 +26,12 @@ export default function AgentCampaignDetailPage() {
   const router = useRouter();
   const params = useParams();
   const campaignId = params.id as string;
-  const { organizationId } = useBrand();
+  const { brandId, isReady: isBrandReady, organizationId } = useBrand();
+  const { href } = useOrgUrl();
+  const { isLoading: areAgentsLoading, strategies } = useAgentStrategies({
+    brandId,
+    enabled: isBrandReady && Boolean(brandId),
+  });
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -35,6 +42,7 @@ export default function AgentCampaignDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
+  const loadGenerationRef = useRef(0);
 
   const getService = useAuthedService((token: string) =>
     AgentCampaignsService.getInstance(token),
@@ -42,52 +50,73 @@ export default function AgentCampaignDetailPage() {
 
   const loadCampaign = useCallback(
     async (refresh = false) => {
-      if (!organizationId || !campaignId) {
+      if (!isBrandReady || !brandId || !organizationId || !campaignId) {
         return;
       }
 
+      const generation = ++loadGenerationRef.current;
+      const isCurrentLoad = () => loadGenerationRef.current === generation;
+
       if (!refresh) {
         setIsLoading(true);
+        setCampaign(null);
+        setStatus(null);
       }
       setIsRefreshing(refresh);
 
-      const controller = new AbortController();
-
       try {
         const service = await getService();
+        if (!isCurrentLoad()) return;
+
         const fetchedCampaign = await service.getById(campaignId);
+        if (!isCurrentLoad()) return;
+
+        if (fetchedCampaign.brandId !== brandId) {
+          setCampaign(null);
+          setStatus(null);
+          return;
+        }
         setCampaign(fetchedCampaign);
 
         // Fetch status separately
         try {
           const statusResponse = await service.getStatus(campaignId);
+          if (!isCurrentLoad()) return;
           setStatus(statusResponse);
         } catch (statusError) {
-          logger.warn('Failed to load campaign status', statusError);
+          if (!isCurrentLoad()) return;
+          logger.warn('Failed to load Program status', statusError);
         }
       } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error('Failed to load campaign', error);
-        notificationsService.error('Failed to load campaign');
+        if (!isCurrentLoad()) return;
+        logger.error('Failed to load Program', error);
+        notificationsService.error('Failed to load Program');
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (isCurrentLoad()) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
-    [organizationId, campaignId, getService, notificationsService],
+    [
+      brandId,
+      campaignId,
+      getService,
+      isBrandReady,
+      notificationsService,
+      organizationId,
+    ],
   );
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    if (organizationId && campaignId) {
+    if (isBrandReady && brandId && organizationId && campaignId) {
       loadCampaign();
     }
 
     return () => {
-      controller.abort();
+      loadGenerationRef.current += 1;
     };
-  }, [organizationId, campaignId, loadCampaign]);
+  }, [brandId, campaignId, isBrandReady, loadCampaign, organizationId]);
 
   const handleExecute = useCallback(async () => {
     if (!campaignId) return;
@@ -96,11 +125,11 @@ export default function AgentCampaignDetailPage() {
     try {
       const service = await getService();
       await service.execute(campaignId);
-      notificationsService.success('Campaign started');
+      notificationsService.success('Program started');
       loadCampaign(true);
     } catch (error) {
-      logger.error('Failed to execute campaign', error);
-      notificationsService.error('Failed to start campaign');
+      logger.error('Failed to execute Program', error);
+      notificationsService.error('Failed to start Program');
     } finally {
       setIsExecuting(false);
     }
@@ -112,11 +141,11 @@ export default function AgentCampaignDetailPage() {
     try {
       const service = await getService();
       await service.pause(campaignId);
-      notificationsService.success('Campaign paused');
+      notificationsService.success('Program paused');
       loadCampaign(true);
     } catch (error) {
-      logger.error('Failed to pause campaign', error);
-      notificationsService.error('Failed to pause campaign');
+      logger.error('Failed to pause Program', error);
+      notificationsService.error('Failed to pause Program');
     }
   }, [campaignId, getService, notificationsService, loadCampaign]);
 
@@ -126,19 +155,27 @@ export default function AgentCampaignDetailPage() {
     try {
       const service = await getService();
       await service.update(campaignId, { status: 'completed' });
-      notificationsService.success('Campaign completed');
+      notificationsService.success('Program completed');
       loadCampaign(true);
     } catch (error) {
-      logger.error('Failed to complete campaign', error);
-      notificationsService.error('Failed to complete campaign');
+      logger.error('Failed to complete Program', error);
+      notificationsService.error('Failed to complete Program');
     }
   }, [campaignId, getService, notificationsService, loadCampaign]);
 
-  if (isLoading) {
+  const isChangingBrand = campaign !== null && campaign.brandId !== brandId;
+
+  if (
+    !isBrandReady ||
+    !brandId ||
+    !organizationId ||
+    isLoading ||
+    isChangingBrand
+  ) {
     return (
       <Container
         label="Loading..."
-        description="Loading campaign details"
+        description="Loading Program details"
         icon={LayoutDashboard}
       >
         <div className="flex items-center justify-center py-20">
@@ -151,18 +188,18 @@ export default function AgentCampaignDetailPage() {
   if (!campaign) {
     return (
       <Container
-        label="Campaign Not Found"
-        description="The requested campaign could not be found"
+        label="Program Not Found"
+        description="The requested Program could not be found"
         icon={LayoutDashboard}
       >
         <Button
           label={
             <>
-              <ArrowLeft /> Back to Campaigns
+              <ArrowLeft /> Back to Programs
             </>
           }
           variant={ButtonVariant.SECONDARY}
-          onClick={() => router.push(APP_ROUTES.AUTOMATE.CAMPAIGNS)}
+          onClick={() => router.push(href(APP_ROUTES.AUTOMATE.CAMPAIGNS))}
         />
       </Container>
     );
@@ -176,7 +213,7 @@ export default function AgentCampaignDetailPage() {
   return (
     <Container
       label={campaign.label}
-      description={campaign.brief || 'Campaign details and execution status'}
+      description={campaign.brief || 'Program details and execution status'}
       icon={LayoutDashboard}
       right={
         <>
@@ -226,7 +263,7 @@ export default function AgentCampaignDetailPage() {
         <AgentCampaignDetailHeader
           campaign={campaign}
           creditsPercent={creditsPercent}
-          onBack={() => router.push(APP_ROUTES.AUTOMATE.CAMPAIGNS)}
+          onBack={() => router.push(href(APP_ROUTES.AUTOMATE.CAMPAIGNS))}
           status={status}
         />
 
@@ -234,7 +271,11 @@ export default function AgentCampaignDetailPage() {
           <AgentCampaignContentQuota contentQuota={campaign.contentQuota} />
         )}
 
-        <AgentCampaignAgentsList agents={campaign.agents} />
+        <AgentCampaignAgentsList
+          agentIds={campaign.agents}
+          isLoading={areAgentsLoading}
+          strategies={strategies}
+        />
       </div>
     </Container>
   );

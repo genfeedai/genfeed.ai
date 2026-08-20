@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import AgentStrategyBudgetFields from './AgentStrategyBudgetFields';
 import AgentStrategyPublishToggles from './AgentStrategyPublishToggles';
 import AgentStrategyScoreFields from './AgentStrategyScoreFields';
@@ -40,6 +41,7 @@ export default function AgentStrategyDialog({
   onOpenChange,
   onSubmit,
 }: AgentStrategyDialogProps) {
+  const translate = useTranslations('common.automation.autopilot');
   const { form, setForm, handlePlatformToggle, handleSubmit } =
     useAgentStrategyDialog({ initialStrategy, isOpen, onSubmit });
 
@@ -47,10 +49,8 @@ export default function AgentStrategyDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Autopilot Policy</DialogTitle>
-          <DialogDescription>
-            Configure this agent's schedule, budget, and execution policy.
-          </DialogDescription>
+          <DialogTitle>{translate('title')}</DialogTitle>
+          <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
@@ -60,7 +60,7 @@ export default function AgentStrategyDialog({
                 className="text-sm font-medium text-foreground"
                 htmlFor="strategy-label"
               >
-                Policy Label
+                {translate('policyLabel')}
               </label>
               <Input
                 id="strategy-label"
@@ -75,7 +75,7 @@ export default function AgentStrategyDialog({
 
             <div className="space-y-1.5">
               <span className="text-sm font-medium text-foreground">
-                Agent Type
+                {translate('agentType')}
               </span>
               <Select
                 value={form.agentType}
@@ -102,7 +102,7 @@ export default function AgentStrategyDialog({
 
             <div className="space-y-1.5">
               <span className="text-sm font-medium text-foreground">
-                Autonomy
+                {translate('autonomy')}
               </span>
               <Select
                 value={form.autonomyMode}
@@ -129,7 +129,7 @@ export default function AgentStrategyDialog({
 
             <div className="space-y-1.5">
               <span className="text-sm font-medium text-foreground">
-                Run Frequency
+                {translate('runFrequency')}
               </span>
               <Select
                 value={form.runFrequency}
@@ -156,7 +156,7 @@ export default function AgentStrategyDialog({
 
             <div className="space-y-1.5">
               <span className="text-sm font-medium text-foreground">
-                Goal Profile
+                {translate('goalProfile')}
               </span>
               <Select
                 value={form.goalProfile}
@@ -186,7 +186,7 @@ export default function AgentStrategyDialog({
               className="text-sm font-medium text-foreground"
               htmlFor="strategy-topics"
             >
-              Topics
+              {translate('topics')}
             </label>
             <Textarea
               id="strategy-topics"
@@ -200,7 +200,9 @@ export default function AgentStrategyDialog({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Platforms</p>
+            <p className="text-sm font-medium text-foreground">
+              {translate('platforms')}
+            </p>
             <div className="flex flex-wrap gap-2">
               {PLATFORM_OPTIONS.map((platform) => {
                 const isSelected = form.platforms.includes(platform.value);
@@ -226,7 +228,9 @@ export default function AgentStrategyDialog({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">Skill Slugs</p>
+            <p className="text-sm font-medium text-foreground">
+              {translate('skillSlugs')}
+            </p>
             <Input
               placeholder="e.g. content-writing, image-generation"
               value={form.skillSlugs.join(', ')}
@@ -241,8 +245,7 @@ export default function AgentStrategyDialog({
               }
             />
             <p className="text-xs text-foreground/50">
-              Comma-separated skill slugs. Leave empty to use all brand-enabled
-              skills.
+              {translate('skillHelp')}
             </p>
           </div>
 

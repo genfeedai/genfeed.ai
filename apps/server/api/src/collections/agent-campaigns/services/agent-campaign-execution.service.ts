@@ -57,10 +57,15 @@ export class AgentCampaignExecutionService {
     }
 
     const now = new Date();
-    const updated = await this.agentCampaignsService.patch(campaignId, {
-      nextOrchestratedAt: now,
-      status: 'active',
-    } as Record<string, unknown>);
+    const updated = await this.agentCampaignsService.patch(
+      campaignId,
+      {
+        nextOrchestratedAt: now,
+        organizationId,
+        status: 'active',
+      },
+      ['agents'],
+    );
 
     if (!updated) {
       throw new NotFoundException({
@@ -174,10 +179,15 @@ export class AgentCampaignExecutionService {
       throw new BadRequestException('Only active campaigns can be paused');
     }
 
-    const updated = await this.agentCampaignsService.patch(campaignId, {
-      nextOrchestratedAt: null,
-      status: 'paused',
-    } as Record<string, unknown>);
+    const updated = await this.agentCampaignsService.patch(
+      campaignId,
+      {
+        nextOrchestratedAt: null,
+        organizationId,
+        status: 'paused',
+      },
+      ['agents'],
+    );
 
     if (!updated) {
       throw new NotFoundException({

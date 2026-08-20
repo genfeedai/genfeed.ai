@@ -14,6 +14,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
 import { UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import { HireForm } from './HireForm';
@@ -40,6 +41,7 @@ export default function ContentTeamHirePage({
   onCancel,
   onCreated,
 }: ContentTeamHirePageProps) {
+  const translate = useTranslations('common.automation.agentCreation');
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
@@ -152,7 +154,7 @@ export default function ContentTeamHirePage({
   const content =
     !isBrandReady || !brandId ? (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        Loading the selected brand…
+        {translate('loadingBrand')}
       </p>
     ) : (
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">

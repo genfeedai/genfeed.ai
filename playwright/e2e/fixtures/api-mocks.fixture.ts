@@ -2459,6 +2459,7 @@ export async function mockAutomationData(page: Page): Promise<void> {
   const twoDaysAgoIso = new Date(
     now.getTime() - 2 * 24 * 60 * 60 * 1000,
   ).toISOString();
+  let createdAgentCampaign: Record<string, unknown> | undefined;
 
   await routeApiPattern(page, '/auth/bootstrap/overview**', async (route) => {
     await route.fulfill({
@@ -2695,6 +2696,59 @@ export async function mockAutomationData(page: Page): Promise<void> {
 
   await routeApiPattern(page, '/agent-campaigns**', async (route) => {
     if (route.request().method() === 'GET') {
+      const requestUrl = new URL(route.request().url());
+      const detailMatch = requestUrl.pathname.match(
+        /\/agent-campaigns\/([^/]+)$/,
+      );
+
+      if (requestUrl.pathname.endsWith('/status')) {
+        const campaignId = requestUrl.pathname.split('/').at(-2) ?? '';
+        await route.fulfill({
+          body: JSON.stringify({
+            agentsRunning: 0,
+            campaignId,
+            contentProduced: 0,
+            creditsAllocated: 2000,
+            creditsUsed: 0,
+            status: 'draft',
+          }),
+          contentType: 'application/json',
+          status: 200,
+        });
+        return;
+      }
+
+      if (detailMatch) {
+        const detailId = detailMatch[1];
+        const attributes =
+          detailId === 'agent-campaign-created' && createdAgentCampaign
+            ? createdAgentCampaign
+            : {
+                agents: ['strategy-1'],
+                brief: 'Coordinate a multi-agent launch sequence.',
+                brandId: 'brand-1',
+                campaignLeadStrategyId: 'strategy-1',
+                creditsAllocated: 2000,
+                creditsUsed: 640,
+                id: detailId,
+                label: 'Launch Sprint',
+                organization: 'mock-org-id-e2e-test',
+                startDate: oneDayAgoIso,
+                status: 'active',
+                updatedAt: nowIso,
+                user: 'mock-user-id-e2e-test',
+              };
+
+        await route.fulfill({
+          body: JSON.stringify(
+            buildJsonApiDocument('agent-campaigns', detailId, attributes),
+          ),
+          contentType: 'application/json',
+          status: 200,
+        });
+        return;
+      }
+
       await route.fulfill({
         body: JSON.stringify(
           buildJsonApiCollection('agent-campaigns', [
@@ -2702,6 +2756,7 @@ export async function mockAutomationData(page: Page): Promise<void> {
               attributes: {
                 agents: ['agent-1', 'agent-2'],
                 brief: 'Coordinate a multi-agent launch sequence.',
+                brandId: 'brand-1',
                 campaignLeadStrategyId: 'strategy-1',
                 creditsAllocated: 2000,
                 creditsUsed: 640,
@@ -2731,39 +2786,40 @@ export async function mockAutomationData(page: Page): Promise<void> {
         string,
         unknown
       >;
+      createdAgentCampaign = {
+        agents: ['strategy-1'],
+        brief:
+          typeof requestBody.brief === 'string' ? requestBody.brief : undefined,
+        brandId:
+          typeof requestBody.brandId === 'string'
+            ? requestBody.brandId
+            : 'brand-1',
+        campaignLeadStrategyId: 'strategy-1',
+        creditsAllocated:
+          typeof requestBody.creditsAllocated === 'number'
+            ? requestBody.creditsAllocated
+            : 0,
+        creditsUsed: 0,
+        label:
+          typeof requestBody.label === 'string'
+            ? requestBody.label
+            : 'Created Program',
+        organization: 'mock-org-id-e2e-test',
+        startDate:
+          typeof requestBody.startDate === 'string'
+            ? requestBody.startDate
+            : nowIso,
+        status: 'draft',
+        updatedAt: nowIso,
+        user: 'mock-user-id-e2e-test',
+      };
       await route.fulfill({
         body: JSON.stringify(
-          buildJsonApiDocument('agent-campaigns', 'agent-campaign-created', {
-            agents: Array.isArray(requestBody.agents) ? requestBody.agents : [],
-            brief:
-              typeof requestBody.brief === 'string'
-                ? requestBody.brief
-                : undefined,
-            campaignLeadStrategyId:
-              typeof requestBody.campaignLeadStrategyId === 'string'
-                ? requestBody.campaignLeadStrategyId
-                : undefined,
-            creditsAllocated:
-              typeof requestBody.creditsAllocated === 'number'
-                ? requestBody.creditsAllocated
-                : 0,
-            creditsUsed: 0,
-            label:
-              typeof requestBody.label === 'string'
-                ? requestBody.label
-                : 'Created Campaign',
-            organization: 'mock-org-id-e2e-test',
-            startDate:
-              typeof requestBody.startDate === 'string'
-                ? requestBody.startDate
-                : nowIso,
-            status:
-              typeof requestBody.status === 'string'
-                ? requestBody.status
-                : 'draft',
-            updatedAt: nowIso,
-            user: 'mock-user-id-e2e-test',
-          }),
+          buildJsonApiDocument(
+            'agent-campaigns',
+            'agent-campaign-created',
+            createdAgentCampaign,
+          ),
         ),
         contentType: 'application/json',
         status: 201,

@@ -24,6 +24,14 @@ vi.mock('@ui/primitives/dialog', () => ({
   DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('../hire/ContentTeamHirePage', () => ({
   default: ({
     onCancel,

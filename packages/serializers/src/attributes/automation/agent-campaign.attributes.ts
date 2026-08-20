@@ -3,6 +3,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 export const agentCampaignAttributes = createEntityAttributes([
   'agents',
   'brand',
+  'brandId',
   'brief',
   'campaignLeadStrategyId',
   'contentRotation',

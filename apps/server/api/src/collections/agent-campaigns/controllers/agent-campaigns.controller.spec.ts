@@ -1,11 +1,16 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentCampaignsController } from '@api/collections/agent-campaigns/controllers/agent-campaigns.controller';
+import type { AgentCampaignsQueryDto } from '@api/collections/agent-campaigns/dto/agent-campaigns-query.dto';
+import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 const brandId = testId('brand');
 const organizationId = testId('org');
@@ -13,6 +18,14 @@ const metadataUserId = testId('user');
 
 describe('AgentCampaignsController', () => {
   let controller: AgentCampaignsController;
+  let mockService: {
+    create: ReturnType<typeof vi.fn>;
+    createFromTemplate: ReturnType<typeof vi.fn>;
+    findAll: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
   let mockExecutionService: {
     execute: ReturnType<typeof vi.fn>;
     getStatus: ReturnType<typeof vi.fn>;
@@ -22,7 +35,7 @@ describe('AgentCampaignsController', () => {
     findOne: ReturnType<typeof vi.fn>;
   };
 
-  const mockUser = {
+  const mockUser: AuthenticatedUser = {
     id: 'user_123',
     brandId,
     organizationId,
@@ -30,8 +43,9 @@ describe('AgentCampaignsController', () => {
   };
 
   beforeEach(async () => {
-    const mockService = {
+    mockService = {
       create: vi.fn(),
+      createFromTemplate: vi.fn(),
       findAll: vi.fn(),
       findOne: vi.fn(),
       patch: vi.fn(),
@@ -82,16 +96,19 @@ describe('AgentCampaignsController', () => {
   });
 
   describe('patch', () => {
-    const mockReq = { headers: {}, url: '/agent-campaigns/campaign-1' } as any;
+    const mockReq = {
+      headers: {},
+      url: '/agent-campaigns/campaign-1',
+    } as unknown as Request;
 
     it('routes status=active through executionService.execute using the canonical user id from public metadata', async () => {
       mockExecutionService.execute.mockResolvedValue({
         id: 'campaign-1',
       });
 
-      await controller.patch(mockReq, mockUser as any, 'campaign-1', {
+      await controller.patch(mockReq, mockUser, 'campaign-1', {
         status: 'active',
-      } as any);
+      });
 
       expect(mockExecutionService.execute).toHaveBeenCalledWith(
         'campaign-1',
@@ -105,18 +122,15 @@ describe('AgentCampaignsController', () => {
       const userWithoutMetadataId = {
         ...mockUser,
         userId: undefined,
-      };
+      } as unknown as AuthenticatedUser;
 
       mockExecutionService.execute.mockResolvedValue({
         id: 'campaign-2',
       });
 
-      await controller.patch(
-        mockReq,
-        userWithoutMetadataId as any,
-        'campaign-2',
-        { status: 'active' } as any,
-      );
+      await controller.patch(mockReq, userWithoutMetadataId, 'campaign-2', {
+        status: 'active',
+      });
 
       expect(mockExecutionService.execute).toHaveBeenCalledWith(
         'campaign-2',
@@ -131,24 +145,51 @@ describe('AgentCampaignsController', () => {
         id: 'campaign-1',
       });
 
-      await controller.patch(mockReq, mockUser as any, 'campaign-1', {
+      await controller.patch(mockReq, mockUser, 'campaign-1', {
         status: 'paused',
-      } as any);
+      });
 
       expect(mockExecutionService.pause).toHaveBeenCalledWith(
         'campaign-1',
         organizationId,
       );
     });
+
+    it('returns unauthorized instead of 500 when status mutation lacks organization context', async () => {
+      const userWithoutOrganization = {
+        ...mockUser,
+        organizationId: undefined,
+      } as unknown as AuthenticatedUser;
+
+      await expect(
+        controller.patch(mockReq, userWithoutOrganization, 'campaign-1', {
+          status: 'active',
+        }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(mockExecutionService.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getCampaignStatus', () => {
+    it('returns unauthorized instead of 500 when organization context is missing', async () => {
+      const userWithoutOrganization = {
+        ...mockUser,
+        organizationId: undefined,
+      } as unknown as AuthenticatedUser;
+
+      await expect(
+        controller.getCampaignStatus('campaign-1', userWithoutOrganization),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(mockExecutionService.getStatus).not.toHaveBeenCalled();
+    });
   });
 
   describe('buildFindAllQuery', () => {
     it('should build query with organization and brand filters', () => {
-      const inputQuery = {};
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        inputQuery as any,
-      );
+      const inputQuery: AgentCampaignsQueryDto = {};
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
@@ -161,11 +202,8 @@ describe('AgentCampaignsController', () => {
     });
 
     it('should include status filter when provided', () => {
-      const inputQuery = { status: 'active' };
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        inputQuery as any,
-      );
+      const inputQuery: AgentCampaignsQueryDto = { status: 'active' };
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
@@ -178,16 +216,25 @@ describe('AgentCampaignsController', () => {
       });
     });
 
+    it('uses the requested selected brand while retaining organization scope', () => {
+      const selectedBrandId = testId('selected-brand');
+      const query = controller.buildFindAllQuery(mockUser, {
+        brandId: selectedBrandId,
+      });
+
+      expect(query.where).toEqual({
+        brandId: selectedBrandId,
+        isDeleted: false,
+        organizationId,
+      });
+    });
+
     it('should omit the brand filter when no brand is selected', () => {
       const userWithoutBrand = {
         ...mockUser,
-        ...mockUser,
         brandId: undefined,
-      };
-      const query = controller.buildFindAllQuery(
-        userWithoutBrand as any,
-        {} as any,
-      );
+      } as unknown as AuthenticatedUser;
+      const query = controller.buildFindAllQuery(userWithoutBrand, {});
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
@@ -198,14 +245,73 @@ describe('AgentCampaignsController', () => {
       });
     });
 
-    it('should respect isDeleted query param', () => {
-      const inputQuery = { isDeleted: true };
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        inputQuery as any,
-      );
+    it('fails closed when the authenticated organization is missing', () => {
+      const userWithoutOrganization = {
+        ...mockUser,
+        organizationId: undefined,
+      } as unknown as AuthenticatedUser;
 
-      expect((query as any).where.isDeleted).toBe(true);
+      expect(() =>
+        controller.buildFindAllQuery(userWithoutOrganization, {}),
+      ).toThrow('Organization not found');
+    });
+
+    it('should respect isDeleted query param', () => {
+      const inputQuery: AgentCampaignsQueryDto = { isDeleted: true };
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+
+      expect(query.where.isDeleted).toBe(true);
+    });
+  });
+
+  describe('createFromTemplate', () => {
+    it('pins the command to the authenticated organization and user', async () => {
+      mockService.createFromTemplate.mockResolvedValue({
+        agents: [],
+        id: 'program-1',
+      });
+      const request = {
+        headers: {},
+        url: '/agent-campaigns/from-template',
+      } as unknown as Request;
+
+      await controller.createFromTemplate(request, mockUser, {
+        brandId,
+        label: 'Creator Studio Program',
+        startDate: new Date('2026-08-20'),
+        templateId: 'creator-studio',
+      });
+
+      expect(mockService.createFromTemplate).toHaveBeenCalledWith({
+        brandId,
+        label: 'Creator Studio Program',
+        organizationId,
+        startDate: new Date('2026-08-20'),
+        templateId: 'creator-studio',
+        userId: metadataUserId,
+      });
+    });
+  });
+
+  describe('create', () => {
+    it('returns unauthorized instead of 500 when organization context is missing', async () => {
+      const userWithoutOrganization = {
+        ...mockUser,
+        organizationId: undefined,
+      } as unknown as AuthenticatedUser;
+      const request = {
+        headers: {},
+        url: '/agent-campaigns',
+      } as unknown as Request;
+
+      await expect(
+        controller.create(request, userWithoutOrganization, {
+          label: 'Blank Program',
+          startDate: new Date('2026-08-20'),
+        }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(mockService.create).not.toHaveBeenCalled();
     });
   });
 
@@ -213,26 +319,34 @@ describe('AgentCampaignsController', () => {
     it('should return true when entity organizationId matches user organization', () => {
       const entity = { organizationId: organizationId };
       expect(
-        controller.canUserModifyEntity(mockUser as any, entity as any),
+        controller.canUserModifyEntity(
+          mockUser,
+          entity as unknown as AgentCampaignDocument,
+        ),
       ).toBe(true);
     });
 
-    it('should return true for super admin', () => {
+    it('should leave cross-organization super-admin access to the base controller', () => {
       const superAdmin = {
-        ...mockUser,
         ...mockUser,
         isSuperAdmin: true,
       };
       const entity = { organizationId: 'different_org_id' };
       expect(
-        controller.canUserModifyEntity(superAdmin as any, entity as any),
-      ).toBe(true);
+        controller.canUserModifyEntity(
+          superAdmin,
+          entity as unknown as AgentCampaignDocument,
+        ),
+      ).toBe(false);
     });
 
     it('should return false when organizationId does not match', () => {
       const entity = { organizationId: 'different_org_id' };
       expect(
-        controller.canUserModifyEntity(mockUser as any, entity as any),
+        controller.canUserModifyEntity(
+          mockUser,
+          entity as unknown as AgentCampaignDocument,
+        ),
       ).toBe(false);
     });
 
@@ -242,8 +356,22 @@ describe('AgentCampaignsController', () => {
       // wave the request through.
       const entity = { organization: { id: organizationId } };
       expect(
-        controller.canUserModifyEntity(mockUser as any, entity as any),
+        controller.canUserModifyEntity(
+          mockUser,
+          entity as unknown as AgentCampaignDocument,
+        ),
       ).toBe(false);
+    });
+  });
+
+  describe('enrichUpdateDto', () => {
+    it('adds trusted organization scope for service updates', async () => {
+      await expect(
+        controller.enrichUpdateDto({ status: 'completed' }, mockUser),
+      ).resolves.toEqual({
+        organizationId,
+        status: 'completed',
+      });
     });
   });
 });

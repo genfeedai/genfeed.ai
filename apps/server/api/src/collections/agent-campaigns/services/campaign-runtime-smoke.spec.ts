@@ -19,6 +19,7 @@ describe('campaign → runtime → thread snapshot smoke', () => {
   };
   const agentStrategiesService = {
     findOneById: vi.fn(),
+    pauseStrategy: vi.fn(),
     setActive: vi.fn(),
   };
   const agentRunsService = {
@@ -100,6 +101,12 @@ describe('campaign → runtime → thread snapshot smoke', () => {
     );
 
     expect(updated.status).toBe('active');
+    expect(updated.agents).toEqual([strategyId]);
+    expect(agentCampaignsService.patch).toHaveBeenCalledWith(
+      campaignId,
+      expect.objectContaining({ status: 'active' }),
+      ['agents'],
+    );
     expect(agentThreadsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         organizationId,
@@ -141,6 +148,41 @@ describe('campaign → runtime → thread snapshot smoke', () => {
         threadId: 'thread-1',
         type: 'thread.turn_requested',
       }),
+    );
+  });
+
+  it('pause returns the populated Program roster', async () => {
+    const campaignId = 'campaign-1';
+    const organizationId = 'org-1';
+    const strategyId = 'strategy-1';
+
+    agentCampaignsService.findOneById.mockResolvedValue({
+      agents: [strategyId],
+      id: campaignId,
+      label: 'Spring Push',
+      organizationId,
+      status: 'active',
+      userId: 'user-1',
+    });
+    agentCampaignsService.patch.mockResolvedValue({
+      agents: [strategyId],
+      id: campaignId,
+      label: 'Spring Push',
+      organizationId,
+      status: 'paused',
+      userId: 'user-1',
+    });
+
+    const updated = await executionService.pause(campaignId, organizationId);
+
+    expect(updated.agents).toEqual([strategyId]);
+    expect(agentCampaignsService.patch).toHaveBeenCalledWith(
+      campaignId,
+      expect.objectContaining({ status: 'paused' }),
+      ['agents'],
+    );
+    expect(agentStrategiesService.pauseStrategy).toHaveBeenCalledWith(
+      strategyId,
     );
   });
 });

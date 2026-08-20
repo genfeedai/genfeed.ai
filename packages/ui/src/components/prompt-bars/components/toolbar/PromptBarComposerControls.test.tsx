@@ -3,6 +3,14 @@ import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/Promp
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('PromptBar composer controls', () => {
   it('groups file upload and Library references under one context menu', () => {
     const onAddFiles = vi.fn();

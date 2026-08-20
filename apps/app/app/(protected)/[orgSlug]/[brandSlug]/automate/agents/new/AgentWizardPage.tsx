@@ -18,6 +18,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
 import { Cpu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { StepIndicator } from './AgentWizardHelpers';
@@ -125,6 +126,7 @@ export default function AgentWizardPage({
   isEmbedded = false,
   onCreated,
 }: AgentWizardPageProps) {
+  const translate = useTranslations('common.automation.agentCreation');
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
@@ -329,7 +331,7 @@ export default function AgentWizardPage({
   const content =
     !isBrandReady || !brandId ? (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        Loading the selected brand…
+        {translate('loadingBrand')}
       </p>
     ) : (
       wizard

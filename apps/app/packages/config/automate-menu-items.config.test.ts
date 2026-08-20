@@ -45,7 +45,6 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     ['Configuration', '/automate/configuration'],
     ['Agents', '/automate/agents'],
     ['Programs', '/automate/campaigns'],
-    ['Launch team', '/automate/orchestrator'],
     ['Workflows', '/automate/workflows'],
   ])('uses the canonical automate route for %s', (label, canonicalHref) => {
     const item = AUTOMATE_MENU_ITEMS.find(
@@ -150,7 +149,6 @@ describe('AUTOMATE_MENU_ITEMS', () => {
       'Skills',
       'Autopilot',
       'Programs',
-      'Launch team',
     ]);
     expect(byGroup.get('Campaigns')).toBeUndefined();
     expect(byGroup.get('Settings')).toEqual(['Configuration']);
@@ -175,5 +173,22 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(AUTOMATE_MENU_ITEMS.some((item) => item.label === 'Hire')).toBe(
       false,
     );
+  });
+
+  it('folds the retired team launcher into Programs', () => {
+    const programs = AUTOMATE_MENU_ITEMS.find(
+      (item) => item.label === 'Programs',
+    );
+
+    expect(programs?.matchPaths).toEqual(
+      expect.arrayContaining([
+        '/automate/campaigns',
+        '/automate/campaigns/new',
+        '/automate/orchestrator',
+      ]),
+    );
+    expect(
+      AUTOMATE_MENU_ITEMS.some((item) => item.label === 'Launch team'),
+    ).toBe(false);
   });
 });

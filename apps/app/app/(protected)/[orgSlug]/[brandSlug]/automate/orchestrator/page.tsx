@@ -1,14 +1,14 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
-import ContentTeamOrchestratorPage from './ContentTeamOrchestratorPage';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Launch Orchestrator');
+export default async function ContentTeamOrchestratorRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
 
-export default function ContentTeamOrchestratorRoute() {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <ContentTeamOrchestratorPage />
-    </Suspense>
+  permanentRedirect(
+    `${createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW)}?template=creator-studio`,
   );
 }

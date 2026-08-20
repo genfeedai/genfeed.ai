@@ -12,6 +12,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
 import { Link, Paperclip, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, type ReactElement, useRef } from 'react';
 
 export interface PromptBarReferenceControlsProps {
@@ -34,6 +35,7 @@ export default function PromptBarReferenceControls({
   onAddFiles,
   onOpenLibrary,
 }: PromptBarReferenceControlsProps): ReactElement {
+  const translate = useTranslations('agent.composerToolbar');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const controlSize = density === 'compact' ? 'size-8' : 'size-9';
   const isMenuDisabled =
@@ -66,25 +68,25 @@ export default function PromptBarReferenceControls({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            ariaLabel="Add context"
+            ariaLabel={translate('addContext')}
             className={cn('shrink-0', controlSize)}
             icon={<Plus className="size-4" />}
             isDisabled={isMenuDisabled}
             size={ButtonSize.ICON}
-            tooltip="Add context"
+            tooltip={translate('addContext')}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56" side="top">
-          <DropdownMenuLabel>Add context</DropdownMenuLabel>
+          <DropdownMenuLabel>{translate('addContext')}</DropdownMenuLabel>
           {onAddFiles ? (
             <DropdownMenuItem
               disabled={isAttachmentDisabled}
               onSelect={() => fileInputRef.current?.click()}
             >
               <Paperclip className="mr-2 size-4" />
-              Attach files
+              {translate('attachFiles')}
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem
@@ -92,7 +94,7 @@ export default function PromptBarReferenceControls({
             onSelect={onOpenLibrary}
           >
             <Link className="mr-2 size-4" />
-            Reference library content
+            {translate('referenceLibrary')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

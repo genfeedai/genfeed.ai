@@ -22,8 +22,11 @@
   "composerToolbar": {
     "actions": "Actions",
     "actionsAria": "Open composer actions",
+    "addContext": "Add context",
+    "attachFiles": "Attach files",
     "noModelsEnabled": "No models enabled",
-    "noModelsEnabledTitle": "No models enabled for this workspace"
+    "noModelsEnabledTitle": "No models enabled for this workspace",
+    "referenceLibrary": "Reference library content"
   },
   "generationActionCard": {
     "durationSeconds": "{seconds}s",

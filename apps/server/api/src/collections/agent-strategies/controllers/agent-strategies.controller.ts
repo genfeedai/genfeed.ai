@@ -27,6 +27,7 @@ import {
   Patch,
   Post,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -62,9 +63,10 @@ export class AgentStrategiesController extends BaseCRUDController<
     };
 
     const organizationId = user.organizationId?.toString();
-    if (organizationId) {
-      match.organizationId = organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException('Organization not found');
     }
+    match.organizationId = organizationId;
 
     if (query.platform) {
       match.platforms = query.platform;

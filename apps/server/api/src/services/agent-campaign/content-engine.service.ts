@@ -144,10 +144,10 @@ export class ContentEngineService {
     campaignId: string,
     organizationId: string,
   ): Promise<ContentEngineCycleResult> {
-    const campaign = await this.agentCampaignsService.findOne({
-      id: campaignId,
-      organizationId: organizationId,
-    });
+    const campaign = await this.agentCampaignsService.findOneById(
+      campaignId,
+      organizationId,
+    );
 
     if (!campaign) {
       throw new NotFoundException('Campaign', campaignId);
@@ -221,8 +221,9 @@ export class ContentEngineService {
         lastOrchestrationSummary:
           'Campaign budget exhausted before orchestration dispatch.',
         nextOrchestratedAt: null,
+        organizationId,
         status: 'completed',
-      } as Record<string, unknown>);
+      });
 
       return await this.finalizeCycle(campaign, {
         dispatchedRuns: [],
@@ -853,7 +854,12 @@ export class ContentEngineService {
       lastOrchestratedAt: now,
       lastOrchestrationSummary: input.summary,
       nextOrchestratedAt: input.nextOrchestratedAt,
-    } as Record<string, unknown>);
+      organizationId: requireRelationId(
+        campaign.organizationId,
+        'organization',
+        `Campaign ${campaign.id}`,
+      ),
+    });
 
     this.logger.log(`${this.logContext} finalized orchestration cycle`, {
       campaignId: String(campaign.id),

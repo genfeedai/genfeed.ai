@@ -4,7 +4,6 @@ import {
   History,
   LayoutGrid,
   Megaphone,
-  Network,
   Rocket,
   Settings,
   Sparkles,
@@ -17,7 +16,7 @@ import {
  *
  * - Home: Overview
  * - Workflows: pipelines + run history
- * - Agents: roster, hire, skills, autopilot, programs, launch team
+ * - Agents: roster, skills, autopilot, programs
  * - Settings: module config
  *
  * Outreach / reply drip / author replies live in Messages.
@@ -96,17 +95,10 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [
       APP_ROUTES.AUTOMATE.CAMPAIGNS,
       APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW,
+      APP_ROUTES.AUTOMATE.ORCHESTRATOR,
     ],
     outline: Megaphone,
     solid: Megaphone,
-  },
-  {
-    group: 'Agents',
-    href: APP_ROUTES.AUTOMATE.ORCHESTRATOR,
-    label: 'Launch team',
-    matchPaths: [APP_ROUTES.AUTOMATE.ORCHESTRATOR],
-    outline: Network,
-    solid: Network,
   },
   {
     group: 'Settings',

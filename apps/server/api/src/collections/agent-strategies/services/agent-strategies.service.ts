@@ -2,6 +2,7 @@ import { getAgentTypeWorkflowDefault } from '@api/collections/agent-strategies/c
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
@@ -35,7 +36,7 @@ type AgentStrategyWriteDto = Partial<
   userId?: string;
 };
 
-type AgentStrategyCreateInput = CreateAgentStrategyDto & {
+export type AgentStrategyCreateInput = CreateAgentStrategyDto & {
   organizationId: string;
   userId: string;
 };
@@ -133,6 +134,29 @@ export class AgentStrategiesService extends BaseService<
     createDto: AgentStrategyCreateInput,
     populate: PopulateInput = [],
   ): Promise<AgentStrategyDocument> {
+    return super.create(
+      this.buildCreateWriteData(createDto) as unknown as CreateAgentStrategyDto,
+      populate,
+    );
+  }
+
+  /** Create through an existing transaction while preserving all defaults. */
+  async createWithClient(
+    createDto: AgentStrategyCreateInput,
+    client: PrismaTransactionClient,
+  ): Promise<AgentStrategyDocument> {
+    const document = await client.agentStrategy.create({
+      data: this.buildCreateWriteData(
+        createDto,
+      ) as Prisma.AgentStrategyUncheckedCreateInput,
+    });
+
+    return this.normalizeDocument(document);
+  }
+
+  private buildCreateWriteData(
+    createDto: AgentStrategyCreateInput,
+  ): Record<string, unknown> {
     const now = new Date();
     // Pin deterministic graph on create when client omits binding (wizard/autopilot).
     const typeDefault = getAgentTypeWorkflowDefault(createDto.agentType);
@@ -170,13 +194,7 @@ export class AgentStrategiesService extends BaseService<
       runHistory: [],
     };
 
-    return super.create(
-      this.toPrismaWriteData(
-        payload,
-        'create',
-      ) as unknown as CreateAgentStrategyDto,
-      populate,
-    );
+    return this.toPrismaWriteData(payload, 'create');
   }
 
   override async patch(

@@ -123,6 +123,7 @@ export const APP_ROUTES = {
     LIBRARY: '/automate/library',
     /** @deprecated Opens the custom mode of the Add agent dialog. */
     NEW: '/automate/agents/new',
+    /** @deprecated Opens the Creator Studio template on CAMPAIGNS_NEW. */
     ORCHESTRATOR: '/automate/orchestrator',
     /**
      * Canonical automate home. Bare ROOT permanently redirects here so Overview
