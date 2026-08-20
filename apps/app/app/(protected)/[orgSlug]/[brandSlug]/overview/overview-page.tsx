@@ -1,7 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import type { AgentRunStats } from '@genfeedai/types';
@@ -49,17 +49,19 @@ interface SectionStat {
   value: string;
 }
 
-const OVERVIEW_SOCIAL_PLATFORMS: SocialPlatform[] = [
-  'instagram',
-  'tiktok',
-  'youtube',
-  'twitter',
-  'facebook',
-  'linkedin',
-  'reddit',
-  'pinterest',
-  'medium',
-];
+const OVERVIEW_SOCIAL_PLATFORMS = [
+  Platform.INSTAGRAM,
+  Platform.TIKTOK,
+  Platform.YOUTUBE,
+  Platform.TWITTER,
+  Platform.FACEBOOK,
+  Platform.LINKEDIN,
+  Platform.REDDIT,
+  Platform.PINTEREST,
+  Platform.MEDIUM,
+] as const;
+
+type OverviewSocialPlatform = (typeof OVERVIEW_SOCIAL_PLATFORMS)[number];
 
 // Creating content starts in the Agent — there is no standalone composer to
 // send operators to any more.
@@ -70,8 +72,15 @@ const CREATE_CONTENT_AGENT_HREF = buildAgentPromptHref(
 const EMPTY_AGENT_RUNS: IAgentRun[] = [];
 const EMPTY_TIME_SERIES: PlatformTimeSeriesDataPoint[] = [];
 
-function isSocialPlatform(value: string): value is SocialPlatform {
-  return OVERVIEW_SOCIAL_PLATFORMS.includes(value as SocialPlatform);
+function isSocialPlatform(value: string): value is OverviewSocialPlatform {
+  return (OVERVIEW_SOCIAL_PLATFORMS as readonly string[]).includes(value);
+}
+
+function readChartValue(
+  point: PlatformTimeSeriesDataPoint,
+  platform: OverviewSocialPlatform,
+): number {
+  return Number((point as Record<string, number | undefined>)[platform] ?? 0);
 }
 
 function getChartPlatforms(
@@ -94,14 +103,19 @@ function getChartPlatforms(
   }
 
   const discovered = OVERVIEW_SOCIAL_PLATFORMS.filter((platform) =>
-    series.some((point) => Number(point[platform] ?? 0) > 0),
+    series.some((point) => readChartValue(point, platform) > 0),
   );
 
   if (discovered.length > 0) {
-    return discovered;
+    return [...discovered];
   }
 
-  return ['instagram', 'tiktok', 'youtube', 'twitter'];
+  return [
+    Platform.INSTAGRAM,
+    Platform.TIKTOK,
+    Platform.YOUTUBE,
+    Platform.TWITTER,
+  ];
 }
 
 interface SectionSummaryCardProps {
