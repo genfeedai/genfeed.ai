@@ -17,6 +17,7 @@ import WarmupAccountsPage from './warmup-accounts-page';
 
 const mocks = vi.hoisted(() => ({
   createWarmupAccount: vi.fn(),
+  getAuthedService: vi.fn(),
   getWarmupAccounts: vi.fn(),
   inspectInvitation: vi.fn(),
   resendInvitation: vi.fn(),
@@ -30,8 +31,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('test-token'),
+  useAuthedService: () => mocks.getAuthedService,
 }));
 
 vi.mock('next-intl', async () => {
@@ -183,6 +183,14 @@ async function findEnabledButton(name: RegExp | string): Promise<HTMLElement> {
 describe('WarmupAccountsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getAuthedService.mockResolvedValue({
+      createWarmupAccount: mocks.createWarmupAccount,
+      getWarmupAccounts: mocks.getWarmupAccounts,
+      inspectInvitation: mocks.inspectInvitation,
+      resendInvitation: mocks.resendInvitation,
+      revokeInvitation: mocks.revokeInvitation,
+      sendInvitation: mocks.sendInvitation,
+    });
     mocks.getWarmupAccounts.mockResolvedValue([account]);
     mocks.createWarmupAccount.mockResolvedValue(account);
     mocks.inspectInvitation.mockResolvedValue(account);
