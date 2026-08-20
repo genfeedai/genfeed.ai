@@ -27,6 +27,11 @@ const makeTrend = (overrides: Record<string, unknown> = {}): TrendEntity =>
 describe('TrendSourcePreviewService', () => {
   let service: TrendSourcePreviewService;
   let sourceItems: TrendSourceItemsService;
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   let cache: {
     generateKey: ReturnType<typeof vi.fn>;
     get: ReturnType<typeof vi.fn>;
@@ -55,6 +60,11 @@ describe('TrendSourcePreviewService', () => {
       invalidateByTags: vi.fn().mockResolvedValue(1),
       set: vi.fn().mockResolvedValue(true),
     };
+    logger = {
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
     prisma = {
       trend: {
         findFirst: vi.fn().mockResolvedValue(null),
@@ -68,10 +78,7 @@ describe('TrendSourcePreviewService', () => {
         TrendSourceItemsService,
         { provide: ApifyService, useValue: apify },
         { provide: PrismaService, useValue: prisma },
-        {
-          provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-        },
+        { provide: LoggerService, useValue: logger },
         { provide: CacheService, useValue: cache },
         {
           provide: TrendReferenceCorpusService,
@@ -245,7 +252,9 @@ describe('TrendSourcePreviewService', () => {
     });
 
     it('resolves and persists a preview when the cache is empty', async () => {
-      prisma.trend.findFirst.mockResolvedValue({ data: {} });
+      prisma.trend.findFirst.mockResolvedValue({
+        data: { growthRate: 12, mentions: 800 },
+      });
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([
         {
           contentType: 'post',
@@ -275,11 +284,13 @@ describe('TrendSourcePreviewService', () => {
         expect.objectContaining({
           data: {
             data: expect.objectContaining({
+              growthRate: 12,
               metadata: expect.objectContaining({
                 sourcePreviewCache: [expect.objectContaining({ id: 'live-1' })],
                 sourcePreviewCachedAt: expect.any(String),
                 sourcePreviewState: 'live',
               }),
+              mentions: 800,
             }),
           },
           where: {
@@ -322,24 +333,58 @@ describe('TrendSourcePreviewService', () => {
       );
     });
 
-    it('treats a missing organization scope as global', async () => {
-      prisma.trend.findFirst.mockResolvedValue({ data: {} });
+    it.each([
+      { label: 'missing', organizationId: undefined },
+      { label: 'empty', organizationId: '' },
+    ])(
+      'treats a $label organization scope as global',
+      async ({ organizationId }) => {
+        prisma.trend.findFirst.mockResolvedValue({
+          data: { isCurrent: true },
+        });
+        vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
+        // Runtime entities can be malformed despite the stricter TrendEntity type.
+        const trend = makeTrend({ organizationId });
+
+        await service.precomputeTrendSourcePreview([trend], { force: true });
+
+        const expectedWhere = {
+          id: 'trend-1',
+          isDeleted: false,
+          organizationId: null,
+        };
+        expect(prisma.trend.findFirst).toHaveBeenCalledWith({
+          where: expectedWhere,
+        });
+        expect(prisma.trend.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: {
+              data: expect.objectContaining({
+                isCurrent: true,
+                metadata: expect.objectContaining({
+                  sourcePreviewCache: [],
+                  sourcePreviewCachedAt: expect.any(String),
+                  sourcePreviewState: 'empty',
+                }),
+              }),
+            },
+            where: expectedWhere,
+          }),
+        );
+      },
+    );
+
+    it('warns and skips the update when the scoped trend row is missing', async () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
-      const trend = makeTrend({ organizationId: undefined });
+      const trend = makeTrend({ organizationId: 'org-1' });
 
       await service.precomputeTrendSourcePreview([trend], { force: true });
 
-      const expectedWhere = {
-        id: 'trend-1',
-        isDeleted: false,
-        organizationId: null,
-      };
-      expect(prisma.trend.findFirst).toHaveBeenCalledWith({
-        where: expectedWhere,
-      });
-      expect(prisma.trend.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expectedWhere }),
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Skipped trend source preview persistence because the trend row was not found',
+        { organizationId: 'org-1', trendId: 'trend-1' },
       );
+      expect(prisma.trend.update).not.toHaveBeenCalled();
     });
   });
 });

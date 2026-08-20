@@ -11,7 +11,6 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -281,24 +280,24 @@ export class TrendSourcePreviewService {
       sourcePreviewState,
     };
     const trendId = String(trend.id);
-    const organizationId = trend.organizationId ?? null;
-    const where =
-      organizationId === null
-        ? { id: trendId, isDeleted: false, organizationId: null }
-        : scopedWhere(organizationId, { id: trendId });
+    const organizationId = trend.organizationId || null;
+    const where = { id: trendId, isDeleted: false, organizationId };
 
-    // tenant-scope-ignore: where is built immediately above and always pins organizationId plus isDeleted for both global and tenant rows
     const existingDoc = await this.prisma.trend.findFirst({
       where,
     });
     if (existingDoc) {
       const existingData =
         (existingDoc.data as unknown as Record<string, unknown>) ?? {};
-      // tenant-scope-ignore: reuse the same organizationId-and-isDeleted scope proven by the preceding lookup
       await this.prisma.trend.update({
         data: { data: toPrismaJson({ ...existingData, metadata }) },
         where,
       });
+    } else {
+      this.loggerService.warn(
+        'Skipped trend source preview persistence because the trend row was not found',
+        { organizationId, trendId },
+      );
     }
 
     return new TrendEntity({
