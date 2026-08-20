@@ -9,6 +9,7 @@ import { AssetGateService } from '@api/collections/organization-settings/service
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
@@ -16,8 +17,13 @@ import {
 } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientStatus, MetadataExtension } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import {
+  type IngredientCategory,
+  IngredientStatus,
+  LibraryShelf,
+  MetadataExtension,
+} from '@genfeedai/enums';
+import type { ILibrarySummary, PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -645,6 +651,121 @@ export class IngredientsService extends BaseService<
       });
       throw error;
     }
+  }
+
+  /**
+   * Aggregate the counts behind the Library sidebar: one count per asset type,
+   * one per shelf, plus Starred, Trash, and the storage meter.
+   *
+   * Shelf counts overlap on purpose and do not partition `total` — an asset can
+   * be both unfoldered and awaiting review, and `total` excludes the archived,
+   * rejected, and failed rows that only their own shelf surfaces. The sidebar
+   * renders each number as "the size of this saved query", never as a share of
+   * a whole.
+   *
+   * Six queries, all tenant-scoped through `scopedWhere`. The type breakdown and
+   * three of the six shelves fall out of a single `groupBy` that also carries the
+   * `fileSize` sum, so the storage meter costs nothing extra.
+   */
+  @HandleErrors()
+  async getLibrarySummary(
+    organizationId: string,
+    filters: Prisma.IngredientWhereInput = {},
+  ): Promise<ILibrarySummary> {
+    const baseWhere: Prisma.IngredientWhereInput = scopedWhere(organizationId, {
+      ...filters,
+    });
+
+    const defaultStatuses = [...LibraryShelfUtil.defaultStatuses];
+
+    const [
+      groups,
+      unsortedCount,
+      needsReviewCount,
+      approvedCount,
+      starredCount,
+      trashedCount,
+    ] = await Promise.all([
+      this.prisma.ingredient.groupBy({
+        _count: { id: true },
+        _sum: { fileSize: true },
+        by: ['category', 'status'],
+        where: baseWhere,
+      }),
+      this.prisma.ingredient.count({
+        where: {
+          ...baseWhere,
+          ...LibraryShelfUtil.buildShelfFilter(LibraryShelf.UNSORTED),
+        },
+      }),
+      this.prisma.ingredient.count({
+        where: {
+          ...baseWhere,
+          ...LibraryShelfUtil.buildShelfFilter(LibraryShelf.NEEDS_REVIEW),
+        },
+      }),
+      this.prisma.ingredient.count({
+        where: {
+          ...baseWhere,
+          ...LibraryShelfUtil.buildShelfFilter(LibraryShelf.APPROVED),
+        },
+      }),
+      this.prisma.ingredient.count({
+        where: {
+          ...baseWhere,
+          isFavorite: true,
+          status: { in: defaultStatuses },
+        },
+      }),
+      this.prisma.ingredient.count({
+        where: { ...baseWhere, isDeleted: true },
+      }),
+    ]);
+
+    const byCategory: Partial<Record<IngredientCategory, number>> = {};
+    const byStatus = new Map<string, number>();
+    let total = 0;
+    let storageBytes = 0;
+
+    for (const group of groups) {
+      const count = group._count.id;
+
+      byStatus.set(group.status, (byStatus.get(group.status) ?? 0) + count);
+
+      if (!defaultStatuses.includes(group.status as IngredientStatus)) {
+        continue;
+      }
+
+      total += count;
+      storageBytes += group._sum.fileSize ?? 0;
+
+      if (group.category) {
+        const category = group.category as IngredientCategory;
+        byCategory[category] = (byCategory[category] ?? 0) + count;
+      }
+    }
+
+    const countOf = (...statuses: IngredientStatus[]): number =>
+      statuses.reduce((sum, status) => sum + (byStatus.get(status) ?? 0), 0);
+
+    return {
+      byCategory,
+      byShelf: {
+        [LibraryShelf.GENERATING]: countOf(IngredientStatus.PROCESSING),
+        [LibraryShelf.UNSORTED]: unsortedCount,
+        [LibraryShelf.NEEDS_REVIEW]: needsReviewCount,
+        [LibraryShelf.APPROVED]: approvedCount,
+        [LibraryShelf.FAILED]: countOf(IngredientStatus.FAILED),
+        [LibraryShelf.ARCHIVED]: countOf(
+          IngredientStatus.ARCHIVED,
+          IngredientStatus.REJECTED,
+        ),
+      },
+      starredCount,
+      storageBytes,
+      total,
+      trashedCount,
+    };
   }
 
   /**

@@ -3,6 +3,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
   IngredientStatus,
+  LibraryShelf,
   MetadataExtension,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -61,6 +62,51 @@ export class IngredientsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsEnum(IngredientCategory)
   category?: IngredientCategory;
+
+  @ApiProperty({
+    description:
+      'Filter ingredients by one or more categories using repeated query keys ' +
+      '(e.g., ?categories=IMAGE&categories=VIDEO). This is the Library type ' +
+      'axis — it composes with `shelf` and `folderId` rather than replacing ' +
+      'them. Takes precedence over the single-value `category` filter.',
+    enum: IngredientCategory,
+    enumName: 'IngredientCategory',
+    example: [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
+    isArray: true,
+    required: false,
+  })
+  @Transform(({ value }) => {
+    if (!value) {
+      return undefined;
+    }
+    const values = Array.isArray(value) ? value : [value];
+    // Accept legacy lowercase / hyphenated spellings from older clients.
+    return values.map((entry) =>
+      typeof entry === 'string'
+        ? entry.replace(/-/g, '_').toUpperCase()
+        : entry,
+    );
+  })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(IngredientCategory, { each: true })
+  categories?: IngredientCategory[];
+
+  @ApiProperty({
+    description:
+      'Filter by Library shelf — the generation-state axis. A shelf is a saved ' +
+      'query (Generating, Unsorted, Needs review, Approved, Failed, Archived), ' +
+      'not a location, and owns the status filter when set.',
+    enum: LibraryShelf,
+    enumName: 'LibraryShelf',
+    required: false,
+  })
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsOptional()
+  @IsEnum(LibraryShelf)
+  shelf?: LibraryShelf;
 
   @ApiProperty({
     description: 'Search ingredients by name or description',

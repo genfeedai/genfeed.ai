@@ -151,6 +151,7 @@ export * from './hooks/use-async-state.interface';
 export * from './hooks/use-publication-modal.interface';
 export * from './ingredients/image-to-video.interface';
 export * from './ingredients/ingredient.interface';
+export * from './ingredients/library-summary.interface';
 export * from './integrations/ads-gateway.interface';
 export * from './integrations/ads-research.interface';
 export * from './integrations/connect-genfeed.interface';
