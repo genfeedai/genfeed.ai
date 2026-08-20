@@ -65,7 +65,7 @@ export default function VideoDetailWorkspacePanel({
   onSeeDetails,
 }: VideoDetailWorkspacePanelProps) {
   return (
-    <div className="col-span-2 space-y-4">
+    <div className="min-w-0 space-y-4">
       <IngredientWorkspacePanel
         title="Review video details"
         tabs={tabs}

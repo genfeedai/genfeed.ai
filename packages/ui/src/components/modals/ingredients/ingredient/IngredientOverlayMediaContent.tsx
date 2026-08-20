@@ -80,7 +80,7 @@ export default function IngredientOverlayMediaContent({
 }: Props) {
   return (
     <div className="rounded-3xl bg-secondary shadow-border p-4 md:p-6">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
         {isVideo ? (
           <IngredientDetailVideo
             video={localIngredient}
@@ -143,7 +143,7 @@ export default function IngredientOverlayMediaContent({
             onUsePrompt={onUsePrompt}
           />
         ) : (
-          <div className="col-span-3 text-center">
+          <div className="col-span-full text-center">
             <p className="text-lg mb-2">{metadataLabel}</p>
 
             <p className="text-sm text-foreground/60">

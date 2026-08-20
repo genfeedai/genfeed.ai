@@ -158,7 +158,9 @@ describe('ModalIngredient', () => {
 
     render(<ModalIngredient {...defaultProps} ingredient={ingredient} />);
 
-    expect(screen.getByTestId('ingredient-detail-video')).toBeInTheDocument();
+    const detail = screen.getByTestId('ingredient-detail-video');
+    expect(detail).toBeInTheDocument();
+    expect(detail.parentElement).toHaveClass('xl:grid-cols-2');
   });
 
   it('renders the image detail workspace for image ingredients', () => {
@@ -170,7 +172,10 @@ describe('ModalIngredient', () => {
 
     render(<ModalIngredient {...defaultProps} ingredient={ingredient} />);
 
-    expect(screen.getByTestId('ingredient-detail-image')).toBeInTheDocument();
+    const detail = screen.getByTestId('ingredient-detail-image');
+    expect(detail).toBeInTheDocument();
+    expect(detail.parentElement).toHaveClass('xl:grid-cols-2');
+    expect(detail.parentElement).not.toHaveClass('xl:grid-cols-3');
   });
 
   it('opens a version-pinned contextual Remix for the selected image', () => {

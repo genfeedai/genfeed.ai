@@ -68,7 +68,7 @@ export default function IngredientDetailBody({
 }: Props) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-6 h-full p-6">
+      <div className="grid h-full grid-cols-1 items-start gap-6 p-6 xl:grid-cols-2">
         {ingredient.category === IngredientCategory.VIDEO ? (
           <IngredientDetailVideo
             video={ingredient}

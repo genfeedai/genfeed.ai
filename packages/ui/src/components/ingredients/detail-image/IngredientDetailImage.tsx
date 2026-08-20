@@ -156,7 +156,7 @@ export default function IngredientDetailImage({
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <div
           className={cn(
             'relative overflow-hidden shadow-lg group opacity-80 hover:opacity-100',
@@ -219,7 +219,7 @@ export default function IngredientDetailImage({
         />
       </div>
 
-      <div className="col-span-2 space-y-4">
+      <div className="min-w-0 space-y-4">
         <IngredientWorkspacePanel
           title="Refine image details"
           tabs={IMAGE_DETAIL_TABS}
