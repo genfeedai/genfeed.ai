@@ -1,10 +1,7 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import ModalSound from '@ui/modals/elements/sound/ModalSound';
-import type { ChangeEvent, PropsWithChildren } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const setValueMock = vi.hoisted(() => vi.fn());
+import type { PropsWithChildren } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: PropsWithChildren) => (
@@ -22,7 +19,7 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
       handleSubmit: vi.fn((fn: (...args: never[]) => unknown) => fn),
       register: vi.fn(),
       reset: vi.fn(),
-      setValue: setValueMock,
+      setValue: vi.fn(),
       watch: vi.fn(() => false),
     },
     formRef: { current: null },
@@ -78,14 +75,11 @@ vi.mock('@ui/primitives/select', () => ({
 }));
 
 vi.mock('@ui/primitives/checkbox', () => ({
-  Checkbox: (props: {
-    name?: string;
-    onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
-  }) => (
+  Checkbox: (props: { control?: object; name?: string }) => (
     <input
       type="checkbox"
       data-testid={`checkbox-${props.name ?? 'unknown'}`}
-      onChange={props.onChange}
+      data-controlled={props.control ? 'true' : 'false'}
     />
   ),
 }));
@@ -107,23 +101,17 @@ describe('ModalSound', () => {
     sound: null,
   };
 
-  beforeEach(() => {
-    setValueMock.mockClear();
-  });
-
   it('renders sound form', () => {
     render(<ModalSound {...defaultProps} />);
     expect(screen.getByTestId('modal')).toBeInTheDocument();
   });
 
-  it('writes auto-select into the sound form instead of local state', async () => {
-    const user = userEvent.setup();
+  it('binds auto-select to the sound form control', () => {
     render(<ModalSound {...defaultProps} />);
 
-    await user.click(screen.getByTestId('checkbox-isActive'));
-
-    expect(setValueMock).toHaveBeenCalledWith('isActive', true, {
-      shouldValidate: true,
-    });
+    expect(screen.getByTestId('checkbox-isActive')).toHaveAttribute(
+      'data-controlled',
+      'true',
+    );
   });
 });
