@@ -54,6 +54,6 @@ describe('createLibraryBrowserRoute', () => {
       createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
         search: 'launch teaser',
       }),
-    ).toBe(`/library/assets?${LIBRARY_QUERY_KEYS.SEARCH}=launch+teaser`);
+    ).toBe(`/library/assets?${LIBRARY_QUERY_KEYS.SEARCH}=launch%20teaser`);
   });
 });

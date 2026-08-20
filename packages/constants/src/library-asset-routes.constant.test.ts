@@ -95,9 +95,7 @@ describe('library-asset-routes.constant', () => {
       expect(resolveLibraryRouteForCategory(null)).toBe(
         APP_ROUTES.LIBRARY.ASSETS,
       );
-      expect(resolveLibraryRouteForCategory(7)).toBe(
-        APP_ROUTES.LIBRARY.ASSETS,
-      );
+      expect(resolveLibraryRouteForCategory(7)).toBe(APP_ROUTES.LIBRARY.ASSETS);
     });
   });
 

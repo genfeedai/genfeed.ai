@@ -53,20 +53,22 @@ export function createLibraryBrowserRoute(
   route: string = APP_ROUTES.LIBRARY.ASSETS,
   { categories, folderId, search }: LibraryBrowserRouteOptions = {},
 ): string {
-  const params = new URLSearchParams();
+  const params: string[] = [];
 
   for (const category of categories ?? []) {
-    params.append(LIBRARY_QUERY_KEYS.CATEGORIES, category);
+    params.push(
+      `${LIBRARY_QUERY_KEYS.CATEGORIES}=${encodeURIComponent(category)}`,
+    );
   }
 
   if (folderId) {
-    params.set(LIBRARY_QUERY_KEYS.FOLDER, folderId);
+    params.push(`${LIBRARY_QUERY_KEYS.FOLDER}=${encodeURIComponent(folderId)}`);
   }
 
   if (search) {
-    params.set(LIBRARY_QUERY_KEYS.SEARCH, search);
+    params.push(`${LIBRARY_QUERY_KEYS.SEARCH}=${encodeURIComponent(search)}`);
   }
 
-  const queryString = params.toString();
+  const queryString = params.join('&');
   return queryString ? `${route}?${queryString}` : route;
 }
