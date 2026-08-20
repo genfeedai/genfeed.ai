@@ -2729,6 +2729,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'deprecatedAt',
       'description',
       'discoveredAt',
+      'endpoint',
       'externalId',
       'hasAudioToggle',
       'hasDurationEditing',
