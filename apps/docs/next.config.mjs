@@ -11,6 +11,13 @@ const withNextra = nextra({
 
 export default withNextra({
   agentRules: false,
+  experimental: {
+    // Nextra builds its own config, so this app never passes through
+    // `createAppNextConfig()` and has to opt in separately. Inlining the
+    // route's CSS into <head> drops the render-blocking stylesheet request
+    // that otherwise gates first paint on every docs page.
+    inlineCss: true,
+  },
   images: {
     // Documentation media is delivered by the existing CDN pipeline.
     unoptimized: true,

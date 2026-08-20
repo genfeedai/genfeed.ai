@@ -48,7 +48,7 @@ export default function SkillsSuccessContent() {
                 <div className="size-3 rounded-full bg-fill/20" />
                 <div className="size-3 rounded-full bg-fill/20" />
               </div>
-              <div className="flex-1 text-center text-xs text-surface/30 font-mono uppercase tracking-widest">
+              <div className="flex-1 text-center text-xs text-surface/55 font-mono uppercase tracking-widest">
                 terminal
               </div>
             </div>
@@ -56,7 +56,7 @@ export default function SkillsSuccessContent() {
             <div className="p-6 font-mono text-sm">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex gap-2 overflow-x-auto">
-                  <span className="text-surface/40">$</span>
+                  <span className="text-surface/55">$</span>
                   <span className="text-surface/80">{INSTALL_COMMAND}</span>
                 </div>
                 <Button
@@ -65,7 +65,7 @@ export default function SkillsSuccessContent() {
                   type="button"
                   aria-label="Copy install command"
                   title="Copy install command"
-                  className="shrink-0 p-2 text-surface/30 hover:text-surface transition-colors"
+                  className="shrink-0 p-2 text-surface/55 hover:text-surface transition-colors"
                 >
                   <Copy className="size-4" />
                 </Button>

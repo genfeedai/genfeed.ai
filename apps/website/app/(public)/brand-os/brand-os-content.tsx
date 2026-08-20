@@ -197,10 +197,10 @@ export default function BrandOSContent(): React.ReactElement {
         <section className="border-b border-edge/5 bg-background py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto px-6">
             <div className="flex flex-col max-w-4xl gap-6">
-              <div className="flex flex-row w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-surface/45">
+              <div className="flex flex-row w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-surface/55">
                 <Layers className="size-3.5" />
                 <Text>Brand OS</Text>
-                <span className="text-surface/45">/</span>
+                <span className="text-surface/55">/</span>
                 <Text className="text-surface/55">version alpha</Text>
               </div>
 

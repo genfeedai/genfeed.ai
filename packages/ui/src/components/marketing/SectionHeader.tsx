@@ -19,7 +19,7 @@ export default function SectionHeader({
   return (
     <div className={cn('mb-16 text-center', className)}>
       {tierLabel ? (
-        <div className="mb-6 text-xs font-black uppercase tracking-widest text-surface/45">
+        <div className="mb-6 text-xs font-black uppercase tracking-widest text-surface/55">
           {tierLabel}
         </div>
       ) : null}

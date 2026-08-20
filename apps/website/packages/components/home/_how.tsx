@@ -62,7 +62,7 @@ export default function HomeHow(): React.ReactElement {
               key={item.step}
               className="flex flex-col gap-3 bg-background p-8"
             >
-              <Text className="text-sm font-black tracking-[-0.02em] text-surface/30">
+              <Text className="text-sm font-black tracking-[-0.02em] text-surface/55">
                 {item.step}
               </Text>
               <Heading as="h3" className="text-xl font-semibold text-surface">
