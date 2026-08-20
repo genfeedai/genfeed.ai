@@ -400,7 +400,7 @@ describe('PostsService batchSchedule', () => {
         }),
       }),
     );
-    expect(post.update.mock.calls[0]?.[0].data.platform).toBe('twitter');
+    expect(post.update.mock.calls[0]?.[0]?.data?.platform).toBe('twitter');
   });
 
   it('refuses to persist an unknown credential platform onto posts.platform', async () => {

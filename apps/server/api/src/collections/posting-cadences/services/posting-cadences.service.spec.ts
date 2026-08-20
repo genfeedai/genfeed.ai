@@ -71,7 +71,7 @@ function baseReservationRow() {
     id: 'reservation-1',
     identityKey: IDENTITY_KEY,
     instant: new Date(INSTANT),
-    lastFailureReason: null,
+    lastFailureReason: null as string | null,
     state: 'generating',
     timezone: 'UTC',
   };
