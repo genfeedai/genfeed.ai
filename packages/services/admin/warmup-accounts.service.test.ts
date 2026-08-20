@@ -112,6 +112,7 @@ describe('AdminWarmupAccountsService', () => {
   });
 
   it('inspects, sends, resends, and revokes invitation lifecycle actions', async () => {
+    const signal = new AbortController().signal;
     mockGet.mockResolvedValue({
       data: {
         data: {
@@ -135,22 +136,38 @@ describe('AdminWarmupAccountsService', () => {
       },
     });
 
-    await expect(service.inspectInvitation('warmup-1')).resolves.toEqual({
+    await expect(
+      service.inspectInvitation('warmup-1', signal),
+    ).resolves.toEqual({
       id: 'warmup-1',
       invitation: { id: 'invite-1', status: 'pending' },
       status: 'INVITED',
     });
-    expect(mockGet).toHaveBeenCalledWith('/warmup-1/invitation');
+    expect(mockGet).toHaveBeenCalledWith('/warmup-1/invitation', { signal });
 
-    await expect(service.sendInvitation('warmup-1')).resolves.toMatchObject({
+    await expect(
+      service.sendInvitation('warmup-1', signal),
+    ).resolves.toMatchObject({
       invitation: { status: 'delivered' },
     });
-    expect(mockPost).toHaveBeenCalledWith('/warmup-1/invitation/send');
+    expect(mockPost).toHaveBeenCalledWith(
+      '/warmup-1/invitation/send',
+      undefined,
+      { signal },
+    );
 
-    await service.resendInvitation('warmup-1');
-    expect(mockPost).toHaveBeenCalledWith('/warmup-1/invitation/resend');
+    await service.resendInvitation('warmup-1', signal);
+    expect(mockPost).toHaveBeenCalledWith(
+      '/warmup-1/invitation/resend',
+      undefined,
+      { signal },
+    );
 
-    await service.revokeInvitation('warmup-1');
-    expect(mockPost).toHaveBeenCalledWith('/warmup-1/invitation/revoke');
+    await service.revokeInvitation('warmup-1', signal);
+    expect(mockPost).toHaveBeenCalledWith(
+      '/warmup-1/invitation/revoke',
+      undefined,
+      { signal },
+    );
   });
 });

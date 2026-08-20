@@ -33,15 +33,15 @@ export type IWarmupInvitationStatus =
   | 'revoked';
 
 export interface IWarmupInvitation {
-  acceptedAt?: string | null;
+  acceptedAt: string | null;
   createdAt: string;
   email: string;
   expiresAt: string;
   id: string;
   invitedByUserId: string;
   organizationId: string;
-  revokedAt?: string | null;
-  roleKey?: string;
+  revokedAt: string | null;
+  roleKey: string;
   status: IWarmupInvitationStatus;
   updatedAt: string;
 }

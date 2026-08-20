@@ -33,7 +33,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
 const TABS = [
   { id: 'create', label: 'Create' },
@@ -76,11 +76,21 @@ type PageState = {
   accounts: IWarmupAccount[];
   activeTab: 'accounts' | 'create';
   form: WarmupAccountFormState;
-  invitationAction: WarmupInvitationAction | null;
+  invitationAction: PendingInvitationAction | null;
   isLoading: boolean;
   isSubmitting: boolean;
   loadTrigger: number;
   selectedAccountId?: string;
+};
+
+type PendingInvitationAction = {
+  accountId: string;
+  action: WarmupInvitationAction;
+  requestId: number;
+};
+
+type ActiveInvitationRequest = PendingInvitationAction & {
+  controller: AbortController;
 };
 
 type PageAction =
@@ -94,12 +104,17 @@ type PageAction =
       value: string;
     }
   | { type: 'SET_SELECTED'; accountId: string }
-  | { type: 'SET_INVITATION_ACTION'; action: WarmupInvitationAction | null }
+  | { type: 'SET_INVITATION_ACTION'; request: PendingInvitationAction }
+  | { type: 'CLEAR_INVITATION_ACTION'; requestId: number }
   | { type: 'UPSERT_ACCOUNT'; account: IWarmupAccount }
   | { type: 'CREATE_SUCCESS'; account: IWarmupAccount };
 
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {
+    case 'CLEAR_INVITATION_ACTION':
+      return state.invitationAction?.requestId === action.requestId
+        ? { ...state, invitationAction: null }
+        : state;
     case 'CREATE_SUCCESS': {
       const remaining = state.accounts.filter(
         (account) => account.id !== action.account.id,
@@ -127,7 +142,7 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         form: { ...state.form, [action.field]: action.value },
       };
     case 'SET_INVITATION_ACTION':
-      return { ...state, invitationAction: action.action };
+      return { ...state, invitationAction: action.request };
     case 'SET_LOADING':
       return { ...state, isLoading: action.isLoading };
     case 'SET_SELECTED':
@@ -146,7 +161,6 @@ function pageReducer(state: PageState, action: PageAction): PageState {
               account.id === action.account.id ? action.account : account,
             )
           : [action.account, ...state.accounts],
-        selectedAccountId: action.account.id,
       };
     }
     case 'SET_TAB':
@@ -181,21 +195,21 @@ function canSendInvitation(account: IWarmupAccount): boolean {
     return false;
   }
 
-  const status = account.invitation?.status;
-  if (!status) {
-    return (
-      account.status === 'FAILED' ||
-      account.status === 'INVITED' ||
-      account.status === 'PROVISIONED'
-    );
+  if (account.invitation) {
+    return false;
   }
 
-  return status === 'pending';
+  return (
+    account.status === 'FAILED' ||
+    account.status === 'INVITED' ||
+    account.status === 'PROVISIONED'
+  );
 }
 
 function canResendInvitation(account: IWarmupAccount): boolean {
   const status = account.invitation?.status;
   return (
+    status === 'pending' ||
     status === 'delivered' ||
     status === 'delivery-failed' ||
     status === 'expired'
@@ -239,6 +253,10 @@ export default function WarmupAccountsPage({
     isSubmitting: false,
     loadTrigger: 0,
   });
+  const invitationRequestIdRef = useRef(0);
+  const activeInvitationRequestRef = useRef<ActiveInvitationRequest | null>(
+    null,
+  );
 
   const {
     accounts,
@@ -300,74 +318,98 @@ export default function WarmupAccountsPage({
   }, [activeTab, loadAccounts, loadTrigger]);
 
   const runInvitationAction = useCallback(
-    async (
-      action: WarmupInvitationAction,
-      accountId: string,
-      signal?: AbortSignal,
-    ): Promise<void> => {
-      dispatch({ type: 'SET_INVITATION_ACTION', action });
+    (action: WarmupInvitationAction, accountId: string): AbortController => {
+      activeInvitationRequestRef.current?.controller.abort();
 
-      try {
-        const service = await getWarmupAccountsService();
-        const account =
-          action === 'inspect'
-            ? await service.inspectInvitation(accountId)
-            : action === 'send'
-              ? await service.sendInvitation(accountId)
-              : action === 'resend'
-                ? await service.resendInvitation(accountId)
-                : await service.revokeInvitation(accountId);
+      const controller = new AbortController();
+      const requestId = invitationRequestIdRef.current + 1;
+      const request = { accountId, action, requestId };
+      invitationRequestIdRef.current = requestId;
+      activeInvitationRequestRef.current = { ...request, controller };
+      dispatch({ type: 'SET_INVITATION_ACTION', request });
 
-        if (signal?.aborted) {
-          return;
-        }
+      const isCurrentRequest = (): boolean =>
+        !controller.signal.aborted &&
+        activeInvitationRequestRef.current?.requestId === requestId;
 
-        dispatch({ type: 'UPSERT_ACCOUNT', account });
+      void (async () => {
+        try {
+          const service = await getWarmupAccountsService();
+          if (!isCurrentRequest()) {
+            return;
+          }
 
-        if (action === 'inspect') {
-          return;
-        }
+          const account =
+            action === 'inspect'
+              ? await service.inspectInvitation(accountId, controller.signal)
+              : action === 'send'
+                ? await service.sendInvitation(accountId, controller.signal)
+                : action === 'resend'
+                  ? await service.resendInvitation(accountId, controller.signal)
+                  : await service.revokeInvitation(
+                      accountId,
+                      controller.signal,
+                    );
 
-        if (account.invitation?.status === 'delivery-failed') {
-          notificationsService.warning(
-            'Invitation email could not be delivered',
+          if (!isCurrentRequest()) {
+            return;
+          }
+
+          dispatch({ type: 'UPSERT_ACCOUNT', account });
+
+          if (action === 'inspect') {
+            return;
+          }
+
+          if (account.invitation?.status === 'delivery-failed') {
+            notificationsService.warning(
+              'Invitation email could not be delivered',
+            );
+            return;
+          }
+
+          if (action === 'send') {
+            notificationsService.success('Invitation sent');
+            return;
+          }
+
+          if (action === 'resend') {
+            notificationsService.success('Invitation resent');
+            return;
+          }
+
+          notificationsService.success('Invitation revoked');
+        } catch (error) {
+          if (!isCurrentRequest()) {
+            return;
+          }
+
+          logger.error(`Warm-up invitation ${action} failed`, error);
+          notificationsService.error(
+            action === 'inspect'
+              ? 'Failed to inspect invitation'
+              : action === 'send'
+                ? 'Failed to send invitation'
+                : action === 'resend'
+                  ? 'Failed to resend invitation'
+                  : 'Failed to revoke invitation',
           );
-          return;
+        } finally {
+          dispatch({ type: 'CLEAR_INVITATION_ACTION', requestId });
+          if (activeInvitationRequestRef.current?.requestId === requestId) {
+            activeInvitationRequestRef.current = null;
+          }
         }
+      })();
 
-        if (action === 'send') {
-          notificationsService.success('Invitation sent');
-          return;
-        }
-
-        if (action === 'resend') {
-          notificationsService.success('Invitation resent');
-          return;
-        }
-
-        notificationsService.success('Invitation revoked');
-      } catch (error) {
-        if (signal?.aborted) {
-          return;
-        }
-
-        logger.error(`Warm-up invitation ${action} failed`, error);
-        notificationsService.error(
-          action === 'inspect'
-            ? 'Failed to inspect invitation'
-            : action === 'send'
-              ? 'Failed to send invitation'
-              : action === 'resend'
-                ? 'Failed to resend invitation'
-                : 'Failed to revoke invitation',
-        );
-      } finally {
-        if (!signal?.aborted) {
-          dispatch({ type: 'SET_INVITATION_ACTION', action: null });
-        }
-      }
+      return controller;
     },
     [getWarmupAccountsService, notificationsService],
+  );
+
+  useEffect(
+    () => () => activeInvitationRequestRef.current?.controller.abort(),
+    [],
   );
 
   useEffect(() => {
@@ -375,12 +417,7 @@ export default function WarmupAccountsPage({
       return;
     }
 
-    const controller = new AbortController();
-    void runInvitationAction(
-      'inspect',
-      state.selectedAccountId,
-      controller.signal,
-    );
+    const controller = runInvitationAction('inspect', state.selectedAccountId);
 
     return () => controller.abort();
   }, [activeTab, isLoading, runInvitationAction, state.selectedAccountId]);
@@ -444,8 +481,10 @@ export default function WarmupAccountsPage({
       headerTabs={{
         activeTab,
         fullWidth: false,
-        onTabChange: (tab) =>
-          dispatch({ type: 'SET_TAB', tab: tab as 'accounts' | 'create' }),
+        onTabChange: (tab) => {
+          activeInvitationRequestRef.current?.controller.abort();
+          dispatch({ type: 'SET_TAB', tab: tab as 'accounts' | 'create' });
+        },
         tabs: TABS,
       }}
     >
@@ -568,13 +607,20 @@ export default function WarmupAccountsPage({
             accounts={accounts}
             isLoading={isLoading}
             selectedAccountId={selectedAccount?.id}
-            onSelectAccount={(accountId) =>
-              dispatch({ type: 'SET_SELECTED', accountId })
-            }
+            onSelectAccount={(accountId) => {
+              if (accountId !== state.selectedAccountId) {
+                activeInvitationRequestRef.current?.controller.abort();
+              }
+              dispatch({ type: 'SET_SELECTED', accountId });
+            }}
           />
           <WarmupAccountDetail
             account={selectedAccount}
-            invitationAction={invitationAction}
+            invitationAction={
+              invitationAction?.accountId === selectedAccount?.id
+                ? invitationAction.action
+                : null
+            }
             onInspect={() => {
               if (selectedAccount) {
                 void runInvitationAction('inspect', selectedAccount.id);
