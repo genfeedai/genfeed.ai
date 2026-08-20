@@ -10,7 +10,12 @@ export default function ModalActions({
   className = '',
 }: ModalActionsProps) {
   return (
-    <div className={cn('mt-6 flex items-center justify-end gap-2', className)}>
+    <div
+      className={cn(
+        'mt-6 flex shrink-0 items-center justify-end gap-2',
+        className,
+      )}
+    >
       {children}
     </div>
   );
