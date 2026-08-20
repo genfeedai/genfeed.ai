@@ -81,7 +81,7 @@ export class PersonasService extends BaseService<
       ...rest,
       ...(Object.keys(config).length > 0 ? { config } : {}),
     };
-    return super.create(payload as never, populate);
+    return super.create(payload as unknown as CreatePersonaDto, populate);
   }
 
   findOne(

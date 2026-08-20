@@ -1,3 +1,4 @@
+import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
@@ -478,7 +479,7 @@ export class WorkflowStepRunnerService extends BaseService<
             targetExecutionState: TargetExecutionState.SCHEDULED,
             userId: workflow.userId,
             visibility: requestedVisibility,
-          } as never),
+          } as unknown as CreatePostDto),
         ),
       );
       return { posts } as Record<string, unknown>;

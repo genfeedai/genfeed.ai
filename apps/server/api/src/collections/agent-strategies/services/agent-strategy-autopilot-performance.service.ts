@@ -191,7 +191,7 @@ export class AgentStrategyAutopilotPerformanceService {
       topHooks: snapshot.topHooks,
       topTopics: snapshot.topTopics,
       visits: snapshot.visits,
-    } as never);
+    });
   }
 
   private async requireStrategy(

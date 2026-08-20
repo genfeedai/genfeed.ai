@@ -163,7 +163,7 @@ export class AgentStrategyAutopilotService {
             .filter((item) => item.sourceType === 'trend')
             .reduce((sum, item) => sum + item.estimatedCreditCost, 0),
       ),
-    } as never);
+    } as unknown as Parameters<AgentStrategiesService['patch']>[1]);
 
     const reportType: AgentStrategyReportType = strategy.reportingPolicy
       ?.dailyDigestEnabled

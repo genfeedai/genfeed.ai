@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
@@ -795,7 +796,7 @@ export class AgentPublishToolHandler {
       targetExecutionState: TargetExecutionState.DRAFT,
       userId: ctx.userId,
       visibility,
-    } as never);
+    } as unknown as CreatePostDto);
 
     return {
       creditsUsed: 0,

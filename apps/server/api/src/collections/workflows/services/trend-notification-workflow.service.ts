@@ -10,6 +10,7 @@ import {
   buildTrendDigestMessage,
   type TrendDigestItem,
 } from '@genfeedai/helpers';
+import type { ITrendSummaryPayload } from '@genfeedai/interfaces';
 import type { Setting } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -178,7 +179,7 @@ export class TrendNotificationWorkflowService {
             minViralScore,
             organizationId,
             trends: trends.slice(0, 10),
-          } as never,
+          } satisfies ITrendSummaryPayload,
           type: 'discord',
           userId: owner.userId,
         });

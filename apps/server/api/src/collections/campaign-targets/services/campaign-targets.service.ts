@@ -84,7 +84,9 @@ export class CampaignTargetsService extends BaseService<
   override async create(
     createDto: CreateCampaignTargetDto,
   ): Promise<CampaignTargetDocument> {
-    return super.create(this.toCreateManyInput(createDto) as never);
+    return super.create(
+      this.toCreateManyInput(createDto) as unknown as CreateCampaignTargetDto,
+    );
   }
 
   /**

@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
-import type { Profile } from '@/config/schema';
 import {
   createProfile,
   getConfigPath,
@@ -108,15 +107,15 @@ profileCommand
   .option('-p, --profile <name>', 'Profile name (defaults to active)')
   .action(async (field, value, options) => {
     try {
-      const fieldMap: Record<string, keyof import('@/config/schema').Profile> = {
+      const fieldMap = {
         'active-brand': 'activeBrand',
         'agent-model': 'agent',
         'api-key': 'apiKey',
         'api-url': 'apiUrl',
         role: 'role',
-      };
+      } as const;
 
-      const mappedField = fieldMap[field];
+      const mappedField = fieldMap[field as keyof typeof fieldMap];
       if (!mappedField) {
         console.error(formatError(`Unknown field: ${field}`));
         print(chalk.dim(`Valid fields: ${Object.keys(fieldMap).join(', ')}`));
@@ -125,12 +124,15 @@ profileCommand
 
       if (mappedField === 'agent') {
         await setAgentModel(value, options.profile);
+      } else if (mappedField === 'role') {
+        if (value !== 'user' && value !== 'admin') {
+          console.error(formatError(`Invalid role: ${value}`));
+          print(chalk.dim('Valid roles: user, admin'));
+          process.exit(1);
+        }
+        await setProfileField('role', value, options.profile);
       } else {
-        await setProfileField(
-          mappedField as Exclude<keyof Profile, 'agent'>,
-          value as never,
-          options.profile
-        );
+        await setProfileField(mappedField, value, options.profile);
       }
 
       print(formatSuccess(`Set ${field} = ${value}`));

@@ -30,6 +30,11 @@ const baseBrand = {
   },
 };
 
+const brandWithoutAgentConfig = {
+  _id: mockBrandId,
+  agentConfig: null,
+};
+
 const baseDto = {
   additionalInstructions: 'Keep it short',
   itemCount: 3,
@@ -68,6 +73,37 @@ const llmSkillResponse = JSON.stringify({
   name: 'AI Content Plan',
 });
 
+type BrandLookup = Awaited<ReturnType<BrandsService['findOne']>>;
+type ChatCompletion = Awaited<
+  ReturnType<LlmDispatcherService['chatCompletion']>
+>;
+type PlanRecord = Awaited<ReturnType<ContentPlansService['createInternal']>>;
+type ItemRecords = Awaited<ReturnType<ContentPlanItemsService['createMany']>>;
+
+function asBrandLookup(
+  brand: typeof baseBrand | typeof brandWithoutAgentConfig | null,
+): BrandLookup {
+  return brand as unknown as BrandLookup;
+}
+
+function asChatCompletion(content?: string): ChatCompletion {
+  if (content === undefined) {
+    return { choices: [] } as unknown as ChatCompletion;
+  }
+
+  return {
+    choices: [{ message: { content } }],
+  } as unknown as ChatCompletion;
+}
+
+function asPlan(plan: { _id: string }): PlanRecord {
+  return plan as unknown as PlanRecord;
+}
+
+function asItems(items: Array<{ _id?: string; topic?: string }>): ItemRecords {
+  return items as unknown as ItemRecords;
+}
+
 describe('ContentPlannerService', () => {
   let service: ContentPlannerService;
   let brandsService: vi.Mocked<BrandsService>;
@@ -75,6 +111,25 @@ describe('ContentPlannerService', () => {
   let contentPlanItemsService: vi.Mocked<ContentPlanItemsService>;
   let llmDispatcherService: vi.Mocked<LlmDispatcherService>;
   let logger: vi.Mocked<LoggerService>;
+
+  function stubGeneratePlan(options?: {
+    brand?: typeof baseBrand | typeof brandWithoutAgentConfig | null;
+    content?: string;
+    plan?: { _id: string };
+    items?: Array<{ _id?: string; topic?: string }>;
+  }) {
+    const brand = options && 'brand' in options ? options.brand : baseBrand;
+    brandsService.findOne.mockResolvedValue(asBrandLookup(brand ?? null));
+    llmDispatcherService.chatCompletion.mockResolvedValue(
+      asChatCompletion(options?.content ?? llmSkillResponse),
+    );
+    contentPlansService.createInternal.mockResolvedValue(
+      asPlan(options?.plan ?? { _id: mockPlanId }),
+    );
+    contentPlanItemsService.createMany.mockResolvedValue(
+      asItems(options?.items ?? []),
+    );
+  }
 
   beforeEach(() => {
     brandsService = {
@@ -114,7 +169,7 @@ describe('ContentPlannerService', () => {
   // ─── generatePlan – happy path ────────────────────────────────────────────
 
   it('should throw BadRequestException when brand is not found', async () => {
-    brandsService.findOne.mockResolvedValue(null as any);
+    stubGeneratePlan({ brand: null });
 
     await expect(
       service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto),
@@ -125,7 +180,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should call brandsService.findOne with correct ObjectId filters', async () => {
-    brandsService.findOne.mockResolvedValue(null as any);
+    stubGeneratePlan({ brand: null });
 
     try {
       await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
@@ -140,14 +195,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should call llmDispatcherService.chatCompletion with correct model and messages', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -165,14 +213,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should include platform-specific format guidance in the user prompt', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -190,14 +231,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should use strategy platforms for format guidance when dto platforms are omitted', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, {
       ...baseDto,
@@ -218,14 +252,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should create a plan with DRAFT status', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -235,14 +262,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should use dto.name when provided', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -252,14 +272,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should fallback to LLM plan name when dto.name is not set', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     const dto = { ...baseDto, name: undefined };
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, dto);
@@ -273,12 +286,7 @@ describe('ContentPlannerService', () => {
     const mockPlan = { _id: mockPlanId };
     const mockItems = [{ topic: 'AI trends' }, { topic: 'Product launch' }];
 
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue(mockPlan as any);
-    contentPlanItemsService.createMany.mockResolvedValue(mockItems as any);
+    stubGeneratePlan({ items: mockItems, plan: mockPlan });
 
     const result = await service.generatePlan(
       mockOrgId,
@@ -287,19 +295,12 @@ describe('ContentPlannerService', () => {
       baseDto,
     );
 
-    expect(result.plan).toBe(mockPlan);
-    expect(result.items).toBe(mockItems);
+    expect(result.plan).toBe(asPlan(mockPlan));
+    expect(result.items).toBe(asItems(mockItems));
   });
 
   it('should map skill type items to ContentPlanItemType.SKILL', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -311,14 +312,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should map media_pipeline type items to ContentPlanItemType.MEDIA_PIPELINE', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -330,14 +324,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should pass scheduledAt as Date when provided', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -349,17 +336,9 @@ describe('ContentPlannerService', () => {
   });
 
   it('should log success after plan creation', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([
-      { _id: '1' },
-      { _id: '2' },
-    ] as any);
+    stubGeneratePlan({
+      items: [{ _id: '1' }, { _id: '2' }],
+    });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -373,14 +352,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should set itemCount to parsed items length on createInternal', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -392,14 +364,7 @@ describe('ContentPlannerService', () => {
   // ─── LLM fallback behavior ─────────────────────────────────────────────────
 
   it('should use fallback items when LLM response has no JSON', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: 'Sorry, I cannot help.' } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: 'Sorry, I cannot help.' });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -409,14 +374,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should use fallback items when LLM response is invalid JSON', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: '{ bad json {{' } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: '{ bad json {{' });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -425,14 +383,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should use fallback items when LLM JSON is missing items array', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: '{"name":"Plan"}' } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: '{"name":"Plan"}' });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -441,14 +392,12 @@ describe('ContentPlannerService', () => {
   });
 
   it('should use fallback when LLM response choices is empty', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    brandsService.findOne.mockResolvedValue(asBrandLookup(baseBrand));
+    llmDispatcherService.chatCompletion.mockResolvedValue(asChatCompletion());
+    contentPlansService.createInternal.mockResolvedValue(
+      asPlan({ _id: mockPlanId }),
+    );
+    contentPlanItemsService.createMany.mockResolvedValue(asItems([]));
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -457,14 +406,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('fallback items should default to skill type', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: 'no json here' } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: 'no json here' });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -475,14 +417,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('fallback items use content-writing skillSlug', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: 'no json' } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: 'no json' });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -493,14 +428,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('fallback uses dto.itemCount defaulting to 7 when not set', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: 'no json' } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: 'no json' });
 
     const dto = { ...baseDto, itemCount: undefined };
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, dto);
@@ -510,14 +438,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('fallback cycles through topics for item prompts', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: 'no json' } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: 'no json' });
 
     const dto = { ...baseDto, itemCount: 4, topics: ['Topic A', 'Topic B'] };
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, dto);
@@ -532,17 +453,7 @@ describe('ContentPlannerService', () => {
   // ─── brand without agentConfig ─────────────────────────────────────────────
 
   it('should handle brand with no agentConfig gracefully', async () => {
-    brandsService.findOne.mockResolvedValue({
-      _id: mockBrandId,
-      agentConfig: null,
-    } as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ brand: brandWithoutAgentConfig });
 
     await expect(
       service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto),
@@ -573,14 +484,7 @@ describe('ContentPlannerService', () => {
       ],
       name: 'Plan',
     });
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: weirdResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: weirdResponse });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -593,14 +497,7 @@ describe('ContentPlannerService', () => {
       items: [{ prompt: 'p', topic: 'test', type: 'skill' }],
       name: 'Plan',
     });
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: noPlatformResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: noPlatformResponse });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -609,14 +506,7 @@ describe('ContentPlannerService', () => {
   });
 
   it('should set periodStart and periodEnd as Date objects on createInternal', async () => {
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: llmSkillResponse } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -630,14 +520,7 @@ describe('ContentPlannerService', () => {
 
   it('should extract JSON embedded in surrounding text in LLM response', async () => {
     const wrappedJson = `Here is your plan:\n${llmSkillResponse}\nEnjoy!`;
-    brandsService.findOne.mockResolvedValue(baseBrand as any);
-    llmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: wrappedJson } }],
-    } as any);
-    contentPlansService.createInternal.mockResolvedValue({
-      _id: mockPlanId,
-    } as any);
-    contentPlanItemsService.createMany.mockResolvedValue([]);
+    stubGeneratePlan({ content: wrappedJson });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 

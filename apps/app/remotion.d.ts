@@ -18,21 +18,21 @@ declare module '@remotion/player' {
     removeEventListener: (event: string, handler: () => void) => void;
   }
 
-  export const Player: React.ForwardRefExoticComponent<
-    {
-      component: ComponentType<unknown>;
+  export function Player<Props extends Record<string, unknown>>(
+    props: {
+      component: ComponentType<Props>;
       durationInFrames: number;
       compositionWidth: number;
       compositionHeight: number;
       fps: number;
       style?: React.CSSProperties;
-      inputProps?: Record<string, unknown>;
+      inputProps?: Props;
       controls?: boolean;
       loop?: boolean;
       autoPlay?: boolean;
       clickToPlay?: boolean;
-    } & React.RefAttributes<PlayerRef>
-  >;
+    } & React.RefAttributes<PlayerRef>,
+  ): React.ReactElement;
 }
 
 declare module 'remotion' {

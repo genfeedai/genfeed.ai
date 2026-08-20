@@ -4,6 +4,26 @@ import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import type { EvaluationSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+interface EvaluationPayload {
+  data: ConstructorParameters<typeof Evaluation>[0];
+}
+
+interface EvaluationListPayload {
+  data: Array<ConstructorParameters<typeof Evaluation>[0]>;
+}
+
+interface MockHttpClient {
+  delete: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
+  post: ReturnType<typeof vi.fn>;
+}
+
+interface EvaluationsServiceDouble {
+  endpoint: string;
+  instance: MockHttpClient;
+  token: string;
+}
+
 // Mock client serializers to prevent serializer build errors
 vi.mock('@genfeedai/serializers', () => ({
   EvaluationSerializer: {},
@@ -11,7 +31,7 @@ vi.mock('@genfeedai/serializers', () => ({
 
 // Mock the base service
 vi.mock('@services/core/base.service', () => {
-  const mockInstance = {
+  const mockInstance: MockHttpClient = {
     delete: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
@@ -36,22 +56,32 @@ vi.mock('@services/core/base.service', () => {
       this.Serializer = Serializer;
     }
 
-    protected mapOne(data: any): Evaluation {
-      return new Evaluation(data.data);
+    protected mapOne(data: unknown): Evaluation {
+      const payload = data as EvaluationPayload;
+      return new Evaluation(payload.data);
     }
 
-    protected mapMany(data: any): Evaluation[] {
-      return data.data.map((item: any) => new Evaluation(item));
+    protected mapMany(data: unknown): Evaluation[] {
+      const payload = data as EvaluationListPayload;
+      return payload.data.map((item) => new Evaluation(item));
     }
 
-    static getInstance(this: any, token: string) {
+    static getInstance(
+      this: new (
+        token: string,
+      ) => MockBaseService,
+      token: string,
+    ) {
       // Always create a fresh instance using the CALLING class (EvaluationsService),
       // not MockBaseService — so the result has all EvaluationsService methods.
       // Avoids cross-test cache contamination (no singleton cache in tests).
-      return new MockBaseService(token);
+      return new this(token);
     }
 
-    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+    static getDataServiceInstance<T>(
+      ServiceClass: new (...args: unknown[]) => T,
+      ...args: unknown[]
+    ): T {
       return new ServiceClass(...args);
     }
   }
@@ -64,9 +94,14 @@ vi.mock('@services/core/base.service', () => {
 
 import { EvaluationsService } from '@services/ai/evaluations.service';
 
+function asServiceDouble(value: EvaluationsService): EvaluationsServiceDouble {
+  return value as unknown as EvaluationsServiceDouble;
+}
+
 describe('EvaluationsService', () => {
   const mockToken = 'test-token';
   let service: EvaluationsService;
+  let http: MockHttpClient;
 
   const mockEvaluationData = {
     data: {
@@ -90,6 +125,7 @@ describe('EvaluationsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = EvaluationsService.getInstance(mockToken);
+    http = asServiceDouble(service).instance;
   });
 
   afterEach(() => {
@@ -109,8 +145,8 @@ describe('EvaluationsService', () => {
       // Both are EvaluationsService instances but with different tokens
       expect(instance1).toBeInstanceOf(EvaluationsService);
       expect(instance2).toBeInstanceOf(EvaluationsService);
-      expect((instance1 as any).token).toBe('token-1');
-      expect((instance2 as any).token).toBe('token-2');
+      expect(asServiceDouble(instance1).token).toBe('token-1');
+      expect(asServiceDouble(instance2).token).toBe('token-2');
     });
   });
 
@@ -118,49 +154,45 @@ describe('EvaluationsService', () => {
     it('should initialize with correct endpoint', () => {
       const newService = new EvaluationsService(mockToken);
 
-      expect((newService as any).endpoint).toBe(API_ENDPOINTS.EVALUATIONS);
+      expect(asServiceDouble(newService).endpoint).toBe(
+        API_ENDPOINTS.EVALUATIONS,
+      );
     });
 
     it('should initialize with provided token', () => {
       const newService = new EvaluationsService(mockToken);
 
-      expect((newService as any).token).toBe(mockToken);
+      expect(asServiceDouble(newService).token).toBe(mockToken);
     });
   });
 
   describe('evaluateImage', () => {
     it('should post to /images/:id endpoint', async () => {
       const imageId = 'image-123';
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluateImage(imageId);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/images/${imageId}`,
-        {},
-      );
+      expect(http.post).toHaveBeenCalledWith(`/images/${imageId}`, {});
     });
 
     it('should pass options when provided', async () => {
       const imageId = 'image-123';
       const options = { evaluationType: EvaluationType.QUALITY };
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluateImage(imageId, options);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/images/${imageId}`,
-        options,
-      );
+      expect(http.post).toHaveBeenCalledWith(`/images/${imageId}`, options);
     });
 
     it('should return mapped Evaluation', async () => {
       const imageId = 'image-123';
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
@@ -173,113 +205,95 @@ describe('EvaluationsService', () => {
   describe('evaluateVideo', () => {
     it('should post to /videos/:id endpoint', async () => {
       const videoId = 'video-123';
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluateVideo(videoId);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/videos/${videoId}`,
-        {},
-      );
+      expect(http.post).toHaveBeenCalledWith(`/videos/${videoId}`, {});
     });
 
     it('should pass options when provided', async () => {
       const videoId = 'video-123';
       const options = { evaluationType: EvaluationType.CREATIVITY };
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluateVideo(videoId, options);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/videos/${videoId}`,
-        options,
-      );
+      expect(http.post).toHaveBeenCalledWith(`/videos/${videoId}`, options);
     });
   });
 
   describe('evaluateArticle', () => {
     it('should post to /articles/:id endpoint', async () => {
       const articleId = 'article-123';
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluateArticle(articleId);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/articles/${articleId}`,
-        {},
-      );
+      expect(http.post).toHaveBeenCalledWith(`/articles/${articleId}`, {});
     });
 
     it('should pass options when provided', async () => {
       const articleId = 'article-123';
       const options = { evaluationType: EvaluationType.RELEVANCE };
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluateArticle(articleId, options);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/articles/${articleId}`,
-        options,
-      );
+      expect(http.post).toHaveBeenCalledWith(`/articles/${articleId}`, options);
     });
   });
 
   describe('evaluatePost', () => {
     it('should post to /posts/:id endpoint', async () => {
       const postId = 'post-123';
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluatePost(postId);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/posts/${postId}`,
-        {},
-      );
+      expect(http.post).toHaveBeenCalledWith(`/posts/${postId}`, {});
     });
 
     it('should pass options when provided', async () => {
       const postId = 'post-123';
       const options = { evaluationType: EvaluationType.ENGAGEMENT };
-      (service as any).instance.post.mockResolvedValue({
+      http.post.mockResolvedValue({
         data: mockEvaluationData,
       });
 
       await service.evaluatePost(postId, options);
 
-      expect((service as any).instance.post).toHaveBeenCalledWith(
-        `/posts/${postId}`,
-        options,
-      );
+      expect(http.post).toHaveBeenCalledWith(`/posts/${postId}`, options);
     });
   });
 
   describe('getImageEvaluations', () => {
     it('should get from collapsed endpoint with entityType=images', async () => {
       const imageId = 'image-123';
-      (service as any).instance.get.mockResolvedValue({
+      http.get.mockResolvedValue({
         data: mockEvaluationsListData,
       });
 
       await service.getImageEvaluations(imageId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+      expect(http.get).toHaveBeenCalledWith('', {
         params: { entityId: imageId, entityType: 'images' },
       });
     });
 
     it('should return array of Evaluations', async () => {
       const imageId = 'image-123';
-      (service as any).instance.get.mockResolvedValue({
+      http.get.mockResolvedValue({
         data: mockEvaluationsListData,
       });
 
@@ -293,13 +307,13 @@ describe('EvaluationsService', () => {
   describe('getVideoEvaluations', () => {
     it('should get from collapsed endpoint with entityType=videos', async () => {
       const videoId = 'video-123';
-      (service as any).instance.get.mockResolvedValue({
+      http.get.mockResolvedValue({
         data: mockEvaluationsListData,
       });
 
       await service.getVideoEvaluations(videoId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+      expect(http.get).toHaveBeenCalledWith('', {
         params: { entityId: videoId, entityType: 'videos' },
       });
     });
@@ -308,13 +322,13 @@ describe('EvaluationsService', () => {
   describe('getArticleEvaluations', () => {
     it('should get from collapsed endpoint with entityType=articles', async () => {
       const articleId = 'article-123';
-      (service as any).instance.get.mockResolvedValue({
+      http.get.mockResolvedValue({
         data: mockEvaluationsListData,
       });
 
       await service.getArticleEvaluations(articleId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+      expect(http.get).toHaveBeenCalledWith('', {
         params: { entityId: articleId, entityType: 'articles' },
       });
     });
@@ -323,13 +337,13 @@ describe('EvaluationsService', () => {
   describe('getPostEvaluations', () => {
     it('should get from collapsed endpoint with entityType=posts', async () => {
       const postId = 'post-123';
-      (service as any).instance.get.mockResolvedValue({
+      http.get.mockResolvedValue({
         data: mockEvaluationsListData,
       });
 
       await service.getPostEvaluations(postId);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith('', {
+      expect(http.get).toHaveBeenCalledWith('', {
         params: { entityId: postId, entityType: 'posts' },
       });
     });
@@ -338,16 +352,13 @@ describe('EvaluationsService', () => {
   describe('getTrends', () => {
     it('should get from /analytics/trends endpoint', async () => {
       const mockTrendsData = { trends: [] };
-      (service as any).instance.get.mockResolvedValue({ data: mockTrendsData });
+      http.get.mockResolvedValue({ data: mockTrendsData });
 
       await service.getTrends();
 
-      expect((service as any).instance.get).toHaveBeenCalledWith(
-        'analytics/trends',
-        {
-          params: undefined,
-        },
-      );
+      expect(http.get).toHaveBeenCalledWith('analytics/trends', {
+        params: undefined,
+      });
     });
 
     it('should pass filters when provided', async () => {
@@ -361,21 +372,18 @@ describe('EvaluationsService', () => {
         minScore: '50',
         startDate: '2024-01-01',
       };
-      (service as any).instance.get.mockResolvedValue({ data: mockTrendsData });
+      http.get.mockResolvedValue({ data: mockTrendsData });
 
       await service.getTrends(filters);
 
-      expect((service as any).instance.get).toHaveBeenCalledWith(
-        'analytics/trends',
-        {
-          params: filters,
-        },
-      );
+      expect(http.get).toHaveBeenCalledWith('analytics/trends', {
+        params: filters,
+      });
     });
 
     it('should return trends data', async () => {
       const mockTrendsData = { trends: [{ avgScore: 85, date: '2024-01' }] };
-      (service as any).instance.get.mockResolvedValue({ data: mockTrendsData });
+      http.get.mockResolvedValue({ data: mockTrendsData });
 
       const result = await service.getTrends();
 
@@ -386,18 +394,16 @@ describe('EvaluationsService', () => {
   describe('deleteEvaluation', () => {
     it('should delete from /:id endpoint', async () => {
       const evaluationId = 'eval-123';
-      (service as any).instance.delete.mockResolvedValue({});
+      http.delete.mockResolvedValue({});
 
       await service.deleteEvaluation(evaluationId);
 
-      expect((service as any).instance.delete).toHaveBeenCalledWith(
-        evaluationId,
-      );
+      expect(http.delete).toHaveBeenCalledWith(evaluationId);
     });
 
     it('should not return anything', async () => {
       const evaluationId = 'eval-123';
-      (service as any).instance.delete.mockResolvedValue({});
+      http.delete.mockResolvedValue({});
 
       const result = await service.deleteEvaluation(evaluationId);
 

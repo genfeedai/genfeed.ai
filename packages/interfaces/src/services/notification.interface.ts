@@ -18,6 +18,7 @@ export type INotificationPayloadTypes =
   | ITelegramMessagePayload
   | IEmailPayload
   | ICrmLeadOutreachEmailPayload
+  | ITrendSummaryPayload
   | IWorkflowStatusEmailPayload
   | IVideoStatusEmailPayload
   | IDiscordCardPayload
@@ -214,4 +215,11 @@ export interface IModelDiscoveryNotificationPayload {
 export interface ILowCreditsAlertPayload {
   organizationId: string;
   balance: number;
+}
+
+export interface ITrendSummaryPayload {
+  cadence: string;
+  minViralScore?: number;
+  organizationId: string;
+  trends: unknown[];
 }

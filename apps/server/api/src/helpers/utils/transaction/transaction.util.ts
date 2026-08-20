@@ -47,7 +47,13 @@ export class TransactionUtil {
     try {
       return await this.prismaService.$transaction(
         (tx) => fn(tx as unknown as PrismaTransactionClient),
-        options as never,
+        options
+          ? {
+              isolationLevel: options.isolationLevel,
+              maxWait: options.maxWait,
+              timeout: options.timeout,
+            }
+          : undefined,
       );
     } catch (error) {
       this.loggerService.error('Transaction aborted', {
