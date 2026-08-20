@@ -2,7 +2,10 @@ vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
   );
-  return canonicalPrismaMock();
+  return {
+    ...canonicalPrismaMock(),
+    toPrismaJson: (value: unknown) => value,
+  };
 });
 
 import { PostingSetsService } from '@api/collections/posting-sets/services/posting-sets.service';
@@ -155,7 +158,7 @@ describe('PostingSetsService', () => {
 
     expect(postingSet.update).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { id: 'set-1' },
+      where: scopedWhere('org-1', { id: 'set-1' }),
     });
   });
 

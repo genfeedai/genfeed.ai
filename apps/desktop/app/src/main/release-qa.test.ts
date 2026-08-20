@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createAppNextConfig } from '@genfeedai/next-config';
 
 interface DesktopPackageJson {
   scripts?: Record<string, string>;
@@ -79,13 +80,19 @@ describe('desktop release QA', () => {
   });
 
   it('does not inline CSS into the desktop standalone app shell', () => {
-    const nextConfig = readText('packages/next-config/next.config.base.ts');
     const buildShell = readText('apps/desktop/app/scripts/build-app-shell.cjs');
+    const desktopConfig = createAppNextConfig({
+      configAccessor: {
+        get: (key) => (key === 'GENFEED_DESKTOP_BUNDLE' ? '1' : undefined),
+      },
+    });
+    const hostedConfig = createAppNextConfig({
+      configAccessor: { get: () => undefined },
+    });
 
     expect(buildShell).toContain("GENFEED_DESKTOP_BUNDLE: '1'");
-    expect(nextConfig).toContain(
-      "inlineCss: process.env.GENFEED_DESKTOP_BUNDLE !== '1'",
-    );
+    expect(desktopConfig.experimental?.inlineCss).toBe(false);
+    expect(hostedConfig.experimental?.inlineCss).toBe(true);
   });
 
   it('packages the canonical app instead of a desktop-local renderer', () => {

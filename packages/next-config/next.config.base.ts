@@ -2,7 +2,12 @@ import path from 'node:path';
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
+interface NextConfigAccessor {
+  get(key: string): string | undefined;
+}
+
 interface AppNextConfigOptions {
+  configAccessor?: NextConfigAccessor;
   env?: NextConfig['env'];
   headers?: NextConfig['headers'];
   output?: NextConfig['output'];
@@ -12,7 +17,15 @@ interface AppNextConfigOptions {
 }
 
 export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
-  const { env, headers, output, redirects, rewrites, sentryProject } = options;
+  const {
+    configAccessor = { get: (key) => process.env[key] },
+    env,
+    headers,
+    output,
+    redirects,
+    rewrites,
+    sentryProject,
+  } = options;
 
   const isProduction = process.env.NODE_ENV === 'production';
   const config: NextConfig = {
@@ -43,7 +56,7 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       // round trip (#3287). Next file-tracing then pulls the monorepo CSS graph
       // into `output: 'standalone'` (Desktop QA: 90.7 MiB → 783 MiB). Desktop
       // builds set GENFEED_DESKTOP_BUNDLE=1 and keep the linked stylesheet.
-      inlineCss: process.env.GENFEED_DESKTOP_BUNDLE !== '1',
+      inlineCss: configAccessor.get('GENFEED_DESKTOP_BUNDLE') !== '1',
       // Do NOT add lucide-react here. Turbopack rewrites multi-alias default
       // re-exports (ChartColumn / BarChart3 → chart-column.mjs) into a broken
       // binding that crashes client render as "X is not a function".

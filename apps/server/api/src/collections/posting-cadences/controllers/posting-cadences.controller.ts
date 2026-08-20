@@ -12,11 +12,11 @@ import { PostingCadencesService } from '@api/collections/posting-cadences/servic
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ApiKeyScope } from '@genfeedai/enums';
 import {
   CalendarSlotSerializer,
   PostingCadenceSerializer,
@@ -35,12 +35,6 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-const POSTING_CADENCE_MUTATION_SCOPES = [
-  ApiKeyScope.POSTS_DRAFT,
-  ApiKeyScope.POSTS_CREATE,
-  ApiKeyScope.POSTS_SCHEDULE,
-] as const;
-
 @AutoSwagger()
 @ApiTags('PostingCadences')
 @Controller('posting-cadences')
@@ -48,7 +42,7 @@ export class PostingCadencesController {
   constructor(private readonly service: PostingCadencesService) {}
 
   @Post()
-  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async create(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -93,7 +87,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/book')
-  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async book(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -104,7 +98,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/generate')
-  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async generate(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -124,7 +118,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/write')
-  @RequiredScopes(...POSTING_CADENCE_MUTATION_SCOPES)
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async write(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -143,6 +137,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/skip')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async skip(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -153,6 +148,7 @@ export class PostingCadencesController {
   }
 
   @Post('slots/cancel')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async cancel(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -166,6 +162,7 @@ export class PostingCadencesController {
   }
 
   @Patch(':id')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -177,6 +174,7 @@ export class PostingCadencesController {
   }
 
   @Delete(':id')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,

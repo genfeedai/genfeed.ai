@@ -58,6 +58,30 @@ describe('PostingCadencesController', () => {
     expect(
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,
+        PostingCadencesController.prototype.skip,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostingCadencesController.prototype.cancel,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostingCadencesController.prototype.update,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostingCadencesController.prototype.remove,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
         PostingCadencesController.prototype.list,
       ),
     ).toBeUndefined();

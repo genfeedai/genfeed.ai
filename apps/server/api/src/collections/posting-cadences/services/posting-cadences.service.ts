@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { buildBrandVoiceSummary } from '@api/collections/brands/utils/brand-context.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -109,28 +110,31 @@ type CadenceDelegate = {
   }) => Promise<CadenceRecord[]>;
   update: (args: {
     data: Record<string, unknown>;
-    where: { id: string };
+    where: Record<string, unknown>;
   }) => Promise<CadenceRecord>;
 };
 
 type ReservationDelegate = {
-  create: (args: {
-    data: Record<string, unknown>;
-  }) => Promise<ReservationRecord>;
   findFirst: (args: {
     where: Record<string, unknown>;
   }) => Promise<ReservationRecord | null>;
-  update: (args: {
-    data: Record<string, unknown>;
-    where: { id: string };
+  findMany: (args: {
+    where: Record<string, unknown>;
+  }) => Promise<ReservationRecord[]>;
+  upsert: (args: {
+    create: Record<string, unknown>;
+    update: Record<string, unknown>;
+    where: {
+      organizationId_identityKey: {
+        identityKey: string;
+        organizationId: string;
+      };
+    };
   }) => Promise<ReservationRecord>;
   updateMany: (args: {
     data: Record<string, unknown>;
     where: Record<string, unknown>;
   }) => Promise<{ count: number }>;
-  findMany: (args: {
-    where: Record<string, unknown>;
-  }) => Promise<ReservationRecord[]>;
 };
 
 type MatchingTarget = {
@@ -364,27 +368,22 @@ export class PostingCadencesService {
       format: dto.format,
       instantUtc: new Date(dto.instant).toISOString(),
     });
-    const existing = await this.reservationDelegate().findFirst({
-      where: scopedWhere(organizationId, { identityKey }),
+    const reservation = await this.ensureReservation(organizationId, {
+      brandId: dto.brandId,
+      cadenceId: null,
+      credentialId: dto.credentialId,
+      format: dto.format,
+      generatedItemId: null,
+      generatedItemType: null,
+      id: identityKey,
+      identityKey,
+      instant: new Date(dto.instant).toISOString(),
+      lastFailureReason: null,
+      resolvedBrief: '',
+      state: CalendarSlotState.MISSING,
+      timezone: dto.timezone ?? 'UTC',
     });
-    if (existing) {
-      return this.reservationToSlot(existing, '');
-    }
-
-    const created = await this.reservationDelegate().create({
-      data: {
-        brandId: dto.brandId,
-        cadenceId: null,
-        credentialId: dto.credentialId,
-        format: dto.format,
-        identityKey,
-        instant: new Date(dto.instant),
-        organizationId,
-        state: CalendarSlotState.MISSING,
-        timezone: dto.timezone ?? 'UTC',
-      },
-    });
-    return this.reservationToSlot(created, '');
+    return this.reservationToSlot(reservation, '');
   }
 
   async generate(
@@ -424,53 +423,74 @@ export class PostingCadencesService {
     organizationId: string,
     identityKey: string,
   ): Promise<ICalendarSlot> {
-    const existing = await this.reservationDelegate().findFirst({
-      where: scopedWhere(organizationId, { identityKey }),
-    });
+    const existing = await this.findReservation(organizationId, identityKey);
     if (
       existing?.state === CalendarSlotState.FILLED &&
       existing.generatedItemId
     ) {
       throw new BadRequestException('A filled slot cannot be skipped.');
     }
+    if (existing?.state === CalendarSlotState.GENERATING) {
+      throw new BadRequestException(
+        'Cancel the in-flight generate before skipping this slot.',
+      );
+    }
     if (existing?.state === CalendarSlotState.SKIPPED) {
       return this.reservationToSlot(existing, '');
     }
 
     const slot = await this.resolveIdentity(organizationId, identityKey);
-    const reservation = await this.upsertReservation(
+    const reservation =
+      existing ?? (await this.ensureReservation(organizationId, slot));
+    const skipped = await this.transitionReservation(
       organizationId,
-      slot,
-      CalendarSlotState.SKIPPED,
+      reservation,
+      [CalendarSlotState.MISSING, CalendarSlotState.GENERATE_FAILED],
+      { state: CalendarSlotState.SKIPPED },
     );
-    return this.reservationToSlot(reservation, slot.resolvedBrief);
+    if (skipped) {
+      return this.reservationToSlot(skipped, slot.resolvedBrief);
+    }
+
+    const winner = await this.findReservation(organizationId, identityKey);
+    if (winner?.state === CalendarSlotState.SKIPPED) {
+      return this.reservationToSlot(winner, slot.resolvedBrief);
+    }
+    if (winner?.state === CalendarSlotState.GENERATING) {
+      throw new BadRequestException(
+        'Cancel the in-flight generate before skipping this slot.',
+      );
+    }
+    throw new BadRequestException('This slot can no longer be skipped.');
   }
 
   async cancel(
     organizationId: string,
     identityKey: string,
   ): Promise<ICalendarSlot> {
-    const existing = await this.reservationDelegate().findFirst({
-      where: scopedWhere(organizationId, { identityKey }),
-    });
+    const existing = await this.findReservation(organizationId, identityKey);
     if (!existing || existing.state !== CalendarSlotState.GENERATING) {
       throw new BadRequestException(
         'Only an in-flight generate can be cancelled.',
       );
     }
 
-    const nextState = existing.lastFailureReason
-      ? CalendarSlotState.GENERATE_FAILED
-      : CalendarSlotState.MISSING;
-    const updated = await this.reservationDelegate().update({
-      data: {
+    const updated = await this.transitionReservation(
+      organizationId,
+      existing,
+      [CalendarSlotState.GENERATING],
+      {
         generatedItemId: null,
         generatedItemType: null,
-        lastFailureReason: existing.lastFailureReason,
-        state: nextState,
+        lastFailureReason: null,
+        state: CalendarSlotState.MISSING,
       },
-      where: { id: existing.id },
-    });
+    );
+    if (!updated) {
+      throw new BadRequestException(
+        'Only an in-flight generate can be cancelled.',
+      );
+    }
     return this.reservationToSlot(updated, '');
   }
 
@@ -540,7 +560,7 @@ export class PostingCadencesService {
         windowEndMinute: nextWindowEndMinute,
         windowStartMinute: nextWindowStartMinute,
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
 
     await this.pruneVanishedReservations(organizationId, updated);
@@ -560,7 +580,7 @@ export class PostingCadencesService {
         isDeleted: true,
         status: PostingCadenceStatus.ARCHIVED,
       },
-      where: { id },
+      where: scopedWhere(organizationId, { id }),
     });
     return this.toCadence(updated);
   }
@@ -573,9 +593,7 @@ export class PostingCadencesService {
     isWrite: boolean,
     apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<ICalendarSlotFillResult> {
-    const existing = await this.reservationDelegate().findFirst({
-      where: scopedWhere(organizationId, { identityKey }),
-    });
+    const existing = await this.findReservation(organizationId, identityKey);
     if (existing?.state === CalendarSlotState.SKIPPED) {
       throw new BadRequestException('This slot was skipped.');
     }
@@ -597,11 +615,45 @@ export class PostingCadencesService {
       throw new BadRequestException('This slot is already generating.');
     }
 
-    const reservation = await this.upsertReservation(
+    const candidate =
+      existing ?? (await this.ensureReservation(organizationId, slot));
+    if (candidate.state === CalendarSlotState.SKIPPED) {
+      throw new BadRequestException('This slot was skipped.');
+    }
+    if (
+      candidate.state === CalendarSlotState.FILLED &&
+      candidate.generatedItemId
+    ) {
+      return this.filledResult(organizationId, candidate, brief);
+    }
+    if (candidate.state === CalendarSlotState.GENERATING) {
+      throw new BadRequestException('This slot is already generating.');
+    }
+
+    const reservation = await this.transitionReservation(
       organizationId,
-      slot,
-      CalendarSlotState.GENERATING,
+      candidate,
+      [CalendarSlotState.MISSING, CalendarSlotState.GENERATE_FAILED],
+      {
+        generatedItemId: null,
+        generatedItemType: null,
+        lastFailureReason: null,
+        state: CalendarSlotState.GENERATING,
+      },
     );
+    if (!reservation) {
+      const winner = await this.findReservation(organizationId, identityKey);
+      if (
+        winner?.state === CalendarSlotState.FILLED &&
+        winner.generatedItemId
+      ) {
+        return this.filledResult(organizationId, winner, brief);
+      }
+      if (winner?.state === CalendarSlotState.SKIPPED) {
+        throw new BadRequestException('This slot was skipped.');
+      }
+      throw new BadRequestException('This slot is already generating.');
+    }
 
     try {
       const cadence = slot.cadenceId
@@ -649,16 +701,20 @@ export class PostingCadencesService {
         cadence,
         resolvedBrief,
         isWrite,
+        landing,
         apiKeyContext,
       );
     } catch (error) {
-      await this.reservationDelegate().update({
+      await this.reservationDelegate().updateMany({
         data: {
           lastFailureReason:
             error instanceof Error ? error.message : 'Generation failed.',
           state: CalendarSlotState.GENERATE_FAILED,
         },
-        where: { id: reservation.id },
+        where: scopedWhere(organizationId, {
+          id: reservation.id,
+          state: CalendarSlotState.GENERATING,
+        }),
       });
       this.logger.error('Calendar slot fill failed', error);
       throw error;
@@ -693,22 +749,12 @@ export class PostingCadencesService {
     return this.projectedSlot(this.toCadence(cadence), identityKey, instant);
   }
 
-  private async upsertReservation(
+  private async ensureReservation(
     organizationId: string,
     slot: ICalendarSlot,
-    state: CalendarSlotState,
   ): Promise<ReservationRecord> {
-    const existing = await this.reservationDelegate().findFirst({
-      where: scopedWhere(organizationId, { identityKey: slot.identityKey }),
-    });
-    if (existing) {
-      return this.reservationDelegate().update({
-        data: { state },
-        where: { id: existing.id },
-      });
-    }
-    return this.reservationDelegate().create({
-      data: {
+    return this.reservationDelegate().upsert({
+      create: {
         brandId: slot.brandId,
         cadenceId: slot.cadenceId,
         credentialId: slot.credentialId,
@@ -716,10 +762,62 @@ export class PostingCadencesService {
         identityKey: slot.identityKey,
         instant: new Date(slot.instant),
         organizationId,
-        state,
+        state: CalendarSlotState.MISSING,
         timezone: slot.timezone,
       },
+      update: { isDeleted: false },
+      where: {
+        organizationId_identityKey: {
+          identityKey: slot.identityKey,
+          organizationId,
+        },
+      },
     });
+  }
+
+  private findReservation(
+    organizationId: string,
+    identityKey: string,
+  ): Promise<ReservationRecord | null> {
+    return this.reservationDelegate().findFirst({
+      where: scopedWhere(organizationId, { identityKey }),
+    });
+  }
+
+  private async transitionReservation(
+    organizationId: string,
+    reservation: ReservationRecord,
+    fromStates: CalendarSlotState[],
+    data: Record<string, unknown>,
+  ): Promise<ReservationRecord | null> {
+    const transitioned = await this.reservationDelegate().updateMany({
+      data,
+      where: scopedWhere(organizationId, {
+        id: reservation.id,
+        state: fromStates.length === 1 ? fromStates[0] : { in: fromStates },
+      }),
+    });
+    if (transitioned.count === 0) {
+      return null;
+    }
+    return { ...reservation, ...data } as ReservationRecord;
+  }
+
+  private async completeGeneratingReservation(
+    organizationId: string,
+    reservation: ReservationRecord,
+    data: Record<string, unknown>,
+  ): Promise<ReservationRecord> {
+    const completed = await this.transitionReservation(
+      organizationId,
+      reservation,
+      [CalendarSlotState.GENERATING],
+      data,
+    );
+    if (!completed) {
+      throw new BadRequestException('This generation was cancelled.');
+    }
+    return completed;
   }
 
   private async fillArticleSlot(
@@ -747,15 +845,16 @@ export class PostingCadencesService {
       slot.brandId,
     );
 
-    const filled = await this.reservationDelegate().update({
-      data: {
+    const filled = await this.completeGeneratingReservation(
+      organizationId,
+      reservation,
+      {
         generatedItemId: article.id,
         generatedItemType: CalendarSlotItemType.ARTICLE,
         lastFailureReason: null,
         state: CalendarSlotState.FILLED,
       },
-      where: { id: reservation.id },
-    });
+    );
 
     return {
       articleId: article.id,
@@ -773,6 +872,7 @@ export class PostingCadencesService {
     cadence: CadenceRecord | null,
     resolvedBrief: string,
     isWrite: boolean,
+    landing: ReleaseStatus,
     apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<ICalendarSlotFillResult> {
     const credential = await this.prisma.credential.findFirst({
@@ -785,12 +885,6 @@ export class PostingCadencesService {
     if (!platform) {
       throw new BadRequestException('The credential platform is unsupported.');
     }
-
-    const landing = isWrite
-      ? ReleaseStatus.DRAFT
-      : cadence?.generateLanding === CadenceGenerateLanding.SCHEDULED
-        ? ReleaseStatus.SCHEDULED
-        : ReleaseStatus.DRAFT;
 
     const release = await this.postGroupsService.create(
       organizationId,
@@ -824,15 +918,16 @@ export class PostingCadencesService {
       });
     }
 
-    const filled = await this.reservationDelegate().update({
-      data: {
+    const filled = await this.completeGeneratingReservation(
+      organizationId,
+      reservation,
+      {
         generatedItemId: release.id,
         generatedItemType: CalendarSlotItemType.RELEASE,
         lastFailureReason: null,
         state: CalendarSlotState.FILLED,
       },
-      where: { id: reservation.id },
-    });
+    );
 
     return {
       releaseId: release.id,
@@ -913,7 +1008,7 @@ export class PostingCadencesService {
       );
       if (input.endsAt > maxEnd) {
         throw new BadRequestException(
-          'A cadence end date cannot be more than 365 days after start.',
+          `A cadence end date cannot be more than ${MAX_CADENCE_SPAN_DAYS} days after start.`,
         );
       }
     }
@@ -959,6 +1054,9 @@ export class PostingCadencesService {
     });
     const vanishedIds: string[] = [];
     for (const reservation of reservations) {
+      if (this.isConsumedReservation(reservation)) {
+        continue;
+      }
       const instant = reservation.instant.toISOString();
       const expanded = expandCadenceOccurrences(expansionInput, {
         end: instant,
@@ -993,11 +1091,9 @@ export class PostingCadencesService {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .slice(0, 40) || 'article';
-    const suffix =
-      identityKey
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '')
-        .slice(-12) || 'slot';
+    const suffix = identityKey
+      ? createHash('sha256').update(identityKey).digest('hex').slice(0, 12)
+      : 'slot';
     return `${base}-${suffix}`;
   }
 

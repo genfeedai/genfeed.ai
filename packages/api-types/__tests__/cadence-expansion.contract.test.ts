@@ -13,7 +13,7 @@ function twoHourInput() {
   return {
     cadenceId: CADENCE_ID,
     credentialId: CREDENTIAL_ID,
-    endsAt: '2026-08-20T21:59:59.000+02:00',
+    endsAt: '2026-08-20T22:00:00.000+02:00',
     format: PostCategory.REEL,
     intervalMinutes: 120,
     startsAt: '2026-08-20T00:00:00.000+02:00',
