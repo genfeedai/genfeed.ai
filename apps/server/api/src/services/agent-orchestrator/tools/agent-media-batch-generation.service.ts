@@ -33,6 +33,8 @@ interface AgentBrandsServiceLike {
   ) => Promise<Record<string, unknown> | null>;
 }
 
+// DTO *Percent keys differ from estimator ContentFormat keys; this explicit
+// shape prevents media-heavy requests from silently using the default mix.
 interface ContentMixPercents {
   imagePercent: number;
   videoPercent: number;
@@ -165,6 +167,7 @@ export class AgentMediaBatchGenerationService {
     );
     if ('error' in execution) return execution.error;
 
+    // Pin pricing before work so settlement moves only the eventual delta.
     await this.batchCreditsService?.recordUpfrontCharge({
       batchId: execution.value.batchId,
       credits: execution.value.estimatedCredits,
@@ -242,6 +245,7 @@ export class AgentMediaBatchGenerationService {
     const count = (params.count as number) || 10;
     const platforms = (params.platforms as string[]) || ['instagram'];
     const pricingOptions = {
+      // Caption-first pricing: drafts do not own generated media yet.
       includeMedia: false,
       qualityTier: ctx.qualityTier,
     };
@@ -282,6 +286,7 @@ export class AgentMediaBatchGenerationService {
     let batch: BatchRecord;
     // createBatch persists items before credits move; if reserve fails, the
     // compensation below must cancel them or #2696 leaves an orphan batch.
+    // createBatch validates platforms before generation or credit movement.
     try {
       batch = await this.batchGenerationService.createBatch(
         {
@@ -311,6 +316,7 @@ export class AgentMediaBatchGenerationService {
     }
 
     const batchId = String(batch.id);
+    // Atomic reserve plus the batch reference claim prevents concurrent spend.
     const reserveError = await this.reserveCreditsOrCancel({
       amount: prepared.estimatedCredits,
       batchId,
@@ -602,6 +608,7 @@ export class AgentMediaBatchGenerationService {
       organizationId: params.ctx.organizationId,
       userId: params.ctx.userId,
     });
+    // Streamed settlement refunds partial failures against the reservation.
     const creditsUsed =
       settlement?.settledCredits ??
       chargeBatchGenerationCredits(
@@ -670,6 +677,7 @@ export class AgentMediaBatchGenerationService {
           remainingCount,
           title: 'Batch generation complete',
           type: 'batch_generation_result_card',
+          // Result card with previews/review link, not the generation form.
         },
       ],
       success: true,
@@ -739,6 +747,7 @@ export class AgentMediaBatchGenerationService {
         );
       })
       .then(async () => {
+        // Settle on failure too; only completed work should remain charged.
         await this.batchCreditsService?.settleBatchCredits({
           batchId: context.batchId,
           organizationId: context.organizationId,

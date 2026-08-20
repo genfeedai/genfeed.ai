@@ -83,6 +83,7 @@ export class AgentMediaAssetGenerationService {
         ctx,
       );
     } catch (error) {
+      // Timeout/hard failure must not produce a successful empty preview card.
       const message = (error as Error).message || 'Image generation failed';
       this.loggerService.warn(
         `generateImage failed for org=${ctx.organizationId}: ${message}`,
@@ -205,6 +206,7 @@ export class AgentMediaAssetGenerationService {
       ctx,
     );
     return this.buildSimpleAssetResult({
+      billingDelegated: false,
       description: 'Image upscaled',
       endpoint: 'image',
       idPrefix: 'image-upscale',
@@ -252,6 +254,7 @@ export class AgentMediaAssetGenerationService {
     );
 
     if (id) {
+      // Fire-and-forget quality scoring must not delay the generation result.
       this.scoreAsset(id, 'video', ctx.organizationId);
       await this.onboardingHandler.completeJourneyMission(
         ctx,
@@ -300,6 +303,7 @@ export class AgentMediaAssetGenerationService {
       ctx,
     );
     return this.buildSimpleAssetResult({
+      billingDelegated: true,
       description: `Music generated from: "${(params.text as string).substring(0, 80)}"`,
       endpoint: 'music',
       mediaKey: 'audio',
@@ -329,6 +333,7 @@ export class AgentMediaAssetGenerationService {
 
     return this.buildSimpleAssetResult({
       assetUrl: cdnUrl,
+      billingDelegated: true,
       description: `Speech generated: "${(params.text as string).substring(0, 80)}"`,
       endpoint: 'voice',
       id,
@@ -436,6 +441,7 @@ export class AgentMediaAssetGenerationService {
         : {}),
     };
     if (params.audioUrl && params.imageUrl) {
+      // Avatar mode is selected only for the paired image + audio payload.
       body.model = 'kwaivgi/kling-avatar-v2';
       body.audioUrl = params.audioUrl;
       body.references = [params.imageUrl];
@@ -452,6 +458,7 @@ export class AgentMediaAssetGenerationService {
 
   private buildSimpleAssetResult(params: {
     assetUrl?: string;
+    billingDelegated: boolean;
     description: string;
     endpoint: 'image' | 'music' | 'voice';
     id?: string;
@@ -470,7 +477,7 @@ export class AgentMediaAssetGenerationService {
     return {
       creditsUsed: 0,
       data: { id, status: Status.GENERATED, url: assetUrl },
-      ...(params.endpoint !== 'image' ? { isBillingDelegated: true } : {}),
+      ...(params.billingDelegated ? { isBillingDelegated: true } : {}),
       nextActions: id
         ? [
             {
@@ -492,6 +499,7 @@ export class AgentMediaAssetGenerationService {
     };
   }
 
+  /** Never mint an empty content preview for incomplete image generation. */
   private buildImageGenerationIncompleteResult(params: {
     error: string;
     promptPreview: string;

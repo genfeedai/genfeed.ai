@@ -880,6 +880,36 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     );
   });
 
+  it('falls back to the selected brand when a credential has no brand', async () => {
+    const createBatch = vi.fn().mockResolvedValue({
+      id: 'batch-selected-1',
+      status: 'PENDING',
+      totalCount: 1,
+    });
+    const batchOwner = new AgentMediaBatchGenerationService(
+      { error: vi.fn(), warn: vi.fn() } as never,
+      { findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }) } as never,
+      { cancelBatch: vi.fn(), createBatch } as never,
+      { findByHandle: vi.fn().mockResolvedValue({ brandId: null }) } as never,
+      undefined,
+      { deductCreditsFromOrganization: vi.fn() } as never,
+      { recordUpfrontCharge: vi.fn() } as never,
+      undefined,
+      { queueBatch: vi.fn().mockResolvedValue('job-selected-1') } as never,
+    );
+
+    await batchOwner.generateContentBatch(
+      { count: 1, handle: '@creator', platforms: ['instagram'] },
+      { ...context, brandId: undefined },
+    );
+
+    expect(createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-selected' }),
+      'user-1',
+      'organization-1',
+    );
+  });
+
   it('runs and settles in process when no queue accepts ownership', async () => {
     const processBatch = vi.fn().mockResolvedValue({
       completedCount: 2,
