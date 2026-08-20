@@ -32,6 +32,8 @@ export interface StorageProviderOptions {
   bucket?: string;
   /** AWS region. Defaults to AWS_REGION. */
   region?: string;
+  /** Shared AWS config profile. Defaults to AWS_PROFILE when set. */
+  profile?: string;
   /** Defaults to AWS_ACCESS_KEY_ID. */
   accessKeyId?: string;
   /** Defaults to AWS_SECRET_ACCESS_KEY. */

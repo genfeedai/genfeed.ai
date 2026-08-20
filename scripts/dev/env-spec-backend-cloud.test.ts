@@ -21,4 +21,11 @@ describe('env-spec backend cloud flag', () => {
     expect(filesTarget).toBeDefined();
     expect(filesTarget?.directKeys).toContain('AWS_REGION');
   });
+
+  it('copies an explicit AWS profile onto the files service', () => {
+    const filesTarget = ENV_TARGETS.find((target) => target.id === 'files');
+
+    expect(filesTarget).toBeDefined();
+    expect(filesTarget?.directKeys).toContain('AWS_PROFILE');
+  });
 });
