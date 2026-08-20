@@ -710,6 +710,47 @@ describe('AgentThreadList', () => {
     expect(screen.queryByText('Needs input')).not.toBeInTheDocument();
   });
 
+  it('exposes the activity tooltip when the status indicator receives keyboard focus', async () => {
+    const thread = createThread('conv-1', 'Needs keyboard help', {
+      pendingInputCount: 1,
+    });
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    const statusIndicator = await screen.findByLabelText(
+      'Needs input status for Needs keyboard help',
+    );
+
+    expect(statusIndicator).toHaveAttribute('tabindex', '0');
+    statusIndicator.focus();
+
+    expect(statusIndicator).toHaveFocus();
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Needs input');
+  });
+
+  it('exposes the activity tooltip when a pointer hovers the status indicator', async () => {
+    const thread = createThread('conv-1', 'Needs pointer help', {
+      pendingInputCount: 1,
+    });
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    const statusIndicator = await screen.findByLabelText(
+      'Needs input status for Needs pointer help',
+    );
+    fireEvent.pointerMove(statusIndicator, { pointerType: 'mouse' });
+
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('Needs input');
+  });
+
   it('pins a conversation and moves it to the top of the list', async () => {
     const firstThread = createThread('conv-1', 'Later thread');
     const secondThread = {

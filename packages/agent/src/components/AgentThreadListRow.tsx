@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ReactElement, RefObject } from 'react';
+import type { ComponentPropsWithRef, ReactElement, RefObject } from 'react';
 import {
   formatRelativeTime,
   getThreadStatusA11yLabel,
@@ -93,9 +93,12 @@ function agentThreadListRowClassName(options: {
 }
 
 function ThreadActivityIndicator({
+  ref,
+  className,
   statusMeta,
   a11yLabel,
-}: {
+  ...props
+}: Omit<ComponentPropsWithRef<'span'>, 'children'> & {
   statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
   a11yLabel: string;
 }): ReactElement {
@@ -105,9 +108,16 @@ function ThreadActivityIndicator({
 
   return (
     <span
-      className="relative mt-1.5 flex size-2 shrink-0 items-center justify-center"
+      ref={ref}
+      {...props}
+      className={cn(
+        'relative mt-1.5 flex size-2 shrink-0 items-center justify-center',
+        className,
+      )}
       role="img"
       aria-label={a11yLabel}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: The status-only tooltip must be keyboard-focusable without nesting an interactive control inside the thread link.
+      tabIndex={0}
       title={statusMeta.label}
     >
       {statusMeta.shouldPulse ? (
