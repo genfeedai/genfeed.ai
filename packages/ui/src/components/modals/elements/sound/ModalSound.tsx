@@ -133,12 +133,6 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           name="isActive"
           control={form.control}
           label="Automatically select this sound"
-          isChecked={Boolean(form.watch('isActive'))}
-          onChange={(e) => {
-            form.setValue('isActive', e.target.checked, {
-              shouldValidate: true,
-            });
-          }}
           isDisabled={isSubmitting}
         />
         <p className="text-xs text-foreground/70 mt-1">
