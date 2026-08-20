@@ -46,8 +46,8 @@ export default function AgentWizardStepConfigure({
   onNext,
 }: Props) {
   return (
-    <div className="space-y-5">
-      <div className="space-y-1.5">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="space-y-1.5 sm:col-span-2">
         <label
           htmlFor="agent-wizard-label"
           className="text-sm font-medium text-foreground"
@@ -65,7 +65,7 @@ export default function AgentWizardStepConfigure({
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 sm:col-span-2">
         <p className="text-sm font-medium text-foreground">Platforms</p>
         <div className="flex flex-wrap gap-2">
           {PLATFORM_OPTIONS.map((opt) => (
@@ -96,11 +96,29 @@ export default function AgentWizardStepConfigure({
         </label>
         <Textarea
           id="agent-topics"
-          className="min-h-20"
+          className="min-h-16"
           placeholder="marketing, AI, technology (comma-separated)"
           value={form.topics}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, topics: e.target.value }))
+          }
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label
+          htmlFor="agent-voice-persona"
+          className="text-sm font-medium text-foreground"
+        >
+          Voice & Persona (auto-filled from brand)
+        </label>
+        <Textarea
+          id="agent-voice-persona"
+          className="min-h-16"
+          placeholder="Tone, style, audience, and persona instructions..."
+          value={form.voice ?? ''}
+          onChange={(e) =>
+            setForm((prev) => ({ ...prev, voice: e.target.value }))
           }
         />
       </div>
@@ -131,24 +149,6 @@ export default function AgentWizardStepConfigure({
             </SelectItem>
           </SelectContent>
         </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <label
-          htmlFor="agent-voice-persona"
-          className="text-sm font-medium text-foreground"
-        >
-          Voice & Persona (auto-filled from brand)
-        </label>
-        <Textarea
-          id="agent-voice-persona"
-          className="min-h-20"
-          placeholder="Tone, style, audience, and persona instructions..."
-          value={form.voice ?? ''}
-          onChange={(e) =>
-            setForm((prev) => ({ ...prev, voice: e.target.value }))
-          }
-        />
       </div>
 
       <div className="space-y-1.5">
@@ -237,9 +237,9 @@ export default function AgentWizardStepConfigure({
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 sm:col-span-2">
         <p className="text-sm font-medium text-foreground">Autonomy Mode</p>
-        <div className="flex gap-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {[
             {
               description: 'Review before publishing',
@@ -274,7 +274,7 @@ export default function AgentWizardStepConfigure({
       </div>
 
       {form.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH && (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 sm:col-span-2">
           <label
             htmlFor="agent-auto-publish-threshold"
             className="text-sm font-medium text-foreground"
@@ -298,7 +298,7 @@ export default function AgentWizardStepConfigure({
         </div>
       )}
 
-      <div className="flex justify-between pt-2">
+      <div className="flex justify-between pt-2 sm:col-span-2">
         <Button
           label={
             <>

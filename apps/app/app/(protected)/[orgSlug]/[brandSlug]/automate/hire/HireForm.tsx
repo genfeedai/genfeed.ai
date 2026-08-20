@@ -8,7 +8,14 @@ import {
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { SelectCardButton } from '../agents/new/AgentWizardHelpers';
+import AgentOptionPicker from '../agents/AgentOptionPicker';
+
+const ROLE_OPTIONS = CONTENT_TEAM_ROLE_PRESETS.map((preset) => ({
+  description: preset.description,
+  label: preset.displayRole,
+  meta: `${preset.defaultBudget} credits / day`,
+  value: preset.id,
+}));
 
 interface HireFormState {
   budget: string;
@@ -38,31 +45,13 @@ export function HireForm({
   selectedPreset,
 }: HireFormProps) {
   return (
-    <form className="space-y-6" onSubmit={onSubmit}>
-      <fieldset className="space-y-3">
-        <legend className="text-sm font-medium text-foreground">
-          Choose an agent template
-        </legend>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {CONTENT_TEAM_ROLE_PRESETS.map((preset) => (
-            <SelectCardButton
-              key={preset.id}
-              isSelected={form.rolePresetId === preset.id}
-              onClick={() => onChange('rolePresetId', preset.id)}
-            >
-              <span className="block text-sm font-medium text-foreground">
-                {preset.displayRole}
-              </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                {preset.description}
-              </span>
-              <span className="mt-2 block text-xs text-foreground/45">
-                {preset.defaultBudget} credits / day
-              </span>
-            </SelectCardButton>
-          ))}
-        </div>
-      </fieldset>
+    <form className="space-y-4" onSubmit={onSubmit}>
+      <AgentOptionPicker
+        label="Choose an agent template"
+        onValueChange={(value) => onChange('rolePresetId', value)}
+        options={ROLE_OPTIONS}
+        value={form.rolePresetId}
+      />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
@@ -141,7 +130,7 @@ export function HireForm({
           id="content-team-persona"
           onChange={(event) => onChange('persona', event.target.value)}
           placeholder="Describe the creator voice, tone, and positioning for this role."
-          rows={4}
+          rows={3}
           value={form.persona}
         />
       </div>
@@ -161,20 +150,20 @@ export function HireForm({
         />
       </div>
 
-      <div className="flex items-center gap-3">
-        <Button
-          isDisabled={isSubmitting}
-          isLoading={isSubmitting}
-          label="Add agent"
-          type="submit"
-          variant={ButtonVariant.DEFAULT}
-        />
+      <div className="flex items-center justify-end gap-3 pt-1">
         <Button
           isDisabled={isSubmitting}
           label="Cancel"
           onClick={onCancel}
           type="button"
           variant={ButtonVariant.SECONDARY}
+        />
+        <Button
+          isDisabled={isSubmitting}
+          isLoading={isSubmitting}
+          label="Add agent"
+          type="submit"
+          variant={ButtonVariant.DEFAULT}
         />
       </div>
     </form>

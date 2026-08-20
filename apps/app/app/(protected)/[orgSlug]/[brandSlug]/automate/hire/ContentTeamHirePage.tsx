@@ -18,7 +18,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import { HireForm } from './HireForm';
-import { RolePreviewCard } from './RolePreviewCard';
 
 interface HireFormState {
   budget: string;
@@ -157,7 +156,7 @@ export default function ContentTeamHirePage({
         {translate('loadingBrand')}
       </p>
     ) : (
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <div className="mx-auto w-full max-w-3xl">
         <HireForm
           form={form}
           isSubmitting={isSubmitting}
@@ -165,12 +164,6 @@ export default function ContentTeamHirePage({
           onChange={handleChange}
           onSubmit={handleSubmit}
           selectedPreset={selectedPreset}
-        />
-
-        <RolePreviewCard
-          budget={form.budget}
-          selectedPreset={selectedPreset}
-          teamGroup={form.teamGroup}
         />
       </div>
     );

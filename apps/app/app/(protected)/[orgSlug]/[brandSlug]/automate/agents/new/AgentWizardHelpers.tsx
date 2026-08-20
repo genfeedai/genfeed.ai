@@ -12,7 +12,7 @@ const STEPS = [
 
 export function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center gap-2 mb-6">
+    <div className="mb-4 flex items-center gap-2">
       {STEPS.map((step, i) => (
         <div key={step.id} className="flex items-center gap-2">
           <span

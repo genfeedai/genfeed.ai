@@ -101,6 +101,31 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
+vi.mock('../AgentOptionPicker', () => ({
+  default: ({
+    onValueChange,
+    options,
+    value,
+  }: {
+    onValueChange: (value: AgentType) => void;
+    options: Array<{ label: string; value: AgentType }>;
+    value: AgentType;
+  }) => (
+    <div>
+      {options.map((option) => (
+        <button
+          aria-pressed={value === option.value}
+          key={option.value}
+          onClick={() => onValueChange(option.value)}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  ),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,

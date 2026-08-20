@@ -12,8 +12,16 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children, open }: { children: ReactNode; open: boolean }) =>
     open ? <div role="dialog">{children}</div> : null,
-  DialogContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
+  DialogContent: ({
+    children,
+    className,
+  }: {
+    children: ReactNode;
+    className?: string;
+  }) => (
+    <div className={className} data-testid="dialog-content">
+      {children}
+    </div>
   ),
   DialogDescription: ({ children }: { children: ReactNode }) => (
     <p>{children}</p>
@@ -80,6 +88,11 @@ describe('AddAgentDialog', () => {
     );
 
     expect(screen.getByText('Agent library panel')).toBeVisible();
+    expect(screen.getByTestId('dialog-content')).toHaveClass(
+      'w-[calc(100vw-2rem)]',
+      'max-w-3xl',
+    );
+    expect(screen.getByTestId('dialog-content')).not.toHaveClass('max-w-5xl');
     fireEvent.click(screen.getByRole('tab', { name: 'Custom' }));
     expect(screen.getByText('Custom agent panel')).toBeVisible();
   });

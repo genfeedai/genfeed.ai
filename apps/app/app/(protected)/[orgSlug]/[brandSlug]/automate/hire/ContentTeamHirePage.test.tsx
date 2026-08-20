@@ -99,24 +99,6 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@ui/card/Card', () => ({
-  default: ({
-    children,
-    description,
-    label,
-  }: {
-    children?: ReactNode;
-    description?: string;
-    label?: string;
-  }) => (
-    <aside>
-      <h2>{label}</h2>
-      <p>{description}</p>
-      {children}
-    </aside>
-  ),
-}));
-
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
@@ -133,6 +115,42 @@ vi.mock('@ui/layout/container/Container', () => ({
       {children}
     </main>
   ),
+}));
+
+vi.mock('../agents/AgentOptionPicker', () => ({
+  default: ({
+    onValueChange,
+    options,
+    value,
+  }: {
+    onValueChange: (value: string) => void;
+    options: Array<{
+      description: string;
+      label: string;
+      meta: string;
+      value: string;
+    }>;
+    value: string;
+  }) => {
+    const selected = options.find((option) => option.value === value);
+
+    return (
+      <div>
+        <p>{selected?.description}</p>
+        <p>{selected?.meta}</p>
+        {options.map((option) => (
+          <button
+            aria-pressed={value === option.value}
+            key={option.value}
+            onClick={() => onValueChange(option.value)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -176,7 +194,7 @@ describe('ContentTeamHirePage', () => {
     });
   });
 
-  it('renders role preview and hires a content team agent', async () => {
+  it('renders the selected template and hires a content team agent', async () => {
     render(
       <ContentTeamHirePage
         isEmbedded
@@ -187,8 +205,7 @@ describe('ContentTeamHirePage', () => {
 
     expect(screen.getAllByText('Video Producer')[0]).toBeVisible();
     expect(screen.getByText('Creates short-form video briefs.')).toBeVisible();
-    expect(screen.getByText('TikTok, YouTube Shorts')).toBeVisible();
-    expect(screen.getByText('Production')).toBeVisible();
+    expect(screen.getByPlaceholderText('Production')).toBeVisible();
     expect(screen.getByText(/25 credits/)).toBeVisible();
     expect(screen.queryByText('Brand')).not.toBeInTheDocument();
 
@@ -245,7 +262,7 @@ describe('ContentTeamHirePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Copywriter/i }));
     expect(screen.getByText('Writes launch copy.')).toBeVisible();
-    expect(screen.getByText('Editorial')).toBeVisible();
+    expect(screen.getByPlaceholderText('Editorial')).toBeVisible();
     expect(screen.getByText(/10 credits/)).toBeVisible();
 
     fireEvent.click(screen.getByText('Cancel'));

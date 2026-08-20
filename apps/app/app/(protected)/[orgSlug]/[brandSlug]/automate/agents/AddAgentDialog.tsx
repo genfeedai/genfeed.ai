@@ -44,7 +44,7 @@ export default function AddAgentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-3xl overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>{translate('title')}</DialogTitle>
           <DialogDescription>{translate('description')}</DialogDescription>
@@ -66,7 +66,7 @@ export default function AddAgentDialog({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="library" className="mt-5">
+          <TabsContent value="library" className="mt-4">
             <ContentTeamHirePage
               isEmbedded
               onCancel={() => onOpenChange(false)}
@@ -74,7 +74,7 @@ export default function AddAgentDialog({
             />
           </TabsContent>
 
-          <TabsContent value="custom" className="mt-5">
+          <TabsContent value="custom" className="mt-4">
             <AgentWizardPage isEmbedded onCreated={handleCreated} />
           </TabsContent>
         </Tabs>
