@@ -107,6 +107,7 @@ export const APP_ROUTES = {
      */
     ANALYTICS: '/automate/analytics',
     AUTOPILOT: '/automate/autopilot',
+    /** @deprecated Automation settings live under brand Settings. */
     CONFIGURATION: '/automate/configuration',
     /** Content-run history: briefs handed off from Discover through publish. */
     CONTENT_RUNS: '/automate/content-runs',
@@ -132,6 +133,7 @@ export const APP_ROUTES = {
     OVERVIEW: '/automate/overview',
     ROOT: '/automate',
     RUNS: '/automate/runs',
+    /** @deprecated Skill configuration lives at APP_ROUTES.SETTINGS.SKILLS. */
     SKILLS: '/automate/skills',
     /**
      * Agent Programs (budget/quota wrappers around strategies).
@@ -336,6 +338,7 @@ export const APP_ROUTES = {
     SCHEDULED: '/publish/scheduled',
   },
   SETTINGS: {
+    AGENT_DEFAULTS: '/settings/agent-defaults',
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
@@ -366,6 +369,8 @@ export const APP_ROUTES = {
      * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
      */
     SOCIAL: '/settings/social',
+    /** Brand-enabled agent skills and organization-owned skill variants. */
+    SKILLS: '/settings/skills',
     /**
      * @deprecated External links edit on Brand Profile via ModalBrandLink.
      * Route permanently redirects to SETTINGS.ROOT.

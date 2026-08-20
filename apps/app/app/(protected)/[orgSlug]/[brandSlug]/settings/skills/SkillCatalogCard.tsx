@@ -7,6 +7,7 @@ import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
+import { useTranslations } from 'next-intl';
 import {
   MODALITY_FILTERS,
   type ModalityFilterValue,
@@ -50,6 +51,7 @@ type Props = {
   enabledSlugs: string[];
   filteredSkills: Skill[];
   isLoading: boolean;
+  isTogglingSkill: boolean;
   modalityFilter: ModalityFilterValue;
   onModalityFilterChange: (value: ModalityFilterValue) => void;
   onSkillSelect: (id: string) => void;
@@ -63,6 +65,7 @@ export default function SkillCatalogCard({
   enabledSlugs,
   filteredSkills,
   isLoading,
+  isTogglingSkill,
   modalityFilter,
   onModalityFilterChange,
   onSkillSelect,
@@ -71,58 +74,74 @@ export default function SkillCatalogCard({
   selectedSkillId,
   stageFilter,
 }: Props) {
+  const translate = useTranslations('common.settings.skills');
+
   return (
     <Card bodyClassName="gap-0 p-5" className="rounded-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Catalog</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            {translate('catalog.title')}
+          </h2>
           <p className="text-sm text-foreground/55">
-            Browse built-in, imported, and brand-editable content skills.
+            {translate('catalog.description')}
           </p>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {MODALITY_FILTERS.map((filter) => (
-          <Button
-            className="rounded-full"
-            key={filter.value}
-            onClick={() => onModalityFilterChange(filter.value)}
-            variant={
-              modalityFilter === filter.value
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.SECONDARY
-            }
-          >
-            {filter.label}
-          </Button>
-        ))}
-        {STAGE_FILTERS.map((filter) => (
-          <Button
-            className="rounded-full"
-            key={filter.value}
-            onClick={() => onStageFilterChange(filter.value)}
-            variant={
-              stageFilter === filter.value
-                ? ButtonVariant.DEFAULT
-                : ButtonVariant.SECONDARY
-            }
-          >
-            {filter.label}
-          </Button>
-        ))}
+      <div className="mb-4 space-y-2">
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="sr-only">
+            {translate('filters.modality.label')}
+          </legend>
+          {MODALITY_FILTERS.map((filter) => (
+            <Button
+              aria-pressed={modalityFilter === filter.value}
+              className="rounded-full"
+              key={filter.value}
+              onClick={() => onModalityFilterChange(filter.value)}
+              variant={
+                modalityFilter === filter.value
+                  ? ButtonVariant.DEFAULT
+                  : ButtonVariant.SECONDARY
+              }
+            >
+              {translate(`filters.modality.${filter.labelKey}`)}
+            </Button>
+          ))}
+        </fieldset>
+        <fieldset className="flex flex-wrap gap-2">
+          <legend className="sr-only">
+            {translate('filters.stage.label')}
+          </legend>
+          {STAGE_FILTERS.map((filter) => (
+            <Button
+              aria-pressed={stageFilter === filter.value}
+              className="rounded-full"
+              key={filter.value}
+              onClick={() => onStageFilterChange(filter.value)}
+              variant={
+                stageFilter === filter.value
+                  ? ButtonVariant.DEFAULT
+                  : ButtonVariant.SECONDARY
+              }
+            >
+              {translate(`filters.stage.${filter.labelKey}`)}
+            </Button>
+          ))}
+        </fieldset>
       </div>
 
       <div className="grid gap-3">
         {isLoading ? (
           <InsetSurface className="text-sm text-foreground/55">
-            Loading skill catalog…
+            {translate('catalog.loading')}
           </InsetSurface>
         ) : null}
 
         {!isLoading && filteredSkills.length === 0 ? (
           <InsetSurface className="text-sm text-foreground/55">
-            No skills match the current filters.
+            {translate('catalog.empty')}
           </InsetSurface>
         ) : null}
 
@@ -138,6 +157,7 @@ export default function SkillCatalogCard({
               key={skill.id}
             >
               <Button
+                aria-pressed={isSelected}
                 className="h-auto w-full flex-col items-stretch rounded-2xl p-4 pr-16 text-left"
                 onClick={() => onSkillSelect(skill.id)}
                 variant={ButtonVariant.UNSTYLED}
@@ -187,8 +207,12 @@ export default function SkillCatalogCard({
                 </div>
               </Button>
               <Switch
+                aria-label={translate('catalog.enableSkill', {
+                  name: skill.name,
+                })}
                 checked={isEnabled}
                 className="absolute top-4 right-4"
+                disabled={isTogglingSkill}
                 onCheckedChange={() => onToggleSkill(skill.slug)}
               />
             </div>

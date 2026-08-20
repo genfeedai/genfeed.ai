@@ -1,17 +1,14 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
-import AgentConfigurationPage from './agent-configuration-page';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Agent Configuration');
+export default async function LegacyAgentConfigurationRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
 
-export default function ConfigurationPage() {
-  return (
-    <ErrorBoundary>
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-        <AgentConfigurationPage />
-      </Suspense>
-    </ErrorBoundary>
+  permanentRedirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.AGENT_DEFAULTS),
   );
 }

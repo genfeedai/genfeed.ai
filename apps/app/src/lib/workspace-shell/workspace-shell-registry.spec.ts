@@ -174,7 +174,7 @@ describe('workspace shell trusted registry', () => {
   it.each([
     ['/:orgSlug/:brandSlug/publish/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
-    ['/:orgSlug/:brandSlug/automate/skills', 'canvas'],
+    ['/:orgSlug/:brandSlug/settings/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
@@ -228,7 +228,7 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
-  it('keeps legacy workflow aliases aligned with their canonical automate owners', () => {
+  it('keeps legacy aliases aligned with their canonical surface owners', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ mode: 'canvas', surfaceKey: 'automate' });
@@ -239,7 +239,13 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
     ).toMatchObject({
       mode: 'canvas',
-      surfaceKey: 'automate-management',
+      surfaceKey: 'brand-settings',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automate/skills'),
+    ).toMatchObject({
+      mode: 'canvas',
+      surfaceKey: 'brand-settings',
     });
   });
 
@@ -335,8 +341,8 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
     ).toBeNull();
-    // The Automate hard-cut folded autopilot and configuration into the
-    // first-class automate family. Compose's `/write` alias retired with it.
+    // Autopilot remains first-class. Legacy configuration routes are owned by
+    // Brand Settings until their server redirects complete.
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/autopilot'),
     ).toMatchObject({ productClass: 'control-plane' });
@@ -345,7 +351,10 @@ describe('workspace shell trusted registry', () => {
     ).toBeNull();
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/configuration'),
-    ).toMatchObject({ productClass: 'control-plane' });
+    ).toMatchObject({
+      productClass: 'control-plane',
+      surfaceKey: 'brand-settings',
+    });
     expect(resolveWorkspaceShellRoute('/acme/~/write')).toBeNull();
     expect(resolveWorkspaceShellRoute('/acme/~/compose')).toBeNull();
     expect(

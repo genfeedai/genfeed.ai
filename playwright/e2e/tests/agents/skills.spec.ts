@@ -7,7 +7,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
-test.describe('Agents Skills', () => {
+test.describe('Brand Skills settings', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -19,11 +19,11 @@ test.describe('Agents Skills', () => {
   test('loads the skills catalog for authenticated users', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.SKILLS), {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.SETTINGS.SKILLS), {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/skills(?:$|[?#])/);
+    await expect(authenticatedPage).toHaveURL(/\/settings\/skills(?:$|[?#])/);
     await expect(
       authenticatedPage.getByRole('heading', { name: /Catalog/i }),
     ).toBeVisible();
@@ -35,11 +35,21 @@ test.describe('Agents Skills', () => {
     ).toBeVisible();
   });
 
+  test('redirects the legacy Automate skills URL into Settings', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.SKILLS), {
+      waitUntil: 'domcontentloaded',
+    });
+
+    await expect(authenticatedPage).toHaveURL(/\/settings\/skills(?:$|[?#])/);
+  });
+
   test('redirects unauthenticated users from the skills route', async ({
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
-    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.SKILLS, {
+    await unauthenticatedPage.goto(APP_ROUTES.SETTINGS.SKILLS, {
       waitUntil: 'domcontentloaded',
     });
 

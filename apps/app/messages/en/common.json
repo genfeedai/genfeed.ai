@@ -105,6 +105,83 @@
       "title": "Start from a template"
     }
   },
+  "settings": {
+    "skills": {
+      "actions": {
+        "customize": "Customize",
+        "customizing": "Customizing…",
+        "openAgent": "Open Agent",
+        "refresh": "Refresh",
+        "saveVariant": "Save variant",
+        "saving": "Saving…",
+        "testWithAgent": "Test with Agent"
+      },
+      "catalog": {
+        "description": "Browse built-in, imported, and organization-owned content skills.",
+        "empty": "No skills match the current filters.",
+        "enableSkill": "Enable {name}",
+        "loading": "Loading skill catalog…",
+        "title": "Catalog"
+      },
+      "detail": {
+        "coverage": "Coverage",
+        "coverageDescription": "{modalities} across {channels}.",
+        "definition": "Skill definition",
+        "definitionDescription": "Built-in and imported skills can be customized into an organization-owned variant. Organization-owned variants can be edited here directly and may be used by other brands in this organization.",
+        "empty": "Select a skill from the catalog to inspect its detail.",
+        "generalChannels": "general channels",
+        "stage": "Stage",
+        "stageDescription": "Designed for the {stage} step of the content workflow."
+      },
+      "errors": {
+        "authenticationUnavailable": "Authentication token unavailable",
+        "brandUnavailable": "The selected brand is unavailable for this settings route.",
+        "customizeFailed": "Failed to create an organization-owned skill variant.",
+        "loadFailed": "Failed to load the agent skill catalog.",
+        "updateFailed": "Failed to update the selected skill variant."
+      },
+      "fields": {
+        "defaultInstructions": "Default instructions",
+        "description": "Description",
+        "name": "Name",
+        "systemPromptHelp": "The exact text injected into the agent system prompt at runtime. Falls back to Default instructions if empty.",
+        "systemPromptPlaceholder": "Leave empty to use Default instructions above",
+        "systemPromptTemplate": "Advanced: System Prompt Template"
+      },
+      "filters": {
+        "modality": {
+          "all": "All",
+          "audio": "Audio",
+          "image": "Image",
+          "label": "Filter skills by modality",
+          "text": "Text",
+          "video": "Video"
+        },
+        "source": {
+          "all": "All",
+          "builtIn": "Built-in",
+          "custom": "Custom",
+          "imported": "Imported",
+          "label": "Filter skills by source"
+        },
+        "stage": {
+          "all": "All",
+          "analysis": "Analysis",
+          "creation": "Creation",
+          "label": "Filter skills by workflow stage",
+          "planning": "Planning",
+          "publishing": "Publishing",
+          "research": "Research",
+          "review": "Review"
+        }
+      },
+      "heading": "Skills",
+      "testPrompt": "Use my {name} setup to create a small sample for {channel}. Explain how the skill affects the output.",
+      "thisBrand": "this brand",
+      "thisChannel": "this channel",
+      "title": "Brand content behavior for {brand}"
+    }
+  },
   "workspaceInspector": {
     "chooseWorkflow": "Choose workflow",
     "fullManagement": "Full management remains available on this canonical route.",

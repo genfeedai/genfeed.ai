@@ -5,8 +5,6 @@ import {
   LayoutGrid,
   Megaphone,
   Rocket,
-  Settings,
-  Sparkles,
   Users,
   Workflow,
 } from 'lucide-react';
@@ -16,8 +14,7 @@ import {
  *
  * - Home: Overview
  * - Workflows: pipelines + run history
- * - Agents: roster, skills, autopilot, programs
- * - Settings: module config
+ * - Agents: roster, autopilot, programs
  *
  * Outreach / reply drip / author replies live in Messages.
  * Marketer multi-platform content Campaigns belong in Publish (P1).
@@ -74,14 +71,6 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Agents',
-    href: APP_ROUTES.AUTOMATE.SKILLS,
-    label: 'Skills',
-    matchPaths: [APP_ROUTES.AUTOMATE.SKILLS],
-    outline: Sparkles,
-    solid: Sparkles,
-  },
-  {
-    group: 'Agents',
     href: APP_ROUTES.AUTOMATE.AUTOPILOT,
     label: 'Autopilot',
     matchPaths: [APP_ROUTES.AUTOMATE.AUTOPILOT],
@@ -99,14 +88,6 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     ],
     outline: Megaphone,
     solid: Megaphone,
-  },
-  {
-    group: 'Settings',
-    href: APP_ROUTES.AUTOMATE.CONFIGURATION,
-    label: 'Configuration',
-    matchPaths: [APP_ROUTES.AUTOMATE.CONFIGURATION],
-    outline: Settings,
-    solid: Settings,
   },
 ];
 

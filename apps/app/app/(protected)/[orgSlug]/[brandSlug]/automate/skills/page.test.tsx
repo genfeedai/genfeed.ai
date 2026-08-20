@@ -1,16 +1,23 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { permanentRedirect } from 'next/navigation';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import LegacyAutomateSkillsRoute from './page';
 
-describe('app/(protected)/[orgSlug]/[brandSlug]/automate/skills/page.tsx', () => {
-  it('keeps an exported contract in place', () => {
-    const source = readFileSync(
-      join(
-        process.cwd(),
-        'app/(protected)/[orgSlug]/[brandSlug]/automate/skills/page.tsx',
-      ),
-      'utf8',
+vi.mock('next/navigation', () => ({
+  permanentRedirect: vi.fn(),
+}));
+
+describe('LegacyAutomateSkillsRoute', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('redirects to brand Skills settings', async () => {
+    await LegacyAutomateSkillsRoute({
+      params: Promise.resolve({ brandSlug: 'demo', orgSlug: 'acme' }),
+    });
+
+    expect(permanentRedirect).toHaveBeenCalledWith(
+      '/acme/demo/settings/skills',
     );
-    expect(source).toContain('export ');
   });
 });

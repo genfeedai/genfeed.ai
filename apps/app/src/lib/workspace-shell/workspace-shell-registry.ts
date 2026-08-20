@@ -870,7 +870,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automate/analytics',
       '/:orgSlug/:brandSlug/automate/autopilot',
       '/:orgSlug/:brandSlug/automate/runs',
-      '/:orgSlug/:brandSlug/automate/skills',
       '/:orgSlug/:brandSlug/automate/campaigns',
       '/:orgSlug/:brandSlug/automate/campaigns/new',
       '/:orgSlug/:brandSlug/automate/campaigns/:id',
@@ -935,7 +934,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automate/new',
       '/:orgSlug/:brandSlug/automate/agents',
       '/:orgSlug/:brandSlug/automate/agents/new',
-      '/:orgSlug/:brandSlug/automate/configuration',
       '/:orgSlug/:brandSlug/automate/hire',
       '/:orgSlug/:brandSlug/automate/library',
       '/:orgSlug/:brandSlug/automate/library/:type',
@@ -962,6 +960,10 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/organization/credentials',
       '/:orgSlug/:brandSlug/settings/publishing',
       '/:orgSlug/:brandSlug/settings/agent-defaults',
+      '/:orgSlug/:brandSlug/settings/skills',
+      // Legacy Automate settings aliases permanently redirect into this surface.
+      '/:orgSlug/:brandSlug/automate/configuration',
+      '/:orgSlug/:brandSlug/automate/skills',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/settings',

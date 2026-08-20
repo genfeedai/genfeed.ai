@@ -158,6 +158,7 @@ describe('buildSettingsMenuItems', () => {
         'Harness',
         'Publishing',
         'Agent Defaults',
+        'Skills',
       ]);
     });
 
@@ -177,6 +178,9 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Brand voice')?.href).toBe(
         '/settings/voice',
       );
+      expect(items.find((i) => i.label === 'Skills')?.href).toBe(
+        APP_ROUTES.SETTINGS.SKILLS,
+      );
     });
 
     it('uses two meaningful groups: Brand and Automation', () => {
@@ -189,6 +193,7 @@ describe('buildSettingsMenuItems', () => {
         ['Harness', 'Automation'],
         ['Publishing', 'Automation'],
         ['Agent Defaults', 'Automation'],
+        ['Skills', 'Automation'],
       ]);
     });
   });

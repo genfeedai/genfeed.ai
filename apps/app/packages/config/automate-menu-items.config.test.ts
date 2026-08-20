@@ -42,7 +42,6 @@ describe('AUTOMATE_MENU_ITEMS', () => {
 
   it.each([
     ['Autopilot', '/automate/autopilot'],
-    ['Configuration', '/automate/configuration'],
     ['Agents', '/automate/agents'],
     ['Programs', '/automate/campaigns'],
     ['Workflows', '/automate/workflows'],
@@ -133,7 +132,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(isCovered).toBe(true);
   });
 
-  it('groups by usage (Workflows / Agents / Settings) — no Campaigns group', () => {
+  it('groups by usage (Workflows / Agents) — no legacy Settings group', () => {
     const byGroup = new Map<string, string[]>();
     for (const item of AUTOMATE_MENU_ITEMS) {
       const group = item.group ?? '';
@@ -144,16 +143,19 @@ describe('AUTOMATE_MENU_ITEMS', () => {
 
     expect(byGroup.get('')).toEqual(['Overview']);
     expect(byGroup.get('Workflows')).toEqual(['Workflows', 'Runs']);
-    expect(byGroup.get('Agents')).toEqual([
-      'Agents',
-      'Skills',
-      'Autopilot',
-      'Programs',
-    ]);
+    expect(byGroup.get('Agents')).toEqual(['Agents', 'Autopilot', 'Programs']);
     expect(byGroup.get('Campaigns')).toBeUndefined();
-    expect(byGroup.get('Settings')).toEqual(['Configuration']);
+    expect(byGroup.get('Settings')).toBeUndefined();
     expect(byGroup.get('Build')).toBeUndefined();
     expect(byGroup.get('Insights')).toBeUndefined();
+  });
+
+  it('keeps automation configuration in Settings, not the Automate sidebar', () => {
+    expect(
+      AUTOMATE_MENU_ITEMS.some((item) =>
+        ['Configuration', 'Skills'].includes(item.label),
+      ),
+    ).toBe(false);
   });
 
   it('folds retired agent creation routes into Agents', () => {

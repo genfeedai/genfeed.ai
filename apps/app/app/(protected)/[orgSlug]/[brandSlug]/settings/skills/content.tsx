@@ -1,19 +1,23 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { type Skill, SkillsService } from '@services/content/skills.service';
-import { useRouter } from 'next/navigation';
+import Loading from '@ui/loading/default/Loading';
+import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   startTransition,
   useCallback,
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from 'react';
 import SkillCatalogCard from './SkillCatalogCard';
 import SkillDetailCard from './SkillDetailCard';
@@ -30,10 +34,6 @@ type SkillDraft = {
   name: string;
   systemPromptTemplate: string;
 };
-
-function buildSkillTestPrompt(skill: Skill): string {
-  return `Use my ${skill.name} setup to create a small sample for ${skill.channels[0] ?? 'this channel'}. Explain how the skill affects the output.`;
-}
 
 function emptyDraft(): SkillDraft {
   return {
@@ -98,11 +98,25 @@ const initialState: PageState = {
 function pageReducer(state: PageState, action: PageAction): PageState {
   switch (action.type) {
     case 'LOAD_START':
-      return { ...state, isLoading: true, error: null };
+      return {
+        ...state,
+        error: null,
+        isLoading: true,
+        selectedSkillId: '',
+        skillDraft: emptyDraft(),
+        skills: [],
+      };
     case 'LOAD_SUCCESS':
       return { ...state, isLoading: false, skills: action.skills };
     case 'LOAD_ERROR':
-      return { ...state, isLoading: false, error: action.message };
+      return {
+        ...state,
+        error: action.message,
+        isLoading: false,
+        selectedSkillId: '',
+        skillDraft: emptyDraft(),
+        skills: [],
+      };
     case 'SELECT_SKILL':
       return { ...state, selectedSkillId: action.id, skillDraft: action.draft };
     case 'SET_SOURCE_FILTER':
@@ -134,13 +148,20 @@ function pageReducer(state: PageState, action: PageAction): PageState {
   }
 }
 
-export default function AutomateSkillsPage() {
+export default function BrandSettingsSkillsPage() {
+  const translate = useTranslations('common.settings.skills');
+  const params = useParams<{ brandSlug: string; orgSlug: string }>();
   const { push } = useRouter();
-  const { orgHref } = useOrgUrl();
+  const { href } = useOrgUrl();
   const { getToken } = useAuthIdentity();
-  const { isReady, selectedBrand } = useBrand();
+  const { brandId, isReady, selectedBrand } = useBrand();
 
-  const { enabledSlugs, toggleSkill } = useBrandEnabledSkills();
+  const {
+    enabledSlugs,
+    isLoading: isTogglingSkill,
+    toggleSkill,
+  } = useBrandEnabledSkills();
+  const catalogRequestIdRef = useRef(0);
 
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {
@@ -156,16 +177,25 @@ export default function AutomateSkillsPage() {
     skillDraft,
   } = state;
 
+  const isScopeMatch = Boolean(
+    brandId &&
+      selectedBrand?.id === brandId &&
+      selectedBrand.slug === params.brandSlug &&
+      getBrandOrganizationSlug(selectedBrand) === params.orgSlug,
+  );
+
   const getSkillsService = useCallback(async () => {
     const token = await resolveAuthToken(getToken);
     if (!token) {
-      throw new Error('Authentication token unavailable');
+      throw new Error(translate('errors.authenticationUnavailable'));
     }
     return SkillsService.getInstance(token);
-  }, [getToken]);
+  }, [getToken, translate]);
 
   const refreshCatalog = useCallback(async () => {
-    if (!isReady) {
+    const requestId = ++catalogRequestIdRef.current;
+
+    if (!isReady || !isScopeMatch) {
       return;
     }
 
@@ -175,19 +205,31 @@ export default function AutomateSkillsPage() {
       const service = await getSkillsService();
       const catalogSkills = await service.listSkills();
 
+      if (requestId !== catalogRequestIdRef.current) {
+        return;
+      }
+
       startTransition(() => {
         dispatch({ type: 'LOAD_SUCCESS', skills: catalogSkills });
       });
     } catch {
+      if (requestId !== catalogRequestIdRef.current) {
+        return;
+      }
+
       dispatch({
         type: 'LOAD_ERROR',
-        message: 'Failed to load the agent skill catalog.',
+        message: translate('errors.loadFailed'),
       });
     }
-  }, [getSkillsService, isReady]);
+  }, [getSkillsService, isReady, isScopeMatch, translate]);
 
   useEffect(() => {
     void refreshCatalog();
+
+    return () => {
+      catalogRequestIdRef.current += 1;
+    };
   }, [refreshCatalog]);
 
   const filteredSkills = useMemo(() => {
@@ -232,7 +274,7 @@ export default function AutomateSkillsPage() {
     selectedSkillId === selectedSkill?.id ? skillDraft : derivedDraft;
 
   const handleSaveSkill = useCallback(async () => {
-    if (!selectedSkill?.organization) {
+    if (!isScopeMatch || !selectedSkill?.organization) {
       return;
     }
 
@@ -253,7 +295,7 @@ export default function AutomateSkillsPage() {
     } catch {
       dispatch({
         type: 'SAVE_ERROR',
-        message: 'Failed to update the selected skill variant.',
+        message: translate('errors.updateFailed'),
       });
     }
   }, [
@@ -264,10 +306,12 @@ export default function AutomateSkillsPage() {
     effectiveSkillDraft.description,
     effectiveSkillDraft.name,
     effectiveSkillDraft.systemPromptTemplate,
+    isScopeMatch,
+    translate,
   ]);
 
   const handleCustomize = useCallback(async () => {
-    if (!selectedSkill) {
+    if (!isScopeMatch || !selectedSkill) {
       return;
     }
 
@@ -283,21 +327,28 @@ export default function AutomateSkillsPage() {
     } catch {
       dispatch({
         type: 'CUSTOMIZE_ERROR',
-        message: 'Failed to create a brand-editable skill variant.',
+        message: translate('errors.customizeFailed'),
       });
     }
-  }, [getSkillsService, refreshCatalog, selectedSkill]);
+  }, [
+    getSkillsService,
+    isScopeMatch,
+    refreshCatalog,
+    selectedSkill,
+    translate,
+  ]);
 
   const handleOpenTestInChat = useCallback(() => {
     if (!selectedSkill) {
       return;
     }
 
-    const prompt = buildSkillTestPrompt(selectedSkill);
-    push(
-      orgHref(`${APP_ROUTES.AGENT.NEW}?prompt=${encodeURIComponent(prompt)}`),
-    );
-  }, [orgHref, push, selectedSkill]);
+    const prompt = translate('testPrompt', {
+      channel: selectedSkill.channels[0] ?? translate('thisChannel'),
+      name: selectedSkill.name,
+    });
+    push(href(`${APP_ROUTES.AGENT.NEW}?prompt=${encodeURIComponent(prompt)}`));
+  }, [href, push, selectedSkill, translate]);
 
   const handleSkillSelect = useCallback(
     (id: string) => {
@@ -307,9 +358,27 @@ export default function AutomateSkillsPage() {
     [filteredSkills],
   );
 
+  if (!isReady || !brandId) {
+    return <Loading isFullSize={false} />;
+  }
+
+  if (!isScopeMatch) {
+    return (
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-6 md:px-6 lg:px-8">
+        <div
+          className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
+          {translate('errors.brandUnavailable')}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 py-6 md:px-6 lg:px-8">
       <SkillsPageHeader
+        agentHref={href(APP_ROUTES.AGENT.ROOT)}
         brandLabel={selectedBrand?.label}
         onRefresh={() => void refreshCatalog()}
         onSourceFilterChange={(value) =>
@@ -319,7 +388,10 @@ export default function AutomateSkillsPage() {
       />
 
       {error ? (
-        <div className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div
+          className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
@@ -329,6 +401,7 @@ export default function AutomateSkillsPage() {
           enabledSlugs={enabledSlugs}
           filteredSkills={filteredSkills}
           isLoading={isLoading}
+          isTogglingSkill={isTogglingSkill}
           modalityFilter={modalityFilter}
           onModalityFilterChange={(value) =>
             dispatch({ type: 'SET_MODALITY_FILTER', value })

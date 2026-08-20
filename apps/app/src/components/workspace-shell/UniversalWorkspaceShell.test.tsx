@@ -1542,7 +1542,7 @@ describe('UniversalWorkspaceShell', () => {
   it.each([
     ['/acme/moonrise/automate'],
     ['/acme/moonrise/automate/runs'],
-    ['/acme/moonrise/automate/skills'],
+    ['/acme/moonrise/settings/skills'],
     ['/acme/moonrise/automate/library'],
     ['/acme/moonrise/automate/agents'],
   ])('keeps the generic inspector on %s', (pathname) => {
