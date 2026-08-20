@@ -2,6 +2,9 @@ import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrato
 import { describe, expect, it, vi } from 'vitest';
 
 function createHandler() {
+  const aiActionsService = {
+    execute: vi.fn(),
+  };
   const contentGeneratorService = {
     generateContent: vi.fn(),
   };
@@ -16,13 +19,19 @@ function createHandler() {
     { error: vi.fn(), warn: vi.fn() } as never,
     { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
     internalApi as never,
-    {} as never,
+    aiActionsService as never,
     contentGeneratorService as never,
     onboardingHandler as never,
     {} as never,
   );
 
-  return { contentGeneratorService, handler, internalApi, onboardingHandler };
+  return {
+    aiActionsService,
+    contentGeneratorService,
+    handler,
+    internalApi,
+    onboardingHandler,
+  };
 }
 
 const context = {
@@ -32,6 +41,29 @@ const context = {
 };
 
 describe('AgentMediaGenerationToolHandler text previews', () => {
+  it('preserves organization scope and action mapping for AI text actions', async () => {
+    const { aiActionsService, handler } = createHandler();
+    aiActionsService.execute.mockResolvedValue({
+      result: 'Shorter copy',
+      tokensUsed: 14,
+    });
+
+    const result = await handler.aiAction(
+      { action: 'shorten', text: 'Long copy' },
+      context,
+    );
+
+    expect(aiActionsService.execute).toHaveBeenCalledWith(
+      'organization-1',
+      expect.objectContaining({ content: 'Long copy' }),
+    );
+    expect(result).toEqual({
+      creditsUsed: 1,
+      data: { result: 'Shorter copy', tokensUsed: 14 },
+      success: true,
+    });
+  });
+
   it('emits a platform-aware output card for generated social content', async () => {
     const { contentGeneratorService, handler } = createHandler();
     contentGeneratorService.generateContent.mockResolvedValue([
@@ -364,6 +396,138 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
       context,
     );
   });
+
+  it('preserves avatar provider payloads and attachment ownership', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: { cdnUrl: 'https://cdn.example.com/avatar.mp4' },
+        id: 'video-avatar-1',
+      },
+    });
+
+    await handler.generateVideo(
+      { audioUrl: 'https://cdn.example.com/voice.mp3', prompt: 'Say hello' },
+      { ...context, attachmentUrls: ['https://cdn.example.com/avatar.png'] },
+    );
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/videos',
+      expect.objectContaining({
+        audioUrl: 'https://cdn.example.com/voice.mp3',
+        brandId: 'brand-1',
+        model: 'kwaivgi/kling-avatar-v2',
+        references: ['https://cdn.example.com/avatar.png'],
+      }),
+      expect.objectContaining({ organizationId: 'organization-1' }),
+    );
+  });
+});
+
+describe('AgentMediaGenerationToolHandler direct asset families', () => {
+  it.each([
+    {
+      endpoint: '/images/image-1/reframe',
+      invoke: (handler: AgentMediaGenerationToolHandler) =>
+        handler.reframeImage(
+          { aspectRatio: '9:16', imageId: 'image-1' },
+          context,
+        ),
+      response: {
+        data: {
+          attributes: { cdnUrl: 'https://cdn.example.com/reframed.png' },
+          id: 'image-2',
+        },
+      },
+      result: {
+        data: { id: 'image-2', sourceImageId: 'image-1' },
+        preview: { images: ['https://cdn.example.com/reframed.png'] },
+      },
+    },
+    {
+      endpoint: '/v1/images',
+      invoke: (handler: AgentMediaGenerationToolHandler) =>
+        handler.upscaleImage(
+          { imageUrl: 'https://cdn.example.com/source.png' },
+          context,
+        ),
+      response: {
+        data: {
+          attributes: { cdnUrl: 'https://cdn.example.com/upscaled.png' },
+          id: 'image-upscaled-1',
+        },
+      },
+      result: {
+        data: { id: 'image-upscaled-1' },
+        preview: { images: ['https://cdn.example.com/upscaled.png'] },
+      },
+    },
+    {
+      endpoint: '/v1/musics',
+      invoke: (handler: AgentMediaGenerationToolHandler) =>
+        handler.generateMusic(
+          { duration: 20, text: 'bright synthwave' },
+          context,
+        ),
+      response: {
+        data: {
+          attributes: { cdnUrl: 'https://cdn.example.com/music.mp3' },
+          id: 'music-1',
+        },
+      },
+      result: {
+        data: { id: 'music-1' },
+        preview: { audio: ['https://cdn.example.com/music.mp3'] },
+      },
+    },
+    {
+      endpoint: '/v1/voices/generate',
+      invoke: (handler: AgentMediaGenerationToolHandler) =>
+        handler.generateVoice(
+          { text: 'Voice line', voiceId: 'voice-profile-1' },
+          context,
+        ),
+      response: {
+        data: {
+          attributes: { audioUrl: 'https://cdn.example.com/voice.mp3' },
+          id: 'voice-1',
+        },
+      },
+      result: {
+        data: { id: 'voice-1' },
+        preview: { audio: ['https://cdn.example.com/voice.mp3'] },
+      },
+    },
+    {
+      endpoint: '/v1/videos/avatar',
+      invoke: (handler: AgentMediaGenerationToolHandler) =>
+        handler.generateAsIdentity({ text: 'Identity line' }, context),
+      response: { data: { attributes: {}, id: 'identity-video-1' } },
+      result: {
+        data: { id: 'identity-video-1', status: 'processing' },
+        preview: { title: 'Identity video generating' },
+      },
+    },
+  ])(
+    'preserves the $endpoint payload/result contract',
+    async ({ endpoint, invoke, response, result }) => {
+      const { handler, internalApi } = createHandler();
+      internalApi.callInternalApi.mockResolvedValue(response);
+
+      const output = await invoke(handler);
+
+      expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+        'POST',
+        endpoint,
+        expect.any(Object),
+        context,
+      );
+      expect(output.success).toBe(true);
+      expect(output.data).toMatchObject(result.data);
+      expect(output.nextActions?.[0]).toMatchObject(result.preview);
+    },
+  );
 });
 
 describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
@@ -579,5 +743,111 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     );
     // Settlement is deferred to the worker on the async path.
     expect(batchCreditsService.settleBatchCredits).not.toHaveBeenCalled();
+  });
+
+  it('resolves a credential handle within the caller organization before creating the batch', async () => {
+    const credentialsService = {
+      findByHandle: vi.fn().mockResolvedValue({ brandId: 'brand-from-handle' }),
+    };
+    const batchGenerationService = {
+      cancelBatch: vi.fn(),
+      createBatch: vi.fn().mockResolvedValue({
+        id: 'batch-handle-1',
+        status: 'PENDING',
+        totalCount: 1,
+      }),
+    };
+    const queue = { queueBatch: vi.fn().mockResolvedValue('job-handle-1') };
+    const handler = new AgentMediaGenerationToolHandler(
+      { error: vi.fn(), warn: vi.fn() } as never,
+      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
+      { callInternalApi: vi.fn() } as never,
+      {} as never,
+      { generateContent: vi.fn() } as never,
+      {} as never,
+      { findOne: vi.fn() } as never,
+      batchGenerationService as never,
+      credentialsService as never,
+      undefined,
+      undefined,
+      { deductCreditsFromOrganization: vi.fn() } as never,
+      { recordUpfrontCharge: vi.fn() } as never,
+      undefined,
+      queue as never,
+    );
+
+    await handler.generateContentBatch(
+      { count: 1, handle: '@creator', platforms: ['instagram'] },
+      context,
+    );
+
+    expect(credentialsService.findByHandle).toHaveBeenCalledWith(
+      '@creator',
+      'organization-1',
+    );
+    expect(batchGenerationService.createBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-from-handle' }),
+      'user-1',
+      'organization-1',
+    );
+  });
+
+  it('runs and settles in process when no queue accepts ownership', async () => {
+    const processBatch = vi.fn().mockResolvedValue({
+      completedCount: 2,
+      failedCount: 0,
+      status: 'COMPLETED',
+      totalCount: 2,
+    });
+    const settleBatchCredits = vi.fn().mockResolvedValue({
+      settledCredits: 8,
+    });
+    const batchGenerationService = {
+      cancelBatch: vi.fn(),
+      createBatch: vi.fn().mockResolvedValue({
+        id: 'batch-local-1',
+        status: 'PENDING',
+        totalCount: 2,
+      }),
+      processBatch,
+    };
+    const handler = new AgentMediaGenerationToolHandler(
+      { error: vi.fn(), warn: vi.fn() } as never,
+      { ingredientsEndpoint: 'https://cdn.example.com/ingredients' } as never,
+      { callInternalApi: vi.fn() } as never,
+      {} as never,
+      { generateContent: vi.fn() } as never,
+      {} as never,
+      { findOne: vi.fn() } as never,
+      batchGenerationService as never,
+      undefined,
+      undefined,
+      undefined,
+      { deductCreditsFromOrganization: vi.fn() } as never,
+      {
+        recordUpfrontCharge: vi.fn(),
+        settleBatchCredits,
+      } as never,
+      undefined,
+      { queueBatch: vi.fn().mockResolvedValue(undefined) } as never,
+    );
+
+    const result = await handler.generateContentBatch(
+      { brandId: 'brand-1', count: 2, platforms: ['instagram'] },
+      context,
+    );
+    await vi.waitFor(() => expect(settleBatchCredits).toHaveBeenCalledOnce());
+
+    expect(result.success).toBe(true);
+    expect(processBatch).toHaveBeenCalledWith(
+      'batch-local-1',
+      'organization-1',
+      undefined,
+    );
+    expect(settleBatchCredits).toHaveBeenCalledWith({
+      batchId: 'batch-local-1',
+      organizationId: 'organization-1',
+      userId: 'user-1',
+    });
   });
 });
