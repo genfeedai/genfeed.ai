@@ -1,5 +1,5 @@
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { Platform, ReplyBotPlatform } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ReplyInboundProcessorService', () => {
@@ -32,7 +32,7 @@ describe('ReplyInboundProcessorService', () => {
       commentText: 'Great video!',
       organizationId: 'org-1',
       parentPostId: 'v1',
-      platform: 'youtube',
+      platform: Platform.YOUTUBE,
       receivedAt: new Date().toISOString(),
       source: 'manual',
     });

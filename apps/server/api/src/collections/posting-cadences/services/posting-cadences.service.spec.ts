@@ -1,15 +1,12 @@
-<<<<<<< HEAD
 import {
+  ApiKeyScope,
   CalendarSlotItemType,
   CalendarSlotState,
   PostCategory,
   PostingCadenceStatus,
   ReleaseStatus,
 } from '@genfeedai/enums';
-=======
-import { ApiKeyScope, PostCategory, ReleaseStatus } from '@genfeedai/enums';
 import { ForbiddenException } from '@nestjs/common';
->>>>>>> origin/master
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostingCadencesService } from './posting-cadences.service';
 
@@ -69,12 +66,12 @@ function baseReservationRow() {
     cadenceId: CADENCE_ID,
     credentialId: CREDENTIAL_ID,
     format: PostCategory.REEL,
-    generatedItemId: null,
-    generatedItemType: null,
+    generatedItemId: null as string | null,
+    generatedItemType: null as CalendarSlotItemType | string | null,
     id: 'reservation-1',
     identityKey: IDENTITY_KEY,
     instant: new Date(INSTANT),
-    lastFailureReason: null,
+    lastFailureReason: null as string | null,
     state: 'generating',
     timezone: 'UTC',
   };
@@ -271,7 +268,6 @@ describe('PostingCadencesService', () => {
     expect(result.releaseId).toBe('release-2');
   });
 
-<<<<<<< HEAD
   it('persists skip and omits the skipped identity from listSlots', async () => {
     slotReservation.findFirst.mockResolvedValue(null);
     findFirst.mockResolvedValue(cadenceRow());
@@ -575,7 +571,8 @@ describe('PostingCadencesService', () => {
       where: { id: 'reservation-1' },
     });
     expect(cancelled.state).toBe(CalendarSlotState.MISSING);
-=======
+  });
+
   it('rejects a draft-only API key before generating a scheduled landing', async () => {
     slotReservation.findFirst.mockResolvedValue(null);
     findFirst.mockResolvedValue({
@@ -635,6 +632,5 @@ describe('PostingCadencesService', () => {
       { source: 'calendar-slot' },
       apiKeyContext,
     );
->>>>>>> origin/master
   });
 });

@@ -146,9 +146,9 @@ describe('BatchGenerationController', () => {
         organizationId: 'org',
         userId: 'usr',
       } as never;
-      (service as Record<string, ReturnType<typeof vi.fn>>).processBatch = vi
-        .fn()
-        .mockResolvedValue({ status: 'processing' });
+      (
+        service as unknown as Record<string, ReturnType<typeof vi.fn>>
+      ).processBatch = vi.fn().mockResolvedValue({ status: 'processing' });
 
       const result = await controller.processBatch(mockReq, 'batch-1', user);
       expect(result).toBeDefined();
@@ -162,9 +162,9 @@ describe('BatchGenerationController', () => {
         organizationId: 'org',
         userId: 'usr',
       } as never;
-      (service as Record<string, ReturnType<typeof vi.fn>>).updateBatch = vi
-        .fn()
-        .mockResolvedValue({ status: 'CANCELLED' });
+      (
+        service as unknown as Record<string, ReturnType<typeof vi.fn>>
+      ).updateBatch = vi.fn().mockResolvedValue({ status: 'CANCELLED' });
 
       const result = await controller.patch(
         mockReq,

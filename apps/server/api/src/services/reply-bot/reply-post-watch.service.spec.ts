@@ -1,5 +1,5 @@
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { Platform, ReplyBotPlatform } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ReplyPostWatchService', () => {
@@ -62,7 +62,7 @@ describe('ReplyPostWatchService', () => {
       brandId: 'brand-1',
       maxAttempts: 4,
       organizationId: 'org-1',
-      platform: 'youtube',
+      platform: Platform.YOUTUBE,
       postId: 'video-1',
     });
 
