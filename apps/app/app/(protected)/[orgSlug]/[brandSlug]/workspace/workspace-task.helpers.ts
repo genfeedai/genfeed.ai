@@ -106,7 +106,7 @@ export const ADVANCED_TOOLS = [
 export const LIBRARY_SNAPSHOT_LINKS = [
   {
     description: 'Browse every reusable source and generated asset.',
-    href: APP_ROUTES.LIBRARY.OVERVIEW,
+    href: APP_ROUTES.LIBRARY.ASSETS,
     label: 'Overview',
   },
   {

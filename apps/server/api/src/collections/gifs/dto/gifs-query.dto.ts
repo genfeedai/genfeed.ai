@@ -1,8 +1,9 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { resolveFolderIdAlias } from '@api/helpers/dto/folder-id-alias.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -88,6 +89,12 @@ export class GifsQueryDto extends BaseQueryDto {
     description: 'Filter by folder ID',
     required: false,
   })
+  // `@Expose()` makes class-transformer visit `folderId` even when the
+  // request only carries the `folder` alias, so `resolveFolderIdAlias`
+  // actually runs. Without it the key is absent from the source object and
+  // the transform is skipped entirely.
+  @Expose()
+  @Transform(resolveFolderIdAlias)
   @IsOptional()
   @IsEntityId()
   folderId?: string;

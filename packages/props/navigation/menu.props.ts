@@ -87,6 +87,13 @@ export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
 
 export interface MenuItemProps {
   badgeCount?: number;
+  /**
+   * Neutral trailing count (Library shelf sizes). Distinct from `badgeCount`,
+   * which renders an error badge and means "this needs your attention".
+   */
+  count?: number;
+  /** Animates the icon — used while a shelf still has work in flight. */
+  isPulsing?: boolean;
   href?: string;
   label: string;
   icon?: ReactNode;

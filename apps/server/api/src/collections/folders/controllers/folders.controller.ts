@@ -17,12 +17,14 @@ import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Param,
   Patch,
+  Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -40,6 +42,9 @@ export class FoldersController extends BaseCRUDController<
   UpdateFolderDto,
   BaseQueryDto
 > {
+  /** Ancestor walks stop here; also the product's nesting ceiling. */
+  private static readonly MAX_FOLDER_DEPTH = 32;
+
   constructor(
     public readonly foldersService: FoldersService,
     public readonly loggerService: LoggerService,
@@ -79,15 +84,55 @@ export class FoldersController extends BaseCRUDController<
     return serializeSingle(request, FolderSerializer, data);
   }
 
+  @Post()
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  override async create(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() createDto: CreateFolderDto,
+  ): Promise<JsonApiSingleResponse> {
+    const parent = await this.resolveAssignableParent(createDto.parentId, user);
+
+    // A child inherits its parent's scope: org-shared parent → org-shared child.
+    const scopedDto = parent
+      ? ({
+          ...createDto,
+          brandId: parent.brandId ?? undefined,
+        } as CreateFolderDto)
+      : createDto;
+
+    return super.create(request, user, scopedDto);
+  }
+
   @Patch(':folderId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  update(
+  async update(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('folderId') folderId: string,
     @Body() updateDto: UpdateFolderDto,
   ) {
-    return super.patch(request, user, folderId, updateDto);
+    if (!Object.hasOwn(updateDto, 'parentId')) {
+      return super.patch(request, user, folderId, updateDto);
+    }
+
+    const parent = await this.resolveAssignableParent(
+      updateDto.parentId,
+      user,
+      folderId,
+    );
+
+    // Moving a folder re-scopes it to wherever it now lives. Moving to the root
+    // leaves the scope untouched — writing `brandId: undefined` here would make
+    // `enrichUpdateDto` see the key and null out the brand.
+    const movedDto = parent
+      ? ({
+          ...updateDto,
+          brandId: parent.brandId ?? undefined,
+        } as UpdateFolderDto)
+      : updateDto;
+
+    return super.patch(request, user, folderId, movedDto);
   }
 
   @Delete(':folderId')
@@ -204,6 +249,94 @@ export class FoldersController extends BaseCRUDController<
     const brandId = user.brandId;
     const organizationId = user.organizationId;
     return this.isFolderInScope(entity, organizationId, brandId);
+  }
+
+  /**
+   * Resolve and validate the parent a folder is being filed under.
+   *
+   * Returns `null` for a root folder. Rejects a parent outside the caller's
+   * organization or brand scope, a folder parented to itself, and any move that
+   * would close a cycle — a cycle makes the sidebar tree infinite and strands
+   * the whole subtree.
+   */
+  private async resolveAssignableParent(
+    parentId: string | null | undefined,
+    user: User,
+    folderId?: string,
+  ): Promise<FolderDocument | null> {
+    if (parentId === null || parentId === undefined) {
+      return null;
+    }
+
+    if (!isEntityId(parentId)) {
+      ErrorResponse.notFound(this.entityName, String(parentId));
+    }
+
+    if (folderId && parentId === folderId) {
+      throw new BadRequestException('A folder cannot be its own parent');
+    }
+
+    const parent = await this.foldersService.findOne({
+      id: parentId,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    });
+
+    if (
+      !parent ||
+      !this.isFolderInScope(parent, user.organizationId, user.brandId)
+    ) {
+      ErrorResponse.notFound(this.entityName, parentId);
+    }
+
+    if (folderId) {
+      await this.assertNoCycle(parent, folderId, user.organizationId);
+    }
+
+    return parent;
+  }
+
+  /**
+   * Walk the ancestor chain from `parent` upward. Hitting `folderId` means the
+   * move would close a loop. The depth cap also breaks out of a pre-existing
+   * cycle rather than spinning forever.
+   */
+  private async assertNoCycle(
+    parent: FolderDocument,
+    folderId: string,
+    organizationId: string,
+  ): Promise<void> {
+    let ancestorId = parent.parentId;
+    let depth = 0;
+
+    while (ancestorId && depth < FoldersController.MAX_FOLDER_DEPTH) {
+      if (ancestorId === folderId) {
+        throw new BadRequestException(
+          'That move would nest the folder inside one of its own descendants',
+        );
+      }
+
+      const ancestor: FolderDocument | null = await this.foldersService.findOne(
+        {
+          id: ancestorId,
+          isDeleted: false,
+          organizationId,
+        },
+      );
+
+      if (!ancestor) {
+        return;
+      }
+
+      ancestorId = ancestor.parentId;
+      depth += 1;
+    }
+
+    if (ancestorId) {
+      throw new BadRequestException(
+        `Folder nesting is limited to ${FoldersController.MAX_FOLDER_DEPTH} levels`,
+      );
+    }
   }
 
   private buildFolderScope(

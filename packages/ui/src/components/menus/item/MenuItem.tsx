@@ -13,6 +13,8 @@ import type { ReactElement } from 'react';
 
 export default function MenuItem({
   badgeCount,
+  count,
+  isPulsing = false,
   href,
   label,
   icon,
@@ -26,6 +28,7 @@ export default function MenuItem({
 }: MenuItemProps) {
   const isIconVariant = variant === 'icon';
   const shouldRenderBadge = typeof badgeCount === 'number' && badgeCount > 0;
+  const shouldRenderCount = typeof count === 'number' && !shouldRenderBadge;
   const prefetchHref = useNavigationPrefetch(href);
 
   // Determine layout: horizontal when expanded on desktop, vertical otherwise
@@ -38,7 +41,14 @@ export default function MenuItem({
 
     if (OutlineIcon && SolidIcon) {
       const IconComponent = isActive ? SolidIcon : OutlineIcon;
-      return <IconComponent className="size-5" />;
+      return (
+        <IconComponent
+          className={cn(
+            'size-5',
+            isPulsing && 'animate-spin [animation-duration:2.4s]',
+          )}
+        />
+      );
     }
 
     return null;
@@ -118,6 +128,11 @@ export default function MenuItem({
           >
             {badgeCount}
           </Badge>
+        ) : null}
+        {shouldRenderCount ? (
+          <span className="ml-auto shrink-0 text-2xs font-medium tabular-nums text-foreground/40">
+            {count}
+          </span>
         ) : null}
       </div>
     ) : isCollapsed ? null : ( // Collapsed: no label

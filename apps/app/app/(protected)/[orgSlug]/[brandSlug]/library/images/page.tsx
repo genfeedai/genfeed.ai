@@ -1,42 +1,38 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { PageScope } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
+import LibraryBrowser from '@pages/library/browser/library-browser';
+import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
+import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Images');
 
-function LibraryImagesPageFallback() {
-  return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-      {Array.from({ length: 12 }, (_, index) => `tile-${index + 1}`).map(
-        (key) => (
-          <Skeleton
-            key={key}
-            className="aspect-[4/5] w-full rounded-lg"
-            variant="rounded"
-          />
-        ),
-      )}
-    </div>
-  );
-}
+const PRESET = LIBRARY_TYPE_PRESETS[APP_ROUTES.LIBRARY.IMAGES];
 
+/**
+ * A type-seeded preset over the one Library browser, kept as a deep link for
+ * the agent, workspace cards and brand settings. Type is a filter, not a
+ * destination — so the chips arrive pre-selected and the operator can clear
+ * them without leaving the page.
+ */
 export default function LibraryImagesPage() {
   return (
-    <IngredientsLayout
+    <LibraryBrowser
+      preset={PRESET}
       scope={PageScope.BRAND}
-      defaultType="images"
-      hideTypeTabs
+      seededCategories={PRESET.categories}
     >
-      <Suspense fallback={<LibraryImagesPageFallback />}>
+      <Suspense
+        fallback={<SkeletonLoadingFallback type="masonry" count={12} />}
+      >
         <IngredientsList
           folderNavigation="shell"
-          type="images"
+          type="ingredients"
           scope={PageScope.BRAND}
         />
       </Suspense>
-    </IngredientsLayout>
+    </LibraryBrowser>
   );
 }
