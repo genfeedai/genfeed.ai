@@ -672,7 +672,9 @@ export abstract class BaseService<
     const query = this.normalizeWhere(filterBuilder.build());
     const include = this.populateToInclude(populate);
 
-    const orderBy = this.queryNormalizationAdapter.normalizeSort(sort);
+    const orderBy = Object.entries(sort).map(([key, direction]) => ({
+      [key]: direction === 1 ? 'asc' : 'desc',
+    }));
 
     const docs = await this.internalDelegate.findMany({
       where: query,

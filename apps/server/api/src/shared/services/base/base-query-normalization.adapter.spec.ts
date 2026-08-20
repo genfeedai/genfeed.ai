@@ -3,7 +3,7 @@ import type { ModelFieldMeta } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const { getModelMetaMock } = vi.hoisted(() => ({
-  getModelMetaMock: vi.fn<[string], ModelFieldMeta | undefined>(),
+  getModelMetaMock: vi.fn<(modelName: string) => ModelFieldMeta | undefined>(),
 }));
 
 vi.mock('@genfeedai/prisma', async () => {

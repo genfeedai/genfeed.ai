@@ -116,6 +116,8 @@ export class BaseQueryNormalizationAdapter {
   }
 
   public modelHasField(fieldName: string): boolean {
+    // Recursion floor: the BaseService hook delegates here, so this method must
+    // read metadata directly instead of dispatching through fieldExists().
     const meta = this.staticModelMeta;
     if (!meta) {
       // Model not in the static map should never happen in production. Fail open.
