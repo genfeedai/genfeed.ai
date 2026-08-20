@@ -42,30 +42,49 @@ export class AdminWarmupAccountsService extends HTTPBaseService {
     return deserializeCollection<IWarmupAccount>(response.data);
   }
 
-  async inspectInvitation(id: string): Promise<IWarmupAccount> {
+  async inspectInvitation(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IWarmupAccount> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/${id}/invitation`,
+      { signal },
     );
     return deserializeResource<IWarmupAccount>(response.data);
   }
 
-  async sendInvitation(id: string): Promise<IWarmupAccount> {
+  async sendInvitation(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IWarmupAccount> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/invitation/send`,
+      undefined,
+      { signal },
     );
     return deserializeResource<IWarmupAccount>(response.data);
   }
 
-  async resendInvitation(id: string): Promise<IWarmupAccount> {
+  async resendInvitation(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IWarmupAccount> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/invitation/resend`,
+      undefined,
+      { signal },
     );
     return deserializeResource<IWarmupAccount>(response.data);
   }
 
-  async revokeInvitation(id: string): Promise<IWarmupAccount> {
+  async revokeInvitation(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IWarmupAccount> {
     const response = await this.instance.post<JsonApiResponseDocument>(
       `/${id}/invitation/revoke`,
+      undefined,
+      { signal },
     );
     return deserializeResource<IWarmupAccount>(response.data);
   }
