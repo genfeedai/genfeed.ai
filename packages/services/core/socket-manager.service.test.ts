@@ -52,8 +52,12 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+import { logger } from '@services/core/logger.service';
 import { SocketService } from '@services/core/socket.service';
-import { SocketManager } from '@services/core/socket-manager.service';
+import {
+  createMediaHandler,
+  SocketManager,
+} from '@services/core/socket-manager.service';
 
 describe('SocketManager', () => {
   beforeEach(() => {
@@ -282,5 +286,45 @@ describe('SocketManager', () => {
       const i2 = SocketManager.getInstance({ token: 'x' });
       expect(i1).not.toBe(i2);
     });
+  });
+});
+
+describe('createMediaHandler', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('reports provider failures without raising a handled console error', () => {
+    const onFailed = vi.fn();
+    const handler = createMediaHandler(vi.fn(), onFailed);
+
+    handler({
+      error: 'Director: unexpected error handling prediction (E9828)',
+      status: 'failed',
+    });
+
+    expect(onFailed).toHaveBeenCalledWith(
+      'Director: unexpected error handling prediction (E9828)',
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Media handler received failure',
+      expect.objectContaining({
+        error: 'Director: unexpected error handling prediction (E9828)',
+      }),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it('normalizes structured provider errors before handing them to the UI', () => {
+    const onFailed = vi.fn();
+    const handler = createMediaHandler(vi.fn(), onFailed);
+
+    handler({ error: { message: 'GPU timeout' }, status: 'failed' });
+
+    expect(onFailed).toHaveBeenCalledWith('GPU timeout');
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Media handler received failure',
+      expect.objectContaining({ error: 'GPU timeout' }),
+    );
   });
 });
