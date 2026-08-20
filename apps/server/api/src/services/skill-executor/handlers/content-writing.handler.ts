@@ -6,6 +6,7 @@ import type {
   SkillExecutionContext,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ContentIntelligencePlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -65,7 +66,7 @@ export class ContentWritingHandler implements SkillHandler {
           model:
             typeof params.model === 'string'
               ? params.model
-              : 'openai/gpt-5.6-luna',
+              : LLM_DEFAULTS.fastText,
           temperature: 0.7,
         },
         context.organizationId,

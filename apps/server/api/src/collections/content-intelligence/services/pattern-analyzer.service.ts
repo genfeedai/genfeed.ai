@@ -8,13 +8,13 @@ import {
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
   ContentPatternType,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -37,14 +37,13 @@ export class PatternAnalyzerService {
   }
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly openRouterService: OpenRouterService,
     private readonly contentIntelligenceService: ContentIntelligenceService,
     private readonly creatorScraperService: CreatorScraperService,
     private readonly patternStoreService: PatternStoreService,
   ) {
-    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
+    this.defaultModel = LLM_DEFAULTS.background;
   }
 
   async analyzeCreator(creatorId: string): Promise<{

@@ -12,8 +12,8 @@ import {
 } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { extractHashtags } from '@genfeedai/utils/data/extract.util';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -43,7 +43,6 @@ export class ContentGeneratorService {
   private readonly defaultModel: string;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
     private readonly openRouterService: OpenRouterService,
@@ -55,7 +54,7 @@ export class ContentGeneratorService {
     @Optional()
     private readonly harnessGenerationService?: HarnessGenerationService,
   ) {
-    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
+    this.defaultModel = LLM_DEFAULTS.background;
   }
 
   async generateContent(

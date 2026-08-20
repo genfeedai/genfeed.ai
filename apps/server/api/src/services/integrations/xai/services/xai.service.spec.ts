@@ -1,6 +1,7 @@
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -358,7 +359,7 @@ describe('XaiService', () => {
 
       expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'x-ai/grok-4.5',
+          model: LLM_DEFAULTS.grok,
         }),
       );
     });

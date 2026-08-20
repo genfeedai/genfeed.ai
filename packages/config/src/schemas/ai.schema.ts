@@ -9,11 +9,9 @@ export const generalAiSchema = {
   AGENT_CONTEXT_COMPRESSION_ENABLED: Joi.string()
     .valid('true', 'false')
     .default('true'),
-  // Cheapest catalogued model in @genfeedai/constants — compression is a
-  // mechanical summarisation pass, not a reasoning one.
-  AGENT_CONTEXT_COMPRESSION_MODEL: Joi.string().default(
-    'deepseek/deepseek-v4-flash-0731',
-  ),
+  // Optional override. Unset falls back to LLM_DEFAULTS.volumeAgent in
+  // ThreadContextCompressorService — do not copy a model id here.
+  AGENT_CONTEXT_COMPRESSION_MODEL: Joi.string().optional().allow(''),
   AGENT_CONTEXT_WINDOW_SIZE: Joi.number().integer().min(1).default(5),
   // Coalescing window (#2517): live `agent:token` deltas are buffered per
   // run and flushed as one larger Redis publish either when this window

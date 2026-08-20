@@ -7,7 +7,6 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
@@ -41,7 +40,6 @@ const LLM_JSON_RESPONSE = JSON.stringify({
 
 describe('ContentGeneratorService', () => {
   let service: ContentGeneratorService;
-  let configService: { get: ReturnType<typeof vi.fn> };
   let contextAssemblyService: {
     assembleContext: ReturnType<typeof vi.fn>;
     buildSystemPrompt: ReturnType<typeof vi.fn>;
@@ -63,7 +61,6 @@ describe('ContentGeneratorService', () => {
   };
 
   beforeEach(async () => {
-    configService = { get: vi.fn().mockReturnValue('x-ai/grok-4.5') };
     contextAssemblyService = {
       assembleContext: vi.fn().mockResolvedValue(null),
       buildSystemPrompt: vi
@@ -89,7 +86,6 @@ describe('ContentGeneratorService', () => {
     const module = await Test.createTestingModule({
       providers: [
         ContentGeneratorService,
-        { provide: ConfigService, useValue: configService },
         {
           provide: AgentContextAssemblyService,
           useValue: contextAssemblyService,

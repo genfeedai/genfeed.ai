@@ -5,8 +5,8 @@ import type {
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionParams } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Platform } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -36,11 +36,10 @@ export class LaunchCopyGeneratorService {
   private readonly defaultModel: string;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly llmDispatcherService: LlmDispatcherService,
   ) {
-    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
+    this.defaultModel = LLM_DEFAULTS.background;
   }
 
   /**

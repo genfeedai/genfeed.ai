@@ -9,7 +9,6 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 import type { CacheService } from '@api/services/cache/services/cache.service';
 import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 import { SeoScorerService } from './seo-scorer.service';
@@ -240,7 +239,6 @@ describe('assembleScorecard', () => {
 // ─── Service ───────────────────────────────────────────────────────────────
 
 describe('SeoScorerService', () => {
-  let configService: ConfigService;
   let logger: LoggerService;
   let cacheService: { invalidateByTags: ReturnType<typeof vi.fn> };
   let openRouter: { chatCompletion: ReturnType<typeof vi.fn> };
@@ -268,9 +266,6 @@ describe('SeoScorerService', () => {
   };
 
   beforeEach(() => {
-    configService = {
-      get: vi.fn().mockReturnValue(undefined),
-    } as unknown as ConfigService;
     logger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -284,7 +279,6 @@ describe('SeoScorerService', () => {
       post: { findFirst: vi.fn(), update: vi.fn() },
     };
     service = new SeoScorerService(
-      configService,
       logger,
       prisma as unknown as PrismaService,
       cacheService as unknown as CacheService,

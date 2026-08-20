@@ -16,6 +16,7 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { LinkCategory } from '@genfeedai/enums';
 import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
@@ -180,7 +181,7 @@ export class BrandGenerationService {
       {
         max_tokens: 1200,
         messages: [{ content: prompt, role: 'user' }],
-        model: 'anthropic/claude-sonnet-5',
+        model: LLM_DEFAULTS.planning,
         temperature: 0.7,
       },
       organizationId,
@@ -285,7 +286,7 @@ Respond ONLY with the JSON array.`;
       {
         max_tokens: 2000,
         messages: [{ content: prompt, role: 'user' }],
-        model: 'anthropic/claude-sonnet-5',
+        model: LLM_DEFAULTS.planning,
         temperature: 0.8,
       },
       organizationId,

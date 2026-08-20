@@ -7,6 +7,7 @@ import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-crede
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { CredentialPlatform, WorkflowExecutionTrigger } from '@genfeedai/enums';
 import type {
   IReplyBotCredentialData,
@@ -95,7 +96,7 @@ export class TwitterPipelineService {
       const response = await this.openRouterService.chatCompletion({
         max_tokens: 4000,
         messages: [{ content: prompt, role: 'user' }],
-        model: 'x-ai/grok-4.1-fast',
+        model: LLM_DEFAULTS.grokFast,
         temperature: 0.7,
       });
 

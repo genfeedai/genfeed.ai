@@ -1,4 +1,5 @@
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -55,7 +56,7 @@ export class WorkspaceTaskQualityService {
               role: 'user',
             },
           ],
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           temperature: 0.1,
         },
         organizationId,

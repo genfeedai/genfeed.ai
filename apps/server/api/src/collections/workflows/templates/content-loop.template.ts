@@ -1,4 +1,5 @@
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export const CONTENT_LOOP_PROMPT_TEMPLATE =
@@ -157,7 +158,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       data: {
         config: {
           maxTokens: 1024,
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           temperature: 0.8,
         },
         label: 'Generate Content',
@@ -218,7 +219,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     },
     {
       category: WorkflowStepCategory.GENERATE_ARTICLE,
-      config: { model: 'openai/gpt-5.6-luna', temperature: 0.8 },
+      config: { model: LLM_DEFAULTS.fastText, temperature: 0.8 },
       dependsOn: ['step-prompt'],
       id: 'step-generate',
       name: 'Generate Content',

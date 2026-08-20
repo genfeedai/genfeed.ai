@@ -1,5 +1,6 @@
 import { AVATAR_UGC_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/avatar-ugc-workflow.template';
 import { AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/avatar-ugc-x-landscape-workflow.template';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export interface WorkflowTemplate {
@@ -702,7 +703,7 @@ const FOUNDER_X_POST_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         config: {
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           outputFormat: 'text',
           temperature: 0.5,
         },
@@ -873,7 +874,7 @@ const FOUNDER_X_THREAD_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         config: {
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           outputFormat: 'text',
           temperature: 0.45,
         },
@@ -1044,7 +1045,7 @@ const FOUNDER_NEWSLETTER_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         config: {
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           outputFormat: 'text',
           temperature: 0.4,
         },
@@ -1576,7 +1577,7 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       data: {
         config: {
           maxTokens: 1600,
-          model: 'openai/gpt-5.6-luna',
+          model: LLM_DEFAULTS.fastText,
           temperature: 0.7,
         },
         label: 'Script Brief',

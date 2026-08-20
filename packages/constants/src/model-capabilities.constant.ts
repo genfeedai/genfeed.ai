@@ -935,9 +935,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
-    // Live, and deliberately not in the agent chat catalogue:
-    // `TwitterPipelineService.draft` calls OpenRouter with this key directly.
-    // Do not retire it alongside its sibling `grok-4`/`grok-4-fast` rows.
+    // Live, and deliberately not in the agent chat picker. Wired as
+    // `LLM_DEFAULTS.grokFast` for TwitterPipelineService.draft. Do not retire
+    // it onto the frontier Grok row (that is how grok-4-fast became a 10x bill).
     [MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST]: {
       category: ModelCategory.TEXT,
       isBatchSupported: false,

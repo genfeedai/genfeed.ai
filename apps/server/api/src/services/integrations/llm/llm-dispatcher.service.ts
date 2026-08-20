@@ -10,6 +10,7 @@ import type {
   OpenRouterStreamTokenHandler,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ByokProvider } from '@genfeedai/enums';
 import type { ILlmCompletionCallContext } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -23,7 +24,7 @@ type LlmProvider = 'anthropic' | 'openai' | 'openrouter' | 'local';
  * Cheapest catalogued model on purpose — the caller asked for self-hosted
  * inference and is not expecting a frontier bill.
  */
-const SELF_HOSTED_FALLBACK_MODEL = 'deepseek/deepseek-v4-flash-0731';
+const SELF_HOSTED_FALLBACK_MODEL = LLM_DEFAULTS.selfHostedFallback;
 
 @Injectable()
 export class LlmDispatcherService {

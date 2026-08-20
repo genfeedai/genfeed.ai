@@ -1,5 +1,6 @@
 import type { ScrapedPost } from '@api/collections/content-intelligence/services/creator-scraper.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
@@ -9,10 +10,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
-
-const mockConfigService = {
-  get: vi.fn().mockReturnValue('x-ai/grok-4.5'),
-};
 
 const mockLogger = {
   error: vi.fn(),
@@ -41,7 +38,6 @@ const mockPatternStoreService = {
 
 function makeService() {
   return new PatternAnalyzerService(
-    mockConfigService as any,
     mockLogger as any,
     mockOpenRouterService as any,
     mockContentIntelligenceService as any,
@@ -416,7 +412,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
         max_tokens: 1500,
-        model: 'x-ai/grok-4.5',
+        model: LLM_DEFAULTS.background,
         temperature: 0.3,
       }),
     );

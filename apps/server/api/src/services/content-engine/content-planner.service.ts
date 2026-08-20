@@ -9,6 +9,7 @@ import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/gener
 import { type ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -89,7 +90,7 @@ export class ContentPlannerService {
           { content: systemPrompt, role: 'system' },
           { content: userPrompt, role: 'user' },
         ],
-        model: 'anthropic/claude-sonnet-5',
+        model: LLM_DEFAULTS.planning,
         temperature: 0.7,
       },
       organizationId,

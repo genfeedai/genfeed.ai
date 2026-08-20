@@ -11,6 +11,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -354,7 +355,7 @@ export class NewslettersService extends BaseService<
           },
           { content: prompt, role: 'user' },
         ],
-        model: 'openai/gpt-5.6-luna',
+        model: LLM_DEFAULTS.fastText,
         temperature: 0.5,
       });
 
@@ -394,7 +395,7 @@ export class NewslettersService extends BaseService<
           },
           { content: prompt, role: 'user' },
         ],
-        model: 'openai/gpt-5.6-luna',
+        model: LLM_DEFAULTS.fastText,
         temperature: 0.55,
       });
       generatedContent =

@@ -73,6 +73,7 @@ const MODEL_NAMES: Record<string, string> = {
   'x-ai/grok-4': 'xAI Grok 4',
   'x-ai/grok-4-fast': 'xAI Grok 4 Fast',
   'x-ai/grok-4.1-fast': 'xAI Grok 4.1 Fast',
+  'x-ai/grok-4.6': 'xAI Grok 4.6',
   [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO]: 'FLUX 1.1 Pro',
   [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV]: 'FLUX 2 Dev',
   [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX]: 'FLUX 2 Flex',

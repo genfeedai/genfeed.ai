@@ -2,6 +2,7 @@ import { InsightsService } from '@api/collections/insights/services/insights.ser
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Timeframe } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -172,7 +173,7 @@ describe('InsightsService', () => {
       expect(llmDispatcherService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
           messages: [expect.objectContaining({ role: 'user' })],
-          model: 'anthropic/claude-sonnet-5',
+          model: LLM_DEFAULTS.planning,
         }),
         'org-1',
       );

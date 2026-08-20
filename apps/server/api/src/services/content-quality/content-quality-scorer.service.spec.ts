@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
   return {
-    configService: { get: vi.fn().mockReturnValue('x-ai/grok-4.5') },
     ingredientsService: {
       findOne: vi.fn().mockResolvedValue({
         cdnUrl: 'https://cdn.example.com/image.jpg',
@@ -45,7 +44,6 @@ describe('ContentQualityScorerService', () => {
   beforeEach(() => {
     mocks = createMocks();
     service = new ContentQualityScorerService(
-      mocks.configService as never,
       mocks.logger as never,
       mocks.openRouterService as never,
       mocks.ingredientsService as never,
@@ -124,7 +122,6 @@ describe('ContentQualityScorerService', () => {
 
     it('should not throw when ingredientsService is not available', async () => {
       const serviceWithoutIngredients = new ContentQualityScorerService(
-        mocks.configService as never,
         mocks.logger as never,
         mocks.openRouterService as never,
         undefined as never,

@@ -1,3 +1,4 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
@@ -51,7 +52,7 @@ describe('ClipHighlightDetector', () => {
       const [url, body, options] = httpService.post.mock.calls[0];
 
       expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
-      expect(body.model).toBe('openai/gpt-5.6-terra');
+      expect(body.model).toBe(LLM_DEFAULTS.highlighted);
       expect(body.temperature).toBe(0.3);
       expect(body.stream).toBe(false);
       expect(body.max_tokens).toBe(4096);

@@ -5,6 +5,7 @@ import { PerformanceSummaryService } from '@api/collections/content-performance/
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import type { IBrandAgentVoice } from '@genfeedai/interfaces';
 import type { AnalyticsFeedbackOutput } from '@genfeedai/workflows/engine';
 import {
@@ -372,7 +373,7 @@ export class WorkflowCoreExecutorRegistrarService {
           targetKeyword: targetKeyword ?? undefined,
           title: title ?? undefined,
         }),
-        model: model ?? 'openai/gpt-5.6-luna',
+        model: model ?? LLM_DEFAULTS.fastText,
         temperature: 0.4,
       });
 
