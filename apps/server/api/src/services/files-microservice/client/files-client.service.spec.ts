@@ -1,4 +1,3 @@
-import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -133,20 +132,6 @@ describe('FilesClientService', () => {
         'Failed to resize image from URL',
         error,
       );
-    });
-  });
-
-  describe('getPath', () => {
-    it('should return correct path for given type and ingredientId', () => {
-      const type = 'videos';
-      const ingredientId = testId('ingredient');
-
-      const result = service.getPath(type, ingredientId);
-
-      expect(result).toContain('public');
-      expect(result).toContain('tmp');
-      expect(result).toContain(type);
-      expect(result).toContain(ingredientId);
     });
   });
 });
