@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   evaluateTypeAssertions,
+  formatTypeAssertionSummary,
   ratchetBaselineFromScan,
   readBaselineShape,
+  scanToCounts,
+  scanTypeAssertions,
   stripCommentsAndStrings,
 } from './check-type-assertions';
+
+const SUPPRESSION_FIXTURES = 'scripts/architecture/fixtures/type-assertions';
 
 /**
  * The ratchet counts `as any` / `as never` with a line regex. Prose and string
@@ -263,5 +268,38 @@ describe('evaluateTypeAssertions', () => {
     ).toEqual({
       as_never: { 'apps/server/api/src/bar.ts': 2 },
     });
+  });
+});
+
+describe('suppression directive policy', () => {
+  it('allows documented @ts-expect-error directives', () => {
+    expect(
+      scanTypeAssertions(
+        [`${SUPPRESSION_FIXTURES}/allowed-ts-expect-error.ts`],
+        [],
+      ),
+    ).toEqual([]);
+  });
+
+  it('bans @ts-ignore directives with the matching diagnostic', () => {
+    const actual = scanToCounts(
+      scanTypeAssertions(
+        [`${SUPPRESSION_FIXTURES}/forbidden-ts-ignore.ts`],
+        [],
+      ),
+    );
+    const violations = evaluateTypeAssertions({ as_never: {} }, actual);
+
+    expect(violations).toEqual([
+      {
+        actual: 1,
+        file: `${SUPPRESSION_FIXTURES}/forbidden-ts-ignore.ts`,
+        kind: 'ts_ignore',
+        type: 'banned',
+      },
+    ]);
+    expect(formatTypeAssertionSummary(actual, violations)).toContain(
+      'production `@ts-ignore` is forbidden',
+    );
   });
 });
