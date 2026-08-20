@@ -211,7 +211,7 @@ describe('proxy', () => {
     vi.unstubAllEnvs();
   });
 
-  it.each(['/v1', '/v1/auth/get-session', '/v1/health'])(
+  it.each(['/api/version', '/v1', '/v1/auth/get-session', '/v1/health'])(
     'passes the same-origin API proxy route %s through without app auth routing',
     async (pathname) => {
       const { default: proxy } = await import('./proxy');
@@ -223,6 +223,20 @@ describe('proxy', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     },
   );
+
+  it('repairs an API namespace poisoned workspace URL from canonical access data', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/api/werwer/workspace/inbox/unread'),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/inbox/unread',
+    );
+  });
 
   // The service worker precaches /~offline at install time. If the proxy
   // redirected it to /login, that redirect would be stored as the offline

@@ -518,6 +518,7 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     APP_ROUTES.OAUTH.replace(/^\//, ''),
     LEGACY_APP_ROUTES.TASKS.replace(/^\//, '').split('/')[0] ?? '',
     LEGACY_APP_ROUTES.LAB_CRON_JOBS.replace(/^\//, '').split('/')[0] ?? '',
+    'api',
     'desktop',
     'forgot-password',
     'managed-credits',
@@ -525,6 +526,8 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     'reset-password',
     'serwist',
     'sign-in',
+    'trpc',
+    'v1',
   ].filter(Boolean),
 );
 
