@@ -866,7 +866,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
 
     await handler.generateContentBatch(
       { count: 1, handle: '@creator', platforms: ['instagram'] },
-      context,
+      { ...context, brandId: undefined },
     );
 
     expect(credentialsService.findByHandle).toHaveBeenCalledWith(
