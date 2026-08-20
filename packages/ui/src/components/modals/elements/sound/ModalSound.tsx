@@ -57,7 +57,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
         .replace(/[^a-z0-9-]/g, '');
       form.setValue('key', formattedKey, { shouldValidate: true });
     } else {
-      form.setValue(name as Parameters<typeof form.setValue>[0], value, {
+      form.setValue(name as keyof SoundElementSchema, value, {
         shouldValidate: true,
       });
     }
@@ -131,9 +131,8 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
 
         <Checkbox
           name="isSelected"
-          control={form.control}
           label="Automatically select this sound"
-          isChecked={form.watch('isSelected')}
+          isChecked={Boolean(form.watch('isSelected'))}
           onChange={(e) => {
             form.setValue('isSelected', e.target.checked, {
               shouldValidate: true,

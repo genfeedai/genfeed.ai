@@ -83,7 +83,12 @@ export default function ModalMetadata({
       const service = await getIngredientsService();
 
       const formValues = form.getValues();
-      const { scope, folder: folderId, ...metadataValues } = formValues;
+      const {
+        scope,
+        folder: folderId,
+        tags: _tags,
+        ...metadataValues
+      } = formValues;
 
       await service.patch(ingredientId, {
         folder: folderId || undefined,
