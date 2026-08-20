@@ -10,6 +10,47 @@ import {
 } from 'class-validator';
 
 /**
+ * Canvas Run posts here (`packages/workflows` execution store). Full runs
+ * omit `selectedNodeIds`; "Run selected" / per-node execute send them.
+ */
+export class ExecuteWorkflowDto extends WorkflowActionContextDto {
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Whether the editor requested debug payload capture',
+    required: false,
+  })
+  readonly debugMode?: boolean;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Input values for workflow variables',
+    required: false,
+  })
+  readonly inputValues?: Record<string, unknown>;
+
+  @IsObject()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Additional execution metadata',
+    required: false,
+  })
+  readonly metadata?: Record<string, unknown>;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'When set, execute only these node IDs (partial run)',
+    example: ['PyHRz6uB'],
+    required: false,
+    type: [String],
+  })
+  readonly selectedNodeIds?: string[];
+}
+
+/**
  * DTO for partial workflow execution
  */
 export class ExecutePartialDto {

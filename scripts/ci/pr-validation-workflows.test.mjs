@@ -306,6 +306,18 @@ test('server image PR validation bounds cache export without changing reachabili
   assert.match(workflow, /^permissions:\n {2}contents: read$/m);
 });
 
+test('self-hosted publisher can PATCH the draft GitHub release', () => {
+  const workflow = readWorkflow('_publish-selfhosted-core.yml');
+
+  assert.match(
+    workflow,
+    /^permissions:\n {2}contents: write\n {2}packages: write$/m,
+  );
+  assert.match(workflow, /uses: softprops\/action-gh-release@v3/);
+  assert.ok(workflow.includes('tag_name: ${{ env.RELEASE_TAG }}'));
+  assert.ok(workflow.includes('target_commitish: ${{ inputs.checkout_ref }}'));
+});
+
 test('ordinary labels do not restart CI and full-suite has an isolated dispatcher', () => {
   const ci = readWorkflow('ci.yml');
   const dispatcher = readWorkflow('pr-full-suite.yml');

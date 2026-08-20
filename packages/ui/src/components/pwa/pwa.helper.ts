@@ -119,14 +119,16 @@ export function generatePWAMetadata(appName: PWAAppNameKey): PWAMetadataConfig {
     manifest: '/manifest.webmanifest',
   };
 
+  // `maximumScale` / `userScalable` are deliberately absent. Locking zoom is a
+  // WCAG 1.4.4 failure — low-vision users must be able to pinch-zoom any
+  // surface, including installed PWAs. iOS has not needed the double-tap-zoom
+  // workaround these once served since iOS 10.
   const viewport: Viewport = {
     initialScale: 1,
-    maximumScale: 1,
     themeColor: [
       { color: config.themeColorLight, media: '(prefers-color-scheme: light)' },
       { color: config.themeColorDark, media: '(prefers-color-scheme: dark)' },
     ],
-    userScalable: false,
     viewportFit: 'cover',
     width: 'device-width',
   };

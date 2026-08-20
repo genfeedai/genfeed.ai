@@ -145,7 +145,7 @@ describe('AdOptimizationConfigsService', () => {
           config: { isEnabled: true, minRoas: 5, minSpend: 25 },
           organizationId: 'org-1',
         },
-        where: { id: 'cfg-1' },
+        where: { id: 'cfg-1', isDeleted: false, organizationId: 'org-1' },
       });
       expect(create).not.toHaveBeenCalled();
       expect(doc.minSpend).toBe(25);

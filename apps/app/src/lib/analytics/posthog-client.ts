@@ -301,19 +301,44 @@ function bindClientAndApplyPending(posthog: PostHogInterface): void {
 }
 
 /**
- * Initialise the PostHog client once, only when analytics is enabled. Safe to
- * call on every app boot: it no-ops on the server, when disabled, or when
- * already initialised. Never awaited by callers — initialisation is best-effort.
+ * How long the browser may keep deferring the SDK before we load it anyway.
+ * Long enough to clear first paint and hydration on a slow phone, short enough
+ * that a visitor who leaves quickly is still counted.
  */
-export function initAnalytics(): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  if (hasInitStarted || !isAnalyticsEnabled()) {
-    return;
-  }
-  hasInitStarted = true;
+const ANALYTICS_IDLE_TIMEOUT_MS = 3000;
 
+/** Fallback delay for engines without `requestIdleCallback` (Safari). */
+const ANALYTICS_IDLE_FALLBACK_MS = 1500;
+
+interface IdleCapableWindow {
+  requestIdleCallback?: (
+    callback: () => void,
+    options?: { timeout: number },
+  ) => number;
+}
+
+/**
+ * Defer analytics bootstrap past the work the visitor is actually waiting on.
+ *
+ * `instrumentation-client` runs as part of the initial client bundle, so an
+ * eager `import('posthog-js')` puts the SDK request, its parse cost, and every
+ * follow-up ingestion call inside the dependency graph Lighthouse simulates for
+ * LCP. None of it is needed before the page is usable.
+ */
+function runWhenIdle(run: () => void): void {
+  const requestIdle = (window as Window & IdleCapableWindow)
+    .requestIdleCallback;
+
+  if (typeof requestIdle === 'function') {
+    requestIdle(run, { timeout: ANALYTICS_IDLE_TIMEOUT_MS });
+    return;
+  }
+
+  window.setTimeout(run, ANALYTICS_IDLE_FALLBACK_MS);
+}
+
+/** Pull in `posthog-js` and start it with the product configuration. */
+function loadAnalyticsSdk(): void {
   void import('posthog-js')
     .then(({ default: posthog }) => {
       posthog.init(POSTHOG_KEY as string, {
@@ -326,6 +351,13 @@ export function initAnalytics(): void {
         // event's URL-bearing properties to bounded route templates and drop
         // free-text keys. Required now that pageviews capture in-app navigation.
         before_send: scrubEventProperties,
+        // Dead-click autocapture reads clicked element context, which the FR8
+        // boundary keeps out of events anyway, and pulls a separate lazy bundle
+        // from the PostHog asset CDN on first paint. Keep it off.
+        capture_dead_clicks: false,
+        // Web-vitals/network-timing capture is another lazy CDN bundle for
+        // signal we already get from CrUX. Off keeps /login on one request.
+        capture_performance: false,
         // Route components capture pageviews only after auth and organization
         // scope is synchronized. SDK history capture runs inside pushState,
         // before React can apply the destination tenant scope.
@@ -337,6 +369,9 @@ export function initAnalytics(): void {
         // Keep replay hard-off: $snapshot bypasses before_send property
         // scrubbing, so enabling it would break the FR8 privacy boundary.
         disable_session_recording: true,
+        // Surveys render PostHog-authored copy from remote config and load
+        // surveys.js plus its bundled preact runtime. We do not run surveys.
+        disable_surveys: true,
         // Apply queued logout/anonymous/identify before the SDK request queue
         // and remote-config fetch can run as a persisted identity.
         loaded: bindClientAndApplyPending,
@@ -353,6 +388,23 @@ export function initAnalytics(): void {
       // Best-effort: swallow load/init failures so analytics can never surface
       // as an application error.
     });
+}
+
+/**
+ * Initialise the PostHog client once, only when analytics is enabled. Safe to
+ * call on every app boot: it no-ops on the server, when disabled, or when
+ * already initialised. Never awaited by callers — initialisation is best-effort.
+ */
+export function initAnalytics(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  if (hasInitStarted || !isAnalyticsEnabled()) {
+    return;
+  }
+  hasInitStarted = true;
+
+  runWhenIdle(loadAnalyticsSdk);
 }
 
 /**

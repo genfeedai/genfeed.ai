@@ -193,7 +193,7 @@ describe('TrendPreferencesService', () => {
               platforms: [],
             },
           }),
-          where: { id: 'pref-1' },
+          where: { id: 'pref-1', isDeleted: false, organizationId },
         }),
       );
       expect(result).toEqual({

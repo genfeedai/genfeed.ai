@@ -154,13 +154,17 @@ function readMedia(value: unknown): AgentPublishTargetProposal['media'] {
       return [];
     }
 
+    const mediaKind: NonNullable<
+      AgentPublishTargetProposal['media']
+    >[number]['kind'] = kind;
+
     return [
       {
         ...(readString(item.id) ? { id: readString(item.id) } : {}),
         ...(typeof item.isAnimated === 'boolean'
           ? { isAnimated: item.isAnimated }
           : {}),
-        kind,
+        kind: mediaKind,
       },
     ];
   });

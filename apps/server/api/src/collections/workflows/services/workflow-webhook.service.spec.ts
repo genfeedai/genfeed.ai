@@ -42,10 +42,15 @@ describe('WorkflowWebhookService', () => {
       prisma.workflow.findFirst.mockResolvedValue({
         config: { existing: true },
         id: 'workflow-1',
+        organizationId: 'org-1',
       });
       prisma.workflow.update.mockResolvedValue({});
 
-      const result = await service.generateWebhook('workflow-1', 'secret');
+      const result = await service.generateWebhook(
+        'workflow-1',
+        'org-1',
+        'secret',
+      );
 
       expect(result.webhookId).toMatch(/^wh_/);
       expect(result.webhookSecret).toMatch(/^whsec_/);
@@ -62,7 +67,11 @@ describe('WorkflowWebhookService', () => {
             webhookSecret: result.webhookSecret,
           }),
         },
-        where: { id: 'workflow-1' },
+        where: {
+          id: 'workflow-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
 
@@ -70,10 +79,15 @@ describe('WorkflowWebhookService', () => {
       prisma.workflow.findFirst.mockResolvedValue({
         config: {},
         id: 'workflow-1',
+        organizationId: 'org-1',
       });
       prisma.workflow.update.mockResolvedValue({});
 
-      const result = await service.generateWebhook('workflow-1', 'none');
+      const result = await service.generateWebhook(
+        'workflow-1',
+        'org-1',
+        'none',
+      );
 
       expect(result.webhookSecret).toBeNull();
     });
@@ -81,7 +95,7 @@ describe('WorkflowWebhookService', () => {
     it('throws when the workflow does not exist', async () => {
       prisma.workflow.findFirst.mockResolvedValue(null);
 
-      await expect(service.generateWebhook('missing')).rejects.toThrow(
+      await expect(service.generateWebhook('missing', 'org-1')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -92,10 +106,11 @@ describe('WorkflowWebhookService', () => {
       prisma.workflow.findFirst.mockResolvedValue({
         config: { webhookId: 'wh_1', webhookSecret: 'whsec_x' },
         id: 'workflow-1',
+        organizationId: 'org-1',
       });
       prisma.workflow.update.mockResolvedValue({});
 
-      await service.deleteWebhook('workflow-1');
+      await service.deleteWebhook('workflow-1', 'org-1');
 
       expect(prisma.workflow.update).toHaveBeenCalledWith({
         data: {
@@ -107,7 +122,11 @@ describe('WorkflowWebhookService', () => {
             webhookTriggerCount: 0,
           }),
         },
-        where: { id: 'workflow-1' },
+        where: {
+          id: 'workflow-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
   });

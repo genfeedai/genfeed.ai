@@ -32,7 +32,6 @@ import type {
   JsonApiSingleResponse,
   SortObject,
 } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
 import { EditorProjectSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -164,7 +163,7 @@ export class EditorProjectsController {
     const data: EditorProjectDocument = await this.editorProjectsService.create(
       {
         ...(user.brandId ? { brandId: user.brandId } : {}),
-        config: toPrismaJson({
+        config: {
           name,
           settings,
           status: EditorProjectStatus.DRAFT,
@@ -172,11 +171,11 @@ export class EditorProjectsController {
           ...(createDto.sourceVideoId
             ? { sourceVideoId: createDto.sourceVideoId }
             : {}),
-        }),
+        },
         organizationId: orgId,
-        tracks: toPrismaJson(tracks),
+        tracks,
         userId: user.userId ?? user.id,
-      },
+      } as CreateEditorProjectDto,
     );
 
     return serializeSingle(request, EditorProjectSerializer, data);

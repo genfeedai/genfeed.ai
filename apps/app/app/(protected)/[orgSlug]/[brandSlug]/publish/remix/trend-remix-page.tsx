@@ -1,11 +1,7 @@
 'use client';
 
 import { APP_ROUTES, sourcePostVariationCredits } from '@genfeedai/constants';
-import {
-  ButtonSize,
-  ButtonVariant,
-  type ContentIntelligencePlatform,
-} from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   GenerateSourcePostVariationsInput,
   IPostVariationResult,
@@ -73,12 +69,8 @@ function resolveGenerationErrorMessage(
     : fallback;
 }
 
-function resolvePlatform(
-  value: string | null,
-): ContentIntelligencePlatform | null {
-  return isSourcePostVariationPlatform(value)
-    ? (value as ContentIntelligencePlatform)
-    : null;
+function resolvePlatform(value: string | null) {
+  return isSourcePostVariationPlatform(value) ? value : null;
 }
 
 function TrendRemixPageContent() {
@@ -95,7 +87,7 @@ function TrendRemixPageContent() {
   const [result, setResult] = useState<IPostVariationResult | null>(null);
 
   const platform = resolvePlatform(searchParams.get('platform'));
-  const sourceInput = useMemo<GenerateSourcePostVariationsInput | null>(() => {
+  const sourceInput = useMemo((): GenerateSourcePostVariationsInput | null => {
     if (!platform) return null;
     const postId = searchParams.get('postId')?.trim();
     const sourcePostId = searchParams.get('sourcePostId')?.trim();

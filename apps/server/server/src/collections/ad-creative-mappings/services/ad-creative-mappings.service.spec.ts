@@ -195,7 +195,7 @@ describe('AdCreativeMappingsService', () => {
             status: 'active',
           },
         },
-        where: { id: 'map-1' },
+        where: { id: 'map-1', isDeleted: false, organizationId: 'org-1' },
       });
     });
 
@@ -219,7 +219,7 @@ describe('AdCreativeMappingsService', () => {
             status: 'paused',
           },
         },
-        where: { id: 'map-1' },
+        where: { id: 'map-1', isDeleted: false, organizationId: 'org-1' },
       });
     });
 
@@ -236,7 +236,7 @@ describe('AdCreativeMappingsService', () => {
 
       expect(update).toHaveBeenCalledWith({
         data: { data: { status: 'active' } },
-        where: { id: 'map-3' },
+        where: { id: 'map-3', isDeleted: false, organizationId: 'org-1' },
       });
     });
 
@@ -269,7 +269,7 @@ describe('AdCreativeMappingsService', () => {
       await expect(service.softDelete('map-1', 'org-1')).resolves.toBe(true);
       expect(update).toHaveBeenCalledWith({
         data: { isDeleted: true },
-        where: { id: 'map-1' },
+        where: { id: 'map-1', isDeleted: false, organizationId: 'org-1' },
       });
       expect(logger.log).toHaveBeenCalledWith(
         expect.stringContaining('soft-deleted mapping map-1'),

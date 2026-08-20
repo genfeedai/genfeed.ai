@@ -489,11 +489,11 @@ export class AgentWorkflowToolInstallService {
           typeof params.label === 'string' && params.label.trim()
             ? params.label.trim()
             : source.name,
-        metadata: toPrismaJson({
+        metadata: {
           createdFrom: 'agent',
           sourceTemplateId: source.id,
           sourceType: 'seeded-template',
-        }),
+        },
         schedule,
         templateId: source.id,
         timezone,

@@ -87,6 +87,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/discover/following', 'Discover', 'Following'],
     ['/acme/moonrise/discover/instagram', 'Discover', 'Instagram'],
     ['/acme/moonrise/platforms/instagram', 'Platforms', 'Instagram'],
+    ['/acme/moonrise', 'Workspace', 'Overview'],
     ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
@@ -190,6 +191,17 @@ describe('workspace shell trusted registry', () => {
       ]);
     },
   );
+
+  it('registers bare /:org/:brand as a Workspace landing, not a 404', () => {
+    expect(resolveWorkspaceShellRoute('/acme/moonrise')).toMatchObject({
+      canonicalUrl: '/:orgSlug/:brandSlug',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      safeFallback: '/:orgSlug/:brandSlug/workspace',
+      scope: 'brand',
+      surfaceKey: 'workspace-overview',
+    });
+  });
 
   it('registers /acme/moonrise/publish/posts/post-1 as the publish control-plane surface, not the artifact editor', () => {
     expect(

@@ -29,8 +29,12 @@ on:
         default: ""
         type: string
 
+# Reusable-workflow GITHUB_TOKEN is the intersection of caller + this
+# file. A workflow-level `contents: read` caps every job at read, so
+# `softprops/action-gh-release` can GET the draft but cannot PATCH
+# assets (Resource not accessible by integration / update-a-release).
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -176,6 +180,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ inputs.checkout_ref }}
           draft: true
           fail_on_unmatched_files: true
           files: |

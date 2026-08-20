@@ -1,7 +1,12 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, CardVariant, PageScope } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  CardVariant,
+  PageScope,
+  Platform,
+} from '@genfeedai/enums';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
@@ -175,11 +180,11 @@ export default function AnalyticsOverview({
             <PlatformTimeSeriesChart
               data={timeseriesData}
               platforms={[
-                'instagram',
-                'tiktok',
-                'youtube',
-                'twitter',
-                'facebook',
+                Platform.INSTAGRAM,
+                Platform.TIKTOK,
+                Platform.YOUTUBE,
+                Platform.TWITTER,
+                Platform.FACEBOOK,
               ]}
               isLoading={isTimeseriesLoading}
               height={400}

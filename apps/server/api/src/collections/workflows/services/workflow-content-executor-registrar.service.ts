@@ -52,7 +52,8 @@ export class WorkflowContentExecutorRegistrarService {
         throw new Error('Prompt text is required');
       }
 
-      return prompt;
+      // Node results persist as jsonb objects (`WorkflowNodeResult.output`).
+      return { prompt, text: prompt };
     };
 
     engine.registerExecutor('prompt', executePrompt);
