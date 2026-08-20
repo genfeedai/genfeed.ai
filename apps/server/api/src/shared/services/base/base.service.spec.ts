@@ -1453,6 +1453,33 @@ describe('BaseService', () => {
   });
 
   describe('normalizeData', () => {
+    it('preserves subclass write-normalization overrides through create', async () => {
+      class OverrideTestService extends BaseService<TestDocument> {
+        protected override normalizeData(
+          data: unknown,
+        ): Record<string, unknown> {
+          return {
+            ...super.normalizeData(data),
+            normalizedBySubclass: true,
+          };
+        }
+      }
+      const overrideService = new OverrideTestService(
+        prisma,
+        'testModel',
+        logger,
+        undefined,
+        cacheService as never,
+      );
+      delegate.create.mockResolvedValue({ id: 'subclass-normalized' });
+
+      await overrideService.create({ label: 'kept' });
+
+      expect(delegate.create).toHaveBeenCalledWith({
+        data: { label: 'kept', normalizedBySubclass: true },
+      });
+    });
+
     it('drops undefined write keys so Prisma does not receive them', async () => {
       const created = { id: 'ing_undefined_keys', label: 'kept' };
       delegate.create.mockResolvedValue(created);
