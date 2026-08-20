@@ -22,6 +22,7 @@ import {
 } from '@pages/studio/generate/utils/generation-payloads';
 import {
   resolveJsonApiIngredientId,
+  resolveStudioAssetDimensions,
   resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
@@ -53,6 +54,7 @@ export interface UseStudioGenerationReturn {
   clearJobs: () => void;
   isGenerating: boolean;
   jobs: readonly StudioGenerateJob[];
+  removeJob: (id: string) => void;
   submit: (promptText: string, references?: string[]) => Promise<void>;
 }
 
@@ -145,6 +147,10 @@ export function useStudioGeneration({
     setJobs([]);
   }, []);
 
+  const removeJob = useCallback((id: string) => {
+    setJobs((previous) => previous.filter((job) => job.id !== id));
+  }, []);
+
   const resolveFetchService = useCallback(
     async (jobType: StudioGenerateType): Promise<AssetQueryService> => {
       switch (jobType) {
@@ -217,14 +223,14 @@ export function useStudioGeneration({
             try {
               const fetchService = await resolveFetchService(type);
               const ingredient = await fetchService.findOne(resolvedId);
+              const dimensions = resolveStudioAssetDimensions(ingredient);
 
               patchJob(pendingId, {
-                height:
-                  ingredient?.metadataHeight || ingredient?.height || undefined,
+                height: dimensions.height,
+                ingredient: ingredient ?? undefined,
                 status: IngredientStatus.GENERATED,
                 url: resolveStudioAssetUrl(ingredient),
-                width:
-                  ingredient?.metadataWidth || ingredient?.width || undefined,
+                width: dimensions.width,
               });
               onGeneratedRef.current?.();
             } catch (error) {
@@ -383,6 +389,7 @@ export function useStudioGeneration({
               {
                 createdAt: Date.now(),
                 id: String(voice.id),
+                ingredient: voice,
                 modelKey: modelKey || undefined,
                 prompt: promptText,
                 status: IngredientStatus.GENERATED,
@@ -440,5 +447,5 @@ export function useStudioGeneration({
     ],
   );
 
-  return { clearJobs, isGenerating, jobs, submit };
+  return { clearJobs, isGenerating, jobs, removeJob, submit };
 }

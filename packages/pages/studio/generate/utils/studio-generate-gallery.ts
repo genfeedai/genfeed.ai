@@ -33,29 +33,6 @@ export function resolveStudioGallerySegments(
 }
 
 /**
- * Filter pills for the results grid. A type only earns a pill when it owns its
- * output collection — Avatar shares `/videos` with Video and its finished
- * clips carry the video category, so a second pill would list the same rows.
- */
-export function listStudioGalleryFilters(): readonly StudioGenerateFilter[] {
-  const seenSegments = new Set<string>();
-  const filters: StudioGenerateFilter[] = ['all'];
-
-  for (const type of STUDIO_GENERATE_TYPES) {
-    const { resourceSegment } = getStudioGenerateTypeConfig(type);
-
-    if (seenSegments.has(resourceSegment)) {
-      continue;
-    }
-
-    seenSegments.add(resourceSegment);
-    filters.push(type);
-  }
-
-  return filters;
-}
-
-/**
  * Brand-scoped, newest-first query for one collection. `brand` is omitted when
  * no brand is resolved yet so the request is never silently widened by an
  * `undefined` filter value.

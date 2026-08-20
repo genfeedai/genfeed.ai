@@ -1,4 +1,4 @@
-import type { IModel } from '@genfeedai/interfaces';
+import type { IIngredient, IModel } from '@genfeedai/interfaces';
 import type {
   StudioGenerateJob,
   StudioGenerateSettings,
@@ -48,13 +48,31 @@ export interface StudioGenerateComposerProps {
   type: StudioGenerateType;
 }
 
+export interface StudioGenerateAssetActions {
+  onClickIngredient: (ingredient: IIngredient) => void;
+  onConvertToVideo: (ingredient: IIngredient) => void;
+  onCopyPrompt: (ingredient: IIngredient) => void | Promise<void>;
+  onCreateVariation: (ingredient: IIngredient) => void;
+  onDeleteIngredient: (ingredient: IIngredient) => void;
+  onMarkArchived: (ingredient: IIngredient) => void | Promise<void>;
+  onMarkRejected: (ingredient: IIngredient) => void | Promise<void>;
+  onMarkValidated: (ingredient: IIngredient) => void | Promise<void>;
+  onPublishIngredient: (ingredient: IIngredient) => void;
+  onRefresh: () => void;
+  onSeeDetails: (ingredient: IIngredient) => void;
+  onToggleFavorite: (ingredient: IIngredient) => void | Promise<void>;
+  onUseAsVideoReference: (ingredient: IIngredient) => void;
+}
+
 export interface StudioGenerateResultsProps {
+  assetActions: StudioGenerateAssetActions;
   isLoading: boolean;
   jobs: readonly StudioGenerateJob[];
   onReprompt: (job: StudioGenerateJob) => void;
 }
 
 export interface StudioGenerateCardProps {
+  assetActions: StudioGenerateAssetActions;
   job: StudioGenerateJob;
   onReprompt: (job: StudioGenerateJob) => void;
 }

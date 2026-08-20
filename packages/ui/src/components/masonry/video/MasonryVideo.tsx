@@ -39,6 +39,7 @@ export default function MasonryVideo({
   onToggleFavorite,
   onCopyPrompt,
   onReprompt,
+  onGenerateCaptions,
   onMarkValidated,
   onMarkRejected,
   onSeeDetails,
@@ -170,6 +171,7 @@ export default function MasonryVideo({
         onToggleFavorite={onToggleFavorite}
         onCopyPrompt={onCopyPrompt}
         onReprompt={onReprompt}
+        onGenerateCaptions={onGenerateCaptions}
         onScopeChange={onScopeChange}
         onRefresh={onRefresh}
         onReverse={onReverse}

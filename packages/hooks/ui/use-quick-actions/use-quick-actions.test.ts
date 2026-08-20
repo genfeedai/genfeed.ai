@@ -3,6 +3,7 @@ import {
   IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -45,6 +46,18 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   ),
   createMirrorAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('mirror', 'Mirror') : null,
+  ),
+  createCopyPromptAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('copy-prompt', 'Copy Prompt') : null,
+  ),
+  createMarkArchivedAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('mark-archived', 'Archive') : null,
+  ),
+  createMarkRejectedAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('mark-rejected', 'Reject') : null,
+  ),
+  createMarkValidatedAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('mark-validated', 'Validate') : null,
   ),
   createMoreOptionsAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('more-options', 'More', false) : null,
@@ -122,6 +135,9 @@ const mockHandlers = {
   onGenerateCaptions: vi.fn(),
   onLandscape: vi.fn(),
   onManageTags: vi.fn(),
+  onMarkArchived: vi.fn(),
+  onMarkRejected: vi.fn(),
+  onMarkValidated: vi.fn(),
   onMirror: vi.fn(),
   onMoreOptions: vi.fn(),
   onPortrait: vi.fn(),
@@ -167,7 +183,9 @@ const mockLoadingStates = {
   isVoting: false,
 };
 
-function createMockIngredient(overrides = {}) {
+function createMockIngredient(
+  overrides: Partial<IIngredient> = {},
+): IIngredient {
   return {
     category: IngredientCategory.IMAGE,
     id: 'ingredient-1',
@@ -175,7 +193,7 @@ function createMockIngredient(overrides = {}) {
     promptText: 'test prompt',
     status: IngredientStatus.GENERATED,
     ...overrides,
-  };
+  } as IIngredient;
 }
 
 describe('useQuickActions', () => {
@@ -201,7 +219,7 @@ describe('useQuickActions', () => {
         handlers: mockHandlers,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 
@@ -220,7 +238,7 @@ describe('useQuickActions', () => {
         handlers,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 
@@ -239,7 +257,7 @@ describe('useQuickActions', () => {
         loadingStates: mockLoadingStates,
         selectedIngredient: createMockIngredient({
           category: IngredientCategory.VIDEO,
-        }) as any,
+        }),
       }),
     );
 
@@ -258,7 +276,7 @@ describe('useQuickActions', () => {
         loadingStates: mockLoadingStates,
         selectedIngredient: createMockIngredient({
           status: IngredientStatus.PROCESSING,
-        }) as any,
+        }),
       }),
     );
 
@@ -277,7 +295,7 @@ describe('useQuickActions', () => {
         handlers: mockHandlers,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 
@@ -290,13 +308,94 @@ describe('useQuickActions', () => {
     });
   });
 
+  it('keeps displaced download and publish actions in the menu', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.menuActions.map((action) => action.id)).toEqual(
+      expect.arrayContaining(['download', 'publish']),
+    );
+  });
+
+  it('keeps compact prompt and review actions in the shared menu', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(result.current.menuActions.map((action) => action.id)).toEqual(
+      expect.arrayContaining([
+        'copy-prompt',
+        'mark-validated',
+        'mark-rejected',
+        'mark-archived',
+      ]),
+    );
+  });
+
+  it('does not offer the video-only mirror action for images', () => {
+    const image = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+    const video = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+        }),
+      }),
+    );
+
+    expect(
+      image.result.current.actions.some((action) => action.id === 'mirror'),
+    ).toBe(false);
+    expect(
+      video.result.current.actions.some((action) => action.id === 'mirror'),
+    ).toBe(true);
+  });
+
+  it('does not duplicate review actions beside the full status control', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        hasStatusControl: true,
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    expect(
+      result.current.menuActions.some((action) =>
+        action.id.startsWith('mark-'),
+      ),
+    ).toBe(false);
+  });
+
   it('groups menu actions into ordered sections', () => {
     const { result } = renderHook(() =>
       useQuickActions({
         handlers: mockHandlers,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 
@@ -328,7 +427,7 @@ describe('useQuickActions', () => {
         hasStatusControl: true,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 
@@ -346,7 +445,7 @@ describe('useQuickActions', () => {
         hasPromptControl: true,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 
@@ -362,7 +461,7 @@ describe('useQuickActions', () => {
         hasPromptControl: false,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 
@@ -377,7 +476,7 @@ describe('useQuickActions', () => {
         handlers: mockHandlers,
         isVideo: false,
         loadingStates: mockLoadingStates,
-        selectedIngredient: createMockIngredient() as any,
+        selectedIngredient: createMockIngredient(),
       }),
     );
 

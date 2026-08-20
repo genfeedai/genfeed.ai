@@ -7,12 +7,14 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { ComponentSize } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
+import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
 import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioGenerateModels';
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
@@ -20,6 +22,7 @@ import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGener
 import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
+  resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -123,24 +126,57 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const { isLoadingModels, models } = useStudioGenerateModels(modelCategory);
   const { isLoadingGallery, refresh, storedJobs } = useStudioGenerateGallery({
     brandId,
-    filter: type,
+    filter: 'all',
   });
 
-  const { isGenerating, jobs, submit } = useStudioGeneration({
+  const handleAttachGeneratedReference = useCallback(
+    (ingredient: IIngredient, targetType: 'image' | 'video') => {
+      const previewUrl = resolveStudioAssetUrl(ingredient);
+      if (!previewUrl) {
+        notificationsService.info('This asset has no usable preview yet');
+        return;
+      }
+
+      setContentReferences((current) =>
+        current.some((reference) => reference.id === ingredient.id)
+          ? current
+          : [
+              ...current,
+              {
+                contentTitle:
+                  ingredient.metadataLabel ||
+                  ingredient.promptText ||
+                  'Generated reference',
+                contentType: String(ingredient.category),
+                id: ingredient.id,
+                thumbnailUrl: previewUrl,
+              },
+            ],
+      );
+      setType(targetType);
+    },
+    [notificationsService, setType],
+  );
+  const { isGenerating, jobs, removeJob, submit } = useStudioGeneration({
     brandId,
     models,
     onGenerated: refresh,
     settings,
     type,
   });
+  const assetActions = useStudioGenerateAssetActions({
+    onAttachReference: handleAttachGeneratedReference,
+    onDeleted: removeJob,
+    onRefresh: refresh,
+  });
 
   const visibleJobs = useMemo(
     () =>
       filterStudioGenerateJobs(mergeStudioGenerateJobs(jobs, storedJobs), {
         search,
-        type,
+        type: 'all',
       }),
-    [jobs, search, storedJobs, type],
+    [jobs, search, storedJobs],
   );
 
   const referenceUrls = useMemo(
@@ -251,6 +287,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       <div className="flex-1 overflow-auto px-6 py-6">
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
           <StudioGenerateResults
+            assetActions={assetActions}
             isLoading={isLoadingGallery}
             jobs={visibleJobs}
             onReprompt={handleReprompt}

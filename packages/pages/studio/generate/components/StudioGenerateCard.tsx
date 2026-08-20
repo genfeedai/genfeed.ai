@@ -1,17 +1,82 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
+import type { IImage, IMetadata, IVideo } from '@genfeedai/interfaces';
+import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioGenerateCardProps } from '@genfeedai/props/studio/studio-generate.props';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import {
+  LazyMasonryImage,
+  LazyMasonryVideo,
+} from '@ui/lazy/masonry/LazyMasonry';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useCallback, useState } from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 const AUDIO_TYPES = new Set(['music', 'voice']);
 const VIDEO_TYPES = new Set(['video', 'avatar']);
+const MODEL_GETTER_FIELDS = new Set([
+  '_ingredientUrl',
+  'aspectRatio',
+  'brandLogoUrl',
+  'ingredientFormat',
+  'ingredientUrl',
+  'metadataDescription',
+  'metadataDuration',
+  'metadataExtension',
+  'metadataHeight',
+  'metadataLabel',
+  'metadataModel',
+  'metadataModelLabel',
+  'metadataSize',
+  'metadataStyle',
+  'metadataTags',
+  'metadataWidth',
+  'primaryReference',
+  'primaryReferenceUrl',
+  'promptText',
+  'thumbnailUrl',
+]);
+
+function buildMasonryIngredient(
+  job: StudioGenerateCardProps['job'],
+): IImage | IVideo | null {
+  if (!job.ingredient || (job.type !== 'image' && !VIDEO_TYPES.has(job.type))) {
+    return null;
+  }
+
+  const sourceMetadata =
+    typeof job.ingredient.metadata === 'object'
+      ? job.ingredient.metadata
+      : undefined;
+  const metadata =
+    job.width && job.height
+      ? ({
+          ...sourceMetadata,
+          height: job.height,
+          width: job.width,
+        } as IMetadata)
+      : sourceMetadata;
+  const persistedIngredient = Object.fromEntries(
+    Object.entries(job.ingredient).filter(
+      ([key]) => !MODEL_GETTER_FIELDS.has(key),
+    ),
+  );
+  const ingredient = {
+    ...persistedIngredient,
+    cdnUrl: job.url || job.ingredient.cdnUrl,
+    metadata,
+    prompt: job.ingredient.prompt || job.prompt,
+  };
+
+  return job.type === 'image'
+    ? new IngredientImage(ingredient as IImage)
+    : new Video(ingredient as IVideo);
+}
 
 /**
  * One asset in the results grid. A card is the whole lifecycle — queued,
@@ -19,6 +84,7 @@ const VIDEO_TYPES = new Set(['video', 'avatar']);
  * somewhere else once the socket resolves it.
  */
 export default function StudioGenerateCard({
+  assetActions,
   job,
   onReprompt,
 }: StudioGenerateCardProps): ReactElement {
@@ -40,12 +106,67 @@ export default function StudioGenerateCard({
         : 'ready';
   const width = Math.max(1, job.width || 1080);
   const height = Math.max(1, job.height || 1080);
+  const masonryIngredient = useMemo(() => buildMasonryIngredient(job), [job]);
 
   const handleMediaError = useCallback(() => {
     if (job.url) {
       setFailedMediaUrl(job.url);
     }
   }, [job.url]);
+
+  if (mediaState === 'ready' && masonryIngredient) {
+    const sharedProps = {
+      isActionsEnabled: true,
+      isContainerHovered: true,
+      isDragEnabled: false,
+      onClickIngredient: assetActions.onClickIngredient,
+      onCopyPrompt: assetActions.onCopyPrompt,
+      onDeleteIngredient: assetActions.onDeleteIngredient,
+      onMarkRejected: assetActions.onMarkRejected,
+      onMarkValidated: assetActions.onMarkValidated,
+      onPublishIngredient: assetActions.onPublishIngredient,
+      onRefresh: assetActions.onRefresh,
+      onReprompt: () => onReprompt(job),
+      onSeeDetails: assetActions.onSeeDetails,
+      onToggleFavorite: assetActions.onToggleFavorite,
+    };
+
+    return (
+      <article
+        aria-label={`${label} generation`}
+        className="group relative w-full overflow-visible rounded-lg"
+        data-asset-media-state={mediaState}
+        data-testid={`studio-asset-${job.id}`}
+      >
+        {job.type === 'image' ? (
+          <LazyMasonryImage
+            {...sharedProps}
+            image={masonryIngredient as IImage}
+            onConvertToVideo={assetActions.onConvertToVideo}
+            onCreateVariation={assetActions.onCreateVariation}
+            onMarkArchived={assetActions.onMarkArchived}
+            onMediaError={handleMediaError}
+            onUseAsVideoReference={assetActions.onUseAsVideoReference}
+          />
+        ) : (
+          <LazyMasonryVideo
+            {...sharedProps}
+            video={masonryIngredient as IVideo}
+          />
+        )}
+
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/35 to-transparent p-3 pr-24 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+          data-asset-details
+        >
+          <p className="line-clamp-2 text-xs text-white">{job.prompt}</p>
+          <span className="mt-1 block truncate text-2xs text-white/70">
+            {job.modelKey || 'Auto'}
+          </span>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article
@@ -92,7 +213,7 @@ export default function StudioGenerateCard({
               src={job.url}
             />
           ) : (
-            <Image
+            <NextImage
               alt={job.prompt}
               className="object-cover"
               fill
@@ -123,9 +244,9 @@ export default function StudioGenerateCard({
               {job.modelKey || 'Auto'}
             </span>
             <Button
-              ariaLabel="Reprompt"
+              ariaLabel={isFailed ? 'Retry' : 'Reprompt'}
               className="pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white"
-              icon={<RotateCcw className="size-3" />}
+              icon={<RotateCcw className="size-3.5" />}
               label={isFailed ? 'Retry' : 'Reprompt'}
               onClick={() => onReprompt(job)}
               size={ButtonSize.SM}

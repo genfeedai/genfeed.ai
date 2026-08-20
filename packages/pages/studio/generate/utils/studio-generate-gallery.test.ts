@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildStudioGalleryQuery,
-  listStudioGalleryFilters,
   resolveStudioGallerySegments,
   STUDIO_GALLERY_PAGE_SIZE,
 } from './studio-generate-gallery';
@@ -28,19 +27,6 @@ describe('resolveStudioGallerySegments', () => {
     expect(resolveStudioGallerySegments('music')).toEqual(['musics']);
     expect(resolveStudioGallerySegments('voice')).toEqual(['voices']);
     expect(resolveStudioGallerySegments('avatar')).toEqual(['videos']);
-  });
-});
-
-describe('listStudioGalleryFilters', () => {
-  it('offers a pill per output collection, All first', () => {
-    // No Avatar pill: it would list the same `/videos` rows as Video.
-    expect([...listStudioGalleryFilters()]).toEqual([
-      'all',
-      'image',
-      'video',
-      'music',
-      'voice',
-    ]);
   });
 });
 

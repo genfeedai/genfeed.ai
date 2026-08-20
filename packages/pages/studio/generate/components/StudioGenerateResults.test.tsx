@@ -1,4 +1,5 @@
 import { IngredientStatus } from '@genfeedai/enums';
+import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,10 +18,27 @@ vi.mock('@ui/display/masonry/Masonry', () => ({
   ),
 }));
 
+const assetActions = {
+  onClickIngredient: vi.fn(),
+  onConvertToVideo: vi.fn(),
+  onCopyPrompt: vi.fn(),
+  onCreateVariation: vi.fn(),
+  onDeleteIngredient: vi.fn(),
+  onMarkArchived: vi.fn(),
+  onMarkRejected: vi.fn(),
+  onMarkValidated: vi.fn(),
+  onPublishIngredient: vi.fn(),
+  onRefresh: vi.fn(),
+  onSeeDetails: vi.fn(),
+  onToggleFavorite: vi.fn(),
+  onUseAsVideoReference: vi.fn(),
+} satisfies StudioGenerateAssetActions;
+
 describe('StudioGenerateResults', () => {
   it('uses the shared masonry gallery for generated assets', () => {
     render(
       <StudioGenerateResults
+        assetActions={assetActions}
         isLoading={false}
         jobs={[
           {

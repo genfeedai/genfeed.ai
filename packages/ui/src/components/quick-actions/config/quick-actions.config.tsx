@@ -5,6 +5,7 @@ import type {
   IQuickAction,
 } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import {
+  Archive,
   ArrowLeftRight,
   CircleCheck,
   Clipboard,
@@ -469,7 +470,7 @@ export const createDeleteAction = (
       id: 'delete',
       label: 'Delete',
       showInMenu: true,
-      tooltip: 'Delete this ingredient permanently',
+      tooltip: 'Move this ingredient to Trash',
       variant: 'error',
     },
     isLoading,
@@ -495,6 +496,24 @@ export const createPromptAction = (
     tooltip: 'View prompt',
     tooltipPosition: 'top',
   };
+};
+
+export const createCopyPromptAction = (
+  ingredient: IIngredient,
+  handler?: IActionHandlers['onCopy'],
+): IQuickAction | null => {
+  if (!ingredient.promptText) {
+    return null;
+  }
+
+  return createStandardAction(ingredient, handler, {
+    icon: <Clipboard className={ICON_CLASS} />,
+    id: 'copy-prompt',
+    label: 'Copy Prompt',
+    showInMenu: true,
+    tooltip: 'Copy Prompt',
+    tooltipPosition: 'top',
+  });
 };
 
 export const createUsePromptAction = (
@@ -605,9 +624,11 @@ export const createMarkValidatedAction = (
       />
     ),
     id: 'mark-validated',
+    isDisabled: isValidated,
     isLoading,
-    label: isValidated ? 'Validated' : 'Valid',
+    label: isValidated ? 'Validated' : 'Validate',
     onClick: () => handler(ingredient),
+    showInMenu: true,
     tooltip: isValidated ? 'Already validated' : 'Valid',
     tooltipPosition: 'top',
     variant: isValidated ? ('primary' as const) : undefined,
@@ -632,12 +653,38 @@ export const createMarkRejectedAction = (
       />
     ),
     id: 'mark-rejected',
+    isDisabled: isRejected,
     isLoading,
     label: isRejected ? 'Rejected' : 'Reject',
     onClick: () => handler(ingredient),
+    showInMenu: true,
     tooltip: isRejected ? 'Already rejected' : 'Reject',
     tooltipPosition: 'top',
     variant: isRejected ? ('error' as const) : undefined,
+  };
+};
+
+export const createMarkArchivedAction = (
+  ingredient: IIngredient,
+  handler?: IActionHandlers['onMarkArchived'],
+  isLoading?: boolean,
+): IQuickAction | null => {
+  if (!handler) {
+    return null;
+  }
+
+  const isArchived = ingredient.status === IngredientStatus.ARCHIVED;
+
+  return {
+    icon: <Archive className={ICON_CLASS} />,
+    id: 'mark-archived',
+    isDisabled: isArchived,
+    isLoading,
+    label: isArchived ? 'Archived' : 'Archive',
+    onClick: () => handler(ingredient),
+    showInMenu: true,
+    tooltip: isArchived ? 'Already archived' : 'Archive',
+    tooltipPosition: 'top',
   };
 };
 

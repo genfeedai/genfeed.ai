@@ -144,10 +144,10 @@ function QuickActionsWrapper({
         onUpscale={handlers.handleUpscale}
         onClone={handlers.handleClone}
         onSeeDetails={onSeeDetails}
-        onShare={onShareIngredient}
+        onShare={onShareIngredient || handlers.handleShare}
         onDelete={handlers.handleDelete}
         onToggleFavorite={onToggleFavorite}
-        onCopy={onCopyPrompt}
+        onCopy={onCopyPrompt || handlers.handleCopyPrompt}
         onReprompt={onReprompt}
         onConvertToVideo={onConvertToVideo}
         onUseAsVideoReference={onUseAsVideoReference}
@@ -157,9 +157,9 @@ function QuickActionsWrapper({
         onPortrait={handlers.handlePortrait}
         onSquare={handlers.handleSquare}
         onLandscape={handlers.handleLandscape}
-        onMarkValidated={onMarkValidated}
-        onMarkRejected={onMarkRejected}
-        onMarkArchived={onMarkArchived}
+        onMarkValidated={onMarkValidated || handlers.handleMarkValidated}
+        onMarkRejected={onMarkRejected || handlers.handleMarkRejected}
+        onMarkArchived={onMarkArchived || handlers.handleMarkArchived}
         onSetAsLogo={handlers.handleSetAsLogo}
         onSetAsBanner={handlers.handleSetAsBanner}
         onDownload={async (ingredient) => {
@@ -210,7 +210,7 @@ export default function MasonryImageActionsBar({
   return (
     <div
       className={cn(
-        'absolute bottom-2 right-2 z-50 overflow-visible transition-opacity duration-200 group-hover:opacity-100',
+        'absolute bottom-2 right-2 z-50 overflow-visible transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 focus-within:pointer-events-auto',
         showActions ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
@@ -219,35 +219,33 @@ export default function MasonryImageActionsBar({
           {onVoteIngredient ? (
             <VoteButton image={image} onVote={onVoteIngredient} />
           ) : (
-            showActions && (
-              <QuickActionsWrapper
-                image={image}
-                actionStates={actionStates}
-                handlers={handlers}
-                availableTags={availableTags}
-                isLoadingTags={isLoadingTags}
-                isSelected={isSelected}
-                handleDownload={handleDownload}
-                handleQuickActionsMouseEnter={handleQuickActionsMouseEnter}
-                handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
-                onPublishIngredient={onPublishIngredient}
-                onSeeDetails={onSeeDetails}
-                onShareIngredient={onShareIngredient}
-                onToggleFavorite={onToggleFavorite}
-                onCopyPrompt={onCopyPrompt}
-                onReprompt={onReprompt}
-                onConvertToVideo={onConvertToVideo}
-                onUseAsVideoReference={onUseAsVideoReference}
-                onCreateVariation={onCreateVariation}
-                onReverse={onReverse}
-                onMirror={onMirror}
-                onMarkValidated={onMarkValidated}
-                onMarkRejected={onMarkRejected}
-                onMarkArchived={onMarkArchived}
-                onScopeChange={onScopeChange}
-                onRefresh={onRefresh}
-              />
-            )
+            <QuickActionsWrapper
+              image={image}
+              actionStates={actionStates}
+              handlers={handlers}
+              availableTags={availableTags}
+              isLoadingTags={isLoadingTags}
+              isSelected={isSelected}
+              handleDownload={handleDownload}
+              handleQuickActionsMouseEnter={handleQuickActionsMouseEnter}
+              handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
+              onPublishIngredient={onPublishIngredient}
+              onSeeDetails={onSeeDetails}
+              onShareIngredient={onShareIngredient}
+              onToggleFavorite={onToggleFavorite}
+              onCopyPrompt={onCopyPrompt}
+              onReprompt={onReprompt}
+              onConvertToVideo={onConvertToVideo}
+              onUseAsVideoReference={onUseAsVideoReference}
+              onCreateVariation={onCreateVariation}
+              onReverse={onReverse}
+              onMirror={onMirror}
+              onMarkValidated={onMarkValidated}
+              onMarkRejected={onMarkRejected}
+              onMarkArchived={onMarkArchived}
+              onScopeChange={onScopeChange}
+              onRefresh={onRefresh}
+            />
           )}
         </div>
       </div>

@@ -234,6 +234,15 @@ describe('MasonryImage', () => {
     );
   });
 
+  it('notifies a parent surface when the real image fails', () => {
+    const onMediaError = vi.fn();
+
+    render(<MasonryImage image={mockImage} onMediaError={onMediaError} />);
+    fireEvent.error(screen.getByRole('img'));
+
+    expect(onMediaError).toHaveBeenCalledOnce();
+  });
+
   it('keeps processing assets in a processing state, not a fallback', () => {
     render(
       <MasonryImage

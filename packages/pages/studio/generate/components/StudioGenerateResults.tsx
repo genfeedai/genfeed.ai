@@ -13,6 +13,7 @@ import type { ReactElement } from 'react';
  * loses the run the operator just kicked off.
  */
 export default function StudioGenerateResults({
+  assetActions,
   isLoading,
   jobs,
   onReprompt,
@@ -44,6 +45,7 @@ export default function StudioGenerateResults({
         >
           {jobs.map((job) => (
             <StudioGenerateCard
+              assetActions={assetActions}
               job={job}
               key={job.id}
               onReprompt={onReprompt}

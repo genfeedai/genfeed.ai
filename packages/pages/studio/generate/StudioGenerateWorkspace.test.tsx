@@ -3,9 +3,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateWorkspace from './StudioGenerateWorkspace';
 
 const mocks = vi.hoisted(() => ({
+  assetActions: {
+    onClickIngredient: vi.fn(),
+    onConvertToVideo: vi.fn(),
+    onCopyPrompt: vi.fn(),
+    onCreateVariation: vi.fn(),
+    onDeleteIngredient: vi.fn(),
+    onMarkArchived: vi.fn(),
+    onMarkRejected: vi.fn(),
+    onMarkValidated: vi.fn(),
+    onPublishIngredient: vi.fn(),
+    onRefresh: vi.fn(),
+    onSeeDetails: vi.fn(),
+    onToggleFavorite: vi.fn(),
+    onUseAsVideoReference: vi.fn(),
+  },
+  assetActionsHook: vi.fn(),
   attachments: vi.fn(),
   composer: vi.fn(),
   gallery: vi.fn(),
+  results: vi.fn(),
+  removeJob: vi.fn(),
   settings: vi.fn(),
   submit: vi.fn(),
 }));
@@ -63,7 +81,17 @@ vi.mock('@pages/studio/generate/components/StudioGenerateComposer', () => ({
 }));
 
 vi.mock('@pages/studio/generate/components/StudioGenerateResults', () => ({
-  default: () => <div data-testid="studio-results" />,
+  default: (props: unknown) => {
+    mocks.results(props);
+    return <div data-testid="studio-results" />;
+  },
+}));
+
+vi.mock('@pages/studio/generate/hooks/useStudioGenerateAssetActions', () => ({
+  useStudioGenerateAssetActions: (params: unknown) => {
+    mocks.assetActionsHook(params);
+    return mocks.assetActions;
+  },
 }));
 
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateGallery', () => ({
@@ -82,6 +110,7 @@ vi.mock('@pages/studio/generate/hooks/useStudioGeneration', () => ({
   useStudioGeneration: () => ({
     isGenerating: false,
     jobs: [],
+    removeJob: mocks.removeJob,
     submit: mocks.submit,
   }),
 }));
@@ -117,7 +146,7 @@ describe('StudioGenerateWorkspace', () => {
     });
   });
 
-  it('uses the composer asset type as the only gallery type control', () => {
+  it('removes gallery tabs without hiding history from other asset types', () => {
     render(<StudioGenerateWorkspace />);
 
     const topbar = screen.getByTestId('section-topbar');
@@ -128,10 +157,18 @@ describe('StudioGenerateWorkspace', () => {
     expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
     expect(mocks.gallery).toHaveBeenCalledWith({
       brandId: 'brand-1',
-      filter: 'image',
+      filter: 'all',
     });
     expect(screen.getByTestId('studio-results')).not.toContainElement(
       screen.getByPlaceholderText('Search generations'),
+    );
+  });
+
+  it('removes a deleted asset from the current-session job queue', () => {
+    render(<StudioGenerateWorkspace />);
+
+    expect(mocks.assetActionsHook).toHaveBeenCalledWith(
+      expect.objectContaining({ onDeleted: mocks.removeJob }),
     );
   });
 
@@ -165,5 +202,45 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.submit).toHaveBeenCalledWith('Use this composition', [
       'https://cdn.example/reference.png',
     ]);
+  });
+
+  it('turns a gallery remix into a composer reference', () => {
+    render(<StudioGenerateWorkspace />);
+
+    const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onAttachReference: (
+        ingredient: {
+          category: string;
+          id: string;
+          promptText: string;
+          thumbnailUrl: string;
+        },
+        type: 'image' | 'video',
+      ) => void;
+    };
+    act(() =>
+      hookParams.onAttachReference(
+        {
+          category: 'images',
+          id: 'generated-1',
+          promptText: 'A generated reference',
+          thumbnailUrl: 'https://cdn.example/generated.png',
+        },
+        'video',
+      ),
+    );
+
+    expect(
+      mocks.settings.mock.results.at(-1)?.value.setType,
+    ).toHaveBeenCalledWith('video');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      attachedAssets: Array<{ id: string; previewUrl?: string }>;
+    };
+    expect(composerProps.attachedAssets).toContainEqual(
+      expect.objectContaining({
+        id: 'generated-1',
+        previewUrl: 'https://cdn.example/generated.png',
+      }),
+    );
   });
 });

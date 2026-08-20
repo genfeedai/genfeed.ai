@@ -52,6 +52,7 @@ export default function MasonryImage({
   onMirror,
   onUpdateParent,
   onImageLoad,
+  onMediaError,
   onScopeChange,
   onRefresh,
   isDragEnabled = true,
@@ -118,7 +119,8 @@ export default function MasonryImage({
   const handleImageError = useCallback(() => {
     setLoadedImageUrl(currentImageUrl);
     setFailedImageUrl(currentImageUrl);
-  }, [currentImageUrl]);
+    onMediaError?.();
+  }, [currentImageUrl, onMediaError]);
 
   const handleIngredientDrop = useCallback(
     (

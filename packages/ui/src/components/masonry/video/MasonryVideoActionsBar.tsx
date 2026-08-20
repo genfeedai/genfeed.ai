@@ -22,6 +22,11 @@ type VideoActionHandlers = {
   handleReverse: (ingredient: IVideo) => void;
   handleMirror: (ingredient: IVideo) => void;
   handleMarkArchived: (ingredient: IVideo) => void;
+  handleMarkRejected: (ingredient: IVideo) => void;
+  handleMarkValidated: (ingredient: IVideo) => void;
+  handleCopyPrompt: (ingredient: IVideo) => void;
+  handleReprompt: (ingredient: IVideo) => void;
+  handleShare: (ingredient: IVideo) => void;
 };
 
 type MasonryVideoActionsBarProps = {
@@ -51,6 +56,7 @@ type MasonryVideoActionsBarProps = {
   onToggleFavorite?: (ingredient: IVideo) => void;
   onCopyPrompt?: (ingredient: IVideo) => void;
   onReprompt?: (ingredient: IVideo) => void;
+  onGenerateCaptions?: (ingredient: IVideo) => void;
   onScopeChange?: (scope: AssetScope, updatedItem?: IVideo) => void;
   onRefresh?: () => void;
   onReverse?: (ingredient: IVideo) => void;
@@ -82,6 +88,7 @@ export default function MasonryVideoActionsBar({
   onToggleFavorite,
   onCopyPrompt,
   onReprompt,
+  onGenerateCaptions,
   onScopeChange,
   onRefresh,
   onReverse,
@@ -94,7 +101,7 @@ export default function MasonryVideoActionsBar({
   return (
     <div
       className={cn(
-        'absolute bottom-2 right-2 z-50 overflow-visible transition-opacity duration-200',
+        'absolute bottom-2 right-2 z-50 overflow-visible transition-opacity duration-200 focus-within:opacity-100 focus-within:pointer-events-auto',
         isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none',
         'group-hover:opacity-100',
       )}
@@ -116,8 +123,7 @@ export default function MasonryVideoActionsBar({
               onClick={() => onVoteIngredient?.(video)}
             />
           ) : (
-            !isUnavailable &&
-            isHovered && (
+            !isUnavailable && (
               <div
                 role="presentation"
                 className="quick-actions-wrapper flex items-center gap-2"
@@ -138,7 +144,7 @@ export default function MasonryVideoActionsBar({
                   isReversing={isReversing}
                   isSelected={isSelected}
                   onPublish={handlers.handlePublish}
-                  onShare={onShareIngredient}
+                  onShare={onShareIngredient || handlers.handleShare}
                   onUpscale={handlers.handleUpscale}
                   onClone={handlers.handleClone}
                   onDelete={handlers.handleDelete}
@@ -150,11 +156,14 @@ export default function MasonryVideoActionsBar({
                   onMirror={onMirror || handlers.handleMirror}
                   onSeeDetails={onSeeDetails}
                   onMarkArchived={handlers.handleMarkArchived}
-                  onMarkValidated={onMarkValidated}
-                  onMarkRejected={onMarkRejected}
+                  onMarkValidated={
+                    onMarkValidated || handlers.handleMarkValidated
+                  }
+                  onMarkRejected={onMarkRejected || handlers.handleMarkRejected}
                   onToggleFavorite={onToggleFavorite}
-                  onCopy={onCopyPrompt}
+                  onCopy={onCopyPrompt || handlers.handleCopyPrompt}
                   onReprompt={onReprompt}
+                  onGenerateCaptions={onGenerateCaptions}
                   onDownload={handleDownload}
                   onScopeChange={onScopeChange}
                   onRefresh={onRefresh}

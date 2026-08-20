@@ -39,6 +39,8 @@ export interface BaseMasonryProps<T extends IIngredient = IIngredient> {
   onMirror?: (ingredient: T) => void;
   onUpdateParent?: (ingredient: T, parentId: string | null) => void;
   onImageLoad?: () => void;
+  /** Notify a parent surface so it can replace the tile with its own fallback. */
+  onMediaError?: () => void;
   onMarkRejected?: (ingredient: T) => void;
   onMarkValidated?: (ingredient: T) => void;
   onMarkArchived?: (ingredient: T) => void;

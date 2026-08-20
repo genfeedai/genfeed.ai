@@ -123,7 +123,7 @@ export default function IngredientQuickActions(
       onTrim,
       onUpscale,
       onUseAsVideoReference,
-      onUsePrompt,
+      onUsePrompt: onUsePrompt ?? onReprompt,
       onVote,
     }),
     [
@@ -159,6 +159,7 @@ export default function IngredientQuickActions(
       onUpscale,
       onUseAsVideoReference,
       onUsePrompt,
+      onReprompt,
       onVote,
     ],
   );

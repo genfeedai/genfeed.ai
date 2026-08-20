@@ -134,6 +134,12 @@ export interface StudioGenerateJob {
   error?: string;
   height?: number;
   id: string;
+  /**
+   * Full persisted asset behind a generated job. Ready image/video cards use
+   * this to render the shared masonry behavior instead of a second, reduced
+   * action system.
+   */
+  ingredient?: IIngredient;
   modelKey?: string;
   prompt: string;
   status: IngredientStatus;
