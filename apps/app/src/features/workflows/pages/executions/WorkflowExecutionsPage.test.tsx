@@ -30,7 +30,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  AuthenticationTokenUnavailableError: mocks.AuthenticationTokenUnavailableError,
+  AuthenticationTokenUnavailableError:
+    mocks.AuthenticationTokenUnavailableError,
   useAuthedService: () => mocks.getService,
 }));
 

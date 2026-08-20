@@ -197,7 +197,9 @@ describe('WorkflowExecutionController', () => {
         undefined,
         undefined,
       );
-      expect(mockWorkflowRunControlService.executePartial).not.toHaveBeenCalled();
+      expect(
+        mockWorkflowRunControlService.executePartial,
+      ).not.toHaveBeenCalled();
       expect(mockWorkflowExecutionsService.findOne).toHaveBeenCalledWith({
         id: 'exec-prompt',
         organizationId: mockUser.organizationId,
@@ -217,9 +219,7 @@ describe('WorkflowExecutionController', () => {
         mockUser,
       );
 
-      expect(
-        mockWorkflowRunControlService.executePartial,
-      ).toHaveBeenCalledWith(
+      expect(mockWorkflowRunControlService.executePartial).toHaveBeenCalledWith(
         workflowId,
         ['PyHRz6uB'],
         mockUser.userId,
