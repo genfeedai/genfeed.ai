@@ -8,7 +8,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class IngredientsQueryDto extends BaseQueryDto {
@@ -18,6 +18,11 @@ export class IngredientsQueryDto extends BaseQueryDto {
     required: false,
     type: String,
   })
+  // `@Expose()` makes class-transformer visit `folderId` even when the
+  // request only carries the `folder` alias, so `resolveFolderIdAlias`
+  // actually runs. Without it the key is absent from the source object and
+  // the transform is skipped entirely.
+  @Expose()
   @Transform(resolveFolderIdAlias)
   @IsOptional()
   @IsEntityId()

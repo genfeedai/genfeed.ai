@@ -326,33 +326,6 @@ const config = createAppNextConfig({
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/settings/agents'),
     },
-    // One-off Studio audio retired; voices live under Library.
-    {
-      destination: APP_ROUTES.LIBRARY.VOICES,
-      permanent: true,
-      source: APP_ROUTES.STUDIO.AUDIO,
-    },
-    {
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.LIBRARY.VOICES,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.STUDIO.AUDIO,
-      ),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.LIBRARY.VOICES,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.STUDIO.AUDIO),
-    },
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {
       destination: APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,

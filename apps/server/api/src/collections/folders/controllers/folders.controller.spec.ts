@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { FoldersController } from '@api/collections/folders/controllers/folders.controller';
 import { CreateFolderDto } from '@api/collections/folders/dto/create-folder.dto';
 import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto';
+import type { FolderDocument } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -63,6 +64,31 @@ describe('FoldersController', () => {
     query: {},
   } as Request;
   const folderId = 'cmfolder000000000000000001';
+  const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
+
+  /**
+   * `FolderDocument` is the full Prisma row, so a partial literal cannot
+   * satisfy the mocked service return type. Tests override only the fields
+   * they assert on and inherit the rest.
+   */
+  const buildFolder = (
+    overrides: Partial<FolderDocument> = {},
+  ): FolderDocument => {
+    return {
+      brandId: null,
+      createdAt: fixtureDate,
+      description: null,
+      id: folderId,
+      isActive: true,
+      isDeleted: false,
+      label: 'Folder',
+      organizationId: mockOrganizationId,
+      parentId: null,
+      updatedAt: fixtureDate,
+      userId: mockUserId,
+      ...overrides,
+    } as FolderDocument;
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -284,13 +310,14 @@ describe('FoldersController', () => {
         label: 'Test Folder',
       };
 
-      const mockCreatedFolder = {
-        id: folderId,
-        ...createDto,
+      const mockCreatedFolder = buildFolder({
         brandId: null,
+        description: createDto.description ?? null,
+        id: folderId,
+        label: createDto.label,
         organizationId: mockUser.organizationId,
         userId: mockUser.userId,
-      };
+      });
 
       foldersService.create.mockResolvedValue(mockCreatedFolder);
 
@@ -310,13 +337,15 @@ describe('FoldersController', () => {
     });
 
     it('creates a current-brand folder with scalar foreign keys', async () => {
-      foldersService.create.mockResolvedValue({
-        brandId: mockUser.brandId,
-        id: folderId,
-        label: 'Brand Folder',
-        organizationId: mockUser.organizationId,
-        userId: mockUser.userId,
-      });
+      foldersService.create.mockResolvedValue(
+        buildFolder({
+          brandId: mockUser.brandId,
+          id: folderId,
+          label: 'Brand Folder',
+          organizationId: mockUser.organizationId,
+          userId: mockUser.userId,
+        }),
+      );
 
       await controller.create(mockRequest, mockUser, {
         brandId: mockUser.brandId,
@@ -360,12 +389,12 @@ describe('FoldersController', () => {
 
   describe('findOne', () => {
     it('returns only active folders in the caller organization', async () => {
-      const mockFolder = {
+      const mockFolder = buildFolder({
         id: folderId,
         isDeleted: false,
         label: 'Scoped Folder',
         organizationId: mockUser.organizationId,
-      };
+      });
       foldersService.findOne.mockResolvedValue(mockFolder);
 
       const result = await controller.findOne(mockRequest, mockUser, folderId);
@@ -379,13 +408,15 @@ describe('FoldersController', () => {
     });
 
     it('returns not found when the folder is outside caller brand scope', async () => {
-      foldersService.findOne.mockResolvedValue({
-        brandId: foreignBrandId,
-        id: folderId,
-        isDeleted: false,
-        label: 'Foreign Folder',
-        organizationId: mockUser.organizationId,
-      });
+      foldersService.findOne.mockResolvedValue(
+        buildFolder({
+          brandId: foreignBrandId,
+          id: folderId,
+          isDeleted: false,
+          label: 'Foreign Folder',
+          organizationId: mockUser.organizationId,
+        }),
+      );
 
       await expect(
         controller.findOne(mockRequest, mockUser, folderId),
@@ -393,13 +424,13 @@ describe('FoldersController', () => {
     });
 
     it('allows a superadmin to read an active folder outside active tenant scope', async () => {
-      const foreignFolder = {
+      const foreignFolder = buildFolder({
         brandId: foreignBrandId,
         id: folderId,
         isDeleted: false,
         label: 'Foreign Folder',
         organizationId: foreignOrganizationId,
-      };
+      });
       foldersService.findOne.mockResolvedValue(foreignFolder);
 
       const result = await controller.findOne(
@@ -422,16 +453,17 @@ describe('FoldersController', () => {
         label: 'Updated Folder',
       };
 
-      const mockExistingFolder = {
+      const mockExistingFolder = buildFolder({
         id: folderId,
         label: 'Old Folder',
         organizationId: mockUser.organizationId,
-      };
+      });
 
-      const mockUpdatedFolder = {
-        ...mockExistingFolder,
-        ...updateDto,
-      };
+      const mockUpdatedFolder = buildFolder({
+        id: folderId,
+        label: 'Updated Folder',
+        organizationId: mockUser.organizationId,
+      });
 
       foldersService.findOne.mockResolvedValue(mockExistingFolder);
       foldersService.patch.mockResolvedValue(mockUpdatedFolder);
@@ -465,11 +497,11 @@ describe('FoldersController', () => {
     });
 
     it('rejects moving a folder to another brand', async () => {
-      const mockExistingFolder = {
+      const mockExistingFolder = buildFolder({
         id: folderId,
         label: 'Folder',
         organizationId: mockUser.organizationId,
-      };
+      });
       foldersService.findOne.mockResolvedValue(mockExistingFolder);
       foldersService.patch.mockResolvedValue(mockExistingFolder);
 
@@ -483,11 +515,11 @@ describe('FoldersController', () => {
     });
 
     it('moves a folder into the current brand using the scalar foreign key', async () => {
-      const mockExistingFolder = {
+      const mockExistingFolder = buildFolder({
         id: folderId,
         label: 'Shared Folder',
         organizationId: mockUser.organizationId,
-      };
+      });
       foldersService.findOne.mockResolvedValue(mockExistingFolder);
       foldersService.patch.mockResolvedValue({
         ...mockExistingFolder,
@@ -506,11 +538,13 @@ describe('FoldersController', () => {
     });
 
     it('rejects updates to folders in another organization', async () => {
-      foldersService.findOne.mockResolvedValue({
-        id: folderId,
-        label: 'Foreign Folder',
-        organizationId: foreignOrganizationId,
-      });
+      foldersService.findOne.mockResolvedValue(
+        buildFolder({
+          id: folderId,
+          label: 'Foreign Folder',
+          organizationId: foreignOrganizationId,
+        }),
+      );
 
       await expect(
         controller.update(mockRequest, mockUser, folderId, {
@@ -521,12 +555,14 @@ describe('FoldersController', () => {
     });
 
     it('rejects updates to folders owned by another brand', async () => {
-      foldersService.findOne.mockResolvedValue({
-        brandId: foreignBrandId,
-        id: folderId,
-        label: 'Foreign Brand Folder',
-        organizationId: mockUser.organizationId,
-      });
+      foldersService.findOne.mockResolvedValue(
+        buildFolder({
+          brandId: foreignBrandId,
+          id: folderId,
+          label: 'Foreign Brand Folder',
+          organizationId: mockUser.organizationId,
+        }),
+      );
 
       await expect(
         controller.update(mockRequest, mockUser, folderId, {
@@ -547,7 +583,7 @@ describe('FoldersController', () => {
      * mock answers by id.
      */
     const mockFoldersById = (
-      folders: Record<string, Record<string, unknown> | null>,
+      folders: Record<string, FolderDocument | null>,
     ) => {
       foldersService.findOne.mockImplementation(
         (query: Record<string, unknown>) =>
@@ -557,14 +593,14 @@ describe('FoldersController', () => {
 
     it('files a new folder under a parent in the same scope', async () => {
       mockFoldersById({
-        [parentId]: {
+        [parentId]: buildFolder({
           brandId: mockBrandId,
           id: parentId,
           label: 'Campaigns',
           organizationId: mockOrganizationId,
-        },
+        }),
       });
-      foldersService.create.mockResolvedValue({ id: folderId });
+      foldersService.create.mockResolvedValue(buildFolder({ id: folderId }));
 
       await controller.create(mockRequest, mockUser, {
         label: 'Q3',
@@ -585,14 +621,14 @@ describe('FoldersController', () => {
 
     it('inherits an organization-shared parent scope', async () => {
       mockFoldersById({
-        [parentId]: {
+        [parentId]: buildFolder({
           brandId: null,
           id: parentId,
           label: 'Shared',
           organizationId: mockOrganizationId,
-        },
+        }),
       });
-      foldersService.create.mockResolvedValue({ id: folderId });
+      foldersService.create.mockResolvedValue(buildFolder({ id: folderId }));
 
       await controller.create(mockRequest, mockUser, {
         brandId: mockBrandId,
@@ -607,7 +643,7 @@ describe('FoldersController', () => {
     });
 
     it('creates a root folder when no parent is given', async () => {
-      foldersService.create.mockResolvedValue({ id: folderId });
+      foldersService.create.mockResolvedValue(buildFolder({ id: folderId }));
 
       await controller.create(mockRequest, mockUser, { label: 'Root' });
 
@@ -620,12 +656,12 @@ describe('FoldersController', () => {
 
     it('rejects a parent in another organization', async () => {
       mockFoldersById({
-        [parentId]: {
+        [parentId]: buildFolder({
           brandId: null,
           id: parentId,
           label: 'Foreign',
           organizationId: foreignOrganizationId,
-        },
+        }),
       });
 
       await expect(
@@ -636,12 +672,12 @@ describe('FoldersController', () => {
 
     it('rejects a parent owned by another brand', async () => {
       mockFoldersById({
-        [parentId]: {
+        [parentId]: buildFolder({
           brandId: foreignBrandId,
           id: parentId,
           label: 'Other Brand',
           organizationId: mockOrganizationId,
-        },
+        }),
       });
 
       await expect(
@@ -661,20 +697,20 @@ describe('FoldersController', () => {
 
     it('moves a folder under a new parent', async () => {
       mockFoldersById({
-        [folderId]: {
+        [folderId]: buildFolder({
           brandId: mockBrandId,
           id: folderId,
           label: 'Q3',
           organizationId: mockOrganizationId,
-        },
-        [parentId]: {
+        }),
+        [parentId]: buildFolder({
           brandId: mockBrandId,
           id: parentId,
           label: 'Campaigns',
           organizationId: mockOrganizationId,
-        },
+        }),
       });
-      foldersService.patch.mockResolvedValue({ id: folderId });
+      foldersService.patch.mockResolvedValue(buildFolder({ id: folderId }));
 
       await controller.update(mockRequest, mockUser, folderId, { parentId });
 
@@ -687,14 +723,14 @@ describe('FoldersController', () => {
 
     it('moves a folder to the root without clearing its brand scope', async () => {
       mockFoldersById({
-        [folderId]: {
+        [folderId]: buildFolder({
           brandId: mockBrandId,
           id: folderId,
           label: 'Q3',
           organizationId: mockOrganizationId,
-        },
+        }),
       });
-      foldersService.patch.mockResolvedValue({ id: folderId });
+      foldersService.patch.mockResolvedValue(buildFolder({ id: folderId }));
 
       await controller.update(mockRequest, mockUser, folderId, {
         parentId: null,
@@ -709,12 +745,12 @@ describe('FoldersController', () => {
 
     it('rejects a folder parented to itself', async () => {
       mockFoldersById({
-        [folderId]: {
+        [folderId]: buildFolder({
           brandId: mockBrandId,
           id: folderId,
           label: 'Q3',
           organizationId: mockOrganizationId,
-        },
+        }),
       });
 
       await expect(
@@ -727,28 +763,28 @@ describe('FoldersController', () => {
 
     it('rejects a move that would nest a folder inside its own descendant', async () => {
       mockFoldersById({
-        [folderId]: {
+        [folderId]: buildFolder({
           brandId: mockBrandId,
           id: folderId,
           label: 'Campaigns',
           organizationId: mockOrganizationId,
-        },
+        }),
         // grandParent -> parent -> folderId, so moving folderId under
         // grandParent closes the loop.
-        [grandParentId]: {
+        [grandParentId]: buildFolder({
           brandId: mockBrandId,
           id: grandParentId,
           label: 'Grandchild',
           organizationId: mockOrganizationId,
           parentId,
-        },
-        [parentId]: {
+        }),
+        [parentId]: buildFolder({
           brandId: mockBrandId,
           id: parentId,
           label: 'Child',
           organizationId: mockOrganizationId,
           parentId: folderId,
-        },
+        }),
       });
 
       await expect(
@@ -761,14 +797,14 @@ describe('FoldersController', () => {
 
     it('leaves the parent untouched when the payload omits it', async () => {
       mockFoldersById({
-        [folderId]: {
+        [folderId]: buildFolder({
           brandId: mockBrandId,
           id: folderId,
           label: 'Q3',
           organizationId: mockOrganizationId,
-        },
+        }),
       });
-      foldersService.patch.mockResolvedValue({ id: folderId });
+      foldersService.patch.mockResolvedValue(buildFolder({ id: folderId }));
 
       await controller.update(mockRequest, mockUser, folderId, {
         label: 'Q4',
@@ -784,11 +820,11 @@ describe('FoldersController', () => {
 
   describe('remove', () => {
     it('should remove a folder', async () => {
-      const mockFolder = {
+      const mockFolder = buildFolder({
         id: folderId,
         label: 'Folder to Delete',
         organizationId: mockUser.organizationId,
-      };
+      });
 
       foldersService.findOne.mockResolvedValue(mockFolder);
       foldersService.remove.mockResolvedValue({
@@ -817,11 +853,11 @@ describe('FoldersController', () => {
     });
 
     it('should throw error if caller organization does not own the folder', async () => {
-      const mockFolder = {
+      const mockFolder = buildFolder({
         id: folderId,
         label: 'Folder',
         organizationId: foreignOrganizationId,
-      };
+      });
 
       foldersService.findOne.mockResolvedValue(mockFolder);
 
@@ -836,16 +872,16 @@ describe('FoldersController', () => {
     it('should return paginated folders', async () => {
       const mockFolders = {
         docs: [
-          {
+          buildFolder({
             id: 'cmfolder000000000000000002',
             label: 'Folder 1',
             userId: mockUser.userId,
-          },
-          {
+          }),
+          buildFolder({
             id: 'cmfolder000000000000000003',
             label: 'Folder 2',
             organizationId: mockUser.organizationId,
-          },
+          }),
         ],
         hasNextPage: false,
         hasPrevPage: false,

@@ -713,86 +713,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "00cf8b9f065ca193fee9",
-      "message": "Argument of type '{ isActive?: boolean; brandId?: string | undefined; label: string; description?: string | undefined; tags?: string[] | undefined; id: string; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ isActive?: boolean | undefined; brandId?: string | undefined; label: string; description?: string | undefined; tags?: string[] | undefined; id: string; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': isDeleted, createdAt, updatedAt, userId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "11b12f06f5790fe48011",
-      "message": "Argument of type '{ id: string; isDeleted: boolean; label: string; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ id: string; isDeleted: boolean; label: string; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, createdAt, updatedAt, userId, and 2 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 7,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "16aba59c00ec4751ebf8",
-      "message": "Argument of type '{ id: string; label: string; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ id: string; label: string; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, isDeleted, createdAt, updatedAt, and 3 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "1e8fe67c0fc6508a3742",
-      "message": "Argument of type '{ brandId: string; id: string; isDeleted: false; label: string; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ brandId: string; id: string; isDeleted: false; label: string; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, createdAt, updatedAt, userId, isActive",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "5665912e8fcf1368912c",
-      "message": "Argument of type '{ brandId: string; id: string; label: string; organizationId: string; userId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ brandId: string; id: string; label: string; organizationId: string; userId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, isDeleted, createdAt, updatedAt, isActive",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "5d7af45e26c88c59ff75",
-      "message": "Argument of type '{ docs: ({ id: string; label: string; userId: string; organizationId?: undefined; } | { id: string; label: string; organizationId: string; userId?: undefined; })[]; hasNextPage: boolean; hasPrevPage: boolean; ... 6 more ...; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }>'.   Types of property 'docs' are incompatible.     Type '({ id: string; label: string; userId: string; organizationId?: undefined; } | { id: string; label: string; organizationId: string; userId?: undefined; })[]' is not assignable to type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }[]'.       Type '{ id: string; label: string; userId: string; organizationId?: undefined; } | { id: string; label: string; organizationId: string; userId?: undefined; }' is not assignable to type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.         Type '{ id: string; label: string; userId: string; organizationId?: undefined; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, isDeleted, createdAt, updatedAt, and 2 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "683ee502a9d3dc297c8d",
-      "message": "Argument of type '{ brandId: string; id: string; label: string; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ brandId: string; id: string; label: string; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, isDeleted, createdAt, updatedAt, and 2 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "81134d3cac8a62bcdcd9",
-      "message": "Argument of type '{ isDeleted: true; id: string; label: string; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ isDeleted: true; id: string; label: string; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, createdAt, updatedAt, userId, and 2 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "f08021e1c3bf9af5564b",
-      "message": "Argument of type '{ brandId: string; id: string; isDeleted: boolean; label: string; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ brandId: string; id: string; isDeleted: boolean; label: string; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, createdAt, updatedAt, userId, isActive",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
-      "fingerprint": "fb5629593dd5f7f4d457",
-      "message": "Argument of type '{ brandId: null; organizationId: string; userId: string; label: string; description?: string; tags?: string[]; id: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ brandId: null; organizationId: string; userId: string; label: string; description?: string | undefined; tags?: string[] | undefined; id: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': isDeleted, createdAt, updatedAt, isActive",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 1,
       "file": "apps/server/api/src/collections/folders/controllers/folders.controller.spec.ts",
@@ -926,14 +846,6 @@
       "file": "apps/server/api/src/collections/ingredients/controllers/ingredients-folder-assignment.controller.spec.ts",
       "fingerprint": "2e71e61cc3dfd5f9cc92",
       "message": "Argument of type '{ folderId: string; id: string; brandId: string; isDeleted: boolean; organizationId: string; userId: string; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ folderId: string; id: string; brandId: string; isDeleted: boolean; organizationId: string; userId: string; }' is missing the following properties from type 'IngredientDocument': category, createdAt, updatedAt, status, and 60 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients-folder-assignment.controller.spec.ts",
-      "fingerprint": "6d39a380319f4d24c797",
-      "message": "Argument of type '{ id: string; brandId: string; isDeleted: false; organizationId: string; }' is not assignable to parameter of type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }'.   Type '{ id: string; brandId: string; isDeleted: false; organizationId: string; }' is missing the following properties from type '{ description: string | null; label: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; brandId: string | null; organizationId: string; isActive: boolean; }': description, label, createdAt, updatedAt, and 2 more.",
       "workspace": "api"
     },
     {
@@ -2920,7 +2832,6 @@
       "message": "Property 'callbackId' is missing in type '{ avatarId: string; organizationId: string; script: string; userId: string; voiceId: string; }' but required in type 'AvatarVideoJobInput'.",
       "workspace": "api"
     },
-
     {
       "code": 2352,
       "count": 1,

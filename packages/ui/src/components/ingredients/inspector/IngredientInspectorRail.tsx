@@ -67,6 +67,34 @@ function InspectorField({
 }
 
 /**
+ * The prompt is the one field long enough to wrap, so it gets its own block
+ * instead of a `<dl>` row. Its label travels as a prop like every other label
+ * in this rail.
+ */
+function InspectorNote({
+  label,
+  text,
+}: {
+  label: string;
+  text?: string | null;
+}) {
+  if (!text) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
+        {label}
+      </div>
+      <p className="line-clamp-6 text-xs leading-relaxed text-foreground/62">
+        {text}
+      </p>
+    </div>
+  );
+}
+
+/**
  * The inspector rail — what one asset is, read across all three Library axes at
  * once: its shelf (generation state), its folder (where a person filed it), and
  * its type. It appears only for a single selection; a multi-selection is a bulk
@@ -145,16 +173,7 @@ export default function IngredientInspectorRail({
         />
       </dl>
 
-      {ingredient.promptText ? (
-        <div className="flex flex-col gap-1.5">
-          <div className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
-            Prompt
-          </div>
-          <p className="line-clamp-6 text-xs leading-relaxed text-foreground/62">
-            {ingredient.promptText}
-          </p>
-        </div>
-      ) : null}
+      <InspectorNote label="Prompt" text={ingredient.promptText} />
     </aside>
   );
 }

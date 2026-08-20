@@ -31,6 +31,7 @@ import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarAction
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import { Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import {
@@ -80,6 +81,7 @@ export default function LibrarySidebarNav() {
   const { replace } = useRouter();
   const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.library.sidebar');
   const notifications = NotificationsService.getInstance();
   const selectedFolderId = searchParams.get('folder');
   const folderScope = getLibraryFolderScope(normalizedPathname);
@@ -247,7 +249,7 @@ export default function LibrarySidebarNav() {
 
           <div className="mt-4">
             <div className="p-1 text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
-              Shelves
+              {translate('shelvesGroup')}
             </div>
             <ul className="flex flex-col gap-px">
               {LIBRARY_SHELF_MENU_ITEMS.filter(isShelfVisible).map(
@@ -278,7 +280,7 @@ export default function LibrarySidebarNav() {
         {summary ? (
           <div className="border-t border-foreground/8 px-4 py-3">
             <div className="text-2xs font-medium uppercase tracking-[0.15em] text-foreground/30">
-              Storage
+              {translate('storageLabel')}
             </div>
             <div className="mt-0.5 text-sm font-medium tabular-nums text-foreground/72">
               {formatStorageBytes(summary.storageBytes)}

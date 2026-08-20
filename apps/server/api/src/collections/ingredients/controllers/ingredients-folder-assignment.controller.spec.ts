@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { FolderDocument } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
@@ -39,6 +40,21 @@ const mockRequest = {
   params: { ingredientId },
   query: {},
 } as unknown as Request;
+
+/** The mocked service returns a full Prisma row, so the fixture is complete. */
+const folder = {
+  id: folderId,
+  brandId,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  description: null,
+  isActive: true,
+  isDeleted: false,
+  label: 'Campaigns',
+  organizationId,
+  parentId: null,
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  userId,
+} as FolderDocument;
 
 const ingredient = {
   id: ingredientId,
@@ -95,12 +111,7 @@ describe('IngredientsController folder assignment', () => {
   });
 
   it('assigns an owned asset to an active folder in caller scope', async () => {
-    foldersService.findOne.mockResolvedValue({
-      id: folderId,
-      brandId,
-      isDeleted: false,
-      organizationId,
-    });
+    foldersService.findOne.mockResolvedValue(folder);
     ingredientsService.findOne
       .mockResolvedValueOnce(ingredient)
       .mockResolvedValueOnce({ ...ingredient, folderId });
@@ -150,10 +161,8 @@ describe('IngredientsController folder assignment', () => {
   it('rejects a folder outside the caller brand scope', async () => {
     ingredientsService.findOne.mockResolvedValueOnce(ingredient);
     foldersService.findOne.mockResolvedValue({
-      id: folderId,
+      ...folder,
       brandId: testId('brand', 2),
-      isDeleted: false,
-      organizationId,
     });
 
     const result = await controller.update(

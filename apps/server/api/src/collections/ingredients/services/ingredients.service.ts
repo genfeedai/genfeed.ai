@@ -667,15 +667,11 @@ export class IngredientsService extends BaseService<
    * three of the six shelves fall out of a single `groupBy` that also carries the
    * `fileSize` sum, so the storage meter costs nothing extra.
    */
-  @HandleErrors()
+  @HandleErrors('get library summary', 'ingredients')
   async getLibrarySummary(
     organizationId: string,
     filters: Prisma.IngredientWhereInput = {},
   ): Promise<ILibrarySummary> {
-    const baseWhere: Prisma.IngredientWhereInput = scopedWhere(organizationId, {
-      ...filters,
-    });
-
     const defaultStatuses = [...LibraryShelfUtil.defaultStatuses];
 
     const [
@@ -690,35 +686,35 @@ export class IngredientsService extends BaseService<
         _count: { id: true },
         _sum: { fileSize: true },
         by: ['category', 'status'],
-        where: baseWhere,
+        where: scopedWhere(organizationId, { ...filters }),
       }),
       this.prisma.ingredient.count({
-        where: {
-          ...baseWhere,
+        where: scopedWhere(organizationId, {
+          ...filters,
           ...LibraryShelfUtil.buildShelfFilter(LibraryShelf.UNSORTED),
-        },
+        }),
       }),
       this.prisma.ingredient.count({
-        where: {
-          ...baseWhere,
+        where: scopedWhere(organizationId, {
+          ...filters,
           ...LibraryShelfUtil.buildShelfFilter(LibraryShelf.NEEDS_REVIEW),
-        },
+        }),
       }),
       this.prisma.ingredient.count({
-        where: {
-          ...baseWhere,
+        where: scopedWhere(organizationId, {
+          ...filters,
           ...LibraryShelfUtil.buildShelfFilter(LibraryShelf.APPROVED),
-        },
+        }),
       }),
       this.prisma.ingredient.count({
-        where: {
-          ...baseWhere,
+        where: scopedWhere(organizationId, {
+          ...filters,
           isFavorite: true,
           status: { in: defaultStatuses },
-        },
+        }),
       }),
       this.prisma.ingredient.count({
-        where: { ...baseWhere, isDeleted: true },
+        where: scopedWhere(organizationId, { ...filters, isDeleted: true }),
       }),
     ]);
 
