@@ -60,6 +60,12 @@ export interface NanoBanana2Input extends BaseImageInput {
   image_search?: boolean;
 }
 
+/** Google Nano Banana 2 Lite */
+export interface NanoBanana2LiteInput extends BaseImageInput {
+  output_format: string;
+  image_input?: string[];
+}
+
 /** Ideogram Character */
 export interface IdeogramCharacterInput extends BaseImageInput {
   character_reference_image: string;
@@ -220,6 +226,7 @@ export type ReplicateImageInput =
   | NanoBananaInput
   | NanoBananaProInput
   | NanoBanana2Input
+  | NanoBanana2LiteInput
   | IdeogramCharacterInput
   | IdeogramV3Input
   | SeeDream4Input
@@ -402,6 +409,18 @@ export interface Seedance2Input extends BaseVideoInput {
   audio?: string;
 }
 
+/** MiniMax H3 multimodal video generation */
+export interface MinimaxH3Input extends BaseVideoInput {
+  duration: number;
+  ratio: string;
+  reference_audio_urls: string[];
+  reference_image_urls: string[];
+  reference_video_urls: string[];
+  resolution: '768P' | '2K';
+  first_frame_image?: string;
+  last_frame_image?: string;
+}
+
 /** PixVerse V6 */
 export interface PixVerseV6Input extends BaseVideoInput {
   aspect_ratio: string;
@@ -514,6 +533,7 @@ export type ReplicateVideoInput =
   | KlingV3OmniVideoInput
   | KlingAvatarV2Input
   | Seedance2Input
+  | MinimaxH3Input
   | PixVerseV6Input
   | GrokImagineVideoInput
   | Gen45Input

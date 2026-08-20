@@ -91,8 +91,31 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         ? { defaultDuration: entry.defaultDuration }
         : {}),
       ...(entry.durations ? { durations: [...entry.durations] } : {}),
+      ...(entry.hasAudioToggle != null
+        ? { hasAudioToggle: entry.hasAudioToggle }
+        : {}),
+      ...(entry.hasDurationEditing != null
+        ? { hasDurationEditing: entry.hasDurationEditing }
+        : {}),
+      ...(entry.hasEndFrame != null ? { hasEndFrame: entry.hasEndFrame } : {}),
+      ...(entry.hasInterpolation != null
+        ? { hasInterpolation: entry.hasInterpolation }
+        : {}),
+      ...(entry.hasResolutionOptions != null
+        ? { hasResolutionOptions: entry.hasResolutionOptions }
+        : {}),
+      ...(entry.hasSpeech != null ? { hasSpeech: entry.hasSpeech } : {}),
       ...(entry.inputCostPerMillionTokens != null
         ? { inputCostPerMillionTokens: entry.inputCostPerMillionTokens }
+        : {}),
+      ...(entry.isBatchSupported != null
+        ? { isBatchSupported: entry.isBatchSupported }
+        : {}),
+      ...(entry.isImagenModel != null
+        ? { isImagenModel: entry.isImagenModel }
+        : {}),
+      ...(entry.isReferencesMandatory != null
+        ? { isReferencesMandatory: entry.isReferencesMandatory }
         : {}),
       ...(entry.maxOutputs != null ? { maxOutputs: entry.maxOutputs } : {}),
       ...(entry.maxReferences != null
@@ -107,6 +130,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.succeededBy ? { succeededBy: entry.succeededBy } : {}),
       ...(entry.supportsFeatures
         ? { supportsFeatures: [...entry.supportsFeatures] }
+        : {}),
+      ...(entry.usesOrientation != null
+        ? { usesOrientation: entry.usesOrientation }
         : {}),
     };
   }
@@ -150,8 +176,16 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.providerCostUsd != null
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
-      // Defaults are the one exception — the router needs a live selection.
-      ...(entry.isDefault ? { isActive: true, isDefault: true } : {}),
+      // Defaults are the one exception — the router and picker need a live,
+      // public selection even when provider discovery created a hidden draft.
+      ...(entry.isDefault
+        ? {
+            isActive: true,
+            isDefault: true,
+            isDiscovered: false,
+            isPublic: true,
+          }
+        : {}),
     };
 
     // Exactly one default per category (`models_global_default_category_key`).

@@ -133,6 +133,7 @@ describe('ReplicateImageBuilder', () => {
     it('should return dedicated models list', () => {
       const models = builder.getSupportedModels();
       expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE);
       expect(models).toContain(
         MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
       );
@@ -144,6 +145,32 @@ describe('ReplicateImageBuilder', () => {
   // buildPrompt - Dedicated models (existing switch-case routing)
   // =========================================================================
   describe('buildPrompt - dedicated models', () => {
+    it('should build Nano Banana 2 Lite without unsupported resolution fields', () => {
+      const references = Array.from(
+        { length: 16 },
+        (_, index) => `https://example.com/reference-${index + 1}.jpg`,
+      );
+      const result = buildImagePrompt(
+        MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
+        createParams({
+          height: 1024,
+          outputFormat: 'png',
+          references,
+          resolution: '2K',
+          width: 1024,
+        }),
+        'A lightweight image',
+      );
+
+      expect(result).toMatchObject({
+        aspect_ratio: '1:1',
+        image_input: references.slice(0, 14),
+        output_format: 'png',
+        prompt: 'A lightweight image',
+      });
+      expect(result.resolution).toBeUndefined();
+    });
+
     it('should route Imagen 4 to dedicated builder', () => {
       const result = buildImagePrompt(
         MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,

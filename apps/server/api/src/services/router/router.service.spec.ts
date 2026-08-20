@@ -1404,7 +1404,7 @@ describe('RouterService', () => {
       expect(loggerService.error).toHaveBeenCalled();
     });
 
-    it('keeps Nano Banana and Seedance 2.5 when the cloud-production registry is empty', async () => {
+    it('uses Nano Banana 2 Lite and MiniMax H3 when the cloud-production registry is empty', async () => {
       vi.mocked(isCloudDeployment).mockReturnValue(true);
       vi.stubEnv('NODE_ENV', 'production');
       modelsService.findAllActive.mockResolvedValue([]);
@@ -1417,11 +1417,11 @@ describe('RouterService', () => {
       });
 
       expect(image).toEqual({
-        key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
         source: 'fallback-constant',
       });
       expect(video).toEqual({
-        key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        key: MODEL_KEYS.REPLICATE_MINIMAX_H3,
         source: 'fallback-constant',
       });
     });

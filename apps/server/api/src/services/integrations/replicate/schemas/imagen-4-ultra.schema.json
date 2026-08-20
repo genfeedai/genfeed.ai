@@ -2,33 +2,51 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Official Replicate API schema for google/imagen-4-ultra",
   "properties": {
+    "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "x-order": 0,
+      "description": "Text prompt for image generation"
+    },
+    "image_size": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/image_size"
+        }
+      ],
+      "default": "1K",
+      "x-order": 2,
+      "description": "Resolution of the generated image"
+    },
     "aspect_ratio": {
-      "description": "An enumeration.",
-      "enum": ["1:1", "9:16", "16:9", "3:4", "4:3"],
-      "title": "aspect_ratio",
-      "type": "string"
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/aspect_ratio"
+        }
+      ],
+      "default": "1:1",
+      "x-order": 1,
+      "description": "Aspect ratio of the generated image"
     },
     "output_format": {
-      "description": "An enumeration.",
-      "enum": ["jpg", "png"],
-      "title": "output_format",
-      "type": "string"
-    },
-    "prompt": {
-      "description": "Text prompt for image generation",
-      "title": "Prompt",
-      "type": "string",
-      "x-order": 0
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/output_format"
+        }
+      ],
+      "default": "jpg",
+      "x-order": 4,
+      "description": "Format of the output image"
     },
     "safety_filter_level": {
-      "description": "An enumeration.",
-      "enum": [
-        "block_low_and_above",
-        "block_medium_and_above",
-        "block_only_high"
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/safety_filter_level"
+        }
       ],
-      "title": "safety_filter_level",
-      "type": "string"
+      "default": "block_only_high",
+      "x-order": 3,
+      "description": "block_low_and_above is strictest, block_medium_and_above blocks some prompts, block_only_high is most permissive but some prompts will still be blocked"
     }
   },
   "required": ["prompt"],

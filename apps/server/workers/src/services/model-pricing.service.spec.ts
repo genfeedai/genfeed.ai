@@ -274,6 +274,13 @@ describe('ModelPricingService', () => {
   });
 
   describe('getKnownReplicateCost', () => {
+    it('should return current image and video default costs', () => {
+      expect(service.getKnownReplicateCost('google/nano-banana-2-lite')).toBe(
+        0.034,
+      );
+      expect(service.getKnownReplicateCost('minimax/h3')).toBe(0.13);
+    });
+
     it('should return known cost for google/veo-3', () => {
       const result = service.getKnownReplicateCost('google/veo-3');
 

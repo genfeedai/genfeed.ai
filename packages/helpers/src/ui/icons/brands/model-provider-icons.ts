@@ -37,6 +37,10 @@ export const LumaIcon = createBrandIcon(
   'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm4.2 10.2A6.2 6.2 0 0 1 8 17.1 7.8 7.8 0 1 0 16.2 12.2z',
 );
 
+export const MinimaxIcon = createBrandIcon(
+  'M2.5 19.5V4.5h4.2l5.3 7.2 5.3-7.2h4.2v15h-4.6v-8l-4.9 6.3-4.9-6.3v8H2.5z',
+);
+
 export const MoonshotIcon = createBrandIcon(
   'M13.2 3.2a9.2 9.2 0 1 0 7.6 13.4 7.2 7.2 0 1 1-7.6-13.4z',
 );

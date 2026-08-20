@@ -17,6 +17,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { MODEL_KEYS } from '../packages/constants/src/model-keys.constant';
 
 const REPLICATE_KEY = process.env.REPLICATE_KEY;
 if (!REPLICATE_KEY) {
@@ -29,79 +30,15 @@ const SCHEMAS_DIR = join(
   'apps/server/api/src/services/integrations/replicate/schemas',
 );
 
-/** Known Replicate model IDs (owner/model-name format) */
-const REPLICATE_MODELS = [
-  'google/imagen-3',
-  'google/imagen-3-fast',
-  'google/imagen-4',
-  'google/imagen-4-fast',
-  'google/imagen-4-ultra',
-  'google/nano-banana',
-  'google/nano-banana-pro',
-  'google/nano-banana-2',
-  'google/veo-2',
-  'google/veo-3',
-  'google/veo-3-fast',
-  'google/veo-3.1',
-  'google/veo-3.1-fast',
-  'google/gemini-2.5-flash',
-  'google/gemini-3-pro',
-  'ideogram-ai/ideogram-character',
-  'ideogram-ai/ideogram-v3-balanced',
-  'ideogram-ai/ideogram-v3-quality',
-  'ideogram-ai/ideogram-v3-turbo',
-  'openai/gpt-5.2',
-  'openai/gpt-image-1.5',
-  'openai/gpt-image-2',
-  'openai/clip',
-  'openai/sora-2',
-  'openai/sora-2-pro',
-  'qwen/qwen-image',
-  'recraft-ai/recraft-v4',
-  'recraft-ai/recraft-v4-pro',
-  'runwayml/gen4-image-turbo',
-  'runwayml/gen-4.5',
-  'bytedance/seedream-4',
-  'bytedance/seedream-4.5',
-  'bytedance/seedream-5-lite',
-  'bytedance/seedance-2.0',
-  'bytedance/seedance-2.0-fast',
-  'bytedance/seedance-2.5',
-  'bytedance/seedream-5-pro',
-  'bytedance/video-upscaler',
-  'black-forest-labs/flux-1.1-pro',
-  'black-forest-labs/flux-2-dev',
-  'black-forest-labs/flux-2-flex',
-  'black-forest-labs/flux-2-max',
-  'black-forest-labs/flux-2-pro',
-  'black-forest-labs/flux-kontext-max',
-  'black-forest-labs/flux-kontext-pro',
-  'black-forest-labs/flux-schnell',
-  'luma/reframe-image',
-  'luma/reframe-video',
-  'topazlabs/image-upscale',
-  'topazlabs/video-upscale',
-  'kwaivgi/kling-v1.6-pro',
-  'kwaivgi/kling-v2.1',
-  'kwaivgi/kling-v2.1-master',
-  'kwaivgi/kling-v2.5-turbo-pro',
-  'kwaivgi/kling-v2.6',
-  'kwaivgi/kling-o1',
-  'minimax/hailuo-2.3',
-  'minimax/hailuo-2.3-fast',
-  'pixverse/pixverse-v6',
-  'vidu/q3-pro',
-  'vidu/q3-turbo',
-  'xai/grok-imagine-image',
-  'xai/grok-imagine-video',
-  'prunaai/p-video',
-  'wan-video/wan-2.2-i2v-fast',
-  'wan-video/wan-2.7-t2v',
-  'google/veo-3.1-lite',
-  'meta/musicgen',
-  'deepseek-ai/deepseek-r1',
-  'meta/meta-llama-3.1-405b-instruct',
-];
+/**
+ * All cataloged Replicate model IDs (owner/model-name format).
+ * Derive this list from MODEL_KEYS so adding a Replicate model cannot leave the
+ * schema sync catalog stale.
+ */
+const REPLICATE_MODELS = Object.entries(MODEL_KEYS)
+  .filter(([key]) => key.startsWith('REPLICATE_'))
+  .map(([, modelId]) => modelId)
+  .sort();
 
 interface ReplicateModelResponse {
   latest_version?: {

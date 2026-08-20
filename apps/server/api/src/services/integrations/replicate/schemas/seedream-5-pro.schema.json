@@ -1,54 +1,54 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "description": "Input schema for bytedance/seedream-5-pro (curated from Replicate docs; re-sync with scripts/sync-replicate-schemas.ts when REPLICATE_KEY is available)",
+  "description": "Official Replicate API schema for bytedance/seedream-5-pro",
   "properties": {
-    "aspect_ratio": {
-      "default": "1:1",
-      "description": "Output aspect ratio. match_input_image follows the first reference.",
-      "enum": [
-        "match_input_image",
-        "1:1",
-        "16:9",
-        "9:16",
-        "4:3",
-        "3:4",
-        "3:2",
-        "2:3",
-        "21:9"
+    "size": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/size"
+        }
       ],
-      "title": "Aspect Ratio",
-      "type": "string",
-      "x-order": 1
-    },
-    "image_input": {
-      "description": "Up to 10 reference images for character/style consistency",
-      "items": { "format": "uri", "type": "string" },
-      "maxItems": 10,
-      "title": "Image Input",
-      "type": "array",
-      "x-order": 3
-    },
-    "output_format": {
-      "default": "png",
-      "description": "Output image format",
-      "enum": ["png", "jpeg", "jpg"],
-      "title": "Output Format",
-      "type": "string",
-      "x-order": 4
+      "default": "2K",
+      "x-order": 2,
+      "description": "Image resolution: 1K (~2 megapixels) or 2K (~4 megapixels)."
     },
     "prompt": {
-      "description": "Text prompt for image generation",
+      "type": "string",
       "title": "Prompt",
-      "type": "string",
-      "x-order": 0
+      "x-order": 0,
+      "maxLength": 4000,
+      "description": "Text prompt for image generation. Maximum 4000 characters. BytePlus recommends keeping prompts under 600 English words for best results."
     },
-    "size": {
-      "default": "2K",
-      "description": "1K (~2MP, $0.045) or 2K (~4MP, $0.09) per image",
-      "enum": ["1K", "2K"],
-      "title": "Size",
-      "type": "string",
-      "x-order": 2
+    "image_input": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Image Input",
+      "default": [],
+      "x-order": 1,
+      "description": "Input image(s) for image-to-image generation. List of 1-10 reference images for single or multi-reference generation."
+    },
+    "aspect_ratio": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/aspect_ratio"
+        }
+      ],
+      "default": "match_input_image",
+      "x-order": 3,
+      "description": "Image aspect ratio. Use 'match_input_image' to automatically match the input image's aspect ratio."
+    },
+    "output_format": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/output_format"
+        }
+      ],
+      "default": "png",
+      "x-order": 4,
+      "description": "Output image format."
     }
   },
   "required": ["prompt"],

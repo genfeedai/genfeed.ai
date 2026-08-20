@@ -37,7 +37,10 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { isCloudDeployment } from '@genfeedai/config';
-import { LOWEST_COST_IMAGE_MODEL_KEY, MODEL_KEYS } from '@genfeedai/constants';
+import {
+  CLOUD_QUALITY_IMAGE_MODEL_KEY,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+} from '@genfeedai/constants';
 import {
   ActivitySource,
   AssetCategory,
@@ -174,7 +177,7 @@ export class AssetsOperationsController {
 
     const selectedModel =
       this.configService.isProduction && isCloudDeployment()
-        ? MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA
+        ? CLOUD_QUALITY_IMAGE_MODEL_KEY
         : LOWEST_COST_IMAGE_MODEL_KEY;
 
     // Build enhanced prompt using brand information

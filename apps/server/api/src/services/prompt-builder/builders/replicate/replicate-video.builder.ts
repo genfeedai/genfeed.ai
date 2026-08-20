@@ -15,6 +15,7 @@ import type {
   GrokImagineVideoInput,
   Hailuo23FastInput,
   Hailuo23Input,
+  MinimaxH3Input,
   PixVerseV6Input,
   PVideoInput,
   ReplicateVideoInput,
@@ -84,6 +85,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       // Minimax Hailuo
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3,
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      MODEL_KEYS.REPLICATE_MINIMAX_H3,
       // Vidu
       MODEL_KEYS.REPLICATE_VIDU_Q3_PRO,
       MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO,
@@ -193,6 +195,9 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
       case MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST:
         return this.buildHailuo23FastPrompt(model, params, promptText);
+
+      case MODEL_KEYS.REPLICATE_MINIMAX_H3:
+        return this.buildMinimaxH3Prompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_VIDU_Q3_PRO:
       case MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO:
@@ -681,6 +686,44 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
 
     if (params.seed !== undefined) {
       input.seed = params.seed;
+    }
+
+    return input;
+  }
+
+  private buildMinimaxH3Prompt(
+    model: string,
+    params: PromptBuilderParams,
+    promptText: string,
+  ): MinimaxH3Input {
+    const firstFrame = params.references?.[0];
+    const calculatedRatio = calculateAspectRatio(params.width, params.height);
+    const ratio = firstFrame
+      ? 'adaptive'
+      : normalizeAspectRatioForModel(model, calculatedRatio);
+    const duration = Math.min(
+      Math.max(Math.round(params.duration ?? 5), 4),
+      15,
+    );
+    const resolution =
+      params.resolution?.toUpperCase() === '768P' ? '768P' : '2K';
+
+    const input: MinimaxH3Input = {
+      duration,
+      prompt: promptText,
+      ratio,
+      reference_audio_urls: params.audioUrl ? [params.audioUrl] : [],
+      reference_image_urls: params.references?.slice(1, 10) ?? [],
+      reference_video_urls: params.video ? [params.video] : [],
+      resolution,
+    };
+
+    if (firstFrame) {
+      input.first_frame_image = firstFrame;
+    }
+
+    if (params.endFrame) {
+      input.last_frame_image = params.endFrame;
     }
 
     return input;

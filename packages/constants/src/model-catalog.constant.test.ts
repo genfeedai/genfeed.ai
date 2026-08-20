@@ -112,17 +112,29 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(freeActiveRows).toEqual([]);
   });
 
-  it('seeds Seedance 2.5 as the default video model with provider USD for live margin', () => {
+  it('seeds Nano Banana 2 Lite as the cloud image default', () => {
+    const imageDefaults = UNIFIED_MODEL_CATALOG.filter(
+      (entry) => entry.category === ModelCategory.IMAGE && entry.isDefault,
+    );
+
+    expect(imageDefaults).toHaveLength(1);
+    expect(imageDefaults[0]?.key).toBe('google/nano-banana-2-lite');
+    expect(imageDefaults[0]?.isActive).toBe(true);
+    expect(imageDefaults[0]?.provider).toBe(ModelProvider.REPLICATE);
+    expect(imageDefaults[0]?.providerCostUsd).toBe(0.034);
+  });
+
+  it('seeds MiniMax H3 as the cloud video default with provider USD for live margin', () => {
     const videoDefaults = UNIFIED_MODEL_CATALOG.filter(
       (entry) => entry.category === ModelCategory.VIDEO && entry.isDefault,
     );
 
     expect(videoDefaults).toHaveLength(1);
-    expect(videoDefaults[0]?.key).toBe('bytedance/seedance-2.5');
+    expect(videoDefaults[0]?.key).toBe('minimax/h3');
     expect(videoDefaults[0]?.isActive).toBe(true);
     expect(videoDefaults[0]?.pricingType).toBe('per-second');
     // Bill time multiplies this USD/s by duration then applyMargin(admin).
-    expect(videoDefaults[0]?.providerCostUsd).toBeGreaterThanOrEqual(0.2);
+    expect(videoDefaults[0]?.providerCostUsd).toBe(0.13);
   });
 
   it('promotes lowest-cost image, video, and chat defaults off cloud production', () => {

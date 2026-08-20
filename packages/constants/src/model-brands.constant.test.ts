@@ -44,5 +44,8 @@ describe('getBrandConfig', () => {
     expect(getBrandConfig(extractBrandFromKey('klingai-v2')).label).toBe(
       'Kling',
     );
+    expect(getBrandConfig(extractBrandFromKey('minimax/h3')).label).toBe(
+      'MiniMax',
+    );
   });
 });

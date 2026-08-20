@@ -15,6 +15,7 @@ import type {
   LumaReframeImageInput,
   LumaReframeVideoInput,
   NanoBanana2Input,
+  NanoBanana2LiteInput,
   NanoBananaInput,
   NanoBananaProInput,
   QwenImageInput,
@@ -59,6 +60,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
     MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
     // Ideogram
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
     MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
@@ -143,6 +145,9 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
 
       case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2:
         return this.buildNanoBanana2Prompt(model, params, promptText);
+
+      case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE:
+        return this.buildNanoBanana2LitePrompt(model, params, promptText);
 
       // Ideogram
       case MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER:
@@ -394,6 +399,33 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     if (params.resolution) {
       input.resolution = params.resolution;
     }
+
+    if (hasImageInput) {
+      input.image_input = params.references?.slice(0, 14);
+    }
+
+    return input;
+  }
+
+  private buildNanoBanana2LitePrompt(
+    model: string,
+    params: PromptBuilderParams,
+    promptText: string,
+  ): NanoBanana2LiteInput {
+    const calculatedAspectRatio = calculateAspectRatio(
+      params.width,
+      params.height,
+    );
+    const hasImageInput = Boolean(params.references?.length);
+    const aspectRatio =
+      calculatedAspectRatio ||
+      (hasImageInput ? 'match_input_image' : getDefaultAspectRatio(model));
+
+    const input: NanoBanana2LiteInput = {
+      aspect_ratio: aspectRatio,
+      output_format: params.outputFormat ?? 'jpg',
+      prompt: promptText,
+    };
 
     if (hasImageInput) {
       input.image_input = params.references?.slice(0, 14);

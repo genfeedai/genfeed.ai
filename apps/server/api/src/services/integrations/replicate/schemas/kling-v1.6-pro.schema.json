@@ -2,57 +2,65 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Official Replicate API schema for kwaivgi/kling-v1.6-pro",
   "properties": {
-    "aspect_ratio": {
-      "description": "An enumeration.",
-      "enum": ["16:9", "9:16", "1:1"],
-      "title": "aspect_ratio",
-      "type": "string"
-    },
-    "cfg_scale": {
-      "default": 0.5,
-      "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
-      "maximum": 1,
-      "minimum": 0,
-      "title": "Cfg Scale",
-      "type": "number"
+    "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "description": "Text prompt for video generation"
     },
     "duration": {
-      "description": "An enumeration.",
-      "enum": [5, 10],
-      "title": "duration",
-      "type": "integer"
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/duration"
+        }
+      ],
+      "default": 5,
+      "x-order": 7,
+      "description": "Duration of the video in seconds"
+    },
+    "cfg_scale": {
+      "type": "number",
+      "title": "Cfg Scale",
+      "default": 0.5,
+      "maximum": 1,
+      "minimum": 0,
+      "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt."
     },
     "end_image": {
-      "description": "Last frame of the video. A start or end image is required.",
-      "format": "uri",
+      "type": "string",
       "title": "End Image",
-      "type": "string"
-    },
-    "negative_prompt": {
-      "default": "",
-      "description": "Things you do not want to see in the video",
-      "title": "Negative Prompt",
-      "type": "string"
-    },
-    "prompt": {
-      "description": "Text prompt for video generation",
-      "title": "Prompt",
-      "type": "string"
-    },
-    "reference_images": {
-      "description": "Reference images to use in video generation (up to 4 images). Also known as scene elements.",
-      "items": {
-        "format": "uri",
-        "type": "string"
-      },
-      "title": "Reference Images",
-      "type": "array"
+      "format": "uri",
+      "description": "Last frame of the video. A start or end image is required."
     },
     "start_image": {
-      "description": "First frame of the video. A start or end image is required.",
-      "format": "uri",
+      "type": "string",
       "title": "Start Image",
-      "type": "string"
+      "format": "uri",
+      "description": "First frame of the video. A start or end image is required."
+    },
+    "aspect_ratio": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/aspect_ratio"
+        }
+      ],
+      "default": "16:9",
+      "x-order": 2,
+      "description": "Aspect ratio of the video. Ignored if start_image is provided."
+    },
+    "negative_prompt": {
+      "type": "string",
+      "title": "Negative Prompt",
+      "default": "",
+      "description": "Things you do not want to see in the video"
+    },
+    "reference_images": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Reference Images",
+      "description": "Reference images to use in video generation (up to 4 images). Also known as scene elements."
     }
   },
   "required": ["prompt"],

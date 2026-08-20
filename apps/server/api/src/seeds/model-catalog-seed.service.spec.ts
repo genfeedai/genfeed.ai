@@ -109,6 +109,8 @@ describe('ModelCatalogSeedService', () => {
     expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
       isActive: true,
       isDefault: true,
+      isDiscovered: false,
+      isPublic: true,
     });
   });
 
@@ -116,7 +118,7 @@ describe('ModelCatalogSeedService', () => {
     const videoDefault = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.category === 'video' && entry.isDefault,
     );
-    expect(videoDefault?.key).toBe('bytedance/seedance-2.5');
+    expect(videoDefault?.key).toBe('minimax/h3');
 
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
@@ -126,23 +128,31 @@ describe('ModelCatalogSeedService', () => {
         where: expect.objectContaining({
           category: 'video',
           isDefault: true,
-          key: { not: 'bytedance/seedance-2.5' },
+          key: { not: 'minimax/h3' },
         }),
       }),
     );
   });
 
-  it('writes providerCostUsd for live-margin bill time on Seedance 2.5', async () => {
+  it('writes provider cost and generation controls for MiniMax H3', async () => {
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
-    const call = callForKey('bytedance/seedance-2.5');
+    const call = callForKey('minimax/h3');
     expect(call?.create).toMatchObject({
+      defaultDuration: 5,
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasResolutionOptions: true,
       pricingType: 'per-second',
-      providerCostUsd: 0.24,
+      providerCostUsd: 0.13,
     });
     expect(call?.update).toMatchObject({
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasResolutionOptions: true,
       pricingType: 'per-second',
-      providerCostUsd: 0.24,
+      providerCostUsd: 0.13,
     });
   });
 
