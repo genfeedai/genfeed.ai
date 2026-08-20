@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -65,6 +65,22 @@ describe('UserDropdown', () => {
     expect(screen.getByRole('img', { name: 'Test User' })).toHaveClass(
       'rounded-full',
     );
+  });
+
+  it('uses the full identity row as the account menu trigger', () => {
+    render(
+      <UserDropdown
+        showIdentity
+        userName="Test User"
+        userEmail="test@example.com"
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: 'Open account menu' });
+    expect(trigger).toHaveClass('w-full', 'p-3');
+    expect(within(trigger).getByText('Test User')).toBeVisible();
+    expect(within(trigger).getByText('test@example.com')).toBeVisible();
+    expect(within(trigger).getByText('T')).toBeVisible();
   });
 
   it('switches between the settings scopes (Help lives in the personal scope)', () => {

@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { cn } from '@ui/lib/utils';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -28,12 +29,14 @@ interface UserDropdownProps {
   userEmail: string;
   imageUrl?: string | null;
   settingsScope?: 'all' | 'user';
+  showIdentity?: boolean;
   side?: 'top' | 'bottom';
 }
 
 export default function UserDropdown({
   imageUrl,
   settingsScope = 'all',
+  showIdentity = false,
   side = 'top',
   userName,
   userEmail,
@@ -74,7 +77,13 @@ export default function UserDropdown({
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
-          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          textTransform="none"
+          className={cn(
+            'flex-shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            showIdentity
+              ? 'flex h-auto w-full min-w-0 items-center justify-start gap-2.5 p-3 text-left transition-colors hover:bg-hover'
+              : 'size-8 overflow-hidden rounded-full transition-opacity hover:opacity-90',
+          )}
           ariaLabel="Open account menu"
         >
           {imageUrl ? (
@@ -91,6 +100,18 @@ export default function UserDropdown({
               {initial}
             </span>
           )}
+          {showIdentity ? (
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium text-foreground">
+                {userName}
+              </span>
+              {userEmail ? (
+                <span className="block truncate text-xs text-muted-foreground">
+                  {userEmail}
+                </span>
+              ) : null}
+            </span>
+          ) : null}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="end" className="w-56">

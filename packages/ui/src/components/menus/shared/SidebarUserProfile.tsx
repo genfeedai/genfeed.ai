@@ -64,24 +64,13 @@ export default function SidebarUserProfile({
   }
 
   return (
-    <div className="border-t border-border p-3">
-      <div className="flex items-center gap-2.5">
-        <UserDropdown
-          imageUrl={user.imageUrl}
-          userName={displayName}
-          userEmail={emailAddress}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground">
-            {displayName}
-          </p>
-          {emailAddress ? (
-            <p className="truncate text-xs text-muted-foreground">
-              {emailAddress}
-            </p>
-          ) : null}
-        </div>
-      </div>
+    <div className="border-t border-border">
+      <UserDropdown
+        showIdentity
+        imageUrl={user.imageUrl}
+        userName={displayName}
+        userEmail={emailAddress}
+      />
     </div>
   );
 }
