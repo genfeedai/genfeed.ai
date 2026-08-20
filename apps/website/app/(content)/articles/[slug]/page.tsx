@@ -12,6 +12,32 @@ import { getPublicArticleBySlugCached } from './article-loader';
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 
+/**
+ * Ahrefs flags a `<title>` over 63 characters as "Title too long", and Google
+ * truncates around the same width. Long headlines used to get the site suffix
+ * appended unconditionally, which pushed the Show HN / Product Hunt article to
+ * 77 characters. Drop the suffix before it overflows, then trim on a word
+ * boundary if the headline alone still exceeds the budget.
+ */
+const TITLE_MAX_LENGTH = 63;
+
+export function buildArticlePageTitle(articleTitle: string): string {
+  const suffixed = `${articleTitle} | ${metadata.name}`;
+
+  if (suffixed.length <= TITLE_MAX_LENGTH) {
+    return suffixed;
+  }
+
+  if (articleTitle.length <= TITLE_MAX_LENGTH) {
+    return articleTitle;
+  }
+
+  const clipped = articleTitle.slice(0, TITLE_MAX_LENGTH - 1);
+  const lastSpace = clipped.lastIndexOf(' ');
+
+  return `${(lastSpace > 0 ? clipped.slice(0, lastSpace) : clipped).trimEnd()}…`;
+}
+
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
   try {
     const articles = await PublicService.getInstance().findPublicArticles({
@@ -85,7 +111,7 @@ export async function generateMetadata({
       ...(article.createdAt && { publishedTime: article.createdAt }),
       ...(article.updatedAt && { modifiedTime: article.updatedAt }),
     },
-    title: `${articleTitle} | ${metadata.name}`,
+    title: buildArticlePageTitle(articleTitle),
     twitter: {
       card: 'summary_large_image',
       creator: '@genfeedai',
