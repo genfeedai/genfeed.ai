@@ -13,8 +13,20 @@ export const isTest = String(process.env.NODE_ENV) === 'test';
 export const apiEndpoint =
   process.env.PLASMO_PUBLIC_API_ENDPOINT || 'https://api.genfeed.ai/v1';
 
+/**
+ * Public brand assets live under `cdn.genfeed.ai/assets/**` — the same bucket
+ * the web apps read through `EnvironmentService.assetsEndpoint`. The old
+ * `assets.genfeed.ai` host does not exist and 404s every request, so the
+ * popup logo and the injected dropdown logo both rendered broken.
+ */
 export const assetsEndpoint =
-  process.env.PLASMO_PUBLIC_ASSETS_ENDPOINT || 'https://assets.genfeed.ai';
+  process.env.PLASMO_PUBLIC_ASSETS_ENDPOINT || 'https://cdn.genfeed.ai/assets';
+
+/** Brand mark used by the popup header. */
+export const logoURL = `${assetsEndpoint}/branding/logo.svg`;
+
+/** Brand mark for dark surfaces — the injected platform dropdown button. */
+export const logoWhiteURL = `${assetsEndpoint}/branding/logo-white.png`;
 
 export const cdnEndpoint = isDevelopment
   ? 'https://api.genfeed.localhost'
@@ -90,6 +102,8 @@ export const EnvironmentService = {
   isProduction,
   isTest,
   JWT_LABEL,
+  logoURL,
+  logoWhiteURL,
   websiteDomain,
   wsEndpoint,
 };

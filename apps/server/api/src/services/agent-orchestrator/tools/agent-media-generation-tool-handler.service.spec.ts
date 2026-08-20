@@ -261,6 +261,31 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
     expect(result.error).toMatch(/CDN URL|asset id/i);
   });
 
+  it('forwards the thread scope brandId to POST /v1/images', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: {
+          cdnUrl: 'https://cdn.example.com/logo.png',
+        },
+        id: 'ingredient-1',
+      },
+    });
+
+    await handler.generateImage({ prompt: 'red apple' }, context);
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/images',
+      expect.objectContaining({
+        autoSelectModel: true,
+        brandId: 'brand-1',
+        text: expect.any(String),
+      }),
+      context,
+    );
+  });
+
   it('forwards the requested output count to POST /v1/images', async () => {
     const { handler, internalApi } = createHandler();
     internalApi.callInternalApi.mockResolvedValue({
@@ -311,6 +336,33 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
       type: 'content_preview_card',
     });
     expect(onboardingHandler.completeJourneyMission).toHaveBeenCalled();
+  });
+});
+
+describe('AgentMediaGenerationToolHandler generateVideo', () => {
+  it('forwards the thread scope brandId to POST /v1/videos', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: {
+          cdnUrl: 'https://cdn.example.com/clip.mp4',
+        },
+        id: 'video-1',
+      },
+    });
+
+    await handler.generateVideo({ prompt: 'red apple' }, context);
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/videos',
+      expect.objectContaining({
+        autoSelectModel: true,
+        brandId: 'brand-1',
+        text: expect.any(String),
+      }),
+      context,
+    );
   });
 });
 

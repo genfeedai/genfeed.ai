@@ -38,14 +38,14 @@ export default function FeatureGrid({
             const Icon = feature.icon;
             const content = (
               <>
-                <div className="mb-12 text-xs font-semibold uppercase tracking-widest text-surface/20">
+                <div className="mb-12 text-xs font-semibold uppercase tracking-widest text-surface/55">
                   {feature.number} / {feature.label}
                 </div>
-                <Icon className="mb-8 size-10 text-surface/40 transition-all group-hover:text-surface" />
+                <Icon className="mb-8 size-10 text-surface/55 transition-all group-hover:text-surface" />
                 <h3 className="mb-4 text-xl font-semibold uppercase tracking-tight">
                   {feature.title}
                 </h3>
-                <p className="mb-8 text-sm leading-relaxed text-surface/40">
+                <p className="mb-8 text-sm leading-relaxed text-surface/55">
                   {feature.description}
                 </p>
                 {feature.href ? (

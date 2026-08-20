@@ -46,9 +46,8 @@ export function getComposerFollowUpQueue(
 
 export function createComposerFollowUp(
   content: string,
-  extras: Pick<
-    ComposerFollowUp,
-    'attachments' | 'mentions' | 'options' | 'threadId'
+  extras: Partial<
+    Pick<ComposerFollowUp, 'attachments' | 'mentions' | 'options' | 'threadId'>
   > = {},
   createId: () => string = () =>
     `follow-up-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

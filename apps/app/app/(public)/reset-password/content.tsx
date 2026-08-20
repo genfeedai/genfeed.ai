@@ -9,21 +9,13 @@ import { Input } from '@ui/primitives/input';
 import { CircleCheck, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
 import { getAuthCallbackURL, getAuthFlowHref } from '../auth-callback-url';
 import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
 } from '../auth-ui';
 
-const subscribe = () => () => {};
-const getSnapshot = () => true;
-const getServerSnapshot = () => false;
 const MIN_PASSWORD_LENGTH = 8;
 
 function getTokenErrorMessage(errorCode: string | null): string {
@@ -36,11 +28,6 @@ function getTokenErrorMessage(errorCode: string | null): string {
 
 export default function ResetPasswordContent() {
   const searchParams = useSearchParams();
-  const isMounted = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,10 +83,6 @@ export default function ResetPasswordContent() {
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  if (!isMounted) {
-    return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
   }
 
   if (isResetComplete) {

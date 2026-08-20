@@ -112,7 +112,7 @@ vi.mock('@models/organization/brand.model', () => ({
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
-    assetsEndpoint: 'https://assets.genfeed.ai',
+    assetsEndpoint: 'https://cdn.genfeed.ai/assets',
     // CDN root without `/ingredients` — brandLogoUrl composes `/logos/...`.
     cdnUrl: 'https://cdn.genfeed.ai',
     // Ingredient media still uses the dedicated ingredients endpoint.

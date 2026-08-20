@@ -54,8 +54,8 @@ import {
 } from '@/features/workflows/utils/workflow-graph';
 import { createEditorWorkflowRunTracker } from '@/lib/analytics';
 import { promptsApi, workflowsApi } from '@/lib/api';
-import { apiClient } from '@/lib/api/client';
 import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
+import { postWorkflowExecution } from '@/lib/api/execution-http-client';
 import { createSettingsSyncService } from '@/lib/api/settings-sync';
 import { applyEditOperations } from '@/lib/chat/editOperations';
 import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
@@ -211,11 +211,7 @@ export default function WorkflowNewPageClient() {
       executionApiBaseUrl: EnvironmentService.apiEndpoint,
       executionHeaders: getExecutionProviderHeaders,
       executionHttpClient: {
-        post: <T,>(
-          path: string,
-          body?: Record<string, unknown>,
-          options?: { headers?: Record<string, string> },
-        ): Promise<T> => apiClient.post<T>(path, body, options),
+        post: postWorkflowExecution,
       },
       logger,
       promptLibrary: promptsApi,

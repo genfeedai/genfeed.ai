@@ -203,7 +203,7 @@ describe('ReplyPollingWorkflowService', () => {
             }),
           }),
         }),
-        where: { id: 'workflow-1' },
+        where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
       }),
     );
     expect(result).toMatchObject({
@@ -276,7 +276,7 @@ describe('ReplyPollingWorkflowService', () => {
             }),
           }),
         }),
-        where: { id: 'workflow-1' },
+        where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
       }),
     );
     expect(result).toMatchObject({

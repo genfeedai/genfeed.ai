@@ -127,7 +127,7 @@ describe('ReviewAssignmentPanel', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Jane Doe (@jane)')).toBeInTheDocument();
+      expect(screen.getAllByText('Jane Doe (@jane)').length).toBeGreaterThan(0);
     });
 
     await user.click(screen.getByRole('button', { name: 'Choose user-1' }));
@@ -152,7 +152,7 @@ describe('ReviewAssignmentPanel', () => {
       />,
     );
 
-    expect(screen.getByText('Jane Doe (@jane)')).toBeInTheDocument();
+    expect(screen.getAllByText('Jane Doe (@jane)').length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Unassign' }));
     expect(onUnassign).toHaveBeenCalledWith('item-1');

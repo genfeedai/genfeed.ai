@@ -18,6 +18,8 @@ import {
 } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_SCHNELL_CAPABILITY_PROFILE,
+  FLUX_SCHNELL_CAPABILITY_PROFILE_ID,
+  FLUX_SCHNELL_CAPABILITY_PROFILE_VERSION,
   FLUX_SCHNELL_MODEL_KEY,
 } from '@api-types/contracts/generation-capability-profile.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
@@ -205,8 +207,8 @@ export function compileFluxSchnellGenerationBrief(
       numOutputs: defaults.numOutputs,
       outputFormat,
     },
-    profileId: FLUX_SCHNELL_CAPABILITY_PROFILE.id,
-    profileVersion: FLUX_SCHNELL_CAPABILITY_PROFILE.version,
+    profileId: FLUX_SCHNELL_CAPABILITY_PROFILE_ID,
+    profileVersion: FLUX_SCHNELL_CAPABILITY_PROFILE_VERSION,
     referenceAssetIds: input.brief.references.map(
       (reference) => reference.assetId,
     ),

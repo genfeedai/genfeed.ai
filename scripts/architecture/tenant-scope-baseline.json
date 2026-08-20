@@ -1881,22 +1881,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "watchlist",
-      "file": "apps/server/api/src/collections/watchlists/services/watchlists.service.ts",
-      "fingerprint": "f65b4fa51c2d4bbef30d",
-      "method": "findUnique",
-      "model": "Watchlist",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "watchlist",
-      "file": "apps/server/api/src/collections/watchlists/services/watchlists.service.ts",
-      "fingerprint": "39ebab6646cfb5220829",
-      "method": "findUnique",
-      "model": "Watchlist",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "workflowExecution",
       "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
       "fingerprint": "aa5d5f3d7486bfedd6a2",
@@ -2220,14 +2204,6 @@
       "delegate": "workflow",
       "file": "apps/server/api/src/collections/workflows/services/workflow-trend-publish-executor-registrar.service.ts",
       "fingerprint": "5f840ffaea574ac3a05c",
-      "method": "findFirst",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/api/src/collections/workflows/services/workflow-webhook.service.ts",
-      "fingerprint": "c03b6b494b9669c328a6",
       "method": "findFirst",
       "model": "Workflow",
       "reason": "missing-organization-id"

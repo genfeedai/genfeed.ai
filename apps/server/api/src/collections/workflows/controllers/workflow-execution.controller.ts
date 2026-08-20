@@ -1,7 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import {
   CreditEstimateQueryDto,
   ExecutePartialDto,
+  ExecuteWorkflowDto,
   PatchWorkflowNodesDto,
   ResumeExecutionDto,
   SubmitApprovalDto,
@@ -55,8 +57,63 @@ export class WorkflowExecutionController {
     private readonly workflowRunControlService: WorkflowRunControlService,
     private readonly workflowExecutionAuthorizationService: WorkflowExecutionAuthorizationService,
     private readonly workflowExecutorService: WorkflowExecutorService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
     readonly _loggerService: LoggerService,
   ) {}
+
+  /**
+   * Canvas Run (`POST /workflows/:id/execute`). The page-level Run button
+   * uses `POST /workflow-executions`; both must reach executeManualWorkflow
+   * so a 1-node prompt actually executes.
+   */
+  @Post(':workflowId/execute')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async execute(
+    @Req() request: Request,
+    @Param('workflowId') workflowId: string,
+    @Body() dto: ExecuteWorkflowDto,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiSingleResponse> {
+    return wrapError(async () => {
+      const scope = await this.workflowExecutionAuthorizationService.authorize({
+        expectedContextVersion: dto.expectedContextVersion,
+        organizationId: user.organizationId,
+        requestedBrandId: user.brandId || undefined,
+        threadId: dto.threadId,
+        userId: user.userId ?? user.id,
+        workflowId,
+      });
+
+      if (dto.selectedNodeIds && dto.selectedNodeIds.length > 0) {
+        const partial = await this.workflowRunControlService.executePartial(
+          workflowId,
+          dto.selectedNodeIds,
+          user.userId ?? user.id,
+          user.organizationId,
+        );
+        return serializeSingle(request, WorkflowExecutionSerializer, partial);
+      }
+
+      const result = await this.workflowExecutorService.executeManualWorkflow(
+        workflowId,
+        user.userId ?? user.id,
+        user.organizationId,
+        dto.inputValues ?? {},
+        {
+          ...dto.metadata,
+          ...(dto.debugMode === undefined ? {} : { debugMode: dto.debugMode }),
+        },
+        undefined,
+        scope,
+      );
+      const execution = await this.workflowExecutionsService.findOne({
+        id: result.executionId,
+        organizationId: user.organizationId,
+      });
+      return serializeSingle(request, WorkflowExecutionSerializer, execution);
+    }, 'Failed to execute workflow');
+  }
 
   @Post(':workflowId/execute/partial')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)

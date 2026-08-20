@@ -162,7 +162,7 @@ export default function TermsPage() {
         <section className="py-40 gsap-section">
           <div className="container mx-auto px-6">
             <div className="text-center max-w-3xl mx-auto">
-              <Mail className="size-12 mx-auto text-surface/30 mb-8" />
+              <Mail className="size-12 mx-auto text-surface/55 mb-8" />
               <h2 className="text-5xl font-semibold mb-10">Questions?</h2>
               <p className="text-surface/65 text-xl mb-12 font-medium">
                 If you have any questions about these terms, please contact our

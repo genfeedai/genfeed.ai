@@ -17,11 +17,18 @@ export function buildDocsPosthogOptions(
       dom_event_allowlist: ['click'],
       element_allowlist: ['a', 'button'],
     },
+    // Dead-click and web-vitals autocapture each pull a separate lazy bundle
+    // from the PostHog asset CDN for signal we do not act on. Keep them off so
+    // docs pages stay on a single analytics request.
+    capture_dead_clicks: false,
     capture_pageleave: true,
+    capture_performance: false,
     capture_pageview: 'history_change',
     cookieless_mode: 'always',
     defaults: '2026-05-30',
     disable_session_recording: true,
+    // Surveys are unused here; skipping them avoids surveys.js + preact.
+    disable_surveys: true,
     person_profiles: 'never',
   };
 }
