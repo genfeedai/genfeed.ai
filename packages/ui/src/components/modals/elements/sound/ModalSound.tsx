@@ -18,11 +18,10 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Trash2 } from 'lucide-react';
-import { type ChangeEvent, useState } from 'react';
+import type { ChangeEvent } from 'react';
 
 export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
   const { isSuperAdmin } = useAccessState();
-  const [isAutoSelected, setIsAutoSelected] = useState(false);
 
   const {
     form,
@@ -131,11 +130,14 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
         </FormControl>
 
         <Checkbox
-          name="isSelected"
+          name="isActive"
+          control={form.control}
           label="Automatically select this sound"
-          isChecked={isAutoSelected}
+          isChecked={Boolean(form.watch('isActive'))}
           onChange={(e) => {
-            setIsAutoSelected(e.target.checked);
+            form.setValue('isActive', e.target.checked, {
+              shouldValidate: true,
+            });
           }}
           isDisabled={isSubmitting}
         />

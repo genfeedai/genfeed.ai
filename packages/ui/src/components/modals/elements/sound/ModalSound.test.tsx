@@ -1,10 +1,15 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ModalSound from '@ui/modals/elements/sound/ModalSound';
-import { describe, expect, it, vi } from 'vitest';
+import type { ChangeEvent, PropsWithChildren } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock dependencies
+const setValueMock = vi.hoisted(() => vi.fn());
+
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: any) => <div data-testid="modal">{children}</div>,
+  default: ({ children }: PropsWithChildren) => (
+    <div data-testid="modal">{children}</div>
+  ),
 }));
 
 vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
@@ -14,10 +19,10 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
       control: {},
       formState: { errors: {}, isValid: false },
       getValues: vi.fn(),
-      handleSubmit: vi.fn((fn: Function) => fn),
+      handleSubmit: vi.fn((fn: (...args: never[]) => unknown) => fn),
       register: vi.fn(),
       reset: vi.fn(),
-      setValue: vi.fn(),
+      setValue: setValueMock,
       watch: vi.fn(() => false),
     },
     formRef: { current: null },
@@ -57,7 +62,7 @@ vi.mock(
 );
 
 vi.mock('@ui/modals/actions/ModalActions', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 
 vi.mock('@ui/primitives/input', () => ({
@@ -73,16 +78,20 @@ vi.mock('@ui/primitives/select', () => ({
 }));
 
 vi.mock('@ui/primitives/checkbox', () => ({
-  Checkbox: (props: { name?: string }) => (
+  Checkbox: (props: {
+    name?: string;
+    onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  }) => (
     <input
       type="checkbox"
       data-testid={`checkbox-${props.name ?? 'unknown'}`}
+      onChange={props.onChange}
     />
   ),
 }));
 
 vi.mock('@ui/primitives/field', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -98,8 +107,23 @@ describe('ModalSound', () => {
     sound: null,
   };
 
+  beforeEach(() => {
+    setValueMock.mockClear();
+  });
+
   it('renders sound form', () => {
     render(<ModalSound {...defaultProps} />);
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+  });
+
+  it('writes auto-select into the sound form instead of local state', async () => {
+    const user = userEvent.setup();
+    render(<ModalSound {...defaultProps} />);
+
+    await user.click(screen.getByTestId('checkbox-isActive'));
+
+    expect(setValueMock).toHaveBeenCalledWith('isActive', true, {
+      shouldValidate: true,
+    });
   });
 });
