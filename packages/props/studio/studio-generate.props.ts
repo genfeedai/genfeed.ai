@@ -37,13 +37,9 @@ export interface StudioGenerateComposerProps {
 }
 
 export interface StudioGenerateResultsProps {
-  filter: StudioGenerateFilter;
   isLoading: boolean;
   jobs: readonly StudioGenerateJob[];
-  onFilterChange: (filter: StudioGenerateFilter) => void;
   onReprompt: (job: StudioGenerateJob) => void;
-  onSearchChange: (search: string) => void;
-  search: string;
 }
 
 export interface StudioGenerateCardProps {

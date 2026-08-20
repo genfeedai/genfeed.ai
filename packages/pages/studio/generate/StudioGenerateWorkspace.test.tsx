@@ -51,6 +51,15 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1' }),
 }));
 
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
+  useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/default/default/studio/generate',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateSettings', () => ({
   useStudioGenerateSettings: () => ({
     applyTypeSettings: mocks.applyTypeSettings,
@@ -241,6 +250,20 @@ describe('StudioGenerateWorkspace remix restoration', () => {
         },
         output: expect.objectContaining({ kind: 'avatar' }),
       }),
+    );
+  });
+  it('uses the shared section topbar for filters and search', () => {
+    render(<StudioGenerateWorkspace />);
+
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar).toContainElement(
+      screen.getByRole('button', { name: 'All' }),
+    );
+    expect(topbar).toContainElement(
+      screen.getByRole('button', { name: 'Image' }),
+    );
+    expect(topbar).toContainElement(
+      screen.getByPlaceholderText('Search generations'),
     );
   });
 });

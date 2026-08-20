@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory, ComponentSize } from '@genfeedai/enums';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { StudioGenerateFilter } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
@@ -17,9 +17,13 @@ import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
 } from '@pages/studio/generate/utils/studio-generate-asset';
+import { listStudioGalleryFilters } from '@pages/studio/generate/utils/studio-generate-gallery';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { buildStudioRemixRunEdits } from '@pages/studio/generate/utils/studio-remix-run';
 import Alert from '@ui/feedback/alert/Alert';
+import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import Tabs from '@ui/navigation/tabs/Tabs';
+import Searchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
@@ -29,6 +33,11 @@ import {
   useRef,
   useState,
 } from 'react';
+
+const FILTER_TABS = listStudioGalleryFilters().map((id) => ({
+  id,
+  label: id === 'all' ? 'All' : getStudioGenerateTypeConfig(id).label,
+}));
 
 /**
  * The Studio playground. One prompt bar generates every asset type Genfeed
@@ -120,6 +129,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
     void submit(prompt);
   }, [prompt, remixRun, settings, startRemixRun, submit, type]);
 
+  const handleFilterChange = useCallback((value: string) => {
+    const selectedFilter = FILTER_TABS.find((option) => option.id === value);
+    if (selectedFilter) {
+      setFilter(selectedFilter.id);
+    }
+  }, []);
+
   // Reprompt reloads the composer rather than firing immediately — the
   // operator almost always wants to change one thing before running it again.
   const handleReprompt = useCallback(
@@ -132,17 +148,33 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
+      <SectionTopbar
+        actions={
+          <Searchbar
+            className="w-64"
+            onChange={(event) => setSearch(event.target.value)}
+            onClear={() => setSearch('')}
+            placeholder="Search generations"
+            size={ComponentSize.SM}
+            value={search}
+          />
+        }
+        subtitle={translate('description')}
+        tabs={
+          <Tabs
+            activeTab={filter}
+            fullWidth={false}
+            items={FILTER_TABS}
+            onTabChange={handleFilterChange}
+            size="sm"
+            variant="default"
+          />
+        }
+        title={translate('title')}
+      />
+
       <div className="flex-1 overflow-auto px-6 py-6">
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
-          <div className="space-y-1">
-            <h1 className="text-lg font-semibold text-foreground">
-              {translate('title')}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {translate('description')}
-            </p>
-          </div>
-
           {remixRun ? (
             <StudioRemixRunPanel
               error={remixError}
@@ -160,13 +192,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
           ) : null}
 
           <StudioGenerateResults
-            filter={filter}
             isLoading={isLoadingGallery}
             jobs={visibleJobs}
-            onFilterChange={setFilter}
             onReprompt={handleReprompt}
-            onSearchChange={setSearch}
-            search={search}
           />
         </div>
       </div>
