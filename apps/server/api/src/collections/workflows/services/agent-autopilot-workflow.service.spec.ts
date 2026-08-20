@@ -52,6 +52,7 @@ describe('AgentAutopilotWorkflowService', () => {
         weeklyResetAt: '2026-06-29T00:00:00.000Z',
       },
       id: 'strategy-1',
+      organizationId: 'org-1',
     });
     prisma.agentStrategy.update.mockResolvedValue({});
 
