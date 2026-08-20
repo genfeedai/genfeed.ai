@@ -2,7 +2,7 @@
 name: enum_source_of_truth
 description: Canonical status enums live as Prisma SCREAMING_SNAKE; domain packages mirror those values; ban as never for enum writes; Platform/CredentialPlatform uses mandatory mapper
 type: project
-last_verified: 2026-08-09
+last_verified: 2026-08-20
 ---
 
 # Enum + assertion source of truth
@@ -47,7 +47,8 @@ exist only behind an explicit mapper with a documented persistence boundary.
 
 ## Assertions floor
 
-Production `as any` and bare `@ts-ignore` are banned (zero). Production
+Production `as any` and `@ts-ignore` are banned (zero). `@ts-expect-error`
+remains allowed for intentional, documented type errors. Production
 `as never` is a shrinking ratchet:
 
 ```bash

@@ -1,5 +1,6 @@
 /**
- * Production `as any` and bare `@ts-expect-error` are banned (floor is 0).
+ * Production `as any` and `@ts-expect-error` are banned (floor is 0).
+ * `@ts-expect-error` remains allowed for intentional, documented type errors.
  * Production `as never` is a shrinking ratchet — counts may only go down.
  *
  * These casts hide real type holes (domain enum vs Prisma enum was the
@@ -417,46 +418,34 @@ export function evaluateTypeAssertions(
   return violations;
 }
 
-function printSummary(
+export function formatTypeAssertionSummary(
   actual: TypeAssertionScan,
   violations: TypeAssertionViolation[],
-): void {
-  process.stdout.write('Type assertions (production sources)\n');
-  process.stdout.write(
-    `  as any:     ${total(actual.as_any)} (banned — must stay 0)\n`,
-  );
-  process.stdout.write(
-    `  @ts-ignore: ${total(actual.ts_ignore)} (banned — must stay 0)\n`,
-  );
-  process.stdout.write(
-    `  as never:   ${total(actual.as_never)} across ${Object.keys(actual.as_never).length} files (ratchet)\n`,
-  );
+): string {
+  let output = 'Type assertions (production sources)\n';
+  output += `  as any:     ${total(actual.as_any)} (banned — must stay 0)\n`;
+  output += `  @ts-ignore: ${total(actual.ts_ignore)} (banned — must stay 0)\n`;
+  output += `  as never:   ${total(actual.as_never)} across ${Object.keys(actual.as_never).length} files (ratchet)\n`;
 
   if (violations.length === 0) {
-    process.stdout.write(
-      '  OK — banned kinds empty, as never at or below baseline.\n',
-    );
-    return;
+    return `${output}  OK — banned kinds empty, as never at or below baseline.\n`;
   }
 
-  process.stdout.write('\nViolations:\n');
+  output += '\nViolations:\n';
   for (const violation of violations) {
     if (violation.type === 'banned') {
-      process.stdout.write(
-        `  [BAN ${violation.kind}] ${violation.file}: ${violation.actual} — production ${violation.kind === 'as_any' ? '`as any`' : '`@ts-ignore`'} is forbidden. Remove the cast; do not add a baseline entry.\n`,
-      );
+      const syntax = violation.kind === 'as_any' ? '`as any`' : '`@ts-ignore`';
+      const remedy =
+        violation.kind === 'as_any'
+          ? 'Remove the cast'
+          : 'Use `@ts-expect-error` for an intentional, documented type error, or fix the error';
+      output += `  [BAN ${violation.kind}] ${violation.file}: ${violation.actual} — production ${syntax} is forbidden. ${remedy}; do not add a baseline entry.\n`;
     } else if (violation.type === 'new_file') {
-      process.stdout.write(
-        `  [NEW ${violation.kind}] ${violation.file}: ${violation.actual} (was 0)\n`,
-      );
+      output += `  [NEW ${violation.kind}] ${violation.file}: ${violation.actual} (was 0)\n`;
     } else if (violation.type === 'growth') {
-      process.stdout.write(
-        `  [GROW ${violation.kind}] ${violation.file}: ${violation.actual} > baseline ${violation.baseline}\n`,
-      );
+      output += `  [GROW ${violation.kind}] ${violation.file}: ${violation.actual} > baseline ${violation.baseline}\n`;
     } else {
-      process.stdout.write(
-        `  [STALE ${violation.kind}] ${violation.file}: baseline ${violation.baseline} but only ${violation.actual} remain — prune baseline\n`,
-      );
+      output += `  [STALE ${violation.kind}] ${violation.file}: baseline ${violation.baseline} but only ${violation.actual} remain — prune baseline\n`;
     }
   }
 
@@ -465,15 +454,15 @@ function printSummary(
   );
   const hasBanned = violations.some((violation) => violation.type === 'banned');
   if (hasBanned) {
-    process.stdout.write(
-      '\nBanned kinds have no --update-baseline escape hatch. Remove the cast.\n',
-    );
+    output +=
+      '\nBanned kinds have no --update-baseline escape hatch. Remove the cast or suppression.\n';
   }
   if (hasRatchetDrift) {
-    process.stdout.write(
-      '\nFor as never cleanups: bun run check:type-assertions --update-baseline\n',
-    );
+    output +=
+      '\nFor as never cleanups: bun run check:type-assertions --update-baseline\n';
   }
+
+  return output;
 }
 
 function main(): void {
@@ -487,7 +476,7 @@ function main(): void {
       (violation) => violation.type === 'banned',
     );
     if (banned.length > 0) {
-      printSummary(actual, banned);
+      process.stdout.write(formatTypeAssertionSummary(actual, banned));
       process.exit(1);
     }
     writeBaseline(ratchetBaselineFromScan(actual));
@@ -497,7 +486,7 @@ function main(): void {
     process.exit(0);
   }
 
-  printSummary(actual, violations);
+  process.stdout.write(formatTypeAssertionSummary(actual, violations));
 
   if (violations.length > 0) {
     process.exit(1);
