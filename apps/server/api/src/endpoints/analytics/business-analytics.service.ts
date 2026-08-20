@@ -499,6 +499,7 @@ export class BusinessAnalyticsService {
     from: Date,
     to: Date,
   ): Promise<CategoryBreakdownEntry[]> {
+    // tenant-scope-ignore: platform-wide admin analytics; category mix is not tenant-scoped
     const rows = await this.prisma.ingredient.groupBy({
       _count: { category: true },
       by: ['category'],
@@ -523,6 +524,7 @@ export class BusinessAnalyticsService {
     from: Date,
     to: Date,
   ): Promise<LeaderEntry[]> {
+    // tenant-scope-ignore: platform-wide admin analytics; this query ranks every organization
     const rows = await this.prisma.creditTransaction.groupBy({
       _sum: { amount: true },
       by: ['organizationId'],

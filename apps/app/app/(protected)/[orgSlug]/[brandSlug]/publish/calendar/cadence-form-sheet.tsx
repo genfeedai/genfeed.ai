@@ -18,6 +18,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 const CADENCE_FORMATS = [
@@ -79,6 +80,7 @@ export default function CadenceFormSheet({
   onDelete,
   onSubmit,
 }: CadenceFormSheetProps): React.JSX.Element {
+  const translate = useTranslations('pages.publish.calendar');
   const [brief, setBrief] = useState('');
   const [endDate, setEndDate] = useState(plusDaysIsoDate(14));
   const [format, setFormat] = useState<PostCategory>(PostCategory.REEL);
@@ -129,11 +131,10 @@ export default function CadenceFormSheet({
     >
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{isEditing ? 'Edit cadence' : 'New cadence'}</SheetTitle>
-          <SheetDescription>
-            Book missing shorts, tweets, articles, or posts on the calendar.
-            Generate or write each hole later.
-          </SheetDescription>
+          <SheetTitle>
+            {isEditing ? translate('editCadence') : translate('newCadence')}
+          </SheetTitle>
+          <SheetDescription>{translate('description')}</SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-3">
           <SelectField
@@ -156,9 +157,11 @@ export default function CadenceFormSheet({
             }
             value={generateLanding}
           >
-            <option value={CadenceGenerateLanding.DRAFT}>Save as draft</option>
+            <option value={CadenceGenerateLanding.DRAFT}>
+              {translate('landingDraft')}
+            </option>
             <option value={CadenceGenerateLanding.SCHEDULED}>
-              Schedule at the slot time
+              {translate('landingScheduled')}
             </option>
           </SelectField>
           <Input
@@ -225,7 +228,7 @@ export default function CadenceFormSheet({
               }}
               size={ButtonSize.SM}
             >
-              {isEditing ? 'Save changes' : 'Save cadence'}
+              {isEditing ? translate('saveChanges') : translate('saveCadence')}
             </Button>
             {isEditing && onDelete ? (
               <Button
@@ -234,7 +237,7 @@ export default function CadenceFormSheet({
                 size={ButtonSize.SM}
                 variant={ButtonVariant.DESTRUCTIVE}
               >
-                Delete cadence
+                {translate('deleteCadence')}
               </Button>
             ) : null}
           </div>

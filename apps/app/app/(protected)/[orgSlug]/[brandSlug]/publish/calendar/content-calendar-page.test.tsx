@@ -90,6 +90,15 @@ let useAuthedServiceCallCount = 0;
 
 // The calendar page resolves the repurpose modal from the global-modals
 // provider, which this suite renders outside of.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
   usePostRepurposeModal: () => ({
     openPostRepurposeModal: openPostRepurposeModalMock,

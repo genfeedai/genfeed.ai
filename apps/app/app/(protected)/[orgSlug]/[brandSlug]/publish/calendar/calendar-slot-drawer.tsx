@@ -11,6 +11,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 type CalendarSlotDrawerProps = {
@@ -34,6 +35,7 @@ export default function CalendarSlotDrawer({
   onWrite,
   slot,
 }: CalendarSlotDrawerProps): React.JSX.Element {
+  const translate = useTranslations('pages.publish.calendar');
   const [brief, setBrief] = useState('');
   const isGenerating = slot?.state === CalendarSlotState.GENERATING;
 
@@ -48,21 +50,21 @@ export default function CalendarSlotDrawer({
     >
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Missing slot</SheetTitle>
+          <SheetTitle>{translate('missingSlot')}</SheetTitle>
           <SheetDescription>
             {slot
               ? `${slot.format} · ${new Date(slot.instant).toLocaleString()}`
-              : 'Booked calendar hole'}
+              : translate('bookedHole')}
           </SheetDescription>
         </SheetHeader>
         {slot ? (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-muted-foreground">
               {slot.state === CalendarSlotState.GENERATE_FAILED
-                ? slot.lastFailureReason || 'Last generate failed.'
+                ? slot.lastFailureReason || translate('generateFailed')
                 : slot.cadenceId
-                  ? 'Generate writes the next campaign post from brand voice and already scheduled content. Write opens the composer.'
-                  : 'Write is the default for a one-off booking. Generate still writes from brand voice and nearby scheduled posts.'}
+                  ? translate('generateCadenceHint')
+                  : translate('generateOneOffHint')}
             </p>
             <Input
               label="Brief override"
@@ -77,7 +79,7 @@ export default function CalendarSlotDrawer({
                 onClick={() => onGenerate(brief || undefined)}
                 size={ButtonSize.SM}
               >
-                Generate
+                {translate('generate')}
               </Button>
               <Button
                 isDisabled={isPending || isGenerating}
@@ -85,7 +87,7 @@ export default function CalendarSlotDrawer({
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
               >
-                Write
+                {translate('write')}
               </Button>
               {isGenerating ? (
                 <Button
@@ -94,7 +96,7 @@ export default function CalendarSlotDrawer({
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                 >
-                  Cancel
+                  {translate('cancel')}
                 </Button>
               ) : (
                 <Button
@@ -104,7 +106,7 @@ export default function CalendarSlotDrawer({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                 >
-                  Skip
+                  {translate('skip')}
                 </Button>
               )}
               {slot.cadenceId && onEditCadence ? (
@@ -114,7 +116,7 @@ export default function CalendarSlotDrawer({
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                 >
-                  Edit cadence
+                  {translate('editCadence')}
                 </Button>
               ) : null}
             </div>
