@@ -3,8 +3,15 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
-import { Link, Paperclip } from 'lucide-react';
+import { Link, Paperclip, Plus } from 'lucide-react';
 import { type ChangeEvent, type ReactElement, useRef } from 'react';
 
 export interface PromptBarReferenceControlsProps {
@@ -17,7 +24,7 @@ export interface PromptBarReferenceControlsProps {
   onOpenLibrary: () => void;
 }
 
-/** Shared attachment and Library controls used by Agent and Studio composers. */
+/** Shared context menu for upload and Library references in every composer. */
 export default function PromptBarReferenceControls({
   accept = 'image/*,video/*,audio/*',
   className,
@@ -29,6 +36,8 @@ export default function PromptBarReferenceControls({
 }: PromptBarReferenceControlsProps): ReactElement {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const controlSize = density === 'compact' ? 'size-8' : 'size-9';
+  const isMenuDisabled =
+    (onAddFiles ? isAttachmentDisabled : true) && isLibraryDisabled;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>): void => {
     const files = Array.from(event.target.files ?? []);
@@ -41,41 +50,52 @@ export default function PromptBarReferenceControls({
   return (
     <div className={cn('contents', className)}>
       {onAddFiles ? (
-        <>
-          <Input
-            ref={fileInputRef}
-            accept={accept}
-            aria-label="Choose composer attachments"
-            className="sr-only"
-            multiple
-            onChange={handleFileChange}
-            type="file"
-          />
+        <Input
+          ref={fileInputRef}
+          accept={accept}
+          aria-hidden="true"
+          className="sr-only"
+          data-testid="composer-file-input"
+          multiple
+          onChange={handleFileChange}
+          tabIndex={-1}
+          type="file"
+        />
+      ) : null}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
-            ariaLabel="Attach files"
+            ariaLabel="Add context"
             className={cn('shrink-0', controlSize)}
-            icon={<Paperclip className="size-4" />}
-            isDisabled={isAttachmentDisabled}
-            onClick={() => fileInputRef.current?.click()}
+            icon={<Plus className="size-4" />}
+            isDisabled={isMenuDisabled}
             size={ButtonSize.ICON}
-            tooltip="Attach files"
+            tooltip="Add context"
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
-        </>
-      ) : null}
-
-      <Button
-        ariaLabel="Reference library content"
-        className={cn('shrink-0', controlSize)}
-        icon={<Link className="size-4" />}
-        isDisabled={isLibraryDisabled}
-        onClick={onOpenLibrary}
-        size={ButtonSize.ICON}
-        tooltip="Reference library content"
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
-      />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56" side="top">
+          <DropdownMenuLabel>Add context</DropdownMenuLabel>
+          {onAddFiles ? (
+            <DropdownMenuItem
+              disabled={isAttachmentDisabled}
+              onSelect={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="mr-2 size-4" />
+              Attach files
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem
+            disabled={isLibraryDisabled}
+            onSelect={onOpenLibrary}
+          >
+            <Link className="mr-2 size-4" />
+            Reference library content
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

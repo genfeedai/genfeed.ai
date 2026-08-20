@@ -4,7 +4,7 @@ import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarV
 import { describe, expect, it, vi } from 'vitest';
 
 describe('PromptBar composer controls', () => {
-  it('forwards selected files and opens the shared library picker', () => {
+  it('groups file upload and Library references under one context menu', () => {
     const onAddFiles = vi.fn();
     const onOpenLibrary = vi.fn();
     const file = new File(['image'], 'reference.png', { type: 'image/png' });
@@ -16,11 +16,29 @@ describe('PromptBar composer controls', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('Choose composer attachments'), {
+    expect(
+      screen.queryByRole('button', { name: 'Attach files' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Reference library content' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add context' }));
+
+    expect(
+      screen.getByRole('menuitem', { name: 'Attach files' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('menuitem', { name: 'Reference library content' }),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Attach files' }));
+    fireEvent.change(screen.getByTestId('composer-file-input'), {
       target: { files: [file] },
     });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add context' }));
     fireEvent.click(
-      screen.getByRole('button', { name: 'Reference library content' }),
+      screen.getByRole('menuitem', { name: 'Reference library content' }),
     );
 
     expect(onAddFiles).toHaveBeenCalledWith([file]);

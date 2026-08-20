@@ -24,10 +24,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
-import PromptBarBody from '@ui/prompt-bars/components/shell/PromptBarBody';
-import PromptBarShell, {
-  PROMPT_BAR_SURFACE_CLASS,
-} from '@ui/prompt-bars/components/shell/PromptBarShell';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import { ArrowUp } from 'lucide-react';
@@ -92,151 +89,145 @@ export default function StudioGenerateComposer({
   };
 
   return (
-    <PromptBarShell
-      className={cn(
-        PROMPT_BAR_SURFACE_CLASS,
-        isDragActive && 'ring-1 ring-primary/40',
-      )}
+    <PromptBarComposer
+      beforeBody={
+        attachedAssets.length > 0 ? (
+          <div className="px-3 pb-1 pt-3">
+            <PromptBarAttachedAssetsTray
+              assets={attachedAssets}
+              isDisabled={isGenerating}
+              onBrowseAssets={onOpenLibrary}
+              onRemoveAttachedAsset={onRemoveAttachedAsset}
+            />
+          </div>
+        ) : null
+      }
+      className={cn(isDragActive && 'ring-1 ring-primary/40')}
       data-testid="studio-generate-composer-shell"
     >
-      {attachedAssets.length > 0 ? (
-        <div className="px-3 pb-1 pt-3">
-          <PromptBarAttachedAssetsTray
-            assets={attachedAssets}
-            isDisabled={isGenerating}
-            onBrowseAssets={onOpenLibrary}
-            onRemoveAttachedAsset={onRemoveAttachedAsset}
-          />
-        </div>
-      ) : null}
-
-      <PromptBarBody>
-        <Textarea
-          className="min-h-9 w-full resize-none border-0 bg-transparent px-0 py-1.5 text-sm shadow-none focus-visible:ring-0"
-          id="studio-generate-prompt"
-          isDisabled={isGenerating}
-          maxHeight={PROMPT_MAX_HEIGHT}
-          onChange={(event) => onPromptChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (
-              event.key !== 'Enter' ||
-              event.shiftKey ||
-              event.nativeEvent.isComposing ||
-              isSubmitBlocked
-            ) {
-              return;
-            }
-            event.preventDefault();
-            onSubmit();
-          }}
-          placeholder={
-            isDragActive
-              ? 'drop it here?'
-              : capabilities.hasSpeech
-                ? SCRIPT_PLACEHOLDER
-                : PROMPT_PLACEHOLDER
+      <Textarea
+        className="min-h-9 w-full resize-none border-0 bg-transparent px-0 py-1.5 text-sm shadow-none focus-visible:ring-0"
+        id="studio-generate-prompt"
+        isDisabled={isGenerating}
+        maxHeight={PROMPT_MAX_HEIGHT}
+        onChange={(event) => onPromptChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (
+            event.key !== 'Enter' ||
+            event.shiftKey ||
+            event.nativeEvent.isComposing ||
+            isSubmitBlocked
+          ) {
+            return;
           }
-          rows={PROMPT_ROWS}
-          value={prompt}
-        />
+          event.preventDefault();
+          onSubmit();
+        }}
+        placeholder={
+          isDragActive
+            ? 'drop it here?'
+            : capabilities.hasSpeech
+              ? SCRIPT_PLACEHOLDER
+              : PROMPT_PLACEHOLDER
+        }
+        rows={PROMPT_ROWS}
+        value={prompt}
+      />
 
-        <div className="mt-0.5 flex min-h-9 min-w-0 items-center justify-between gap-2 pt-1">
-          <div className="flex min-w-0 shrink items-center gap-0.5">
-            <StudioGenerateTypeSelector
-              isDisabled={isGenerating}
-              onChange={onTypeChange}
-              type={type}
-            />
+      <div className="mt-0.5 flex min-h-9 min-w-0 items-center justify-between gap-2 pt-1">
+        <div className="flex min-w-0 shrink items-center gap-0.5">
+          <StudioGenerateTypeSelector
+            isDisabled={isGenerating}
+            onChange={onTypeChange}
+            type={type}
+          />
 
-            {capabilities.hasModelSelection ? (
-              isLoadingModels ? (
-                <Select disabled value="">
-                  <SelectTrigger
-                    className={cn('max-w-[12rem]', SHELL_CONTROL_HEIGHT_CLASS)}
-                  >
-                    <SelectValue placeholder={translate('loadingModels')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="loading">
-                      {translate('loadingModels')}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div
-                  className={
-                    isGenerating ? 'pointer-events-none opacity-50' : ''
-                  }
+          {capabilities.hasModelSelection ? (
+            isLoadingModels ? (
+              <Select disabled value="">
+                <SelectTrigger
+                  className={cn('max-w-[12rem]', SHELL_CONTROL_HEIGHT_CLASS)}
                 >
-                  <ModelSelectorPopover
-                    autoLabel="Auto"
-                    className="max-w-[12rem] min-w-0 border border-border bg-background hover:bg-accent/50"
-                    favoriteModelKeys={favoriteModelKeys}
-                    models={models}
-                    name="studioGenerateModel"
-                    onChange={handleModelChange}
-                    onFavoriteToggle={onFavoriteToggle}
-                    onPrioritizeChange={(prioritize: RouterPriority) =>
-                      onSettingsChange({ prioritize })
-                    }
-                    prioritize={settings.prioritize}
-                    selectionMode="single"
-                    values={
-                      isAutoMode
-                        ? [AUTO_MODEL_OPTION_VALUE]
-                        : settings.modelKey
-                          ? [settings.modelKey]
-                          : []
-                    }
-                  />
-                </div>
-              )
-            ) : null}
-
-            <StudioGenerateSettingsPopover
-              isDisabled={isGenerating}
-              onChange={onSettingsChange}
-              onReset={onResetSettings}
-              settings={settings}
-              type={type}
-            />
-
-            {capabilities.hasReferences ? (
-              <PromptBarReferenceControls
-                accept="image/*"
-                isAttachmentDisabled={isGenerating || isUploading}
-                isLibraryDisabled={isGenerating}
-                onAddFiles={onAddFiles}
-                onOpenLibrary={onOpenLibrary}
-              />
-            ) : null}
-          </div>
-
-          <div className="-mr-2 flex shrink-0 items-center">
-            {isListening || isTranscribing || shouldShowVoiceInput ? (
-              <PromptBarVoiceControl
-                isDisabled={isGenerating}
-                isListening={isListening}
-                isTranscribing={isTranscribing}
-                onStartListening={onStartListening}
-                onStopListening={onStopListening}
-              />
+                  <SelectValue placeholder={translate('loadingModels')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="loading">
+                    {translate('loadingModels')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             ) : (
-              <Button
-                ariaLabel="Generate"
-                className="size-9 shrink-0 min-h-0 min-w-0 p-0"
-                icon={<ArrowUp className="size-4" />}
-                isDisabled={isSubmitBlocked}
-                isLoading={isGenerating}
-                onClick={onSubmit}
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.DEFAULT}
-                withWrapper={false}
-              />
-            )}
-          </div>
+              <div
+                className={isGenerating ? 'pointer-events-none opacity-50' : ''}
+              >
+                <ModelSelectorPopover
+                  autoLabel="Auto"
+                  className="max-w-[12rem] min-w-0 border border-border bg-background hover:bg-accent/50"
+                  favoriteModelKeys={favoriteModelKeys}
+                  models={models}
+                  name="studioGenerateModel"
+                  onChange={handleModelChange}
+                  onFavoriteToggle={onFavoriteToggle}
+                  onPrioritizeChange={(prioritize: RouterPriority) =>
+                    onSettingsChange({ prioritize })
+                  }
+                  prioritize={settings.prioritize}
+                  selectionMode="single"
+                  values={
+                    isAutoMode
+                      ? [AUTO_MODEL_OPTION_VALUE]
+                      : settings.modelKey
+                        ? [settings.modelKey]
+                        : []
+                  }
+                />
+              </div>
+            )
+          ) : null}
+
+          <StudioGenerateSettingsPopover
+            isDisabled={isGenerating}
+            onChange={onSettingsChange}
+            onReset={onResetSettings}
+            settings={settings}
+            type={type}
+          />
+
+          {capabilities.hasReferences ? (
+            <PromptBarReferenceControls
+              accept="image/*"
+              isAttachmentDisabled={isGenerating || isUploading}
+              isLibraryDisabled={isGenerating}
+              onAddFiles={onAddFiles}
+              onOpenLibrary={onOpenLibrary}
+            />
+          ) : null}
         </div>
-      </PromptBarBody>
-    </PromptBarShell>
+
+        <div className="-mr-2 flex shrink-0 items-center">
+          {isListening || isTranscribing || shouldShowVoiceInput ? (
+            <PromptBarVoiceControl
+              isDisabled={isGenerating}
+              isListening={isListening}
+              isTranscribing={isTranscribing}
+              onStartListening={onStartListening}
+              onStopListening={onStopListening}
+            />
+          ) : (
+            <Button
+              ariaLabel="Generate"
+              className="size-9 shrink-0 min-h-0 min-w-0 p-0"
+              icon={<ArrowUp className="size-4" />}
+              isDisabled={isSubmitBlocked}
+              isLoading={isGenerating}
+              onClick={onSubmit}
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            />
+          )}
+        </div>
+      </div>
+    </PromptBarComposer>
   );
 }

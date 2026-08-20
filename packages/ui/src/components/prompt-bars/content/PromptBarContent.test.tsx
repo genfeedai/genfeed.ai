@@ -34,6 +34,13 @@ describe('PromptBarContent', () => {
     vi.clearAllMocks();
   });
 
+  it('uses the shared composer shell and body', () => {
+    render(<PromptBarContent {...articleProps} />);
+
+    expect(screen.getByTestId('prompt-bar-composer')).toBeInTheDocument();
+    expect(screen.getByTestId('prompt-bar-body')).toBeInTheDocument();
+  });
+
   it('renders the enhancement placeholder for surfaces without generation', () => {
     render(<PromptBarContent {...articleProps} />);
 

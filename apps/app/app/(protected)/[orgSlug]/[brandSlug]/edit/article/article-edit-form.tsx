@@ -4,6 +4,7 @@ import { ArticleCategory } from '@genfeedai/enums';
 import type { ArticleFormState } from '@props/content/article-editor.props';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
@@ -112,7 +113,9 @@ export default function ArticleEditForm({
 
       {/* AI Enhancement Bar */}
       {!isNew && (
-        <PromptBarContent onSubmit={onEnhance} isEnhancing={isEnhancing} />
+        <PromptBarContainer layoutMode="inflow" maxWidth="full">
+          <PromptBarContent onSubmit={onEnhance} isEnhancing={isEnhancing} />
+        </PromptBarContainer>
       )}
     </>
   );

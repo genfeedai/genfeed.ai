@@ -16,10 +16,7 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EditorContent } from '@tiptap/react';
-import PromptBarBody from '@ui/prompt-bars/components/shell/PromptBarBody';
-import PromptBarShell, {
-  PROMPT_BAR_SURFACE_CLASS,
-} from '@ui/prompt-bars/components/shell/PromptBarShell';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import { type ReactElement, useCallback, useMemo } from 'react';
 
 // Stable default so memoized children do not see a new [] every render.
@@ -191,58 +188,55 @@ export function AgentChatInput({
         </div>
       ) : null}
 
-      <PromptBarShell
-        className={cn(
-          PROMPT_BAR_SURFACE_CLASS,
-          isDragActive && 'ring-1 ring-primary/40',
-        )}
+      <PromptBarComposer
+        beforeBody={
+          hasAttachments || references.length > 0 ? (
+            <AgentChatInputAttachmentTray
+              assets={trayAssets}
+              attachmentStatusById={attachmentStatusById}
+              isDisabled={disabled}
+              onRemoveAttachedAsset={handleRemoveAttachment}
+              onRemoveReference={handleRemoveReference}
+              references={references}
+            />
+          ) : null
+        }
+        className={cn(isDragActive && 'ring-1 ring-primary/40')}
         data-testid="agent-chat-input-shell"
+        density={isCompact ? 'compact' : 'default'}
         onPointerDown={handleShellPointerDown}
       >
-        {(hasAttachments || references.length > 0) && (
-          <AgentChatInputAttachmentTray
-            assets={trayAssets}
-            attachmentStatusById={attachmentStatusById}
-            isDisabled={disabled}
-            onRemoveAttachedAsset={handleRemoveAttachment}
-            onRemoveReference={handleRemoveReference}
-            references={references}
-          />
-        )}
+        <EditorContent editor={editor} className="flex-1" />
 
-        <PromptBarBody density={isCompact ? 'compact' : 'default'}>
-          <EditorContent editor={editor} className="flex-1" />
-
-          <AgentChatInputToolbar
-            canSendMessage={canSendMessage}
-            creditsAvailable={creditsAvailable}
-            disabled={disabled}
-            hasEditor={Boolean(editor)}
-            isListening={isListening}
-            isModelsLoading={isModelsLoading}
-            isTranscribing={isTranscribing}
-            isUploading={isUploading}
-            models={models}
-            onAddFiles={addFiles}
-            onInsertReference={handleInsertReference}
-            onModelChange={onModelChange}
-            onPrioritizeChange={onPrioritizeChange}
-            onSelectAction={handleSelectAction}
-            onSend={handleToolbarSend}
-            onStartListening={startListening}
-            onStop={onStop}
-            onStopListening={stopListening}
-            prioritize={prioritize}
-            selectedModel={selectedModel}
-            shouldShowSendButton={shouldShowSendButton}
-            shouldShowVoiceInput={shouldShowVoiceInput}
-            showStop={Boolean(showStop)}
-            willQueueFollowUp={willQueueFollowUp}
-            // Inspector rail is narrow — use compact icon-only toolbar density.
-            density={isCompact || isInspector ? 'compact' : 'default'}
-          />
-        </PromptBarBody>
-      </PromptBarShell>
+        <AgentChatInputToolbar
+          canSendMessage={canSendMessage}
+          creditsAvailable={creditsAvailable}
+          disabled={disabled}
+          hasEditor={Boolean(editor)}
+          isListening={isListening}
+          isModelsLoading={isModelsLoading}
+          isTranscribing={isTranscribing}
+          isUploading={isUploading}
+          models={models}
+          onAddFiles={addFiles}
+          onInsertReference={handleInsertReference}
+          onModelChange={onModelChange}
+          onPrioritizeChange={onPrioritizeChange}
+          onSelectAction={handleSelectAction}
+          onSend={handleToolbarSend}
+          onStartListening={startListening}
+          onStop={onStop}
+          onStopListening={stopListening}
+          prioritize={prioritize}
+          selectedModel={selectedModel}
+          shouldShowSendButton={shouldShowSendButton}
+          shouldShowVoiceInput={shouldShowVoiceInput}
+          showStop={Boolean(showStop)}
+          willQueueFollowUp={willQueueFollowUp}
+          // Inspector rail is narrow — use compact icon-only toolbar density.
+          density={isCompact || isInspector ? 'compact' : 'default'}
+        />
+      </PromptBarComposer>
 
       <ContentLibraryPicker
         isLoading={isContentLibraryLoading}

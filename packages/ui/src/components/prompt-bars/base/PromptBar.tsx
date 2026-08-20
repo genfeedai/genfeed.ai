@@ -6,9 +6,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarProps } from '@genfeedai/props/studio/prompt-bar.props';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
-import PromptBarShell, {
-  PROMPT_BAR_SURFACE_CLASS,
-} from '@ui/prompt-bars/components/shell/PromptBarShell';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import { memo } from 'react';
 import { EMPTY_ARRAY } from './prompt-bar.helpers';
 import { usePromptBarState } from './use-prompt-bar-state';
@@ -135,13 +133,13 @@ function PromptBar({
           <div
             ref={promptBarRef}
             className={cn(
-              'sticky bottom-0 z-50 flex-shrink-0 transition-all duration-300',
+              'relative flex-shrink-0 transition-all duration-300',
               isCollapsed ? 'overflow-hidden' : 'overflow-visible',
             )}
           >
-            <PromptBarShell
+            <PromptBarComposer
               banner={banner}
-              className={PROMPT_BAR_SURFACE_CLASS}
+              bodyClassName="p-0"
               data-testid="studio-prompt-bar-shell"
             >
               {isCollapsed && isCollapsible ? (
@@ -198,7 +196,7 @@ function PromptBar({
               ) : (
                 <PromptBarExpandedView />
               )}
-            </PromptBarShell>
+            </PromptBarComposer>
           </div>
         </form>
       </div>

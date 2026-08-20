@@ -75,11 +75,12 @@ describe('StudioGenerateComposer', () => {
     expect(
       screen.getByRole('button', { name: 'Settings' }),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add context' }));
     expect(
-      screen.getByRole('button', { name: 'Attach files' }),
-    ).toBeInTheDocument();
+      screen.getByRole('menuitem', { name: 'Attach files' }),
+    ).toBeVisible();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Reference library content' }),
+      screen.getByRole('menuitem', { name: 'Reference library content' }),
     );
     expect(onOpenLibrary).toHaveBeenCalledOnce();
   });
