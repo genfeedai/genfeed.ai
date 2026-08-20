@@ -7,22 +7,10 @@ import {
 } from '@pages/agents/content-team/content-team-presets';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-
-interface Brand {
-  id: string;
-  label: string;
-}
+import { SelectCardButton } from '../agents/new/AgentWizardHelpers';
 
 interface HireFormState {
-  brandId: string;
   budget: string;
   label: string;
   persona: string;
@@ -33,7 +21,6 @@ interface HireFormState {
 }
 
 interface HireFormProps {
-  brands: Brand[];
   form: HireFormState;
   isSubmitting: boolean;
   onCancel: () => void;
@@ -43,7 +30,6 @@ interface HireFormProps {
 }
 
 export function HireForm({
-  brands,
   form,
   isSubmitting,
   onCancel,
@@ -53,31 +39,32 @@ export function HireForm({
 }: HireFormProps) {
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label
-            className="text-sm font-medium text-foreground"
-            htmlFor="content-team-role"
-          >
-            Role Preset
-          </label>
-          <Select
-            value={form.rolePresetId}
-            onValueChange={(value) => onChange('rolePresetId', value)}
-          >
-            <SelectTrigger id="content-team-role">
-              <SelectValue placeholder="Choose a role" />
-            </SelectTrigger>
-            <SelectContent>
-              {CONTENT_TEAM_ROLE_PRESETS.map((preset) => (
-                <SelectItem key={preset.id} value={preset.id}>
-                  {preset.displayRole}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-foreground">
+          Choose an agent template
+        </legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {CONTENT_TEAM_ROLE_PRESETS.map((preset) => (
+            <SelectCardButton
+              key={preset.id}
+              isSelected={form.rolePresetId === preset.id}
+              onClick={() => onChange('rolePresetId', preset.id)}
+            >
+              <span className="block text-sm font-medium text-foreground">
+                {preset.displayRole}
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {preset.description}
+              </span>
+              <span className="mt-2 block text-xs text-foreground/45">
+                {preset.defaultBudget} credits / day
+              </span>
+            </SelectCardButton>
+          ))}
         </div>
+      </fieldset>
 
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <label
             className="text-sm font-medium text-foreground"
@@ -91,32 +78,6 @@ export function HireForm({
             placeholder={selectedPreset?.defaultLabel ?? 'Agent label'}
             value={form.label}
           />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <label
-            className="text-sm font-medium text-foreground"
-            htmlFor="content-team-brand"
-          >
-            Brand
-          </label>
-          <Select
-            value={form.brandId}
-            onValueChange={(value) => onChange('brandId', value)}
-          >
-            <SelectTrigger id="content-team-brand">
-              <SelectValue placeholder="Choose a brand" />
-            </SelectTrigger>
-            <SelectContent>
-              {brands.map((brand) => (
-                <SelectItem key={brand.id} value={brand.id}>
-                  {brand.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="space-y-1.5">
@@ -202,11 +163,14 @@ export function HireForm({
 
       <div className="flex items-center gap-3">
         <Button
-          label={isSubmitting ? 'Hiring…' : 'Hire Agent'}
+          isDisabled={isSubmitting}
+          isLoading={isSubmitting}
+          label="Add agent"
           type="submit"
           variant={ButtonVariant.DEFAULT}
         />
         <Button
+          isDisabled={isSubmitting}
           label="Cancel"
           onClick={onCancel}
           type="button"

@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentStrategiesPage from './agent-strategies-page';
 
 const mocks = vi.hoisted(() => ({
-  create: vi.fn(),
   error: vi.fn(),
   href: vi.fn((path: string) => `/org/acme/brand/demo${path}`),
   loggerError: vi.fn(),
@@ -29,7 +28,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
-    create: mocks.create,
     runNow: mocks.runNow,
     setActive: mocks.setActive,
     update: mocks.update,
@@ -184,6 +182,7 @@ vi.mock('@ui/layout/container/Container', () => ({
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    asChild,
     children,
     disabled,
     isDisabled,
@@ -191,17 +190,21 @@ vi.mock('@ui/primitives/button', () => ({
     onClick,
     type = 'button',
   }: {
+    asChild?: boolean;
     children?: ReactNode;
     disabled?: boolean;
     isDisabled?: boolean;
     label?: ReactNode;
     onClick?: () => void;
     type?: 'button' | 'submit';
-  }) => (
-    <button disabled={disabled || isDisabled} type={type} onClick={onClick}>
-      {label ?? children}
-    </button>
-  ),
+  }) =>
+    asChild ? (
+      children
+    ) : (
+      <button disabled={disabled || isDisabled} type={type} onClick={onClick}>
+        {label ?? children}
+      </button>
+    ),
 }));
 
 vi.mock('@ui/primitives/checkbox', () => ({
@@ -370,7 +373,6 @@ function makeStrategy(overrides: Record<string, unknown> = {}) {
 describe('AgentStrategiesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.create.mockResolvedValue(makeStrategy({ id: 'new-strategy' }));
     mocks.runNow.mockResolvedValue(undefined);
     mocks.setActive.mockResolvedValue(undefined);
     mocks.update.mockResolvedValue(makeStrategy());
@@ -426,50 +428,14 @@ describe('AgentStrategiesPage', () => {
     });
   });
 
-  it('creates an autopilot policy from the dialog payload', async () => {
+  it('routes all agent creation through the Agents surface', () => {
     render(<AgentStrategiesPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /add autopilot/i }));
-
-    expect(screen.getByRole('dialog')).toBeVisible();
-    expect(screen.getByText('Add Autopilot Policy')).toBeVisible();
-
-    fireEvent.change(screen.getByLabelText('Policy Label'), {
-      target: { value: 'Image Growth Autopilot' },
-    });
-    fireEvent.change(screen.getByLabelText('Topics'), {
-      target: { value: 'launches, product demos' },
-    });
-    fireEvent.change(screen.getByPlaceholderText(/content-writing/i), {
-      target: { value: 'image-generation, brand-voice' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Instagram' }));
-    fireEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Enable autopilot auto publish',
-      }),
+    expect(screen.getByRole('link', { name: /Add agent/i })).toHaveAttribute(
+      'href',
+      '/org/acme/brand/demo/automate/agents?add=library',
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Create Autopilot Policy' }),
-    );
-
-    await waitFor(() => {
-      expect(mocks.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isActive: true,
-          isEnabled: true,
-          label: 'Image Growth Autopilot',
-          platforms: ['twitter', 'instagram'],
-          publishPolicy: expect.objectContaining({
-            autoPublishEnabled: true,
-          }),
-          skillSlugs: ['image-generation', 'brand-voice'],
-          topics: ['launches', 'product demos'],
-        }),
-      );
-      expect(mocks.success).toHaveBeenCalledWith('Strategy created');
-      expect(mocks.refresh).toHaveBeenCalled();
-    });
+    expect(screen.queryByText('Add Autopilot Policy')).not.toBeInTheDocument();
   });
 
   it('edits an existing policy and validates required fields', async () => {
@@ -538,7 +504,12 @@ describe('AgentStrategiesPage', () => {
     });
 
     render(<AgentStrategiesPage />);
-    expect(screen.getByText('No autopilot policies yet')).toBeVisible();
-    expect(screen.getByText('Open Full Wizard')).toBeVisible();
+    expect(screen.getByText('No agents available')).toBeVisible();
+    expect(
+      screen.getAllByRole('link', { name: /Add agent/i })[0],
+    ).toHaveAttribute(
+      'href',
+      '/org/acme/brand/demo/automate/agents?add=library',
+    );
   });
 });

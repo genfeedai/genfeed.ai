@@ -43,8 +43,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
   it.each([
     ['Autopilot', '/automate/autopilot'],
     ['Configuration', '/automate/configuration'],
-    ['Team', '/automate/agents'],
-    ['Hire', '/automate/hire'],
+    ['Agents', '/automate/agents'],
     ['Programs', '/automate/campaigns'],
     ['Launch team', '/automate/orchestrator'],
     ['Workflows', '/automate/workflows'],
@@ -147,8 +146,7 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(byGroup.get('')).toEqual(['Overview']);
     expect(byGroup.get('Workflows')).toEqual(['Workflows', 'Runs']);
     expect(byGroup.get('Agents')).toEqual([
-      'Team',
-      'Hire',
+      'Agents',
       'Skills',
       'Autopilot',
       'Programs',
@@ -160,18 +158,22 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     expect(byGroup.get('Insights')).toBeUndefined();
   });
 
-  it('does not bury Hire or Launch team under Team matchPaths', () => {
-    const team = AUTOMATE_MENU_ITEMS.find((item) => item.label === 'Team');
-    expect(team?.matchPaths).not.toEqual(
-      expect.arrayContaining(['/automate/hire', '/automate/orchestrator']),
+  it('folds retired agent creation routes into Agents', () => {
+    const agents = AUTOMATE_MENU_ITEMS.find((item) => item.label === 'Agents');
+    expect(agents?.matchPaths).not.toEqual(
+      expect.arrayContaining(['/automate/orchestrator']),
     );
-    expect(team?.matchPaths).toEqual(
+    expect(agents?.matchPaths).toEqual(
       expect.arrayContaining([
         '/automate/agents',
         '/automate/agents/new',
+        '/automate/hire',
         '/automate/library',
         '/automate/new',
       ]),
+    );
+    expect(AUTOMATE_MENU_ITEMS.some((item) => item.label === 'Hire')).toBe(
+      false,
     );
   });
 });

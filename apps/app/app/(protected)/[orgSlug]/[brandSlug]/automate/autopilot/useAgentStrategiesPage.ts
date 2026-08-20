@@ -79,11 +79,6 @@ export function useAgentStrategiesPage() {
     AgentStrategiesService.getInstance(token),
   );
 
-  const openCreateDialog = useCallback(() => {
-    setSelectedStrategy(null);
-    setIsDialogOpen(true);
-  }, []);
-
   const openEditDialog = useCallback((strategy: AgentStrategy) => {
     setSelectedStrategy(strategy);
     setIsDialogOpen(true);
@@ -108,19 +103,19 @@ export function useAgentStrategiesPage() {
         return;
       }
 
+      if (!selectedStrategy) {
+        notificationsService.error('Choose an agent to configure');
+        return;
+      }
+
       setIsSubmitting(true);
 
       try {
         const service = await getService();
         const payload = buildPayload(form);
 
-        if (selectedStrategy) {
-          await service.update(selectedStrategy.id, payload);
-          notificationsService.success('Strategy updated');
-        } else {
-          await service.create(payload);
-          notificationsService.success('Strategy created');
-        }
+        await service.update(selectedStrategy.id, payload);
+        notificationsService.success('Strategy updated');
 
         handleDialogChange(false);
         await refresh();
@@ -189,7 +184,6 @@ export function useAgentStrategiesPage() {
     isDialogOpen,
     isLoading,
     isSubmitting,
-    openCreateDialog,
     openEditDialog,
     selectedStrategy,
     strategies,

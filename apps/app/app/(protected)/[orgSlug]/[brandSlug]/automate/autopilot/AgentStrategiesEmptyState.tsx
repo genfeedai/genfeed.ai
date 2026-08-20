@@ -1,17 +1,16 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 type AgentStrategiesEmptyStateProps = {
-  onAddClick: () => void;
+  agentsHref: string;
 };
 
 export default function AgentStrategiesEmptyState({
-  onAddClick,
+  agentsHref,
 }: AgentStrategiesEmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-secondary p-10 text-center shadow-border">
@@ -19,22 +18,16 @@ export default function AgentStrategiesEmptyState({
         <Cpu className="size-7" />
       </span>
       <div className="space-y-1">
-        <p className="text-lg font-medium">No autopilot policies yet</p>
+        <p className="text-lg font-medium">No agents available</p>
         <p className="text-sm text-foreground/50">
-          Create your first autopilot policy to start scheduling agent runs.
+          Add an agent first, then configure its schedule and autonomy here.
         </p>
       </div>
-      <div className="flex items-center gap-3">
-        <Button
-          label="Add Autopilot"
-          icon={<Plus />}
-          variant={ButtonVariant.DEFAULT}
-          onClick={onAddClick}
-        />
-        <Link href={APP_ROUTES.AUTOMATE.NEW}>
-          <Button label="Open Full Wizard" variant={ButtonVariant.SECONDARY} />
+      <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+        <Link href={agentsHref}>
+          <Plus /> Add agent
         </Link>
-      </div>
+      </Button>
     </div>
   );
 }

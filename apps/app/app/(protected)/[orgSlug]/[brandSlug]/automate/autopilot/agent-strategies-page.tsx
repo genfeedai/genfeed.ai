@@ -7,6 +7,7 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
+import Link from 'next/link';
 
 import AgentStrategiesEmptyState from './AgentStrategiesEmptyState';
 import AgentStrategiesInfoBanner from './AgentStrategiesInfoBanner';
@@ -25,7 +26,6 @@ export default function AgentStrategiesPage() {
     isDialogOpen,
     isLoading,
     isSubmitting,
-    openCreateDialog,
     openEditDialog,
     selectedStrategy,
     strategies,
@@ -44,15 +44,11 @@ export default function AgentStrategiesPage() {
         description="Use autopilot policies to schedule adaptive agent runs."
         icon={Cpu}
         right={
-          <Button
-            label={
-              <>
-                <Plus /> Add Autopilot
-              </>
-            }
-            variant={ButtonVariant.DEFAULT}
-            onClick={openCreateDialog}
-          />
+          <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+            <Link href={`${href(APP_ROUTES.AUTOMATE.AGENTS)}?add=library`}>
+              <Plus /> Add agent
+            </Link>
+          </Button>
         }
       >
         <AgentStrategiesInfoBanner
@@ -66,7 +62,9 @@ export default function AgentStrategiesPage() {
           getRowKey={(strategy) => strategy.id}
           onRowClick={handleRowClick}
           emptyState={
-            <AgentStrategiesEmptyState onAddClick={openCreateDialog} />
+            <AgentStrategiesEmptyState
+              agentsHref={`${href(APP_ROUTES.AUTOMATE.AGENTS)}?add=library`}
+            />
           }
         />
       </Container>

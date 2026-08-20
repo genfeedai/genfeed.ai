@@ -47,11 +47,9 @@ export default function AgentStrategyDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {initialStrategy ? 'Edit Autopilot Policy' : 'Add Autopilot Policy'}
-          </DialogTitle>
+          <DialogTitle>Edit Autopilot Policy</DialogTitle>
           <DialogDescription>
-            Configure one autopilot policy for adaptive agent execution.
+            Configure this agent's schedule, budget, and execution policy.
           </DialogDescription>
         </DialogHeader>
 
@@ -261,11 +259,7 @@ export default function AgentStrategyDialog({
               onClick={() => onOpenChange(false)}
             />
             <Button
-              label={
-                initialStrategy
-                  ? 'Save Autopilot Changes'
-                  : 'Create Autopilot Policy'
-              }
+              label="Save Autopilot Changes"
               type="submit"
               variant={ButtonVariant.DEFAULT}
               isDisabled={isSubmitting}

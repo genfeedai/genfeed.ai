@@ -6,9 +6,8 @@ import { Check } from 'lucide-react';
 
 const STEPS = [
   { id: 1, label: 'Choose Type' },
-  { id: 2, label: 'Pick Brand' },
-  { id: 3, label: 'Configure' },
-  { id: 4, label: 'Review & Launch' },
+  { id: 2, label: 'Configure' },
+  { id: 3, label: 'Review & Launch' },
 ];
 
 export function StepIndicator({ current }: { current: number }) {
@@ -54,6 +53,7 @@ export function SelectCardButton({
 }: SelectCardButtonProps) {
   return (
     <Button
+      aria-pressed={isSelected}
       withWrapper={false}
       variant={ButtonVariant.UNSTYLED}
       onClick={onClick}

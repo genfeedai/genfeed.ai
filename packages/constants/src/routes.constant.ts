@@ -114,12 +114,14 @@ export const APP_ROUTES = {
      * Agent roster. Detail pages nest at `/automate/agents/:agentId`.
      */
     AGENTS: '/automate/agents',
+    /** @deprecated Opens the Add agent library on AUTOMATE.AGENTS. */
     HIRE: '/automate/hire',
     /**
      * @deprecated Team list permanently redirects to AGENTS.
      * `/automate/library/:type` remains the Twitch/YouTube chat-bot surfaces.
      */
     LIBRARY: '/automate/library',
+    /** @deprecated Opens the custom mode of the Add agent dialog. */
     NEW: '/automate/agents/new',
     ORCHESTRATOR: '/automate/orchestrator',
     /**

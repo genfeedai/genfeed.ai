@@ -8,7 +8,6 @@ import {
   Rocket,
   Settings,
   Sparkles,
-  UserPlus,
   Users,
   Workflow,
 } from 'lucide-react';
@@ -63,23 +62,16 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Agents',
     href: APP_ROUTES.AUTOMATE.AGENTS,
-    label: 'Team',
+    label: 'Agents',
     matchPaths: [
       APP_ROUTES.AUTOMATE.AGENTS,
+      APP_ROUTES.AUTOMATE.HIRE,
       APP_ROUTES.AUTOMATE.NEW,
       APP_ROUTES.AUTOMATE.LIBRARY,
       '/automate/new',
     ],
     outline: Users,
     solid: Users,
-  },
-  {
-    group: 'Agents',
-    href: APP_ROUTES.AUTOMATE.HIRE,
-    label: 'Hire',
-    matchPaths: [APP_ROUTES.AUTOMATE.HIRE],
-    outline: UserPlus,
-    solid: UserPlus,
   },
   {
     group: 'Agents',

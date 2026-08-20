@@ -146,23 +146,14 @@ describe('workspace shell trusted registry', () => {
     },
   );
 
-  it('nests agent detail and new-agent under the Team list', () => {
+  it('nests agent detail under the Agents list', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/agents/agent-1')
         ?.breadcrumb,
     ).toEqual({
       leafLabel: 'Agent',
       parentHref: '/automate/agents',
-      parentLabel: 'Team',
-      rootLabel: 'Automate',
-    });
-    expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/automate/agents/new')
-        ?.breadcrumb,
-    ).toEqual({
-      leafLabel: 'New Agent',
-      parentHref: '/automate/agents',
-      parentLabel: 'Team',
+      parentLabel: 'Agents',
       rootLabel: 'Automate',
     });
   });

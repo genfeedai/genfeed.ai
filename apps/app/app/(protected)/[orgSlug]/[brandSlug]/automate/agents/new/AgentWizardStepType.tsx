@@ -157,7 +157,7 @@ export default function AgentWizardStepType({
         <Button
           label={
             <>
-              Pick Brand <ArrowRight />
+              Configure <ArrowRight />
             </>
           }
           variant={ButtonVariant.DEFAULT}

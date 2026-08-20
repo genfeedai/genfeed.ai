@@ -1,14 +1,14 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
-import ContentTeamHirePage from './ContentTeamHirePage';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Hire Agent');
+export default async function ContentTeamHireRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
 
-export default function ContentTeamHireRoute() {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <ContentTeamHirePage />
-    </Suspense>
+  permanentRedirect(
+    `${createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.AUTOMATE.AGENTS)}?add=library`,
   );
 }
