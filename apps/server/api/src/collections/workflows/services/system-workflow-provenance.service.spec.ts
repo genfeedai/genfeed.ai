@@ -145,7 +145,11 @@ describe('SystemWorkflowProvenanceService', () => {
           }),
           status: PrismaWorkflowExecutionStatus.COMPLETED,
         }),
-        where: { id: 'execution-1' },
+        where: {
+          id: 'execution-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
     expect(mockPrisma.workflow.update).toHaveBeenCalledWith(
@@ -153,7 +157,11 @@ describe('SystemWorkflowProvenanceService', () => {
         data: expect.objectContaining({
           executionCount: { increment: 1 },
         }),
-        where: { id: 'workflow-1' },
+        where: {
+          id: 'workflow-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       }),
     );
   });
