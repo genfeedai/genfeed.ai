@@ -66,8 +66,10 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     }
     return this.finalizer.finalizeStructuredAssistantTurn({
       content: 'Official workflow installed.',
-      ...params,
+      context: params.context,
+      model: params.model,
       result: execution.result,
+      threadId: params.threadId,
       toolCalls: [execution.summary],
     });
   }
@@ -111,8 +113,10 @@ export class AgentOrchestratorUiActionConfirmedToolService {
 
     return this.finalizer.finalizeStructuredAssistantTurn({
       content,
-      ...params,
+      context: params.context,
+      model: params.model,
       result: execution.result,
+      threadId: params.threadId,
       toolCalls: [execution.summary],
     });
   }
@@ -134,8 +138,10 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     }
     return this.finalizer.finalizeStructuredAssistantTurn({
       content: 'Brand voice saved to the selected brand.',
-      ...params,
+      context: params.context,
+      model: params.model,
       result: execution.result,
+      threadId: params.threadId,
       toolCalls: [execution.summary],
     });
   }
@@ -182,8 +188,10 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       };
       return this.finalizer.finalizeStructuredAssistantTurn({
         content: `${request.generationType === 'image' ? 'Image' : 'Video'} generated.`,
-        ...params,
+        context: params.context,
+        model: params.model,
         result: linkedResult,
+        threadId: params.threadId,
         toolCalls: [execution.summary],
       });
     });

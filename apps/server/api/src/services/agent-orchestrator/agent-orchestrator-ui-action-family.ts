@@ -1,22 +1,35 @@
 export type ThreadUiActionFamily = 'brand-identity' | 'confirmed-tool' | 'plan';
+export type SupportedThreadUiAction =
+  | 'approve_plan'
+  | 'revise_plan'
+  | 'confirm_create_brand'
+  | 'confirm_rename_brand'
+  | 'confirm_install_official_workflow'
+  | 'confirm_publish_post'
+  | 'confirm_generate_media'
+  | 'confirm_save_brand_voice_profile';
 
 const THREAD_UI_ACTION_FAMILIES = {
   approve_plan: 'plan',
+  revise_plan: 'plan',
   confirm_create_brand: 'brand-identity',
-  confirm_generate_media: 'confirmed-tool',
+  confirm_rename_brand: 'brand-identity',
   confirm_install_official_workflow: 'confirmed-tool',
   confirm_publish_post: 'confirmed-tool',
-  confirm_rename_brand: 'brand-identity',
+  confirm_generate_media: 'confirmed-tool',
   confirm_save_brand_voice_profile: 'confirmed-tool',
-  revise_plan: 'plan',
-} as const satisfies Record<string, ThreadUiActionFamily>;
+} as const satisfies Record<SupportedThreadUiAction, ThreadUiActionFamily>;
 
-export type SupportedThreadUiAction = keyof typeof THREAD_UI_ACTION_FAMILIES;
+export function isSupportedThreadUiAction(
+  action: string,
+): action is SupportedThreadUiAction {
+  return Object.hasOwn(THREAD_UI_ACTION_FAMILIES, action);
+}
 
 export function resolveThreadUiActionFamily(
   action: string,
 ): ThreadUiActionFamily | null {
-  return action in THREAD_UI_ACTION_FAMILIES
-    ? THREAD_UI_ACTION_FAMILIES[action as SupportedThreadUiAction]
+  return isSupportedThreadUiAction(action)
+    ? THREAD_UI_ACTION_FAMILIES[action]
     : null;
 }

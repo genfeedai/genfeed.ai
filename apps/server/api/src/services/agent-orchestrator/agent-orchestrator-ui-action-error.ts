@@ -51,12 +51,18 @@ function readForbiddenDetail(error: string | undefined): string {
     : withoutStatus;
 }
 
+/**
+ * Confirmed UI actions used to wrap every tool failure as 500, including
+ * swallowed upstream 401/403s. Auth failures stay on the existing
+ * ErrorResponse 401/403 path; unexpected failures remain 500.
+ */
 export function throwFailedUiActionResult(
   error: string | undefined,
   fallback: string,
 ): never {
   const status = inferAuthFailureStatus(error);
   if (status === HttpStatus.UNAUTHORIZED) {
+    // Tool failures that reach this path already passed session guards.
     ErrorResponse.unauthorized(PROVIDER_AUTHENTICATION_DETAIL);
   }
   if (status === HttpStatus.FORBIDDEN) {

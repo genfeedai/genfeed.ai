@@ -13,7 +13,10 @@ import type {
 import { AgentOrchestratorUiActionBrandIdentityService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-brand-identity.service';
 import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
 import { rethrowUiActionError } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-error';
-import { resolveThreadUiActionFamily } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-family';
+import {
+  isSupportedThreadUiAction,
+  resolveThreadUiActionFamily,
+} from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-family';
 import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import type {
@@ -164,50 +167,48 @@ export class AgentOrchestratorUiActionService {
     scope: ValidatedAgentScope,
     host: AgentOrchestratorUiActionHost,
   ): Promise<AgentChatResult> {
+    if (!isSupportedThreadUiAction(request.action)) {
+      throw new BadRequestException(
+        `Unsupported thread UI action: ${request.action}`,
+      );
+    }
+    const action = request.action;
     const params: ThreadUiActionExecutionParams = {
       context,
       model,
       payload: request.payload,
       threadId,
     };
-    const family = resolveThreadUiActionFamily(request.action);
-    if (family === 'plan') {
-      if (
-        request.action === 'approve_plan' ||
-        request.action === 'revise_plan'
-      ) {
+    switch (action) {
+      case 'approve_plan':
+      case 'revise_plan':
         return withAgentScopeResult(
-          await this.planActions.execute(request.action, params, host),
+          await this.planActions.execute(action, params, host),
           scope,
         );
-      }
-    } else if (family === 'brand-identity') {
-      if (
-        request.action === 'confirm_create_brand' ||
-        request.action === 'confirm_rename_brand'
-      ) {
+      case 'confirm_create_brand':
+      case 'confirm_rename_brand': {
         const confirmed = await this.brandIdentityActions.execute(
-          request.action === 'confirm_create_brand' ? 'create' : 'rename',
+          action === 'confirm_create_brand' ? 'create' : 'rename',
           params,
         );
         return withAgentScopeResult(confirmed.result, confirmed.scope);
       }
-    } else if (family === 'confirmed-tool') {
-      if (
-        request.action === 'confirm_install_official_workflow' ||
-        request.action === 'confirm_publish_post' ||
-        request.action === 'confirm_generate_media' ||
-        request.action === 'confirm_save_brand_voice_profile'
-      ) {
+      case 'confirm_install_official_workflow':
+      case 'confirm_publish_post':
+      case 'confirm_generate_media':
+      case 'confirm_save_brand_voice_profile':
         return withAgentScopeResult(
-          await this.confirmedToolActions.execute(request.action, params),
+          await this.confirmedToolActions.execute(action, params),
           scope,
+        );
+      default: {
+        const exhaustiveAction: never = action;
+        throw new BadRequestException(
+          `Unsupported thread UI action: ${exhaustiveAction}`,
         );
       }
     }
-    throw new BadRequestException(
-      `Unsupported thread UI action: ${request.action}`,
-    );
   }
 
   private async recordActionStarted(params: {
@@ -240,6 +241,8 @@ export class AgentOrchestratorUiActionService {
       id: threadId,
       organizationId,
     });
+    // A soft-deleted thread must not trip the archived gate — treat it like a
+    // missing record, exactly as the previous isDeleted filter did.
     const activeThreadRecord =
       threadRecord && !threadRecord.isDeleted ? threadRecord : null;
     const threadStatus = String(
@@ -337,6 +340,9 @@ export class AgentOrchestratorUiActionService {
         organizationId,
       ),
     );
+    // UI actions price and call the bound model directly, bypassing the
+    // orchestrator's resolution chokepoint — a binding stored against a retired
+    // key maps forward here or it bills at the fallback rate.
     return this.agentChatModelRegistry.resolveModelKey(binding?.model);
   }
 
