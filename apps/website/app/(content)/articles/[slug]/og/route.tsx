@@ -1,6 +1,7 @@
 import { getPublicArticleBySlugCached } from '@website/(content)/articles/[slug]/article-loader';
 import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
 import { ImageResponse } from 'next/og';
+import { getHeadlineSize, truncateHeadline } from './headline';
 
 const SIZE = { height: 630, width: 1200 };
 
@@ -30,8 +31,16 @@ export async function GET(
   const palette = getArticleCoverPalette(slug);
   const label = article?.label?.trim() || 'Genfeed.ai';
   const category = article?.category?.trim();
-  const summary = article?.summary?.trim();
   const artwork = article?.coverImageUrl?.trim();
+
+  /**
+   * The card carries the headline and nothing else — every unfurl surface
+   * already prints the summary as body text beside the image, so repeating it
+   * here costs the headline a third of the card and reads as a stutter. With
+   * that space back the type can run large enough to survive a thumbnail.
+   */
+  const headline = truncateHeadline(label);
+  const headlineSize = getHeadlineSize(headline);
 
   return new ImageResponse(
     <div
@@ -87,10 +96,16 @@ export async function GET(
       >
         <div
           style={{
+            alignSelf: 'flex-start',
+            backgroundColor: 'rgba(255,255,255,0.08)',
+            border: `1px solid ${palette.accent}`,
+            borderRadius: '999px',
             color: palette.accent,
             display: 'flex',
-            fontSize: 24,
-            letterSpacing: '0.24em',
+            fontSize: 22,
+            fontWeight: 600,
+            letterSpacing: '0.18em',
+            padding: '12px 22px 12px 26px',
             textTransform: 'uppercase',
           }}
         >
@@ -99,37 +114,16 @@ export async function GET(
 
         <div
           style={{
+            color: '#ffffff',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '24px',
-            maxWidth: '860px',
+            fontSize: headlineSize,
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.1,
+            maxWidth: '960px',
           }}
         >
-          <div
-            style={{
-              color: '#ffffff',
-              display: 'flex',
-              fontSize: label.length > 60 ? 60 : 74,
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              lineHeight: 1.1,
-            }}
-          >
-            {label}
-          </div>
-
-          {summary && (
-            <div
-              style={{
-                color: 'rgba(255,255,255,0.62)',
-                display: 'flex',
-                fontSize: 28,
-                lineHeight: 1.35,
-              }}
-            >
-              {summary.length > 140 ? `${summary.slice(0, 137)}…` : summary}
-            </div>
-          )}
+          {headline}
         </div>
 
         <div
@@ -140,6 +134,14 @@ export async function GET(
             display: 'flex',
             fontSize: 26,
             letterSpacing: '0.2em',
+            /**
+             * The scrim only holds its ground for the leftmost ~500px; past
+             * that the artwork comes through. A full-width hairline has none
+             * of the headline's mass, so over a light cover it dissolves and
+             * takes the brand mark's footing with it. Ending the rule inside
+             * the dark zone keeps it legible against any artwork.
+             */
+            maxWidth: '480px',
             paddingTop: '28px',
             textTransform: 'uppercase',
           }}
