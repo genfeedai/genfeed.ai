@@ -1,3 +1,4 @@
+import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
 import { getPublicArticleBySlugCached } from '@website/(content)/articles/[slug]/article-loader';
 import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
 import { ImageResponse } from 'next/og';
@@ -47,6 +48,7 @@ export async function GET(
       style={{
         background: `radial-gradient(120% 140% at 12% 0%, ${palette.to} 0%, ${palette.from} 52%, ${palette.base} 100%)`,
         display: 'flex',
+        fontFamily: 'Satoshi',
         height: '100%',
         position: 'relative',
         width: '100%',
@@ -103,7 +105,7 @@ export async function GET(
             color: palette.accent,
             display: 'flex',
             fontSize: 22,
-            fontWeight: 600,
+            fontWeight: 500,
             letterSpacing: '0.18em',
             padding: '12px 22px 12px 26px',
             textTransform: 'uppercase',
@@ -117,7 +119,7 @@ export async function GET(
             color: '#ffffff',
             display: 'flex',
             fontSize: headlineSize,
-            fontWeight: 600,
+            fontWeight: 700,
             letterSpacing: '-0.02em',
             lineHeight: 1.1,
             maxWidth: '960px',
@@ -152,6 +154,7 @@ export async function GET(
     </div>,
     {
       ...SIZE,
+      fonts: await loadSatoshiSatoriFonts(),
       headers: {
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
       },
