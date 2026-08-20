@@ -54,6 +54,18 @@ type UpcomingInvoicePreview = {
   };
 };
 
+const STRIPE_PINNED_API_VERSION: StripeConstructor.LatestApiVersion =
+  '2026-07-29.dahlia';
+
+function resolveStripeApiVersion(
+  configured: string | undefined,
+): StripeConstructor.LatestApiVersion {
+  if (configured === STRIPE_PINNED_API_VERSION) {
+    return configured;
+  }
+  return STRIPE_PINNED_API_VERSION;
+}
+
 @Injectable()
 export class StripeService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -75,10 +87,9 @@ export class StripeService {
     this.stripe = new StripeConstructor(
       this.configService.get('STRIPE_SECRET_KEY')!,
       {
-        apiVersion:
-          (this.configService.get('STRIPE_API_VERSION') as
-            | StripeConstructor.LatestApiVersion
-            | undefined) ?? '2026-03-25.dahlia',
+        apiVersion: resolveStripeApiVersion(
+          this.configService.get('STRIPE_API_VERSION'),
+        ),
       },
     );
   }

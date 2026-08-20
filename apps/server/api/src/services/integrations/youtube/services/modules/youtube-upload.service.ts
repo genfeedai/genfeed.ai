@@ -101,7 +101,7 @@ export class YoutubeUploadService {
           : { selfDeclaredMadeForKids: madeForKids };
 
       let privacyStatus: string;
-      let statusConfig: unknown;
+      let statusConfig: youtube_v3.Schema$VideoStatus;
 
       if (hasFutureScheduledDate) {
         // Future scheduled date: upload as private with publishAt
@@ -133,7 +133,8 @@ export class YoutubeUploadService {
 
       const playlistId = readChannelSettingString(settings, 'playlistId');
 
-      const body = {
+      const res = await this.youtubeAPI.videos.insert({
+        auth,
         media: {
           body: fs.createReadStream(filePath),
         },
@@ -146,16 +147,7 @@ export class YoutubeUploadService {
           },
           status: statusConfig,
         },
-      };
-
-      const res = (await this.youtubeAPI.videos.insert({
-        ...body,
-        auth,
-      } as youtube_v3.Params$Resource$Videos$Insert)) as {
-        data?: {
-          id?: string | null;
-        };
-      };
+      });
 
       if (!res.data?.id) {
         throw new Error('Failed to upload video');
