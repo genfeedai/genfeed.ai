@@ -2,6 +2,7 @@ import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
 import { getPublicArticleBySlugCached } from '@website/(content)/articles/[slug]/article-loader';
 import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
 import { ImageResponse } from 'next/og';
+import { BrandMark } from './brand-mark';
 import { getHeadlineSize, truncateHeadline } from './headline';
 
 const SIZE = { height: 630, width: 1200 };
@@ -128,28 +129,11 @@ export async function GET(
           {headline}
         </div>
 
-        <div
-          style={{
-            alignItems: 'center',
-            borderTop: `1px solid ${palette.accent}`,
-            color: 'rgba(255,255,255,0.72)',
-            display: 'flex',
-            fontSize: 26,
-            letterSpacing: '0.2em',
-            /**
-             * The scrim only holds its ground for the leftmost ~500px; past
-             * that the artwork comes through. A full-width hairline has none
-             * of the headline's mass, so over a light cover it dissolves and
-             * takes the brand mark's footing with it. Ending the rule inside
-             * the dark zone keeps it legible against any artwork.
-             */
-            maxWidth: '480px',
-            paddingTop: '28px',
-            textTransform: 'uppercase',
-          }}
-        >
-          genfeed.ai
-        </div>
+        {/* No rule above it: a hairline has none of the headline's mass, so
+            over a light cover it dissolves. The mark holds the corner on its
+            own, and unlike a wordmark it does not repeat the domain that every
+            unfurl surface already prints in its own chrome. */}
+        <BrandMark fill="#ffffff" size={76} />
       </div>
     </div>,
     {
