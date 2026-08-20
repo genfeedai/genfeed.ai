@@ -218,9 +218,9 @@ export class TasksController extends BaseCRUDController<
       ];
     }
 
-    // Numeric direction convention (1 = asc, -1 = desc); BaseService.normalizeSort
-    // maps these to Prisma 'asc'/'desc'. Array form preserves the two-key order
-    // (reviewState asc, then updatedAt desc) that the legacy /inbox route used.
+    // Numeric direction (1 = asc, -1 = desc); the BaseService query normalizer
+    // maps these to Prisma values. Array form preserves reviewState asc, then
+    // updatedAt desc, matching the legacy /inbox route.
     // The explicit SortObject[] annotation stops TS from widening the mixed-key
     // array literal to a `{ key: dir; other?: undefined }` union that would break
     // the Record index signature on the base buildFindAllQuery return type.

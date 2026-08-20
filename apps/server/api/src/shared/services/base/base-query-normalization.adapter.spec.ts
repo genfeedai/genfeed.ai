@@ -106,6 +106,23 @@ describe('BaseQueryNormalizationAdapter', () => {
     });
   });
 
+  it('drops normalized-empty OR branches instead of emitting a match-all object', () => {
+    getModelMetaMock.mockReturnValue(
+      makeModelMeta('id', 'organizationId', {
+        enumType: 'ArticleStatus',
+        isRequired: true,
+        name: 'status',
+      }),
+    );
+
+    expect(
+      adapter.normalizeWhere({
+        OR: [{ status: { not: null } }],
+        organizationId: 'org-1',
+      }),
+    ).toEqual({ organizationId: 'org-1' });
+  });
+
   it('preserves an explicit undefined soft-delete opt-out', () => {
     const rawWhere = {
       isDeleted: undefined,

@@ -38,19 +38,24 @@ type BaseQueryNormalizationHooks = {
  */
 const PRISMA_ENUM_ALIASES: Record<string, Record<string, string>> = {
   ArticleStatus: {
+    // `public` is the legacy app alias for Prisma's PUBLISHED value.
     public: 'PUBLISHED',
     published: 'PUBLISHED',
   },
   ApiKeyCategory: {
+    // Generic casing cannot split `opuspro` into OPUS_PRO.
     opuspro: 'OPUS_PRO',
   },
   IngredientStatus: {
+    // `completed` was the legacy status name; Prisma stores GENERATED.
     completed: 'GENERATED',
   },
   PromptCategory: {
+    // This older client slug differs from the derived enum spelling.
     'models-prompt-genfeedai': 'MODELS_PROMPT_TRAINING',
   },
   SubscriptionStatus: {
+    // Stripe sends US `canceled`; Prisma stores UK `CANCELLED`.
     canceled: 'CANCELLED',
   },
 };
@@ -266,6 +271,8 @@ export class BaseQueryNormalizationAdapter {
       [key]: direction === 1 || direction === 'asc' ? 'asc' : 'desc',
     });
 
+    // Prisma's array form preserves deterministic multi-field precedence;
+    // a multi-key object does not provide the required ordering contract.
     if (Array.isArray(sort)) {
       return sort.flatMap((entry) => Object.entries(entry).map(toEntry));
     }
@@ -399,7 +406,10 @@ export class BaseQueryNormalizationAdapter {
           .map((entry) =>
             normalizeNested(this.isPlainObject(entry) ? entry : {}),
           )
+          // A normalized `{}` inside OR matches every row, which can broaden a
+          // tenant-scoped query. Remove empty branches before emitting Prisma input.
           .filter((entry) => Object.keys(entry).length > 0);
+        // Omit the operator when no branch survives instead of emitting `OR: []`.
         if (normalizedEntries.length > 0) {
           result[key] = normalizedEntries;
         }
@@ -422,6 +432,8 @@ export class BaseQueryNormalizationAdapter {
 
     const result: PrismaUpdate = {};
     for (const [key, value] of Object.entries(data)) {
+      // Nest DTO instances materialize omitted fields as own `undefined`
+      // properties, which Prisma rejects on writes.
       if (value === undefined) {
         continue;
       }

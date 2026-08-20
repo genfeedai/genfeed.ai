@@ -1,5 +1,5 @@
-// Real, complete OrganizationCategory (BaseService.getPrismaEnumValues reads
-// enum value sets off this namespace directly — the hand-rolled version here
+// Real, complete OrganizationCategory (the BaseService query normalizer reads
+// enum value sets from this namespace directly — the hand-rolled version here
 // was missing AGENCY) plus real getModelMeta/PRISMA_MODEL_METADATA.Organization
 // via the light @genfeedai/prisma/testing subpath.
 vi.mock('@genfeedai/prisma', async () => {

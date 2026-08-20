@@ -2156,8 +2156,8 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/endpoints/webhooks/services/activity-update.service.spec.ts",
-      "fingerprint": "44173d19589f7536103c",
-      "message": "Argument of type '{ findByActionValue: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; create: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'ActivitiesService'.   Type '{ findByActionValue: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; create: Mock<Procedure | Constructable>; }' is missing the following properties from type 'ActivitiesService': prisma, logger, streaksService, handleCreditsActivity, and 41 more.",
+      "fingerprint": "9bed1836f5ca5fdb1905",
+      "message": "Argument of type '{ findByActionValue: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; create: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'ActivitiesService'.   Type '{ findByActionValue: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; create: Mock<Procedure | Constructable>; }' is missing the following properties from type 'ActivitiesService': prisma, logger, streaksService, handleCreditsActivity, and 30 more.",
       "workspace": "api"
     },
     {
@@ -2172,8 +2172,8 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
-      "fingerprint": "41b6e54bb5e069a782d4",
-      "message": "Argument of type 'Record<string, Mock<Procedure | Constructable>>' is not assignable to parameter of type 'ActivitiesService'.   Type 'Record<string, Mock<Procedure | Constructable>>' is missing the following properties from type 'ActivitiesService': prisma, logger, streaksService, handleCreditsActivity, and 44 more.",
+      "fingerprint": "7932c3c2252fa7ddf477",
+      "message": "Argument of type 'Record<string, Mock<Procedure | Constructable>>' is not assignable to parameter of type 'ActivitiesService'.   Type 'Record<string, Mock<Procedure | Constructable>>' is missing the following properties from type 'ActivitiesService': prisma, logger, streaksService, handleCreditsActivity, and 33 more.",
       "workspace": "api"
     },
     {
@@ -2204,8 +2204,8 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/endpoints/webhooks/services/metadata-lookup.service.spec.ts",
-      "fingerprint": "9eb4fb82a0ac41837bd0",
-      "message": "Argument of type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'MetadataService'.   Type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is missing the following properties from type 'MetadataService': constructorName, prisma, logger, create, and 36 more.",
+      "fingerprint": "851f270f74b0d3c2b2e9",
+      "message": "Argument of type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'MetadataService'.   Type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is missing the following properties from type 'MetadataService': constructorName, prisma, logger, create, and 25 more.",
       "workspace": "api"
     },
     {
