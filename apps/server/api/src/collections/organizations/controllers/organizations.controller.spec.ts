@@ -54,6 +54,7 @@ describe('OrganizationsController', () => {
   const mockMembersService = {
     create: vi.fn(),
     find: vi.fn(),
+    findActiveForUserAccess: vi.fn(),
     findOne: vi.fn(),
     setLastUsedBrand: vi.fn(),
   };
@@ -169,7 +170,7 @@ describe('OrganizationsController', () => {
 
   describe('findMine', () => {
     it('resolves organizations from Prisma-shaped membership rows (organizationId scalar)', async () => {
-      mockMembersService.find.mockResolvedValue([
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
         { id: 'member_1', isActive: true, organizationId: 'org_a' },
         { id: 'member_2', isActive: true, organizationId: 'org_b' },
       ]);
@@ -187,6 +188,10 @@ describe('OrganizationsController', () => {
         currentUser,
       )) as OrganizationOption[];
 
+      expect(mockMembersService.findActiveForUserAccess).toHaveBeenCalledWith(
+        'user_1',
+      );
+      expect(mockMembersService.find).not.toHaveBeenCalled();
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
         id: 'org_a',
       });
@@ -203,7 +208,7 @@ describe('OrganizationsController', () => {
     });
 
     it('dedups multiple membership rows pointing at the same organization', async () => {
-      mockMembersService.find.mockResolvedValue([
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
         { id: 'member_1', isActive: true, organizationId: 'org_a' },
         { id: 'member_2', isActive: true, organizationId: 'org_a' },
       ]);
@@ -223,7 +228,7 @@ describe('OrganizationsController', () => {
     });
 
     it('skips membership rows without a resolvable organization id', async () => {
-      mockMembersService.find.mockResolvedValue([
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
         { id: 'member_1', isActive: true, organizationId: 'org_a' },
         { id: 'member_broken', isActive: true, organizationId: undefined },
       ]);
@@ -246,7 +251,7 @@ describe('OrganizationsController', () => {
     });
 
     it('marks only the active organization from identity', async () => {
-      mockMembersService.find.mockResolvedValue([
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
         { id: 'member_1', isActive: true, organizationId: 'org_active' },
         { id: 'member_2', isActive: true, organizationId: 'org_other' },
       ]);
@@ -272,7 +277,7 @@ describe('OrganizationsController', () => {
     });
 
     it('falls back to the session metadata organization when the user has no membership rows', async () => {
-      mockMembersService.find.mockResolvedValue([]);
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
       mockOrganizationsService.findOne.mockResolvedValue({
         id: 'org_active',
         label: 'Active Org',
@@ -301,7 +306,7 @@ describe('OrganizationsController', () => {
     });
 
     it('returns an empty list when neither memberships nor session metadata resolve an organization', async () => {
-      mockMembersService.find.mockResolvedValue([]);
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
 
       const result = await controller.findMine({
         brandId: 'brand_active',
@@ -314,7 +319,7 @@ describe('OrganizationsController', () => {
     });
 
     it('returns the mine collection as the documented raw option array', async () => {
-      mockMembersService.find.mockResolvedValue([]);
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
       mockOrganizationsService.findOne.mockResolvedValue({
         id: 'org_active',
         label: 'Active Org',

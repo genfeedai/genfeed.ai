@@ -261,11 +261,7 @@ export class OrganizationsController extends BaseCRUDController<
       );
     }
 
-    // Find all memberships for this user
-    const members = await this.membersService.find({
-      isActive: true,
-      userId,
-    });
+    const members = await this.membersService.findActiveForUserAccess(userId);
 
     // A missing organization ID must not reach findOne because an undefined
     // unique filter can normalize to an unscoped findFirst.
