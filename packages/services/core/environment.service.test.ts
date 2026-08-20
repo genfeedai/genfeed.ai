@@ -197,6 +197,17 @@ describe('EnvironmentService', () => {
   });
 
   describe('MODELS_DEFAULT', () => {
+    it('uses the cloud quality defaults in cloud production', () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('GENFEED_CLOUD', 'true');
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+
+      expect(EnvironmentService.MODELS_DEFAULT.image).toBe(
+        'google/nano-banana-2-lite',
+      );
+      expect(EnvironmentService.MODELS_DEFAULT.video).toBe('minimax/h3');
+    });
+
     it('uses the lowest-cost image and video models in development', () => {
       vi.stubEnv('NODE_ENV', 'development');
       vi.stubEnv('GENFEED_CLOUD', '');

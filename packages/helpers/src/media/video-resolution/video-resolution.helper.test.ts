@@ -43,6 +43,15 @@ describe('getVideoResolutionsByModel', () => {
     expect(resolutions.map((r) => r.value)).toContain('480p');
     expect(resolutions.map((r) => r.value)).toContain('720p');
   });
+
+  it('returns the official MiniMax H3 resolution values', () => {
+    expect(getVideoResolutionsByModel(MODEL_KEYS.REPLICATE_MINIMAX_H3)).toEqual(
+      [
+        { label: '768P', value: '768P' },
+        { label: '2K', value: '2K' },
+      ],
+    );
+  });
 });
 
 describe('getDefaultVideoResolution', () => {
@@ -60,6 +69,12 @@ describe('getDefaultVideoResolution', () => {
     expect(
       getDefaultVideoResolution(MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO),
     ).toBe('high');
+  });
+
+  it('defaults MiniMax H3 to its conservative billed 2K tier', () => {
+    expect(getDefaultVideoResolution(MODEL_KEYS.REPLICATE_MINIMAX_H3)).toBe(
+      '2K',
+    );
   });
 });
 

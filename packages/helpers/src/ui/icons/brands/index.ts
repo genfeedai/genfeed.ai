@@ -23,6 +23,7 @@ export {
   IdeogramIcon,
   KlingIcon,
   LumaIcon,
+  MinimaxIcon,
   MoonshotIcon,
   PrunaIcon,
   QwenIcon,

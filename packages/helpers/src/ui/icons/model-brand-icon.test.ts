@@ -16,6 +16,7 @@ const CATALOG_ICON_KEYS = [
   'local',
   'luma',
   'meta',
+  'minimax',
   'moonshot',
   'openai',
   'pruna',

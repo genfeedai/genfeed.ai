@@ -2,46 +2,42 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Official Replicate API schema for google/nano-banana",
   "properties": {
-    "aspect_ratio": {
-      "description": "An enumeration.",
-      "enum": [
-        "match_input_image",
-        "1:1",
-        "2:3",
-        "3:2",
-        "3:4",
-        "4:3",
-        "4:5",
-        "5:4",
-        "9:16",
-        "16:9",
-        "21:9"
-      ],
-      "title": "aspect_ratio",
-      "type": "string"
+    "prompt": {
+      "type": "string",
+      "title": "Prompt",
+      "x-order": 0,
+      "description": "A text description of the image you want to generate"
     },
     "image_input": {
-      "default": [],
-      "description": "Input images to transform or use as reference (supports multiple images)",
+      "type": "array",
       "items": {
-        "format": "uri",
-        "type": "string"
+        "type": "string",
+        "format": "uri"
       },
       "title": "Image Input",
-      "type": "array",
-      "x-order": 1
+      "default": [],
+      "x-order": 1,
+      "description": "Input images to transform or use as reference (supports multiple images)"
+    },
+    "aspect_ratio": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/aspect_ratio"
+        }
+      ],
+      "default": "match_input_image",
+      "x-order": 2,
+      "description": "Aspect ratio of the generated image"
     },
     "output_format": {
-      "description": "An enumeration.",
-      "enum": ["jpg", "png"],
-      "title": "output_format",
-      "type": "string"
-    },
-    "prompt": {
-      "description": "A text description of the image you want to generate",
-      "title": "Prompt",
-      "type": "string",
-      "x-order": 0
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/output_format"
+        }
+      ],
+      "default": "jpg",
+      "x-order": 3,
+      "description": "Format of the output image"
     }
   },
   "required": ["prompt"],

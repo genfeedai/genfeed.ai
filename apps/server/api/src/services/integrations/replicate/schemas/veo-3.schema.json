@@ -2,58 +2,70 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Official Replicate API schema for google/veo-3",
   "properties": {
-    "aspect_ratio": {
-      "description": "An enumeration.",
-      "enum": ["16:9", "9:16"],
-      "title": "aspect_ratio",
-      "type": "string"
-    },
-    "duration": {
-      "description": "An enumeration.",
-      "enum": [4, 6, 8],
-      "title": "duration",
-      "type": "integer"
-    },
-    "generate_audio": {
-      "default": true,
-      "description": "Generate audio with the video",
-      "title": "Generate Audio",
-      "type": "boolean",
-      "x-order": 6
+    "seed": {
+      "type": "integer",
+      "title": "Seed",
+      "x-order": 7,
+      "nullable": true,
+      "description": "Random seed. Omit for random generations"
     },
     "image": {
-      "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose.",
-      "format": "uri",
-      "nullable": true,
+      "type": "string",
       "title": "Image",
-      "type": "string",
-      "x-order": 3
-    },
-    "negative_prompt": {
-      "description": "Description of what to exclude from the generated video",
+      "format": "uri",
+      "x-order": 3,
       "nullable": true,
-      "title": "Negative Prompt",
-      "type": "string",
-      "x-order": 4
+      "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose."
     },
     "prompt": {
-      "description": "Text prompt for video generation",
-      "title": "Prompt",
       "type": "string",
-      "x-order": 0
+      "title": "Prompt",
+      "x-order": 0,
+      "description": "Text prompt for video generation"
+    },
+    "duration": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/duration"
+        }
+      ],
+      "default": 8,
+      "x-order": 2,
+      "description": "Video duration in seconds"
     },
     "resolution": {
-      "description": "An enumeration.",
-      "enum": ["720p", "1080p"],
-      "title": "resolution",
-      "type": "string"
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/resolution"
+        }
+      ],
+      "default": "1080p",
+      "x-order": 5,
+      "description": "Resolution of the generated video"
     },
-    "seed": {
-      "description": "Random seed. Omit for random generations",
+    "aspect_ratio": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/aspect_ratio"
+        }
+      ],
+      "default": "16:9",
+      "x-order": 1,
+      "description": "Video aspect ratio"
+    },
+    "generate_audio": {
+      "type": "boolean",
+      "title": "Generate Audio",
+      "default": true,
+      "x-order": 6,
+      "description": "Generate audio with the video"
+    },
+    "negative_prompt": {
+      "type": "string",
+      "title": "Negative Prompt",
+      "x-order": 4,
       "nullable": true,
-      "title": "Seed",
-      "type": "integer",
-      "x-order": 7
+      "description": "Description of what to exclude from the generated video"
     }
   },
   "required": ["prompt"],

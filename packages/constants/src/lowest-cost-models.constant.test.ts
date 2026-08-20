@@ -28,11 +28,9 @@ describe('lowest-cost model keys', () => {
 
   it('pins cloud-production quality image and video keys', () => {
     expect(CLOUD_QUALITY_IMAGE_MODEL_KEY).toBe(
-      MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
     );
-    expect(CLOUD_QUALITY_VIDEO_MODEL_KEY).toBe(
-      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
-    );
+    expect(CLOUD_QUALITY_VIDEO_MODEL_KEY).toBe(MODEL_KEYS.REPLICATE_MINIMAX_H3);
   });
 });
 
@@ -101,17 +99,17 @@ describe('shouldUseLowestCostModelDefaults', () => {
 });
 
 describe('deployment fallback media keys', () => {
-  it('keeps Nano Banana and Seedance 2.5 for cloud production', () => {
+  it('uses Nano Banana 2 Lite and MiniMax H3 for cloud production', () => {
     const input: LowestCostModelDefaultsInput = {
       isCloud: true,
       nodeEnv: 'production',
     };
 
     expect(getFallbackImageModelKey(input)).toBe(
-      MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
     );
     expect(getFallbackVideoModelKey(input)).toBe(
-      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      MODEL_KEYS.REPLICATE_MINIMAX_H3,
     );
   });
 

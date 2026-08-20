@@ -11,6 +11,14 @@ export interface VideoModelResolution {
 
 export const videoModelResolutions: VideoModelResolution[] = [
   {
+    default: '2K',
+    model: MODEL_KEYS.REPLICATE_MINIMAX_H3,
+    resolutions: [
+      { label: '768P', value: '768P' },
+      { label: '2K', value: '2K' },
+    ],
+  },
+  {
     default: '1080p',
     model: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
     resolutions: [

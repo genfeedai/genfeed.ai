@@ -16,15 +16,15 @@ export interface LowestCostModelDefaultsInput {
 /**
  * Lowest-cost models for local, self-hosted, and e2e.
  *
- * Cloud production keeps the quality catalogue defaults (Nano Banana,
- * Seedance 2.5, Gemini 2.5 Flash Lite). Everything else — community
+ * Cloud production keeps the quality catalogue defaults (Nano Banana 2 Lite,
+ * MiniMax H3, Gemini 2.5 Flash Lite). Everything else — community
  * installs, cloud staging, an unset `NODE_ENV`, `NODE_ENV=development`,
  * and `NODE_ENV=test` — should land on these keys so a generate / chat
  * turn does not bill flagship rates.
  *
  * Prices are Replicate / OpenRouter list (reviewed 2026-08):
- * - image: FLUX Schnell $0.003/image (Nano Banana is $0.039)
- * - video: P-Video $0.02/s at 720p (Seedance 2.5 is $0.24/s)
+ * - image: FLUX Schnell $0.003/image (Nano Banana 2 Lite is $0.034)
+ * - video: P-Video $0.02/s at 720p (MiniMax H3 is up to $0.13/s at 2K)
  * - chat: DeepSeek V4 Flash $0.09/$0.18 per 1M (Gemini Flash Lite is $0.10/$0.40)
  */
 export const LOWEST_COST_IMAGE_MODEL_KEY =
@@ -36,10 +36,9 @@ export const LOWEST_COST_AGENT_CHAT_MODEL_KEY =
   AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH;
 
 export const CLOUD_QUALITY_IMAGE_MODEL_KEY =
-  MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
+  MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE;
 
-export const CLOUD_QUALITY_VIDEO_MODEL_KEY =
-  MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5;
+export const CLOUD_QUALITY_VIDEO_MODEL_KEY = MODEL_KEYS.REPLICATE_MINIMAX_H3;
 
 /**
  * When true, seed / UI / non-prod fallbacks must use the lowest-cost keys.

@@ -2,42 +2,71 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "Official Replicate API schema for kwaivgi/kling-v2.5-turbo-pro",
   "properties": {
-    "aspect_ratio": {
-      "description": "An enumeration.",
-      "enum": ["16:9", "9:16", "1:1"],
-      "title": "aspect_ratio",
-      "type": "string"
-    },
-    "duration": {
-      "description": "An enumeration.",
-      "enum": [5, 10],
-      "title": "duration",
-      "type": "integer"
-    },
     "image": {
-      "deprecated": true,
-      "description": "Deprecated: Use start_image instead.",
-      "format": "uri",
-      "nullable": true,
+      "type": "string",
       "title": "Image",
-      "type": "string"
-    },
-    "negative_prompt": {
-      "default": "",
-      "description": "Things you do not want to see in the video",
-      "title": "Negative Prompt",
-      "type": "string"
+      "format": "uri",
+      "x-order": 6,
+      "nullable": true,
+      "deprecated": true,
+      "description": "Deprecated: Use start_image instead."
     },
     "prompt": {
-      "description": "Text prompt for video generation",
+      "type": "string",
       "title": "Prompt",
-      "type": "string"
+      "x-order": 0,
+      "description": "Text prompt for video generation"
+    },
+    "duration": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/duration"
+        }
+      ],
+      "default": 5,
+      "x-order": 5,
+      "description": "Duration of the video in seconds"
+    },
+    "end_image": {
+      "type": "string",
+      "title": "End Image",
+      "format": "uri",
+      "x-order": 3,
+      "nullable": true,
+      "description": "Last frame of the video"
     },
     "start_image": {
-      "description": "First frame of the video",
-      "format": "uri",
+      "type": "string",
       "title": "Start Image",
-      "type": "string"
+      "format": "uri",
+      "x-order": 2,
+      "nullable": true,
+      "description": "First frame of the video"
+    },
+    "aspect_ratio": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/aspect_ratio"
+        }
+      ],
+      "default": "16:9",
+      "x-order": 4,
+      "description": "Aspect ratio of the video. Ignored if start_image is provided."
+    },
+    "guidance_scale": {
+      "type": "number",
+      "title": "Guidance Scale",
+      "x-order": 7,
+      "nullable": true,
+      "deprecated": true,
+      "description": "Kept for backwards compatibility. This parameter is not used."
+    },
+    "negative_prompt": {
+      "type": "string",
+      "title": "Negative Prompt",
+      "default": "",
+      "x-order": 1,
+      "description": "Things you do not want to see in the video"
     }
   },
   "required": ["prompt"],

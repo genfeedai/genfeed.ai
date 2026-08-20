@@ -51,6 +51,71 @@ describe('ReplicateVideoBuilder', () => {
       expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO);
       expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2);
     });
+
+    it('should include MiniMax H3', () => {
+      expect(builder.getSupportedModels()).toContain(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3,
+      );
+    });
+  });
+
+  describe('buildPrompt - MiniMax H3', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'test',
+      width: 1920,
+    };
+
+    it('should build the provider default 2K text-to-video input', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3,
+        baseParams,
+        'A cinematic product reveal',
+      );
+
+      expect(result).toEqual({
+        duration: 5,
+        prompt: 'A cinematic product reveal',
+        ratio: '16:9',
+        reference_audio_urls: [],
+        reference_image_urls: [],
+        reference_video_urls: [],
+        resolution: '2K',
+      });
+    });
+
+    it('should map first/end frames and bounded multimodal references', () => {
+      const references = Array.from(
+        { length: 12 },
+        (_, index) => `reference-${index + 1}.jpg`,
+      );
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_H3,
+        {
+          ...baseParams,
+          audioUrl: 'reference.mp3',
+          duration: 30,
+          endFrame: 'last-frame.jpg',
+          references,
+          resolution: '768p',
+          video: 'reference.mp4',
+        },
+        'Animate the product consistently',
+      );
+
+      expect(result).toEqual({
+        duration: 15,
+        first_frame_image: references[0],
+        last_frame_image: 'last-frame.jpg',
+        prompt: 'Animate the product consistently',
+        ratio: 'adaptive',
+        reference_audio_urls: ['reference.mp3'],
+        reference_image_urls: references.slice(1, 10),
+        reference_video_urls: ['reference.mp4'],
+        resolution: '768P',
+      });
+    });
   });
 
   describe('buildPrompt - Sora 2', () => {

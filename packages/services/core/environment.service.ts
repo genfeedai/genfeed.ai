@@ -1,16 +1,15 @@
 import { isCloudDeployment } from '@genfeedai/config/deployment';
 import {
+  CLOUD_QUALITY_IMAGE_MODEL_KEY,
+  CLOUD_QUALITY_VIDEO_MODEL_KEY,
   DEFAULT_THEME,
   isThemePreference,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
-  MODEL_KEYS,
   shouldUseLowestCostModelDefaults,
   type ThemePreference,
 } from '@genfeedai/constants';
 
-const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
-const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
 const LOCAL_DEVELOPMENT_HOSTNAMES = new Set([
   '127.0.0.1',
   '::1',
@@ -260,8 +259,8 @@ export const EnvironmentService = {
     }
 
     return {
-      image: DEFAULT_IMAGE_MODEL,
-      video: DEFAULT_VIDEO_MODEL,
+      image: CLOUD_QUALITY_IMAGE_MODEL_KEY,
+      video: CLOUD_QUALITY_VIDEO_MODEL_KEY,
     };
   },
 

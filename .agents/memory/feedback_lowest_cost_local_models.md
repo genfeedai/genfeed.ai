@@ -1,6 +1,6 @@
 ---
 name: lowest_cost_local_models
-description: Local, self-hosted, and e2e default to FLUX Schnell, P-Video, and DeepSeek V4 Flash — cloud production keeps quality defaults
+description: Local, self-hosted, and e2e default to FLUX Schnell, P-Video, and DeepSeek V4 Flash — cloud production uses Nano Banana 2 Lite and MiniMax H3
 type: feedback
 ---
 
@@ -10,11 +10,11 @@ type: feedback
 
 | Surface | Local / e2e / self-hosted | Cloud production |
 |---|---|---|
-| Image | `black-forest-labs/flux-schnell` ($0.003) | Nano Banana ($0.039) |
-| Video | `prunaai/p-video` ($0.02/s) | Seedance 2.5 ($0.24/s) |
+| Image | `black-forest-labs/flux-schnell` ($0.003) | Nano Banana 2 Lite ($0.034) |
+| Video | `prunaai/p-video` ($0.02/s) | MiniMax H3 ($0.08/s at 768P; $0.13/s at 2K) |
 | Chat | `deepseek/deepseek-v4-flash-0731` | Gemini 2.5 Flash Lite |
 
-**Why:** Flagship defaults (Nano Banana, Seedance 2.5, Veo, Imagen 3) burn real Replicate / OpenRouter spend on testing. The operator asked to keep local and e2e on the cheapest models.
+**Why:** Cloud quality defaults still burn real Replicate / OpenRouter spend on testing. The operator asked to keep local and e2e on the cheapest models while using cost-ranked cloud defaults.
 
 **How to apply:**
 

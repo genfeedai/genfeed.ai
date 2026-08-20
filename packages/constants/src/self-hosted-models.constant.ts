@@ -26,11 +26,25 @@ import { MODEL_KEYS } from './model-keys.constant';
 export const SELF_HOSTED_MODELS = [
   {
     category: ModelCategory.IMAGE,
+    cost: 12,
+    costTier: CostTier.MEDIUM,
+    description:
+      'Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.',
+    isDefault: true,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
+    label: 'Nano Banana 2 Lite',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'nano-banana-2-lite', owner: 'google' },
+    providerCostUsd: 0.034,
+  },
+  {
+    category: ModelCategory.IMAGE,
     cost: 13,
     costTier: CostTier.MEDIUM,
     description: 'Replicate Nano Banana image generation model',
-    isDefault: true,
-    isHighlighted: true,
+    isDefault: false,
+    isHighlighted: false,
     key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
     label: 'Nano Banana',
     provider: ModelProvider.REPLICATE,
@@ -77,8 +91,30 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.003,
   },
   /**
-   * Default video. providerCostUsd is **per second** (720p-safe ~$0.24/s).
-   * 5s → applyMargin(1.20) ≈ 400 credits at margin 1.0.
+   * Cloud default. H3 costs $0.08/s at 768P and $0.13/s at 2K. Seed the
+   * conservative 2K rate because bill time does not yet vary by resolution.
+   * 5s → applyMargin(0.65) ≈ 217 credits at margin 1.0.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 217,
+    costPerUnit: 44,
+    costTier: CostTier.HIGH,
+    description:
+      'MiniMax H3 — multimodal text, first/last-frame, and reference video generation with native audio at 768P or 2K.',
+    isDefault: true,
+    isHighlighted: true,
+    key: MODEL_KEYS.REPLICATE_MINIMAX_H3,
+    label: 'MiniMax H3',
+    minCost: 174,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'h3', owner: 'minimax' },
+    providerCostUsd: 0.13,
+  },
+  /**
+   * Premium long-form video. providerCostUsd is **per second**
+   * (720p-safe ~$0.24/s). 5s → applyMargin(1.20) ≈ 400 credits.
    */
   {
     category: ModelCategory.VIDEO,
@@ -87,7 +123,7 @@ export const SELF_HOSTED_MODELS = [
     costTier: CostTier.HIGH,
     description:
       'ByteDance Seedance 2.5 — flagship multimodal video with native audio (up to 30s). Expensive; prefer short drafts.',
-    isDefault: true,
+    isDefault: false,
     isHighlighted: true,
     key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
     label: 'Seedance 2.5',
@@ -101,7 +137,7 @@ export const SELF_HOSTED_MODELS = [
    * Cheapest T2V already wired in the Replicate video builder.
    * providerCostUsd is **per second** at 720p draft-off ($0.02/s).
    * 5s → applyMargin(0.10) ≈ 35 credits at margin 1.0.
-   * Cloud keeps Seedance 2.5 as `isDefault`; local/e2e promote this row.
+   * Cloud keeps MiniMax H3 as `isDefault`; local/e2e promote this row.
    */
   {
     category: ModelCategory.VIDEO,

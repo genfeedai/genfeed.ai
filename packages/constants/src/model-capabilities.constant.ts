@@ -176,6 +176,14 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 14,
     },
+    [MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE]: {
+      aspectRatios: ASPECT_RATIOS.NANO_BANANA_2,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 14,
+    },
     [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4]: {
       aspectRatios: ASPECT_RATIOS.SEEDREAM,
       category: ModelCategory.IMAGE,
@@ -728,7 +736,22 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
 
-    // Minimax Hailuo
+    // MiniMax H3 / Hailuo
+    [MODEL_KEYS.REPLICATE_MINIMAX_H3]: {
+      aspectRatios: ASPECT_RATIOS.SEEDANCE,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      // One first frame plus up to nine reference images.
+      maxReferences: 10,
+    },
     [MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3]: {
       aspectRatios: ASPECT_RATIOS.HAILUO,
       category: ModelCategory.VIDEO,

@@ -45,12 +45,21 @@ export interface ModelCatalogSeedEntry {
   defaultDuration?: number;
   description: string;
   durations?: readonly number[];
+  hasAudioToggle?: boolean;
+  hasDurationEditing?: boolean;
+  hasEndFrame?: boolean;
+  hasInterpolation?: boolean;
+  hasResolutionOptions?: boolean;
+  hasSpeech?: boolean;
   inputCostPerMillionTokens?: number;
   isActive: boolean;
+  isBatchSupported?: boolean;
   isDefault?: boolean;
   isHighlighted?: boolean;
+  isImagenModel?: boolean;
   isLegacy?: boolean;
   isPublic?: boolean;
+  isReferencesMandatory?: boolean;
   key: string;
   label: string;
   maxOutputs?: number;
@@ -70,6 +79,7 @@ export interface ModelCatalogSeedEntry {
   recommendedFor?: readonly string[];
   succeededBy?: string;
   supportsFeatures?: readonly string[];
+  usesOrientation?: boolean;
 }
 
 /** `supportsFeatures` marker for chat models that reason before answering. */
@@ -162,11 +172,39 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     if ('defaultDuration' in capability && capability.defaultDuration) {
       entry.defaultDuration = capability.defaultDuration;
     }
+    if ('hasAudioToggle' in capability) {
+      entry.hasAudioToggle = capability.hasAudioToggle;
+    }
+    if ('hasDurationEditing' in capability) {
+      entry.hasDurationEditing = capability.hasDurationEditing;
+    }
+    if ('hasEndFrame' in capability) {
+      entry.hasEndFrame = capability.hasEndFrame;
+    }
+    if ('hasInterpolation' in capability) {
+      entry.hasInterpolation = capability.hasInterpolation;
+    }
+    if ('hasResolutionOptions' in capability) {
+      entry.hasResolutionOptions = capability.hasResolutionOptions;
+    }
+    if ('hasSpeech' in capability) {
+      entry.hasSpeech = capability.hasSpeech;
+    }
+    entry.isBatchSupported = capability.isBatchSupported;
+    if ('isImagenModel' in capability) {
+      entry.isImagenModel = capability.isImagenModel;
+    }
+    if ('isReferencesMandatory' in capability) {
+      entry.isReferencesMandatory = capability.isReferencesMandatory;
+    }
     if (typeof capability.maxOutputs === 'number') {
       entry.maxOutputs = capability.maxOutputs;
     }
     if (typeof capability.maxReferences === 'number') {
       entry.maxReferences = capability.maxReferences;
+    }
+    if ('usesOrientation' in capability) {
+      entry.usesOrientation = capability.usesOrientation;
     }
 
     return entry;

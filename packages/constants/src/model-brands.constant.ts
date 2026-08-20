@@ -13,6 +13,7 @@ export type ModelBrandIconKey =
   | 'local'
   | 'luma'
   | 'meta'
+  | 'minimax'
   | 'moonshot'
   | 'openai'
   | 'pruna'
@@ -51,6 +52,7 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   local: { color: '#64748B', iconKey: 'local', label: 'Self-hosted' },
   luma: { color: '#7C3AED', iconKey: 'luma', label: 'Luma' },
   meta: { color: '#0668E1', iconKey: 'meta', label: 'Meta' },
+  minimax: { color: '#F97316', iconKey: 'minimax', label: 'MiniMax' },
   moonshotai: { color: '#16A34A', iconKey: 'moonshot', label: 'Moonshot' },
   openai: { color: '#10A37F', iconKey: 'openai', label: 'OpenAI' },
   prunaai: { color: '#10B981', iconKey: 'pruna', label: 'Pruna' },

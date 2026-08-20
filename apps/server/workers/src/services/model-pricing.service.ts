@@ -121,6 +121,7 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   'google/imagen-4': 0.04,
   'google/imagen-4-fast': 0.02,
   'google/imagen-4-ultra': 0.08,
+  'google/nano-banana-2-lite': 0.034,
   'google/veo-3': 0.5,
   'google/veo-3-fast': 0.25,
   'ideogram-ai/ideogram-v3': 0.08,
@@ -128,6 +129,9 @@ const REPLICATE_KNOWN_COSTS: Record<string, number> = {
   'luma/ray-2': 0.4,
   'luma/ray-2-flash': 0.2,
   'meta/llama-3': 0.0005,
+  // H3 is billed per output second. The catalog owns live PER_SECOND billing;
+  // this conservative 2K rate is only the discovery estimator's unit proxy.
+  'minimax/h3': 0.13,
   'openai/sora-2': 0.21,
   'runwayml/gen-4-turbo': 0.25,
   // Seedance 2.5 is billed per output second. Known-cost map is used for
