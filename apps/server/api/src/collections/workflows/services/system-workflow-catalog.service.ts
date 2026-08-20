@@ -241,7 +241,7 @@ export class SystemWorkflowCatalogService {
       userId: string;
     },
     entry: SystemWorkflowCatalogEntry,
-  ): Prisma.WorkflowCreateInput {
+  ): Prisma.WorkflowUncheckedCreateInput {
     const catalogSourceId = `catalog:${entry.canonicalId}`;
     const systemWorkflowMetadata = buildSystemWorkflowMetadata({
       canonicalId: entry.canonicalId,

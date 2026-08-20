@@ -36,7 +36,7 @@ export class ReplyPostWatchService {
 
     try {
       const watchPlatform =
-        data.platform === Platform.YOUTUBE || data.platform === 'youtube'
+        data.platform === Platform.YOUTUBE
           ? ReplyBotPlatform.YOUTUBE
           : ReplyBotPlatform.TWITTER;
       const wirePlatform =

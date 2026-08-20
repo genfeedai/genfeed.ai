@@ -7,6 +7,7 @@ import {
 } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
+import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -16,7 +17,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
 import type { ClipReadyAction } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -93,7 +93,7 @@ export class ClipProjectHandoffsController {
     const durationFrames = this.resolveClipDurationFrames(clipResult);
     const editorProject = await this.editorProjectsService.create({
       ...(user.brandId ? { brandId: user.brandId } : {}),
-      config: toPrismaJson({
+      config: {
         clipHandoff: {
           clipProjectId: projectId,
           clipResultId: String(clipResult.id),
@@ -110,7 +110,7 @@ export class ClipProjectHandoffsController {
         },
         status: 'draft',
         totalDurationFrames: durationFrames,
-      }),
+      },
       organizationId: user.organizationId,
       tracks: [
         {
@@ -137,7 +137,7 @@ export class ClipProjectHandoffsController {
         },
       ],
       userId: user.userId ?? user.id,
-    });
+    } as CreateEditorProjectDto);
     const editorProjectId = String(editorProject.id);
 
     return {

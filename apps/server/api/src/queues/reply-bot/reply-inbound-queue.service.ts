@@ -59,7 +59,7 @@ export class ReplyInboundQueueService {
   }): Promise<{ scheduled: number }> {
     let scheduled = 0;
     const platform =
-      params.platform === Platform.YOUTUBE || params.platform === 'youtube'
+      String(params.platform) === 'youtube'
         ? Platform.YOUTUBE
         : Platform.TWITTER;
 
