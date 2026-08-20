@@ -1,263 +1,80 @@
 ---
 name: nestjs-expert
-description: NestJS architecture, modules, DI, guards, interceptors, pipes, MongoDB/Mongoose integration, auth, and production patterns. Use when building NestJS APIs, designing module structure, implementing auth, handling errors, writing DTOs, or debugging NestJS-specific issues.
-when_to_use: "nestjs, nest module, nest controller, nest service, nest guard, nest interceptor, nest pipe, dependency injection, NestJS auth, NestJS MongoDB, NestJS error handling, NestJS performance"
-license: MIT
-metadata:
-  version: "1.0.0"
-  tags: "nestjs, typescript, backend, api, mongodb, rest"
+description: Design, implement, or review NestJS modules, controllers, services, guards, DTOs, and Prisma-backed API behavior in Genfeed.ai.
 ---
 
 # NestJS Expert
 
-Stack: NestJS + MongoDB/Mongoose + TypeScript strict mode.
+Use this skill for NestJS work under `apps/server/`. Keep framework code at the
+adapter boundary and preserve Genfeed's public API, authorization, tenancy, and
+serializer contracts.
 
-## Module architecture
+## Establish the Local Pattern
 
-Every feature is a self-contained module. No cross-module direct imports — use exported providers.
+Before editing:
 
-```
-src/
-├── app.module.ts           # Root — imports feature modules only
-├── common/                 # Shared guards, pipes, filters, interceptors
-│   ├── filters/
-│   ├── guards/
-│   ├── interceptors/
-│   └── pipes/
-├── config/                 # ConfigModule setup
-└── {feature}/
-    ├── {feature}.module.ts
-    ├── {feature}.controller.ts
-    ├── {feature}.service.ts
-    ├── {feature}.repository.ts  # optional, wraps Mongoose model
-    ├── dto/
-    │   ├── create-{feature}.dto.ts
-    │   └── update-{feature}.dto.ts
-    ├── schemas/
-    │   └── {feature}.schema.ts
-    └── {feature}.types.ts
-```
+1. Read the repository `AGENTS.md` and relevant `.agents/memory/` rules.
+2. Inspect the owning module, controller, service, and colocated specs.
+3. Read at least three nearby implementations of the same kind of change.
+4. Reuse the existing DTO, serializer, guard, exception, and module patterns.
 
-## Dependency injection rules
+Do not introduce a generic NestJS pattern when the owning domain already has a
+clear convention.
 
-- Inject interfaces, not concrete classes where possible
-- Use `@Injectable({ scope: Scope.DEFAULT })` (singleton) unless you need request-scoped
-- Circular deps = architectural problem — fix with `forwardRef` only as last resort
-- Test with `Test.createTestingModule` — always mock external services
+## Current Stack and Boundaries
 
-## Controllers
+- NestJS 11 with strict TypeScript.
+- Prisma 7 and Postgres for persistence.
+- BullMQ and Redis for asynchronous work.
+- Better Auth for identity and session handling.
+- Nest decorators belong only in server adapter layers such as controllers,
+  gateways, modules, guards, and schedulers.
+- Framework-agnostic packages must not import `@nestjs/*`.
+- Nest-bearing tsconfig chains must inherit from
+  `tsconfig.server.decorators.json`.
 
-```typescript
-@Controller('resources')
-@UseGuards(JwtAuthGuard)
-@UseInterceptors(ResponseTransformInterceptor)
-export class ResourceController {
-  constructor(private readonly resourceService: ResourceService) {}
+## Persistence Invariants
 
-  @Get()
-  async findAll(@Query() query: PaginationQueryDto) {
-    return this.resourceService.findAll(query);
-  }
+- Use Prisma models and the repository's existing Prisma service boundaries;
+  do not add Mongoose schemas, `ObjectId` references, or Mongo query idioms.
+- Every tenant-scoped query includes both `organizationId: orgId` and
+  `isDeleted: false`. Apply the documented self-hosted single-tenant exception
+  only where the existing boundary supports it.
+- Use `users.id` as the canonical user foreign key. Never persist an auth
+  provider identifier as a database relation.
+- Soft deletion uses `isDeleted: boolean`; do not add `deletedAt`.
+- Preserve transactions, idempotency, credit accounting, and queue semantics
+  when moving persistence logic.
 
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateResourceDto, @CurrentUser() user: UserDocument) {
-    return this.resourceService.create(dto, user._id);
-  }
-}
-```
+## Transport and Service Design
 
-Rules:
+- Controllers validate and delegate; domain behavior belongs in services.
+- Use class-based DTOs and the repository's validation conventions.
+- Keep response shaping in `packages/serializers`, not controllers.
+- Preserve guards and organization/brand authorization at the current or a
+  stronger boundary.
+- Use path aliases and respect package boundaries.
+- Prefer focused services with explicit dependencies. Do not hide circular
+  design behind additional `forwardRef` calls.
+- Keep exception categories and externally observable error behavior stable
+  during refactors.
 
-- Controllers are thin — no business logic, no DB calls
-- Always type `@Body()`, `@Query()`, `@Param()` with DTOs
-- Use `@CurrentUser()` custom decorator, never `@Req()`
+## Verification
 
-## DTOs + validation
+- Lock changed behavior with the closest deterministic spec before production
+  edits when behavior is changing.
+- Exercise the shipped controller/service entry point rather than duplicating
+  implementation logic in the test.
+- Run only verification permitted by the current host policy; let PR CI own
+  broader tests, typechecks, and builds when local execution is restricted.
+- Review the final diff for tenant scope, soft deletes, serializers, auth,
+  queue behavior, and accidental public-contract changes.
 
-```typescript
-import { IsString, IsEnum, IsOptional, MinLength, MaxLength } from 'class-validator';
-import { Transform } from 'class-transformer';
+## Reject These Patterns
 
-export class CreateResourceDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(255)
-  name: string;
-
-  @IsEnum(ResourceStatus)
-  status: ResourceStatus;
-
-  @IsOptional()
-  @IsString()
-  @Transform(({ value }) => value?.trim())
-  description?: string;
-}
-```
-
-Global validation pipe in `main.ts`:
-
-```typescript
-app.useGlobalPipes(new ValidationPipe({
-  whitelist: true,        // strip unknown props
-  forbidNonWhitelisted: true,
-  transform: true,        // auto-transform primitives
-  transformOptions: { enableImplicitConversion: true },
-}));
-```
-
-## MongoDB / Mongoose
-
-```typescript
-// schema
-@Schema({ timestamps: true, versionKey: false })
-export class Resource {
-  @Prop({ required: true, index: true })
-  name: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId;
-
-  @Prop({ enum: ResourceStatus, default: ResourceStatus.ACTIVE })
-  status: ResourceStatus;
-}
-
-export const ResourceSchema = SchemaFactory.createForClass(Resource);
-export type ResourceDocument = Resource & Document;
-```
-
-```typescript
-// service
-@Injectable()
-export class ResourceService {
-  constructor(
-    @InjectModel(Resource.name) private readonly model: Model<ResourceDocument>,
-  ) {}
-
-  async findAll(userId: Types.ObjectId, query: PaginationQueryDto) {
-    const { page = 1, limit = 20 } = query;
-    return this.model
-      .find({ userId, deletedAt: null })
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean()
-      .exec();
-  }
-}
-```
-
-Rules:
-
-- Always `.lean()` for read queries (plain objects, ~30% faster)
-- Always `.exec()` to get a real Promise
-- Use `Types.ObjectId` not `string` for references in service layer
-- Soft delete: `deletedAt: Date | null`, never hard delete user data
-
-## Auth pattern
-
-```typescript
-// JWT strategy
-@Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
-    super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: configService.get<string>('JWT_SECRET'),
-      ignoreExpiration: false,
-    });
-  }
-
-  async validate(payload: JwtPayload): Promise<UserDocument> {
-    // return value is injected as req.user
-    return { _id: payload.sub, email: payload.email };
-  }
-}
-
-// custom decorator
-export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext) => ctx.switchToHttp().getRequest().user,
-);
-```
-
-## Guards
-
-```typescript
-@Injectable()
-export class ResourceOwnerGuard implements CanActivate {
-  constructor(private readonly resourceService: ResourceService) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const { user, params } = context.switchToHttp().getRequest();
-    const resource = await this.resourceService.findById(params.id);
-    return resource?.userId.equals(user._id) ?? false;
-  }
-}
-```
-
-## Exception filter
-
-```typescript
-@Catch()
-export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
-
-  catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-
-    if (exception instanceof HttpException) {
-      return response.status(exception.getStatus()).json({
-        statusCode: exception.getStatus(),
-        message: exception.message,
-      });
-    }
-
-    this.logger.error('Unhandled exception', exception instanceof Error ? exception.stack : exception);
-    return response.status(500).json({ statusCode: 500, message: 'Internal server error' });
-  }
-}
-```
-
-## Config
-
-```typescript
-// config/app.config.ts
-export default registerAs('app', () => ({
-  port: parseInt(process.env.PORT ?? '3000', 10),
-  jwtSecret: process.env.JWT_SECRET,
-  mongoUri: process.env.MONGO_URI,
-}));
-
-// access in service
-constructor(private config: ConfigService) {}
-const port = this.config.get<number>('app.port');
-```
-
-Never use `process.env` directly outside config files.
-
-## Performance rules
-
-- `lean()` on all read queries
-- Add indexes for every field used in `find()` filter or `sort()`
-- Compound indexes for multi-field queries: `{ userId: 1, createdAt: -1 }`
-- Use `select()` to project only needed fields on large documents
-- Cache with `@nestjs/cache-manager` for expensive reads
-
-## Common mistakes
-
-| Wrong | Right |
-|-------|-------|
-| Business logic in controller | Move to service |
-| `any` type anywhere | Define interface/DTO |
-| `console.log` | `new Logger(ClassName.name)` |
-| `req.user` directly | `@CurrentUser()` decorator |
-| Hard-coding env vars | `ConfigService` |
-| `.find()` without `.lean()` on reads | Always `.lean().exec()` |
-| `string` for ObjectId refs | `Types.ObjectId` |
-
-## Related skills
-
-- `nestjs-queue-architect` — BullMQ async job patterns
-- `mongodb-migration-expert` — schema migrations
-- `error-handling-expert` — global error strategy
+- MongoDB/Mongoose examples or compatibility shims in new code.
+- Tenant queries without organization and soft-delete scope.
+- Raw Prisma records returned as public responses when a serializer exists.
+- Nest decorators in shared framework-agnostic packages.
+- Inline response interfaces used to bypass shared contracts.
+- Behavior changes disguised as structural cleanup.

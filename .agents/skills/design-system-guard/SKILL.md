@@ -1,19 +1,14 @@
 ---
 name: design-system-guard
 description: Use when creating, editing, reviewing, or validating UI design across Genfeed.ai apps/packages. Enforces the root DESIGN.md contract, shared tokens, component consistency, and @google/design.md validation.
-version: 1.0.0
-tags:
-  - design-system
-  - design-md
-  - ui
-  - tokens
-  - consistency
-  - validation
+metadata:
+  version: 1.0.0
+  tags: design-system, design-md, ui, tokens, consistency, validation
 ---
 
 # Design System Guard
 
-Use this skill for UI work that can affect visual consistency anywhere in the monorepo: app, website, docs, desktop, mobile, extensions, `packages/ui`, `packages/styles`, `packages/workflow-ui`, or shared Tailwind/theme code.
+Use this skill for UI work that can affect visual consistency anywhere in the monorepo: app, website, docs, desktop, mobile, extensions, `packages/ui`, `packages/styles`, `packages/workflows`, or shared Tailwind/theme code.
 
 ## Canonical Sources
 

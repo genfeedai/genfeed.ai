@@ -5,13 +5,9 @@ description: |
   Covers model key registration, capabilities, prompt builder, schema sync, pricing, and
   optional workflow-UI integration. Use when integrating a new image/video/voice model.
   Triggers on: 'new model', 'add model', 'integrate model', '/new-model', 'new ai model'.
-version: 1.0.0
-tags:
-  - ai-models
-  - replicate
-  - fal
-  - generation
-  - cloud
+metadata:
+  version: 1.0.0
+  tags: ai-models, replicate, fal, generation, cloud
 ---
 
 # new-model
@@ -67,7 +63,7 @@ Before writing any file:
 | 10. Input Parsing | `apps/server/api/src/services/integrations/replicate/replicate.service.ts` | If non-standard input format |
 | 11. DB Activation | Admin API or direct DB | Always |
 | 12. Workflow UI Types | `packages/types/src/nodes/ai-nodes.ts` | If canvas support |
-| 13. Workflow UI Registry | `packages/workflow-ui/src/lib/models/registry.ts` | If canvas support |
+| 13. Workflow UI Registry | `packages/workflows/src/ui/lib/models/registry.ts` | If canvas support |
 
 ---
 
@@ -321,7 +317,7 @@ export type ImageModel = 'nano-banana' | 'nano-banana-pro' | 'imagen-4-ultra';
 
 ## Layer 13: Workflow UI Registry (OPTIONAL — canvas support)
 
-**File:** `packages/workflow-ui/src/lib/models/registry.ts`
+**File:** `packages/workflows/src/ui/lib/models/registry.ts`
 
 Add to `IMAGE_MODELS` or `VIDEO_MODELS` array:
 ```typescript
@@ -378,7 +374,7 @@ bun run sync:replicate
 
 ### Canvas workflow support (optional, any provider)
 - `packages/types/src/nodes/ai-nodes.ts` — union type
-- `packages/workflow-ui/src/lib/models/registry.ts` — registry array
+- `packages/workflows/src/ui/lib/models/registry.ts` — registry array
 - `bun run sync:replicate` — regenerate types
 
 ---

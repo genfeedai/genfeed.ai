@@ -98,7 +98,7 @@ Clerk-shaped `publicMetadata`.
   the bug (cache vs resolver vs endpoint query).
 - Hosted deployment jobs, OpenTofu, and ECS scripts run from the public
   `genfeedai/genfeed.ai` `Deploy hosted SaaS` / `Release` workflows. Fleet
-  and LoRA stay in private `genfeedai/console.genfeed.ai`.
+  and managed inference operations stay outside this repository.
 
 ## Related documents
 

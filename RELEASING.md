@@ -108,8 +108,8 @@ follow-up dispatch is required.
 
 Hosted SaaS deploy jobs, OpenTofu, and ECS helper scripts live in this
 public repository so GitHub bills free public Actions minutes. Do not
-clone `console.genfeed.ai` and do not dispatch its workflow to ship
-production. Fleet and LoRA stay in console.
+clone or dispatch private operational repositories to ship production.
+Managed inference operations stay outside this repository.
 
 There are two hosted SaaS lanes:
 

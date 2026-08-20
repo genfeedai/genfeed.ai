@@ -70,10 +70,6 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_generate_picker_reads_allowlist](feedback_generate_picker_reads_allowlist.md) — generate/agent pickers honor enabledModelIds; Settings → Models stays the catalog
 - [feedback_request_abort_not_body_close](feedback_request_abort_not_body_close.md) — cancel Replicate only on response.close; request.close is the body finishing
 - [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
-- [project_qa_260812_closeout](project_qa_260812_closeout.md) — draft PR #2820 launch closeout state and post-merge checklist
-- [project_qa_260814_coverage_train](project_qa_260814_coverage_train.md) — uncollected-test guard, workers cron coverage, UI skeleton specs (#2687)
-- [project_qa_260814_e2e_coverage_ocean](project_qa_260814_e2e_coverage_ocean.md) — complementary E2E/coverage train; merged as #2952
-- [project_qa_260814_coverage_ratchet](project_qa_260814_coverage_ratchet.md) — post-#2952 #2687 remainder; do not collide with #2947
 - [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
@@ -150,10 +146,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_module_local_chrome](project_module_local_chrome.md) — one SectionTopbar contract for local nav + primary actions app-wide
 - [project_card_metric_surface](project_card_metric_surface.md) — Card + MetricCard/MetricSummary only; no new metric card components
 - [project_brand_settings_voice_harness](project_brand_settings_voice_harness.md) — Brand voice vs speech voice vs brand harness IA
-- [project_qa_session_leftovers_2026-07-30](project_qa_session_leftovers_2026-07-30.md) — post-#2204 boil-the-ocean leftovers; keep QA together on master
-- [project_parallel_qa_local_bugfix_split](project_parallel_qa_local_bugfix_split.md) — **active 2026-08-08:** two Grok agents on `qa/local-bugfix`; agent surface vs other surfaces; path-scope only
 - [project_overview](project_overview.md) — monorepo structure and key context
-- [project_one_api_epic](project_one_api_epic.md) — epic #95, one NestJS API
 - [project_migration](project_migration.md) — cloud + core → genfeed.ai, complete
 - [project_backend_typecheck](project_backend_typecheck.md) — `tsconfig.typecheck.json` per backend workspace
 - [project_bullmq](project_bullmq.md) — new processors go to workers or the owning service, not API
@@ -182,7 +175,3 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 
 - [features/agent](features/agent/README.md) — orchestration, threading, collections, tools, frontend
 - [AGENT-RUNTIME](system/AGENT-RUNTIME.md) · [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [SYSTEM-RULES](system/SYSTEM-RULES.md) · [PRIORITY-READING](system/PRIORITY-READING.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
-
-## Plans
-
-- **MergedSwitcher** (2026-05-17) — historical AppSwitcher + ContentTypeSwitcher plan; implementation has since changed.
