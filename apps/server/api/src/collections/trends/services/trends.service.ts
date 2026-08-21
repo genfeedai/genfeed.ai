@@ -128,7 +128,10 @@ export class TrendsService {
     const hydratedTrends =
       await this.trendSourcePreviewService.precomputeTrendSourcePreview(
         trends,
-        { force: true },
+        {
+          force: true,
+          writeScope: { organizationId: organizationId?.trim() || null },
+        },
       );
     await this.trendReferenceCorpusService.syncTrendReferences(
       hydratedTrends.map((trend) =>
@@ -427,7 +430,7 @@ export class TrendsService {
     const hydratedTrends =
       await this.trendSourcePreviewService.precomputeTrendSourcePreview(
         trends,
-        { force: true },
+        { force: true, writeScope: { organizationId: null } },
       );
     await this.trendReferenceCorpusService.syncTrendReferences(
       hydratedTrends.map((trend) =>

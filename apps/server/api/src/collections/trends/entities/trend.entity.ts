@@ -4,7 +4,7 @@ import { type Trend } from '@genfeedai/prisma';
 
 export class TrendEntity extends BaseEntity implements Trend {
   declare readonly id: string;
-  declare readonly organizationId: string;
+  declare readonly organizationId: string | null;
   declare readonly brandId: string | null;
   declare readonly data: Trend['data'];
   declare readonly platform: string;

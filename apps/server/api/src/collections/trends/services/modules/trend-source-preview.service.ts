@@ -106,7 +106,8 @@ export class TrendSourcePreviewService {
     options: {
       force?: boolean;
       limit?: number;
-    } = {},
+      writeScope: { organizationId: string | null };
+    },
   ): Promise<TrendEntity[]> {
     const limit = options.limit ?? TREND_SOURCE_PREVIEW_LIMIT;
 
@@ -135,7 +136,11 @@ export class TrendSourcePreviewService {
           },
         );
 
-        return this.persistTrendSourcePreview(trend, resolvedItems);
+        return this.persistTrendSourcePreview(
+          trend,
+          resolvedItems,
+          options.writeScope,
+        );
       }),
     );
   }
@@ -227,6 +232,9 @@ export class TrendSourcePreviewService {
       ? await this.precomputeTrendSourcePreview(result.trends, {
           force: true,
           limit: TREND_SOURCE_PREVIEW_LIMIT,
+          writeScope: {
+            organizationId: scope.organizationId?.trim() || null,
+          },
         })
       : result.trends;
     if (refresh) {
@@ -271,6 +279,7 @@ export class TrendSourcePreviewService {
   private async persistTrendSourcePreview(
     trend: TrendEntity,
     items: TrendSourceItem[],
+    writeScope: { organizationId: string | null },
   ): Promise<TrendEntity> {
     const sourcePreviewState =
       this.trendSourceItemsService.getSourcePreviewState(items);
@@ -280,23 +289,41 @@ export class TrendSourcePreviewService {
       sourcePreviewCachedAt: new Date().toISOString(),
       sourcePreviewState,
     };
+    const trendId = String(trend.id);
+    const organizationId = trend.organizationId;
+    const hydratedTrend = new TrendEntity({
+      ...trend,
+      metadata,
+    });
+    const where =
+      organizationId === null
+        ? { id: trendId, isDeleted: false, organizationId: null }
+        : scopedWhere(organizationId, { id: trendId });
 
+    if (organizationId !== writeScope.organizationId) {
+      return hydratedTrend;
+    }
+
+    // tenant-scope-ignore: write-scope equality is proven above; where is either explicit global scope or scopedWhere tenant scope and always includes isDeleted
     const existingDoc = await this.prisma.trend.findFirst({
-      where: scopedWhere(trend.organizationId, { id: String(trend.id) }),
+      where,
     });
     if (existingDoc) {
       const existingData =
         (existingDoc.data as unknown as Record<string, unknown>) ?? {};
+      // tenant-scope-ignore: reuse the exact global-or-tenant scope proven by the guarded lookup above
       await this.prisma.trend.update({
         data: { data: toPrismaJson({ ...existingData, metadata }) },
-        where: scopedWhere(trend.organizationId, { id: String(trend.id) }),
+        where,
       });
+    } else {
+      this.loggerService.warn(
+        'Skipped trend source preview persistence because the trend row was not found',
+        { organizationId, trendId },
+      );
     }
 
-    return new TrendEntity({
-      ...trend,
-      metadata,
-    });
+    return hydratedTrend;
   }
 
   private async resolveTrendSourcePreview(

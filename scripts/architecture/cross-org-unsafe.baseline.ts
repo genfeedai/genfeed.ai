@@ -15,4 +15,10 @@ export type CrossOrgUnsafeBaselineEntry = {
 };
 
 export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
-  [];
+  [
+    // Historical trend analysis intentionally reads only the shared global corpus; the Prisma where remains pinned to organizationId:null.
+    {
+      file: 'apps/server/api/src/collections/trends/services/modules/trend-analysis.service.ts',
+      line: 103,
+    },
+  ];

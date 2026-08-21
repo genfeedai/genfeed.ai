@@ -1,5 +1,5 @@
 import type { ToolCategory } from '@genfeedai/tools';
-import type { McpResource } from '@mcp/shared/interfaces/mcp-server.interface';
+import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 
 export interface McpConfiguration {
   mcpServers: {

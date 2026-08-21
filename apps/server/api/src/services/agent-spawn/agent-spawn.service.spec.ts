@@ -1,6 +1,6 @@
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
-import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import { AgentType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -62,7 +62,9 @@ describe('AgentSpawnService', () => {
         buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
       } as unknown as AgentContextAssemblyService,
       {
-        getDefaultModelKey: vi.fn().mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL),
+        getDefaultModelKey: vi
+          .fn()
+          .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
       } as never,
       { get: vi.fn() } as never,
     );
@@ -87,7 +89,7 @@ describe('AgentSpawnService', () => {
       expect.objectContaining({
         agentType: AgentType.X_CONTENT,
         content: 'Draft an X thread',
-        model: DEFAULT_AGENT_CHAT_MODEL,
+        model: DEFAULT_AGENT_CHAT_MODEL_KEY,
       }),
       expect.objectContaining({
         organizationId: 'org-1',
@@ -130,7 +132,9 @@ describe('AgentSpawnService', () => {
         buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
       } as unknown as AgentContextAssemblyService,
       {
-        getDefaultModelKey: vi.fn().mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL),
+        getDefaultModelKey: vi
+          .fn()
+          .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
       } as never,
       { get: vi.fn() } as never,
     );
@@ -190,7 +194,9 @@ describe('AgentSpawnService', () => {
         buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
       } as unknown as AgentContextAssemblyService,
       {
-        getDefaultModelKey: vi.fn().mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL),
+        getDefaultModelKey: vi
+          .fn()
+          .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
       } as never,
       { get: vi.fn() } as never,
     );

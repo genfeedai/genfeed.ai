@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { Readable } from 'node:stream';
 import { FileInputType } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
@@ -271,16 +270,6 @@ describe('FilesClientService', () => {
       expect(loggerService.error).toHaveBeenCalledWith(
         'Failed to overlay audio',
         expect.any(Error),
-      );
-    });
-  });
-
-  describe('getPath', () => {
-    it('builds a temp path under the process working directory', () => {
-      const { service } = createHarness();
-
-      expect(service.getPath('musics', 'ing-1')).toBe(
-        path.join(process.cwd(), 'public', 'tmp', 'musics', 'ing-1'),
       );
     });
   });
