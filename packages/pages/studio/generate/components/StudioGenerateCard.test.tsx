@@ -10,9 +10,13 @@ const masonryMocks = vi.hoisted(() => ({
   video: vi.fn(),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/image', () => ({
   default: ({ alt, onError, src }: React.ComponentProps<'img'>) => (
@@ -43,6 +47,7 @@ function buildAssetActions(): StudioGenerateAssetActions {
     onMarkValidated: vi.fn(),
     onPublishIngredient: vi.fn(),
     onRefresh: vi.fn(),
+    onRemoveGeneration: vi.fn(),
     onSeeDetails: vi.fn(),
     onToggleFavorite: vi.fn(),
     onUseAsVideoReference: vi.fn(),
@@ -113,23 +118,36 @@ describe('StudioGenerateCard', () => {
     expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
   });
 
-  it('labels a failed generation retry consistently', () => {
+  it('separates reprompting a failed generation from removing it', () => {
+    const assetActions = buildAssetActions();
+    const onReprompt = vi.fn();
+    const job = {
+      ...generatedJob,
+      error: 'Generation failed',
+      status: IngredientStatus.FAILED,
+    };
+
     render(
       <StudioGenerateCard
-        assetActions={buildAssetActions()}
-        job={{
-          ...generatedJob,
-          error: 'Generation failed',
-          status: IngredientStatus.FAILED,
-        }}
-        onReprompt={vi.fn()}
+        assetActions={assetActions}
+        job={job}
+        onReprompt={onReprompt}
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Reprompt' }),
-    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Reprompt Image generation: ${job.prompt}`,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Remove Image generation: ${job.prompt}`,
+      }),
+    );
+
+    expect(onReprompt).toHaveBeenCalledWith(job);
+    expect(assetActions.onRemoveGeneration).toHaveBeenCalledWith(job);
   });
 
   it('reuses the behavior-rich masonry image for hydrated assets', () => {

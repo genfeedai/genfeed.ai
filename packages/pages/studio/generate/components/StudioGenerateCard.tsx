@@ -12,7 +12,7 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Loader2, RotateCcw, Trash2 } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
@@ -191,8 +191,8 @@ export default function StudioGenerateCard({
             <AlertTriangle className="size-5" />
             <span className="text-xs">
               {isFailed
-                ? job.error || 'Generation failed'
-                : 'Preview unavailable'}
+                ? job.error || translate('generationFailed')
+                : translate('previewUnavailable')}
             </span>
           </div>
         ) : null}
@@ -245,16 +245,36 @@ export default function StudioGenerateCard({
             <span className="truncate text-[0.625rem] text-white/70">
               {job.modelKey || 'Auto'}
             </span>
-            <Button
-              ariaLabel={isFailed ? 'Retry' : 'Reprompt'}
-              className="pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white"
-              icon={<RotateCcw className="size-3.5" />}
-              label={isFailed ? 'Retry' : 'Reprompt'}
-              onClick={() => onReprompt(job)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
+            <div className="flex items-center gap-1">
+              {isFailed ? (
+                <Button
+                  ariaLabel={translate('removeGenerationAria', {
+                    prompt: job.prompt || job.id,
+                    type: label,
+                  })}
+                  className="pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white"
+                  icon={<Trash2 className="size-3.5" />}
+                  label={translate('remove')}
+                  onClick={() => assetActions.onRemoveGeneration(job)}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              ) : null}
+              <Button
+                ariaLabel={translate('repromptGenerationAria', {
+                  prompt: job.prompt || job.id,
+                  type: label,
+                })}
+                className="pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white"
+                icon={<RotateCcw className="size-3.5" />}
+                label={translate('reprompt')}
+                onClick={() => onReprompt(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </div>
           </div>
         </div>
       </div>

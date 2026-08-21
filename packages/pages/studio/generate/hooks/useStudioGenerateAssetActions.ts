@@ -2,6 +2,7 @@
 
 import { IngredientFormat, IngredientStatus } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
+import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -15,6 +16,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 
 export interface UseStudioGenerateAssetActionsParams {
@@ -33,6 +35,7 @@ export function useStudioGenerateAssetActions({
   onDeleted,
   onRefresh,
 }: UseStudioGenerateAssetActionsParams): StudioGenerateAssetActions {
+  const translate = useTranslations('pages.studioGenerate');
   const router = useRouter();
   const { href } = useOrgUrl();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
@@ -107,20 +110,36 @@ export function useStudioGenerateAssetActions({
     [patchIngredient],
   );
 
-  const deleteIngredient = useCallback(
-    async (ingredient: IIngredient) => {
+  const deletePersistedIngredient = useCallback(
+    async (ingredientId: string, localJobId: string = ingredientId) => {
       try {
         const service = await getIngredientsService();
-        await service.delete(ingredient.id);
-        notificationsService.success('Ingredient deleted successfully');
-        onDeleted?.(ingredient.id);
+        const result = await service.bulkDelete({
+          ids: [ingredientId],
+          type: 'ingredients-delete',
+        });
+
+        if (!result.deleted.includes(ingredientId)) {
+          throw new Error(
+            result.message || `Ingredient ${ingredientId} was not deleted`,
+          );
+        }
+
+        notificationsService.success(translate('movedToTrash'));
+        onDeleted?.(localJobId);
         onRefresh();
       } catch (error) {
-        logger.error('Failed to delete Studio asset', error);
-        notificationsService.error('Failed to delete ingredient');
+        logger.error('Failed to remove Studio generation', error);
+        notificationsService.error(translate('removeFailed'));
       }
     },
-    [getIngredientsService, notificationsService, onDeleted, onRefresh],
+    [
+      getIngredientsService,
+      notificationsService,
+      onDeleted,
+      onRefresh,
+      translate,
+    ],
   );
 
   const onDeleteIngredient = useCallback(
@@ -130,10 +149,40 @@ export function useStudioGenerateAssetActions({
         isError: true,
         label: 'Delete Ingredient',
         message: 'Move this ingredient to Trash? You can restore it later.',
-        onConfirm: () => deleteIngredient(ingredient),
+        onConfirm: () =>
+          deletePersistedIngredient(ingredient.id, ingredient.id),
       });
     },
-    [deleteIngredient, openConfirm],
+    [deletePersistedIngredient, openConfirm],
+  );
+
+  const onRemoveGeneration = useCallback(
+    (job: StudioGenerateJob) => {
+      openConfirm({
+        confirmLabel: translate('remove'),
+        isError: true,
+        label: translate('removeDialogTitle'),
+        message: job.ingredientId
+          ? translate('removePersistedMessage')
+          : translate('removeLocalMessage'),
+        onConfirm: async () => {
+          if (job.ingredientId) {
+            await deletePersistedIngredient(job.ingredientId, job.id);
+            return;
+          }
+
+          onDeleted?.(job.id);
+          notificationsService.success(translate('generationRemoved'));
+        },
+      });
+    },
+    [
+      deletePersistedIngredient,
+      notificationsService,
+      onDeleted,
+      openConfirm,
+      translate,
+    ],
   );
 
   const onSeeDetails = useCallback(
@@ -160,6 +209,7 @@ export function useStudioGenerateAssetActions({
         changeStatus(ingredient, IngredientStatus.VALIDATED, 'validate'),
       onPublishIngredient: openPostBatchModal,
       onRefresh,
+      onRemoveGeneration,
       onSeeDetails,
       onToggleFavorite,
       onUseAsVideoReference: (ingredient: IIngredient) =>
@@ -175,6 +225,7 @@ export function useStudioGenerateAssetActions({
       onCopyPrompt,
       onDeleteIngredient,
       onRefresh,
+      onRemoveGeneration,
       onSeeDetails,
       onToggleFavorite,
       openPostBatchModal,

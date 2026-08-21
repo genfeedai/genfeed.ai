@@ -4,8 +4,8 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  bulkDelete: vi.fn(),
   copyToClipboard: vi.fn(),
-  delete: vi.fn(),
   notificationsError: vi.fn(),
   notificationsInfo: vi.fn(),
   notificationsSuccess: vi.fn(),
@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
-    delete: mocks.delete,
+    bulkDelete: mocks.bulkDelete,
     patch: mocks.patch,
   }),
 }));
@@ -63,6 +63,14 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 import { useStudioGenerateAssetActions } from './useStudioGenerateAssetActions';
 
 const ingredient = {
@@ -76,8 +84,12 @@ const ingredient = {
 describe('useStudioGenerateAssetActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.bulkDelete.mockResolvedValue({
+      deleted: [ingredient.id],
+      failed: [],
+      message: 'Successfully deleted 1 ingredient(s)',
+    });
     mocks.copyToClipboard.mockResolvedValue(undefined);
-    mocks.delete.mockResolvedValue(undefined);
     mocks.patch.mockResolvedValue(undefined);
   });
 
@@ -158,8 +170,114 @@ describe('useStudioGenerateAssetActions', () => {
 
     await act(confirm.onConfirm);
 
-    expect(mocks.delete).toHaveBeenCalledWith(ingredient.id);
+    expect(mocks.bulkDelete).toHaveBeenCalledWith({
+      ids: [ingredient.id],
+      type: 'ingredients-delete',
+    });
     expect(onDeleted).toHaveBeenCalledWith(ingredient.id);
     expect(onRefresh).toHaveBeenCalledOnce();
+    expect(mocks.notificationsSuccess).toHaveBeenCalledWith('Moved to Trash');
+  });
+
+  it('removes a client-only failed generation without calling the API', async () => {
+    const onDeleted = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioGenerateAssetActions({
+        onAttachReference: vi.fn(),
+        onDeleted,
+        onRefresh: vi.fn(),
+      }),
+    );
+    const failedJob = {
+      createdAt: 1,
+      id: 'failed-local',
+      prompt: 'A failed prompt',
+      status: IngredientStatus.FAILED,
+      type: 'image' as const,
+    };
+
+    act(() => result.current.onRemoveGeneration(failedJob));
+    const confirm = mocks.openConfirm.mock.calls.at(-1)?.[0] as {
+      onConfirm: () => Promise<void>;
+    };
+    await act(confirm.onConfirm);
+
+    expect(mocks.bulkDelete).not.toHaveBeenCalled();
+    expect(onDeleted).toHaveBeenCalledWith('failed-local');
+  });
+
+  it('soft-deletes a persisted failed generation before removing its card', async () => {
+    const onDeleted = vi.fn();
+    const onRefresh = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioGenerateAssetActions({
+        onAttachReference: vi.fn(),
+        onDeleted,
+        onRefresh,
+      }),
+    );
+
+    act(() =>
+      result.current.onRemoveGeneration({
+        createdAt: 1,
+        id: 'live-job-1',
+        ingredientId: 'ingredient-failed-1',
+        prompt: 'A failed prompt',
+        status: IngredientStatus.FAILED,
+        type: 'image',
+      }),
+    );
+    const confirm = mocks.openConfirm.mock.calls.at(-1)?.[0] as {
+      onConfirm: () => Promise<void>;
+    };
+    mocks.bulkDelete.mockResolvedValueOnce({
+      deleted: ['ingredient-failed-1'],
+      failed: [],
+      message: 'Successfully deleted 1 ingredient(s)',
+    });
+    await act(confirm.onConfirm);
+
+    expect(mocks.bulkDelete).toHaveBeenCalledWith({
+      ids: ['ingredient-failed-1'],
+      type: 'ingredients-delete',
+    });
+    expect(onDeleted).toHaveBeenCalledWith('live-job-1');
+    expect(onRefresh).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a persisted failed card visible when soft-delete fails', async () => {
+    const onDeleted = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioGenerateAssetActions({
+        onAttachReference: vi.fn(),
+        onDeleted,
+        onRefresh: vi.fn(),
+      }),
+    );
+
+    act(() =>
+      result.current.onRemoveGeneration({
+        createdAt: 1,
+        id: 'live-job-1',
+        ingredientId: 'ingredient-failed-1',
+        prompt: 'A failed prompt',
+        status: IngredientStatus.FAILED,
+        type: 'image',
+      }),
+    );
+    const confirm = mocks.openConfirm.mock.calls.at(-1)?.[0] as {
+      onConfirm: () => Promise<void>;
+    };
+    mocks.bulkDelete.mockResolvedValueOnce({
+      deleted: [],
+      failed: ['ingredient-failed-1'],
+      message: 'Not deleted',
+    });
+    await act(confirm.onConfirm);
+
+    expect(onDeleted).not.toHaveBeenCalled();
+    expect(mocks.notificationsError).toHaveBeenCalledWith(
+      'Failed to remove generation',
+    );
   });
 });

@@ -29,6 +29,7 @@ const assetActions = {
   onMarkValidated: vi.fn(),
   onPublishIngredient: vi.fn(),
   onRefresh: vi.fn(),
+  onRemoveGeneration: vi.fn(),
   onSeeDetails: vi.fn(),
   onToggleFavorite: vi.fn(),
   onUseAsVideoReference: vi.fn(),

@@ -59,6 +59,7 @@ export interface StudioGenerateAssetActions {
   onMarkValidated: (ingredient: IIngredient) => void | Promise<void>;
   onPublishIngredient: (ingredient: IIngredient) => void;
   onRefresh: () => void;
+  onRemoveGeneration: (job: StudioGenerateJob) => void;
   onSeeDetails: (ingredient: IIngredient) => void;
   onToggleFavorite: (ingredient: IIngredient) => void | Promise<void>;
   onUseAsVideoReference: (ingredient: IIngredient) => void;
