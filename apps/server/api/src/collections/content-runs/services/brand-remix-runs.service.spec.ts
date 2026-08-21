@@ -1221,7 +1221,14 @@ describe('BrandRemixRunsService', () => {
       id: 'batch-1',
       items: [{ id: 'item-1', postId: 'post-1' }],
     });
-    contentRun.updateMany.mockResolvedValue({ count: 0 });
+    // Reconciliation writes succeed; only the review claim loses the race.
+    contentRun.updateMany.mockImplementation(({ data }) =>
+      Promise.resolve(
+        JSON.stringify(data.config).includes('"review"')
+          ? { count: 0 }
+          : { count: 1 },
+      ),
+    );
 
     await expect(
       service.submitForReview('org-1', 'run-1', 'user-1', {

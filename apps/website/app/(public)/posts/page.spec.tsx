@@ -1,5 +1,5 @@
-import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import * as PageModule from '@public/posts/page';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { describe, expect, it } from 'vitest';
@@ -8,10 +8,7 @@ runPageModuleTests('apps/website/app/(public)/posts/page', PageModule);
 
 describe('posts index content depth', () => {
   it('server-renders enough copy to clear the thin-content floor', () => {
-    const source = fs.readFileSync(
-      fileURLToPath(new URL('./page.tsx', import.meta.url)),
-      'utf8',
-    );
+    const source = readFileSync(join(import.meta.dirname, 'page.tsx'), 'utf8');
     const intro = source.split('<section')[1]?.split('</section>')[0] ?? '';
     const words = intro
       .replace(/\{[^}]*\}/g, ' ')
