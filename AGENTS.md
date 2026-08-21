@@ -113,7 +113,6 @@ one). Full rationale and the measured incidents:
 - `.agents/README.md` — Navigation hub for all project docs
 - `.agents/memory/` — All project knowledge (context, rules, features, system, ADRs)
 - `.agents/skills/` — Dev/build skills for the monorepo
-- `.agents/agents/` — Specialist agent definitions
 - `.claude/memory` → symlink to `.agents/memory/`
 - `.codex/memory` → symlink to `.agents/memory/`
 

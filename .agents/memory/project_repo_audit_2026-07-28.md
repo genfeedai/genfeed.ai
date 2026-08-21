@@ -71,7 +71,6 @@ Audit-only pass, then P0 implementation. Remaining work is tracked here so it is
 | Retire redundant routes | **#1867**, **#2122** | After telemetry |
 | Legacy shell compat delete | **#1836** | |
 | Server domain extraction | **#1345**, **#1346** | |
-| Workflow node-actions DRY | local TODO in `.agents/TODOS/workflow-selection-optimization.md` | Prefer promote to GH child under workflow quality if still open |
 
 ## P2 — quality / tooling (existing GH)
 

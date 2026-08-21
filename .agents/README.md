@@ -4,8 +4,8 @@ Project-level `.agents/` for all AI agent knowledge, skills, and operational doc
 
 ## Last Verified
 
-- **Date:** 2026-04-21
-- **Verified against:** local codebase + GitHub issues
+- **Date:** 2026-08-20
+- **Verified against:** repository structure and current agent integrations
 
 ## Read First
 
@@ -17,7 +17,6 @@ Project-level `.agents/` for all AI agent knowledge, skills, and operational doc
 
 ```
 .agents/
-├── agents/      # 7 specialist agent definitions
 ├── memory/      # All project knowledge
 │   ├── MEMORY.md           # Index — start here
 │   ├── feedback_*.md       # User corrections (permanent)
@@ -29,7 +28,7 @@ Project-level `.agents/` for all AI agent knowledge, skills, and operational doc
 │   ├── rules/              # Coding rules (symlinked to .claude/rules/)
 │   └── system/             # Critical rules, agent runtime
 ├── sessions/    # Daily session logs (gitignored)
-├── skills/      # Dev/build skills (47 skills)
+├── skills/      # Repo-local development and verification skills
 └── README.md    # This file
 ```
 

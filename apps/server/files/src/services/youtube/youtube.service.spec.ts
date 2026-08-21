@@ -244,6 +244,7 @@ describe('YoutubeService', () => {
             status: { privacyStatus: 'public' },
           }),
         }),
+        {},
       );
     });
 
@@ -259,6 +260,7 @@ describe('YoutubeService', () => {
             status: { privacyStatus: 'private' },
           }),
         }),
+        {},
       );
     });
 
@@ -274,6 +276,7 @@ describe('YoutubeService', () => {
             status: { privacyStatus: 'unlisted' },
           }),
         }),
+        {},
       );
     });
 
@@ -294,6 +297,7 @@ describe('YoutubeService', () => {
             },
           }),
         }),
+        {},
       );
     });
 
@@ -312,6 +316,7 @@ describe('YoutubeService', () => {
             status: { privacyStatus: 'public' },
           }),
         }),
+        {},
       );
     });
 
@@ -327,6 +332,7 @@ describe('YoutubeService', () => {
             status: { privacyStatus: 'private' },
           }),
         }),
+        {},
       );
     });
 
@@ -344,6 +350,7 @@ describe('YoutubeService', () => {
             },
           }),
         }),
+        {},
       );
     });
 
@@ -361,6 +368,7 @@ describe('YoutubeService', () => {
             }),
           }),
         }),
+        {},
       );
     });
 
@@ -434,6 +442,7 @@ describe('YoutubeService', () => {
             }),
           }),
         }),
+        {},
       );
     });
   });

@@ -1,3 +1,4 @@
+import type { McpToolOutput } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
@@ -5,7 +6,6 @@ import { MCPService } from '@mcp/mcp/services/mcp.service';
 import type { McpRole } from '@mcp/services/auth.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
-import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
 import { Test, TestingModule } from '@nestjs/testing';
 
 type AuthenticatedControllerRequest = Parameters<
@@ -48,15 +48,17 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 describe('McpController', () => {
   let controller: McpController;
 
-  const roleTools: Record<McpRole, McpTool[]> = {
+  const roleTools: Record<McpRole, McpToolOutput[]> = {
     admin: [
       {
+        _meta: {},
         description: 'List posts',
         inputSchema: { properties: {}, type: 'object' },
         name: 'list_posts',
         requiredRole: 'user',
       },
       {
+        _meta: {},
         description: 'Inspect workflow',
         inputSchema: { properties: {}, type: 'object' },
         name: 'inspect_workflow',
@@ -65,18 +67,21 @@ describe('McpController', () => {
     ],
     superadmin: [
       {
+        _meta: {},
         description: 'List posts',
         inputSchema: { properties: {}, type: 'object' },
         name: 'list_posts',
         requiredRole: 'user',
       },
       {
+        _meta: {},
         description: 'Inspect workflow',
         inputSchema: { properties: {}, type: 'object' },
         name: 'inspect_workflow',
         requiredRole: 'admin',
       },
       {
+        _meta: {},
         description: 'Resolve approval',
         inputSchema: { properties: {}, type: 'object' },
         name: 'resolve_approval',
@@ -85,6 +90,7 @@ describe('McpController', () => {
     ],
     user: [
       {
+        _meta: {},
         description: 'List posts',
         inputSchema: { properties: {}, type: 'object' },
         name: 'list_posts',
@@ -94,7 +100,7 @@ describe('McpController', () => {
   };
 
   const getToolsForRoleMock = vi.fn(
-    (role: McpRole): McpTool[] => roleTools[role],
+    (role: McpRole): McpToolOutput[] => roleTools[role],
   );
 
   const mockMcpService = {
