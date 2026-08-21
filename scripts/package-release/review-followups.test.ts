@@ -272,6 +272,77 @@ describe('package and worktree review follow-ups', () => {
     );
     expect(releaseWorkflow).toContain('trusted_release_call: true');
   });
+
+  it('allows a historical npm source only through the validated recovery contract', () => {
+    const dollar = '$';
+    const packageWorkflow = readText('.github/workflows/publish-packages.yml');
+    const releaseWorkflow = readText('.github/workflows/release.yml');
+    const workflowCall = packageWorkflow
+      .split('  workflow_call:\n')[1]
+      ?.split('  workflow_dispatch:\n')[0];
+    const workflowDispatch = packageWorkflow
+      .split('  workflow_dispatch:\n')[1]
+      ?.split('\nconcurrency:\n')[0];
+    const planJob = packageWorkflow
+      .split('\n  plan:\n')[1]
+      ?.split('\n  preflight:\n')[0];
+    const publishJob = packageWorkflow.split('\n  publish:\n')[1];
+
+    expect(workflowCall).toContain('validated_historical_recovery:');
+    expect(workflowCall).toMatch(
+      /validated_historical_recovery:[\s\S]*?default: false[\s\S]*?type: boolean/,
+    );
+    expect(workflowCall).toContain('recovery_run_id:');
+    expect(workflowCall).toMatch(
+      /recovery_run_id:[\s\S]*?default: ''[\s\S]*?type: string/,
+    );
+    expect(workflowDispatch).not.toContain('validated_historical_recovery');
+    expect(workflowDispatch).not.toContain('recovery_run_id');
+
+    expect(planJob).toContain(`if: ${dollar}{{ inputs.dry_run == false }}`);
+    for (const job of [planJob, publishJob]) {
+      expect(job).toContain(`CHECKOUT_REF: ${dollar}{{ inputs.checkout_ref }}`);
+      expect(job).toContain(
+        `VALIDATED_HISTORICAL_RECOVERY: ${dollar}{{ inputs.validated_historical_recovery }}`,
+      );
+      expect(job).toContain(
+        `TRUSTED_RELEASE_CALL: ${dollar}{{ inputs.trusted_release_call }}`,
+      );
+      expect(job).toContain(`DRY_RUN: ${dollar}{{ inputs.dry_run }}`);
+      expect(job).toContain(
+        `RECOVERY_RUN_ID: ${dollar}{{ inputs.recovery_run_id }}`,
+      );
+      expect(job).toContain(
+        `[[ "${dollar}{CHECKOUT_REF}" =~ ^[0-9a-f]{40}$ ]]`,
+      );
+      expect(job).toContain(
+        `[ "${dollar}{HEAD_SHA}" != "${dollar}{CHECKOUT_REF}" ]`,
+      );
+      expect(job).toContain('git fetch --no-tags origin master');
+      expect(job).toContain(
+        `[ "${dollar}{VALIDATED_HISTORICAL_RECOVERY}" = 'true' ]`,
+      );
+      expect(job).toContain(
+        `[ "${dollar}{TRUSTED_RELEASE_CALL}" != 'true' ] || [ "${dollar}{DRY_RUN}" != 'false' ]`,
+      );
+      expect(job).toContain(
+        `[[ "${dollar}{RECOVERY_RUN_ID}" =~ ^[1-9][0-9]*$ ]]`,
+      );
+      expect(job).toContain(
+        `git merge-base --is-ancestor "${dollar}{HEAD_SHA}" "${dollar}{MASTER_SHA}"`,
+      );
+      expect(job).toContain(
+        `[ "${dollar}{HEAD_SHA}" != "${dollar}{MASTER_SHA}" ]`,
+      );
+    }
+
+    expect(releaseWorkflow).toContain(
+      `validated_historical_recovery: ${dollar}{{ needs.validate-release.outputs.recovery_mode == 'true' }}`,
+    );
+    expect(releaseWorkflow).toContain(
+      `recovery_run_id: ${dollar}{{ needs.validate-release.outputs.recovery_run_id }}`,
+    );
+  });
 });
 
 function readJson(relativePath: string): PackageManifest {

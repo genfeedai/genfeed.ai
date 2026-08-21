@@ -590,7 +590,9 @@ jobs:
     with:
       checkout_ref: ${{ needs.validate-release.outputs.release_sha }}
       dry_run: false
+      recovery_run_id: ${{ needs.validate-release.outputs.recovery_run_id }}
       trusted_release_call: true
+      validated_historical_recovery: ${{ needs.validate-release.outputs.recovery_mode == 'true' }}
     secrets: inherit
 
   publish-release:

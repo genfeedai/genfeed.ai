@@ -76,17 +76,26 @@ unless GitHub proves that the prior run belongs to this repository, ran the
 canonical workflow from `master`, matches the requested tag and unpublished
 draft, and used the draft's exact historical SHA. It also requires the prior
 Full Suite, hosted SaaS deploy/smoke, and versioned image jobs to be green while
-the bundle job failed and every irreversible promotion/npm/publication job was
-skipped.
+every bundle build, smoke, and image-verification step succeeded, only the draft
+attachment step failed, and every irreversible promotion/npm/publication job
+was skipped. The draft must still contain exactly one non-empty `CHANGELOG.md`
+asset with the historical asset ID and digest, and zero install tarball or
+checksum assets.
 
 The recovery run keeps the draft title and notes unchanged, checks out the
 historical SHA, skips only those proved-green Full Suite and SaaS gates, and
 reuses the existing versioned image without pushing over it. The current
 workflow anonymously pulls that image, verifies its OCI version/revision and
 immutable digest, rebuilds and smokes the missing install bundle, and attaches
-the assets with current permissions. Channel promotion uses the verified image
-digest. npm publication and making the existing draft public remain gated on
-all recovery evidence plus the rebuilt Community artifact.
+the assets with current permissions. The upload refuses to overwrite existing
+versioned assets, then captures and revalidates the new tarball/checksum IDs and
+digests together with the unchanged historical changelog before publication.
+Channel promotion uses the verified image digest. npm publication and making
+the existing draft public remain gated on all recovery evidence plus the
+rebuilt Community artifact. A normal npm publish still requires the pinned SHA
+to equal current `master`; only a validated historical recovery may publish
+from that pinned SHA when it remains an ancestor of `master` and carries the
+validated prior run ID.
 
 The self-hosted release contract is version-bound:
 
