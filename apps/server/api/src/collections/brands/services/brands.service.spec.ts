@@ -1424,15 +1424,18 @@ describe('BrandsService', () => {
 
     it('replaces platformOverrides wholesale so cleared overrides stay cleared', async () => {
       withStoredConfig({
-        platformOverrides: { twitter: { tone: 'punchy' }, youtube: {} },
+        platformOverrides: {
+          twitter: { voice: { tone: 'punchy' } },
+          youtube: {},
+        },
       });
 
       await service.updateAgentConfig(brandId, orgId, {
-        platformOverrides: { twitter: { tone: 'punchy' } },
+        platformOverrides: { twitter: { voice: { tone: 'punchy' } } },
       });
 
       expect(persistedConfig().platformOverrides).toEqual({
-        twitter: { tone: 'punchy' },
+        twitter: { voice: { tone: 'punchy' } },
       });
     });
 

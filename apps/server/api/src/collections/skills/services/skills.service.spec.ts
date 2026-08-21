@@ -121,7 +121,7 @@ describe('SkillsService', () => {
     'rejects %s without organization context before data access',
     async (_operation, invoke) => {
       await expect(
-        Promise.resolve().then(() => invoke()),
+        Promise.resolve().then(() => invoke() as unknown as Promise<void>),
       ).rejects.toBeInstanceOf(ValidationException);
 
       expect(prisma.brand.findFirst).not.toHaveBeenCalled();

@@ -63,14 +63,14 @@ describe('SkillsController', () => {
         controller.listSkills(mockReq, {
           ...mockUser,
           organizationId: undefined,
-        } as User),
+        } as unknown as User),
     ],
     [
       'get',
       () =>
         controller.getSkill(
           mockReq,
-          { ...mockUser, organizationId: undefined } as User,
+          { ...mockUser, organizationId: undefined } as unknown as User,
           'hook-writer',
         ),
     ],
@@ -79,7 +79,7 @@ describe('SkillsController', () => {
       () =>
         controller.createSkill(
           mockReq,
-          { ...mockUser, organizationId: undefined } as User,
+          { ...mockUser, organizationId: undefined } as unknown as User,
           {
             category: 'copywriting' as never,
             channels: ['youtube'],
@@ -96,7 +96,7 @@ describe('SkillsController', () => {
       () =>
         controller.importSkill(
           mockReq,
-          { ...mockUser, organizationId: undefined } as User,
+          { ...mockUser, organizationId: undefined } as unknown as User,
           {
             category: 'copywriting' as never,
             channels: ['youtube'],
@@ -113,7 +113,7 @@ describe('SkillsController', () => {
       () =>
         controller.customizeSkill(
           mockReq,
-          { ...mockUser, organizationId: undefined } as User,
+          { ...mockUser, organizationId: undefined } as unknown as User,
           'skill-1',
           { name: 'Hook Writer Custom' },
         ),
@@ -123,7 +123,7 @@ describe('SkillsController', () => {
       () =>
         controller.updateSkill(
           mockReq,
-          { ...mockUser, organizationId: undefined } as User,
+          { ...mockUser, organizationId: undefined } as unknown as User,
           'skill-1',
           { name: 'Hook Writer v2' },
         ),

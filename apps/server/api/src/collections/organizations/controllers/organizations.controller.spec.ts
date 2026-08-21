@@ -26,6 +26,7 @@ import { DefaultRecurringContentService } from '@api/collections/brands/services
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
+import type { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -356,7 +357,11 @@ describe('OrganizationsController', () => {
       });
       mockBrandsService.findOne.mockResolvedValue(null);
 
-      const result = await controller.findAll({} as never, currentUser, {});
+      const result = await controller.findAll(
+        {} as never,
+        currentUser,
+        {} as OrganizationQueryDto,
+      );
 
       expect(result).toEqual([
         {
