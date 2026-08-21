@@ -462,6 +462,47 @@ describe('AgentThreadList', () => {
     expect(threadLink?.parentElement).toHaveClass('min-h-0');
   });
 
+  it('uses one trailing slot for the timestamp and thread actions', async () => {
+    const tenDaysAgo = new Date(
+      Date.now() - 10 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const thread = createThread('conv-1', 'Aligned thread', {
+      lastActivityAt: tenDaysAgo,
+    });
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    const timestamp = await screen.findByText('10d');
+    const actions = screen.getByRole('button', {
+      name: 'Thread actions for Aligned thread',
+    });
+
+    expect(timestamp.parentElement).toBe(actions.parentElement);
+    expect(timestamp).toHaveClass(
+      'group-hover:opacity-0',
+      'group-focus-within:opacity-0',
+      '[@media(hover:none)]:opacity-0',
+    );
+    expect(actions).toHaveClass(
+      'opacity-0',
+      'group-hover:opacity-100',
+      'group-focus-within:opacity-100',
+      '[@media(hover:none)]:opacity-100',
+    );
+
+    fireEvent.pointerDown(actions);
+
+    expect(
+      await screen.findByRole('menuitem', { name: 'Pin conversation' }),
+    ).toBeInTheDocument();
+    expect(timestamp).toHaveClass('opacity-0');
+    expect(actions).toHaveClass('opacity-100');
+  });
+
   it('does not render malformed threads without usable ids', async () => {
     const malformedThread = {
       ...createThread('conv-bad', 'Malformed thread'),
