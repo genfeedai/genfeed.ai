@@ -18,6 +18,7 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BRAND_REMIX_RUN_CONTRACT,
@@ -46,7 +47,7 @@ import {
   ContentRunStatus,
   IngredientCategory,
   IngredientStatus,
-  ReviewDecision,
+  PersistedReviewDecision,
 } from '@genfeedai/enums';
 import type {
   AdsResearchDetail,
@@ -486,7 +487,8 @@ export class BrandRemixRunsService {
       brandId,
       selectedAssetIds,
     );
-    const format = config.draft.output.kind === 'image' ? 'image' : 'video';
+    const format: ReviewBatchItemFormat =
+      config.draft.output.kind === 'image' ? 'image' : 'video';
     const platform = config.draft.target.platform;
     const items = selected.flatMap((variant) =>
       variant.assetIds.map((ingredientId) => ({
@@ -527,16 +529,16 @@ export class BrandRemixRunsService {
       });
     }
 
-    if (config.sourceSnapshot.selector.kind === 'trend_reference') {
+    const selector = config.sourceSnapshot.selector;
+    if (selector.kind === 'trend_reference') {
       await Promise.all(
         postIds.map((postId) =>
           this.trendReferenceCorpusService.recordPostRemixLineage({
             brandId,
             generatedBy: BRAND_REMIX_RUN_CONTRACT,
             metadata: {
-              sourceReferenceId:
-                config.sourceSnapshot.selector.sourceReferenceId,
-              trendId: config.sourceSnapshot.selector.trendId,
+              sourceReferenceId: selector.sourceReferenceId,
+              trendId: selector.trendId,
             },
             organizationId,
             platforms: [platform],
@@ -657,7 +659,6 @@ export class BrandRemixRunsService {
     }
     const [organizationSettings, brandKit] = await Promise.all([
       this.organizationSettingsService.findOne({
-        isDeleted: false,
         organizationId,
       }),
       this.brandsService.resolveBrandKitAssets(brandId, organizationId),
@@ -667,7 +668,7 @@ export class BrandRemixRunsService {
       organizationSettings,
     });
     const identity = effective.identityDefaults.effective;
-    const defaultIdentity =
+    const defaultIdentity: BrandRemixDraft['identity'] =
       identity.defaultAvatarIngredientId && identity.defaultVoiceId
         ? {
             avatarAssetId: identity.defaultAvatarIngredientId,
@@ -1704,7 +1705,9 @@ export class BrandRemixRunsService {
         }),
       });
       const approvedPostIds = posts
-        .filter((post) => post.reviewDecision === ReviewDecision.APPROVED)
+        .filter(
+          (post) => post.reviewDecision === PersistedReviewDecision.APPROVED,
+        )
         .map((post) => post.id);
       const approved =
         posts.length === config.review.postIds.length &&

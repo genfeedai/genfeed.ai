@@ -4,7 +4,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentRunStatus,
   IngredientStatus,
-  ReviewDecision,
+  PersistedReviewDecision,
 } from '@genfeedai/enums';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { Request } from 'express';
@@ -85,10 +85,7 @@ describe('BrandRemixRunsService', () => {
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
   const runtime = {
     now: () => new Date('2026-08-20T10:00:00.000Z'),
-    randomId: vi
-      .fn()
-      .mockReturnValueOnce('variant-1')
-      .mockReturnValueOnce('variant-2'),
+    randomId: vi.fn(),
   };
   const request = { context: { organizationId: 'org-1' } } as Request;
   const user = {
@@ -107,10 +104,10 @@ describe('BrandRemixRunsService', () => {
       ) => operation({ contentRun }),
     );
     contentRun.findFirst.mockResolvedValue(null);
+    let variantSequence = 0;
     runtime.randomId
       .mockReset()
-      .mockReturnValueOnce('variant-1')
-      .mockReturnValueOnce('variant-2');
+      .mockImplementation(() => `variant-${++variantSequence}`);
     brandsService.findOne.mockResolvedValue(brand);
     brandsService.resolveBrandKitAssets.mockResolvedValue({
       references: [
@@ -714,6 +711,10 @@ describe('BrandRemixRunsService', () => {
 
   it('resumes only unlinked queued or processing variants after a crash', async () => {
     const created = await createPersistedRun({
+      draft: {
+        identity: {},
+        output: { aspectRatio: '1:1', count: 4, kind: 'image' },
+      },
       execution: {
         actualCount: 1,
         generationBrief: {
@@ -1085,7 +1086,10 @@ describe('BrandRemixRunsService', () => {
     contentRun.findFirst.mockResolvedValue(created);
     contentRun.updateMany.mockResolvedValue({ count: 1 });
     (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'post-1', reviewDecision: ReviewDecision.APPROVED },
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
     ]);
     let stored = created;
     contentRun.updateMany.mockImplementation(({ data }) => {

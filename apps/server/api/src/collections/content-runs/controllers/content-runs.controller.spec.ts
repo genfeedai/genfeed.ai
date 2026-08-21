@@ -3,11 +3,11 @@ import { ContentRunsController } from '@api/collections/content-runs/controllers
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ContentRunStatus } from '@genfeedai/enums';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentRunsController', () => {
