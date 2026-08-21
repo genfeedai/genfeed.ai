@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 113 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(113);
+    it('should have 115 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(115);
     });
 
     it('should have correct values', () => {
@@ -35,6 +35,9 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO).toBe(
         'google/nano-banana-pro',
+      );
+      expect(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE).toBe(
+        'google/nano-banana-2-lite',
       );
       expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_2).toBe('google/veo-2');
       expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3).toBe('google/veo-3');
@@ -176,6 +179,7 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST).toBe(
         'minimax/hailuo-2.3-fast',
       );
+      expect(MODEL_KEYS.REPLICATE_MINIMAX_H3).toBe('minimax/h3');
       expect(MODEL_KEYS.REPLICATE_VIDU_Q3_PRO).toBe('vidu/q3-pro');
       expect(MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO).toBe('vidu/q3-turbo');
       expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE).toBe(
