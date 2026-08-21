@@ -26,7 +26,7 @@ on:
         default: false
         type: boolean
       validated_historical_recovery:
-        description: 'Allow the validated release SHA to be an ancestor of current master'
+        description: 'Validate a historical release only when its npm plan is empty'
         required: false
         default: false
         type: boolean
@@ -97,8 +97,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Validate real publication source
-        if: ${{ inputs.dry_run == false }}
+      - name: Validate pinned release source
+        if: ${{ inputs.dry_run == false || inputs.validated_historical_recovery == true }}
         env:
           CHECKOUT_REF: ${{ inputs.checkout_ref }}
           DRY_RUN: ${{ inputs.dry_run }}
@@ -175,10 +175,27 @@ jobs:
             node scripts/npm-release-plan.mjs
           fi
 
+      - name: Checkout current release controller
+        if: ${{ inputs.validated_historical_recovery == true }}
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: .release-controller
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Require an empty npm plan for historical recovery
+        if: ${{ inputs.validated_historical_recovery == true }}
+        env:
+          HAS_PACKAGES: ${{ steps.plan.outputs.has_packages }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          VALIDATED_HISTORICAL_RECOVERY: ${{ inputs.validated_historical_recovery }}
+        run: node .release-controller/scripts/ci/recovery-npm-plan-guard.mjs
+
   preflight:
     name: Preflight immutable package tarballs
     needs: plan
-    if: ${{ needs.plan.outputs.has_packages == 'true' }}
+    if: ${{ inputs.validated_historical_recovery != true && needs.plan.outputs.has_packages == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -244,7 +261,7 @@ jobs:
 
   publish:
     name: Publish preflighted package tarballs
-    if: ${{ inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true' }}
+    if: ${{ inputs.validated_historical_recovery != true && inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true' }}
     needs: [plan, preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -264,10 +281,6 @@ jobs:
       - name: Revalidate real publication source
         env:
           CHECKOUT_REF: ${{ inputs.checkout_ref }}
-          DRY_RUN: ${{ inputs.dry_run }}
-          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
-          TRUSTED_RELEASE_CALL: ${{ inputs.trusted_release_call }}
-          VALIDATED_HISTORICAL_RECOVERY: ${{ inputs.validated_historical_recovery }}
         run: |
           set -euo pipefail
 
@@ -289,28 +302,9 @@ jobs:
           git fetch --no-tags origin master
           MASTER_SHA="$(git rev-parse origin/master)"
 
-          if [ "${VALIDATED_HISTORICAL_RECOVERY}" = 'true' ]; then
-            if [ "${TRUSTED_RELEASE_CALL}" != 'true' ] || [ "${DRY_RUN}" != 'false' ]; then
-              echo "::error::Historical package recovery requires a trusted real Release workflow call."
-              exit 1
-            fi
-            if ! [[ "${RECOVERY_RUN_ID}" =~ ^[1-9][0-9]*$ ]]; then
-              echo "::error::Historical package recovery requires a positive recovery_run_id."
-              exit 1
-            fi
-            if ! git merge-base --is-ancestor "${HEAD_SHA}" "${MASTER_SHA}"; then
-              echo "::error::The recovered release SHA must remain an ancestor of current master."
-              exit 1
-            fi
-          else
-            if [ -n "${RECOVERY_RUN_ID}" ]; then
-              echo "::error::recovery_run_id is only valid with validated_historical_recovery=true."
-              exit 1
-            fi
-            if [ "${HEAD_SHA}" != "${MASTER_SHA}" ]; then
-              echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
-              exit 1
-            fi
+          if [ "${HEAD_SHA}" != "${MASTER_SHA}" ]; then
+            echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
+            exit 1
           fi
 
       - name: Setup Bun environment

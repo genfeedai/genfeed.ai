@@ -46,6 +46,7 @@ jobs:
       changelog_asset_size: ${{ steps.release.outputs.changelog_asset_size }}
       draft_body_sha256: ${{ steps.release.outputs.draft_body_sha256 }}
       draft_id: ${{ steps.release.outputs.draft_id }}
+      draft_title: ${{ steps.release.outputs.draft_title }}
       image_tag: ${{ steps.release.outputs.image_tag }}
       major_minor_tag: ${{ steps.release.outputs.major_minor_tag }}
       recovery_mode: ${{ steps.release.outputs.recovery_mode }}
@@ -96,6 +97,7 @@ jobs:
               echo "changelog_asset_size="
               echo "draft_body_sha256="
               echo "draft_id="
+              echo "draft_title="
               echo "recovery_mode=false"
               echo "recovery_run_id="
               echo "recovery_saas_verified=false"
@@ -172,6 +174,7 @@ jobs:
           RECOVERY_CHANGELOG_ASSET_SIZE: ${{ steps.source.outputs.changelog_asset_size }}
           RECOVERY_DRAFT_BODY_SHA256: ${{ steps.source.outputs.draft_body_sha256 }}
           RECOVERY_DRAFT_ID: ${{ steps.source.outputs.draft_id }}
+          RECOVERY_DRAFT_TITLE: ${{ steps.source.outputs.draft_title }}
           RECOVERY_MODE: ${{ steps.source.outputs.recovery_mode }}
           RECOVERY_RUN_ID: ${{ steps.source.outputs.recovery_run_id }}
           RECOVERY_SAAS_VERIFIED: ${{ steps.source.outputs.recovery_saas_verified }}
@@ -217,10 +220,13 @@ jobs:
             fi
             if [ "${RECOVERY_MODE}" = 'true' ]; then
               draft_id="$(jq -r '.id' <<<"${release_json}")"
+              draft_title="$(jq -r '.name // ""' <<<"${release_json}")"
               draft_body_sha256="$(jq -j '.body // ""' <<<"${release_json}" | sha256sum | awk '{print $1}')"
               if [ "${draft_id}" != "${RECOVERY_DRAFT_ID}" ] || \
+                 [ "${draft_title}" != "${RECOVERY_DRAFT_TITLE}" ] || \
+                 [ "${draft_title}" != "${release_tag}" ] || \
                  [ "${draft_body_sha256}" != "${RECOVERY_DRAFT_BODY_SHA256}" ]; then
-                echo "::error::Recovery draft identity or notes changed after historical evidence validation."
+                echo "::error::Recovery draft identity, title, or notes changed after historical evidence validation."
                 exit 1
               fi
 
@@ -314,11 +320,23 @@ jobs:
           fi
 
           draft_id="$(jq -r '.id // ""' <<<"${release_json}")"
+          draft_title="$(jq -r '.name // ""' <<<"${release_json}")"
+          draft_target="$(jq -r '.target_commitish // ""' <<<"${release_json}")"
           draft_body_sha256="$(jq -j '.body // ""' <<<"${release_json}" | sha256sum | awk '{print $1}')"
           [[ "${draft_id}" =~ ^[0-9]+$ ]] || {
             echo "::error::Validated draft ${release_tag} no longer has a stable release ID."
             exit 1
           }
+          if [ "${RECOVERY_MODE}" = 'true' ] && {
+            [ "${draft_id}" != "${RECOVERY_DRAFT_ID}" ] ||
+            [ "${draft_title}" != "${RECOVERY_DRAFT_TITLE}" ] ||
+            [ "${draft_title}" != "${release_tag}" ] ||
+            [ "${draft_target}" != "${release_sha}" ] ||
+            [ "${draft_body_sha256}" != "${RECOVERY_DRAFT_BODY_SHA256}" ];
+          }; then
+            echo "::error::Recovery draft identity, title, target, or notes changed before asset work."
+            exit 1
+          fi
 
           {
             echo "changelog_asset_digest=${changelog_asset_digest}"
@@ -326,6 +344,7 @@ jobs:
             echo "changelog_asset_size=${changelog_asset_size}"
             echo "draft_body_sha256=${draft_body_sha256}"
             echo "draft_id=${draft_id}"
+            echo "draft_title=${draft_title}"
             echo "image_tag=${image_tag}"
             echo "major_minor_tag=${major_minor_tag}"
             echo "recovery_mode=${RECOVERY_MODE}"
@@ -635,6 +654,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       EXPECTED_DRAFT_BODY_SHA256: ${{ needs.validate-release.outputs.draft_body_sha256 }}
       EXPECTED_DRAFT_ID: ${{ needs.validate-release.outputs.draft_id }}
+      EXPECTED_DRAFT_TITLE: ${{ needs.validate-release.outputs.draft_title }}
       RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
       RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
     steps:
@@ -649,6 +669,8 @@ jobs:
           test "$(jq 'length' <<<"${release_matches}")" -eq 1
           release_json="$(jq -c '.[0]' <<<"${release_matches}")"
           test "$(jq -r '.id' <<<"${release_json}")" = "${EXPECTED_DRAFT_ID}"
+          test "$(jq -r '.name // ""' <<<"${release_json}")" = "${EXPECTED_DRAFT_TITLE}"
+          test "$(jq -r '.name // ""' <<<"${release_json}")" = "${RELEASE_TAG}"
           test "$(jq -r '.draft' <<<"${release_json}")" = 'true'
           test "$(jq -r '.published_at // ""' <<<"${release_json}")" = ''
           test "$(jq -r '.target_commitish' <<<"${release_json}")" = "${RELEASE_SHA}"

@@ -92,10 +92,12 @@ versioned assets, then captures and revalidates the new tarball/checksum IDs and
 digests together with the unchanged historical changelog before publication.
 Channel promotion uses the verified image digest. npm publication and making
 the existing draft public remain gated on all recovery evidence plus the
-rebuilt Community artifact. A normal npm publish still requires the pinned SHA
-to equal current `master`; only a validated historical recovery may publish
-from that pinned SHA when it remains an ancestor of `master` and carries the
-validated prior run ID.
+rebuilt Community artifact. npm publication always requires the pinned SHA to
+equal current `master`. A validated historical recovery may continue only when
+the registry-drift plan is empty; if any enrolled package would publish, the
+recovery fails closed and a new release must run from current `master`. This lets
+the v66 recovery preserve truthful npm provenance because its verified plan is a
+no-op, without creating a generic historical publication path.
 
 The self-hosted release contract is version-bound:
 

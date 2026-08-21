@@ -160,6 +160,11 @@ function requireHistoricalDraft(releases, requestedTag, releaseSha) {
       `Recovery draft ${requestedTag} targets ${release.target_commitish ?? '<empty>'}, not historical run SHA ${releaseSha}.`,
     );
   }
+  if (release.name !== requestedTag) {
+    fail(
+      `Recovery draft ${requestedTag} has title ${release.name ?? '<empty>'}, expected ${requestedTag}.`,
+    );
+  }
   if (!Number.isSafeInteger(release.id) || release.id <= 0) {
     fail('Recovery draft has an invalid release ID.');
   }
@@ -199,6 +204,7 @@ function requireHistoricalDraft(releases, requestedTag, releaseSha) {
       .update(String(release.body ?? ''))
       .digest('hex'),
     draftId: String(release.id),
+    draftTitle: release.name,
   };
 }
 
@@ -420,6 +426,7 @@ export function runReleaseRecoveryCli({
         `changelog_asset_size=${evidence.changelogAssetSize}`,
         `draft_body_sha256=${evidence.draftBodySha256}`,
         `draft_id=${evidence.draftId}`,
+        `draft_title=${evidence.draftTitle}`,
         'recovery_mode=true',
         `recovery_run_id=${runId}`,
         'recovery_saas_verified=true',

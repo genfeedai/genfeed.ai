@@ -167,6 +167,7 @@ function releaseRecoveryFixture() {
         body: 'Existing release notes\n',
         draft: true,
         id: 373178897,
+        name: RECOVERY_TAG,
         published_at: null,
         tag_name: RECOVERY_TAG,
         target_commitish: RECOVERY_SHA,
@@ -197,6 +198,7 @@ test('validates complete historical recovery evidence from fixture data', () => 
   assert.equal(result.releaseSha, RECOVERY_SHA);
   assert.equal(result.artifactJobId, '96166230801');
   assert.equal(result.draftId, '373178897');
+  assert.equal(result.draftTitle, RECOVERY_TAG);
   assert.equal(
     result.draftBodySha256,
     '23d5465b6cdf5f0bd6e0c0cdc6515f8822bfb5ee57c193ef8104bb0d9dfd2708',
@@ -308,6 +310,16 @@ test('rejects mismatched run identity and wrong-SHA gate evidence', () => {
   assert.throws(
     () => validateReleaseRecoveryEvidence(wrongSha),
     /Full Suite.*wrong-SHA/,
+  );
+});
+
+test('rejects a renamed historical recovery draft', () => {
+  const fixture = releaseRecoveryFixture();
+  fixture.releases[0].name = 'Renamed draft';
+
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(fixture),
+    /title Renamed draft, expected v0\.1\.66/,
   );
 });
 
@@ -480,9 +492,16 @@ test('recovery gates irreversible promotion and preserves the draft until public
     assert.match(job, /needs\.publish-community\.result == 'success'/);
   }
 
+  const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
+  assert.match(validate, /RECOVERY_DRAFT_ID/);
+  assert.match(validate, /RECOVERY_DRAFT_BODY_SHA256/);
+  assert.match(validate, /RECOVERY_DRAFT_TITLE/);
+  assert.match(validate, /draft_target.*release_sha/);
+
   const publish = jobBlock(releaseWorkflow, 'publish-release', 'release.yml');
   assert.match(publish, /EXPECTED_DRAFT_ID/);
   assert.match(publish, /EXPECTED_DRAFT_BODY_SHA256/);
+  assert.match(publish, /EXPECTED_DRAFT_TITLE/);
   assert.match(publish, /EXPECTED_CHANGELOG_ASSET_ID/);
   assert.match(publish, /EXPECTED_CHANGELOG_ASSET_DIGEST/);
   assert.match(publish, /EXPECTED_CHANGELOG_ASSET_SIZE/);
