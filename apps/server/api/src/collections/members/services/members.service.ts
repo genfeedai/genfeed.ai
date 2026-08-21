@@ -89,8 +89,7 @@ export class MembersService extends BaseService<
       throw new TypeError('findActiveForUserAccess requires userId');
     }
 
-    // tenant-scope-ignore: access discovery must recover organizationIds from
-    // canonical users.id before request tenant context can exist.
+    // tenant-scope-ignore: access discovery recovers organizationIds from canonical users.id before tenant context exists
     const members = await this.prisma.member.findMany({
       where: {
         isActive: true,

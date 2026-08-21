@@ -9,7 +9,10 @@ import type { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/gener
 import type { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
-import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import type {
+  BrandAgentConfig,
+  BrandDocument,
+} from '@api/collections/brands/schemas/brand.schema';
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
@@ -471,7 +474,7 @@ export class BrandsService extends BaseService<
   async updateAgentConfig(
     brandId: string,
     orgId: string,
-    agentConfig: UpdateBrandAgentConfigDto,
+    agentConfig: BrandAgentConfig | UpdateBrandAgentConfigDto,
     retryCount = 0,
   ): Promise<BrandDocument | null> {
     this.logger.debug('Updating brand agent config', {

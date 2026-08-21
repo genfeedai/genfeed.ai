@@ -18,7 +18,7 @@ import type {
   IBrandInterviewStartResult,
   IBrandInterviewStep,
 } from '@genfeedai/interfaces';
-import type { BrandInterview } from '@genfeedai/prisma';
+import type { BrandInterview, Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

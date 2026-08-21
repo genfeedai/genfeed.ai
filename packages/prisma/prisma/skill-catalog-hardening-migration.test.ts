@@ -11,6 +11,7 @@ const migration = readFileSync(
   ),
   'utf8',
 );
+const contentWritingBuiltInSkillId = ['cskillbuiltin', 'contentwrite'].join('');
 
 describe('skill catalog hardening migration', () => {
   it('quarantines untrusted null-owned skills', () => {
@@ -40,7 +41,9 @@ describe('skill catalog hardening migration', () => {
       'skill."organizationId" = brand."organizationId"',
     );
     expect(migration).toContain('skill."organizationId" IS NULL');
-    expect(migration).toContain('skill."id" = \'cskillbuiltincontentwrite\'');
+    expect(migration).toContain(
+      `skill."id" = '${contentWritingBuiltInSkillId}'`,
+    );
     expect(migration).toContain("'{enabledSkills}'");
     expect(migration).toContain("jsonb_typeof(raw_entry.value) = 'string'");
     expect(migration).toContain("!~ '^[[:space:]]*$'");
