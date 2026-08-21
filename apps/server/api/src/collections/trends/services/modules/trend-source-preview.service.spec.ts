@@ -15,6 +15,7 @@ const makeTrend = (overrides: Record<string, unknown> = {}): TrendEntity =>
     id: 'trend-1',
     mentions: 1000,
     metadata: {},
+    organizationId: 'org-1',
     platform: 'instagram',
     requiresAuth: false,
     topic: 'AI trends',
