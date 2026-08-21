@@ -187,9 +187,11 @@ describe('AgentCampaignsController', () => {
   });
 
   describe('buildFindAllQuery', () => {
+    const buildQuery = (query: Partial<AgentCampaignsQueryDto> = {}) =>
+      controller.buildFindAllQuery(mockUser, query as AgentCampaignsQueryDto);
+
     it('should build query with organization and brand filters', () => {
-      const inputQuery: AgentCampaignsQueryDto = {};
-      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+      const query = buildQuery();
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
@@ -202,8 +204,7 @@ describe('AgentCampaignsController', () => {
     });
 
     it('should include status filter when provided', () => {
-      const inputQuery: AgentCampaignsQueryDto = { status: 'active' };
-      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+      const query = buildQuery({ status: 'active' });
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
@@ -218,7 +219,7 @@ describe('AgentCampaignsController', () => {
 
     it('uses the requested selected brand while retaining organization scope', () => {
       const selectedBrandId = testId('selected-brand');
-      const query = controller.buildFindAllQuery(mockUser, {
+      const query = buildQuery({
         brandId: selectedBrandId,
       });
 
@@ -234,7 +235,7 @@ describe('AgentCampaignsController', () => {
         ...mockUser,
         brandId: undefined,
       } as unknown as AuthenticatedUser;
-      const query = controller.buildFindAllQuery(userWithoutBrand, {});
+      const query = buildQuery();
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
@@ -252,13 +253,15 @@ describe('AgentCampaignsController', () => {
       } as unknown as AuthenticatedUser;
 
       expect(() =>
-        controller.buildFindAllQuery(userWithoutOrganization, {}),
+        controller.buildFindAllQuery(
+          userWithoutOrganization,
+          {} as AgentCampaignsQueryDto,
+        ),
       ).toThrow('Organization not found');
     });
 
     it('should respect isDeleted query param', () => {
-      const inputQuery: AgentCampaignsQueryDto = { isDeleted: true };
-      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+      const query = buildQuery({ isDeleted: true });
 
       expect(query.where.isDeleted).toBe(true);
     });
