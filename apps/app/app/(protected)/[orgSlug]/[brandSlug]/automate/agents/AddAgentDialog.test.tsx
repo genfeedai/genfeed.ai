@@ -93,7 +93,8 @@ describe('AddAgentDialog', () => {
       'max-w-3xl',
     );
     expect(screen.getByTestId('dialog-content')).not.toHaveClass('max-w-5xl');
-    fireEvent.click(screen.getByRole('tab', { name: 'Custom' }));
+    // Radix tabs activate on pointer down, not click.
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Custom' }));
     expect(screen.getByText('Custom agent panel')).toBeVisible();
   });
 
