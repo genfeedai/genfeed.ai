@@ -399,6 +399,13 @@ export class BaseQueryNormalizationAdapter {
           continue;
         }
 
+        // Prisma treats an explicit empty OR as a no-match filter. Preserve it
+        // instead of broadening the query by dropping the operator.
+        if (key === 'OR' && value.length === 0) {
+          result[key] = value;
+          continue;
+        }
+
         const normalizeNested =
           this.hooks.normalizeWhere ??
           ((entry: PrismaFilter) => this.normalizeWhere(entry));
@@ -409,7 +416,7 @@ export class BaseQueryNormalizationAdapter {
           // A normalized `{}` inside OR matches every row, which can broaden a
           // tenant-scoped query. Remove empty branches before emitting Prisma input.
           .filter((entry) => Object.keys(entry).length > 0);
-        // Omit the operator when no branch survives instead of emitting `OR: []`.
+        // Omit a nonempty operator when no normalized branch survives.
         if (normalizedEntries.length > 0) {
           result[key] = normalizedEntries;
         }

@@ -123,6 +123,12 @@ describe('BaseQueryNormalizationAdapter', () => {
     ).toEqual({ organizationId: 'org-1' });
   });
 
+  it('preserves an explicit empty OR as a no-match filter', () => {
+    expect(adapter.normalizeWhere({ OR: [], organizationId: 'org-1' })).toEqual(
+      { OR: [], organizationId: 'org-1' },
+    );
+  });
+
   it('preserves an explicit undefined soft-delete opt-out', () => {
     const rawWhere = {
       isDeleted: undefined,
