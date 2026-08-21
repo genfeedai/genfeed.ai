@@ -279,36 +279,63 @@ jobs:
             gh release upload "${release_tag}" CHANGELOG.md --clobber
           fi
 
-          release_json="$(
-            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
-              jq --arg tag "${release_tag}" '[.[][] | select(.tag_name == $tag)] | first // empty'
-          )"
-          install_asset_count="$(jq '[.assets[] | select(
-            .name == "genfeed-selfhosted.tar.gz"
-            or .name == "genfeed-selfhosted.tar.gz.sha256"
-          )] | length' <<<"${release_json}")"
-          if [ "${RECOVERY_MODE}" = 'true' ] && [ "${install_asset_count}" -ne 0 ]; then
-            echo "::error::Draft ${release_tag} must contain no versioned install assets before immutable attachment."
-            exit 1
-          fi
+          # Draft releases are invisible to /releases/tags/{tag}. List can also
+          # return the CHANGELOG asset before GitHub attaches a sha256 digest.
+          # Poll until the draft is found and the changelog is content-addressed.
+          changelog_asset_id=""
+          changelog_asset_digest=""
+          changelog_asset_size=""
+          changelog_asset_state=""
+          release_json=""
+          for _attempt in 1 2 3 4 5 6 7 8; do
+            release_json="$(
+              gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
+                jq --arg tag "${release_tag}" '[.[][] | select(.tag_name == $tag)] | first // empty'
+            )"
+            if [ -z "${release_json}" ]; then
+              sleep 2
+              continue
+            fi
 
-          changelog_matches="$(jq -c '[.assets[] | select(.name == "CHANGELOG.md")]' <<<"${release_json}")"
-          if [ "$(jq 'length' <<<"${changelog_matches}")" -ne 1 ]; then
-            echo "::error::Draft ${release_tag} must contain exactly one CHANGELOG.md asset."
+            install_asset_count="$(jq '[.assets[]? | select(
+              .name == "genfeed-selfhosted.tar.gz"
+              or .name == "genfeed-selfhosted.tar.gz.sha256"
+            )] | length' <<<"${release_json}")"
+            if [ "${RECOVERY_MODE}" = 'true' ] && [ "${install_asset_count}" -ne 0 ]; then
+              echo "::error::Draft ${release_tag} must contain no versioned install assets before immutable attachment."
+              exit 1
+            fi
+
+            changelog_matches="$(jq -c '[.assets[]? | select(.name == "CHANGELOG.md")]' <<<"${release_json}")"
+            if [ "$(jq 'length' <<<"${changelog_matches}")" != '1' ]; then
+              sleep 2
+              continue
+            fi
+            changelog_json="$(jq -c '.[0]' <<<"${changelog_matches}")"
+            changelog_asset_id="$(jq -r '.id | tostring' <<<"${changelog_json}")"
+            changelog_asset_digest="$(jq -r '.digest // ""' <<<"${changelog_json}")"
+            changelog_asset_size="$(jq -r '.size | tostring' <<<"${changelog_json}")"
+            changelog_asset_state="$(jq -r '.state // ""' <<<"${changelog_json}")"
+            if [[ "${changelog_asset_id}" =~ ^[1-9][0-9]*$ ]] && \
+              [[ "${changelog_asset_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] && \
+              [[ "${changelog_asset_size}" =~ ^[1-9][0-9]*$ ]] && \
+              [ "${changelog_asset_state}" = 'uploaded' ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "${release_json}" ]; then
+            echo "::error::Draft ${release_tag} disappeared after changelog upload."
             exit 1
           fi
-          changelog_json="$(jq -c '.[0]' <<<"${changelog_matches}")"
-          changelog_asset_id="$(jq -r '.id | tostring' <<<"${changelog_json}")"
-          changelog_asset_digest="$(jq -r '.digest // ""' <<<"${changelog_json}")"
-          changelog_asset_size="$(jq -r '.size | tostring' <<<"${changelog_json}")"
-          changelog_asset_state="$(jq -r '.state // ""' <<<"${changelog_json}")"
-          [[ "${changelog_asset_id}" =~ ^[1-9][0-9]*$ ]] && \
-            [[ "${changelog_asset_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] && \
-            [[ "${changelog_asset_size}" =~ ^[1-9][0-9]*$ ]] && \
-            [ "${changelog_asset_state}" = 'uploaded' ] || {
-              echo "::error::Draft ${release_tag} changelog must be non-empty, uploaded, and content-addressed."
-              exit 1
-            }
+          if [[ ! "${changelog_asset_id}" =~ ^[1-9][0-9]*$ ]] || \
+            [[ ! "${changelog_asset_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || \
+            [[ ! "${changelog_asset_size}" =~ ^[1-9][0-9]*$ ]] || \
+            [ "${changelog_asset_state}" != 'uploaded' ]; then
+            echo "::error::Draft ${release_tag} changelog must be non-empty, uploaded, and content-addressed."
+            exit 1
+          fi
 
           if [ "${RECOVERY_MODE}" = 'true' ] && {
             [ "${changelog_asset_id}" != "${RECOVERY_CHANGELOG_ASSET_ID}" ] ||
