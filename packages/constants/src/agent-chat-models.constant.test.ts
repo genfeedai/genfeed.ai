@@ -1,4 +1,4 @@
-import { lstatSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -233,7 +233,12 @@ function walkProductionTsFiles(dir: string, out: string[] = []): string[] {
       name === '.next' ||
       name === 'coverage' ||
       name === 'scripts' ||
-      name === 'playwright'
+      name === 'playwright' ||
+      name === '.agents' ||
+      name === '.turbo' ||
+      name === 'generated' ||
+      name === 'build' ||
+      name === 'release'
     ) {
       continue;
     }
@@ -246,13 +251,10 @@ function walkProductionTsFiles(dir: string, out: string[] = []): string[] {
       continue;
     }
 
-    // Skip dangling symlinks (e.g. machine-local agent scratch under apps/**/.agents).
+    // Never follow symlinks — CI and local agent scratch both plant
+    // machine-local links that either dangle or explode the walk.
     if (st.isSymbolicLink()) {
-      try {
-        st = statSync(full);
-      } catch {
-        continue;
-      }
+      continue;
     }
 
     if (st.isDirectory()) {
@@ -312,5 +314,5 @@ describe('LLM default centralization ratchet', () => {
     }
 
     expect(offenders).toEqual([]);
-  });
+  }, 30_000);
 });

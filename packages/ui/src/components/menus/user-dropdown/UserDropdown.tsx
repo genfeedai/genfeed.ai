@@ -2,8 +2,8 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import { cn } from '@ui/lib/utils';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
