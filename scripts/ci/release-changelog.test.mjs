@@ -313,7 +313,7 @@ test('rejects mismatched run identity and wrong-SHA gate evidence', () => {
   ).head_sha = 'a'.repeat(40);
   assert.throws(
     () => validateReleaseRecoveryEvidence(wrongSha),
-    /Full Suite.*wrong-SHA/,
+    /incomplete, failed, or wrong-SHA Full Suite jobs/,
   );
 });
 
