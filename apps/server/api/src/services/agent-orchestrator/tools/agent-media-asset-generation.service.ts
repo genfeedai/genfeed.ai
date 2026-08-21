@@ -1,0 +1,555 @@
+import {
+  readMediaAssetUrl,
+  readMediaResponseString,
+} from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
+import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
+import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
+import { RouterPriority, Status } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+
+@Injectable()
+export class AgentMediaAssetGenerationService {
+  constructor(
+    private readonly loggerService: LoggerService,
+    private readonly configService: ConfigService,
+    private readonly internalApi: AgentToolInternalApiService,
+    private readonly onboardingHandler: AgentOnboardingToolHandler,
+    @Optional()
+    private readonly contentQualityScorerService?: ContentQualityScorerService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
+  ) {}
+
+  async generateImage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const rawPrompt =
+      (params.prompt as string | undefined) ??
+      (params.description as string | undefined) ??
+      (params.text as string | undefined) ??
+      '';
+    const prompt = await this.applyBrandHarnessToPrompt({
+      contentType: 'image',
+      ctx,
+      prompt: rawPrompt,
+      topic: rawPrompt.slice(0, 120),
+    });
+    const dimensions = this.aspectRatioToDimensions(
+      (params.aspectRatio as string) || '1:1',
+    );
+    const promptPreview = rawPrompt.substring(0, 80);
+    const imageUrl =
+      (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
+    const requestedOutputs =
+      typeof params.outputs === 'number' && Number.isFinite(params.outputs)
+        ? Math.min(8, Math.max(1, Math.round(params.outputs)))
+        : undefined;
+    const body: Record<string, unknown> = {
+      height: dimensions.height,
+      prompt,
+      text: prompt,
+      waitForCompletion: true,
+      width: dimensions.width,
+      ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
+      ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
+      ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+      ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
+      ...(imageUrl ? { references: [imageUrl] } : {}),
+    };
+
+    if (ctx.generationModelOverride) {
+      body.model = ctx.generationModelOverride;
+    } else {
+      body.autoSelectModel = true;
+      body.prioritize = ctx.generationPriority || RouterPriority.QUALITY;
+    }
+
+    let response: Record<string, unknown>;
+    try {
+      response = await this.internalApi.callInternalApi(
+        'POST',
+        '/v1/images',
+        body,
+        ctx,
+      );
+    } catch (error) {
+      // Timeout/hard failure must not produce a successful empty preview card.
+      const message = (error as Error).message || 'Image generation failed';
+      this.loggerService.warn(
+        `generateImage failed for org=${ctx.organizationId}: ${message}`,
+      );
+      return this.buildImageGenerationIncompleteResult({
+        error: message,
+        promptPreview,
+        status: Status.PROCESSING,
+      });
+    }
+
+    const id = readMediaResponseString(response, 'id');
+    const cdnUrl = readMediaAssetUrl(
+      response,
+      this.configService.ingredientsEndpoint,
+    );
+    if (!id || !cdnUrl) {
+      this.loggerService.warn(
+        `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
+      );
+      return this.buildImageGenerationIncompleteResult({
+        error: id
+          ? 'Image generation finished without a usable CDN URL.'
+          : 'Image generation did not return an asset id.',
+        promptPreview,
+        status: Status.PROCESSING,
+      });
+    }
+
+    this.scoreAsset(id, 'image', ctx.organizationId);
+    await this.onboardingHandler.completeJourneyMission(
+      ctx,
+      'generate_first_image',
+    );
+    const onboardingStatus =
+      await this.onboardingHandler.checkOnboardingStatus(ctx);
+
+    return {
+      creditsUsed: 0,
+      data: { id, status: Status.GENERATED, url: cdnUrl },
+      isBillingDelegated: true,
+      nextActions: [
+        {
+          ctas: [{ href: `/g/image/${id}`, label: 'View in gallery' }],
+          description: `Image generated from: "${promptPreview}"`,
+          id: `image-gen-${id}`,
+          images: [cdnUrl],
+          title: 'Image generated',
+          type: 'content_preview_card',
+        },
+        ...(onboardingStatus.nextActions ?? []),
+      ],
+      success: true,
+    };
+  }
+
+  async reframeImage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const imageId = String(params.imageId || '');
+    const aspectRatio = String(params.aspectRatio || '1:1');
+    const dimensions = this.aspectRatioToDimensions(aspectRatio);
+    const response = await this.internalApi.callInternalApi(
+      'POST',
+      `/images/${imageId}/reframe`,
+      {
+        format:
+          aspectRatio === '1:1'
+            ? 'square'
+            : aspectRatio === '9:16' || aspectRatio === '3:4'
+              ? 'portrait'
+              : 'landscape',
+        height: dimensions.height,
+        text: `Reframe to ${aspectRatio}`,
+        waitForCompletion: true,
+        width: dimensions.width,
+      },
+      ctx,
+    );
+    const id = readMediaResponseString(response, 'id');
+    const cdnUrl = readMediaAssetUrl(
+      response,
+      this.configService.ingredientsEndpoint,
+    );
+
+    return {
+      creditsUsed: 0,
+      data: { id, sourceImageId: imageId, status: Status.GENERATED },
+      nextActions: id
+        ? [
+            {
+              ctas: [{ href: `/g/image/${id}`, label: 'View in gallery' }],
+              description: `Reframed to ${aspectRatio}`,
+              id: `image-reframe-${id}`,
+              images: cdnUrl ? [cdnUrl] : [],
+              title: 'Image reframed',
+              type: 'content_preview_card',
+            },
+          ]
+        : [],
+      success: true,
+    };
+  }
+
+  async upscaleImage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const response = await this.internalApi.callInternalApi(
+      'POST',
+      '/v1/images',
+      {
+        model: 'replicate-topaz-video-upscale',
+        prompt: 'upscale',
+        referenceImages: [params.imageUrl as string],
+        text: 'upscale',
+        waitForCompletion: true,
+      },
+      ctx,
+    );
+    return this.buildSimpleAssetResult({
+      billingDelegated: false,
+      description: 'Image upscaled',
+      endpoint: 'image',
+      idPrefix: 'image-upscale',
+      mediaKey: 'images',
+      response,
+      title: 'Image upscaled',
+    });
+  }
+
+  async generateVideo(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const dimensions = this.aspectRatioToDimensions(
+      (params.aspectRatio as string) || '16:9',
+    );
+    const imageUrl =
+      (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
+    const audioUrl = params.audioUrl as string | undefined;
+    const rawPrompt = String(params.prompt ?? '');
+    const prompt = await this.applyBrandHarnessToPrompt({
+      contentType: 'video',
+      ctx,
+      prompt: rawPrompt,
+      topic: rawPrompt.slice(0, 120),
+    });
+    const body = this.buildVideoBody({
+      audioUrl,
+      ctx,
+      dimensions,
+      duration: (params.duration as number) || 10,
+      imageUrl,
+      prompt,
+    });
+    const response = await this.internalApi.callInternalApi(
+      'POST',
+      '/v1/videos',
+      body,
+      ctx,
+    );
+    const id = readMediaResponseString(response, 'id');
+    const cdnUrl = readMediaAssetUrl(
+      response,
+      this.configService.ingredientsEndpoint,
+    );
+
+    if (id) {
+      // Fire-and-forget quality scoring must not delay the generation result.
+      this.scoreAsset(id, 'video', ctx.organizationId);
+      await this.onboardingHandler.completeJourneyMission(
+        ctx,
+        'generate_first_video',
+      );
+    }
+    const onboardingStatus =
+      await this.onboardingHandler.checkOnboardingStatus(ctx);
+
+    return {
+      creditsUsed: 0,
+      data: { id, status: Status.GENERATED, url: cdnUrl },
+      isBillingDelegated: true,
+      nextActions: id
+        ? [
+            {
+              ctas: [{ href: `/g/video/${id}`, label: 'View in gallery' }],
+              description: `Video generated from: "${(params.prompt as string).substring(0, 80)}"`,
+              id: `video-gen-${id}`,
+              title: 'Video generated',
+              type: 'content_preview_card',
+              videos: cdnUrl ? [cdnUrl] : [],
+            },
+            ...(onboardingStatus.nextActions ?? []),
+          ]
+        : [],
+      success: true,
+    };
+  }
+
+  async generateMusic(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const response = await this.internalApi.callInternalApi(
+      'POST',
+      '/v1/musics',
+      {
+        autoSelectModel: true,
+        duration: (params.duration as number) || 10,
+        text: params.text as string,
+        waitForCompletion: true,
+        ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+        ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
+      },
+      ctx,
+    );
+    return this.buildSimpleAssetResult({
+      billingDelegated: true,
+      description: `Music generated from: "${(params.text as string).substring(0, 80)}"`,
+      endpoint: 'music',
+      mediaKey: 'audio',
+      response,
+      title: 'Music generated',
+    });
+  }
+
+  async generateVoice(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const response = await this.internalApi.callInternalApi(
+      'POST',
+      '/v1/voices/generate',
+      {
+        text: params.text as string,
+        voiceId: params.voiceId as string,
+        waitForCompletion: true,
+      },
+      ctx,
+    );
+    const id = readMediaResponseString(response, 'id');
+    const cdnUrl =
+      readMediaResponseString(response, 'audioUrl') ??
+      readMediaAssetUrl(response, this.configService.ingredientsEndpoint);
+
+    return this.buildSimpleAssetResult({
+      assetUrl: cdnUrl,
+      billingDelegated: true,
+      description: `Speech generated: "${(params.text as string).substring(0, 80)}"`,
+      endpoint: 'voice',
+      id,
+      mediaKey: 'audio',
+      response,
+      title: 'Voice generated',
+    });
+  }
+
+  async generateAsIdentity(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const text = params.text as string;
+    if (!text) {
+      return { creditsUsed: 0, error: 'text is required', success: false };
+    }
+    const response = await this.internalApi.callInternalApi(
+      'POST',
+      '/v1/videos/avatar',
+      { text, useIdentity: true },
+      ctx,
+    );
+    const id = readMediaResponseString(response, 'id');
+
+    return {
+      creditsUsed: 0,
+      data: {
+        id,
+        message:
+          'Avatar video generation started using your identity (avatar + cloned voice).',
+        status: 'processing',
+      },
+      isBillingDelegated: true,
+      nextActions: id
+        ? [
+            {
+              ctas: [{ href: '/library/videos', label: 'View in Library' }],
+              description: `Avatar video generating: "${text.substring(0, 80)}"`,
+              id: `identity-gen-${id}`,
+              title: 'Identity video generating',
+              type: 'content_preview_card',
+            },
+          ]
+        : [],
+      success: true,
+    };
+  }
+
+  private async applyBrandHarnessToPrompt(params: {
+    contentType: 'image' | 'video';
+    ctx: ToolExecutionContext;
+    prompt: string;
+    topic?: string;
+  }): Promise<string> {
+    const harnessGenerationService = this.resolveHarnessGenerationService();
+    if (!harnessGenerationService || !params.ctx.brandId) {
+      return params.prompt;
+    }
+    try {
+      return await harnessGenerationService.applyToMediaPrompt({
+        brandId: params.ctx.brandId,
+        contentType: params.contentType,
+        organizationId: params.ctx.organizationId,
+        prompt: params.prompt,
+        topic: params.topic,
+      });
+    } catch {
+      return params.prompt;
+    }
+  }
+
+  private resolveHarnessGenerationService():
+    | HarnessGenerationService
+    | undefined {
+    if (this.harnessGenerationService) {
+      return this.harnessGenerationService;
+    }
+    try {
+      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
+    } catch {
+      return undefined;
+    }
+  }
+
+  private buildVideoBody(params: {
+    audioUrl?: string;
+    ctx: ToolExecutionContext;
+    dimensions: { height: number; width: number };
+    duration: number;
+    imageUrl?: string;
+    prompt: string;
+  }): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+      duration: params.duration,
+      height: params.dimensions.height,
+      prompt: params.prompt,
+      text: params.prompt,
+      waitForCompletion: true,
+      width: params.dimensions.width,
+      ...(params.ctx.brandId ? { brandId: params.ctx.brandId } : {}),
+      ...(params.ctx.runId ? { agentRunId: params.ctx.runId } : {}),
+      ...(params.ctx.strategyId
+        ? { agentStrategyId: params.ctx.strategyId }
+        : {}),
+    };
+    if (params.audioUrl && params.imageUrl) {
+      // Avatar mode is selected only for the paired image + audio payload.
+      body.model = 'kwaivgi/kling-avatar-v2';
+      body.audioUrl = params.audioUrl;
+      body.references = [params.imageUrl];
+    } else if (params.ctx.generationModelOverride) {
+      body.model = params.ctx.generationModelOverride;
+      if (params.imageUrl) body.references = [params.imageUrl];
+    } else {
+      body.autoSelectModel = true;
+      body.prioritize = params.ctx.generationPriority || RouterPriority.QUALITY;
+      if (params.imageUrl) body.references = [params.imageUrl];
+    }
+    return body;
+  }
+
+  private buildSimpleAssetResult(params: {
+    assetUrl?: string;
+    billingDelegated: boolean;
+    description: string;
+    endpoint: 'image' | 'music' | 'voice';
+    id?: string;
+    idPrefix?: string;
+    mediaKey: 'audio' | 'images';
+    response: Record<string, unknown>;
+    title: string;
+  }): AgentToolResult {
+    const id = params.id ?? readMediaResponseString(params.response, 'id');
+    const assetUrl =
+      params.assetUrl ??
+      readMediaAssetUrl(
+        params.response,
+        this.configService.ingredientsEndpoint,
+      );
+    return {
+      creditsUsed: 0,
+      data: { id, status: Status.GENERATED, url: assetUrl },
+      ...(params.billingDelegated ? { isBillingDelegated: true } : {}),
+      nextActions: id
+        ? [
+            {
+              ctas: [
+                {
+                  href: `/g/${params.endpoint}/${id}`,
+                  label: 'View in gallery',
+                },
+              ],
+              description: params.description,
+              id: `${params.idPrefix ?? `${params.endpoint}-gen`}-${id}`,
+              [params.mediaKey]: assetUrl ? [assetUrl] : [],
+              title: params.title,
+              type: 'content_preview_card',
+            },
+          ]
+        : [],
+      success: true,
+    };
+  }
+
+  /** Never mint an empty content preview for incomplete image generation. */
+  private buildImageGenerationIncompleteResult(params: {
+    error: string;
+    promptPreview: string;
+    status: string;
+  }): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      data: { status: params.status },
+      error: params.error,
+      isBillingDelegated: true,
+      nextActions: [
+        {
+          id: `image-gen-incomplete-${Date.now()}`,
+          primaryCta: { href: '/library/images', label: 'Check gallery' },
+          status: 'failed',
+          summaryText: `Image was not ready: "${params.promptPreview}". ${params.error}`,
+          title: 'Image not ready',
+          type: 'completion_summary_card',
+        },
+      ],
+      success: false,
+    };
+  }
+
+  private scoreAsset(
+    id: string,
+    type: 'image' | 'video',
+    organizationId: string,
+  ): void {
+    this.contentQualityScorerService
+      ?.scoreAndTag(id, type, { organizationId })
+      .catch((error) =>
+        this.loggerService.error(
+          `Auto quality check failed for ${type}`,
+          error,
+        ),
+      );
+  }
+
+  private aspectRatioToDimensions(ratio: string): {
+    height: number;
+    width: number;
+  } {
+    const map: Record<string, { height: number; width: number }> = {
+      '1:1': { height: 1024, width: 1024 },
+      '3:4': { height: 1365, width: 1024 },
+      '4:3': { height: 768, width: 1024 },
+      '9:16': { height: 1024, width: 576 },
+      '16:9': { height: 576, width: 1024 },
+    };
+    return map[ratio] || map['1:1'];
+  }
+}

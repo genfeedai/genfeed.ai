@@ -67,7 +67,10 @@ import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/too
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
+import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-asset-generation.service';
+import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@api/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
+import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
@@ -159,7 +162,10 @@ import { Module } from '@nestjs/common';
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
     AgentAnalyticsToolHandler,
+    AgentMediaAssetGenerationService,
+    AgentMediaBatchGenerationService,
     AgentMediaGenerationToolHandler,
+    AgentMediaTextGenerationService,
     AgentOnboardingToolHandler,
     AgentToolInternalApiService,
     AgentWorkflowToolCreateService,
