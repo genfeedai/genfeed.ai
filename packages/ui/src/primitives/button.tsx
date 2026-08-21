@@ -147,7 +147,9 @@ function Button({
     children
   ) : (
     <>
-      {isLoading ? <Spinner /> : icon}
+      {/* The spinner is decorative: its "Loading" label must not join the
+          button's accessible name while an action is pending. */}
+      {isLoading ? <Spinner aria-hidden="true" /> : icon}
       {isLoading && !icon ? null : (children ?? label)}
     </>
   );
