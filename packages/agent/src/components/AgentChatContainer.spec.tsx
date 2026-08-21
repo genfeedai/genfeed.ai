@@ -1385,7 +1385,9 @@ describe('AgentChatContainer', () => {
     expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
       'Second follow-up',
     );
-    expect(screen.getByLabelText('retry')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText('retry')).toBeInTheDocument();
+    });
     expect(sendNonStreaming.mock.calls[0]?.[0]).toBe('First follow-up');
   });
 
