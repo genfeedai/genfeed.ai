@@ -1360,6 +1360,21 @@ describe('BaseService', () => {
       );
     });
 
+    it('maps organization sort fields with the original numeric direction contract', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.findAllByOrganization('org1', undefined, {
+        createdAt: -1,
+        priority: 1,
+      });
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { priority: 'asc' }],
+        }),
+      );
+    });
+
     it('drops the QueryBuilder soft-delete seed for models without isDeleted', async () => {
       getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
       delegate.findMany.mockResolvedValue([]);
@@ -1452,7 +1467,100 @@ describe('BaseService', () => {
     });
   });
 
+  describe('subclass normalization seams', () => {
+    it('routes soft-delete field checks through a modelHasField override', async () => {
+      class FieldOverrideTestService extends BaseService<TestDocument> {
+        protected override modelHasField(fieldName: string): boolean {
+          return fieldName === 'isDeleted'
+            ? false
+            : super.modelHasField(fieldName);
+        }
+      }
+      const overrideService = new FieldOverrideTestService(
+        prisma,
+        'testModel',
+        logger,
+        undefined,
+        cacheService as never,
+      );
+      delegate.findMany.mockResolvedValue([]);
+
+      await overrideService.find({ organizationId: 'org_1' });
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { organizationId: 'org_1' },
+      });
+    });
+
+    it('routes recursive OR and AND normalization through a normalizeWhere override', async () => {
+      class WhereOverrideTestService extends BaseService<TestDocument> {
+        public readonly normalizedWhereInputs: Record<string, unknown>[] = [];
+
+        protected override normalizeWhere(
+          where: Record<string, unknown> = {},
+        ): Record<string, unknown> {
+          this.normalizedWhereInputs.push(where);
+          return super.normalizeWhere(where);
+        }
+      }
+      const overrideService = new WhereOverrideTestService(
+        prisma,
+        'testModel',
+        logger,
+        undefined,
+        cacheService as never,
+      );
+      delegate.findMany.mockResolvedValue([]);
+      const rawWhere = {
+        AND: [{ id: 'id_1' }],
+        OR: [{ organizationId: 'org_1' }],
+      };
+
+      await overrideService.find(rawWhere);
+
+      expect(overrideService.normalizedWhereInputs).toEqual([
+        rawWhere,
+        { id: 'id_1' },
+        { organizationId: 'org_1' },
+      ]);
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: {
+          AND: [{ id: 'id_1' }],
+          OR: [{ organizationId: 'org_1' }],
+          isDeleted: false,
+        },
+      });
+    });
+  });
+
   describe('normalizeData', () => {
+    it('preserves subclass write-normalization overrides through create', async () => {
+      class OverrideTestService extends BaseService<TestDocument> {
+        protected override normalizeData(
+          data: unknown,
+        ): Record<string, unknown> {
+          return {
+            ...super.normalizeData(data),
+            normalizedBySubclass: true,
+          };
+        }
+      }
+      const overrideService = new OverrideTestService(
+        prisma,
+        'testModel',
+        logger,
+        undefined,
+        cacheService as never,
+      );
+      delegate.create.mockResolvedValue({ id: 'subclass-normalized' });
+
+      await overrideService.create({ label: 'kept' });
+
+      expect(delegate.create).toHaveBeenCalledWith({
+        data: { label: 'kept', normalizedBySubclass: true },
+      });
+    });
+
     it('drops undefined write keys so Prisma does not receive them', async () => {
       const created = { id: 'ing_undefined_keys', label: 'kept' };
       delegate.create.mockResolvedValue(created);
