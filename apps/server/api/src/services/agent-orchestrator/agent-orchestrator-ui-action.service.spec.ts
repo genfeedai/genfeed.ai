@@ -2,6 +2,10 @@ import {
   type AgentOrchestratorUiActionHost,
   AgentOrchestratorUiActionService,
 } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
+import { AgentOrchestratorUiActionBrandIdentityService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-brand-identity.service';
+import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
+import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
@@ -50,6 +54,7 @@ function createService(overrides?: { executeTool?: ReturnType<typeof vi.fn> }) {
     recordAssistantFinalized: vi.fn().mockResolvedValue(undefined),
     recordRunCompleted: vi.fn().mockResolvedValue(undefined),
     recordRunFailed: vi.fn().mockResolvedValue(undefined),
+    recordPlanUpserted: vi.fn().mockResolvedValue(undefined),
     recordThreadTurnRequested: vi.fn().mockResolvedValue(undefined),
     recordThreadTurnStarted: vi.fn().mockResolvedValue(undefined),
     recordToolCompleted: vi.fn().mockResolvedValue(undefined),
@@ -57,60 +62,98 @@ function createService(overrides?: { executeTool?: ReturnType<typeof vi.fn> }) {
     recordUiBlocksUpdated: vi.fn().mockResolvedValue(undefined),
   };
 
-  const service = new AgentOrchestratorUiActionService(
-    {
-      resolveModelKey: vi.fn().mockResolvedValue('test-model'),
-    } as never,
-    {
-      findOne: vi.fn().mockResolvedValue({
-        id: THREAD_ID,
-        isDeleted: false,
+  const agentChatModelRegistry = {
+    getRoundCredits: vi.fn().mockResolvedValue(1),
+    resolveModelKey: vi.fn().mockResolvedValue('test-model'),
+  };
+  const agentThreadsService = {
+    findOne: vi.fn().mockResolvedValue({
+      id: THREAD_ID,
+      isDeleted: false,
+      organizationId: ORG_ID,
+      status: 'active',
+      userId: USER_ID,
+    }),
+  };
+  const agentScopeContextService = {
+    assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
+    prepareForTurn: vi.fn().mockResolvedValue({
+      existingScope: {
+        brandId: 'brand-1',
+        contextVersion: 1,
+        isLegacyFallback: false,
+        isVersionExplicit: true,
         organizationId: ORG_ID,
-        status: 'active',
+        source: 'explicit',
+        threadId: THREAD_ID,
         userId: USER_ID,
-      }),
-    } as never,
-    {
-      assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
-      prepareForTurn: vi.fn().mockResolvedValue({
-        existingScope: {
-          brandId: 'brand-1',
-          contextVersion: 1,
-          isLegacyFallback: false,
-          isVersionExplicit: true,
-          organizationId: ORG_ID,
-          source: 'explicit',
-          threadId: THREAD_ID,
-          userId: USER_ID,
-        },
-      }),
-    } as never,
-    {
-      addMessage: vi.fn().mockResolvedValue({ id: 'msg-1' }),
-    } as never,
-    {
-      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(50),
-    } as never,
-    { executeTool } as never,
-    {
-      buildAssistantUiActions: vi.fn((params: { uiActions: unknown[] }) => ({
-        suggestedActions: [],
-        uiActions: params.uiActions,
-      })),
-    } as never,
+      },
+    }),
+  };
+  const agentMessagesService = {
+    addMessage: vi.fn().mockResolvedValue({ id: 'msg-1' }),
+  };
+  const creditsUtilsService = {
+    getOrganizationCreditsBalance: vi.fn().mockResolvedValue(50),
+  };
+  const agentRunsService = {
+    mergeMetadata: vi.fn().mockResolvedValue(undefined),
+  };
+  const cacheService = {
+    acquireLock: vi.fn().mockResolvedValue(true),
+    get: vi.fn().mockResolvedValue(null),
+    releaseLock: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+  };
+  const completionCardBuilder = {
+    buildAssistantUiActions: vi.fn((params: { uiActions: unknown[] }) => ({
+      suggestedActions: [],
+      uiActions: params.uiActions,
+    })),
+  };
+  const finalizer = new AgentOrchestratorUiActionFinalizerService(
+    agentMessagesService as never,
+    agentRunsService as never,
+    creditsUtilsService as never,
+    completionCardBuilder as never,
+    threadEventRecorder as never,
+  );
+  const brandIdentityActions =
+    new AgentOrchestratorUiActionBrandIdentityService(
+      agentMessagesService as never,
+      creditsUtilsService as never,
+      { executeTool } as never,
+      threadEventRecorder as never,
+      agentScopeContextService as never,
+      agentRunsService as never,
+      cacheService as never,
+      finalizer,
+    );
+  const confirmedToolActions =
+    new AgentOrchestratorUiActionConfirmedToolService(
+      { executeTool } as never,
+      threadEventRecorder as never,
+      finalizer,
+      cacheService as never,
+    );
+  const planActions = new AgentOrchestratorUiActionPlanService(
+    agentChatModelRegistry as never,
+    threadEventRecorder as never,
+  );
+
+  const service = new AgentOrchestratorUiActionService(
+    agentChatModelRegistry as never,
+    agentThreadsService as never,
+    agentScopeContextService as never,
     threadEventRecorder as never,
     {
       findOne: vi.fn().mockResolvedValue({}),
     } as never,
-    {
-      mergeMetadata: vi.fn().mockResolvedValue(undefined),
-    } as never,
-    {
-      acquireLock: vi.fn().mockResolvedValue(true),
-      get: vi.fn().mockResolvedValue(null),
-      releaseLock: vi.fn().mockResolvedValue(undefined),
-      set: vi.fn().mockResolvedValue(undefined),
-    } as never,
+    agentRunsService as never,
+    cacheService as never,
+    brandIdentityActions,
+    confirmedToolActions,
+    planActions,
   );
 
   return { executeTool, service, threadEventRecorder };
@@ -454,6 +497,51 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     expect(result.message.content).toContain(
       'Queued 2 posts on linkedin, twitter',
     );
+  });
+
+  it('routes plan revision through the plan-mode host without executing a tool', async () => {
+    const { executeTool, service } = createService();
+    const revisedResult = {
+      creditsRemaining: 49,
+      creditsUsed: 1,
+      message: {
+        content: 'Revised plan ready for review.',
+        metadata: { reviewRequired: true },
+        role: 'assistant',
+      },
+      threadId: THREAD_ID,
+      toolCalls: [],
+    };
+    host.generatePlanModeResponse = vi.fn().mockResolvedValue(revisedResult);
+
+    const result = await service.handleThreadUiAction(
+      {
+        action: 'revise_plan',
+        payload: { revisionNote: 'Split delivery into two safe phases.' },
+        threadId: THREAD_ID,
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+      host,
+    );
+
+    expect(host.generatePlanModeResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          content:
+            'Revise the current implementation plan using this feedback: Split delivery into two safe phases.',
+        }),
+        reviewMetadata: {
+          lastReviewAction: 'request_changes',
+          revisionNote: 'Split delivery into two safe phases.',
+        },
+      }),
+    );
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      ...revisedResult,
+      brandId: 'brand-1',
+      contextVersion: 1,
+    });
   });
 
   it('maps a swallowed 401 from other confirmed UI actions to 401', async () => {
