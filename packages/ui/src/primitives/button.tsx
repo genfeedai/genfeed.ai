@@ -98,10 +98,15 @@ function SimpleTooltip({
   );
 }
 
-function Spinner() {
+function Spinner({
+  'aria-hidden': ariaHidden,
+}: {
+  'aria-hidden'?: boolean | 'true' | 'false';
+}) {
   return (
     <output
-      aria-label="Loading"
+      aria-hidden={ariaHidden}
+      aria-label={ariaHidden ? undefined : 'Loading'}
       className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"
     />
   );

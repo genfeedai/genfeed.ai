@@ -107,6 +107,7 @@ export default function AgentOptionPicker<Value extends string = string>({
         >
           <Command
             className="flex max-h-full min-h-0 flex-col bg-transparent"
+            label={label}
             onValueChange={setHighlightedValue}
             value={highlightedValue || selectedOption.value}
           >

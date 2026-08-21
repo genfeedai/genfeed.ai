@@ -73,8 +73,9 @@ describe('AgentOptionPicker', () => {
       }),
     );
 
-    // cmdk's Command.Input renders a plain <input> (implicit textbox role).
-    const search = await screen.findByRole('textbox', {
+    // cmdk's Command.Input exposes role="combobox" and is labelled via the
+    // Command `label` (hidden <label>) plus the input aria-label.
+    const search = await screen.findByRole('combobox', {
       name: 'Choose an agent template',
     });
     await waitFor(() => expect(search).toHaveFocus());

@@ -237,6 +237,51 @@
       "write": "Write"
     }
   },
+  "remixBrief": {
+    "errors": {
+      "title": "Remix brief unavailable"
+    },
+    "identity": {
+      "chooseAvatar": "Choose an avatar",
+      "chooseVoice": "Choose a voice",
+      "help": "Avatar output needs a durable avatar and a usable speech voice.",
+      "incomplete": "Choose both an avatar and a voice to continue.",
+      "title": "Avatar identity"
+    },
+    "intent": {
+      "spokenScriptHelp": "This script is spoken exactly as written by the avatar."
+    },
+    "loading": {
+      "description": "Resolving brand defaults and the source pattern.",
+      "title": "Preparing remix brief"
+    },
+    "output": {
+      "fidelityHelp": "Guided keeps the source pattern flexible while still steering brand look.",
+      "fidelityLabel": "Fidelity",
+      "title": "Output",
+      "types": {
+        "avatar": "Avatar",
+        "image": "Image",
+        "video": "Video"
+      },
+      "variationCountMany": "{count} variations",
+      "variationCountOne": "1 variation"
+    },
+    "readiness": {
+      "readyDescription": "Ready to continue into Studio."
+    },
+    "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+    "references": {
+      "empty": "No Library references yet.",
+      "help": "Attach Library assets the remix should follow.",
+      "managedByBrand": "Brand default",
+      "roleLabel": "Role",
+      "title": "References"
+    },
+    "source": {
+      "patternTitle": "Source pattern"
+    }
+  },
   "library": {
     "sidebar": {
       "shelvesGroup": "Shelves",

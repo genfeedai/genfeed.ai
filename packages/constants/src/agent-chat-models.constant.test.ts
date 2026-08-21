@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { lstatSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -239,7 +239,22 @@ function walkProductionTsFiles(dir: string, out: string[] = []): string[] {
     }
 
     const full = join(dir, name);
-    const st = statSync(full);
+    let st: ReturnType<typeof lstatSync>;
+    try {
+      st = lstatSync(full);
+    } catch {
+      continue;
+    }
+
+    // Skip dangling symlinks (e.g. machine-local agent scratch under apps/**/.agents).
+    if (st.isSymbolicLink()) {
+      try {
+        st = statSync(full);
+      } catch {
+        continue;
+      }
+    }
+
     if (st.isDirectory()) {
       walkProductionTsFiles(full, out);
       continue;
