@@ -561,12 +561,20 @@ export class BrandRemixRunsService {
         postIds,
       },
     });
-    const updated = await this.persistConfig(
+    const updated = await this.compareAndSwapExactConfig({
+      expectedConfig: config,
+      nextConfig,
       organizationId,
       runId,
-      nextConfig,
-      ContentRunStatus.COMPLETED,
-    );
+      status: ContentRunStatus.COMPLETED,
+    });
+    if (!updated) {
+      throw new ConflictException({
+        detail:
+          'A concurrent review submission already claimed this remix. Reload it and retry.',
+        title: 'Concurrent review submission',
+      });
+    }
     return this.project(updated, brandContext, nextConfig);
   }
 

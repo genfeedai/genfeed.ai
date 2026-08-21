@@ -1073,6 +1073,62 @@ describe('BrandRemixRunsService', () => {
     });
   });
 
+  it('rejects a concurrent review submission that loses the compare-and-swap race', async () => {
+    const created = await createPersistedRun({
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original TikTok visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'ready_for_review',
+    });
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        id: 'image-1',
+        status: IngredientStatus.GENERATED,
+      },
+    ]);
+    batchGenerationService.createManualReviewBatch.mockResolvedValue({
+      id: 'batch-1',
+      items: [{ id: 'item-1', postId: 'post-1' }],
+    });
+    contentRun.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.submitForReview('org-1', 'run-1', 'user-1', {
+        variantIds: ['variant-1'],
+      }),
+    ).rejects.toMatchObject({
+      detail: expect.stringContaining('concurrent'),
+      title: 'Concurrent review submission',
+    });
+    expect(contentRun.updateMany).toHaveBeenCalledTimes(1);
+  });
+
   it('returns an explicit blocked readiness result instead of faking a Meta campaign', async () => {
     const created = await createPersistedRun({
       draft: { target: { kind: 'paid', platform: 'meta' } },
