@@ -152,18 +152,18 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
     <div className="space-y-4 rounded-xl bg-amber-500/5 p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Badge variant="warning">Review Required</Badge>
+          <Badge variant="warning">Launch Plan Ready</Badge>
           <span className="text-sm text-muted-foreground">
-            Campaign stays paused until approved
+            No external ad objects were created
           </span>
         </div>
         <Badge variant="ghost">{prep.publishMode}</Badge>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        <SummaryMetricCard label="Campaign" value={prep.campaign.name} />
-        <SummaryMetricCard label="Ad Set" value={prep.adSet.name} />
-        <SummaryMetricCard label="Ad" value={prep.ad.name} />
+        <SummaryMetricCard label="Campaign plan" value={prep.campaign.name} />
+        <SummaryMetricCard label="Ad set plan" value={prep.adSet.name} />
+        <SummaryMetricCard label="Ad plan" value={prep.ad.name} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -187,7 +187,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
 
       <div>
         <div className="mb-2 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-          Launch Notes
+          Plan Notes
         </div>
         <ul className="space-y-2 text-sm text-foreground/85">
           {prep.notes.map((note) => (
@@ -220,6 +220,7 @@ type DetailSidebarProps = {
   href: (path: string) => string;
   selectedAd: SelectedAdRef;
   onClose: () => void;
+  onOpenRemix: () => void;
   onRunAction: (action: 'ad_pack' | 'workflow' | 'launch_prep') => void;
   busyAction: 'ad_pack' | 'workflow' | 'launch_prep' | null;
   actionError: string | null;
@@ -238,6 +239,7 @@ export function DetailSidebar({
   detailLoading,
   href,
   onClose,
+  onOpenRemix,
   onRunAction,
   busyAction,
   actionError,
@@ -393,8 +395,7 @@ export function DetailSidebar({
                 <Button
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
-                  isLoading={busyAction === 'ad_pack'}
-                  onClick={() => onRunAction('ad_pack')}
+                  onClick={onOpenRemix}
                   icon={<Sparkles className="size-4" />}
                 >
                   Remix for my brand
@@ -415,7 +416,7 @@ export function DetailSidebar({
                   onClick={() => onRunAction('launch_prep')}
                   icon={<Rocket className="size-4" />}
                 >
-                  Prepare campaign
+                  Build launch plan
                 </Button>
               </div>
 

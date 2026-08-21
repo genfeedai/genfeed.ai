@@ -13,6 +13,11 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export interface UseStudioGenerateSettingsReturn {
+  applyTypeSettings: (
+    type: StudioGenerateType,
+    patch: Partial<StudioGenerateSettings>,
+  ) => void;
+  isHydrated: boolean;
   resetSettings: () => void;
   settings: StudioGenerateSettings;
   setType: (type: StudioGenerateType) => void;
@@ -60,6 +65,17 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
     [type],
   );
 
+  const applyTypeSettings = useCallback(
+    (nextType: StudioGenerateType, patch: Partial<StudioGenerateSettings>) => {
+      setTypeState(nextType);
+      setSettingsByType((previous) => ({
+        ...previous,
+        [nextType]: { ...previous[nextType], ...patch },
+      }));
+    },
+    [],
+  );
+
   const resetSettings = useCallback(() => {
     setSettingsByType((previous) => ({
       ...previous,
@@ -73,5 +89,13 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
 
   const settings = useMemo(() => settingsByType[type], [settingsByType, type]);
 
-  return { resetSettings, settings, setType, type, updateSettings };
+  return {
+    applyTypeSettings,
+    isHydrated,
+    resetSettings,
+    settings,
+    setType,
+    type,
+    updateSettings,
+  };
 }

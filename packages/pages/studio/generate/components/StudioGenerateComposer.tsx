@@ -9,6 +9,10 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateSettingsPopover from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
 import StudioGenerateTypeSelector from '@pages/studio/generate/components/StudioGenerateTypeSelector';
+import {
+  useStudioRemixAvatarSelection,
+  useStudioRemixRunScope,
+} from '@pages/studio/generate/StudioRemixRunScope';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
@@ -36,6 +40,15 @@ const PROMPT_ROWS = 3;
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
 const PROMPT_PLACEHOLDER = 'Describe what you want to generate…';
+const REMIX_OUTPUT_TYPES = ['image', 'video', 'avatar'] as const;
+
+function isRemixOutputType(
+  value: string,
+): value is (typeof REMIX_OUTPUT_TYPES)[number] {
+  return REMIX_OUTPUT_TYPES.includes(
+    value as (typeof REMIX_OUTPUT_TYPES)[number],
+  );
+}
 
 /**
  * The single Studio composer. The asset type is state on this row rather than
@@ -58,12 +71,19 @@ export default function StudioGenerateComposer({
   const translate = useTranslations('pages.studioGenerate');
   const { capabilities } = getStudioGenerateTypeConfig(type);
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  const isRemixRun = useStudioRemixRunScope();
+  const canSelectAvatar = useStudioRemixAvatarSelection();
 
   const isPromptEmpty = prompt.trim().length === 0;
   // Submitting mid-catalog-load would resolve the model against an empty or
   // stale list, so the send button waits for the type's models to land.
-  const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
-  const isSubmitBlocked = isGenerating || isPromptEmpty || isAwaitingModels;
+  const isAwaitingModels =
+    !isRemixRun && capabilities.hasModelSelection && isLoadingModels;
+  const isSubmitBlocked =
+    isGenerating ||
+    isPromptEmpty ||
+    isAwaitingModels ||
+    (isRemixRun && !isRemixOutputType(type));
   const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
 
   const handleModelChange = (_name: string, values: string[]) => {
@@ -105,13 +125,45 @@ export default function StudioGenerateComposer({
 
         <div className="flex min-w-0 items-center justify-between gap-2 px-1 pt-1">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <StudioGenerateTypeSelector
-              isDisabled={isGenerating}
-              onChange={onTypeChange}
-              type={type}
-            />
+            {isRemixRun ? (
+              <Select
+                disabled={isGenerating}
+                onValueChange={(value) => {
+                  if (isRemixOutputType(value)) {
+                    onTypeChange(value);
+                  }
+                }}
+                value={isRemixOutputType(type) ? type : undefined}
+              >
+                <SelectTrigger
+                  aria-label="Output type"
+                  className={cn('w-28', SHELL_CONTROL_HEIGHT_CLASS)}
+                >
+                  <SelectValue placeholder="Output type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">
+                    {translate('outputTypes.image')}
+                  </SelectItem>
+                  <SelectItem value="video">
+                    {translate('outputTypes.video')}
+                  </SelectItem>
+                  {canSelectAvatar ? (
+                    <SelectItem value="avatar">
+                      {translate('outputTypes.avatar')}
+                    </SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
+            ) : (
+              <StudioGenerateTypeSelector
+                isDisabled={isGenerating}
+                onChange={onTypeChange}
+                type={type}
+              />
+            )}
 
-            {capabilities.hasModelSelection ? (
+            {!isRemixRun && capabilities.hasModelSelection ? (
               isLoadingModels ? (
                 <Select disabled value="">
                   <SelectTrigger

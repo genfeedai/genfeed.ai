@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   invalidateQueries: vi.fn(),
   notifyError: vi.fn(),
   notifySuccess: vi.fn(),
+  openRemix: vi.fn(),
   refetch: vi.fn(),
   routerPush: vi.fn(),
   syncBrand: vi.fn(),
@@ -94,6 +95,10 @@ vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
     vi.fn(),
   ],
   useRestoreResearchFinding: vi.fn(),
+}));
+
+vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
+  useOptionalDiscoverRemix: () => ({ openRemix: mocks.openRemix }),
 }));
 
 vi.mock('@pages/trends/following/FollowSourceModal', () => ({
@@ -439,16 +444,46 @@ describe('FollowingPage', () => {
     );
   });
 
-  it('uses the same variation flow for non-twitter followed posts', async () => {
+  it.each([
+    [SocialSourcePlatform.INSTAGRAM, 'instagram'],
+    ['youtube', 'youtube'],
+  ] as const)(
+    'opens the shared prefilled brief for followed %s posts',
+    async (platform, idSuffix) => {
+      const user = userEvent.setup();
+      setFeed(
+        makeFeed({
+          posts: [
+            makePost({
+              contentType: 'video',
+              id: `post-${idSuffix}-1`,
+              platform,
+              thumbnailUrl: 'https://cdn.example.test/video.jpg',
+            }),
+          ],
+        }),
+      );
+      render(<FollowingPage />);
+
+      await user.click(screen.getByRole('button', { name: 'Remix' }));
+
+      expect(mocks.openRemix).toHaveBeenCalledWith({
+        kind: 'source_post',
+        sourcePostId: `post-${idSuffix}-1`,
+      });
+      expect(mocks.routerPush).not.toHaveBeenCalled();
+    },
+  );
+
+  it('opens the shared prefilled brief for followed TikTok posts', async () => {
     const user = userEvent.setup();
     setFeed(
       makeFeed({
         posts: [
           makePost({
-            contentType: 'reel',
-            id: 'post-2',
-            platform: SocialSourcePlatform.INSTAGRAM,
-            thumbnailUrl: 'https://cdn.example.test/reel.jpg',
+            contentType: 'video',
+            id: 'post-tiktok-1',
+            platform: SocialSourcePlatform.TIKTOK,
           }),
         ],
       }),
@@ -457,9 +492,11 @@ describe('FollowingPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remix' }));
 
-    expect(mocks.routerPush).toHaveBeenCalledWith(
-      '/org-1/brand-1/publish/remix?platform=instagram&sourcePostId=post-2',
-    );
+    expect(mocks.openRemix).toHaveBeenCalledWith({
+      kind: 'source_post',
+      sourcePostId: 'post-tiktok-1',
+    });
+    expect(mocks.routerPush).not.toHaveBeenCalled();
   });
 
   it('creates a reply draft from the post dropdown for twitter posts', async () => {

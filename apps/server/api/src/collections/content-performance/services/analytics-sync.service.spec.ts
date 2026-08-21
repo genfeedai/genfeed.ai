@@ -69,6 +69,7 @@ describe('AnalyticsSyncService', () => {
         publishIntent: 'experiment',
         scheduleSlot: 'weekday-morning',
         variantId: 'variant-a',
+        workflowExecutionId: 'workflow-execution-1',
       },
     ]);
     brandMemorySyncService.syncPostPerformance.mockResolvedValue(undefined);
@@ -81,7 +82,7 @@ describe('AnalyticsSyncService', () => {
     );
   });
 
-  it('persists content run, variant, and experiment metadata for analytics rows', async () => {
+  it('persists workflow, content-run, variant, and experiment lineage for analytics rows', async () => {
     const result = await service.syncAnalytics({
       batchSize: 25,
       organizationId,
@@ -114,6 +115,7 @@ describe('AnalyticsSyncService', () => {
         userId: 'user-1',
         variantId: 'variant-a',
         views: 1000,
+        workflowExecutionId: 'workflow-execution-1',
         data: {
           clicks: 0,
           creativeVersion: 'creative-v2',

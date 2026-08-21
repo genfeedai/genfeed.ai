@@ -155,6 +155,17 @@ export class ImageGenerationProviderDispatchService {
     });
   }
 
+  failPlaceholderBeforeDispatch(
+    context: ImageGenerationContext,
+    error: unknown,
+  ): Promise<never> {
+    return this.handleProviderFailure(
+      context,
+      error,
+      'Image generation placeholder linkage',
+    );
+  }
+
   private execute(
     context: ImageGenerationContext,
     provider: PreparedImageGenerationProvider,

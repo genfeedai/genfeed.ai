@@ -65,6 +65,7 @@ import { Module } from '@nestjs/common';
     VideosUploadController,
   ],
   exports: [
+    VideoGenerationService,
     VideoMusicOrchestrationService,
     VideoProvenanceService,
     VideosCoreModule,

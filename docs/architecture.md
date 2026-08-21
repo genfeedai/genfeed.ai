@@ -8,6 +8,7 @@ collaboration, and governance layer.
 
 - [Identity & Request Resolution](./identity-resolution.md)
 - [Core and Cloud Execution Boundaries](./execution-boundaries.md)
+- [Brand-Aware Remix Runs](./brand-remix-runs.md)
 - [Agent Surface](./agent-surface.md)
 - [Social Listening Contracts](./social-listening-contracts.md)
 - [PLG Boundary ADR](../.agents/memory/architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md)

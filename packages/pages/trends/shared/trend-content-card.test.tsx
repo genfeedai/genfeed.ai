@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ push: vi.fn() }));
+const mocks = vi.hoisted(() => ({ openRemix: vi.fn(), push: vi.fn() }));
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
@@ -36,6 +36,9 @@ vi.mock('@services/core/notifications.service', () => ({
     getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
   },
 }));
+vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
+  useOptionalDiscoverRemix: () => ({ openRemix: mocks.openRemix }),
+}));
 
 import TrendContentCard from './trend-content-card';
 
@@ -67,4 +70,96 @@ describe('TrendContentCard', () => {
       '/org-1/brand-1/publish/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
     );
   });
+
+  it('opens the shared prefilled brief for eligible TikTok trend content', () => {
+    render(
+      <TrendContentCard
+        item={{
+          ...item,
+          contentType: 'video',
+          platform: 'tiktok',
+          sourceReferenceId: 'tiktok-reference-1',
+          trendId: 'tiktok-trend-1',
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+
+    expect(mocks.openRemix).toHaveBeenCalledWith({
+      kind: 'trend_reference',
+      sourceReferenceId: 'tiktok-reference-1',
+      trendId: 'tiktok-trend-1',
+    });
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it.each(['instagram', 'youtube'] as const)(
+    'opens the shared prefilled brief for eligible %s trend content',
+    (platform) => {
+      render(
+        <TrendContentCard
+          item={{
+            ...item,
+            contentType: 'video',
+            platform,
+            sourceReferenceId: `${platform}-reference-1`,
+            trendId: `${platform}-trend-1`,
+          }}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+
+      expect(mocks.openRemix).toHaveBeenCalledWith({
+        kind: 'trend_reference',
+        sourceReferenceId: `${platform}-reference-1`,
+        trendId: `${platform}-trend-1`,
+      });
+      expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
+    },
+  );
+
+  it('does not offer direct remix when TikTok content has no durable source reference', () => {
+    render(
+      <TrendContentCard
+        finding={{
+          metadata: [],
+          reference: { id: 'content-1', kind: 'research-trend-content' },
+          title: 'TikTok context',
+        }}
+        item={{
+          ...item,
+          contentType: 'video',
+          platform: 'tiktok',
+          sourceReferenceId: undefined,
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Use as context' }),
+    ).toBeVisible();
+  });
+
+  it.each(['instagram', 'youtube'] as const)(
+    'does not fall back to a legacy remix for %s content without a durable source reference',
+    (platform) => {
+      render(
+        <TrendContentCard
+          item={{
+            ...item,
+            contentType: 'video',
+            platform,
+            sourceReferenceId: undefined,
+          }}
+        />,
+      );
+
+      expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
+      expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
+    },
+  );
 });

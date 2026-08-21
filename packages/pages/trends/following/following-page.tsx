@@ -20,6 +20,7 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
+import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
 import {
   useOptionalResearchWorkSurface,
   useResearchPagination,
@@ -112,10 +113,17 @@ const PLATFORM_OPTIONS = [
   { label: 'TikTok', value: SocialSourcePlatform.TIKTOK },
 ];
 
+const PREFILLED_SOURCE_POST_REMIX_PLATFORMS = new Set<string>([
+  SocialSourcePlatform.INSTAGRAM,
+  SocialSourcePlatform.TIKTOK,
+  'youtube',
+]);
+
 export default function FollowingPage() {
   const translate = useTranslations('common.following');
   const brandId = useBrandId();
   const surface = useOptionalResearchWorkSurface();
+  const remixSurface = useOptionalDiscoverRemix();
   const router = useRouter();
   const { href } = useOrgUrl();
   const queryClient = useQueryClient();
@@ -288,6 +296,17 @@ export default function FollowingPage() {
 
   const openRemix = useCallback(
     (post: ISourcePost) => {
+      if (
+        PREFILLED_SOURCE_POST_REMIX_PLATFORMS.has(post.platform) &&
+        remixSurface
+      ) {
+        void remixSurface.openRemix({
+          kind: 'source_post',
+          sourcePostId: post.id,
+        });
+        return;
+      }
+
       router.push(
         href(
           buildSourcePostVariationsHref({
@@ -297,7 +316,7 @@ export default function FollowingPage() {
         ),
       );
     },
-    [href, router],
+    [href, remixSurface, router],
   );
 
   const openFollowModal = useCallback(() => {

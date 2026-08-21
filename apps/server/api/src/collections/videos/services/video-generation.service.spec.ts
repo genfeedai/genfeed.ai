@@ -221,6 +221,7 @@ describe('VideoGenerationService', () => {
       promptsService,
       replicateService,
       service,
+      sharedService,
     };
   };
 
@@ -235,6 +236,58 @@ describe('VideoGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('awaits durable placeholder linkage before provider dispatch', async () => {
+    const { klingAIService, service, sharedService } = createService();
+    const order: string[] = [];
+    sharedService.createMediaDocuments.mockImplementation(async () => {
+      order.push('placeholder');
+      return {
+        ingredientData: { id: 'ing-linked' },
+        metadataData: { id: 'meta-linked' },
+      };
+    });
+    klingAIService.queueGenerateTextToVideo.mockImplementation(async () => {
+      order.push('provider');
+      return 'kling-gen';
+    });
+
+    await service.generateVideo(
+      buildUser(),
+      baseDto(),
+      buildRequest(),
+      async (ingredientId) => {
+        order.push(`linked:${ingredientId}`);
+      },
+    );
+
+    expect(order.slice(0, 3)).toEqual([
+      'placeholder',
+      'linked:ing-linked',
+      'provider',
+    ]);
+  });
+
+  it('fails the placeholder and skips provider dispatch when linkage rejects', async () => {
+    const { failedGenerationService, klingAIService, service } =
+      createService();
+
+    await expect(
+      service.generateVideo(
+        buildUser(),
+        baseDto(),
+        buildRequest(),
+        async () => {
+          throw new Error('run linkage failed');
+        },
+      ),
+    ).rejects.toThrow('run linkage failed');
+
+    expect(
+      failedGenerationService.handleFailedVideoGeneration,
+    ).toHaveBeenCalled();
+    expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
   });
 
   // Finding 1 — org model validation must run even without request context.

@@ -289,6 +289,65 @@ beforeEach(() => {
 });
 
 describe('ImageGenerationService', () => {
+  it('awaits durable placeholder linkage before provider dispatch', async () => {
+    const { replicateService, service, sharedService } = createService();
+    const order: string[] = [];
+    sharedService.createMediaDocuments.mockImplementation(async () => {
+      order.push('placeholder');
+      return {
+        ingredientData: { id: 'ing-linked' },
+        metadataData: { id: 'meta-linked' },
+      };
+    });
+    replicateService.generateTextToImage.mockImplementation(async () => {
+      order.push('provider');
+      return 'rep-gen';
+    });
+
+    await service.generateImage(
+      buildUser(),
+      baseDto({ waitForCompletion: true }),
+      buildRequest(),
+      async (ingredientId) => {
+        order.push(`linked:${ingredientId}`);
+      },
+    );
+
+    expect(order.slice(0, 3)).toEqual([
+      'placeholder',
+      'linked:ing-linked',
+      'provider',
+    ]);
+  });
+
+  it('fails the placeholder and skips provider dispatch when linkage rejects', async () => {
+    const { failedGenerationService, replicateService, service } =
+      createService();
+
+    await expect(
+      service.generateImage(
+        buildUser(),
+        baseDto(),
+        buildRequest(),
+        async () => {
+          throw new Error('run linkage failed');
+        },
+      ),
+    ).rejects.toThrow('run linkage failed');
+
+    expect(
+      failedGenerationService.handleFailedImageGeneration,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      'ing-0',
+      '/images/ing-0',
+      expect.objectContaining({ organizationId: ORG }),
+      expect.any(String),
+      'run linkage failed',
+    );
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
   describe('prompt persistence', () => {
     it('reuses a submitted prompt document instead of creating a duplicate', async () => {
       const promptId = testId('prompt');

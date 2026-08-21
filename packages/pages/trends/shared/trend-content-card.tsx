@@ -7,6 +7,7 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
 import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
 import type {
   TrendContentItem,
@@ -45,6 +46,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
+
+const PREFILLED_ORGANIC_REMIX_PLATFORMS = new Set([
+  'instagram',
+  'tiktok',
+  'youtube',
+]);
 
 function getViralityVariant(
   score: number,
@@ -112,6 +119,7 @@ export default function TrendContentCard({
   const translate = useTranslations('common.trends.card');
   const brandId = useBrandId();
   const router = useRouter();
+  const remixSurface = useOptionalDiscoverRemix();
   const { href } = useOrgUrl();
   const [isSavingBrief, setIsSavingBrief] = useState(false);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
@@ -161,6 +169,13 @@ export default function TrendContentCard({
       ),
     [href, item.platform, item.sourceReferenceId, item.trendId],
   );
+  const isPrefilledRemixPlatform = PREFILLED_ORGANIC_REMIX_PLATFORMS.has(
+    item.platform,
+  );
+  const opensPrefilledRemix =
+    isPrefilledRemixPlatform &&
+    Boolean(item.sourceReferenceId) &&
+    Boolean(remixSurface);
 
   const handleSaveBrief = useCallback(async () => {
     if (!brandId) {
@@ -302,7 +317,26 @@ export default function TrendContentCard({
         </div>
 
         <div className="flex items-center gap-2 pt-1">
-          {isSourcePostVariationPlatform(item.platform) ? (
+          {opensPrefilledRemix ? (
+            <Button
+              className="min-w-0 flex-1 sm:flex-none"
+              icon={<Sparkles className="size-3.5" />}
+              label={translate('actions.remix')}
+              onClick={() => {
+                if (!item.sourceReferenceId) {
+                  return;
+                }
+                void remixSurface?.openRemix({
+                  kind: 'trend_reference',
+                  sourceReferenceId: item.sourceReferenceId,
+                  trendId: item.trendId,
+                });
+              }}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
+          ) : !isPrefilledRemixPlatform &&
+            isSourcePostVariationPlatform(item.platform) ? (
             <Button
               asChild
               className="min-w-0 flex-1 sm:flex-none"

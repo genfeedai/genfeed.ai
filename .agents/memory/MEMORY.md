@@ -114,6 +114,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Specs and decisions (per issue)
 
+- [prefilled-brand-remix-runs](spec-prefilled-brand-remix-runs.md) · [decisions](decisions-prefilled-brand-remix-runs.md) — #3338 Discover/Ads → Studio → Library/Review → Publish/paused campaign
 - [auth-email-delivery-acknowledgement](spec-auth-email-delivery-acknowledgement.md) · [decisions](decisions-auth-email-delivery-acknowledgement.md) — synchronous provider acceptance for auth email
 - [argil-avatar-video](spec-argil-avatar-video.md) · [decisions](decisions-argil-avatar-video.md) — #2849
 - [desktop-local-database-boundary](spec-desktop-local-database-boundary.md) · [decisions](decisions-desktop-local-database-boundary.md) — #2824

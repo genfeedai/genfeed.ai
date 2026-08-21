@@ -1,3 +1,12 @@
+import {
+  type BrandRemixRunView,
+  brandRemixRunViewSchema,
+  type CreateBrandRemixRun,
+  type PreparePausedMetaCampaignDraft,
+  type ReviseBrandRemixRun,
+  type StartBrandRemixRun,
+  type SubmitBrandRemixRunForReview,
+} from '@api-types/contracts';
 import type { ContentRunStatus } from '@genfeedai/enums';
 import type { ContentRunBrief } from '@genfeedai/interfaces';
 import type {
@@ -102,6 +111,90 @@ export class ContentRunsService extends HTTPBaseService {
     );
 
     return deserializeResource<ContentRunRecord>(response.data);
+  }
+
+  async createBrandRemixRun(
+    brandId: string,
+    input: CreateBrandRemixRun,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${brandId}/content-runs/remixes`,
+      input,
+    );
+
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
+  }
+
+  async findBrandRemixRun(
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix`,
+      { signal },
+    );
+
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
+  }
+
+  async reviseBrandRemixRun(
+    runId: string,
+    input: ReviseBrandRemixRun,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix`,
+      input,
+    );
+
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
+  }
+
+  async startBrandRemixRun(
+    runId: string,
+    input: StartBrandRemixRun,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/start`,
+      input,
+    );
+
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
+  }
+
+  async submitBrandRemixRunForReview(
+    runId: string,
+    input: SubmitBrandRemixRunForReview,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/review`,
+      input,
+    );
+
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
+  }
+
+  async prepareBrandRemixPausedDraft(
+    runId: string,
+    input: PreparePausedMetaCampaignDraft,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/paid-draft`,
+      input,
+    );
+
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
   }
 
   async findOne(runId: string): Promise<ContentRunRecord> {

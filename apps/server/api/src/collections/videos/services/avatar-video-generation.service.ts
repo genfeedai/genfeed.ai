@@ -11,6 +11,7 @@ import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avata
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -48,6 +49,7 @@ interface AvatarVideoGenerationParams {
   text: string;
   useIdentity?: boolean;
   photoUrl?: string;
+  photoIngredientId?: string;
   audioUrl?: string;
   clonedVoiceId?: string;
   elevenlabsVoiceId?: string;
@@ -69,7 +71,13 @@ interface ResolvedIdentity {
   heygenVoiceId?: string;
   photoIngredientId?: string;
   photoUrl?: string;
+  savedVoice?: ResolvableVoiceDocument;
 }
+
+type ResolvableVoiceDocument = Pick<
+  VoiceDocument,
+  'externalVoiceId' | 'provider' | 'sampleAudioUrl'
+>;
 
 interface ResolvedAudioSource {
   audioDuration: number;
@@ -103,6 +111,7 @@ export class AvatarVideoGenerationService {
   async generateAvatarVideo(
     params: AvatarVideoGenerationParams,
     context: AvatarVideoGenerationContext,
+    onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
   ): Promise<AvatarVideoGenerationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let ingredientId: string | null = null;
@@ -114,14 +123,6 @@ export class AvatarVideoGenerationService {
         context,
         brand,
       );
-      const photoUrl = await this.resolvePhotoUrl(
-        params,
-        context,
-        resolvedIdentity.photoIngredientId,
-        resolvedIdentity.photoUrl,
-      );
-      const { audioDuration, audioUrl, heygenVoiceId } =
-        await this.resolveAudioSource(params, context, resolvedIdentity);
 
       const { ingredientData, metadataData } =
         await this.sharedService.createMediaDocumentsInternal({
@@ -139,6 +140,21 @@ export class AvatarVideoGenerationService {
         });
 
       ingredientId = String(ingredientData.id);
+      await onPlaceholderCreated?.(ingredientId);
+
+      const photoUrl = await this.resolvePhotoUrl(
+        params,
+        context,
+        resolvedIdentity.photoIngredientId,
+        resolvedIdentity.photoUrl,
+      );
+      const materializedIdentity = await this.materializeSavedVoice(
+        resolvedIdentity,
+        params.text,
+        context.organizationId,
+      );
+      const { audioDuration, audioUrl, heygenVoiceId } =
+        await this.resolveAudioSource(params, context, materializedIdentity);
 
       const heygenByokKey = await this.byokService.resolveApiKey(
         context.organizationId,
@@ -220,7 +236,7 @@ export class AvatarVideoGenerationService {
       audioUrl: params.audioUrl,
       elevenlabsVoiceId: params.elevenlabsVoiceId,
       heygenVoiceId: params.heygenVoiceId,
-      photoIngredientId: undefined,
+      photoIngredientId: params.photoIngredientId,
       photoUrl: params.photoUrl,
     };
 
@@ -228,31 +244,30 @@ export class AvatarVideoGenerationService {
       params.clonedVoiceId &&
       !resolved.audioUrl &&
       !resolved.elevenlabsVoiceId &&
-      !resolved.heygenVoiceId
+      !resolved.heygenVoiceId &&
+      !resolved.savedVoice
     ) {
-      const clonedVoice = await this.findVoiceById(
+      const savedVoice = await this.findVoiceById(
         params.clonedVoiceId,
         context.organizationId,
       );
 
-      if (clonedVoice?.isCloned) {
-        const resolvedClonedVoice = await this.resolveVoiceDocument(
-          {
-            ...clonedVoice,
-            provider:
-              params.voiceProvider != null
-                ? (params.voiceProvider as VoiceProvider)
-                : clonedVoice.provider,
-          },
-          params.text,
-          context.organizationId,
-        );
+      if (savedVoice) {
+        const resolvedSavedVoice = this.resolveVoiceLookup({
+          ...savedVoice,
+          provider:
+            params.voiceProvider != null
+              ? (params.voiceProvider as VoiceProvider)
+              : savedVoice.provider,
+        });
 
-        resolved.audioUrl = resolvedClonedVoice.audioUrl;
+        resolved.audioUrl = resolvedSavedVoice.audioUrl;
         resolved.elevenlabsVoiceId =
-          resolvedClonedVoice.elevenlabsVoiceId ?? resolved.elevenlabsVoiceId;
+          resolvedSavedVoice.elevenlabsVoiceId ?? resolved.elevenlabsVoiceId;
         resolved.heygenVoiceId =
-          resolvedClonedVoice.heygenVoiceId ?? resolved.heygenVoiceId;
+          resolvedSavedVoice.heygenVoiceId ?? resolved.heygenVoiceId;
+        resolved.savedVoice =
+          resolvedSavedVoice.savedVoice ?? resolved.savedVoice;
       }
     }
 
@@ -294,6 +309,7 @@ export class AvatarVideoGenerationService {
       !resolved.audioUrl &&
       !resolved.elevenlabsVoiceId &&
       !resolved.heygenVoiceId &&
+      !resolved.savedVoice &&
       brandIdentityDefaults.defaultVoiceRef
     ) {
       const resolvedBrandDefaultVoice = await this.resolveSavedVoiceRef(
@@ -307,12 +323,15 @@ export class AvatarVideoGenerationService {
         resolved.elevenlabsVoiceId;
       resolved.heygenVoiceId =
         resolvedBrandDefaultVoice.heygenVoiceId ?? resolved.heygenVoiceId;
+      resolved.savedVoice =
+        resolvedBrandDefaultVoice.savedVoice ?? resolved.savedVoice;
     }
 
     if (
       !resolved.audioUrl &&
       !resolved.elevenlabsVoiceId &&
       !resolved.heygenVoiceId &&
+      !resolved.savedVoice &&
       brandIdentityDefaults.defaultVoiceId
     ) {
       const brandVoice = await this.findVoiceById(
@@ -320,16 +339,14 @@ export class AvatarVideoGenerationService {
         context.organizationId,
       );
       if (brandVoice) {
-        const resolvedBrandVoice = await this.resolveVoiceDocument(
-          brandVoice,
-          params.text,
-          context.organizationId,
-        );
+        const resolvedBrandVoice = this.resolveVoiceLookup(brandVoice);
         resolved.audioUrl = resolvedBrandVoice.audioUrl;
         resolved.elevenlabsVoiceId =
           resolvedBrandVoice.elevenlabsVoiceId ?? resolved.elevenlabsVoiceId;
         resolved.heygenVoiceId =
           resolvedBrandVoice.heygenVoiceId ?? resolved.heygenVoiceId;
+        resolved.savedVoice =
+          resolvedBrandVoice.savedVoice ?? resolved.savedVoice;
       }
     }
 
@@ -355,6 +372,7 @@ export class AvatarVideoGenerationService {
       !resolved.audioUrl &&
       !resolved.elevenlabsVoiceId &&
       !resolved.heygenVoiceId &&
+      !resolved.savedVoice &&
       organizationIdentityDefaults.defaultVoiceRef
     ) {
       const resolvedOrganizationDefaultVoice = await this.resolveSavedVoiceRef(
@@ -369,12 +387,15 @@ export class AvatarVideoGenerationService {
       resolved.heygenVoiceId =
         resolvedOrganizationDefaultVoice.heygenVoiceId ??
         resolved.heygenVoiceId;
+      resolved.savedVoice =
+        resolvedOrganizationDefaultVoice.savedVoice ?? resolved.savedVoice;
     }
 
     if (
       !resolved.audioUrl &&
       !resolved.elevenlabsVoiceId &&
       !resolved.heygenVoiceId &&
+      !resolved.savedVoice &&
       organizationIdentityDefaults.defaultVoiceId
     ) {
       const organizationVoice = await this.findVoiceById(
@@ -382,17 +403,16 @@ export class AvatarVideoGenerationService {
         context.organizationId,
       );
       if (organizationVoice) {
-        const resolvedOrganizationVoice = await this.resolveVoiceDocument(
-          organizationVoice,
-          params.text,
-          context.organizationId,
-        );
+        const resolvedOrganizationVoice =
+          this.resolveVoiceLookup(organizationVoice);
         resolved.audioUrl = resolvedOrganizationVoice.audioUrl;
         resolved.elevenlabsVoiceId =
           resolvedOrganizationVoice.elevenlabsVoiceId ??
           resolved.elevenlabsVoiceId;
         resolved.heygenVoiceId =
           resolvedOrganizationVoice.heygenVoiceId ?? resolved.heygenVoiceId;
+        resolved.savedVoice =
+          resolvedOrganizationVoice.savedVoice ?? resolved.savedVoice;
       }
     }
 
@@ -402,7 +422,7 @@ export class AvatarVideoGenerationService {
   private async resolveSavedVoiceRef(
     defaultVoiceRef: DefaultVoiceRef,
     organizationId: string,
-    text: string,
+    _text: string,
   ): Promise<ResolvedIdentity> {
     if (
       defaultVoiceRef.source === 'cloned' &&
@@ -417,7 +437,7 @@ export class AvatarVideoGenerationService {
         return {};
       }
 
-      return this.resolveVoiceDocument(clonedVoice, text, organizationId);
+      return this.resolveVoiceLookup(clonedVoice);
     }
 
     if (defaultVoiceRef.source !== 'catalog') {
@@ -584,10 +604,7 @@ export class AvatarVideoGenerationService {
   }
 
   private async resolveVoiceDocument(
-    voiceDoc: Pick<
-      VoiceDocument,
-      'externalVoiceId' | 'provider' | 'sampleAudioUrl'
-    >,
+    voiceDoc: ResolvableVoiceDocument,
     text: string,
     organizationId: string,
   ): Promise<ResolvedIdentity> {
@@ -596,13 +613,6 @@ export class AvatarVideoGenerationService {
       voiceDoc.externalVoiceId
     ) {
       return { elevenlabsVoiceId: voiceDoc.externalVoiceId };
-    }
-
-    if (
-      voiceDoc.provider === VoiceProvider.HEYGEN &&
-      voiceDoc.externalVoiceId
-    ) {
-      return { heygenVoiceId: voiceDoc.externalVoiceId };
     }
 
     if (
@@ -654,6 +664,41 @@ export class AvatarVideoGenerationService {
     return {};
   }
 
+  private resolveVoiceLookup(
+    voiceDoc: ResolvableVoiceDocument,
+  ): ResolvedIdentity {
+    if (
+      voiceDoc.provider === VoiceProvider.ELEVENLABS &&
+      voiceDoc.externalVoiceId
+    ) {
+      return { elevenlabsVoiceId: voiceDoc.externalVoiceId };
+    }
+
+    if (
+      voiceDoc.provider === VoiceProvider.HEYGEN &&
+      voiceDoc.externalVoiceId
+    ) {
+      return { heygenVoiceId: voiceDoc.externalVoiceId };
+    }
+
+    return { savedVoice: voiceDoc };
+  }
+
+  private async materializeSavedVoice(
+    identity: ResolvedIdentity,
+    text: string,
+    organizationId: string,
+  ): Promise<ResolvedIdentity> {
+    if (!identity.savedVoice) return identity;
+    const { savedVoice, ...resolved } = identity;
+    const materialized = await this.resolveVoiceDocument(
+      savedVoice,
+      text,
+      organizationId,
+    );
+    return { ...resolved, ...materialized };
+  }
+
   private async publishInitialStatus(
     ingredientId: string,
     userId: string,
@@ -677,6 +722,7 @@ export class AvatarVideoGenerationService {
   ): Promise<VoiceDocument | null> {
     return (await this.voicesService.findOne({
       id: voiceId,
+      isDeleted: false,
       organizationId: organizationId,
     })) as VoiceDocument | null;
   }

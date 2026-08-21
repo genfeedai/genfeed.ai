@@ -1,7 +1,16 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  CreateBrandRemixRunDto,
+  PreparePausedMetaCampaignDraftDto,
+  ReviseBrandRemixRunDto,
+  StartBrandRemixRunDto,
+  SubmitBrandRemixRunForReviewDto,
+} from '@api/collections/content-runs/dto/brand-remix-run.dto';
 import { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
+import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
@@ -9,15 +18,24 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ContentRunStatus } from '@genfeedai/enums';
 import { ContentRunSerializer } from '@genfeedai/serializers';
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
-import type { Request } from 'express';
 
 @Controller()
 export class ContentRunsController {
   constructor(
     private readonly contentRunsService: ContentRunsService,
     private readonly recommendationsService: ContentRunRecommendationsService,
+    private readonly brandRemixRunsService: BrandRemixRunsService,
   ) {}
 
   @Get('brands/:brandId/content-runs')
@@ -64,6 +82,21 @@ export class ContentRunsController {
     return serializeSingle(req, ContentRunSerializer, data);
   }
 
+  @Post('brands/:brandId/content-runs/remixes')
+  async createBrandRemixRun(
+    @Req() req: Request,
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+    @Body() body: CreateBrandRemixRunDto,
+  ) {
+    const data = await this.brandRemixRunsService.create(
+      user.organizationId,
+      brandId,
+      body,
+    );
+    return serializeSingle(req, ContentRunSerializer, data);
+  }
+
   @Get('content-runs/:id')
   async getRun(
     @Req() req: Request,
@@ -74,6 +107,80 @@ export class ContentRunsController {
 
     const data = await this.contentRunsService.getRunById(organization, id);
 
+    return serializeSingle(req, ContentRunSerializer, data);
+  }
+
+  @Get('content-runs/:id/remix')
+  async getBrandRemixRun(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    const data = await this.brandRemixRunsService.get(user.organizationId, id);
+    return serializeSingle(req, ContentRunSerializer, data);
+  }
+
+  @Patch('content-runs/:id/remix')
+  async reviseBrandRemixRun(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: ReviseBrandRemixRunDto,
+  ) {
+    const data = await this.brandRemixRunsService.revise(
+      user.organizationId,
+      id,
+      body,
+    );
+    return serializeSingle(req, ContentRunSerializer, data);
+  }
+
+  @Post('content-runs/:id/remix/start')
+  async startBrandRemixRun(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: StartBrandRemixRunDto,
+  ) {
+    const data = await this.brandRemixRunsService.start(
+      user.organizationId,
+      id,
+      user,
+      req,
+      body,
+    );
+    return serializeSingle(req, ContentRunSerializer, data);
+  }
+
+  @Post('content-runs/:id/remix/review')
+  async submitBrandRemixRunForReview(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: SubmitBrandRemixRunForReviewDto,
+  ) {
+    const data = await this.brandRemixRunsService.submitForReview(
+      user.organizationId,
+      id,
+      user.userId ?? user.id,
+      body,
+    );
+    return serializeSingle(req, ContentRunSerializer, data);
+  }
+
+  @Post('content-runs/:id/remix/paid-draft')
+  async preparePausedMetaCampaignDraft(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: PreparePausedMetaCampaignDraftDto,
+  ) {
+    const data = await this.brandRemixRunsService.preparePausedMetaDraft(
+      user.organizationId,
+      id,
+      user.userId ?? user.id,
+      body,
+    );
     return serializeSingle(req, ContentRunSerializer, data);
   }
 

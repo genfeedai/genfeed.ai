@@ -27,6 +27,7 @@ const useBrandMock = vi.fn();
 const createRemixWorkflowMock = vi.fn();
 const generateAdPackMock = vi.fn();
 const getAdsResearchServiceMock = vi.fn();
+const openRemixMock = vi.fn();
 const prepareCampaignForReviewMock = vi.fn();
 let useQueryCallIndex = 0;
 
@@ -108,7 +109,8 @@ const resultsState = {
   summary: {
     connectedCount: 1,
     publicCount: 1,
-    reviewPolicy: 'All remixes and launch prep remain paused for review.',
+    reviewPolicy:
+      'Launch plans require review. Ads Research does not create external campaign objects.',
     selectedPlatform: 'all',
     selectedSource: 'all',
   },
@@ -161,6 +163,13 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useParams: () => ({
@@ -171,6 +180,10 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
+}));
+
+vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
+  useOptionalDiscoverRemix: () => ({ openRemix: openRemixMock }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -483,7 +496,7 @@ describe('AdsResearchPageClient', () => {
     });
   });
 
-  it('filters ads, opens detail sidebar, and exposes launch actions', () => {
+  it('filters ads, opens detail sidebar, and exposes remix and planning actions', () => {
     useQueryStates[0].refetch.mockClear();
     useQueryStates[1].refetch.mockClear();
     useQueryStates[2].refetch.mockClear();
@@ -494,7 +507,9 @@ describe('AdsResearchPageClient', () => {
     // Compact stats strip (labels also appear on ad badges — use counts).
     expect(screen.getByText('Source')).toBeInTheDocument();
     // Launch policy is a footnote when credentials exist — not a second alert.
-    expect(screen.getByText(/remain paused for review/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No external campaign objects are created/i),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Launch policy')).not.toBeInTheDocument();
     expect(screen.queryByText('Review Policy')).not.toBeInTheDocument();
     expect(
@@ -534,7 +549,7 @@ describe('AdsResearchPageClient', () => {
       screen.getByRole('button', { name: /create workflow/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /prepare campaign/i }),
+      screen.getByRole('button', { name: /build launch plan/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /open landing page/i }),
@@ -577,7 +592,7 @@ describe('AdsResearchPageClient', () => {
     );
   });
 
-  it('generates ad packs and campaign launch prep for selected connected ads', async () => {
+  it('opens a typed prefilled brief and a non-publishing launch plan for selected connected ads', async () => {
     render(<AdsResearchPageClient initialPlatform="google" />);
 
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
@@ -592,19 +607,23 @@ describe('AdsResearchPageClient', () => {
       screen.getByRole('button', { name: /remix for my brand/i }),
     );
 
-    expect(await screen.findByText('Ad Pack Ready')).toBeInTheDocument();
-    expect(screen.getByText('Ad pack headline')).toBeInTheDocument();
-    expect(generateAdPackMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        adAccountId: 'acct-google-1',
-        credentialId: 'cred-google',
-        platform: 'google',
-      }),
-    );
+    expect(openRemixMock).toHaveBeenCalledWith({
+      adAccountId: 'acct-google-1',
+      adId: 'source-google-1',
+      channel: 'search',
+      credentialId: 'cred-google',
+      kind: 'connected_ad',
+      loginCustomerId: 'mcc-111',
+      platform: 'google',
+    });
+    expect(generateAdPackMock).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /prepare campaign/i }));
+    fireEvent.click(screen.getByRole('button', { name: /build launch plan/i }));
 
-    expect(await screen.findByText('Review Required')).toBeInTheDocument();
+    expect(await screen.findByText('Launch Plan Ready')).toBeInTheDocument();
+    expect(
+      screen.getByText('No external ad objects were created'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Launch campaign')).toBeInTheDocument();
     expect(
       screen.getByText('Review creative before publishing.'),
@@ -622,6 +641,20 @@ describe('AdsResearchPageClient', () => {
       'href',
       '/moonrise-org/moonrise-studio/automate/workflows/workflow-launch',
     );
+  });
+
+  it('opens a public ad remix from its performance record id', () => {
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).toHaveBeenCalledWith({
+      adPerformanceId: 'public-1',
+      kind: 'public_ad',
+    });
   });
 
   it('shows empty, loading, error, and action failure states', async () => {

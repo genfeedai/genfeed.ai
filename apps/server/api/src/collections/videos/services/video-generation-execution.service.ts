@@ -85,6 +85,14 @@ export class VideoGenerationExecutionService {
     }
   }
 
+  async failPlaceholderBeforeDispatch(
+    context: VideoGenerationContext,
+    error: unknown,
+  ): Promise<never> {
+    await this.failPendingOutputs(context, error);
+    throw error;
+  }
+
   private async createBatchOutputs(
     context: VideoGenerationContext,
     generationId: string,

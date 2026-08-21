@@ -84,8 +84,10 @@ export interface IPost extends IBaseEntity {
   source?: string | null;
   sourceWorkflowId?: string | null;
   sourceWorkflowName?: string | null;
+  contentRunId?: string | null;
   generationId?: string | null;
   variantId?: string | null;
+  workflowExecutionId?: string | null;
 }
 
 export type PostVariationSourceKind =

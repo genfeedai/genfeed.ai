@@ -57,6 +57,7 @@ export interface IBatchItem {
   status: BatchItemStatus;
   prompt?: string;
   caption?: string;
+  contentRunId?: string;
   mediaUrl?: string;
   postId?: string;
   platform?: string;
@@ -70,6 +71,7 @@ export interface IBatchItem {
   assigneeId?: string | null;
   assignee?: IBatchItemAssignee | null;
   versionPinId?: string;
+  variantId?: string;
   publishApproval?: IPublishApproval;
   sourceActionId?: string;
   sourceWorkflowId?: string;

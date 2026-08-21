@@ -14,6 +14,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
 import {
   useOptionalResearchWorkSurface,
   useResearchQueryState,
@@ -38,7 +39,8 @@ const EMPTY_RESPONSE: AdsResearchResponse = {
   summary: {
     connectedCount: 0,
     publicCount: 0,
-    reviewPolicy: 'All remixes and launch prep remain paused for review.',
+    reviewPolicy:
+      'Launch plans require review. Ads Research does not create external campaign objects.',
     selectedPlatform: 'all',
     selectedSource: 'all',
   },
@@ -90,6 +92,7 @@ export function useAdsResearchPageClient(
   initialPlatform: AdsResearchPlatform | 'all',
 ) {
   const { href } = useOrgUrl();
+  const remixSurface = useOptionalDiscoverRemix();
   const surface = useOptionalResearchWorkSurface();
   const { brandId, credentials, isReady, selectedBrand } = useBrand();
   const getAdsResearchService = useAuthedService((token: string) =>
@@ -425,6 +428,44 @@ export function useAdsResearchPageClient(
     surface?.clearFinding();
   };
 
+  const openBrandRemix = () => {
+    if (!selectedAd || !remixSurface) {
+      return;
+    }
+
+    setActionError(null);
+    if (selectedAd.source === 'public') {
+      void remixSurface.openRemix({
+        adPerformanceId: selectedAd.id,
+        kind: 'public_ad',
+      });
+      return;
+    }
+
+    if (
+      !selectedAd.platform ||
+      !selectedAd.credentialId ||
+      !selectedAd.adAccountId
+    ) {
+      setActionError(
+        'Choose the connected credential and ad account before remixing this ad.',
+      );
+      return;
+    }
+
+    void remixSurface.openRemix({
+      adAccountId: selectedAd.adAccountId,
+      adId: selectedAd.id,
+      ...(selectedAd.channel ? { channel: selectedAd.channel } : {}),
+      credentialId: selectedAd.credentialId,
+      kind: 'connected_ad',
+      ...(selectedAd.loginCustomerId
+        ? { loginCustomerId: selectedAd.loginCustomerId }
+        : {}),
+      platform: selectedAd.platform,
+    });
+  };
+
   const runAction = async (action: 'ad_pack' | 'workflow' | 'launch_prep') => {
     if (!selectedAd) {
       return;
@@ -494,7 +535,7 @@ export function useAdsResearchPageClient(
         result.workflowId
           ? {
               workflowId: result.workflowId,
-              workflowName: result.workflowName || 'Ad launch prep',
+              workflowName: result.workflowName || 'Ad launch plan',
             }
           : null,
       );
@@ -530,6 +571,7 @@ export function useAdsResearchPageClient(
     isLoading,
     launchPrepResult,
     metric,
+    openBrandRemix,
     platform,
     refetch,
     results,

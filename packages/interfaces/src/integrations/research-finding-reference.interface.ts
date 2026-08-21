@@ -1,8 +1,10 @@
 export const RESEARCH_FINDING_REFERENCE_KINDS = [
   'research-ad-connected-google',
   'research-ad-connected-meta',
+  'research-ad-connected-tiktok',
   'research-ad-public-google',
   'research-ad-public-meta',
+  'research-ad-public-tiktok',
   'research-source-post',
   'research-trend-content',
   'research-trend-hashtag',

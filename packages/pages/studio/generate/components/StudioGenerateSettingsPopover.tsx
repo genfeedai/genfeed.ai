@@ -5,11 +5,13 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioGenerateSettingsPopoverProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useStudioGenerateIdentities } from '@pages/studio/generate/hooks/useStudioGenerateIdentities';
+import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import {
   describeStudioGenerateSettings,
   getStudioAspectRatios,
   getStudioDurations,
   getStudioResolutions,
+  STUDIO_ASPECT_RATIOS,
   STUDIO_MAX_OUTPUTS,
 } from '@pages/studio/generate/utils/studio-generate-settings';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
@@ -31,6 +33,7 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { Palette, Settings2, Sparkles, UserRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo, useState } from 'react';
 
 type StudioSettingsSectionId = 'look' | 'identity' | 'output' | 'brand';
@@ -55,6 +58,29 @@ const PRIORITY_OPTIONS: ReadonlyArray<{
   { label: 'Speed', value: RouterPriority.SPEED },
   { label: 'Cost', value: RouterPriority.COST },
 ];
+
+function getRemixAspectRatioOptions(current: string) {
+  return Array.from(new Set([current, ...STUDIO_ASPECT_RATIOS])).map(
+    (ratio) => ({ label: ratio, value: ratio }),
+  );
+}
+
+function describeRemixOutputSettings(
+  settings: StudioGenerateSettingsPopoverProps['settings'],
+  type: StudioGenerateSettingsPopoverProps['type'],
+): string {
+  return [
+    settings.aspectRatio,
+    type === 'video' || type === 'avatar'
+      ? settings.duration
+        ? `${settings.duration}s`
+        : null
+      : null,
+    `${settings.outputs}x`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
 
 function SettingRow({
   children,
@@ -107,12 +133,115 @@ function OptionSelect({
   );
 }
 
+function StudioRemixOutputSettingsPopover({
+  isDisabled = false,
+  onChange,
+  onReset,
+  settings,
+  type,
+}: StudioGenerateSettingsPopoverProps): ReactElement {
+  const translate = useTranslations('pages.studioGenerate');
+  const hasDuration = type === 'video' || type === 'avatar';
+  const summary = describeRemixOutputSettings(settings, type);
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          ariaLabel="Generation settings"
+          className={cn(
+            'gap-1.5 border border-border bg-background px-2.5 text-xs font-medium hover:bg-accent/50',
+            SHELL_CONTROL_HEIGHT_CLASS,
+          )}
+          icon={<Settings2 className="size-3.5" />}
+          isDisabled={isDisabled}
+          label={summary}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        />
+      </PopoverTrigger>
+      <PopoverPanelContent align="start" className="w-80 p-3" side="top">
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {translate('remixOutput.title')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {translate('remixOutput.description')}
+            </p>
+          </div>
+          <SettingRow label="Aspect ratio">
+            <OptionSelect
+              ariaLabel="Aspect ratio"
+              onChange={(value) =>
+                onChange({ aspectRatio: value || settings.aspectRatio })
+              }
+              options={getRemixAspectRatioOptions(settings.aspectRatio)}
+              placeholder="Aspect ratio"
+              value={settings.aspectRatio}
+            />
+          </SettingRow>
+          {hasDuration ? (
+            <SettingRow label="Duration">
+              <Input
+                aria-label="Duration"
+                className={SHELL_CONTROL_HEIGHT_CLASS}
+                max={300}
+                min={1}
+                onChange={(event) => {
+                  const duration = Number(event.target.value);
+                  onChange({
+                    duration:
+                      Number.isFinite(duration) && duration > 0
+                        ? duration
+                        : undefined,
+                  });
+                }}
+                type="number"
+                value={settings.duration ?? ''}
+              />
+            </SettingRow>
+          ) : null}
+          <SettingRow label="Outputs">
+            <OptionSelect
+              ariaLabel="Number of outputs"
+              onChange={(value) =>
+                onChange({ outputs: value ? Number(value) : 1 })
+              }
+              options={Array.from(
+                { length: STUDIO_MAX_OUTPUTS },
+                (_unused, index) => ({
+                  label: `${index + 1}x`,
+                  value: String(index + 1),
+                }),
+              )}
+              placeholder="1x"
+              value={String(settings.outputs)}
+            />
+          </SettingRow>
+          <div className="flex justify-end border-t border-border pt-2">
+            <Button
+              className="px-2 text-xs"
+              label="Reset"
+              onClick={onReset}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          </div>
+        </div>
+      </PopoverPanelContent>
+    </Popover>
+  );
+}
+
 /**
  * The gear chip from the composer. Every knob that is not the prompt, the
  * asset type, or the model lives here, grouped into a two-pane panel so the
  * composer row stays a single line no matter how many controls a type needs.
  */
-export default function StudioGenerateSettingsPopover({
+function StandardStudioGenerateSettingsPopover({
   isDisabled = false,
   onChange,
   onReset,
@@ -469,5 +598,17 @@ export default function StudioGenerateSettingsPopover({
         </div>
       </PopoverPanelContent>
     </Popover>
+  );
+}
+
+export default function StudioGenerateSettingsPopover(
+  props: StudioGenerateSettingsPopoverProps,
+): ReactElement {
+  const isRemixRun = useStudioRemixRunScope();
+
+  return isRemixRun ? (
+    <StudioRemixOutputSettingsPopover {...props} />
+  ) : (
+    <StandardStudioGenerateSettingsPopover {...props} />
   );
 }

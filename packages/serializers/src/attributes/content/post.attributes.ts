@@ -76,6 +76,7 @@ export const postAttributes = createEntityAttributes([
   'reviewEvents',
   'contentRunId',
   'variantId',
+  'workflowExecutionId',
   'hookVersion',
   'creativeVersion',
   'scheduleSlot',
