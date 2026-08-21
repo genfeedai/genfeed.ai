@@ -1,4 +1,5 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
+import { BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
@@ -64,9 +65,12 @@ describe('stable provider path smoke', () => {
     contentRunsService.patchRun.mockResolvedValue({});
     skillsService.assertBrandSkillEnabled.mockResolvedValue(undefined);
     skillsService.getSkillById.mockResolvedValue({
+      id: BUILT_IN_SKILL_CATALOG[2].id,
       isEnabled: true,
+      organizationId: null,
       requiredProviders: [ByokProvider.FAL],
       slug: 'image-generation',
+      status: 'published',
     });
     byokProviderFactoryService.resolveProvider.mockResolvedValue({
       apiKey: 'fal-byok-key',

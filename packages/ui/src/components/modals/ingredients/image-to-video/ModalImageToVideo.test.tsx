@@ -35,6 +35,10 @@ describe('ModalImageToVideo', () => {
     const { container } = render(<ModalImageToVideo {...baseProps} />);
     expect(container.firstChild).toBeInTheDocument();
     expect(screen.getByTestId('modal')).toBeInTheDocument();
+    expect(screen.getByTestId('image-to-video-composer')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-layout-mode="inflow"]'),
+    ).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {

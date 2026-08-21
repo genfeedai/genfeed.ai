@@ -22,11 +22,14 @@ export interface RouteTabItem extends NavigationTab {
 export type TabsItem = TabItem | RouteTabItem | string;
 
 export interface TabsProps {
+  children?: ReactNode;
   items?: TabsItem[];
   tabs?: TabsItem[];
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   className?: string;
+  contentClassName?: string;
+  listClassName?: string;
   variant?: TabsVariant;
   size?: TabsSize;
   fullWidth?: boolean;

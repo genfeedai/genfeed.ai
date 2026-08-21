@@ -12,8 +12,10 @@ import {
   CollapsibleTrigger,
 } from '@ui/primitives/collapsible';
 import { Input } from '@ui/primitives/input';
+import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';
 import { FlaskConical, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type SkillDraft = {
   defaultInstructions: string;
@@ -43,6 +45,9 @@ export default function SkillDetailCard({
   selectedSkill,
   skillDraft,
 }: Props) {
+  const translate = useTranslations('common.settings.skills');
+  const fieldIdPrefix = selectedSkill ? `skill-${selectedSkill.id}` : 'skill';
+
   return (
     <Card bodyClassName="gap-0 p-5" className="rounded-3xl">
       {selectedSkill ? (
@@ -67,20 +72,25 @@ export default function SkillDetailCard({
           <div className="grid gap-4 md:grid-cols-2">
             <InsetSurface>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-foreground/45">
-                Coverage
+                {translate('detail.coverage')}
               </p>
               <p className="text-sm text-foreground/65">
-                {selectedSkill.modalities.join(', ')} across{' '}
-                {selectedSkill.channels.join(', ') || 'general channels'}.
+                {translate('detail.coverageDescription', {
+                  channels:
+                    selectedSkill.channels.join(', ') ||
+                    translate('detail.generalChannels'),
+                  modalities: selectedSkill.modalities.join(', '),
+                })}
               </p>
             </InsetSurface>
             <InsetSurface>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-foreground/45">
-                Stage
+                {translate('detail.stage')}
               </p>
               <p className="text-sm text-foreground/65">
-                Designed for the {selectedSkill.workflowStage} step of the
-                content workflow.
+                {translate('detail.stageDescription', {
+                  stage: selectedSkill.workflowStage,
+                })}
               </p>
             </InsetSurface>
           </div>
@@ -92,7 +102,7 @@ export default function SkillDetailCard({
               variant={ButtonVariant.SECONDARY}
             >
               <FlaskConical className="size-4" />
-              Test with Agent
+              {translate('actions.testWithAgent')}
             </Button>
           </div>
 
@@ -100,12 +110,10 @@ export default function SkillDetailCard({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  Skill definition
+                  {translate('detail.definition')}
                 </p>
                 <p className="text-sm text-foreground/55">
-                  Built-in and imported skills can be customized into an
-                  editable org variant. Org-owned variants can be edited here
-                  directly.
+                  {translate('detail.definitionDescription')}
                 </p>
               </div>
               {!selectedSkill.organization ? (
@@ -116,16 +124,21 @@ export default function SkillDetailCard({
                   variant={ButtonVariant.SECONDARY}
                 >
                   <Sparkles className="size-4" />
-                  {customizing ? 'Customizing…' : 'Customize'}
+                  {customizing
+                    ? translate('actions.customizing')
+                    : translate('actions.customize')}
                 </Button>
               ) : null}
             </div>
 
-            <span className="grid gap-2 text-sm text-foreground/70">
-              Name
+            <div className="grid gap-2 text-sm text-foreground/70">
+              <Label htmlFor={`${fieldIdPrefix}-name`}>
+                {translate('fields.name')}
+              </Label>
               <Input
                 className="rounded-2xl px-3 py-2"
                 disabled={!selectedSkill.organization}
+                id={`${fieldIdPrefix}-name`}
                 onChange={(event) =>
                   onSkillDraftChange((current) => ({
                     ...current,
@@ -134,13 +147,16 @@ export default function SkillDetailCard({
                 }
                 value={skillDraft.name}
               />
-            </span>
+            </div>
 
-            <span className="grid gap-2 text-sm text-foreground/70">
-              Description
+            <div className="grid gap-2 text-sm text-foreground/70">
+              <Label htmlFor={`${fieldIdPrefix}-description`}>
+                {translate('fields.description')}
+              </Label>
               <Textarea
                 className="min-h-24 rounded-2xl px-3 py-2"
                 disabled={!selectedSkill.organization}
+                id={`${fieldIdPrefix}-description`}
                 onChange={(event) =>
                   onSkillDraftChange((current) => ({
                     ...current,
@@ -149,13 +165,16 @@ export default function SkillDetailCard({
                 }
                 value={skillDraft.description}
               />
-            </span>
+            </div>
 
-            <span className="grid gap-2 text-sm text-foreground/70">
-              Default instructions
+            <div className="grid gap-2 text-sm text-foreground/70">
+              <Label htmlFor={`${fieldIdPrefix}-default-instructions`}>
+                {translate('fields.defaultInstructions')}
+              </Label>
               <Textarea
                 className="min-h-28 rounded-2xl px-3 py-2 text-sm font-mono"
                 disabled={!selectedSkill.organization}
+                id={`${fieldIdPrefix}-default-instructions`}
                 onChange={(event) =>
                   onSkillDraftChange((current) => ({
                     ...current,
@@ -164,28 +183,34 @@ export default function SkillDetailCard({
                 }
                 value={skillDraft.defaultInstructions}
               />
-            </span>
+            </div>
 
             <Collapsible>
               <CollapsibleTrigger className="text-sm font-medium text-foreground/50 hover:text-foreground/70">
-                Advanced: System Prompt Template
+                {translate('fields.systemPromptTemplate')}
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="space-y-2">
+                  <Label
+                    className="sr-only"
+                    htmlFor={`${fieldIdPrefix}-system-prompt`}
+                  >
+                    {translate('fields.systemPromptTemplate')}
+                  </Label>
                   <p className="text-xs text-foreground/40">
-                    The exact text injected into the agent system prompt at
-                    runtime. Falls back to Default Instructions if empty.
+                    {translate('fields.systemPromptHelp')}
                   </p>
                   <Textarea
                     className="min-h-32 w-full rounded-2xl px-3 py-2 text-sm font-mono"
                     disabled={!selectedSkill.organization}
+                    id={`${fieldIdPrefix}-system-prompt`}
                     onChange={(event) =>
                       onSkillDraftChange((current) => ({
                         ...current,
                         systemPromptTemplate: event.target.value,
                       }))
                     }
-                    placeholder="Leave empty to use Default Instructions above"
+                    placeholder={translate('fields.systemPromptPlaceholder')}
                     value={skillDraft.systemPromptTemplate}
                   />
                 </div>
@@ -198,14 +223,16 @@ export default function SkillDetailCard({
                 onClick={onSaveSkill}
                 variant={ButtonVariant.DEFAULT}
               >
-                {savingSkill ? 'Saving…' : 'Save variant'}
+                {savingSkill
+                  ? translate('actions.saving')
+                  : translate('actions.saveVariant')}
               </Button>
             ) : null}
           </InsetSurface>
         </div>
       ) : (
         <InsetSurface className="text-sm text-foreground/55">
-          Select a skill from the catalog to inspect its detail.
+          {translate('detail.empty')}
         </InsetSurface>
       )}
     </Card>

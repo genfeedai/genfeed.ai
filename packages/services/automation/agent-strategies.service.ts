@@ -266,6 +266,7 @@ export class AgentStrategiesService extends BaseService<
 
   async list(params?: {
     agentType?: string;
+    brandId?: string;
     isActive?: boolean;
   }): Promise<AgentStrategy[]> {
     return this.findAll(params as Record<string, unknown>);

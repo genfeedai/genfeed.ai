@@ -13,7 +13,9 @@ describe('BetterAuthIdentityResolverService', () => {
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let membersService: { find: ReturnType<typeof vi.fn> };
+  let membersService: {
+    findActiveForUserAccess: ReturnType<typeof vi.fn>;
+  };
   let identityCache: {
     get: ReturnType<typeof vi.fn>;
     set: ReturnType<typeof vi.fn>;
@@ -28,7 +30,9 @@ describe('BetterAuthIdentityResolverService', () => {
     usersService = { findOne: vi.fn() };
     organizationsService = { findOne: vi.fn() };
     brandsService = { findOne: vi.fn() };
-    membersService = { find: vi.fn().mockResolvedValue([]) };
+    membersService = {
+      findActiveForUserAccess: vi.fn().mockResolvedValue([]),
+    };
     identityCache = {
       get: vi.fn().mockResolvedValue(null),
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
@@ -84,7 +88,7 @@ describe('BetterAuthIdentityResolverService', () => {
       id: 'user_org_admin',
       platformRole: 'USER',
     });
-    membersService.find.mockResolvedValue([
+    membersService.findActiveForUserAccess.mockResolvedValue([
       {
         organizationId: 'org_admin',
         role: { key: 'admin' },
@@ -107,7 +111,9 @@ describe('BetterAuthIdentityResolverService', () => {
 
   it('falls back to a membership organization when the user owns none', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_2' });
-    membersService.find.mockResolvedValue([{ organizationId: 'org_member' }]);
+    membersService.findActiveForUserAccess.mockResolvedValue([
+      { organizationId: 'org_member' },
+    ]);
     // First call (owner lookup) → null; second call (membership lookup) → org.
     organizationsService.findOne
       .mockResolvedValueOnce(null)
@@ -124,7 +130,7 @@ describe('BetterAuthIdentityResolverService', () => {
   it('prefers a member last-used brand over the first brand', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_3' });
     organizationsService.findOne.mockResolvedValue({ id: 'org_3' });
-    membersService.find.mockResolvedValue([
+    membersService.findActiveForUserAccess.mockResolvedValue([
       { lastUsedBrandId: 'brand_last', organizationId: 'org_3' },
     ]);
     brandsService.findOne.mockResolvedValue({ id: 'brand_last' });
@@ -145,7 +151,7 @@ describe('BetterAuthIdentityResolverService', () => {
       id: 'user_4',
       lastUsedOrganizationId: 'org_pref',
     });
-    membersService.find.mockResolvedValue([
+    membersService.findActiveForUserAccess.mockResolvedValue([
       { lastUsedBrandId: 'brand_pref', organizationId: 'org_pref' },
     ]);
     organizationsService.findOne.mockResolvedValue({ id: 'org_pref' });
@@ -170,7 +176,7 @@ describe('BetterAuthIdentityResolverService', () => {
   // row) surfaces immediately rather than presenting as a silent empty list.
   it('throws Unauthorized instead of silently returning an undefined organizationId when every membership organization fails to resolve', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_orphaned' });
-    membersService.find.mockResolvedValue([
+    membersService.findActiveForUserAccess.mockResolvedValue([
       { organizationId: 'org_soft_deleted' },
     ]);
     // Owner lookup → null; membership lookup for the only membership → null
@@ -191,7 +197,7 @@ describe('BetterAuthIdentityResolverService', () => {
       id: 'user_no_memberships',
       name: 'Vincent',
     });
-    membersService.find.mockResolvedValue([]);
+    membersService.findActiveForUserAccess.mockResolvedValue([]);
     organizationsService.findOne.mockResolvedValue(null);
     userSetupService.initializeUserResources.mockResolvedValue({
       brand: { id: 'brand_new' },
@@ -215,7 +221,7 @@ describe('BetterAuthIdentityResolverService', () => {
 
   it('keeps the session usable when workspace provisioning fails', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_no_memberships' });
-    membersService.find.mockResolvedValue([]);
+    membersService.findActiveForUserAccess.mockResolvedValue([]);
     organizationsService.findOne.mockResolvedValue(null);
     userSetupService.initializeUserResources.mockRejectedValue(
       new Error('db down'),
@@ -240,7 +246,7 @@ describe('BetterAuthIdentityResolverService', () => {
 
     expect(identity).toEqual(cachedIdentity);
     expect(usersService.findOne).not.toHaveBeenCalled();
-    expect(membersService.find).not.toHaveBeenCalled();
+    expect(membersService.findActiveForUserAccess).not.toHaveBeenCalled();
     expect(organizationsService.findOne).not.toHaveBeenCalled();
     expect(brandsService.findOne).not.toHaveBeenCalled();
     expect(identityCache.set).not.toHaveBeenCalled();

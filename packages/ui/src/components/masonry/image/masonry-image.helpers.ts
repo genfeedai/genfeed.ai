@@ -4,7 +4,7 @@ import type React from 'react';
 
 export function getAspectRatioStyle(
   isSquare: boolean,
-  metadata: IMetadata | undefined,
+  metadata: Pick<IMetadata, 'height' | 'width'> | undefined,
 ): React.CSSProperties | undefined {
   if (isSquare || !metadata?.width || !metadata?.height) {
     return undefined;

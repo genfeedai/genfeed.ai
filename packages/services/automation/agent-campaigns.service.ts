@@ -25,6 +25,12 @@ export interface CreateAgentCampaignInput {
   status?: 'draft' | 'active' | 'paused' | 'completed';
 }
 
+export interface CreateAgentCampaignFromTemplateInput
+  extends Omit<CreateAgentCampaignInput, 'campaignLeadStrategyId' | 'status'> {
+  brandId: string;
+  templateId: string;
+}
+
 export class AgentCampaign implements IAgentCampaign {
   id!: string;
   organizationId!: string;
@@ -72,7 +78,10 @@ export class AgentCampaignsService extends BaseService<
     return BaseService.getDataServiceInstance(AgentCampaignsService, token);
   }
 
-  async list(params?: { status?: string }): Promise<AgentCampaign[]> {
+  async list(params?: {
+    brandId?: string;
+    status?: string;
+  }): Promise<AgentCampaign[]> {
     return this.findAll(params as Record<string, unknown>);
   }
 
@@ -82,6 +91,12 @@ export class AgentCampaignsService extends BaseService<
 
   async create(data: CreateAgentCampaignInput): Promise<AgentCampaign> {
     return this.post(data);
+  }
+
+  async createFromTemplate(
+    data: CreateAgentCampaignFromTemplateInput,
+  ): Promise<AgentCampaign> {
+    return this.post('from-template', data);
   }
 
   async update(

@@ -65,3 +65,67 @@ describe('SkillRuntimeService.buildSkillPromptSections', () => {
     ).toBe('');
   });
 });
+
+describe('SkillRuntimeService.resolveActiveSkills', () => {
+  const brandSkills = [
+    {
+      priority: 0,
+      skill: {
+        defaultInstructions: 'Use the brand voice.',
+        id: 'skill-1',
+        name: 'Brand Voice',
+        slug: 'brand-voice',
+      },
+      targetSkill: {
+        defaultInstructions: 'Use the brand voice.',
+        id: 'skill-1',
+        name: 'Brand Voice',
+        slug: 'brand-voice',
+      },
+      variant: null,
+    },
+    {
+      priority: 1,
+      skill: {
+        defaultInstructions: 'Write a strong hook.',
+        id: 'skill-2',
+        name: 'Hook Writer',
+        slug: 'hook-writer',
+      },
+      targetSkill: {
+        defaultInstructions: 'Write a strong hook.',
+        id: 'skill-2',
+        name: 'Hook Writer',
+        slug: 'hook-writer',
+      },
+      variant: null,
+    },
+  ];
+
+  it('inherits all brand-enabled skills for an explicit empty strategy list', async () => {
+    const service = new SkillRuntimeService(
+      { resolveBrandSkills: vi.fn().mockResolvedValue(brandSkills) } as never,
+      { warn: vi.fn() } as never,
+    );
+
+    const resolved = await service.resolveActiveSkills('org-1', 'brand-1', []);
+
+    expect(resolved.map((entry) => entry.slug)).toEqual([
+      'brand-voice',
+      'hook-writer',
+    ]);
+  });
+
+  it('uses an explicit strategy skill subset when provided', async () => {
+    const service = new SkillRuntimeService(
+      { resolveBrandSkills: vi.fn().mockResolvedValue(brandSkills) } as never,
+      { warn: vi.fn() } as never,
+    );
+
+    const resolved = await service.resolveActiveSkills('org-1', 'brand-1', [
+      'hook-writer',
+    ]);
+
+    expect(resolved.map((entry) => entry.slug)).toEqual(['hook-writer']);
+  });
+});

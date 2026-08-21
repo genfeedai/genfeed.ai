@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   AGENT_ASSISTANT_PROSE_CLASS,
   AGENT_CONVERSATION_INLINE_ROW_CLASS,
+  AGENT_CONVERSATION_SCROLL_CLASS,
+  AGENT_CONVERSATION_STICKY_USER_TURN_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
   AGENT_CONVERSATION_TRACK_CLASS,
   AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS,
@@ -38,6 +40,19 @@ describe('conversation-layout.constant', () => {
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('rounded-xl');
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
       'bg-transparent',
+    );
+  });
+
+  it('keeps a masked spacing step above the sticky user prompt', () => {
+    expect(AGENT_CONVERSATION_SCROLL_CLASS).toContain(
+      '--agent-conversation-sticky-top:0.75rem',
+    );
+    expect(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS).toContain('sticky');
+    expect(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS).toContain(
+      'before:-top-3',
+    );
+    expect(AGENT_CONVERSATION_STICKY_USER_TURN_CLASS).toContain(
+      'before:bg-background',
     );
   });
 

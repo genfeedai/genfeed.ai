@@ -33,13 +33,16 @@ export default function IngredientWorkspacePanel({
 
         <Tabs
           activeTab={activeTab}
+          contentClassName="mt-5 space-y-5"
+          fullWidth={false}
+          listClassName="-m-1 max-w-full overflow-x-auto p-1"
           onTabChange={onTabChange}
-          className="w-full"
-          variant="pills"
+          size="sm"
           tabs={tabs}
-        />
-
-        <div className="space-y-5">{children}</div>
+          variant="underline"
+        >
+          {children}
+        </Tabs>
       </div>
     </div>
   );

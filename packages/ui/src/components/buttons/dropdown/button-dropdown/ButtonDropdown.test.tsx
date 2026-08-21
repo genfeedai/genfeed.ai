@@ -3,7 +3,11 @@ import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown'
 import { describe, expect, it, vi } from 'vitest';
 
 const mockOptions = [
-  { label: 'Option A', value: 'a' },
+  {
+    icon: <span className="size-8" data-testid="option-icon" />,
+    label: 'Option A',
+    value: 'a',
+  },
   { label: 'Option B', value: 'b' },
   { label: 'Option C', value: 'c' },
 ];
@@ -80,9 +84,34 @@ describe('ButtonDropdown', () => {
       ctrlKey: false,
     });
     const option = await screen.findByText('Option C');
-    expect(option).toHaveClass('px-2', 'py-1', 'text-xs');
+    expect(option).toHaveClass(
+      'min-h-8',
+      'rounded-sm',
+      'px-2.5',
+      'py-1.5',
+      'text-xs',
+    );
     fireEvent.click(option);
 
     expect(updateButtonDropdown).toHaveBeenCalledWith('test', 'c');
+  });
+
+  it('normalizes menu icons to the shared 16px menu-item size', async () => {
+    render(
+      <ButtonDropdown
+        name="test"
+        value="a"
+        options={mockOptions}
+        onChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.pointerDown(screen.getByRole('button'), {
+      button: 0,
+      ctrlKey: false,
+    });
+
+    const icon = await screen.findByTestId('option-icon');
+    expect(icon.parentElement).toHaveClass('[&_svg]:size-4');
   });
 });

@@ -16,6 +16,7 @@ import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import type { SkillsService } from '@api/collections/skills/services/skills.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -55,6 +56,9 @@ describe('BrandsService', () => {
   let loggerService: LoggerService;
   let defaultRecurringContentService: {
     updateScheduleFromAgentConfig: ReturnType<typeof vi.fn>;
+  };
+  let skillsService: {
+    assertAccessibleSkillSlugs: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -99,6 +103,9 @@ describe('BrandsService', () => {
     defaultRecurringContentService = {
       updateScheduleFromAgentConfig: vi.fn().mockResolvedValue(undefined),
     };
+    skillsService = {
+      assertAccessibleSkillSlugs: vi.fn().mockResolvedValue(undefined),
+    };
 
     queryRaw = vi.fn().mockResolvedValue([]);
     const prisma = {
@@ -130,6 +137,7 @@ describe('BrandsService', () => {
         brandScraperService as unknown as BrandScraperService,
       ),
       defaultRecurringContentService as unknown as DefaultRecurringContentService,
+      skillsService as unknown as SkillsService,
     );
   });
 
@@ -213,6 +221,40 @@ describe('BrandsService', () => {
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org-1');
+    });
+
+    it('validates enabled skills before atomically creating initial agent config', async () => {
+      delegate.create.mockResolvedValue({
+        ...createBrandDto,
+        id: 'brand-1',
+        organizationId: 'org-1',
+      });
+
+      await service.create({
+        ...createBrandDto,
+        agentConfig: { enabledSkills: ['content-writing'] },
+        organizationId: 'org-1',
+      });
+
+      expect(skillsService.assertAccessibleSkillSlugs).toHaveBeenCalledWith(
+        'org-1',
+        ['content-writing'],
+      );
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            agentConfig: { enabledSkills: ['content-writing'] },
+          }),
+        }),
+      );
+    });
+
+    it('rejects creation without organization context before writing', async () => {
+      await expect(
+        service.create(createBrandDto as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(delegate.create).not.toHaveBeenCalled();
     });
   });
 
@@ -339,6 +381,16 @@ describe('BrandsService', () => {
       expect(updateCall?.data).toEqual({ label: 'Renamed' });
       expect(updateCall?.data).not.toHaveProperty('description');
       expect(updateCall?.data).not.toHaveProperty('primaryColor');
+    });
+
+    it('rejects agentConfig so JSON updates cannot bypass the merge boundary', async () => {
+      await expect(
+        service.patch('brand-1', {
+          agentConfig: { persona: 'Replacement' },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(delegate.update).not.toHaveBeenCalled();
     });
   });
 
@@ -1260,9 +1312,41 @@ describe('BrandsService', () => {
     }
 
     function withStoredConfig(agentConfig: Record<string, unknown>): void {
-      delegate.findFirst.mockResolvedValue({ agentConfig, id: brandId });
+      delegate.findFirst.mockResolvedValue({
+        agentConfig,
+        id: brandId,
+        updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+      });
       delegate.updateMany.mockResolvedValue({ count: 1 });
     }
+
+    it('validates enabled skill slugs at the persistence boundary', async () => {
+      withStoredConfig({ enabledSkills: [] });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        enabledSkills: ['content-writing'],
+      });
+
+      expect(skillsService.assertAccessibleSkillSlugs).toHaveBeenCalledWith(
+        orgId,
+        ['content-writing'],
+      );
+    });
+
+    it('does not write when enabled skill validation fails', async () => {
+      skillsService.assertAccessibleSkillSlugs.mockRejectedValue(
+        new BadRequestException('Unknown skill'),
+      );
+
+      await expect(
+        service.updateAgentConfig(brandId, orgId, {
+          enabledSkills: ['unknown-skill'],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
+    });
 
     it('leaves omitted top-level keys unchanged', async () => {
       withStoredConfig({ enabledSkills: ['research'], persona: 'Original' });
@@ -1376,7 +1460,63 @@ describe('BrandsService', () => {
       expect(delegate.update).not.toHaveBeenCalled();
       expect(delegate.updateMany).toHaveBeenCalledWith({
         data: { agentConfig: { persona: 'Rewritten' } },
-        where: { id: brandId, isDeleted: false, organizationId: orgId },
+        where: {
+          agentConfig: { equals: { persona: 'Original' } },
+          id: brandId,
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
+    });
+
+    it('re-reads and re-merges after a concurrent agent config update', async () => {
+      delegate.findFirst
+        .mockResolvedValueOnce({
+          agentConfig: { voice: { tone: 'formal' } },
+          id: brandId,
+          updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+        })
+        .mockResolvedValueOnce({
+          agentConfig: {
+            enabledSkills: ['content-writing'],
+            voice: { tone: 'formal' },
+          },
+          id: brandId,
+          updatedAt: new Date('2026-08-21T00:00:01.000Z'),
+        })
+        .mockResolvedValue({
+          agentConfig: {
+            enabledSkills: ['content-writing'],
+            voice: { style: 'direct', tone: 'formal' },
+          },
+          id: brandId,
+        });
+      delegate.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        voice: { style: 'direct' },
+      });
+
+      expect(delegate.updateMany).toHaveBeenLastCalledWith({
+        data: {
+          agentConfig: {
+            enabledSkills: ['content-writing'],
+            voice: { style: 'direct', tone: 'formal' },
+          },
+        },
+        where: {
+          agentConfig: {
+            equals: {
+              enabledSkills: ['content-writing'],
+              voice: { tone: 'formal' },
+            },
+          },
+          id: brandId,
+          isDeleted: false,
+          organizationId: orgId,
+        },
       });
     });
 
@@ -1532,7 +1672,14 @@ describe('BrandsService', () => {
             },
           },
         },
-        where: { id: brandId, isDeleted: false, organizationId: orgId },
+        where: {
+          agentConfig: {
+            equals: { schedule: { cronExpression: '0 8 * * *' } },
+          },
+          id: brandId,
+          isDeleted: false,
+          organizationId: orgId,
+        },
       });
     });
   });

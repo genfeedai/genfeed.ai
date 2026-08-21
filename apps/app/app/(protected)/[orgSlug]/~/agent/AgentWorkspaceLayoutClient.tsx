@@ -10,6 +10,7 @@ import {
 } from '@contexts/user/brand-context/brand-context.helpers';
 import {
   AgentApiService,
+  AgentApiServiceProvider,
   type AgentThread,
   isRenderableThreadId,
   runAgentApiEffect,
@@ -498,9 +499,11 @@ function AgentWorkspaceLayoutClientContent({
   );
 
   return (
-    <AgentWorkspaceContext.Provider value={contextValue}>
-      {children}
-    </AgentWorkspaceContext.Provider>
+    <AgentApiServiceProvider service={agentApiService}>
+      <AgentWorkspaceContext.Provider value={contextValue}>
+        {children}
+      </AgentWorkspaceContext.Provider>
+    </AgentApiServiceProvider>
   );
 }
 

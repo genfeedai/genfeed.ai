@@ -6,14 +6,13 @@ import { Check } from 'lucide-react';
 
 const STEPS = [
   { id: 1, label: 'Choose Type' },
-  { id: 2, label: 'Pick Brand' },
-  { id: 3, label: 'Configure' },
-  { id: 4, label: 'Review & Launch' },
+  { id: 2, label: 'Configure' },
+  { id: 3, label: 'Review & Launch' },
 ];
 
 export function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center gap-2 mb-6">
+    <div className="mb-4 flex items-center gap-2">
       {STEPS.map((step, i) => (
         <div key={step.id} className="flex items-center gap-2">
           <span
@@ -54,6 +53,7 @@ export function SelectCardButton({
 }: SelectCardButtonProps) {
   return (
     <Button
+      aria-pressed={isSelected}
       withWrapper={false}
       variant={ButtonVariant.UNSTYLED}
       onClick={onClick}

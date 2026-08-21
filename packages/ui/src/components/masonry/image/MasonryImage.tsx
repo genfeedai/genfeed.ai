@@ -16,7 +16,7 @@ import {
   useMasonryHover,
 } from '@ui/masonry/shared/useMasonryHover';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
-import { useCallback, useMemo, useState } from 'react';
+import { type SyntheticEvent, useCallback, useMemo, useState } from 'react';
 import MasonryImageActionsBar from './MasonryImageActionsBar';
 import MasonryImageMediaArea from './MasonryImageMediaArea';
 import { getAspectRatioStyle, getImageSrc } from './masonry-image.helpers';
@@ -52,6 +52,7 @@ export default function MasonryImage({
   onMirror,
   onUpdateParent,
   onImageLoad,
+  onMediaError,
   onScopeChange,
   onRefresh,
   isDragEnabled = true,
@@ -60,6 +61,11 @@ export default function MasonryImage({
   const { selectedBrand, settings } = useBrand();
   const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const [intrinsicImage, setIntrinsicImage] = useState<{
+    height: number;
+    url: string;
+    width: number;
+  } | null>(null);
 
   const {
     isHovered,
@@ -104,21 +110,35 @@ export default function MasonryImage({
   const isLoading =
     currentImageUrl !== '' && loadedImageUrl !== currentImageUrl && !imageError;
 
-  const handleImageLoad = useCallback(() => {
-    // After a real-image error, imageSrc swaps to the placeholder; when that
-    // placeholder finishes loading, onLoad fires again. Do not report the
-    // placeholder (or a missing URL) to the parent as a successful asset load.
-    if (currentImageUrl === '' || failedImageUrl === currentImageUrl) {
-      return;
-    }
-    setLoadedImageUrl(currentImageUrl);
-    onImageLoad?.();
-  }, [currentImageUrl, failedImageUrl, onImageLoad]);
+  const handleImageLoad = useCallback(
+    (event: SyntheticEvent<HTMLImageElement>) => {
+      // After a real-image error, imageSrc swaps to the placeholder; when that
+      // placeholder finishes loading, onLoad fires again. Do not report the
+      // placeholder (or a missing URL) to the parent as a successful asset load.
+      if (currentImageUrl === '' || failedImageUrl === currentImageUrl) {
+        return;
+      }
+
+      const { naturalHeight, naturalWidth } = event.currentTarget;
+      if (naturalHeight > 0 && naturalWidth > 0) {
+        setIntrinsicImage({
+          height: naturalHeight,
+          url: currentImageUrl,
+          width: naturalWidth,
+        });
+      }
+
+      setLoadedImageUrl(currentImageUrl);
+      onImageLoad?.();
+    },
+    [currentImageUrl, failedImageUrl, onImageLoad],
+  );
 
   const handleImageError = useCallback(() => {
     setLoadedImageUrl(currentImageUrl);
     setFailedImageUrl(currentImageUrl);
-  }, [currentImageUrl]);
+    onMediaError?.();
+  }, [currentImageUrl, onMediaError]);
 
   const handleIngredientDrop = useCallback(
     (
@@ -133,7 +153,11 @@ export default function MasonryImage({
   );
 
   const metadata = image?.metadata as IMetadata;
-  const aspectRatioStyle = getAspectRatioStyle(isSquare, metadata);
+  const currentIntrinsicImage =
+    intrinsicImage?.url === currentImageUrl ? intrinsicImage : null;
+  const aspectRatioStyle = currentIntrinsicImage
+    ? getAspectRatioStyle(isSquare, currentIntrinsicImage)
+    : getAspectRatioStyle(isSquare, metadata);
   const imageSrc = getImageSrc(image?.ingredientUrl, imageError);
   const shouldShowBadges = isActionsEnabled && !isProcessing && !isFailed;
   const useDragDrop = isDragEnabled && onUpdateParent;

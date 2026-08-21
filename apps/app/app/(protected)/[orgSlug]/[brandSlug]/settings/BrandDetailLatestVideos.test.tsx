@@ -28,7 +28,7 @@ describe('BrandDetailLatestVideos', () => {
     ).toHaveAttribute('href', 'https://app.genfeed.ai/demo/FUDNEWS/agent/new');
     expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
       'href',
-      'https://app.genfeed.ai/demo/FUDNEWS/library/overview',
+      'https://app.genfeed.ai/demo/FUDNEWS/library/assets',
     );
   });
 });

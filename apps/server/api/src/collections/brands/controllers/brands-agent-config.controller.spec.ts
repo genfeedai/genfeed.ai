@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { SkillsService } from '@api/collections/skills/services/skills.service';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
@@ -29,6 +30,9 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
 
   let mockBrandsService: { updateAgentConfig: ReturnType<typeof vi.fn> };
   let mockIngredientsService: { findAvatarImageById: ReturnType<typeof vi.fn> };
+  let mockSkillsService: {
+    assertAccessibleSkillSlugs: ReturnType<typeof vi.fn>;
+  };
   let controller: BrandsAgentConfigController;
 
   beforeEach(() => {
@@ -39,11 +43,15 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     mockIngredientsService = {
       findAvatarImageById: vi.fn().mockResolvedValue({ _id: 'avatar-1' }),
     };
+    mockSkillsService = {
+      assertAccessibleSkillSlugs: vi.fn().mockResolvedValue(undefined),
+    };
 
     controller = new BrandsAgentConfigController(
       mockBrandsService as unknown as BrandsService,
       mockIngredientsService as never,
       {} as never,
+      mockSkillsService as unknown as SkillsService,
     );
 
     vi.clearAllMocks();
@@ -91,6 +99,66 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
       orgId,
       validDto,
     );
+    expect(mockSkillsService.assertAccessibleSkillSlugs).toHaveBeenCalledWith(
+      orgId,
+      ['content-writing'],
+    );
+  });
+
+  it('does not validate skill slugs when an agent-config patch omits them', async () => {
+    mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
+
+    await controller.updateAgentConfig(mockRequest, mockUser, mockBrand.id, {
+      defaultModel: 'gpt-5',
+    });
+
+    expect(mockSkillsService.assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+  });
+
+  it('does not update the brand when enabled skill validation fails', async () => {
+    mockSkillsService.assertAccessibleSkillSlugs.mockRejectedValue(
+      new Error('Unknown skill'),
+    );
+
+    await expect(
+      controller.updateAgentConfig(mockRequest, mockUser, mockBrand.id, {
+        enabledSkills: ['foreign-skill'],
+      }),
+    ).rejects.toThrow('Unknown skill');
+
+    expect(mockBrandsService.updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('validates an empty enabled-skill replacement before writing it', async () => {
+    mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
+
+    await controller.updateEnabledSkills(mockRequest, mockUser, mockBrand.id, {
+      enabledSkills: [],
+    });
+
+    expect(mockSkillsService.assertAccessibleSkillSlugs).toHaveBeenCalledWith(
+      orgId,
+      [],
+    );
+    expect(mockBrandsService.updateAgentConfig).toHaveBeenCalledWith(
+      mockBrand.id,
+      orgId,
+      { enabledSkills: [] },
+    );
+  });
+
+  it('rejects enabled-skill writes without organization context before validation', async () => {
+    await expect(
+      controller.updateEnabledSkills(
+        mockRequest,
+        { ...mockUser, organizationId: undefined } as User,
+        mockBrand.id,
+        { enabledSkills: ['content-writing'] },
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(mockSkillsService.assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(mockBrandsService.updateAgentConfig).not.toHaveBeenCalled();
   });
 
   it('returns serialized data', async () => {

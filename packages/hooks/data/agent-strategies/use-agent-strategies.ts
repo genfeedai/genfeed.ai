@@ -10,6 +10,8 @@ import { useQuery } from '@tanstack/react-query';
 
 export interface UseAgentStrategiesOptions {
   agentType?: string;
+  brandId?: string;
+  enabled?: boolean;
   isActive?: boolean;
 }
 
@@ -23,13 +25,20 @@ export function useAgentStrategies(
   options: UseAgentStrategiesOptions = {},
 ): UseAgentStrategiesReturn {
   const { getToken } = useAuthIdentity();
+  const isEnabled = options.enabled ?? true;
 
   const {
     data: strategies = [] as AgentStrategy[],
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['agent-strategies', options.agentType, options.isActive],
+    enabled: isEnabled,
+    queryKey: [
+      'agent-strategies',
+      options.brandId,
+      options.agentType,
+      options.isActive,
+    ],
     queryFn: async () => {
       const token = await resolveAuthToken(getToken);
       if (!token) return [];
@@ -37,6 +46,7 @@ export function useAgentStrategies(
       const service = AgentStrategiesService.getInstance(token);
       return service.list({
         agentType: options.agentType,
+        brandId: options.brandId,
         isActive: options.isActive,
       });
     },
@@ -45,6 +55,9 @@ export function useAgentStrategies(
   return {
     isLoading,
     refresh: async () => {
+      if (!isEnabled) {
+        return;
+      }
       await refetch();
     },
     strategies,

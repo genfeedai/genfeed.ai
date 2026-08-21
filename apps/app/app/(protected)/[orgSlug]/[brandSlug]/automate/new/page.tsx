@@ -1,7 +1,15 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { permanentRedirect } from 'next/navigation';
 
-/** Legacy `/automate/new` → nested `/automate/agents/new`. */
-export default function AutomateNewAgentLegacyRoute() {
-  permanentRedirect(APP_ROUTES.AUTOMATE.NEW);
+/** Legacy `/automate/new` → Add agent modal in custom mode. */
+export default async function AutomateNewAgentLegacyRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
+
+  permanentRedirect(
+    `${createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.AUTOMATE.AGENTS)}?add=custom`,
+  );
 }

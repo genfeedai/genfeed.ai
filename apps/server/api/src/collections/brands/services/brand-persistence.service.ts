@@ -256,10 +256,12 @@ export class BrandPersistenceService {
 
   async updateBrandGuidance(
     brandId: string,
+    organizationId: string,
     extractedData: IExtractedBrandData,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
       id: brandId,
+      organizationId,
     });
 
     if (!brand) {
@@ -270,12 +272,11 @@ export class BrandPersistenceService {
       brand.agentConfig,
     );
 
-    await this.brandsService.patch(brandId, {
-      agentConfig: this.brandDataMapper.mergeExtractedVoice(
-        brandAgentConfig,
-        extractedData,
-      ),
-    });
+    await this.brandsService.updateAgentConfig(
+      brandId,
+      organizationId,
+      this.brandDataMapper.mergeExtractedVoice(brandAgentConfig, extractedData),
+    );
   }
 
   /**

@@ -1,8 +1,14 @@
+import {
+  MAX_CONFIGURED_SKILL_SLUGS,
+  MAX_SKILL_SLUG_LENGTH,
+} from '@api/collections/skills/constants/skill-validation.constant';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsIn,
@@ -10,9 +16,11 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -27,8 +35,9 @@ import {
  * value-constraint decorator (`@IsArray`, `@IsString`, `@IsBoolean`, …) fires
  * on `undefined` and rejects the whole request with a 400. Only
  * `@ValidateNested()` tolerates absence, which is why the missing
- * `@IsOptional()` on `enabledSkills` broke every partial caller in the app
- * while the sibling nested objects appeared to work.
+ * An undefined-only `@ValidateIf()` is used on `enabledSkills`: omission must
+ * skip validation, while explicit `null` must still be rejected instead of
+ * reaching the JSON persistence boundary.
  *
  * The exception is `UpdateBrandPromptSeedDto` and
  * `UpdateBrandConversationStarterDto`: those are value objects *inside* an
@@ -420,10 +429,18 @@ export class UpdateBrandAgentConfigDto {
   prompting?: UpdateBrandAgentPromptingDto;
 
   @IsArray()
+  @ArrayMaxSize(MAX_CONFIGURED_SKILL_SLUGS)
+  @ArrayUnique()
   @IsString({ each: true })
-  @IsOptional()
+  @MaxLength(MAX_SKILL_SLUG_LENGTH, { each: true })
+  @Matches(/\S/u, {
+    each: true,
+    message: 'each skill slug must contain a non-whitespace character',
+  })
+  @ValidateIf((_object, value) => value !== undefined)
   @ApiProperty({
-    description: 'Enabled skill IDs',
+    description: 'Enabled skill slugs',
+    maxItems: MAX_CONFIGURED_SKILL_SLUGS,
     required: false,
     type: [String],
   })

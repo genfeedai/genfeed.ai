@@ -19,7 +19,7 @@ export class OrganizationQueryDto extends BaseQueryDto {
   )
   @ApiPropertyOptional({
     description:
-      'When true, return membership summaries for the current user (cross-org).',
+      'When true, return membership summaries for the current user (cross-org). This is the default for non-superadmins.',
   })
   readonly mine?: boolean;
 }

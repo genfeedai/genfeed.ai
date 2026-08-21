@@ -35,8 +35,8 @@ export class DashboardLayoutsService extends BaseService<DashboardLayout> {
 
   /**
    * Fetch the persisted layout for a brand/page. Returns `null` when the
-   * brand has no saved layout yet (server responds 404) rather than throwing —
-   * callers fall back to the default page rendering in that case.
+   * brand has no saved layout yet. Callers fall back to the default page
+   * rendering in that case.
    */
   public async findForPage(
     brandId: string,
@@ -44,11 +44,9 @@ export class DashboardLayoutsService extends BaseService<DashboardLayout> {
   ): Promise<DashboardLayout | null> {
     const response = await this.instance.get<JsonApiResponseDocument>('', {
       params: { brand: brandId, pageKey },
-      validateStatus: (status) =>
-        status === 404 || (status >= 200 && status < 300),
     });
 
-    if (response.status === 404) {
+    if (response.data.data === null) {
       return null;
     }
 

@@ -48,6 +48,7 @@ export default function QuickActionButton({
 
   return (
     <Button
+      ariaLabel={!showLabel && action.icon ? tooltipText : undefined}
       data-testid={`quick-action-${action.id}`}
       tooltip={tooltipText}
       tooltipPosition={action.tooltipPosition || 'top'}

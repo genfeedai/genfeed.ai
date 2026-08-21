@@ -6,10 +6,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentHubPage from './AgentHubPage';
 
 const mocks = vi.hoisted(() => ({
+  addIntent: null as string | null,
   error: vi.fn(),
   getService: vi.fn(),
   getWorkflowBinding: vi.fn(),
   loggerError: vi.fn(),
+  replace: vi.fn(),
   refresh: vi.fn(),
   runNow: vi.fn(),
   runWorkflow: vi.fn(),
@@ -25,6 +27,10 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
     refresh: mocks.refresh,
     strategies: mocks.strategies,
   }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: 'brand-one', isReady: true }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -61,7 +67,8 @@ vi.mock('next/link', () => ({
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-one', orgSlug: 'org-one' }),
   usePathname: () => '/org-one/brand-one/automate/agents',
-  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => ({ get: () => mocks.addIntent }),
+  useRouter: () => ({ push: vi.fn(), replace: mocks.replace }),
 }));
 
 vi.mock('next-intl', async () => {
@@ -96,14 +103,16 @@ vi.mock('@ui/layout/container/Container', () => ({
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     icon,
+    isDisabled,
     label,
     onClick,
   }: {
     icon?: ReactNode;
+    isDisabled?: boolean;
     label?: ReactNode;
     onClick?: () => void;
   }) => (
-    <button type="button" onClick={onClick}>
+    <button disabled={isDisabled} type="button" onClick={onClick}>
       {icon}
       {label}
     </button>
@@ -130,9 +139,35 @@ vi.mock('./AgentWorkflowRunDialog', () => ({
     ) : null,
 }));
 
+vi.mock('./AddAgentDialog', () => ({
+  default: ({
+    initialMode,
+    isOpen,
+    onCreated,
+    onOpenChange,
+  }: {
+    initialMode: string;
+    isOpen: boolean;
+    onCreated: () => Promise<void>;
+    onOpenChange: (open: boolean) => void;
+  }) =>
+    isOpen ? (
+      <div>
+        <p>Add agent dialog ({initialMode})</p>
+        <button type="button" onClick={() => onCreated()}>
+          Finish add agent
+        </button>
+        <button type="button" onClick={() => onOpenChange(false)}>
+          Close add agent
+        </button>
+      </div>
+    ) : null,
+}));
+
 describe('AgentHubPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.addIntent = null;
     mocks.isLoading = false;
     mocks.strategies = [];
     mocks.getService.mockResolvedValue({
@@ -156,38 +191,43 @@ describe('AgentHubPage', () => {
     mocks.setActive.mockResolvedValue(undefined);
   });
 
-  it('renders loading and empty agent hub states', () => {
+  it('opens the requested add-agent mode from legacy deep links', () => {
+    mocks.addIntent = 'custom';
+
+    render(<AgentHubPage />);
+
+    expect(screen.getByText('Add agent dialog (custom)')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close add agent' }));
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/org-one/brand-one/automate/agents',
+      { scroll: false },
+    );
+  });
+
+  it('renders loading and empty agent hub states', async () => {
     mocks.isLoading = true;
     const { rerender } = render(<AgentHubPage />);
 
-    expect(screen.getByText('Agent Hub')).toBeVisible();
+    expect(screen.getByText('Agents')).toBeVisible();
     expect(
       screen.getByText(
         'Content agents that fill workflow prompts and assets, then run deterministic graphs.',
       ),
     ).toBeVisible();
-    expect(screen.getByText(/New Agent/).closest('a')).toHaveAttribute(
-      'href',
-      '/automate/agents/new',
-    );
+    expect(screen.getByRole('button', { name: 'Add agent' })).toBeVisible();
     expect(document.querySelectorAll('.animate-pulse')).toHaveLength(3);
-
-    // The hub is the only in-module entry point for the content-team surfaces,
-    // so these links are what keeps /automate/hire and /automate/orchestrator
-    // off the menu-less orphan list.
-    expect(screen.getByText(/Hire Agent/).closest('a')).toHaveAttribute(
-      'href',
-      '/automate/hire',
-    );
-    expect(screen.getByText(/Orchestrator/).closest('a')).toHaveAttribute(
-      'href',
-      '/automate/orchestrator',
-    );
 
     mocks.isLoading = false;
     rerender(<AgentHubPage />);
     expect(screen.getByText('No agents yet')).toBeVisible();
-    expect(screen.getByText('Create your first agent')).toBeVisible();
+    expect(screen.getByText('Add your first agent')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add agent' }));
+    expect(screen.getByText('Add agent dialog (library)')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finish add agent' }));
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
   });
 
   it('renders agent cards and handles toggle, autopilot, workflow run, and refresh interval', async () => {

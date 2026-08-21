@@ -21,6 +21,7 @@ import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { SkillsModule } from '@api/collections/skills/skills.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { CommonModule } from '@api/common/common.module';
@@ -65,6 +66,7 @@ import { Module } from '@nestjs/common';
     OrganizationsModule,
     PostsModule,
     ReplicateModule,
+    SkillsModule,
     VideosModule,
     WorkflowsModule,
   ],

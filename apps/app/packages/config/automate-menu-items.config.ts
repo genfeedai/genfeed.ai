@@ -4,11 +4,7 @@ import {
   History,
   LayoutGrid,
   Megaphone,
-  Network,
   Rocket,
-  Settings,
-  Sparkles,
-  UserPlus,
   Users,
   Workflow,
 } from 'lucide-react';
@@ -18,8 +14,7 @@ import {
  *
  * - Home: Overview
  * - Workflows: pipelines + run history
- * - Agents: roster, hire, skills, autopilot, programs, launch team
- * - Settings: module config
+ * - Agents: roster, autopilot, programs
  *
  * Outreach / reply drip / author replies live in Messages.
  * Marketer multi-platform content Campaigns belong in Publish (P1).
@@ -63,31 +58,16 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Agents',
     href: APP_ROUTES.AUTOMATE.AGENTS,
-    label: 'Team',
+    label: 'Agents',
     matchPaths: [
       APP_ROUTES.AUTOMATE.AGENTS,
+      APP_ROUTES.AUTOMATE.HIRE,
       APP_ROUTES.AUTOMATE.NEW,
       APP_ROUTES.AUTOMATE.LIBRARY,
       '/automate/new',
     ],
     outline: Users,
     solid: Users,
-  },
-  {
-    group: 'Agents',
-    href: APP_ROUTES.AUTOMATE.HIRE,
-    label: 'Hire',
-    matchPaths: [APP_ROUTES.AUTOMATE.HIRE],
-    outline: UserPlus,
-    solid: UserPlus,
-  },
-  {
-    group: 'Agents',
-    href: APP_ROUTES.AUTOMATE.SKILLS,
-    label: 'Skills',
-    matchPaths: [APP_ROUTES.AUTOMATE.SKILLS],
-    outline: Sparkles,
-    solid: Sparkles,
   },
   {
     group: 'Agents',
@@ -104,25 +84,10 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [
       APP_ROUTES.AUTOMATE.CAMPAIGNS,
       APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW,
+      APP_ROUTES.AUTOMATE.ORCHESTRATOR,
     ],
     outline: Megaphone,
     solid: Megaphone,
-  },
-  {
-    group: 'Agents',
-    href: APP_ROUTES.AUTOMATE.ORCHESTRATOR,
-    label: 'Launch team',
-    matchPaths: [APP_ROUTES.AUTOMATE.ORCHESTRATOR],
-    outline: Network,
-    solid: Network,
-  },
-  {
-    group: 'Settings',
-    href: APP_ROUTES.AUTOMATE.CONFIGURATION,
-    label: 'Configuration',
-    matchPaths: [APP_ROUTES.AUTOMATE.CONFIGURATION],
-    outline: Settings,
-    solid: Settings,
   },
 ];
 

@@ -12,7 +12,6 @@ import { Button } from '@ui/primitives/button';
 import {
   ChartLine,
   CirclePlay,
-  ClipboardList,
   Cpu,
   House as Home,
   LayoutDashboard,
@@ -21,7 +20,6 @@ import {
   Settings,
   Sparkles,
   Workflow,
-  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
@@ -89,15 +87,6 @@ export default function AutomationOverviewPage() {
       label: 'Autopilot',
     },
     {
-      color: 'bg-orange-500/12 text-orange-300',
-      cta: 'Open Configuration',
-      description: 'Tune workspace-wide configuration and operating defaults',
-      href: href(APP_ROUTES.AUTOMATE.CONFIGURATION),
-      icon: ClipboardList,
-      id: 'configuration',
-      label: 'Configuration',
-    },
-    {
       color: 'bg-pink-500/12 text-pink-300',
       cta: 'View Analytics',
       description: 'Performance metrics and insights (Analytics app)',
@@ -156,15 +145,6 @@ export default function AutomationOverviewPage() {
       icon: Sparkles,
       kicker: 'Insight',
       label: 'Performance',
-    },
-    {
-      color: 'bg-orange-500/12 text-orange-300',
-      cta: 'Open Configuration',
-      description: 'Tune workspace defaults, policies, and operator settings.',
-      href: href(APP_ROUTES.AUTOMATE.CONFIGURATION),
-      icon: Zap,
-      kicker: 'Controls',
-      label: 'Configuration Center',
     },
   ];
 

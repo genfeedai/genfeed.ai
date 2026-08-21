@@ -82,6 +82,7 @@ describe('SignupPrefillProcessor', () => {
     await expect(processor.process(job)).rejects.toThrow('scrape failed');
     expect(signupPrefillService.markPrefillFailed).toHaveBeenCalledWith(
       'brand-1',
+      'org-1',
     );
   });
 });

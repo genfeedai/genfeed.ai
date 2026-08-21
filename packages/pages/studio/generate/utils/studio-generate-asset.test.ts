@@ -101,22 +101,29 @@ describe('resolveStudioTypeFromCategory', () => {
 
 describe('toStudioGenerateJob', () => {
   it('projects a stored ingredient onto the live job shape', () => {
-    const job = toStudioGenerateJob(
-      buildIngredient({
-        cdnUrl: 'https://cdn/img.png',
-        metadataModel: 'flux-schnell',
-        promptText: 'a red sofa',
-      }),
-    );
+    const ingredient = buildIngredient({
+      cdnUrl: 'https://cdn/img.png',
+      metadata: {
+        height: 1350,
+        model: 'flux-schnell',
+        width: 1080,
+      } as IIngredient['metadata'],
+      promptText: 'a red sofa',
+    });
+    const job = toStudioGenerateJob(ingredient);
 
     expect(job).toEqual({
       createdAt: new Date('2026-08-20T10:00:00.000Z').getTime(),
+      height: 1350,
       id: 'ing-1',
+      ingredient,
+      ingredientId: 'ing-1',
       modelKey: 'flux-schnell',
       prompt: 'a red sofa',
       status: IngredientStatus.GENERATED,
       type: 'image',
       url: 'https://cdn/img.png',
+      width: 1080,
     });
   });
 
@@ -125,6 +132,19 @@ describe('toStudioGenerateJob', () => {
       toStudioGenerateJob(buildIngredient({ status: IngredientStatus.FAILED }))
         ?.status,
     ).toBe(IngredientStatus.FAILED);
+  });
+
+  it('uses persisted dimensions instead of model getter defaults', () => {
+    const ingredient = buildIngredient({ height: 720, width: 1280 });
+    Object.defineProperties(ingredient, {
+      metadataHeight: { get: () => 1920 },
+      metadataWidth: { get: () => 1080 },
+    });
+
+    expect(toStudioGenerateJob(ingredient)).toMatchObject({
+      height: 720,
+      width: 1280,
+    });
   });
 
   it('drops an ingredient the playground does not own', () => {
@@ -137,15 +157,51 @@ describe('toStudioGenerateJob', () => {
 });
 
 describe('mergeStudioGenerateJobs', () => {
-  it('lets a live job win over the stored copy of the same id', () => {
+  it('keeps a socket completion ahead of a stale processing response', () => {
+    const liveIngredient = buildIngredient({ id: 'a' });
     const merged = mergeStudioGenerateJobs(
-      [buildJob({ id: 'a', status: IngredientStatus.PROCESSING })],
-      [buildJob({ id: 'a', status: IngredientStatus.GENERATED, url: 'old' })],
+      [
+        buildJob({
+          id: 'a',
+          ingredient: liveIngredient,
+          status: IngredientStatus.GENERATED,
+          url: 'ready',
+        }),
+      ],
+      [
+        buildJob({
+          id: 'a',
+          status: IngredientStatus.PROCESSING,
+        }),
+      ],
     );
 
     expect(merged).toHaveLength(1);
-    expect(merged[0].status).toBe(IngredientStatus.PROCESSING);
-    expect(merged[0].url).toBe('old');
+    expect(merged[0].status).toBe(IngredientStatus.GENERATED);
+    expect(merged[0].url).toBe('ready');
+    expect(merged[0].ingredient).toBe(liveIngredient);
+  });
+
+  it('lets refreshed persisted data replace a completed live copy', () => {
+    const liveIngredient = buildIngredient({ id: 'a', isFavorite: false });
+    const refreshedIngredient = buildIngredient({
+      id: 'a',
+      isFavorite: true,
+      status: IngredientStatus.VALIDATED,
+    });
+    const merged = mergeStudioGenerateJobs(
+      [buildJob({ id: 'a', ingredient: liveIngredient })],
+      [
+        buildJob({
+          id: 'a',
+          ingredient: refreshedIngredient,
+          status: IngredientStatus.VALIDATED,
+        }),
+      ],
+    );
+
+    expect(merged[0]?.status).toBe(IngredientStatus.VALIDATED);
+    expect(merged[0]?.ingredient).toBe(refreshedIngredient);
   });
 
   it('sorts newest first across both sources', () => {

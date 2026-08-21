@@ -34,4 +34,34 @@ describe('QuickActionsConfig', () => {
     action?.onClick();
     expect(handler).toHaveBeenCalledWith(ingredient);
   });
+
+  it('exposes copy and review actions as menu actions', () => {
+    const ingredient = {
+      id: 'ingredient-1',
+      promptText: 'A prompt',
+    } as IIngredient;
+    const handler = vi.fn();
+
+    expect(
+      QuickActionsConfig.createCopyPromptAction(ingredient, handler),
+    ).toMatchObject({ id: 'copy-prompt', showInMenu: true });
+    expect(
+      QuickActionsConfig.createMarkValidatedAction(ingredient, handler),
+    ).toMatchObject({ id: 'mark-validated', showInMenu: true });
+    expect(
+      QuickActionsConfig.createMarkRejectedAction(ingredient, handler),
+    ).toMatchObject({ id: 'mark-rejected', showInMenu: true });
+    expect(
+      QuickActionsConfig.createMarkArchivedAction(ingredient, handler),
+    ).toMatchObject({ id: 'mark-archived', showInMenu: true });
+  });
+
+  it('describes deletion as a recoverable Trash action', () => {
+    expect(
+      QuickActionsConfig.createDeleteAction(
+        { id: 'ingredient-1' } as IIngredient,
+        vi.fn(),
+      ),
+    ).toMatchObject({ tooltip: 'Move this ingredient to Trash' });
+  });
 });

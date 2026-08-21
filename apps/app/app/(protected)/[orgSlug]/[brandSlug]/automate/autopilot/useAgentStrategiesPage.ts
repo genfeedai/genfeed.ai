@@ -1,3 +1,4 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
@@ -64,10 +65,14 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
 }
 
 export function useAgentStrategiesPage() {
+  const { brandId, isReady: isBrandReady } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const { strategies, isLoading, refresh } = useAgentStrategies();
+  const { strategies, isLoading, refresh } = useAgentStrategies({
+    brandId,
+    enabled: isBrandReady && Boolean(brandId),
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStrategy, setSelectedStrategy] =
@@ -76,11 +81,6 @@ export function useAgentStrategiesPage() {
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
-
-  const openCreateDialog = useCallback(() => {
-    setSelectedStrategy(null);
-    setIsDialogOpen(true);
-  }, []);
 
   const openEditDialog = useCallback((strategy: AgentStrategy) => {
     setSelectedStrategy(strategy);
@@ -106,19 +106,19 @@ export function useAgentStrategiesPage() {
         return;
       }
 
+      if (!selectedStrategy) {
+        notificationsService.error('Choose an agent to configure');
+        return;
+      }
+
       setIsSubmitting(true);
 
       try {
         const service = await getService();
         const payload = buildPayload(form);
 
-        if (selectedStrategy) {
-          await service.update(selectedStrategy.id, payload);
-          notificationsService.success('Strategy updated');
-        } else {
-          await service.create(payload);
-          notificationsService.success('Strategy created');
-        }
+        await service.update(selectedStrategy.id, payload);
+        notificationsService.success('Strategy updated');
 
         handleDialogChange(false);
         await refresh();
@@ -187,7 +187,6 @@ export function useAgentStrategiesPage() {
     isDialogOpen,
     isLoading,
     isSubmitting,
-    openCreateDialog,
     openEditDialog,
     selectedStrategy,
     strategies,

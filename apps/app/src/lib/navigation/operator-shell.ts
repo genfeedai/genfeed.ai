@@ -211,13 +211,14 @@ export function getCurrentBrandScopedPath(pathname: string): string {
  * rewrite those to a 404.
  */
 const BRAND_ONLY_SETTINGS_PREFIXES = [
+  APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
   APP_ROUTES.SETTINGS.PUBLISHING,
+  APP_ROUTES.SETTINGS.SKILLS,
   APP_ROUTES.SETTINGS.SOCIAL,
   APP_ROUTES.SETTINGS.LINKS,
   '/settings/voice',
   '/settings/interview',
   '/settings/harness',
-  '/settings/agent-defaults',
   '/settings/kit',
 ] as const;
 

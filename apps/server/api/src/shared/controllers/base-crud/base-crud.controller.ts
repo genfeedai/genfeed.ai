@@ -285,7 +285,10 @@ export abstract class BaseCRUDController<
     }
 
     // Return 404 instead of 403 for security
-    if (!this.canUserModifyEntity(user, existing)) {
+    if (
+      !this.canUserModifyEntity(user, existing) &&
+      !getIsSuperAdmin(user, request)
+    ) {
       ErrorResponse.notFound(this.entityName, id);
     }
 

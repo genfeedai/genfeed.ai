@@ -84,6 +84,23 @@ export class MembersService extends BaseService<
     return members as unknown as MemberDocument[];
   }
 
+  async findActiveForUserAccess(userId: string): Promise<MemberDocument[]> {
+    if (!userId) {
+      throw new TypeError('findActiveForUserAccess requires userId');
+    }
+
+    // tenant-scope-ignore: access discovery recovers organizationIds from canonical users.id before tenant context exists
+    const members = await this.prisma.member.findMany({
+      where: {
+        isActive: true,
+        isDeleted: false,
+        userId,
+      },
+    });
+
+    return members as unknown as MemberDocument[];
+  }
+
   count(filter: Prisma.MemberWhereInput): Promise<number> {
     return this.delegate.count({ where: filter });
   }

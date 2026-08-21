@@ -1,40 +1,36 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 type AgentStrategiesEmptyStateProps = {
-  onAddClick: () => void;
+  agentsHref: string;
 };
 
 export default function AgentStrategiesEmptyState({
-  onAddClick,
+  agentsHref,
 }: AgentStrategiesEmptyStateProps) {
+  const translate = useTranslations('common.automation.autopilot');
+
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-secondary p-10 text-center shadow-border">
       <span className="flex size-14 items-center justify-center rounded-full bg-white/5 text-white/40">
         <Cpu className="size-7" />
       </span>
       <div className="space-y-1">
-        <p className="text-lg font-medium">No autopilot policies yet</p>
+        <p className="text-lg font-medium">{translate('emptyTitle')}</p>
         <p className="text-sm text-foreground/50">
-          Create your first autopilot policy to start scheduling agent runs.
+          {translate('emptyDescription')}
         </p>
       </div>
-      <div className="flex items-center gap-3">
-        <Button
-          label="Add Autopilot"
-          icon={<Plus />}
-          variant={ButtonVariant.DEFAULT}
-          onClick={onAddClick}
-        />
-        <Link href={APP_ROUTES.AUTOMATE.NEW}>
-          <Button label="Open Full Wizard" variant={ButtonVariant.SECONDARY} />
+      <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+        <Link href={agentsHref}>
+          <Plus /> {translate('emptyAction')}
         </Link>
-      </div>
+      </Button>
     </div>
   );
 }

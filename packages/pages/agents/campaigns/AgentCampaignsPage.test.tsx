@@ -42,6 +42,10 @@ vi.mock('@hooks/data/agent-campaigns/use-agent-campaigns', () => ({
   useAgentCampaigns: () => mockUseAgentCampaigns(),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/demo${path}` }),
+}));
+
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     warn: vi.fn(),
@@ -141,7 +145,7 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getByText('Programs')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /new program/i })).toHaveAttribute(
       'href',
-      '/automate/campaigns/new',
+      '/acme/demo/automate/campaigns/new',
     );
   });
 

@@ -1,13 +1,14 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import AutomateSkillsPage from '../automate-skills-page';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Agent Skills');
+export default async function LegacyAutomateSkillsRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
 
-export default function AutomateSkillsRoute() {
-  return (
-    <ErrorBoundary>
-      <AutomateSkillsPage />
-    </ErrorBoundary>
+  permanentRedirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.SKILLS),
   );
 }

@@ -4,10 +4,28 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockSend = vi.fn();
-const uploadDoneMock = vi.fn();
-const uploadCtorMock = vi.fn();
-const clientConfigs: Array<Record<string, unknown>> = [];
+const {
+  clientConfigs,
+  fromIniMock,
+  mockSend,
+  profileCredentialProvider,
+  uploadCtorMock,
+  uploadDoneMock,
+} = vi.hoisted(() => {
+  const profileCredentialProvider = vi.fn();
+  return {
+    clientConfigs: [] as Array<Record<string, unknown>>,
+    fromIniMock: vi.fn(() => profileCredentialProvider),
+    mockSend: vi.fn(),
+    profileCredentialProvider,
+    uploadCtorMock: vi.fn(),
+    uploadDoneMock: vi.fn(),
+  };
+});
+
+vi.mock('@aws-sdk/credential-provider-ini', () => ({
+  fromIni: fromIniMock,
+}));
 
 vi.mock('@aws-sdk/lib-storage', () => ({
   Upload: class {
@@ -45,6 +63,7 @@ describe('S3StorageProvider', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.stubEnv('AWS_PROFILE', '');
     vi.stubEnv('GENFEEDAI_CDN_URL', '');
     clientConfigs.length = 0;
     scratchDir = await fs.mkdtemp(path.join(tmpdir(), 'genfeed-s3-test-'));
@@ -70,6 +89,18 @@ describe('S3StorageProvider', () => {
       expect(clientConfigs[0]).toMatchObject({
         credentials: { accessKeyId: 'ak', secretAccessKey: 'sk' },
         region: 'eu-west-3',
+      });
+    });
+
+    it('uses an explicit AWS profile instead of stale static credentials', () => {
+      vi.stubEnv('AWS_ACCESS_KEY_ID', 'stale-access-key');
+      vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'stale-secret-key');
+
+      new S3StorageProvider({ bucket: 'profile-bucket', profile: 'genfeedai' });
+
+      expect(fromIniMock).toHaveBeenCalledWith({ profile: 'genfeedai' });
+      expect(clientConfigs[0]).toMatchObject({
+        credentials: profileCredentialProvider,
       });
     });
 

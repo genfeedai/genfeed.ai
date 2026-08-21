@@ -211,6 +211,12 @@ export class BrandsController extends BaseCRUDController<
         syncOrganizationName?: boolean;
       };
 
+    if (rest.agentConfig !== undefined && !syncOrganizationName) {
+      throw new BadRequestException(
+        'Use the brand agent-config endpoint to update agentConfig',
+      );
+    }
+
     // Brand rename that cascades to the owning organization's name/slug. The
     // cascade itself is gated server-side to the first-login window inside the
     // service, so this flag cannot rename an established organization.

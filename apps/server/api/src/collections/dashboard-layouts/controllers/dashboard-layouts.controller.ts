@@ -67,9 +67,12 @@ export class DashboardLayoutsController {
       pageKey ?? DEFAULT_PAGE_KEY,
     );
 
+    // A brand without a saved layout is the normal first-load state. Return an
+    // empty JSON:API document so the client can render the built-in default
+    // without producing a failed network request in the browser.
     return data
       ? serializeSingle(request, DashboardLayoutSerializer, data)
-      : returnNotFound(this.constructorName, brandId);
+      : { data: null };
   }
 
   @Put()

@@ -21,6 +21,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
@@ -36,7 +37,7 @@ import {
 } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -174,6 +175,10 @@ describe('BrandsController', () => {
         {
           provide: OrganizationSettingsService,
           useValue: { findAll: vi.fn(), findOne: vi.fn() },
+        },
+        {
+          provide: SkillsService,
+          useValue: { assertAccessibleSkillSlugs: vi.fn() },
         },
         {
           provide: PostsService,
@@ -342,6 +347,17 @@ describe('BrandsController', () => {
     expect(result).toEqual({
       data: { ...mockBrand, credentials: [], label: 'Renamed Brand' },
     });
+  });
+
+  it('rejects agentConfig through the generic brand patch', async () => {
+    await expect(
+      controller.patch(mockRequest, mockUser, mockBrand.id, {
+        agentConfig: { persona: 'Replacement' },
+      } as never),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(brandsService.patch).not.toHaveBeenCalled();
+    expect(brandSetupService.updateBrandNameById).not.toHaveBeenCalled();
   });
 
   it('routes an explicit organization change through the relocation operation', async () => {

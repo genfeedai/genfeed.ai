@@ -43,12 +43,12 @@ export const CORE_APPS: CoreAppDefinition[] = [
   },
   {
     description:
-      'Produce storyboards, clips, batches, fastlane runs, and timeline edits at production scale.',
+      'Generate assets, then produce storyboards, clips, batches, and timeline edits at production scale.',
     featureFlag: {
       isEnabledByDefault: () => true,
       key: 'studio',
     },
-    href: APP_ROUTES.STUDIO.STORYBOARD,
+    href: APP_ROUTES.STUDIO.GENERATE,
     id: 'studio',
     label: 'Studio',
     shortLabel: 'Studio',

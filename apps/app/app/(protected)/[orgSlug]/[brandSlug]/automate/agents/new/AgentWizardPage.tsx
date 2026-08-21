@@ -8,7 +8,7 @@ import {
   AgentType,
   Platform,
 } from '@genfeedai/enums';
-import type { IAgentWizardFormData } from '@genfeedai/interfaces';
+import type { IAgentWizardFormData, IBrand } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { preferredWorkflowTemplateIdForAgentType } from '@pages/agents/content-team/content-team-presets';
@@ -18,10 +18,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
 import { Cpu } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { StepIndicator } from './AgentWizardHelpers';
-import AgentWizardStepBrand from './AgentWizardStepBrand';
 import AgentWizardStepConfigure from './AgentWizardStepConfigure';
 import AgentWizardStepReview from './AgentWizardStepReview';
 import AgentWizardStepType from './AgentWizardStepType';
@@ -75,74 +75,96 @@ const AGENT_TYPE_LABELS: Partial<Record<AgentType, string>> = {
   [AgentType.YOUTUBE_SCRIPT]: 'YouTube Script',
 };
 
-export default function AgentWizardPage() {
+function buildInitialForm(
+  brandId: string,
+  selectedBrand: IBrand | undefined,
+): IAgentWizardFormData {
+  const config = selectedBrand?.agentConfig;
+  const voiceSegments = [
+    config?.voice?.tone ? `Tone: ${config.voice.tone}` : '',
+    config?.voice?.style ? `Style: ${config.voice.style}` : '',
+    config?.voice?.audience?.length
+      ? `Audience: ${config.voice.audience.join(', ')}`
+      : '',
+    config?.persona ? `Persona: ${config.persona}` : '',
+  ].filter(Boolean);
+
+  return {
+    ...DEFAULT_FORM,
+    brand: brandId,
+    ...(config?.autoPublish?.isEnabled || config?.autoPublish?.enabled
+      ? {
+          autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+          autoPublishConfidenceThreshold:
+            config.autoPublish.confidenceThreshold || 0.8,
+        }
+      : {}),
+    ...(config?.defaultModel ? { model: config.defaultModel } : {}),
+    ...(config?.strategy?.contentTypes?.length
+      ? { topics: config.strategy.contentTypes.join(', ') }
+      : {}),
+    ...(config?.strategy?.frequency
+      ? {
+          runFrequency: mapBrandFrequencyToRunFrequency(
+            config.strategy.frequency,
+          ),
+        }
+      : {}),
+    ...(config?.strategy?.platforms?.length
+      ? { platforms: config.strategy.platforms }
+      : {}),
+    ...(voiceSegments.length > 0 ? { voice: voiceSegments.join(' | ') } : {}),
+  };
+}
+
+interface AgentWizardPageProps {
+  isEmbedded?: boolean;
+  onCreated?: () => Promise<void> | void;
+}
+
+export default function AgentWizardPage({
+  isEmbedded = false,
+  onCreated,
+}: AgentWizardPageProps) {
+  const translate = useTranslations('common.automation.agentCreation');
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
+  const { brandId, isReady: isBrandReady, selectedBrand } = useBrand();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<IAgentWizardFormData>(DEFAULT_FORM);
+  const [form, setForm] = useState<IAgentWizardFormData>(() =>
+    buildInitialForm(
+      isBrandReady ? brandId : '',
+      isBrandReady ? selectedBrand : undefined,
+    ),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const initializedBrandIdRef = useRef(isBrandReady && brandId ? brandId : '');
+
+  useEffect(() => {
+    if (
+      !isBrandReady ||
+      !brandId ||
+      initializedBrandIdRef.current === brandId
+    ) {
+      return;
+    }
+
+    initializedBrandIdRef.current = brandId;
+    setForm(buildInitialForm(brandId, selectedBrand));
+    setStep(1);
+  }, [brandId, isBrandReady, selectedBrand]);
 
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
-
-  const { brands } = useBrand();
 
   const selectedTypeConfig = form.agentType
     ? {
         label: AGENT_TYPE_LABELS[form.agentType as AgentType] ?? form.agentType,
       }
     : undefined;
-  const selectedBrandLabel = brands.find((b) => b.id === form.brand)?.label;
-
-  const handleBrandSelect = useCallback(
-    (brandId: string) => {
-      const brand = brands.find((b) => b.id === brandId);
-      const config = brand?.agentConfig;
-      const voiceSegments = [
-        config?.voice?.tone ? `Tone: ${config.voice.tone}` : '',
-        config?.voice?.style ? `Style: ${config.voice.style}` : '',
-        config?.voice?.audience?.length
-          ? `Audience: ${config.voice.audience.join(', ')}`
-          : '',
-        config?.persona ? `Persona: ${config.persona}` : '',
-      ].filter(Boolean);
-      const derivedVoice = voiceSegments.join(' | ');
-
-      setForm((prev) => ({
-        ...prev,
-        brand: brandId,
-        ...(derivedVoice && !prev.voice ? { voice: derivedVoice } : {}),
-        ...(config?.defaultModel && !prev.model
-          ? { model: config.defaultModel }
-          : {}),
-        ...(config?.strategy?.frequency
-          ? {
-              runFrequency: mapBrandFrequencyToRunFrequency(
-                config.strategy.frequency,
-              ),
-            }
-          : {}),
-        ...(config?.strategy?.contentTypes?.length && !prev.topics
-          ? { topics: config.strategy.contentTypes.join(', ') }
-          : {}),
-        ...(config?.strategy?.platforms?.length &&
-        prev.platforms.length === 1 &&
-        prev.platforms[0] === Platform.TWITTER
-          ? { platforms: config.strategy.platforms }
-          : {}),
-        ...(config?.autoPublish?.isEnabled || config?.autoPublish?.enabled
-          ? {
-              autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
-              autoPublishConfidenceThreshold:
-                config.autoPublish.confidenceThreshold || 0.8,
-            }
-          : {}),
-      }));
-    },
-    [brands],
-  );
+  const selectedBrandLabel = selectedBrand?.label;
 
   const handleSelectType = useCallback((type: AgentType) => {
     const AGENT_TYPE_DEFAULTS: Partial<
@@ -209,6 +231,13 @@ export default function AgentWizardPage() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
+    if (!isBrandReady || !brandId) {
+      notificationsService.error(
+        'Wait for the selected brand to finish loading.',
+      );
+      return;
+    }
+
     if (!form.label.trim()) {
       notificationsService.error('Agent label is required');
       return;
@@ -222,13 +251,16 @@ export default function AgentWizardPage() {
         agentType,
         autonomyMode: form.autonomyMode as AgentAutonomyMode,
         autoPublishConfidenceThreshold: form.autoPublishConfidenceThreshold,
+        brandId,
         dailyCreditBudget: form.dailyCreditBudget,
         isActive: form.startImmediately,
         label: form.label,
         minCreditThreshold: form.minCreditThreshold,
+        model: form.model || undefined,
         platforms: form.platforms,
         preferredWorkflowTemplateId:
           preferredWorkflowTemplateIdForAgentType(agentType),
+        qualityTier: form.qualityTier,
         runFrequency: form.runFrequency,
         topics: form.topics
           ? form.topics.split(',').flatMap((topic) => {
@@ -236,16 +268,78 @@ export default function AgentWizardPage() {
               return trimmedTopic ? [trimmedTopic] : [];
             })
           : [],
+        voice: form.voice || undefined,
       });
       notificationsService.success('Agent created successfully');
-      push(href(APP_ROUTES.AUTOMATE.AGENTS));
+      if (onCreated) {
+        await onCreated();
+      } else {
+        push(href(APP_ROUTES.AUTOMATE.AGENTS));
+      }
     } catch (error) {
       logger.error('Failed to create agent', { error });
       notificationsService.error('Failed to create agent');
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, getService, href, notificationsService, push]);
+  }, [
+    brandId,
+    form,
+    getService,
+    href,
+    isBrandReady,
+    notificationsService,
+    onCreated,
+    push,
+  ]);
+
+  const wizard = (
+    <div className="max-w-2xl">
+      <StepIndicator current={step} />
+
+      {step === 1 && (
+        <AgentWizardStepType
+          selectedAgentType={form.agentType as AgentType}
+          onSelectType={handleSelectType}
+          onNext={() => setStep(2)}
+        />
+      )}
+
+      {step === 2 && (
+        <AgentWizardStepConfigure
+          form={form}
+          setForm={setForm}
+          onTogglePlatform={handleTogglePlatform}
+          onBack={() => setStep(1)}
+          onNext={() => setStep(3)}
+        />
+      )}
+
+      {step === 3 && (
+        <AgentWizardStepReview
+          form={form}
+          setForm={setForm}
+          selectedBrandLabel={selectedBrandLabel}
+          selectedTypeConfig={selectedTypeConfig}
+          onBack={() => setStep(2)}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
+      )}
+    </div>
+  );
+  const content =
+    !isBrandReady || !brandId ? (
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        {translate('loadingBrand')}
+      </p>
+    ) : (
+      wizard
+    );
+
+  if (isEmbedded) {
+    return content;
+  }
 
   return (
     <Container
@@ -253,49 +347,7 @@ export default function AgentWizardPage() {
       description="Configure a new content agent."
       icon={Cpu}
     >
-      <div className="max-w-2xl">
-        <StepIndicator current={step} />
-
-        {step === 1 && (
-          <AgentWizardStepType
-            selectedAgentType={form.agentType as AgentType}
-            onSelectType={handleSelectType}
-            onNext={() => setStep(2)}
-          />
-        )}
-
-        {step === 2 && (
-          <AgentWizardStepBrand
-            brands={brands}
-            selectedBrandId={form.brand}
-            onBrandSelect={handleBrandSelect}
-            onBack={() => setStep(1)}
-            onNext={() => setStep(3)}
-          />
-        )}
-
-        {step === 3 && (
-          <AgentWizardStepConfigure
-            form={form}
-            setForm={setForm}
-            onTogglePlatform={handleTogglePlatform}
-            onBack={() => setStep(2)}
-            onNext={() => setStep(4)}
-          />
-        )}
-
-        {step === 4 && (
-          <AgentWizardStepReview
-            form={form}
-            setForm={setForm}
-            selectedBrandLabel={selectedBrandLabel}
-            selectedTypeConfig={selectedTypeConfig}
-            onBack={() => setStep(3)}
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
-          />
-        )}
-      </div>
+      {content}
     </Container>
   );
 }

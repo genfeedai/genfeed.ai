@@ -9,13 +9,14 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ByokProvider, ContentSkillCategory } from '@genfeedai/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  Equals,
   IsArray,
-  IsBoolean,
   IsEnum,
   IsObject,
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class SkillPayloadDto {
@@ -100,7 +101,7 @@ export class SkillPayloadDto {
   @ApiPropertyOptional({ enum: SKILL_SOURCES })
   source?: (typeof SKILL_SOURCES)[number];
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsEnum(SKILL_STATUSES)
   @ApiPropertyOptional({ enum: SKILL_STATUSES })
   status?: (typeof SKILL_STATUSES)[number];
@@ -113,8 +114,11 @@ export class SkillPayloadDto {
 
 export class CreateSkillDto extends SkillPayloadDto {
   @IsOptional()
-  @IsBoolean()
-  @ApiPropertyOptional({ type: Boolean })
+  @Equals(false)
+  @ApiPropertyOptional({
+    description: 'Tenant API creates organization-owned skills only',
+    type: Boolean,
+  })
   isBuiltIn?: boolean;
 }
 
@@ -133,7 +137,7 @@ export class CustomizeSkillDto {
   @ApiPropertyOptional({ type: String })
   name?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MaxLength(160)
   @ApiPropertyOptional({ type: String })
@@ -147,13 +151,13 @@ export class CustomizeSkillDto {
 }
 
 export class UpdateSkillDto {
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MaxLength(140)
   @ApiPropertyOptional({ type: String })
   name?: string;
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsString()
   @MaxLength(160)
   @ApiPropertyOptional({ type: String })
@@ -231,7 +235,7 @@ export class UpdateSkillDto {
   @ApiPropertyOptional({ type: [String] })
   toolOverrides?: string[];
 
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @IsEnum(SKILL_STATUSES)
   @ApiPropertyOptional({ enum: SKILL_STATUSES })
   status?: (typeof SKILL_STATUSES)[number];

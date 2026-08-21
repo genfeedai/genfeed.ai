@@ -172,7 +172,7 @@ export abstract class BaseService<
     return this.queryNormalizationAdapter.supportsField(fieldName);
   }
 
-  private populateToInclude(
+  protected populateToInclude(
     populate: PopulateInput,
   ): Record<string, unknown> | undefined {
     return this.queryNormalizationAdapter.populateToInclude(populate);

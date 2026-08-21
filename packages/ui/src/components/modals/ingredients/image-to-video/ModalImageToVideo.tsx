@@ -4,6 +4,7 @@ import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory, ModalEnum } from '@genfeedai/enums';
 import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import Modal from '@ui/modals/modal/Modal';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import Image from 'next/image';
@@ -71,24 +72,32 @@ export default function ModalImageToVideo({
             </div>
 
             <div className="space-y-4">
-              <PromptBar
-                categoryType={IngredientCategory.VIDEO}
-                models={models}
-                presets={presets}
-                moods={moods}
-                styles={styles}
-                cameras={cameras}
-                sounds={sounds}
-                tags={tags}
-                fontFamilies={fontFamilies}
-                blacklists={blacklists}
-                promptData={promptData}
-                onDatasetChange={onPromptChange}
-                onSubmit={handleSubmit}
-                isGenerating={isGenerating}
-                isGenerateDisabled={!promptData?.isValid || isGenerating}
-                generateLabel="Generate Video"
-              />
+              <PromptBarContainer
+                className="w-full"
+                layoutMode="inflow"
+                maxWidth="full"
+              >
+                <div data-testid="image-to-video-composer">
+                  <PromptBar
+                    categoryType={IngredientCategory.VIDEO}
+                    models={models}
+                    presets={presets}
+                    moods={moods}
+                    styles={styles}
+                    cameras={cameras}
+                    sounds={sounds}
+                    tags={tags}
+                    fontFamilies={fontFamilies}
+                    blacklists={blacklists}
+                    promptData={promptData}
+                    onDatasetChange={onPromptChange}
+                    onSubmit={handleSubmit}
+                    isGenerating={isGenerating}
+                    isGenerateDisabled={!promptData?.isValid || isGenerating}
+                    generateLabel="Generate Video"
+                  />
+                </div>
+              </PromptBarContainer>
             </div>
           </div>
         </div>

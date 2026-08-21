@@ -77,10 +77,8 @@ export class BetterAuthIdentityResolverService {
       'lastUsedOrganizationId',
     );
 
-    const members = await this.membersService.find({
-      isActive: true,
-      userId: resolvedUserId,
-    });
+    const members =
+      await this.membersService.findActiveForUserAccess(resolvedUserId);
 
     const organizationId = await this.resolveOrganizationId(
       resolvedUserId,

@@ -5,10 +5,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { toStudioGenerateJob } from '@pages/studio/generate/utils/studio-generate-asset';
 import type { StudioGenerateFilter } from '@pages/studio/generate/utils/studio-generate-gallery';
-import {
-  buildStudioGalleryQuery,
-  resolveStudioGallerySegments,
-} from '@pages/studio/generate/utils/studio-generate-gallery';
+import { buildStudioGalleryQuery } from '@pages/studio/generate/utils/studio-generate-gallery';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useState } from 'react';
@@ -25,9 +22,9 @@ export interface UseStudioGenerateGalleryReturn {
 }
 
 /**
- * Stored generation history behind the results grid. One request per ingredient
- * collection the active filter covers, merged into the same job shape the live
- * socket queue produces.
+ * Stored generation history behind the results grid. The unified ingredients
+ * endpoint hydrates metadata and prompts before rows are projected onto the
+ * same job shape the live socket queue produces.
  */
 export function useStudioGenerateGallery({
   brandId,
@@ -39,11 +36,8 @@ export function useStudioGenerateGallery({
   const [isLoadingGallery, setIsLoadingGallery] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
 
-  // `useAuthedService` factories only receive the token, so this resolves to a
-  // segment-keyed factory the effect can call once per collection.
-  const getCollectionFactory = useAuthedService(
-    (token: string) => (segment: string) =>
-      IngredientsService.getInstance(segment, token),
+  const getIngredientsService = useAuthedService((token: string) =>
+    IngredientsService.getInstance(token),
   );
 
   const refresh = useCallback(() => {
@@ -52,6 +46,12 @@ export function useStudioGenerateGallery({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the refresh trigger — refresh() bumps it so this effect re-runs after a generation completes.
   useEffect(() => {
+    if (!brandId) {
+      setStoredJobs([]);
+      setIsLoadingGallery(false);
+      return;
+    }
+
     const controller = new AbortController();
     let isCancelled = false;
 
@@ -59,22 +59,15 @@ export function useStudioGenerateGallery({
 
     void (async () => {
       try {
-        const query = buildStudioGalleryQuery(brandId);
-        const createCollectionService = await getCollectionFactory();
-        const results = await Promise.allSettled(
-          resolveStudioGallerySegments(filter).map((segment) =>
-            createCollectionService(segment).findAll(query, controller.signal),
-          ),
-        );
+        const query = buildStudioGalleryQuery(brandId, filter);
+        const service = await getIngredientsService();
+        const ingredients = await service.findAll(query, controller.signal);
 
         if (isCancelled || controller.signal.aborted) {
           return;
         }
 
-        const jobs = results
-          .flatMap((result) =>
-            result.status === 'fulfilled' ? result.value : [],
-          )
+        const jobs = ingredients
           .map((ingredient) =>
             toStudioGenerateJob(ingredient as unknown as IIngredient),
           )
@@ -98,7 +91,7 @@ export function useStudioGenerateGallery({
       isCancelled = true;
       controller.abort();
     };
-  }, [brandId, filter, getCollectionFactory, reloadToken]);
+  }, [brandId, filter, getIngredientsService, reloadToken]);
 
   return { isLoadingGallery, refresh, storedJobs };
 }

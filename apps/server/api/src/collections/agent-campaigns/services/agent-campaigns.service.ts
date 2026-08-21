@@ -1,27 +1,49 @@
 import { CreateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/create-agent-campaign.dto';
+import { CreateAgentCampaignFromTemplateDto } from '@api/collections/agent-campaigns/dto/create-agent-campaign-from-template.dto';
 import { UpdateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/update-agent-campaign.dto';
 import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
+import {
+  AgentStrategiesService,
+  type AgentStrategyCreateInput,
+} from '@api/collections/agent-strategies/services/agent-strategies.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import { getAgentProgramTemplate } from '@genfeedai/constants';
+import { AgentAutonomyMode, AgentRunFrequency } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
-type AgentCampaignWriteDto = Partial<
+export type AgentCampaignWriteDto = Partial<
   CreateAgentCampaignDto & UpdateAgentCampaignDto
 > & {
   config?: unknown;
+  creditsUsed?: number;
+  /** Internal scheduler timestamps are persisted as nullable Prisma columns. */
+  lastOrchestratedAt?: Date | null;
+  lastOrchestrationSummary?: string | null;
+  nextOrchestratedAt?: Date | null;
   organizationId?: string;
   userId?: string;
 };
 
-type AgentCampaignCreateInput = CreateAgentCampaignDto & {
+export type AgentCampaignCreateInput = CreateAgentCampaignDto & {
   organizationId: string;
   userId: string;
 };
+
+export type AgentCampaignFromTemplateInput =
+  CreateAgentCampaignFromTemplateDto & {
+    organizationId: string;
+    userId: string;
+  };
 
 /** Payload-only keys that remain in config JSON. */
 const CONFIG_BACKED_KEYS = ['contentQuota', 'contentRotation'] as const;
@@ -49,6 +71,7 @@ export class AgentCampaignsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly agentStrategiesService: AgentStrategiesService,
   ) {
     super(prisma, 'agentCampaign', logger);
   }
@@ -64,10 +87,27 @@ export class AgentCampaignsService extends BaseService<
         : typeof config.brief === 'string'
           ? config.brief
           : undefined;
+    const agents = Array.isArray(record.agents)
+      ? record.agents.flatMap((agent) => {
+          if (typeof agent === 'string') {
+            return [agent];
+          }
+          if (
+            agent &&
+            typeof agent === 'object' &&
+            'id' in agent &&
+            typeof agent.id === 'string'
+          ) {
+            return [agent.id];
+          }
+          return [];
+        })
+      : [];
 
     return {
       ...config,
       ...record,
+      agents,
       ...(brief !== undefined ? { brief } : {}),
     } as AgentCampaignDocument;
   }
@@ -76,6 +116,14 @@ export class AgentCampaignsService extends BaseService<
     createDto: AgentCampaignCreateInput,
     populate: PopulateInput = [],
   ): Promise<AgentCampaignDocument> {
+    await this.assertWriteScope(
+      this.prisma,
+      createDto.organizationId,
+      createDto.brandId,
+      createDto.agentStrategyIds,
+      createDto.campaignLeadStrategyId,
+    );
+
     return await super.create(
       this.toPrismaWriteData(
         createDto,
@@ -87,19 +135,71 @@ export class AgentCampaignsService extends BaseService<
 
   override async patch(
     id: string,
-    updateDto: Partial<UpdateAgentCampaignDto>,
+    updateDto: AgentCampaignWriteDto,
     populate: PopulateInput = [],
   ): Promise<AgentCampaignDocument> {
-    const existing = await this.findOne({ id: id });
-    const existingConfig = this.readRecord(
-      (existing as Record<string, unknown> | null)?.config,
-    );
+    const organizationId = updateDto.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException(
+        'Organization scope is required to update a Program',
+      );
+    }
 
-    return await super.patch(
-      id,
-      this.toPrismaWriteData(updateDto, 'update', existingConfig ?? {}),
-      populate,
-    );
+    const existing = await this.prisma.agentCampaign.findFirst({
+      include: { agents: { select: { id: true } } },
+      where: scopedWhere(organizationId, { id }),
+    });
+    if (!existing) {
+      throw new NotFoundException('Program', id);
+    }
+
+    const changesRelations =
+      Object.hasOwn(updateDto, 'brandId') ||
+      Object.hasOwn(updateDto, 'agentStrategyIds') ||
+      Object.hasOwn(updateDto, 'campaignLeadStrategyId');
+
+    if (changesRelations) {
+      const brandId = Object.hasOwn(updateDto, 'brandId')
+        ? updateDto.brandId
+        : (existing.brandId ?? undefined);
+      const agentStrategyIds = Object.hasOwn(updateDto, 'agentStrategyIds')
+        ? (updateDto.agentStrategyIds ?? [])
+        : existing.agents.map((agent) => agent.id);
+      const campaignLeadStrategyId = Object.hasOwn(
+        updateDto,
+        'campaignLeadStrategyId',
+      )
+        ? updateDto.campaignLeadStrategyId
+        : (existing.campaignLeadStrategyId ?? undefined);
+
+      await this.assertWriteScope(
+        this.prisma,
+        existing.organizationId,
+        brandId,
+        agentStrategyIds,
+        campaignLeadStrategyId,
+      );
+    }
+
+    const existingConfig = this.readRecord(existing.config);
+
+    const include = this.populateToInclude(populate);
+    const updated = await this.delegate.update({
+      data: this.toPrismaWriteData(updateDto, 'update', existingConfig ?? {}),
+      ...(include ? { include } : {}),
+      where: scopedWhere(organizationId, { id }),
+    });
+
+    if (this.cacheService) {
+      await this.cacheService.invalidateByTags([
+        this.collectionName,
+        `collection:${this.collectionName}`,
+        `query:${this.collectionName}`,
+        paginatedQueryCacheTag(this.collectionName),
+      ]);
+    }
+
+    return this.normalizeDocument(updated);
   }
 
   /**
@@ -109,7 +209,153 @@ export class AgentCampaignsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<AgentCampaignDocument | null> {
-    return this.findOne(scopedWhere(organizationId, { id }));
+    return this.findOne(scopedWhere(organizationId, { id }), ['agents']);
+  }
+
+  /**
+   * Create a draft Program and every agent in a server-owned template as one
+   * transaction. A failed write leaves no orphan agents behind.
+   */
+  createFromTemplate(
+    input: AgentCampaignFromTemplateInput,
+  ): Promise<AgentCampaignDocument> {
+    const template = getAgentProgramTemplate(input.templateId);
+    if (!template) {
+      throw new BadRequestException('Unknown Program template');
+    }
+
+    return this.prisma.$transaction(async (transactionClient) => {
+      const client = transactionClient as unknown as PrismaTransactionClient;
+      const existingAgentIds = input.agentStrategyIds ?? [];
+
+      await this.assertWriteScope(
+        client,
+        input.organizationId,
+        input.brandId,
+        existingAgentIds,
+      );
+
+      const createdAgentIds: string[] = [];
+      for (const role of template.roles) {
+        const strategy = await this.agentStrategiesService.createWithClient(
+          this.buildTemplateStrategyInput(input, role),
+          client,
+        );
+        createdAgentIds.push(strategy.id);
+      }
+
+      const allAgentIds = [...existingAgentIds, ...createdAgentIds];
+      const campaignLeadStrategyId = createdAgentIds[0] ?? existingAgentIds[0];
+
+      return this.createWithClient(
+        {
+          agentStrategyIds: allAgentIds,
+          brief: input.brief,
+          brandId: input.brandId,
+          campaignLeadStrategyId,
+          creditsAllocated: input.creditsAllocated,
+          endDate: input.endDate,
+          label: input.label,
+          organizationId: input.organizationId,
+          startDate: input.startDate,
+          status: 'draft',
+          userId: input.userId,
+        },
+        client,
+      );
+    });
+  }
+
+  private async createWithClient(
+    createDto: AgentCampaignCreateInput,
+    client: PrismaTransactionClient,
+  ): Promise<AgentCampaignDocument> {
+    const document = await client.agentCampaign.create({
+      data: this.toPrismaWriteData(
+        createDto,
+        'create',
+      ) as Prisma.AgentCampaignUncheckedCreateInput,
+      include: { agents: { select: { id: true } } },
+    });
+
+    return this.normalizeDocument(document);
+  }
+
+  private buildTemplateStrategyInput(
+    input: AgentCampaignFromTemplateInput,
+    role: NonNullable<
+      ReturnType<typeof getAgentProgramTemplate>
+    >['roles'][number],
+  ): AgentStrategyCreateInput {
+    return {
+      agentType: role.agentType,
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
+      brandId: input.brandId,
+      dailyCreditBudget: role.dailyCreditBudget,
+      displayRole: role.displayRole,
+      // Template Programs are created as drafts. Their agents must remain
+      // inert until AgentCampaignExecutionService starts the Program.
+      isActive: false,
+      label: role.defaultLabel,
+      minCreditThreshold: Math.max(25, Math.floor(role.dailyCreditBudget / 2)),
+      organizationId: input.organizationId,
+      platforms: role.platforms,
+      postsPerWeek: 7,
+      reportsToLabel: 'Main Orchestrator',
+      runFrequency: AgentRunFrequency.DAILY,
+      teamGroup: role.teamGroup,
+      topics: [],
+      userId: input.userId,
+      weeklyCreditBudget: role.dailyCreditBudget * 5,
+    };
+  }
+
+  private async assertWriteScope(
+    client: PrismaTransactionClient,
+    organizationId: string,
+    brandId?: string,
+    agentStrategyIds: string[] = [],
+    campaignLeadStrategyId?: string,
+  ): Promise<void> {
+    if (brandId) {
+      const brand = await client.brand.findFirst({
+        select: { id: true },
+        where: scopedWhere(organizationId, { id: brandId }),
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          'The selected brand is unavailable for this Program',
+        );
+      }
+    }
+
+    const uniqueAgentIds = [...new Set(agentStrategyIds)];
+    if (
+      campaignLeadStrategyId &&
+      !uniqueAgentIds.includes(campaignLeadStrategyId)
+    ) {
+      throw new BadRequestException(
+        'The Program lead must be attached to the Program',
+      );
+    }
+
+    if (uniqueAgentIds.length === 0) {
+      return;
+    }
+
+    const strategies = await client.agentStrategy.findMany({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        ...(brandId ? { brandId } : {}),
+        id: { in: uniqueAgentIds },
+      }),
+    });
+
+    if (strategies.length !== uniqueAgentIds.length) {
+      throw new BadRequestException(
+        'One or more selected agents are unavailable for this Program',
+      );
+    }
   }
 
   private toPrismaWriteData(

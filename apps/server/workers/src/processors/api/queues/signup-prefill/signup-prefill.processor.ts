@@ -51,7 +51,10 @@ export class SignupPrefillProcessor extends WorkerHost {
       // tell "prefill failed" apart from "prefill never ran" and offer the
       // interactive setup instead of waiting on a job that will not arrive.
       if (job.attemptsMade + 1 >= (job.opts.attempts ?? 1)) {
-        await this.signupPrefillService.markPrefillFailed(job.data.brandId);
+        await this.signupPrefillService.markPrefillFailed(
+          job.data.brandId,
+          job.data.organizationId,
+        );
       }
 
       throw error;

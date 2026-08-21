@@ -2,7 +2,7 @@
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarContentProps } from '@genfeedai/props/prompt-bars/prompt-bar-content.props';
-import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
+import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarContentCollapsedView from '@ui/prompt-bars/content/PromptBarContentCollapsedView';
 import PromptBarContentExpandedView from '@ui/prompt-bars/content/PromptBarContentExpandedView';
 import { usePromptBarContent } from '@ui/prompt-bars/content/use-prompt-bar-content';
@@ -18,9 +18,10 @@ function PromptBarContent(props: PromptBarContentProps) {
   const controller = usePromptBarContent(props);
 
   return (
-    <PromptBarShell
+    <PromptBarComposer
+      bodyClassName="p-2"
       className={cn(
-        'flex flex-col p-2 transition-all duration-300',
+        'transition-all duration-300',
         controller.isCollapsed ? 'overflow-hidden' : 'overflow-visible',
       )}
     >
@@ -47,7 +48,7 @@ function PromptBarContent(props: PromptBarContentProps) {
           onThreadChange={controller.setIsThread}
         />
       )}
-    </PromptBarShell>
+    </PromptBarComposer>
   );
 }
 

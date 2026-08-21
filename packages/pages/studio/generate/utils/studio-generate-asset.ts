@@ -39,6 +39,27 @@ export function resolveStudioAssetUrl(
   );
 }
 
+/**
+ * Persisted dimensions only. Ingredient model getters intentionally provide
+ * portrait defaults for legacy views; using those defaults as real generation
+ * metadata makes square assets letterbox inside a false 9:16 masonry tile.
+ */
+export function resolveStudioAssetDimensions(
+  ingredient: Pick<IIngredient, 'height' | 'metadata' | 'width'> | null,
+): { height?: number; width?: number } {
+  if (!ingredient) {
+    return {};
+  }
+
+  const metadata =
+    typeof ingredient.metadata === 'object' ? ingredient.metadata : undefined;
+
+  return {
+    height: metadata?.height || ingredient.height || undefined,
+    width: metadata?.width || ingredient.width || undefined,
+  };
+}
+
 export function resolveStudioTypeFromCategory(
   category: IngredientCategory | string | undefined,
 ): StudioGenerateType | null {
@@ -73,21 +94,32 @@ export function toStudioGenerateJob(
   const createdAt = ingredient.createdAt
     ? new Date(ingredient.createdAt).getTime()
     : 0;
+  const dimensions = resolveStudioAssetDimensions(ingredient);
 
   return {
     createdAt: Number.isNaN(createdAt) ? 0 : createdAt,
+    height: dimensions.height,
     id: String(ingredient.id),
-    modelKey: ingredient.metadataModel || ingredient.model || undefined,
+    ingredient,
+    ingredientId: String(ingredient.id),
+    modelKey:
+      (typeof ingredient.metadata === 'object'
+        ? ingredient.metadata?.model
+        : undefined) ||
+      ingredient.metadataModel ||
+      ingredient.model ||
+      undefined,
     prompt: ingredient.promptText || '',
     status: resolveStatus(ingredient.status),
     type,
     url: resolveStudioAssetUrl(ingredient),
+    width: dimensions.width,
   };
 }
 
 /**
- * Merges live jobs over stored history. A live job always wins so a card does
- * not flip back to its pre-completion state when the gallery refetches.
+ * Stored rows are authoritative after persistence. The only exception is a
+ * socket result that has advanced beyond a still-stale processing response.
  */
 export function mergeStudioGenerateJobs(
   liveJobs: readonly StudioGenerateJob[],
@@ -99,7 +131,25 @@ export function mergeStudioGenerateJobs(
     merged.set(job.id, job);
   }
   for (const job of liveJobs) {
-    merged.set(job.id, { ...merged.get(job.id), ...job });
+    const storedJob = merged.get(job.id);
+    if (!storedJob) {
+      merged.set(job.id, job);
+      continue;
+    }
+
+    const storedIsPending =
+      storedJob.status === IngredientStatus.DRAFT ||
+      storedJob.status === IngredientStatus.PROCESSING;
+    const liveIsPending =
+      job.status === IngredientStatus.DRAFT ||
+      job.status === IngredientStatus.PROCESSING;
+
+    merged.set(
+      job.id,
+      storedIsPending && !liveIsPending
+        ? { ...storedJob, ...job }
+        : { ...job, ...storedJob },
+    );
   }
 
   return Array.from(merged.values()).toSorted(

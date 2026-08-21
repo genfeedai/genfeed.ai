@@ -11,6 +11,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { fromIni } from '@aws-sdk/credential-provider-ini';
 import { Upload } from '@aws-sdk/lib-storage';
 import {
   assertSafeObjectKey,
@@ -84,13 +85,18 @@ export class S3StorageProvider implements StorageProvider {
     this.cdnUrl = normalizeCdnUrl(
       options.cdnUrl ?? process.env.GENFEEDAI_CDN_URL,
     );
+    const profile = options.profile ?? process.env.AWS_PROFILE?.trim();
+    const credentials = profile
+      ? fromIni({ profile })
+      : {
+          accessKeyId:
+            options.accessKeyId ?? process.env.AWS_ACCESS_KEY_ID ?? '',
+          secretAccessKey:
+            options.secretAccessKey ?? process.env.AWS_SECRET_ACCESS_KEY ?? '',
+        };
     this.client = new S3Client({
       region: this.region,
-      credentials: {
-        accessKeyId: options.accessKeyId ?? process.env.AWS_ACCESS_KEY_ID ?? '',
-        secretAccessKey:
-          options.secretAccessKey ?? process.env.AWS_SECRET_ACCESS_KEY ?? '',
-      },
+      credentials,
     });
   }
 

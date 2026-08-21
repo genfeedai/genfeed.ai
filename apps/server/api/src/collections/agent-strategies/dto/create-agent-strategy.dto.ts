@@ -3,6 +3,10 @@ import {
   AGENT_STRATEGY_GOAL_PROFILES,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import type { AgentPolicyQualityTier } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+import {
+  MAX_CONFIGURED_SKILL_SLUGS,
+  MAX_SKILL_SLUG_LENGTH,
+} from '@api/collections/skills/constants/skill-validation.constant';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AGENT_TYPE_VALUES } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import {
@@ -13,6 +17,8 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayUnique,
   IsArray,
   IsBoolean,
   IsDate,
@@ -21,10 +27,12 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
   Validate,
+  ValidateIf,
   ValidateNested,
   type ValidationArguments,
   ValidatorConstraint,
@@ -391,10 +399,18 @@ export class CreateAgentStrategyDto {
   platforms?: string[];
 
   @IsArray()
+  @ArrayMaxSize(MAX_CONFIGURED_SKILL_SLUGS)
+  @ArrayUnique()
   @IsString({ each: true })
-  @IsOptional()
+  @MaxLength(MAX_SKILL_SLUG_LENGTH, { each: true })
+  @Matches(/\S/u, {
+    each: true,
+    message: 'each skill slug must contain a non-whitespace character',
+  })
+  @ValidateIf((_object, value) => value !== undefined)
   @ApiProperty({
     description: 'Skill slugs assigned to this strategy',
+    maxItems: MAX_CONFIGURED_SKILL_SLUGS,
     required: false,
   })
   skillSlugs?: string[];

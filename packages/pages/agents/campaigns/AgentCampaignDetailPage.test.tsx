@@ -1,5 +1,11 @@
 import AgentCampaignDetailPage from '@pages/agents/campaigns/AgentCampaignDetailPage';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -7,12 +13,37 @@ import '@testing-library/jest-dom/vitest';
 const pushMock = vi.fn();
 const getByIdMock = vi.fn();
 const getStatusMock = vi.fn();
+let brandContext = {
+  brandId: 'brand-123',
+  isReady: true,
+  organizationId: 'org-123',
+};
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: vi.fn(() => ({
-    organizationId: 'org-123',
+  useBrand: vi.fn(() => brandContext),
+}));
+
+vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
+  useAgentStrategies: vi.fn(() => ({
+    isLoading: false,
+    strategies: [
+      { agentType: 'writer', id: 'agent-1', label: 'Script Writer' },
+      { agentType: 'video_creator', id: 'agent-2', label: 'Short Creator' },
+    ],
   })),
 }));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/acme/demo${path}` }),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => async () => ({
@@ -71,9 +102,19 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick }: { label: ReactNode; onClick?: () => void }) => (
-    <button onClick={onClick}>{label}</button>
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    ariaLabel,
+    label,
+    onClick,
+  }: {
+    ariaLabel?: string;
+    label: ReactNode;
+    onClick?: () => void;
+  }) => (
+    <button aria-label={ariaLabel} onClick={onClick}>
+      {label}
+    </button>
   ),
 }));
 
@@ -110,8 +151,14 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
 describe('AgentCampaignDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    brandContext = {
+      brandId: 'brand-123',
+      isReady: true,
+      organizationId: 'org-123',
+    };
     getByIdMock.mockResolvedValue({
       agents: ['agent-1', 'agent-2'],
+      brandId: 'brand-123',
       brief: 'Launch content push',
       contentQuota: null,
       creditsAllocated: 1000,
@@ -133,9 +180,81 @@ describe('AgentCampaignDetailPage', () => {
       expect(screen.getByText('Spring Launch')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Campaign Overview')).toBeInTheDocument();
+    expect(screen.getByText('Program Overview')).toBeInTheDocument();
     expect(screen.getByText('Agents Running')).toBeInTheDocument();
+    expect(screen.getByText('Script Writer')).toBeInTheDocument();
+    expect(screen.getByText('Short Creator')).toBeInTheDocument();
     expect(screen.getByText('agent-1')).toBeInTheDocument();
-    expect(screen.getByText('agent-2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Programs' }));
+    expect(pushMock).toHaveBeenCalledWith('/acme/demo/automate/campaigns');
+  });
+
+  it('does not render a Program from another selected brand', async () => {
+    getByIdMock.mockResolvedValue({
+      agents: ['agent-1'],
+      brandId: 'brand-other',
+      creditsAllocated: 100,
+      creditsUsed: 0,
+      id: 'campaign-123',
+      label: 'Other Brand Program',
+      status: 'draft',
+    });
+
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Program Not Found')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Other Brand Program')).not.toBeInTheDocument();
+    expect(getStatusMock).not.toHaveBeenCalled();
+  });
+
+  it('ignores a stale Program response after the selected brand changes', async () => {
+    let resolveFirstRequest: (campaign: Record<string, unknown>) => void = () =>
+      undefined;
+    const firstRequest = new Promise<Record<string, unknown>>((resolve) => {
+      resolveFirstRequest = resolve;
+    });
+
+    getByIdMock.mockReset();
+    getByIdMock.mockReturnValueOnce(firstRequest).mockResolvedValueOnce({
+      agents: ['agent-2'],
+      brandId: 'brand-456',
+      creditsAllocated: 100,
+      creditsUsed: 0,
+      id: 'campaign-123',
+      label: 'Brand B Program',
+      status: 'draft',
+    });
+
+    const { rerender } = render(<AgentCampaignDetailPage />);
+
+    brandContext = {
+      brandId: 'brand-456',
+      isReady: true,
+      organizationId: 'org-123',
+    };
+    rerender(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Brand B Program')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveFirstRequest({
+        agents: ['agent-1'],
+        brandId: 'brand-123',
+        creditsAllocated: 100,
+        creditsUsed: 0,
+        id: 'campaign-123',
+        label: 'Brand A Program',
+        status: 'draft',
+      });
+      await firstRequest;
+    });
+
+    expect(screen.getByText('Brand B Program')).toBeInTheDocument();
+    expect(screen.queryByText('Brand A Program')).not.toBeInTheDocument();
   });
 });

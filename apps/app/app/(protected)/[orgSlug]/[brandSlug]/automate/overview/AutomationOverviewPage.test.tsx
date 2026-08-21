@@ -118,6 +118,16 @@ describe('AutomationOverviewPage', () => {
     expect(screen.getByText('Content Runs')).toBeInTheDocument();
   });
 
+  it('does not duplicate Settings configuration inside Automate', () => {
+    render(<AutomationOverviewPage />);
+
+    expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
+    expect(screen.queryByText('Configuration Center')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /open configuration/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('uses the darker tinted quick-action icon palette', () => {
     const { container } = render(<AutomationOverviewPage />);
 

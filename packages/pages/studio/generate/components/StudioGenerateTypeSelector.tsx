@@ -11,22 +11,31 @@ import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown'
 import {
   Clapperboard,
   Image as ImageIcon,
+  type LucideIcon,
   Mic,
   Music,
   UserRound,
 } from 'lucide-react';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 
-const TYPE_ICONS: Record<StudioGenerateType, ReactNode> = {
-  avatar: <UserRound className="size-3.5" />,
-  image: <ImageIcon className="size-3.5" />,
-  music: <Music className="size-3.5" />,
-  video: <Clapperboard className="size-3.5" />,
-  voice: <Mic className="size-3.5" />,
+const TYPE_ICONS: Record<StudioGenerateType, LucideIcon> = {
+  avatar: UserRound,
+  image: ImageIcon,
+  music: Music,
+  video: Clapperboard,
+  voice: Mic,
 };
 
+function renderTypeIcon(
+  type: StudioGenerateType,
+  className: string,
+): ReactElement {
+  const Icon = TYPE_ICONS[type];
+  return <Icon className={className} />;
+}
+
 const TYPE_OPTIONS = listStudioGenerateTypeConfigs().map((config) => ({
-  icon: TYPE_ICONS[config.type],
+  icon: renderTypeIcon(config.type, 'size-4'),
   label: config.label,
   value: config.type,
 }));
@@ -42,9 +51,8 @@ export default function StudioGenerateTypeSelector({
 }: StudioGenerateTypeSelectorProps): ReactElement {
   return (
     <ButtonDropdown
-      className="border border-border bg-background hover:bg-accent/50"
       direction={DropdownDirection.UP}
-      icon={TYPE_ICONS[type]}
+      icon={renderTypeIcon(type, 'size-3.5')}
       isDisabled={isDisabled}
       name="studioGenerateType"
       onChange={(_name, value) => onChange(resolveStudioGenerateType(value))}

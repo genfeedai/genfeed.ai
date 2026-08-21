@@ -107,6 +107,7 @@ export const APP_ROUTES = {
      */
     ANALYTICS: '/automate/analytics',
     AUTOPILOT: '/automate/autopilot',
+    /** @deprecated Automation settings live under brand Settings. */
     CONFIGURATION: '/automate/configuration',
     /** Content-run history: briefs handed off from Discover through publish. */
     CONTENT_RUNS: '/automate/content-runs',
@@ -114,13 +115,16 @@ export const APP_ROUTES = {
      * Agent roster. Detail pages nest at `/automate/agents/:agentId`.
      */
     AGENTS: '/automate/agents',
+    /** @deprecated Opens the Add agent library on AUTOMATE.AGENTS. */
     HIRE: '/automate/hire',
     /**
      * @deprecated Team list permanently redirects to AGENTS.
      * `/automate/library/:type` remains the Twitch/YouTube chat-bot surfaces.
      */
     LIBRARY: '/automate/library',
+    /** @deprecated Opens the custom mode of the Add agent dialog. */
     NEW: '/automate/agents/new',
+    /** @deprecated Opens the Creator Studio template on CAMPAIGNS_NEW. */
     ORCHESTRATOR: '/automate/orchestrator',
     /**
      * Canonical automate home. Bare ROOT permanently redirects here so Overview
@@ -129,6 +133,7 @@ export const APP_ROUTES = {
     OVERVIEW: '/automate/overview',
     ROOT: '/automate',
     RUNS: '/automate/runs',
+    /** @deprecated Skill configuration lives at APP_ROUTES.SETTINGS.SKILLS. */
     SKILLS: '/automate/skills',
     /**
      * Agent Programs (budget/quota wrappers around strategies).
@@ -333,6 +338,7 @@ export const APP_ROUTES = {
     SCHEDULED: '/publish/scheduled',
   },
   SETTINGS: {
+    AGENT_DEFAULTS: '/settings/agent-defaults',
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
@@ -363,6 +369,8 @@ export const APP_ROUTES = {
      * Google Ads, Twitter, etc.). Canonical home for "connect accounts".
      */
     SOCIAL: '/settings/social',
+    /** Brand-enabled agent skills and organization-owned skill variants. */
+    SKILLS: '/settings/skills',
     /**
      * @deprecated External links edit on Brand Profile via ModalBrandLink.
      * Route permanently redirects to SETTINGS.ROOT.
@@ -518,6 +526,7 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     APP_ROUTES.OAUTH.replace(/^\//, ''),
     LEGACY_APP_ROUTES.TASKS.replace(/^\//, '').split('/')[0] ?? '',
     LEGACY_APP_ROUTES.LAB_CRON_JOBS.replace(/^\//, '').split('/')[0] ?? '',
+    'api',
     'desktop',
     'forgot-password',
     'managed-credits',
@@ -525,6 +534,8 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     'reset-password',
     'serwist',
     'sign-in',
+    'trpc',
+    'v1',
   ].filter(Boolean),
 );
 

@@ -129,7 +129,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
       },
       {
         activePathRoots: ['/studio'],
-        description: 'Produce storyboards, clips, batches, and timeline edits.',
+        description: 'Generate assets, storyboards, clips, and timeline edits.',
         icon: LayoutGrid,
         id: 'studio',
         itemKey: 'studio',
@@ -137,7 +137,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         // Studio production tools require a brand. The org route hands one-off
         // generation to Agent while preserving a stable switcher destination.
         route: createScopedAppRoute({
-          brandPath: '/studio/storyboard',
+          brandPath: '/studio/generate',
           organizationPath: '/studio',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.studio,

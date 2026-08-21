@@ -113,22 +113,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "brand",
-      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
-      "fingerprint": "ef8856409c7ebfd3cc10",
-      "method": "update",
-      "model": "Brand",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "brand",
-      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
-      "fingerprint": "527581bc74300b455c97",
-      "method": "update",
-      "model": "Brand",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "brandInterview",
       "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "2853aaa7d171c0b68175",

@@ -128,6 +128,43 @@ describe('MasonryImage', () => {
     expect(screen.getByRole('button')).toHaveClass('rounded-lg');
   });
 
+  it('uses the loaded image dimensions instead of stale square metadata', () => {
+    const { container } = render(
+      <MasonryImage
+        image={{
+          ...mockImage,
+          metadata: { height: 1080, width: 1080 },
+        }}
+      />,
+    );
+    const image = screen.getByRole('img');
+    Object.defineProperties(image, {
+      naturalHeight: { configurable: true, value: 900 },
+      naturalWidth: { configurable: true, value: 1600 },
+    });
+
+    fireEvent.load(image);
+
+    expect(container.querySelector('[data-masonry-item="true"]')).toHaveStyle({
+      aspectRatio: '1600 / 900',
+    });
+  });
+
+  it('keeps square mode authoritative after the image loads', () => {
+    const { container } = render(<MasonryImage image={mockImage} isSquare />);
+    const image = screen.getByRole('img');
+    Object.defineProperties(image, {
+      naturalHeight: { configurable: true, value: 900 },
+      naturalWidth: { configurable: true, value: 1600 },
+    });
+
+    fireEvent.load(image);
+
+    const masonryItem = container.querySelector('[data-masonry-item="true"]');
+    expect(masonryItem).toHaveClass('aspect-square');
+    expect(masonryItem).not.toHaveStyle({ aspectRatio: '1600 / 900' });
+  });
+
   it('supports space key activation for keyboard users', async () => {
     const user = userEvent.setup();
     const handleClickIngredient = vi.fn();
@@ -232,6 +269,15 @@ describe('MasonryImage', () => {
       'src',
       'https://assets.test.com/placeholders/portrait.jpg',
     );
+  });
+
+  it('notifies a parent surface when the real image fails', () => {
+    const onMediaError = vi.fn();
+
+    render(<MasonryImage image={mockImage} onMediaError={onMediaError} />);
+    fireEvent.error(screen.getByRole('img'));
+
+    expect(onMediaError).toHaveBeenCalledOnce();
   });
 
   it('keeps processing assets in a processing state, not a fallback', () => {

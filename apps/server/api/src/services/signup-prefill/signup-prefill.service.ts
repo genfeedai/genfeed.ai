@@ -143,7 +143,7 @@ export class SignupPrefillService {
       typeof brand.label === 'string' ? brand.label : null,
     );
 
-    await this.writeMarker(brandId, existingConfig, {
+    await this.writeMarker(brandId, organizationId, existingConfig, {
       brandDomain: resolved.domain ?? undefined,
       startedAt: new Date().toISOString(),
       status: 'running',
@@ -188,7 +188,11 @@ export class SignupPrefillService {
     // Re-read: `updateBrandGuidance` merged the AI voice into agentConfig, and
     // the defaults must layer on top of that merge rather than the pre-scrape
     // snapshot.
-    const mergedConfig = await this.readAgentConfig(brandId, existingConfig);
+    const mergedConfig = await this.readAgentConfig(
+      brandId,
+      organizationId,
+      existingConfig,
+    );
     const prefilledConfig = buildPrefilledAgentConfig({
       brandLabel,
       existingConfig: mergedConfig,
@@ -196,9 +200,11 @@ export class SignupPrefillService {
       timezone: 'UTC',
     });
 
-    await this.brandsService.patch(brandId, {
-      agentConfig: prefilledConfig,
-    });
+    await this.brandsService.updateAgentConfig(
+      brandId,
+      organizationId,
+      prefilledConfig,
+    );
     await this.ensureBrandPromptFields(
       brandId,
       brandLabel,
@@ -216,7 +222,7 @@ export class SignupPrefillService {
       userId,
     });
 
-    await this.writeMarker(brandId, prefilledConfig, {
+    await this.writeMarker(brandId, organizationId, prefilledConfig, {
       brandDomain: resolved.domain ?? undefined,
       completedAt: new Date().toISOString(),
       hasBrandVoice: Boolean(brandVoice),
@@ -248,9 +254,15 @@ export class SignupPrefillService {
    * Record a terminal failure on the brand so the onboarding UI can tell
    * "prefill never ran" apart from "prefill ran and found nothing".
    */
-  async markPrefillFailed(brandId: string): Promise<void> {
+  async markPrefillFailed(
+    brandId: string,
+    organizationId: string,
+  ): Promise<void> {
     try {
-      const brand = await this.brandsService.findOne({ id: brandId }, 'none');
+      const brand = await this.brandsService.findOne(
+        { id: brandId, organizationId },
+        'none',
+      );
 
       if (!brand) {
         return;
@@ -259,7 +271,7 @@ export class SignupPrefillService {
       const config = this.brandDataMapper.readBrandAgentConfig(
         brand.agentConfig,
       );
-      await this.writeMarker(brandId, config, {
+      await this.writeMarker(brandId, organizationId, config, {
         completedAt: new Date().toISOString(),
         status: 'failed',
       });
@@ -394,6 +406,7 @@ export class SignupPrefillService {
     );
     await this.brandPersistenceService.updateBrandGuidance(
       input.brandId,
+      input.organizationId,
       extractedData,
     );
     await this.brandPersistenceService.syncBrandAndOrgSlug(
@@ -495,9 +508,13 @@ export class SignupPrefillService {
 
   private async readAgentConfig(
     brandId: string,
+    organizationId: string,
     fallback: BrandAgentConfig,
   ): Promise<BrandAgentConfig> {
-    const brand = await this.brandsService.findOne({ id: brandId }, 'none');
+    const brand = await this.brandsService.findOne(
+      { id: brandId, organizationId },
+      'none',
+    );
 
     return brand
       ? this.brandDataMapper.readBrandAgentConfig(brand.agentConfig)
@@ -518,16 +535,15 @@ export class SignupPrefillService {
 
   private async writeMarker(
     brandId: string,
+    organizationId: string,
     config: BrandAgentConfig,
     marker: SignupPrefillMarker,
   ): Promise<void> {
-    await this.brandsService.patch(brandId, {
-      agentConfig: {
-        ...config,
-        [PREFILL_MARKER_KEY]: {
-          ...(this.readMarker(config) ?? {}),
-          ...marker,
-        },
+    await this.brandsService.updateAgentConfig(brandId, organizationId, {
+      ...config,
+      [PREFILL_MARKER_KEY]: {
+        ...(this.readMarker(config) ?? {}),
+        ...marker,
       },
     });
   }

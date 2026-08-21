@@ -1,6 +1,6 @@
 'use client';
 
-import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type AgentCampaign,
   AgentCampaignsService,
@@ -23,13 +23,15 @@ export function useAgentCampaigns(
   options: UseAgentCampaignsOptions = {},
 ): UseAgentCampaignsReturn {
   const { getToken } = useAuthIdentity();
-  const brandId = useBrandId();
+  const { brandId, isReady: isBrandReady } = useBrand();
+  const isEnabled = isBrandReady && Boolean(brandId);
 
   const {
     data: campaigns = [] as AgentCampaign[],
     isLoading,
     refetch,
   } = useQuery({
+    enabled: isEnabled,
     queryKey: ['agent-campaigns', brandId, options.status],
     queryFn: async () => {
       const token = await resolveAuthToken(getToken);
@@ -37,6 +39,7 @@ export function useAgentCampaigns(
 
       const service = AgentCampaignsService.getInstance(token);
       return service.list({
+        brandId,
         status: options.status,
       });
     },
@@ -44,8 +47,11 @@ export function useAgentCampaigns(
 
   return {
     campaigns,
-    isLoading,
+    isLoading: !isBrandReady || isLoading,
     refresh: async () => {
+      if (!isEnabled) {
+        return;
+      }
       await refetch();
     },
   };

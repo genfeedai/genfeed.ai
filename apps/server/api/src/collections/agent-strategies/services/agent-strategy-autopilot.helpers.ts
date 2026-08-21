@@ -93,7 +93,7 @@ export function strategySkillSlugs(
   strategy: AgentStrategyDocument,
   fallback: string[],
 ): string[] {
-  return strategy.skillSlugs?.length ? strategy.skillSlugs : fallback;
+  return strategy.skillSlugs === undefined ? fallback : strategy.skillSlugs;
 }
 
 export function resolveOpportunityPlatform(

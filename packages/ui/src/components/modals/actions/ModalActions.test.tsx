@@ -18,6 +18,7 @@ describe('ModalActions', () => {
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
     expect(rootElement.className).toContain('justify-end');
+    expect(rootElement.className).toContain('shrink-0');
   });
 
   it('allows className overrides for special footers', () => {

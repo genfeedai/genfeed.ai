@@ -14,8 +14,15 @@ describe('Masonry', () => {
   });
 
   it('should apply correct styles and classes', () => {
-    const { container } = render(<Masonry />);
+    const { container } = render(
+      <Masonry columns={{ default: 2 }} gap={12}>
+        <div>First</div>
+        <div>Second</div>
+      </Masonry>,
+    );
     const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    expect(rootElement).toHaveStyle({ columnCount: '2', columnGap: '12px' });
+    expect(rootElement.children).toHaveLength(2);
+    expect(rootElement.children[0]).toHaveClass('break-inside-avoid');
   });
 });

@@ -12,6 +12,7 @@ import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-br
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -52,6 +53,7 @@ export class BrandsAgentConfigController {
     private readonly brandsService: BrandsService,
     private readonly ingredientsService: IngredientsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
+    private readonly skillsService: SkillsService,
   ) {}
 
   @Patch(':id/agent-config')
@@ -62,15 +64,12 @@ export class BrandsAgentConfigController {
     @Param('id') id: string,
     @Body() updateAgentConfigDto: UpdateBrandAgentConfigDto,
   ): Promise<JsonApiSingleResponse> {
-    const organizationId = user.organizationId?.toString();
+    const organizationId = this.requireOrganizationId(user);
 
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
+    if (updateAgentConfigDto.enabledSkills !== undefined) {
+      await this.skillsService.assertAccessibleSkillSlugs(
+        organizationId,
+        updateAgentConfigDto.enabledSkills,
       );
     }
 
@@ -272,6 +271,10 @@ export class BrandsAgentConfigController {
     @Body() toggleDto: ToggleBrandSkillDto,
   ): Promise<JsonApiSingleResponse> {
     const organizationId = this.requireOrganizationId(user);
+    await this.skillsService.assertAccessibleSkillSlugs(
+      organizationId,
+      toggleDto.enabledSkills,
+    );
     const updatedBrand = await this.brandsService.updateAgentConfig(
       id,
       organizationId,

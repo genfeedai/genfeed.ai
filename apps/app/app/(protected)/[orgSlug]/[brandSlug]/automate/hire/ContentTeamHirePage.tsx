@@ -14,13 +14,12 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Container from '@ui/layout/container/Container';
 import { UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import { HireForm } from './HireForm';
-import { RolePreviewCard } from './RolePreviewCard';
 
 interface HireFormState {
-  brandId: string;
   budget: string;
   label: string;
   persona: string;
@@ -30,14 +29,24 @@ interface HireFormState {
   teamGroup: string;
 }
 
-export default function ContentTeamHirePage() {
+interface ContentTeamHirePageProps {
+  isEmbedded?: boolean;
+  onCancel?: () => void;
+  onCreated?: () => Promise<void> | void;
+}
+
+export default function ContentTeamHirePage({
+  isEmbedded = false,
+  onCancel,
+  onCreated,
+}: ContentTeamHirePageProps) {
+  const translate = useTranslations('common.automation.agentCreation');
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const { brandId, brands } = useBrand();
+  const { brandId, isReady: isBrandReady } = useBrand();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<HireFormState>({
-    brandId,
     budget: '',
     label: '',
     persona: '',
@@ -67,12 +76,24 @@ export default function ContentTeamHirePage() {
   );
 
   const handleCancel = useCallback(() => {
-    push(href(APP_ROUTES.AUTOMATE.OVERVIEW));
-  }, [href, push]);
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+
+    push(href(APP_ROUTES.AUTOMATE.AGENTS));
+  }, [href, onCancel, push]);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+
+      if (!isBrandReady || !brandId) {
+        notificationsService.error(
+          'Wait for the selected brand to finish loading.',
+        );
+        return;
+      }
 
       if (!selectedPreset) {
         notificationsService.error('Choose a role before hiring.');
@@ -85,7 +106,7 @@ export default function ContentTeamHirePage() {
         const service = await getStrategiesService();
         await service.create({
           ...buildRoleStrategyInput({
-            brandId: form.brandId || undefined,
+            brandId: brandId || undefined,
             budget: form.budget ? Number(form.budget) : undefined,
             label: form.label,
             persona: form.persona,
@@ -97,8 +118,12 @@ export default function ContentTeamHirePage() {
           isActive: true,
         });
 
-        notificationsService.success('Agent hired successfully');
-        push(href(APP_ROUTES.AUTOMATE.OVERVIEW));
+        notificationsService.success('Agent added successfully');
+        if (onCreated) {
+          await onCreated();
+        } else {
+          push(href(APP_ROUTES.AUTOMATE.AGENTS));
+        }
       } catch (error) {
         logger.error('Failed to hire content team agent', { error });
         notificationsService.error('Unable to hire agent');
@@ -107,8 +132,8 @@ export default function ContentTeamHirePage() {
       }
     },
     [
+      brandId,
       form.budget,
-      form.brandId,
       form.label,
       form.persona,
       form.reportsToLabel,
@@ -117,21 +142,22 @@ export default function ContentTeamHirePage() {
       form.teamGroup,
       getStrategiesService,
       href,
+      isBrandReady,
       notificationsService,
+      onCreated,
       push,
       selectedPreset,
     ],
   );
 
-  return (
-    <Container
-      description="Create a specialist content role on top of the existing strategy system."
-      icon={UserPlus}
-      label="Hire Agent"
-    >
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+  const content =
+    !isBrandReady || !brandId ? (
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        {translate('loadingBrand')}
+      </p>
+    ) : (
+      <div className="mx-auto w-full max-w-3xl">
         <HireForm
-          brands={brands}
           form={form}
           isSubmitting={isSubmitting}
           onCancel={handleCancel}
@@ -139,13 +165,20 @@ export default function ContentTeamHirePage() {
           onSubmit={handleSubmit}
           selectedPreset={selectedPreset}
         />
-
-        <RolePreviewCard
-          budget={form.budget}
-          selectedPreset={selectedPreset}
-          teamGroup={form.teamGroup}
-        />
       </div>
+    );
+
+  if (isEmbedded) {
+    return content;
+  }
+
+  return (
+    <Container
+      description="Create a specialist content role on top of the existing strategy system."
+      icon={UserPlus}
+      label="Hire Agent"
+    >
+      {content}
     </Container>
   );
 }

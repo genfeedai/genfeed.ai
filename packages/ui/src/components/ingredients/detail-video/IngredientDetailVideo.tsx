@@ -295,7 +295,7 @@ export default function IngredientDetailVideo({
         isAddingTextOverlay={isAddingTextOverlay}
       />
 
-      {/* Details Panel - Second and Third Columns */}
+      {/* Details panel — paired with the media pane by the parent split grid. */}
       <VideoDetailWorkspacePanel
         currentVideo={currentVideo}
         tabs={tabs}

@@ -127,7 +127,7 @@ describe('DashboardLayoutsController', () => {
       );
     });
 
-    it('returns not-found when no layout exists for the page', async () => {
+    it('returns an empty successful document when no saved layout exists', async () => {
       service.findForPage.mockResolvedValueOnce(null);
 
       const result = await controller.findForPage(
@@ -136,7 +136,7 @@ describe('DashboardLayoutsController', () => {
         'brand-1',
       );
 
-      expect(result).toEqual({ error: 'DashboardLayoutsController:brand-1' });
+      expect(result).toEqual({ data: null });
     });
 
     it.each([undefined, '', '   '])(

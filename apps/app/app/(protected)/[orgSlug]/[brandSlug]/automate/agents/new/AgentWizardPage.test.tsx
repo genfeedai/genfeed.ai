@@ -44,10 +44,19 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
-    brands: mocks.brands,
-    selectedBrand: null,
+    brandId: (mocks.brands[0]?.id as string | undefined) ?? '',
+    isReady: true,
+    selectedBrand: mocks.brands[0] ?? null,
   }),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -89,6 +98,31 @@ vi.mock('@ui/layout/container/Container', () => ({
       {description && <p>{description}</p>}
       {children}
     </section>
+  ),
+}));
+
+vi.mock('../AgentOptionPicker', () => ({
+  default: ({
+    onValueChange,
+    options,
+    value,
+  }: {
+    onValueChange: (value: AgentType) => void;
+    options: Array<{ label: string; value: AgentType }>;
+    value: AgentType;
+  }) => (
+    <div>
+      {options.map((option) => (
+        <button
+          aria-pressed={value === option.value}
+          key={option.value}
+          onClick={() => onValueChange(option.value)}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   ),
 }));
 
@@ -166,9 +200,6 @@ vi.mock('@ui/primitives/select', () => ({
   }) => (
     <div>
       {children}
-      <button type="button" onClick={() => onValueChange('brand-1')}>
-        Select Brand One
-      </button>
       <button
         type="button"
         onClick={() => onValueChange(AgentRunFrequency.TWICE_DAILY)}
@@ -261,20 +292,9 @@ describe('AgentWizardPage', () => {
   });
 
   it('creates an agent from selected type, brand defaults, and review settings', async () => {
-    render(<AgentWizardPage />);
+    render(<AgentWizardPage isEmbedded />);
 
-    expect(
-      screen.getByRole('heading', { name: 'New Agent' }),
-    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Video Creator/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Pick Brand/i }));
-    expect(
-      screen.getByText(/Choose a brand to auto-fill voice/),
-    ).toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Select Brand One' })[0],
-    );
     fireEvent.click(screen.getByRole('button', { name: /Configure/i }));
 
     expect(
@@ -325,13 +345,17 @@ describe('AgentWizardPage', () => {
           agentType: AgentType.VIDEO_CREATOR,
           autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
           autoPublishConfidenceThreshold: 0.9,
+          brandId: 'brand-1',
           dailyCreditBudget: 750,
           isActive: false,
           label: 'Launch Video Agent',
           minCreditThreshold: 125,
+          model: 'deepseek/deepseek-v4-flash-0731',
           platforms: ['tiktok', 'youtube'],
+          qualityTier: 'high_quality',
           runFrequency: AgentRunFrequency.TWICE_DAILY,
           topics: ['launches', 'demos', 'founder updates'],
+          voice: expect.stringContaining('Tone: sharp'),
         }),
       );
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
@@ -343,29 +367,28 @@ describe('AgentWizardPage', () => {
     });
   });
 
-  it('supports manual configuration without brands and reports create failures', async () => {
+  it('does not expose creation before the selected brand is available', () => {
     mocks.brands = [];
+    render(<AgentWizardPage isEmbedded />);
+
+    expect(screen.getByText('Loading the selected brand…')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /Configure/i }),
+    ).not.toBeInTheDocument();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it('reports create failures', async () => {
     mocks.create.mockRejectedValueOnce(new Error('create failed'));
-    render(<AgentWizardPage />);
+    render(<AgentWizardPage isEmbedded />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Pick Brand/i }));
-    expect(screen.getByText(/No brands found/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Configure/i }));
-    expect(getReviewButton()).toBeDisabled();
-
     fireEvent.change(screen.getByLabelText('Agent Label'), {
       target: { value: 'Manual Agent' },
     });
     fireEvent.change(screen.getByLabelText('Topics'), {
       target: { value: 'one, , two' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /Auto-Publish/ }));
-    fireEvent.change(
-      screen.getByLabelText('Auto-publish Confidence Threshold'),
-      {
-        target: { value: '0.85' },
-      },
-    );
     fireEvent.click(getReviewButton() as HTMLButtonElement);
     fireEvent.click(screen.getByRole('button', { name: /Create Agent/i }));
 

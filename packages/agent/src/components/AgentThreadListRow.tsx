@@ -193,6 +193,8 @@ export function AgentThreadListRow({
   const relativeTime = formatRelativeTime(
     conv.lastActivityAt ?? conv.updatedAt ?? conv.createdAt,
   );
+  const isMenuOpen = openMenuThreadId === conv.id;
+  const shouldShowActions = renamingThreadId === conv.id || isMenuOpen;
   const statusA11yLabel = getThreadStatusA11yLabel(conv, statusMeta);
   const preview = resolveThreadListPreview(conv);
   const threadTitle = conv.title || 'Untitled';
@@ -317,11 +319,6 @@ export function AgentThreadListRow({
               >
                 {threadTitle}
               </span>
-              {relativeTime ? (
-                <span className="shrink-0 text-2xs tabular-nums text-foreground/36">
-                  {relativeTime}
-                </span>
-              ) : null}
             </div>
             {preview ? (
               <div className="mt-0.5 min-w-0 truncate text-2xs text-foreground/38">
@@ -332,9 +329,21 @@ export function AgentThreadListRow({
         </Link>
       )}
 
-      <div className="absolute right-1 top-1 shrink-0">
+      <div className="pointer-events-none absolute right-1 top-1 size-7 shrink-0">
+        {relativeTime ? (
+          <span
+            className={cn(
+              'absolute inset-0 flex items-center justify-center text-2xs tabular-nums text-foreground/36 transition-opacity',
+              shouldShowActions
+                ? 'opacity-0'
+                : 'opacity-100 group-hover:opacity-0 group-focus-within:opacity-0 [@media(hover:none)]:opacity-0',
+            )}
+          >
+            {relativeTime}
+          </span>
+        ) : null}
         <DropdownMenu
-          open={openMenuThreadId === conv.id}
+          open={isMenuOpen}
           onOpenChange={(open) => {
             onMenuOpenChange(conv.id, open);
           }}
@@ -349,10 +358,10 @@ export function AgentThreadListRow({
               withWrapper={false}
               ariaLabel={`Thread actions for ${conv.title || 'thread'}`}
               className={cn(
-                'rounded p-1 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground/78',
-                renamingThreadId === conv.id
+                'pointer-events-auto size-7 rounded-md p-1 text-foreground/42 transition-opacity hover:bg-foreground/[0.06] hover:text-foreground/78',
+                shouldShowActions
                   ? 'opacity-100'
-                  : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
+                  : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100',
               )}
               onClick={(event) => {
                 event.stopPropagation();

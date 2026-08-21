@@ -99,6 +99,7 @@ vi.mock('@genfeedai/agent', () => ({
   AgentApiService: class AgentApiService {
     getThreadsEffect = getThreadsEffect;
   },
+  AgentApiServiceProvider: ({ children }: PropsWithChildren) => <>{children}</>,
   runAgentApiEffect,
   isRenderableThreadId: (id: string) =>
     Boolean(id && id !== 'undefined' && id !== 'null'),

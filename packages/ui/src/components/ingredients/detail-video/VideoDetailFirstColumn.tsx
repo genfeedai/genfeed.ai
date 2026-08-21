@@ -95,7 +95,7 @@ export default function VideoDetailFirstColumn({
   const { href } = useOrgUrl();
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <div
         className={cn(
           'relative overflow-hidden shadow-lg group opacity-80 hover:opacity-100',

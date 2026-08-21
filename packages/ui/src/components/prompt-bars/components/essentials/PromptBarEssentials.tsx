@@ -11,11 +11,10 @@ import FormDropdown from '@ui/primitives/dropdown-field';
 import { Textarea } from '@ui/primitives/textarea';
 import { PROMPT_BAR_TEXTAREA_MAX_HEIGHT } from '@ui/prompt-bars/base/prompt-bar.helpers';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
-import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
+import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
 import PromptBarQualityControls from '@ui/prompt-bars/components/quality-controls/PromptBarQualityControls';
-import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import {
   ArrowUp,
@@ -188,7 +187,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
 
   return (
     <div className="flex flex-col gap-1 w-full">
-      <PromptBarShell className="p-2">
+      <div className="relative p-2">
         {onToggleCollapse && !isMinimalBar && (
           <Button
             onClick={onToggleCollapse}
@@ -547,7 +546,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             )}
           </div>
         </div>
-      </PromptBarShell>
+      </div>
 
       {selectedModels.length > 0 && selectedModels.some((m) => m.trigger) && (
         <p className="text-xs text-foreground/60">

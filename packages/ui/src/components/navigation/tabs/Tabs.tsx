@@ -9,7 +9,12 @@ import type {
   TabsItem,
 } from '@genfeedai/props/ui/navigation/tabs.props';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
-import { TabsList, Tabs as TabsRoot, TabsTrigger } from '@ui/primitives/tabs';
+import {
+  TabsList,
+  TabsContent as TabsPanel,
+  Tabs as TabsRoot,
+  TabsTrigger,
+} from '@ui/primitives/tabs';
 import {
   getTabsListClassName,
   getTabsTriggerClassName,
@@ -17,7 +22,7 @@ import {
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 
 function isNavigationTab(
   tab: NavigationTab | RouteTabItem | TabItem,
@@ -81,11 +86,14 @@ function NavigationTabLink({
 }
 
 function TabsContent({
+  children,
   items,
   tabs,
   activeTab,
   onTabChange,
   className = '',
+  contentClassName,
+  listClassName,
   variant = 'default',
   size = 'md',
   fullWidth = true,
@@ -108,6 +116,7 @@ function TabsContent({
 
   // Check if we're in navigation mode (any tab has href)
   const hasNavigationTabs = normalizedTabs.some(isNavigationTab);
+  const firstEnabledTab = normalizedTabs.find((tab) => !tab.isDisabled);
 
   const getActiveValue = () => {
     if (activeTab) {
@@ -122,11 +131,17 @@ function TabsContent({
         );
       });
 
-      return activeMatch ? getTabId(activeMatch) : activeTab;
+      if (activeMatch && !activeMatch.isDisabled) {
+        return getTabId(activeMatch);
+      }
+
+      if (!hasNavigationTabs) {
+        return firstEnabledTab ? getTabId(firstEnabledTab) : undefined;
+      }
     }
 
     if (!hasNavigationTabs) {
-      return activeTab;
+      return firstEnabledTab ? getTabId(firstEnabledTab) : undefined;
     }
 
     const activeNavTab = normalizedTabs.reduce<{
@@ -168,6 +183,21 @@ function TabsContent({
   };
 
   const activeValue = getActiveValue();
+  const isContentSynchronized =
+    activeTab === undefined || activeTab === activeValue;
+
+  useEffect(() => {
+    if (
+      hasNavigationTabs ||
+      !activeValue ||
+      activeTab === activeValue ||
+      !onTabChange
+    ) {
+      return;
+    }
+
+    onTabChange(activeValue);
+  }, [activeTab, activeValue, hasNavigationTabs, onTabChange]);
 
   const handleValueChange = (value: string) => {
     // For non-navigation tabs, call onTabChange
@@ -182,16 +212,8 @@ function TabsContent({
         <div
           className={cn(
             getTabsListClassName(
-              cn(
-                fullWidth && 'w-full',
-                variant === 'pills'
-                  ? 'rounded-2xl shadow-border bg-secondary/60 p-1'
-                  : variant === 'underline'
-                    ? 'gap-0 border-b border-border'
-                    : variant === 'segmented'
-                      ? 'rounded-xl shadow-border bg-secondary/50 p-1'
-                      : 'gap-0.5',
-              ),
+              cn(fullWidth && 'w-full', listClassName),
+              variant,
             ),
           )}
           data-size={size}
@@ -280,21 +302,16 @@ function TabsContent({
     <TabsRoot
       value={activeValue}
       onValueChange={handleValueChange}
-      className={cn('inline-flex', fullWidth && 'w-full', className)}
+      className={cn(
+        children == null ? 'inline-flex' : 'flex min-w-0 flex-col',
+        (fullWidth || children != null) && 'w-full',
+        className,
+      )}
     >
       <TabsList
         data-variant={variant}
         data-size={size}
-        className={cn(
-          fullWidth && 'w-full',
-          variant === 'pills'
-            ? 'rounded-2xl shadow-border bg-secondary/60 p-1'
-            : variant === 'underline'
-              ? 'gap-0 border-b border-border'
-              : variant === 'segmented'
-                ? 'rounded-xl shadow-border bg-secondary/50 p-1'
-                : 'gap-0.5',
-        )}
+        className={cn(fullWidth && 'w-full', listClassName)}
       >
         {normalizedTabs.map((tab) => {
           const tabItem =
@@ -328,6 +345,11 @@ function TabsContent({
           );
         })}
       </TabsList>
+      {children != null && activeValue ? (
+        <TabsPanel className={contentClassName} value={activeValue}>
+          {isContentSynchronized ? children : null}
+        </TabsPanel>
+      ) : null}
     </TabsRoot>
   );
 }

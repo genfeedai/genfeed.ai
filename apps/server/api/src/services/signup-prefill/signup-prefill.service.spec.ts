@@ -20,6 +20,7 @@ describe('SignupPrefillService', () => {
   let brandsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    updateAgentConfig: ReturnType<typeof vi.fn>;
   };
   let brandScraperService: { scrapeWebsite: ReturnType<typeof vi.fn> };
   let brandDataMapper: {
@@ -59,6 +60,7 @@ describe('SignupPrefillService', () => {
         .fn()
         .mockResolvedValue({ agentConfig: {}, label: 'Default Organization' }),
       patch: vi.fn().mockResolvedValue(undefined),
+      updateAgentConfig: vi.fn().mockResolvedValue(undefined),
     };
     brandScraperService = {
       scrapeWebsite: vi.fn().mockResolvedValue({
@@ -291,12 +293,14 @@ describe('SignupPrefillService', () => {
   });
 
   it('records a terminal failure marker for the onboarding UI', async () => {
-    await service.markPrefillFailed('b_1');
+    await service.markPrefillFailed('b_1', 'o_1');
 
-    expect(brandsService.patch).toHaveBeenCalledWith('b_1', {
-      agentConfig: expect.objectContaining({
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'b_1',
+      'o_1',
+      expect.objectContaining({
         signupPrefill: expect.objectContaining({ status: 'failed' }),
       }),
-    });
+    );
   });
 });

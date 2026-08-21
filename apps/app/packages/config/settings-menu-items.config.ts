@@ -15,6 +15,7 @@ import {
   Mic,
   Palette,
   Plug,
+  Puzzle,
   Receipt,
   Send,
   Share2,
@@ -24,16 +25,17 @@ import {
   Users,
 } from 'lucide-react';
 
-// Brand settings live at brand-scoped `/settings/*` paths (no route constants —
-// they resolve against the current brandSlug via the sidebar's `prefixHref`).
+// Brand settings resolve against the current brandSlug via the sidebar's
+// `prefixHref`. Shared route constants cover paths used outside this menu.
 const BRAND_SETTINGS = {
-  AGENT_DEFAULTS: '/settings/agent-defaults',
+  AGENT_DEFAULTS: APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
   KIT: '/settings/kit',
   PROFILE: APP_ROUTES.SETTINGS.ROOT,
   PUBLISHING: '/settings/publishing',
   SOCIAL: '/settings/social',
+  SKILLS: APP_ROUTES.SETTINGS.SKILLS,
   VOICE: '/settings/voice',
 } as const;
 
@@ -276,6 +278,14 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Agent Defaults',
       outline: Cpu,
       solid: Cpu,
+    },
+    {
+      group: 'Automation',
+      href: BRAND_SETTINGS.SKILLS,
+      hrefScope: 'brand',
+      label: 'Skills',
+      outline: Puzzle,
+      solid: Puzzle,
     },
   ];
 }

@@ -156,6 +156,9 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/agent-defaults')).toBe(
       '/settings/brands',
     );
+    expect(resolveOrganizationScopePath('/settings/skills')).toBe(
+      '/settings/brands',
+    );
     expect(resolveOrganizationScopePath('/settings/social')).toBe(
       '/settings/brands',
     );

@@ -144,12 +144,19 @@ describe('AgentCampaignsService', () => {
 
   it('getById GETs one campaign', async () => {
     http.get.mockResolvedValue(
-      axiosResponse(resourceDocument({ label: 'C' }, { id: campaignId })),
+      axiosResponse(
+        resourceDocument(
+          { brandId: 'brand-1', label: 'C' },
+          { id: campaignId },
+        ),
+      ),
     );
 
     const result = await service.getById(campaignId);
 
+    expect(result).toBeInstanceOf(AgentCampaign);
     expect(result.id).toBe(campaignId);
+    expect(result.brandId).toBe('brand-1');
   });
 
   it('create POSTs the campaign input', async () => {

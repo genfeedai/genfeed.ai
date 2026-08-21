@@ -291,6 +291,7 @@ export class BrandSetupService {
         );
         await this.brandPersistenceService.updateBrandGuidance(
           targetBrandId,
+          organizationId,
           extractedData,
         );
 
@@ -360,11 +361,18 @@ export class BrandSetupService {
           await this.resolveBrandScope(brandId);
 
         await this.brandsService.patch(targetBrandId, {
-          ...(options.agentConfig ? { agentConfig: options.agentConfig } : {}),
           ...(options.description ? { description: options.description } : {}),
           label: name,
           ...(options.text ? { text: options.text } : {}),
         });
+
+        if (options.agentConfig) {
+          await this.brandsService.updateAgentConfig(
+            targetBrandId,
+            organizationId,
+            options.agentConfig,
+          );
+        }
 
         // Only cascade the rename to the organization during the first-login
         // onboarding window. Outside it, this is a plain brand label update — an

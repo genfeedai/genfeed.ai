@@ -5,13 +5,19 @@ import { render, screen } from '@testing-library/react';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { describe, expect, it, vi } from 'vitest';
 
+const mocks = vi.hoisted(() => ({
+  useQuickActions: vi.fn(),
+}));
+
 vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
   useQuickActions: vi.fn(
     (params: {
+      handlers: { onUsePrompt?: (ingredient: IIngredient) => void };
       hasPromptControl?: boolean;
       hasScopeControl?: boolean;
       hasStatusControl?: boolean;
     }) => {
+      mocks.useQuickActions(params);
       const primaryAction = {
         id: 'see-details',
         label: 'Open',
@@ -119,5 +125,23 @@ describe('IngredientQuickActions', () => {
     expect(screen.getByTestId('primary-actions-group')).toHaveClass(
       'bg-secondary/80',
     );
+  });
+
+  it('uses reprompt as the compact masonry use-prompt action', () => {
+    const onReprompt = vi.fn();
+    mocks.useQuickActions.mockClear();
+
+    render(
+      <IngredientQuickActions
+        selectedIngredient={ingredient}
+        isMasonryCompact
+        onReprompt={onReprompt}
+      />,
+    );
+
+    const params = mocks.useQuickActions.mock.calls.at(-1)?.[0] as {
+      handlers: { onUsePrompt?: (ingredient: IIngredient) => void };
+    };
+    expect(params.handlers.onUsePrompt).toBe(onReprompt);
   });
 });

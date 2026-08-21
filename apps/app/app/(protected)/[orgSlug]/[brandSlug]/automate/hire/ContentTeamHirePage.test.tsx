@@ -14,18 +14,26 @@ const mocks = vi.hoisted(() => ({
   getStrategiesService: vi.fn(),
   loggerError: vi.fn(),
   push: vi.fn(),
+  onCancel: vi.fn(),
+  onCreated: vi.fn(),
   success: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
-    brands: [
-      { id: 'brand-1', label: 'Moonrise' },
-      { id: 'brand-2', label: 'Solar' },
-    ],
+    isReady: true,
+    selectedBrand: { id: 'brand-1', label: 'Moonrise' },
   }),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getStrategiesService,
@@ -91,24 +99,6 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@ui/card/Card', () => ({
-  default: ({
-    children,
-    description,
-    label,
-  }: {
-    children?: ReactNode;
-    description?: string;
-    label?: string;
-  }) => (
-    <aside>
-      <h2>{label}</h2>
-      <p>{description}</p>
-      {children}
-    </aside>
-  ),
-}));
-
 vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
@@ -127,18 +117,58 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
+vi.mock('../agents/AgentOptionPicker', () => ({
+  default: ({
+    onValueChange,
+    options,
+    value,
+  }: {
+    onValueChange: (value: string) => void;
+    options: Array<{
+      description: string;
+      label: string;
+      meta: string;
+      value: string;
+    }>;
+    value: string;
+  }) => {
+    const selected = options.find((option) => option.value === value);
+
+    return (
+      <div>
+        <p>{selected?.description}</p>
+        <p>{selected?.meta}</p>
+        {options.map((option) => (
+          <button
+            aria-pressed={value === option.value}
+            key={option.value}
+            onClick={() => onValueChange(option.value)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  },
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    children,
+    isDisabled,
     label,
     onClick,
     type = 'button',
   }: {
+    children?: ReactNode;
+    isDisabled?: boolean;
     label?: ReactNode;
     onClick?: () => void;
     type?: 'button' | 'submit';
   }) => (
-    <button type={type} onClick={onClick}>
-      {label}
+    <button disabled={isDisabled} type={type} onClick={onClick}>
+      {children ?? label}
     </button>
   ),
 }));
@@ -155,46 +185,6 @@ vi.mock('@ui/primitives/textarea', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({
-    children,
-    onValueChange,
-    value,
-  }: {
-    children?: ReactNode;
-    onValueChange?: (value: string) => void;
-    value?: string;
-  }) => (
-    <div data-testid={`select-${value}`}>
-      {children}
-      <button type="button" onClick={() => onValueChange?.('copywriter')}>
-        choose copywriter
-      </button>
-      <button type="button" onClick={() => onValueChange?.('brand-2')}>
-        choose brand two
-      </button>
-    </div>
-  ),
-  SelectContent: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectItem: ({
-    children,
-    value,
-  }: {
-    children?: ReactNode;
-    value: string;
-  }) => <div data-value={value}>{children}</div>,
-  SelectTrigger: ({ children, id }: { children?: ReactNode; id?: string }) => (
-    <button id={id} type="button">
-      {children}
-    </button>
-  ),
-  SelectValue: ({ placeholder }: { placeholder?: string }) => (
-    <span>{placeholder}</span>
-  ),
-}));
-
 describe('ContentTeamHirePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -204,17 +194,20 @@ describe('ContentTeamHirePage', () => {
     });
   });
 
-  it('renders role preview and hires a content team agent', async () => {
-    render(<ContentTeamHirePage />);
+  it('renders the selected template and hires a content team agent', async () => {
+    render(
+      <ContentTeamHirePage
+        isEmbedded
+        onCancel={mocks.onCancel}
+        onCreated={mocks.onCreated}
+      />,
+    );
 
-    expect(screen.getByRole('heading', { name: 'Hire Agent' })).toBeVisible();
     expect(screen.getAllByText('Video Producer')[0]).toBeVisible();
     expect(screen.getByText('Creates short-form video briefs.')).toBeVisible();
-    expect(screen.getByText('TikTok, YouTube Shorts')).toBeVisible();
-    expect(screen.getByText('Production')).toBeVisible();
+    expect(screen.getByPlaceholderText('Production')).toBeVisible();
     expect(screen.getByText(/25 credits/)).toBeVisible();
-    expect(screen.getByText('Moonrise')).toBeVisible();
-    expect(screen.getByText('Solar')).toBeVisible();
+    expect(screen.queryByText('Brand')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Agent Label'), {
       target: { value: 'Launch Video Producer' },
@@ -235,7 +228,7 @@ describe('ContentTeamHirePage', () => {
       target: { value: 'AI video launches' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hire Agent' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add agent' }));
 
     await waitFor(() => {
       expect(mocks.create).toHaveBeenCalledWith(
@@ -253,27 +246,29 @@ describe('ContentTeamHirePage', () => {
         }),
       );
     });
-    expect(mocks.success).toHaveBeenCalledWith('Agent hired successfully');
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/acme-org/acme-creator/automate/overview',
-    );
+    expect(mocks.success).toHaveBeenCalledWith('Agent added successfully');
+    expect(mocks.onCreated).toHaveBeenCalledOnce();
   });
 
   it('updates preview fields, cancels, and reports create failures', async () => {
     mocks.create.mockRejectedValueOnce(new Error('create failed'));
-    render(<ContentTeamHirePage />);
+    render(
+      <ContentTeamHirePage
+        isEmbedded
+        onCancel={mocks.onCancel}
+        onCreated={mocks.onCreated}
+      />,
+    );
 
-    fireEvent.click(screen.getAllByText('choose copywriter')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /Copywriter/i }));
     expect(screen.getByText('Writes launch copy.')).toBeVisible();
-    expect(screen.getByText('Editorial')).toBeVisible();
+    expect(screen.getByPlaceholderText('Editorial')).toBeVisible();
     expect(screen.getByText(/10 credits/)).toBeVisible();
 
     fireEvent.click(screen.getByText('Cancel'));
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/acme-org/acme-creator/automate/overview',
-    );
+    expect(mocks.onCancel).toHaveBeenCalledOnce();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hire Agent' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add agent' }));
     await waitFor(() => {
       expect(mocks.loggerError).toHaveBeenCalledWith(
         'Failed to hire content team agent',

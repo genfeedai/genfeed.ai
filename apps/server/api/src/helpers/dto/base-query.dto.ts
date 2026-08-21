@@ -1,3 +1,5 @@
+import { resolveFolderIdAlias } from '@api/helpers/dto/folder-id-alias.transform';
+import { RESOLVE_QUERY_ALIASES } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
@@ -127,4 +129,26 @@ export class BaseQueryDto {
   })
   @IsBoolean()
   isFavorite?: boolean;
+
+  /**
+   * Canonical Library folder filter. The client sends `?folder=<id>`; the
+   * alias is resolved by {@link resolveFolderIdAlias} through the pipe's
+   * `RESOLVE_QUERY_ALIASES` hook — a `@Transform` cannot do this because
+   * class-transformer skips transforms for source-absent keys under
+   * `exposeDefaultValues: true`.
+   */
+  @ApiProperty({
+    description: 'Filter by folder ID (client key: folder)',
+    nullable: true,
+    required: false,
+    type: String,
+  })
+  folderId?: string | null;
+
+  /**
+   * Resolves the client's `folder` query key onto `folderId` for every
+   * subclass before validation. Statics are inherited, so each Library list
+   * DTO inherits this without redeclaring it.
+   */
+  static readonly [RESOLVE_QUERY_ALIASES] = resolveFolderIdAlias;
 }

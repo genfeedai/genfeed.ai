@@ -307,7 +307,7 @@ describe('AgentChatInput', () => {
     render(<AgentChatInput onSend={vi.fn()} addFiles={vi.fn()} />);
 
     expect(screen.queryByText(/Plan mode/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Attach files')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add context')).toBeInTheDocument();
     expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
   });
 
@@ -631,7 +631,10 @@ describe('AgentChatInput', () => {
   it('opens the library picker from the reference toolbar control', async () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
-    fireEvent.click(screen.getByLabelText('Reference library content'));
+    fireEvent.click(screen.getByLabelText('Add context'));
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: 'Reference library content' }),
+    );
 
     expect(
       await screen.findByRole('heading', { name: 'Reference library content' }),
@@ -644,7 +647,10 @@ describe('AgentChatInput', () => {
   it('attaches a library pick as a removable visual tile (no caret token)', async () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
-    fireEvent.click(screen.getByLabelText('Reference library content'));
+    fireEvent.click(screen.getByLabelText('Add context'));
+    fireEvent.click(
+      screen.getByRole('menuitem', { name: 'Reference library content' }),
+    );
     fireEvent.click(
       await screen.findByRole('option', { name: 'Reference Launch post' }),
     );

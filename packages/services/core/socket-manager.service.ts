@@ -329,6 +329,38 @@ export function createPromptHandler<T = unknown>(
   };
 }
 
+function resolveMediaFailureMessage(data: unknown): string {
+  if (!data || typeof data !== 'object') {
+    return 'Unknown error';
+  }
+
+  const { error, message } = data as {
+    error?: unknown;
+    message?: unknown;
+  };
+
+  if (typeof error === 'string' && error.trim()) {
+    return error;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (error && typeof error === 'object') {
+    const nestedMessage = (error as { message?: unknown }).message;
+    if (typeof nestedMessage === 'string' && nestedMessage.trim()) {
+      return nestedMessage;
+    }
+  }
+
+  if (typeof message === 'string' && message.trim()) {
+    return message;
+  }
+
+  return 'Unknown error';
+}
+
 export function createMediaHandler<T = unknown>(
   onSuccess: (result: T) => void,
   onFailed?: (error: string) => void,
@@ -359,16 +391,20 @@ export function createMediaHandler<T = unknown>(
         break;
 
       case 'failed':
-        logger.error('Media handler received failure', {
-          error: mediaData.error,
-        });
+        {
+          const errorMessage = resolveMediaFailureMessage(data);
+          // Provider failures are a handled domain state. Logging them as a
+          // console error makes the Next.js development overlay cover the
+          // Studio retry UI even though onFailed already renders the failure.
+          logger.warn('Media handler received failure', {
+            error: errorMessage,
+          });
 
-        if (onFailed) {
-          onFailed(mediaData.error || 'Unknown error');
-        } else {
-          // Display the actual error message to the user
-          const errorMessage = mediaData.error || 'Generation failed';
-          notificationsService.error(errorMessage);
+          if (onFailed) {
+            onFailed(errorMessage);
+          } else {
+            notificationsService.error(errorMessage);
+          }
         }
         break;
 

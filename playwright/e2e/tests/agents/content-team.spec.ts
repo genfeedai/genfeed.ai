@@ -20,29 +20,33 @@ test.describe('Agents — Content Team', () => {
     await mockWorkflowCrud(authenticatedPage, []);
   });
 
-  test('content team landing page loads and shows core controls', async ({
+  test('agents page owns the agent library and creation control', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.OVERVIEW), {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.AGENTS), {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/overview/);
+    await expect(authenticatedPage).toHaveURL(/\/automate\/agents/);
     await expect(
-      authenticatedPage.getByRole('heading', { name: /agents overview/i }),
+      authenticatedPage.getByRole('heading', { name: 'Agents' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('link', { name: /hire/i }).first(),
+      authenticatedPage.getByRole('button', { name: 'Add agent' }),
     ).toBeVisible();
   });
 
-  test('hire flow renders and submits', async ({ authenticatedPage }) => {
+  test('legacy hire route opens the agent library dialog', async ({
+    authenticatedPage,
+  }) => {
     await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.HIRE), {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/hire(?:\/)?$/);
-    await expect(authenticatedPage.locator('form').first()).toBeVisible();
+    await expect(authenticatedPage).toHaveURL(
+      /\/automate\/agents\?add=library$/,
+    );
+    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
 
     await authenticatedPage
       .getByLabel('Agent Label')
@@ -50,14 +54,15 @@ test.describe('Agents — Content Team', () => {
     await authenticatedPage
       .getByLabel('Primary Topic')
       .fill('AI creator monetization');
-    await authenticatedPage.getByRole('button', { name: 'Hire Agent' }).click();
+    await authenticatedPage.getByRole('button', { name: 'Add agent' }).click();
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${brandPath(APP_ROUTES.AUTOMATE.OVERVIEW)}(?:[?#]|$)`),
+      new RegExp(`${brandPath(APP_ROUTES.AUTOMATE.AGENTS)}(?:[?#]|$)`),
     );
+    await expect(authenticatedPage.getByRole('dialog')).toBeHidden();
   });
 
-  test('orchestrator flow renders and submits a basic team launch', async ({
+  test('legacy orchestrator route opens the Creator Studio Program template', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.ORCHESTRATOR), {
@@ -65,24 +70,37 @@ test.describe('Agents — Content Team', () => {
     });
 
     await expect(authenticatedPage).toHaveURL(
-      /\/automate\/orchestrator(?:\/)?$/,
+      /\/automate\/campaigns\/new\?template=creator-studio$/,
     );
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: /Creator Studio/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
 
     await authenticatedPage
-      .getByLabel('Campaign Label')
+      .locator('#agent-campaign-label')
       .fill('Creator Growth Machine');
     await authenticatedPage
-      .getByLabel('Company Goal Label')
-      .fill('April Views Goal');
-    await authenticatedPage.getByLabel('Goal Target').fill('250000');
+      .locator('#agent-campaign-brief')
+      .fill('Coordinate a multi-role creator launch.');
     await authenticatedPage
-      .getByRole('button', { name: 'Launch Team' })
+      .locator('#agent-campaign-start-date')
+      .fill('2026-09-01');
+    await authenticatedPage
+      .getByRole('button', { name: 'Create Program' })
       .click();
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${brandPath(APP_ROUTES.AUTOMATE.OVERVIEW)}(?:[?#]|$)`),
+      new RegExp(
+        `${brandPath(APP_ROUTES.AUTOMATE.CAMPAIGNS)}/agent-campaign-created(?:[?#]|$)`,
+      ),
     );
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Creator Growth Machine',
+      }),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByText('Growth Autopilot')).toBeVisible();
   });
 
   test('unauthenticated user is redirected from content team routes', async ({

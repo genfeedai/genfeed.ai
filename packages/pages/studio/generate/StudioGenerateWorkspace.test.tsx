@@ -1,245 +1,246 @@
-import type { BrandRemixRunView } from '@api-types/contracts';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import StudioGenerateWorkspace from './StudioGenerateWorkspace';
 
 const mocks = vi.hoisted(() => ({
-  applyTypeSettings: vi.fn(),
-  isHydrated: { value: false },
-  refresh: vi.fn(),
-  resetSettings: vi.fn(),
-  run: { value: null as unknown },
-  setType: vi.fn(),
-  start: vi.fn(),
+  assetActions: {
+    onClickIngredient: vi.fn(),
+    onConvertToVideo: vi.fn(),
+    onCopyPrompt: vi.fn(),
+    onCreateVariation: vi.fn(),
+    onDeleteIngredient: vi.fn(),
+    onMarkArchived: vi.fn(),
+    onMarkRejected: vi.fn(),
+    onMarkValidated: vi.fn(),
+    onPublishIngredient: vi.fn(),
+    onRefresh: vi.fn(),
+    onRemoveGeneration: vi.fn(),
+    onSeeDetails: vi.fn(),
+    onToggleFavorite: vi.fn(),
+    onUseAsVideoReference: vi.fn(),
+  },
+  assetActionsHook: vi.fn(),
+  attachments: vi.fn(),
+  composer: vi.fn(),
+  gallery: vi.fn(),
+  results: vi.fn(),
+  removeJob: vi.fn(),
+  settings: vi.fn(),
   submit: vi.fn(),
-  submitForReview: vi.fn(),
-  type: { value: 'image' },
-  updateSettings: vi.fn(),
-  vary: vi.fn(),
 }));
 
-const run = {
-  brand: { contextMode: 'brand', id: 'brand-1', name: 'Northstar' },
-  draft: {
-    fidelityMode: 'guided',
-    identity: {},
-    intent: { objective: 'Remix the proof-led TikTok hook.' },
-    output: {
-      aspectRatio: '9:16',
-      count: 3,
-      durationSeconds: 8,
-      kind: 'video',
-    },
-    references: [
-      { assetId: 'reference-1', role: 'style', source: 'brand_default' },
-    ],
-    reviewRequired: true,
-    target: { kind: 'organic', platform: 'tiktok' },
-  },
-  id: 'run-1',
-  phase: 'prefilled',
-  readiness: { issues: [], state: 'ready' },
-  recipeVersion: 1,
-  revision: 1,
-  sourceSnapshot: {
-    pattern: { hook: 'Proof before promise' },
-    title: 'Proof-led TikTok hook',
-  },
-} as BrandRemixRunView;
+vi.mock('@genfeedai/agent', () => ({
+  runAgentApiEffect: vi.fn(),
+  useAgentApiService: () => null,
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
+  useContentMentions: () => ({ isLoading: false, mentions: [] }),
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
+  useMicrophoneInput: () => ({
+    isListening: false,
+    isSupported: true,
+    isTranscribing: false,
+    startListening: vi.fn(),
+    stopListening: vi.fn(),
+  }),
+}));
+
+vi.mock('@hooks/ui/use-attachments/use-attachments', () => ({
+  useAttachments: mocks.attachments,
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1' }),
 }));
 
-vi.mock('@pages/studio/generate/hooks/useStudioGenerateSettings', () => ({
-  useStudioGenerateSettings: () => ({
-    applyTypeSettings: mocks.applyTypeSettings,
-    isHydrated: mocks.isHydrated.value,
-    resetSettings: mocks.resetSettings,
-    settings: {
-      aspectRatio: '9:16',
-      duration: 12,
-      outputs: 2,
-    },
-    setType: mocks.setType,
-    type: mocks.type.value,
-    updateSettings: mocks.updateSettings,
-  }),
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
+  useSidebarNavigation: () => ({ hasCanonicalBreadcrumb: true }),
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/default/default/studio/generate',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'title'
+      ? 'Generate'
+      : key === 'description'
+        ? 'One prompt bar for every asset type, enriched with your brand.'
+        : key,
+}));
+
+vi.mock('@pages/studio/generate/components/StudioGenerateComposer', () => ({
+  default: (props: unknown) => {
+    mocks.composer(props);
+    return <div data-testid="studio-composer" />;
+  },
+}));
+
+vi.mock('@pages/studio/generate/components/StudioGenerateResults', () => ({
+  default: (props: unknown) => {
+    mocks.results(props);
+    return <div data-testid="studio-results" />;
+  },
+}));
+
+vi.mock('@pages/studio/generate/hooks/useStudioGenerateAssetActions', () => ({
+  useStudioGenerateAssetActions: (params: unknown) => {
+    mocks.assetActionsHook(params);
+    return mocks.assetActions;
+  },
+}));
+
+vi.mock('@pages/studio/generate/hooks/useStudioGenerateGallery', () => ({
+  useStudioGenerateGallery: mocks.gallery,
 }));
 
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateModels', () => ({
   useStudioGenerateModels: () => ({ isLoadingModels: false, models: [] }),
 }));
 
-vi.mock('@pages/studio/generate/hooks/useStudioGenerateGallery', () => ({
-  useStudioGenerateGallery: () => ({
-    isLoadingGallery: false,
-    refresh: mocks.refresh,
-    storedJobs: [],
-  }),
+vi.mock('@pages/studio/generate/hooks/useStudioGenerateSettings', () => ({
+  useStudioGenerateSettings: mocks.settings,
 }));
 
 vi.mock('@pages/studio/generate/hooks/useStudioGeneration', () => ({
   useStudioGeneration: () => ({
     isGenerating: false,
     jobs: [],
+    removeJob: mocks.removeJob,
     submit: mocks.submit,
   }),
 }));
 
-vi.mock('@pages/studio/generate/hooks/useStudioRemixRun', () => ({
-  useStudioRemixRun: () => ({
-    error: null,
-    preparePausedDraft: vi.fn(),
-    refresh: vi.fn(),
-    run: mocks.run.value,
-    runId: 'run-1',
-    start: mocks.start,
-    status: 'ready',
-    submitForReview: mocks.submitForReview,
-    vary: mocks.vary,
-  }),
-}));
-
-vi.mock('@pages/studio/generate/components/StudioGenerateComposer', () => ({
-  default: ({ onSubmit, prompt }: { onSubmit: () => void; prompt: string }) => (
-    <div>
-      <span>{prompt || 'Empty composer'}</span>
-      <button type="button" onClick={onSubmit}>
-        Generate
-      </button>
-    </div>
-  ),
-}));
-
-vi.mock('@pages/studio/generate/components/StudioGenerateResults', () => ({
-  default: ({ children }: { children?: ReactNode }) => (
-    <div>{children ?? 'Generation results'}</div>
-  ),
-}));
-
-vi.mock('@pages/studio/generate/components/StudioRemixRunPanel', () => ({
-  default: ({ run: currentRun }: { run: BrandRemixRunView }) => (
-    <div>{currentRun.sourceSnapshot.title}</div>
-  ),
-}));
-
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
-
-import StudioGenerateWorkspace from './StudioGenerateWorkspace';
-
-describe('StudioGenerateWorkspace remix restoration', () => {
+describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.isHydrated.value = false;
-    mocks.run.value = run;
-    mocks.type.value = 'image';
+    mocks.attachments.mockReturnValue({
+      addFiles: vi.fn(),
+      attachments: [],
+      dragHandlers: {},
+      dragState: { isActive: false },
+      getCompletedAttachments: () => [
+        {
+          ingredientId: 'ingredient-1',
+          kind: 'image',
+          url: 'https://cdn.example/reference.png',
+        },
+      ],
+      isUploading: false,
+      removeAttachment: vi.fn(),
+    });
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [],
+    });
+    mocks.settings.mockReturnValue({
+      resetSettings: vi.fn(),
+      settings: {},
+      setType: vi.fn(),
+      type: 'image',
+      updateSettings: vi.fn(),
+    });
   });
 
-  it('applies the server recipe only after local settings hydration', async () => {
-    const { rerender } = render(<StudioGenerateWorkspace />);
-
-    expect(mocks.setType).not.toHaveBeenCalled();
-    expect(screen.getByText('Empty composer')).toBeVisible();
-
-    mocks.isHydrated.value = true;
-    rerender(<StudioGenerateWorkspace />);
-
-    await waitFor(() =>
-      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
-        'video',
-        expect.objectContaining({
-          aspectRatio: '9:16',
-          duration: 8,
-          outputs: 3,
-        }),
-      ),
-    );
-    expect(screen.getByText('Remix the proof-led TikTok hook.')).toBeVisible();
-  });
-
-  it('starts the durable run instead of bypassing lineage through generic generation', async () => {
-    mocks.isHydrated.value = true;
-    mocks.type.value = 'video';
+  it('removes gallery tabs without hiding history from other asset types', () => {
     render(<StudioGenerateWorkspace />);
 
-    await waitFor(() =>
-      expect(
-        screen.getByText('Remix the proof-led TikTok hook.'),
-      ).toBeVisible(),
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar).toContainElement(
+      screen.getByPlaceholderText('Search generations'),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    expect(mocks.start).toHaveBeenCalledWith(
-      expect.objectContaining({
-        intent: expect.objectContaining({
-          objective: 'Remix the proof-led TikTok hook.',
-        }),
-        references: [],
-      }),
+    expect(screen.queryByTestId('section-topbar-tabs')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
+    expect(mocks.gallery).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      filter: 'all',
+    });
+    expect(screen.getByTestId('studio-results')).not.toContainElement(
+      screen.getByPlaceholderText('Search generations'),
     );
-    expect(mocks.submit).not.toHaveBeenCalled();
   });
 
-  it('never falls through to generic generation for an unsupported active remix type', async () => {
-    mocks.isHydrated.value = true;
-    mocks.type.value = 'music';
+  it('removes a deleted asset from the current-session job queue', () => {
     render(<StudioGenerateWorkspace />);
 
-    await waitFor(() =>
-      expect(
-        screen.getByText('Remix the proof-led TikTok hook.'),
-      ).toBeVisible(),
+    expect(mocks.assetActionsHook).toHaveBeenCalledWith(
+      expect.objectContaining({ onDeleted: mocks.removeJob }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    expect(mocks.start).not.toHaveBeenCalled();
-    expect(mocks.submit).not.toHaveBeenCalled();
   });
 
-  it('restores and starts an avatar remix without translating or dropping its durable identity', async () => {
-    mocks.isHydrated.value = true;
-    mocks.run.value = {
-      ...run,
-      draft: {
-        ...run.draft,
-        identity: {
-          avatarAssetId: 'avatar-row-1',
-          speechVoiceId: 'voice-row-1',
-        },
-        output: {
-          aspectRatio: '9:16',
-          count: 2,
-          durationSeconds: 12,
-          kind: 'avatar',
-        },
-      },
+  it('uses the same composer track as the Agent surface', () => {
+    render(<StudioGenerateWorkspace />);
+
+    const container = screen
+      .getByTestId('studio-composer')
+      .closest('[data-layout-mode]');
+
+    expect(container).toHaveAttribute('data-layout-mode', 'inflow');
+    expect(container).toHaveAttribute('data-max-width', '4xl');
+    expect(container).toContainElement(
+      document.querySelector('[data-composer-top-fade]'),
+    );
+  });
+
+  it('submits completed Agent-style attachments as generation references', () => {
+    render(<StudioGenerateWorkspace />);
+
+    const initialProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      onPromptChange: (value: string) => void;
     };
-    const { rerender } = render(<StudioGenerateWorkspace />);
+    act(() => initialProps.onPromptChange('Use this composition'));
 
-    await waitFor(() =>
-      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
-        'avatar',
-        expect.not.objectContaining({
-          avatarPhotoUrl: expect.anything(),
-          voiceId: expect.anything(),
-        }),
+    const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      onSubmit: () => void;
+    };
+    act(() => currentProps.onSubmit());
+
+    expect(mocks.submit).toHaveBeenCalledWith('Use this composition', [
+      'https://cdn.example/reference.png',
+    ]);
+  });
+
+  it('turns a gallery remix into a composer reference', () => {
+    render(<StudioGenerateWorkspace />);
+
+    const hookParams = mocks.assetActionsHook.mock.calls.at(-1)?.[0] as {
+      onAttachReference: (
+        ingredient: {
+          category: string;
+          id: string;
+          promptText: string;
+          thumbnailUrl: string;
+        },
+        type: 'image' | 'video',
+      ) => void;
+    };
+    act(() =>
+      hookParams.onAttachReference(
+        {
+          category: 'images',
+          id: 'generated-1',
+          promptText: 'A generated reference',
+          thumbnailUrl: 'https://cdn.example/generated.png',
+        },
+        'video',
       ),
     );
 
-    mocks.type.value = 'avatar';
-    rerender(<StudioGenerateWorkspace />);
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    expect(mocks.start).toHaveBeenCalledWith(
+    expect(
+      mocks.settings.mock.results.at(-1)?.value.setType,
+    ).toHaveBeenCalledWith('video');
+    const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      attachedAssets: Array<{ id: string; previewUrl?: string }>;
+    };
+    expect(composerProps.attachedAssets).toContainEqual(
       expect.objectContaining({
-        identity: {
-          avatarAssetId: 'avatar-row-1',
-          speechVoiceId: 'voice-row-1',
-        },
-        output: expect.objectContaining({ kind: 'avatar' }),
+        id: 'generated-1',
+        previewUrl: 'https://cdn.example/generated.png',
       }),
     );
   });

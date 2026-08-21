@@ -21,7 +21,7 @@ export const AGENT_CONVERSATION_STICKY_TOP_CLASS =
  * user prompts; override on this node when a banner sits above the transcript.
  */
 export const AGENT_CONVERSATION_SCROLL_CLASS =
-  'min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] [--agent-conversation-sticky-top:0px]';
+  'min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] [--agent-conversation-sticky-top:0.75rem]';
 
 /**
  * Off-screen assistant/work rows skip paint via content-visibility while
@@ -52,7 +52,7 @@ export const AGENT_ASSISTANT_PROSE_CLASS = 'text-md leading-6 text-foreground';
 export const AGENT_CONVERSATION_STICKY_USER_TURN_CLASS = [
   'sticky',
   AGENT_CONVERSATION_STICKY_TOP_CLASS,
-  'z-10 justify-start bg-background pb-2',
+  "z-10 justify-start bg-background pb-2 before:pointer-events-none before:absolute before:inset-x-0 before:-top-3 before:h-3 before:bg-background before:content-['']",
 ].join(' ');
 
 /**

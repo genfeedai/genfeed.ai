@@ -44,7 +44,7 @@ export default function MenuItem({
       return (
         <IconComponent
           className={cn(
-            'size-5',
+            'size-4',
             isPulsing && 'animate-spin [animation-duration:2.4s]',
           )}
         />

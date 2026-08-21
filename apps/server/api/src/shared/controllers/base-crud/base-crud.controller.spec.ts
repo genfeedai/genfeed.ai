@@ -516,6 +516,21 @@ describe('BaseCRUDController', () => {
       expect(result).toEqual({ data: mockDeletedEntity });
     });
 
+    it('lets a super admin remove an entity owned by another organization', async () => {
+      const id = testId('entity', 10);
+      const target = {
+        id,
+        organizationId: FOREIGN_ORG_ID,
+        userId: OTHER_USER_ID,
+      };
+      service.findOne.mockResolvedValue(target);
+      service.remove.mockResolvedValue({ ...target, isDeleted: true });
+
+      await controller.remove(mockRequest, superAdminUser, id);
+
+      expect(service.remove).toHaveBeenCalledWith(id);
+    });
+
     it('should throw not found for invalid ID', async () => {
       const invalidId = 'invalid-id';
 

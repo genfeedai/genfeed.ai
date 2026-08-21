@@ -3,4 +3,5 @@ import { PartialType } from '@nestjs/swagger';
 
 export class UpdateAgentStrategyDto extends PartialType(
   CreateAgentStrategyDto,
+  { skipNullProperties: false },
 ) {}

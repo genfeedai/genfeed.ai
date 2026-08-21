@@ -260,6 +260,8 @@ export const ENV_TARGETS: EnvTarget[] = [
     directKeys: [
       'AWS_ACCESS_KEY_ID',
       'AWS_IMAGE_COMPRESSION',
+      'AWS_PROFILE',
+      'AWS_REGION',
       'AWS_S3_BUCKET',
       'AWS_SECRET_ACCESS_KEY',
       'TEMP_DIR',
@@ -567,6 +569,7 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'API_SERVICE_NAME',
       'API_SENTRY_DSN',
       'MARKETPLACE_API_URL',
+      'AWS_PROFILE',
       'AWS_REGION',
       'AWS_ACCESS_KEY_ID',
       'AWS_SECRET_ACCESS_KEY',

@@ -1,91 +1,230 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  AGENT_PROGRAM_TEMPLATES,
+  APP_ROUTES,
+  getAgentProgramTemplate,
+} from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ICreateAgentCampaignDto } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { useQueryClient } from '@tanstack/react-query';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { LayoutDashboard } from 'lucide-react';
+import { FileText, LayoutDashboard, Users } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface FormState {
-  label: string;
   brief: string;
-  status: 'draft' | 'active';
-  startDate: string;
-  endDate: string;
   creditsAllocated: string;
+  endDate: string;
+  label: string;
   selectedAgentIds: string[];
+  startDate: string;
 }
 
-const INITIAL_FORM: FormState = {
-  brief: '',
-  creditsAllocated: '0',
-  endDate: '',
-  label: '',
-  selectedAgentIds: [],
-  startDate: '',
-  status: 'draft',
-};
+function createInitialForm(templateId?: string): FormState {
+  const template = templateId ? getAgentProgramTemplate(templateId) : undefined;
+
+  return {
+    brief: template?.description ?? '',
+    creditsAllocated: '0',
+    endDate: '',
+    label: template ? `${template.label} Program` : '',
+    selectedAgentIds: [],
+    startDate: '',
+  };
+}
+
+function ProgramTemplatePicker({
+  onSelect,
+  selectedTemplateId,
+}: {
+  onSelect: (templateId?: string) => void;
+  selectedTemplateId?: string;
+}) {
+  const translate = useTranslations('common.agentCampaign');
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <h2 className="text-sm font-medium text-foreground">
+          {translate('template.title')}
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          {translate('template.description')}
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <Button
+          aria-pressed={!selectedTemplateId}
+          className={`w-full rounded p-4 text-left transition-colors ${
+            selectedTemplateId
+              ? 'shadow-border hover:shadow-border-strong'
+              : 'bg-tertiary shadow-border-strong'
+          }`}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          onClick={() => onSelect()}
+        >
+          <span className="flex items-start gap-3">
+            <FileText className="mt-0.5 size-4 shrink-0" />
+            <span>
+              <span className="block text-sm font-medium">
+                {translate('template.blankLabel')}
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {translate('template.blankDescription')}
+              </span>
+            </span>
+          </span>
+        </Button>
+
+        {AGENT_PROGRAM_TEMPLATES.map((template) => {
+          const isSelected = selectedTemplateId === template.id;
+
+          return (
+            <Button
+              key={template.id}
+              aria-pressed={isSelected}
+              className={`w-full rounded p-4 text-left transition-colors ${
+                isSelected
+                  ? 'bg-tertiary shadow-border-strong'
+                  : 'shadow-border hover:shadow-border-strong'
+              }`}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              onClick={() => onSelect(template.id)}
+            >
+              <span className="flex items-start gap-3">
+                <Users className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  <span className="block text-sm font-medium">
+                    {template.label}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {translate('template.createsAgents', {
+                      count: template.roles.length,
+                      roles: template.roles
+                        .map((role) => role.displayRole)
+                        .join(', '),
+                    })}
+                  </span>
+                </span>
+              </span>
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function AgentCampaignNewPage() {
   const translate = useTranslations('common.agentCampaign');
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const requestedTemplateId = searchParams.get('template') ?? undefined;
+  const initialTemplateId = getAgentProgramTemplate(
+    requestedTemplateId ?? '',
+  )?.id;
+  const [selectedTemplateId, setSelectedTemplateId] = useState<
+    string | undefined
+  >(initialTemplateId);
+  const [form, setForm] = useState<FormState>(() =>
+    createInitialForm(initialTemplateId),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { strategies } = useAgentStrategies();
+  const { brandId, isReady: isBrandReady } = useBrand();
+  const { strategies } = useAgentStrategies({
+    brandId,
+    enabled: isBrandReady && Boolean(brandId),
+  });
+  const selectedTemplate = useMemo(
+    () =>
+      selectedTemplateId
+        ? getAgentProgramTemplate(selectedTemplateId)
+        : undefined,
+    [selectedTemplateId],
+  );
 
   const getService = useAuthedService((token: string) =>
     AgentCampaignsService.getInstance(token),
   );
 
   const handleChange = useCallback((field: keyof FormState, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((previous) => ({ ...previous, [field]: value }));
+  }, []);
+
+  const handleTemplateSelect = useCallback((templateId?: string) => {
+    setSelectedTemplateId(templateId);
+    const template = templateId
+      ? getAgentProgramTemplate(templateId)
+      : undefined;
+
+    setForm((previous) => ({
+      ...previous,
+      brief:
+        previous.brief.trim().length > 0
+          ? previous.brief
+          : (template?.description ?? ''),
+      label:
+        previous.label.trim().length > 0
+          ? previous.label
+          : template
+            ? `${template.label} Program`
+            : '',
+    }));
   }, []);
 
   const toggleAgent = useCallback((agentId: string) => {
-    setForm((prev) => {
-      const isSelected = prev.selectedAgentIds.includes(agentId);
-      return {
-        ...prev,
-        selectedAgentIds: isSelected
-          ? prev.selectedAgentIds.filter((id) => id !== agentId)
-          : [...prev.selectedAgentIds, agentId],
-      };
-    });
+    setForm((previous) => ({
+      ...previous,
+      selectedAgentIds: previous.selectedAgentIds.includes(agentId)
+        ? previous.selectedAgentIds.filter((id) => id !== agentId)
+        : [...previous.selectedAgentIds, agentId],
+    }));
   }, []);
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
 
-      if (!form.label.trim()) {
-        notificationsService.error('Campaign label is required');
+      if (!isBrandReady || !brandId) {
+        notificationsService.error('Wait for the selected brand to load');
         return;
       }
-
+      if (!form.label.trim()) {
+        notificationsService.error('Program label is required');
+        return;
+      }
       if (!form.startDate) {
         notificationsService.error('Start date is required');
+        return;
+      }
+      if (!selectedTemplate && form.selectedAgentIds.length === 0) {
+        notificationsService.error(
+          'Select at least one agent for a blank Program',
+        );
         return;
       }
 
@@ -93,189 +232,236 @@ export default function AgentCampaignNewPage() {
 
       try {
         const service = await getService();
-
         const payload: ICreateAgentCampaignDto = {
           agentStrategyIds:
             form.selectedAgentIds.length > 0
               ? form.selectedAgentIds
               : undefined,
           brief: form.brief.trim() || undefined,
+          brandId,
           creditsAllocated: Number(form.creditsAllocated) || 0,
           endDate: form.endDate || undefined,
           label: form.label.trim(),
           startDate: form.startDate,
-          status: form.status,
+          status: 'draft',
         };
 
-        await service.create(payload);
-        notificationsService.success('Campaign created successfully');
-        router.push(APP_ROUTES.AUTOMATE.CAMPAIGNS);
+        const created = selectedTemplate
+          ? await service.createFromTemplate({
+              agentStrategyIds: payload.agentStrategyIds,
+              brief: payload.brief,
+              brandId,
+              creditsAllocated: payload.creditsAllocated,
+              endDate: payload.endDate,
+              label: payload.label,
+              startDate: payload.startDate,
+              templateId: selectedTemplate.id,
+            })
+          : await service.create(payload);
+
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ['agent-campaigns', brandId],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ['agent-strategies', brandId],
+          }),
+        ]);
+
+        notificationsService.success('Program created successfully');
+        router.push(href(`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${created.id}`));
       } catch (error) {
-        logger.error('Failed to create agent campaign', { error });
-        notificationsService.error('Failed to create campaign');
+        logger.error('Failed to create agent Program', { error });
+        notificationsService.error('Failed to create Program');
       } finally {
         setIsSubmitting(false);
       }
     },
-    [form, getService, notificationsService, router],
+    [
+      brandId,
+      form,
+      getService,
+      href,
+      isBrandReady,
+      notificationsService,
+      queryClient,
+      router,
+      selectedTemplate,
+    ],
   );
+
+  if (!isBrandReady || !brandId) {
+    return (
+      <Container
+        description="Coordinate agents for content production."
+        icon={LayoutDashboard}
+        label="New Program"
+      >
+        <p className="text-sm text-muted-foreground">
+          {translate('loadingBrand')}
+        </p>
+      </Container>
+    );
+  }
 
   return (
     <Container
-      label="New Program"
       description="Coordinate agents for content production."
       icon={LayoutDashboard}
+      label="New Program"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
+      <form className="max-w-3xl space-y-6" onSubmit={handleSubmit}>
+        <ProgramTemplatePicker
+          selectedTemplateId={selectedTemplateId}
+          onSelect={handleTemplateSelect}
+        />
+
         <div className="space-y-1.5">
-          <label
-            htmlFor="agent-campaign-label"
-            className="text-sm font-medium text-foreground"
-          >
+          <Label htmlFor="agent-campaign-label">
             {translate('campaignLabel')}
-          </label>
+          </Label>
           <Input
             id="agent-campaign-label"
-            value={form.label}
-            onChange={(e) => handleChange('label', e.target.value)}
             placeholder="e.g. Q1 Product Launch"
             required
+            value={form.label}
+            onChange={(event) => handleChange('label', event.target.value)}
           />
         </div>
 
         <div className="space-y-1.5">
-          <Label
-            htmlFor="agent-campaign-brief"
-            className="text-sm font-medium text-foreground"
-          >
-            {translate('brief')}
-          </Label>
+          <Label htmlFor="agent-campaign-brief">{translate('brief')}</Label>
           <Textarea
             id="agent-campaign-brief"
-            value={form.brief}
-            onChange={(e) => handleChange('brief', e.target.value)}
-            placeholder="Describe the campaign goals and context..."
+            placeholder="Describe the Program goals and context..."
             rows={3}
+            value={form.brief}
+            onChange={(event) => handleChange('brief', event.target.value)}
           />
         </div>
 
-        <div className="space-y-1.5">
-          <span className="text-sm font-medium text-foreground">
-            {translate('status.label')}
-          </span>
-          <Select
-            value={form.status}
-            onValueChange={(value) =>
-              handleChange('status', value as 'draft' | 'active')
-            }
-          >
-            <SelectTrigger aria-label="Status">
-              <SelectValue placeholder="Select a status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">{translate('status.draft')}</SelectItem>
-              <SelectItem value="active">
-                {translate('status.active')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-            <label
-              htmlFor="agent-campaign-start-date"
-              className="text-sm font-medium text-foreground"
-            >
+            <Label htmlFor="agent-campaign-start-date">
               {translate('startDate')}
-            </label>
+            </Label>
             <Input
               id="agent-campaign-start-date"
+              required
               type="date"
               value={form.startDate}
-              onChange={(e) => handleChange('startDate', e.target.value)}
-              required
+              onChange={(event) =>
+                handleChange('startDate', event.target.value)
+              }
             />
           </div>
           <div className="space-y-1.5">
-            <label
-              htmlFor="agent-campaign-end-date"
-              className="text-sm font-medium text-foreground"
-            >
+            <Label htmlFor="agent-campaign-end-date">
               {translate('endDate')}
-            </label>
+            </Label>
             <Input
               id="agent-campaign-end-date"
               type="date"
               value={form.endDate}
-              onChange={(e) => handleChange('endDate', e.target.value)}
+              onChange={(event) => handleChange('endDate', event.target.value)}
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label
-            htmlFor="agent-campaign-credits"
-            className="text-sm font-medium text-foreground"
-          >
+          <Label htmlFor="agent-campaign-credits">
             {translate('creditsAllocated')}
-          </label>
+          </Label>
           <Input
             id="agent-campaign-credits"
-            type="number"
             min={0}
-            value={form.creditsAllocated}
-            onChange={(e) => handleChange('creditsAllocated', e.target.value)}
             placeholder="0"
+            type="number"
+            value={form.creditsAllocated}
+            onChange={(event) =>
+              handleChange('creditsAllocated', event.target.value)
+            }
           />
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">
-            {translate('agentStrategies')}
-          </p>
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {translate('agents.existingTitle')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {translate('agents.existingDescription')}
+            </p>
+          </div>
           {strategies.length === 0 ? (
-            <p className="text-sm text-foreground/50">
-              {translate('noAgentStrategies')}
+            <p className="rounded border border-border p-3 text-sm text-muted-foreground">
+              {translate('agents.noneForBrand')}{' '}
+              <Link
+                className="text-foreground underline underline-offset-2"
+                href={href(`${APP_ROUTES.AUTOMATE.AGENTS}?add=library`)}
+              >
+                {translate('agents.add')}
+              </Link>
+              .
             </p>
           ) : (
-            <div className="space-y-2 rounded border border-input p-3">
-              {strategies.map((strategy) => (
-                <label
-                  key={strategy.id}
-                  className="flex items-center gap-3 cursor-pointer"
-                >
-                  <Checkbox
-                    checked={form.selectedAgentIds.includes(strategy.id)}
-                    onCheckedChange={() => toggleAgent(strategy.id)}
-                    aria-label={`Select ${strategy.label}`}
-                  />
-                  <div>
-                    <span className="text-sm font-medium">
-                      {strategy.label}
-                    </span>
-                    <span className="ml-2 text-xs text-foreground/50 uppercase tracking-wide">
-                      {strategy.agentType}
-                    </span>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <>
+              <div className="space-y-2 rounded border border-border p-3">
+                {strategies.map((strategy) => {
+                  const checkboxId = `agent-campaign-strategy-${strategy.id}`;
+
+                  return (
+                    <div className="flex items-center gap-3" key={strategy.id}>
+                      <Checkbox
+                        aria-label={`Select ${strategy.label}`}
+                        checked={form.selectedAgentIds.includes(strategy.id)}
+                        id={checkboxId}
+                        onCheckedChange={() => toggleAgent(strategy.id)}
+                      />
+                      <Label
+                        className="min-w-0 cursor-pointer"
+                        htmlFor={checkboxId}
+                      >
+                        <span className="text-sm font-medium">
+                          {strategy.label}
+                        </span>
+                        <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
+                          {strategy.agentType}
+                        </span>
+                      </Label>
+                    </div>
+                  );
+                })}
+              </div>
+              {!selectedTemplate && form.selectedAgentIds.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('template.selectionRequired')}
+                </p>
+              ) : null}
+            </>
           )}
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          {translate('draftNotice')}
+        </p>
+
         <div className="flex items-center gap-3 pt-2">
           <Button
-            label="Create Program"
+            isDisabled={
+              isSubmitting ||
+              (!selectedTemplate && form.selectedAgentIds.length === 0)
+            }
+            label={isSubmitting ? 'Creating…' : 'Create Program'}
             type="submit"
             variant={ButtonVariant.DEFAULT}
-            isDisabled={isSubmitting}
           />
           <Button
+            isDisabled={isSubmitting}
             label="Cancel"
             type="button"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => router.push(APP_ROUTES.AUTOMATE.CAMPAIGNS)}
+            onClick={() => router.push(href(APP_ROUTES.AUTOMATE.CAMPAIGNS))}
           />
         </div>
       </form>

@@ -71,17 +71,115 @@
     }
   },
   "agentCampaign": {
-    "agentStrategies": "Agent Strategies",
-    "brief": "Brief",
-    "campaignLabel": "Campaign Label *",
+    "agentStrategies": "Agents",
+    "agents": {
+      "add": "Add an agent",
+      "existingDescription": "Add existing agents to this Program. A selected team template creates its own roles as well.",
+      "existingTitle": "Existing agents",
+      "loadingDetails": "Loading agent details…",
+      "noneAssigned": "No agents are assigned to this Program yet.",
+      "noneForBrand": "No agents exist for this brand yet.",
+      "title": "Agents ({count})",
+      "unavailable": "Unavailable agent",
+      "unavailableRole": "Not available for this brand"
+    },
+    "brief": "Program Brief",
+    "campaignLabel": "Program Label *",
     "creditsAllocated": "Credits Allocated",
+    "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
-    "noAgentStrategies": "No agent strategies available. Create agents first.",
+    "loadingBrand": "Loading the selected brand…",
+    "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
     "status": {
       "active": "Active",
       "draft": "Draft",
       "label": "Status"
+    },
+    "template": {
+      "blankDescription": "Coordinate only the existing agents you select below.",
+      "blankLabel": "Blank Program",
+      "createsAgents": "Creates {count} agents: {roles}.",
+      "description": "A team template creates its agents and Program together, with no partial setup if one step fails.",
+      "selectionRequired": "Select at least one agent for a blank Program.",
+      "title": "Start from a template"
+    }
+  },
+  "settings": {
+    "skills": {
+      "actions": {
+        "customize": "Customize",
+        "customizing": "Customizing…",
+        "openAgent": "Open Agent",
+        "refresh": "Refresh",
+        "saveVariant": "Save variant",
+        "saving": "Saving…",
+        "testWithAgent": "Test with Agent"
+      },
+      "catalog": {
+        "description": "Browse built-in, imported, and organization-owned content skills.",
+        "empty": "No skills match the current filters.",
+        "enableSkill": "Enable {name}",
+        "loading": "Loading skill catalog…",
+        "title": "Catalog"
+      },
+      "detail": {
+        "coverage": "Coverage",
+        "coverageDescription": "{modalities} across {channels}.",
+        "definition": "Skill definition",
+        "definitionDescription": "Built-in and imported skills can be customized into an organization-owned variant. Organization-owned variants can be edited here directly and may be used by other brands in this organization.",
+        "empty": "Select a skill from the catalog to inspect its detail.",
+        "generalChannels": "general channels",
+        "stage": "Stage",
+        "stageDescription": "Designed for the {stage} step of the content workflow."
+      },
+      "errors": {
+        "authenticationUnavailable": "Authentication token unavailable",
+        "brandUnavailable": "The selected brand is unavailable for this settings route.",
+        "customizeFailed": "Failed to create an organization-owned skill variant.",
+        "loadFailed": "Failed to load the agent skill catalog.",
+        "updateFailed": "Failed to update the selected skill variant."
+      },
+      "fields": {
+        "defaultInstructions": "Default instructions",
+        "description": "Description",
+        "name": "Name",
+        "systemPromptHelp": "The exact text injected into the agent system prompt at runtime. Falls back to Default instructions if empty.",
+        "systemPromptPlaceholder": "Leave empty to use Default instructions above",
+        "systemPromptTemplate": "Advanced: System Prompt Template"
+      },
+      "filters": {
+        "modality": {
+          "all": "All",
+          "audio": "Audio",
+          "image": "Image",
+          "label": "Filter skills by modality",
+          "text": "Text",
+          "video": "Video"
+        },
+        "source": {
+          "all": "All",
+          "builtIn": "Built-in",
+          "custom": "Custom",
+          "imported": "Imported",
+          "label": "Filter skills by source"
+        },
+        "stage": {
+          "all": "All",
+          "analysis": "Analysis",
+          "creation": "Creation",
+          "label": "Filter skills by workflow stage",
+          "planning": "Planning",
+          "publishing": "Publishing",
+          "research": "Research",
+          "review": "Review"
+        }
+      },
+      "heading": "Skills",
+      "testPrompt": "Use my {name} setup to create a small sample for {channel}. Explain how the skill affects the output.",
+      "thisBrand": "this brand",
+      "thisChannel": "this channel",
+      "title": "Brand content behavior for {brand}"
     }
   },
   "workspaceInspector": {
@@ -250,6 +348,14 @@
     }
   },
   "automation": {
+    "agentCreation": {
+      "custom": "Custom",
+      "description": "Start from a proven role or configure a custom agent for the selected brand.",
+      "library": "Agent library",
+      "loadingBrand": "Loading the selected brand…",
+      "modeLabel": "Agent creation mode",
+      "title": "Add agent"
+    },
     "agentHub": {
       "card": {
         "brand": "Brand: {brand}",
@@ -263,6 +369,22 @@
         "description": "Hire a content agent to fill workflow prompts and run production graphs",
         "title": "No agents yet"
       }
+    },
+    "autopilot": {
+      "agentType": "Agent Type",
+      "autonomy": "Autonomy",
+      "description": "Configure this agent's schedule, budget, and execution policy.",
+      "emptyAction": "Add agent",
+      "emptyDescription": "Add an agent first, then configure its schedule and autonomy here.",
+      "emptyTitle": "No agents available",
+      "goalProfile": "Goal Profile",
+      "platforms": "Platforms",
+      "policyLabel": "Policy Label",
+      "runFrequency": "Run Frequency",
+      "skillHelp": "Comma-separated skill slugs. Leave empty to use all brand-enabled skills.",
+      "skillSlugs": "Skill Slugs",
+      "title": "Edit Autopilot Policy",
+      "topics": "Topics"
     },
     "replies": {
       "actions": {

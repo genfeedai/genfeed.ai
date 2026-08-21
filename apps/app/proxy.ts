@@ -285,6 +285,14 @@ function isValidSlug(slug: string | undefined): slug is string {
   return typeof slug === 'string' && SLUG_RE.test(slug);
 }
 
+function isValidWorkspaceOrgSlug(slug: string | undefined): slug is string {
+  if (!isValidSlug(slug)) {
+    return false;
+  }
+
+  return parseScopedAppPath(`/${slug}/~`).orgSlug === slug;
+}
+
 function isBareProtectedPath(pathname: string): boolean {
   const topLevelSegment = getTopLevelSegment(pathname);
 
@@ -312,6 +320,18 @@ function isSeededWorkspaceEntrypoint(pathname: string): boolean {
     pathname === '/settings' ||
     isBareProtectedPath(pathname)
   );
+}
+
+function getApiNamespacePoisonedProtectedPath(pathname: string): string | null {
+  const [namespace, staleBrandSlug, ...rest] = pathname
+    .split('/')
+    .filter(Boolean);
+  if (namespace !== 'api' || !staleBrandSlug || rest.length === 0) {
+    return null;
+  }
+
+  const protectedPath = `/${rest.join('/')}`;
+  return isBareProtectedPath(protectedPath) ? protectedPath : null;
 }
 
 type WorkspaceSlugs = {
@@ -402,7 +422,7 @@ async function decodeSlugCookie(value: string): Promise<WorkspaceSlugs | null> {
     };
     if (parsed.e <= Date.now()) return null;
     if (!parsed.s?.orgSlug) return null;
-    if (!isValidSlug(parsed.s.orgSlug)) return null;
+    if (!isValidWorkspaceOrgSlug(parsed.s.orgSlug)) return null;
     if (parsed.s.brandSlug !== undefined && !isValidSlug(parsed.s.brandSlug)) {
       return null;
     }
@@ -443,6 +463,11 @@ function readWorkspaceSlugCache(
     return null;
   }
 
+  if (!isValidWorkspaceOrgSlug(entry.slugs.orgSlug)) {
+    workspaceSlugCache.delete(cacheKey);
+    return null;
+  }
+
   return entry.slugs;
 }
 
@@ -472,7 +497,7 @@ type WorkspaceSlugResolutionOptions = {
 
 function slugsFromPathname(pathname: string): WorkspaceSlugs | null {
   const scope = parseScopedAppPath(pathname);
-  if (!scope.orgSlug || !isValidSlug(scope.orgSlug)) {
+  if (!scope.orgSlug || !isValidWorkspaceOrgSlug(scope.orgSlug)) {
     return null;
   }
   if (scope.brandSlug && !isValidSlug(scope.brandSlug)) {
@@ -639,7 +664,10 @@ async function resolveActiveWorkspaceSlugs(
   // Validate slugs before caching and using them in redirect paths.
   // This prevents an attacker-controlled API response from injecting a slug
   // like `//attacker.example` and causing a cross-origin redirect.
-  if (!SLUG_RE.test(orgSlug) || (brandSlug && !SLUG_RE.test(brandSlug))) {
+  if (
+    !isValidWorkspaceOrgSlug(orgSlug) ||
+    (brandSlug && !SLUG_RE.test(brandSlug))
+  ) {
     return null;
   }
 
@@ -1205,6 +1233,25 @@ async function routeBetterAuthRequest(
       : redirectPreservingSearch(req, '/');
   }
 
+  const recoveredProtectedPath = getApiNamespacePoisonedProtectedPath(pathname);
+  if (recoveredProtectedPath) {
+    const resolved = await resolveCanonicalProtectedPath(
+      recoveredProtectedPath,
+      token,
+      sessionCookie,
+      req,
+      { skipSlugCookie: true },
+    );
+
+    if (resolved) {
+      const response = redirectPreservingSearch(req, resolved.path);
+      if (resolved.cookieValue) {
+        setSlugCookie(response, resolved.cookieValue);
+      }
+      return response;
+    }
+  }
+
   if (pathname === '/') {
     let resolved = await resolveCanonicalProtectedPath(
       '/agent',
@@ -1273,9 +1320,10 @@ async function routeBetterAuthRequest(
 }
 
 export async function proxy(req: NextRequest) {
-  // `/v1` is the same-origin API/auth proxy used by local Portless routes.
-  // It must reach the Next.js rewrite without entering app-page auth routing.
+  // These same-origin API routes must reach their route/rewrite without
+  // entering app-page auth or workspace slug routing.
   if (
+    req.nextUrl.pathname === '/api/version' ||
     req.nextUrl.pathname === '/v1' ||
     req.nextUrl.pathname.startsWith('/v1/')
   ) {

@@ -1,4 +1,5 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
+import { BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
@@ -43,9 +44,30 @@ describe('SkillExecutorService', () => {
 
   let service: SkillExecutorService;
 
+  function builtInSkill(slug: string) {
+    const identity = BUILT_IN_SKILL_CATALOG.find(
+      (entry) => entry.slug === slug,
+    );
+
+    if (!identity) {
+      throw new Error(`Missing built-in skill fixture: ${slug}`);
+    }
+
+    return {
+      ...identity,
+      isEnabled: true,
+      organizationId: null,
+      requiredProviders: [],
+      status: 'published',
+    };
+  }
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    mockSkillsService.getSkillById.mockResolvedValue(
+      builtInSkill('content-writing'),
+    );
     mockContentRunsService.createRun.mockResolvedValue({ id: runId });
     mockContentRunsService.patchRun.mockResolvedValue({});
 
@@ -76,11 +98,9 @@ describe('SkillExecutorService', () => {
   });
 
   it('executes a registered skill and tracks content run', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: true,
-      requiredProviders: [],
-      slug: 'content-writing',
-    });
+    mockSkillsService.getSkillById.mockResolvedValue(
+      builtInSkill('content-writing'),
+    );
     mockHandler.execute.mockResolvedValue({
       content: 'Generated content',
       metadata: {},
@@ -162,12 +182,41 @@ describe('SkillExecutorService', () => {
     ).rejects.toMatchObject({ status: 404 });
   });
 
-  it('marks run as failed when handler throws', async () => {
+  it('throws when skill status is disabled even if the legacy flag is enabled', async () => {
     mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
-      requiredProviders: [],
       slug: 'content-writing',
+      status: 'disabled',
     });
+
+    await expect(
+      service.execute('content-writing', baseContext),
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
+  });
+
+  it('rejects an organization-owned collision with a built-in handler slug', async () => {
+    mockSkillsService.getSkillById.mockResolvedValue({
+      id: 'skill-custom',
+      isEnabled: true,
+      organizationId: orgId,
+      slug: 'content-writing',
+      status: 'published',
+    });
+
+    await expect(
+      service.execute('content-writing', baseContext),
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
+    expect(mockHandler.execute).not.toHaveBeenCalled();
+  });
+
+  it('marks run as failed when handler throws', async () => {
+    mockSkillsService.getSkillById.mockResolvedValue(
+      builtInSkill('content-writing'),
+    );
     mockHandler.execute.mockRejectedValue(
       new Error('content-writing requires a topic'),
     );
@@ -188,9 +237,8 @@ describe('SkillExecutorService', () => {
 
   it('resolves BYOK source when skill has required providers', async () => {
     mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: true,
+      ...builtInSkill('content-writing'),
       requiredProviders: [ByokProvider.OPENAI],
-      slug: 'content-writing',
     });
     mockByokProviderFactoryService.resolveProvider.mockResolvedValue({
       apiKey: 'user-key',
@@ -215,7 +263,7 @@ describe('SkillExecutorService', () => {
     );
   });
 
-  it('marks run as failed for unregistered handler slug', async () => {
+  it('rejects a non-catalog handler slug before creating a run', async () => {
     mockSkillsService.getSkillById.mockResolvedValue({
       isEnabled: true,
       requiredProviders: [],
@@ -226,22 +274,13 @@ describe('SkillExecutorService', () => {
       service.execute('video-editing', baseContext),
     ).rejects.toMatchObject({ status: 404 });
 
-    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
-      orgId,
-      runId,
-      expect.objectContaining({
-        error: 'No handler registered for skill: video-editing',
-        status: ContentRunStatus.FAILED,
-      }),
-    );
+    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
   });
 
   it('records duration on both success and failure', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: true,
-      requiredProviders: [],
-      slug: 'content-writing',
-    });
+    mockSkillsService.getSkillById.mockResolvedValue(
+      builtInSkill('content-writing'),
+    );
     mockHandler.execute.mockResolvedValue({
       content: 'done',
       metadata: {},
@@ -263,11 +302,9 @@ describe('SkillExecutorService', () => {
   });
 
   it('stores Remix Pack definitions as run variants', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: true,
-      requiredProviders: [],
-      slug: 'trend-remix',
-    });
+    mockSkillsService.getSkillById.mockResolvedValue(
+      builtInSkill('trend-remix'),
+    );
     mockHandler.execute.mockResolvedValue({
       content: 'Primary thread content',
       metadata: {
@@ -352,11 +389,9 @@ describe('SkillExecutorService', () => {
   });
 
   it('captures publish context when scheduling metadata is present', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: true,
-      requiredProviders: [],
-      slug: 'content-writing',
-    });
+    mockSkillsService.getSkillById.mockResolvedValue(
+      builtInSkill('content-writing'),
+    );
     mockHandler.execute.mockResolvedValue({
       content: 'Scheduled content',
       metadata: {},
@@ -411,6 +446,11 @@ describe('SkillExecutorService', () => {
     );
 
     expect(result.runId).toBe(runId);
+    expect(mockSkillsService.assertBrandSkillEnabled).toHaveBeenCalledWith(
+      orgId,
+      brandId,
+      'content-writing',
+    );
     expect(mockContentRunsService.createRun).toHaveBeenCalledWith(
       expect.objectContaining({
         brief: expect.objectContaining({
@@ -438,5 +478,27 @@ describe('SkillExecutorService', () => {
         ],
       }),
     );
+  });
+
+  it('rejects a disabled skill before gateway execution creates a run', async () => {
+    mockSkillsService.getSkillById.mockResolvedValue({
+      isEnabled: true,
+      slug: 'content-writing',
+      status: 'disabled',
+    });
+
+    await expect(
+      service.executeSkill(
+        {
+          brandId,
+          organizationId: orgId,
+          signalType: 'manual',
+        },
+        'content-writing',
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+
+    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
+    expect(mockHandler.execute).not.toHaveBeenCalled();
   });
 });

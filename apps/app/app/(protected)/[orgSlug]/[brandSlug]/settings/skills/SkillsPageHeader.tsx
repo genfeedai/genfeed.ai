@@ -1,15 +1,16 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { SOURCE_FILTERS, type SourceFilterValue } from './skill-filter-options';
 
 type Props = {
+  agentHref: string;
   brandLabel: string | undefined;
   onRefresh: () => void;
   onSourceFilterChange: (value: SourceFilterValue) => void;
@@ -17,17 +18,27 @@ type Props = {
 };
 
 export default function SkillsPageHeader({
+  agentHref,
   brandLabel,
   onRefresh,
   onSourceFilterChange,
   sourceFilter,
 }: Props) {
+  const translate = useTranslations('common.settings.skills');
+
   return (
     <Card bodyClassName="gap-4 p-6" className="rounded-3xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <h1 className="sr-only">
-          Brand content behavior for {brandLabel || 'this brand'}
-        </h1>
+        <div>
+          <h1 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
+            {translate('heading')}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {translate('title', {
+              brand: brandLabel || translate('thisBrand'),
+            })}
+          </p>
+        </div>
 
         <div className="flex flex-wrap gap-2">
           <Button
@@ -36,24 +47,26 @@ export default function SkillsPageHeader({
             variant={ButtonVariant.SECONDARY}
           >
             <RefreshCw className="size-4" />
-            Refresh
+            {translate('actions.refresh')}
           </Button>
           <Button
             asChild
             className="rounded-full"
             variant={ButtonVariant.SECONDARY}
           >
-            <Link href={APP_ROUTES.AGENT.ROOT}>
+            <Link href={agentHref}>
               <Sparkles className="size-4" />
-              Open Agent
+              {translate('actions.openAgent')}
             </Link>
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <fieldset className="flex flex-wrap gap-2">
+        <legend className="sr-only">{translate('filters.source.label')}</legend>
         {SOURCE_FILTERS.map((filter) => (
           <Button
+            aria-pressed={sourceFilter === filter.value}
             className="rounded-full"
             key={filter.value}
             onClick={() => onSourceFilterChange(filter.value)}
@@ -63,10 +76,10 @@ export default function SkillsPageHeader({
                 : ButtonVariant.SECONDARY
             }
           >
-            {filter.label}
+            {translate(`filters.source.${filter.labelKey}`)}
           </Button>
         ))}
-      </div>
+      </fieldset>
     </Card>
   );
 }

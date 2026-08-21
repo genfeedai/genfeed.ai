@@ -13,12 +13,16 @@ import {
   createCaptionsAction,
   createCloneAction,
   createConvertToPresetAction,
+  createCopyPromptAction,
   createDeleteAction,
   createDownloadAction,
   createEditAction,
   createFavoriteAction,
   createGifAction,
   createLandscapeAction,
+  createMarkArchivedAction,
+  createMarkRejectedAction,
+  createMarkValidatedAction,
   createMirrorAction,
   createMoreOptionsAction,
   createPortraitAction,
@@ -43,7 +47,7 @@ import {
 import { useMemo } from 'react';
 
 type ContextActionId = 'prompt' | 'scope' | 'status';
-type MenuSection = 'Branding' | 'Danger' | 'Library' | 'Transform';
+type MenuSection = 'Branding' | 'Danger' | 'Library' | 'Review' | 'Transform';
 
 export interface UseQuickActionsParams {
   selectedIngredient?: IIngredient | null;
@@ -58,6 +62,7 @@ export interface UseQuickActionsParams {
 const MENU_SECTION_ORDER: MenuSection[] = [
   'Transform',
   'Branding',
+  'Review',
   'Library',
   'Danger',
 ];
@@ -67,6 +72,7 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   clone: 'Transform',
   'convert-to-preset': 'Transform',
   'convert-to-video': 'Transform',
+  'copy-prompt': 'Library',
   remix: 'Transform',
   delete: 'Danger',
   download: 'Library',
@@ -74,6 +80,9 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   favorite: 'Library',
   gif: 'Transform',
   landscape: 'Transform',
+  'mark-archived': 'Review',
+  'mark-rejected': 'Review',
+  'mark-validated': 'Review',
   'manage-tags': 'Library',
   mirror: 'Transform',
   portrait: 'Transform',
@@ -233,6 +242,7 @@ export function useQuickActions({
 
     const actionsList: Array<IQuickAction | null> = [
       createPromptAction(selectedIngredient, handlers.onShowPrompt),
+      createCopyPromptAction(selectedIngredient, handlers.onCopy),
       createUsePromptAction(
         selectedIngredient,
         handlers.onUsePrompt,
@@ -262,6 +272,21 @@ export function useQuickActions({
         selectedIngredient,
         handlers.onMoreOptions,
         loadingStates.isDownloading,
+      ),
+      createMarkValidatedAction(
+        selectedIngredient,
+        handlers.onMarkValidated,
+        loadingStates.isMarkingValidated,
+      ),
+      createMarkRejectedAction(
+        selectedIngredient,
+        handlers.onMarkRejected,
+        loadingStates.isMarkingRejected,
+      ),
+      createMarkArchivedAction(
+        selectedIngredient,
+        handlers.onMarkArchived,
+        loadingStates.isMarkingArchived,
       ),
     ];
 
@@ -367,11 +392,13 @@ export function useQuickActions({
             loadingStates.isCloning,
           )
         : null,
-      createMirrorAction(
-        selectedIngredient,
-        handlers.onMirror,
-        loadingStates.isMirroring,
-      ),
+      isVideo
+        ? createMirrorAction(
+            selectedIngredient,
+            handlers.onMirror,
+            loadingStates.isMirroring,
+          )
+        : null,
       // Reverse is video-only
       isVideo
         ? createReverseAction(
@@ -534,15 +561,50 @@ export function useQuickActions({
     selectedIngredient,
   ]);
 
+  const overflowUtilityActions = useMemo(() => {
+    if (!selectedIngredient) {
+      return [];
+    }
+
+    return compactActions([
+      createDownloadAction(
+        selectedIngredient,
+        handlers.onDownload,
+        loadingStates.isDownloading,
+      ),
+      createPublishAction(
+        selectedIngredient,
+        handlers.onPublish,
+        loadingStates.isPublishing,
+      ),
+    ]);
+  }, [
+    handlers.onDownload,
+    handlers.onPublish,
+    loadingStates.isDownloading,
+    loadingStates.isPublishing,
+    selectedIngredient,
+  ]);
+
   const menuActions = useMemo(() => {
     const primaryActionIds = new Set(primaryActions.map((action) => action.id));
 
-    const filteredMenuActions = generatedActions.filter((action) => {
+    const filteredMenuActions = [
+      ...overflowUtilityActions,
+      ...generatedActions,
+    ].filter((action) => {
       if (!action.showInMenu || primaryActionIds.has(action.id)) {
         return false;
       }
 
-      if (hasPromptControl && action.id === 'prompt') {
+      if (
+        hasPromptControl &&
+        (action.id === 'copy-prompt' || action.id === 'prompt')
+      ) {
+        return false;
+      }
+
+      if (hasStatusControl && action.id.startsWith('mark-')) {
         return false;
       }
 
@@ -550,7 +612,13 @@ export function useQuickActions({
     });
 
     return applyMenuSections(filteredMenuActions);
-  }, [generatedActions, hasPromptControl, primaryActions]);
+  }, [
+    generatedActions,
+    hasPromptControl,
+    hasStatusControl,
+    overflowUtilityActions,
+    primaryActions,
+  ]);
 
   const mainActions = useMemo(() => primaryActions, [primaryActions]);
 

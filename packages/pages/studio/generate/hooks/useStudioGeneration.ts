@@ -22,6 +22,7 @@ import {
 } from '@pages/studio/generate/utils/generation-payloads';
 import {
   resolveJsonApiIngredientId,
+  resolveStudioAssetDimensions,
   resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
@@ -53,6 +54,7 @@ export interface UseStudioGenerationReturn {
   clearJobs: () => void;
   isGenerating: boolean;
   jobs: readonly StudioGenerateJob[];
+  removeJob: (id: string) => void;
   submit: (promptText: string, references?: string[]) => Promise<void>;
 }
 
@@ -145,6 +147,10 @@ export function useStudioGeneration({
     setJobs([]);
   }, []);
 
+  const removeJob = useCallback((id: string) => {
+    setJobs((previous) => previous.filter((job) => job.id !== id));
+  }, []);
+
   const resolveFetchService = useCallback(
     async (jobType: StudioGenerateType): Promise<AssetQueryService> => {
       switch (jobType) {
@@ -171,18 +177,26 @@ export function useStudioGeneration({
   const trackPendingIds = useCallback(
     (
       pendingIds: string[],
-      context: { modelKey: string; promptText: string },
+      context: {
+        height?: number;
+        modelKey: string;
+        promptText: string;
+        width?: number;
+      },
     ) => {
       const config = getStudioGenerateTypeConfig(type);
 
       setJobs((previous) => [
         ...pendingIds.map((id) => ({
           createdAt: Date.now(),
+          height: context.height,
           id,
+          ingredientId: id,
           modelKey: context.modelKey || undefined,
           prompt: context.promptText,
           status: IngredientStatus.PROCESSING,
           type,
+          width: context.width,
         })),
         ...previous,
       ]);
@@ -217,10 +231,15 @@ export function useStudioGeneration({
             try {
               const fetchService = await resolveFetchService(type);
               const ingredient = await fetchService.findOne(resolvedId);
+              const dimensions = resolveStudioAssetDimensions(ingredient);
 
               patchJob(pendingId, {
+                ...(dimensions.height ? { height: dimensions.height } : {}),
+                ingredient: ingredient ?? undefined,
+                ingredientId: String(ingredient?.id ?? resolvedId),
                 status: IngredientStatus.GENERATED,
                 url: resolveStudioAssetUrl(ingredient),
+                ...(dimensions.width ? { width: dimensions.width } : {}),
               });
               onGeneratedRef.current?.();
             } catch (error) {
@@ -292,6 +311,9 @@ export function useStudioGeneration({
         models,
         config.capabilities.hasModelSelection,
       );
+      const jobDimensions = config.capabilities.hasAspectRatio
+        ? { height: promptData.height, width: promptData.width }
+        : {};
 
       setIsGenerating(true);
 
@@ -307,7 +329,11 @@ export function useStudioGeneration({
               ...payload,
               blacklist: settings.blacklist,
             } as unknown as Partial<IImage>)) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            trackPendingIds(resolvePendingIds(data), {
+              ...jobDimensions,
+              modelKey,
+              promptText,
+            });
             break;
           }
 
@@ -321,7 +347,11 @@ export function useStudioGeneration({
               ...payload,
               blacklist: settings.blacklist,
             } as unknown as Partial<IVideo>)) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            trackPendingIds(resolvePendingIds(data), {
+              ...jobDimensions,
+              modelKey,
+              promptText,
+            });
             break;
           }
 
@@ -335,7 +365,10 @@ export function useStudioGeneration({
             const data = (await service.post(
               payload as Parameters<MusicsService['post']>[0],
             )) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), { modelKey, promptText });
+            trackPendingIds(resolvePendingIds(data), {
+              modelKey,
+              promptText,
+            });
             break;
           }
 
@@ -379,6 +412,8 @@ export function useStudioGeneration({
               {
                 createdAt: Date.now(),
                 id: String(voice.id),
+                ingredient: voice,
+                ingredientId: String(voice.id),
                 modelKey: modelKey || undefined,
                 prompt: promptText,
                 status: IngredientStatus.GENERATED,
@@ -407,6 +442,7 @@ export function useStudioGeneration({
           {
             createdAt: Date.now(),
             error: message,
+            ...jobDimensions,
             id: `failed-${crypto.randomUUID()}`,
             modelKey: modelKey || undefined,
             prompt: promptText,
@@ -436,5 +472,5 @@ export function useStudioGeneration({
     ],
   );
 
-  return { clearJobs, isGenerating, jobs, submit };
+  return { clearJobs, isGenerating, jobs, removeJob, submit };
 }

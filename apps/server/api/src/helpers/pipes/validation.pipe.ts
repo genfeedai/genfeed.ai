@@ -46,9 +46,37 @@ export const FORBID_NON_WHITELISTED: unique symbol = Symbol.for(
   'genfeedai:validation:forbid-non-whitelisted',
 );
 
+/**
+ * Static opt-in hook for query-key aliasing.
+ *
+ * `plainToInstance` runs with `exposeDefaultValues: true`, and under that
+ * option class-transformer SKIPS `@Transform` for every key absent from the
+ * source object — so a `@Transform` on an aliased canonical key (e.g. mapping
+ * the client's `?folder=` onto `folderId`) never fires for the exact requests
+ * it exists to serve. DTOs that need source-key aliasing declare
+ *
+ * ```ts
+ * static readonly [RESOLVE_QUERY_ALIASES] = resolveFolderIdAlias;
+ * ```
+ *
+ * The pipe invokes the hook with the raw source and the transformed instance
+ * AFTER `plainToInstance` but BEFORE validation, so aliases participate in
+ * whitelist validation like any declared key. Statics are inherited, so a
+ * base DTO can cover a whole family.
+ */
+export const RESOLVE_QUERY_ALIASES: unique symbol = Symbol.for(
+  'genfeedai:validation:resolve-query-aliases',
+);
+
+export type QueryAliasResolver = (
+  source: Record<string, unknown>,
+  instance: object,
+) => void;
+
 interface UnknownPropertyAwareMetatype {
   [ALLOW_UNKNOWN_PROPERTIES]?: boolean;
   [FORBID_NON_WHITELISTED]?: boolean;
+  [RESOLVE_QUERY_ALIASES]?: QueryAliasResolver;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -156,10 +184,17 @@ export class ValidationPipe implements PipeTransform<unknown> {
       return instance;
     }
 
-    return plainToInstance(metatype, source, {
+    const instance = plainToInstance(metatype, source, {
       enableImplicitConversion: false,
       exposeDefaultValues: true,
     });
+    const aliasResolver = (metatype as unknown as UnknownPropertyAwareMetatype)[
+      RESOLVE_QUERY_ALIASES
+    ];
+    if (aliasResolver && isPlainObject(source)) {
+      aliasResolver(source, instance as object);
+    }
+    return instance;
   }
 
   private async validateObject(

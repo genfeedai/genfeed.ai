@@ -61,6 +61,11 @@ export default function ButtonDropdown({
         icon
       ) : (
         <>
+          {icon ? (
+            <span className="flex items-center [&_svg]:size-3.5 [&_svg]:shrink-0">
+              {icon}
+            </span>
+          ) : null}
           <span className="text-xs font-medium leading-none">
             {displayLabel}
           </span>
@@ -95,13 +100,15 @@ export default function ButtonDropdown({
             key={option.value}
             onSelect={() => handleSelect(option.value)}
             className={cn(
-              'cursor-pointer px-2 py-1 text-xs text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
+              'min-h-8 cursor-pointer rounded-sm px-2.5 py-1.5 text-xs text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
               option.value === value &&
                 'bg-background-tertiary font-medium text-foreground',
             )}
           >
             {option.icon && (
-              <span className="mr-2 flex items-center">{option.icon}</span>
+              <span className="mr-2 flex items-center [&_svg]:size-4 [&_svg]:shrink-0">
+                {option.icon}
+              </span>
             )}
             {option.label}
           </DropdownMenuItem>

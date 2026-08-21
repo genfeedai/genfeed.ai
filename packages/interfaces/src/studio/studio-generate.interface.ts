@@ -132,10 +132,23 @@ export interface StudioGenerateSettings {
 export interface StudioGenerateJob {
   createdAt: number;
   error?: string;
+  height?: number;
   id: string;
+  /**
+   * Full persisted asset behind a generated job. Ready image/video cards use
+   * this to render the shared masonry behavior instead of a second, reduced
+   * action system.
+   */
+  ingredient?: IIngredient;
+  /**
+   * Persisted ingredient identity, available before the full ingredient is
+   * hydrated. Synthetic client-side failures deliberately omit it.
+   */
+  ingredientId?: string;
   modelKey?: string;
   prompt: string;
   status: IngredientStatus;
   type: StudioGenerateType;
   url?: string;
+  width?: number;
 }

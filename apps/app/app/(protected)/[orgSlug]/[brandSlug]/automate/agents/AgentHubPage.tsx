@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
@@ -27,7 +28,6 @@ import {
   FileText,
   Image,
   Megaphone,
-  Plus,
   Sparkles,
   User,
   UserPlus,
@@ -36,9 +36,10 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import AddAgentDialog, { type AddAgentMode } from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 
 const AGENT_TYPE_ICONS: Record<AgentType, React.ReactNode> = {
@@ -189,9 +190,15 @@ function AgentCard({
 
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
-  const { strategies, isLoading, refresh } = useAgentStrategies();
+  const { brandId, isReady: isBrandReady } = useBrand();
+  const { strategies, isLoading, refresh } = useAgentStrategies({
+    brandId,
+    enabled: isBrandReady && Boolean(brandId),
+  });
   const notificationsService = NotificationsService.getInstance();
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { href } = useOrgUrl();
 
   const getService = useAuthedService((token: string) =>
@@ -205,6 +212,20 @@ export default function AgentHubPage() {
     useState<AgentStrategyWorkflowBinding | null>(null);
   const [isLoadingBinding, setIsLoadingBinding] = useState(false);
   const [isSubmittingWorkflow, setIsSubmittingWorkflow] = useState(false);
+  const addIntent = searchParams.get('add');
+  const initialAddMode: AddAgentMode =
+    addIntent === 'custom' ? 'custom' : 'library';
+  const [addMode, setAddMode] = useState<AddAgentMode>(initialAddMode);
+  const [isAddAgentOpen, setIsAddAgentOpen] = useState(Boolean(addIntent));
+
+  useEffect(() => {
+    if (!addIntent) {
+      return;
+    }
+
+    setAddMode(addIntent === 'custom' ? 'custom' : 'library');
+    setIsAddAgentOpen(true);
+  }, [addIntent]);
 
   // Auto-refresh every 30 seconds
   const refreshRef = useRef(refresh);
@@ -298,35 +319,38 @@ export default function AgentHubPage() {
     [getService, href, notificationsService, refresh, router, selectedStrategy],
   );
 
+  const handleOpenAddAgent = useCallback((mode: AddAgentMode) => {
+    setAddMode(mode);
+    setIsAddAgentOpen(true);
+  }, []);
+
+  const handleAgentCreated = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
+
+  const handleAddAgentOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setIsAddAgentOpen(isOpen);
+      if (!isOpen && addIntent) {
+        router.replace(pathname, { scroll: false });
+      }
+    },
+    [addIntent, pathname, router],
+  );
+
   return (
     <Container
-      label="Agent Hub"
+      label="Agents"
       description="Content agents that fill workflow prompts and assets, then run deterministic graphs."
       icon={Cpu}
       right={
-        <div className="flex items-center gap-2">
-          <Link href={APP_ROUTES.AUTOMATE.HIRE}>
-            <Button
-              icon={<UserPlus className="size-4" />}
-              label="Hire Agent"
-              variant={ButtonVariant.SECONDARY}
-            />
-          </Link>
-          <Link href={APP_ROUTES.AUTOMATE.ORCHESTRATOR}>
-            <Button
-              icon={<Workflow className="size-4" />}
-              label="Orchestrator"
-              variant={ButtonVariant.SECONDARY}
-            />
-          </Link>
-          <Link href={APP_ROUTES.AUTOMATE.NEW}>
-            <Button
-              icon={<Plus className="size-4" />}
-              label="New Agent"
-              variant={ButtonVariant.DEFAULT}
-            />
-          </Link>
-        </div>
+        <Button
+          icon={<UserPlus className="size-4" />}
+          isDisabled={!isBrandReady || !brandId}
+          label="Add agent"
+          onClick={() => handleOpenAddAgent('library')}
+          variant={ButtonVariant.DEFAULT}
+        />
       }
     >
       {isLoading ? (
@@ -353,13 +377,13 @@ export default function AgentHubPage() {
               {translate('empty.description')}
             </p>
           </div>
-          <Link href={APP_ROUTES.AUTOMATE.NEW}>
-            <Button
-              label="Create your first agent"
-              variant={ButtonVariant.DEFAULT}
-              icon={<Plus className="size-4" />}
-            />
-          </Link>
+          <Button
+            label="Add your first agent"
+            variant={ButtonVariant.DEFAULT}
+            icon={<UserPlus className="size-4" />}
+            isDisabled={!isBrandReady || !brandId}
+            onClick={() => handleOpenAddAgent('library')}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -383,6 +407,13 @@ export default function AgentHubPage() {
         isSubmitting={isSubmittingWorkflow}
         onOpenChange={setWorkflowDialogOpen}
         onSubmit={handleSubmitWorkflow}
+      />
+
+      <AddAgentDialog
+        initialMode={addMode}
+        isOpen={isAddAgentOpen}
+        onCreated={handleAgentCreated}
+        onOpenChange={handleAddAgentOpenChange}
       />
     </Container>
   );
