@@ -4,6 +4,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { validateReleaseRecoveryEvidence } from './release-recovery-evidence.mjs';
+
 // Contract for the OSS release tooling decided in #2995 (children #2999, #3001):
 // one repo version, a generated changelog, and a Conventional Commits PR title
 // that becomes the squash subject and the changelog line.
@@ -17,6 +19,9 @@ function readRepoFile(relativePath) {
 const releaseWorkflow = readRepoFile('.github/workflows/release.yml');
 const selfHostedWorkflow = readRepoFile(
   '.github/workflows/_publish-selfhosted-core.yml',
+);
+const recoveryEvidenceScript = readRepoFile(
+  'scripts/ci/release-recovery-evidence.mjs',
 );
 const prTitleWorkflow = readRepoFile('.github/workflows/pr-title.yml');
 const cliffConfig = readRepoFile('cliff.toml');
@@ -39,6 +44,272 @@ function conventionalTypesFromTemplate() {
   );
   return match[1].split(', ');
 }
+
+const RECOVERY_SHA = '87fd8fff5bd429ae224c7501fc7c772b838365a4';
+const RECOVERY_RUN_ID = '32272857631';
+const RECOVERY_TAG = 'v0.1.66';
+const REQUIRED_SUITE_JOBS = [
+  'Full Suite / CI Gate / Trust Check',
+  'Full Suite / CI Gate / Executable Contracts',
+  'Full Suite / CI Gate / Secretlint (changed files)',
+  'Full Suite / CI Gate / Format',
+  'Full Suite / CI Gate / Lint',
+  'Full Suite / CI Gate / Gitleaks',
+  'Full Suite / CI Gate / Test Plan',
+  'Full Suite / CI Gate / Typecheck',
+  'Full Suite / CI Gate / Spec Typecheck',
+  'Full Suite / CI Gate / Test Web and Mobile',
+  'Full Suite / CI Gate / Test Packages',
+  'Full Suite / CI Gate / Test Server Services',
+  'Full Suite / CI Gate / OpenAPI Spec Drift',
+  ...Array.from(
+    { length: 4 },
+    (_, index) => `Full Suite / CI Gate / Test API (Shard ${index + 1}/4)`,
+  ),
+  ...Array.from(
+    { length: 4 },
+    (_, index) => `Full Suite / CI Gate / Test App (Shard ${index + 1}/4)`,
+  ),
+  'Full Suite / CI Gate / Build',
+  'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)',
+  'Full Suite / E2E Suite / E2E Route Coverage Gate',
+  'Full Suite / E2E Suite / API E2E Tests',
+  ...Array.from(
+    { length: 4 },
+    (_, index) =>
+      `Full Suite / E2E Suite / Frontend E2E (Shard ${index + 1}/4)`,
+  ),
+  'Full Suite / E2E Suite / E2E Gate (all shards)',
+  'Full Suite / E2E Suite / Merge E2E Reports',
+  'Full Suite / Build & Boot Check / Build & Boot Check',
+  'Full Suite / Build & Boot Check / Server Bundle Boot Check',
+];
+const PUBLIC_SAAS_JOBS = [
+  'Deploy hosted SaaS / Validate public source',
+  'Deploy hosted SaaS / Deploy hosted SaaS / Deploy ECS',
+  'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy web',
+  'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy app',
+  'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy docs',
+  'Deploy hosted SaaS / Deploy hosted SaaS / Post-deploy smoke',
+];
+const ARTIFACT_JOB_NAME =
+  'Publish Community / Publish & Smoke Public Install Artifact';
+const ARTIFACT_STEPS = [
+  'Set up job',
+  'Checkout release source',
+  'Setup create package',
+  'Test and build create package',
+  'Build version-pinned release bundle',
+  'Smoke create against the release bundle',
+  'Anonymous exact-image pull and metadata check',
+  'Attach install bundle to draft GitHub release',
+  'Post Setup create package',
+  'Post Checkout release source',
+  'Complete job',
+];
+
+function recoveryJob(name, conclusion = 'success', steps) {
+  return {
+    conclusion,
+    head_sha: RECOVERY_SHA,
+    id:
+      name === ARTIFACT_JOB_NAME
+        ? 96166230801
+        : [...name].reduce(
+            (value, character) =>
+              (value * 31 + character.charCodeAt(0)) % 1_000_000,
+            1,
+          ) + 1,
+    name,
+    status: 'completed',
+    ...(steps ? { steps } : {}),
+  };
+}
+
+function releaseRecoveryFixture() {
+  const artifactSteps = ARTIFACT_STEPS.map((name, index) => ({
+    conclusion:
+      name === 'Attach install bundle to draft GitHub release'
+        ? 'failure'
+        : 'success',
+    name,
+    number: index + 1,
+    status: 'completed',
+  }));
+
+  return {
+    jobs: [
+      ...REQUIRED_SUITE_JOBS.map((name) => recoveryJob(name)),
+      ...PUBLIC_SAAS_JOBS.map((name) => recoveryJob(name)),
+      recoveryJob('Deploy hosted SaaS through private operations', 'skipped'),
+      recoveryJob('Validate release and create draft'),
+      recoveryJob(
+        'Publish Community / Self-Hosted Build Verify / Build & Boot Check (Self-Hosted)',
+      ),
+      recoveryJob('Publish Community / Build & Push Self-Hosted Image'),
+      recoveryJob(ARTIFACT_JOB_NAME, 'failure', artifactSteps),
+      recoveryJob('Publish npm Packages', 'skipped'),
+      recoveryJob('Promote Community release channels', 'skipped'),
+      recoveryJob('Publish GitHub release', 'skipped'),
+    ],
+    releases: [
+      {
+        assets: [
+          {
+            digest:
+              'sha256:41a43afec3135a6d2b9bdc5197f7d11f500bc42d56d87eba2f3bd6aa1b857875',
+            id: 521044448,
+            name: 'CHANGELOG.md',
+            size: 255112,
+            state: 'uploaded',
+          },
+        ],
+        body: 'Existing release notes\n',
+        draft: true,
+        id: 373178897,
+        published_at: null,
+        tag_name: RECOVERY_TAG,
+        target_commitish: RECOVERY_SHA,
+      },
+    ],
+    requestedRepository: 'genfeedai/genfeed.ai',
+    requestedRunId: RECOVERY_RUN_ID,
+    requestedSaasLane: 'monorepo',
+    requestedTag: RECOVERY_TAG,
+    run: {
+      conclusion: 'failure',
+      display_title: `Release ${RECOVERY_TAG}`,
+      event: 'workflow_dispatch',
+      head_branch: 'master',
+      head_repository: { full_name: 'genfeedai/genfeed.ai' },
+      head_sha: RECOVERY_SHA,
+      id: Number(RECOVERY_RUN_ID),
+      path: '.github/workflows/release.yml',
+      repository: { full_name: 'genfeedai/genfeed.ai' },
+      status: 'completed',
+    },
+  };
+}
+
+test('validates complete historical recovery evidence from fixture data', () => {
+  const result = validateReleaseRecoveryEvidence(releaseRecoveryFixture());
+
+  assert.equal(result.releaseSha, RECOVERY_SHA);
+  assert.equal(result.artifactJobId, '96166230801');
+  assert.equal(result.draftId, '373178897');
+  assert.equal(
+    result.draftBodySha256,
+    '23d5465b6cdf5f0bd6e0c0cdc6515f8822bfb5ee57c193ef8104bb0d9dfd2708',
+  );
+  assert.equal(result.changelogAssetId, '521044448');
+  assert.equal(
+    result.changelogAssetDigest,
+    'sha256:41a43afec3135a6d2b9bdc5197f7d11f500bc42d56d87eba2f3bd6aa1b857875',
+  );
+  assert.equal(result.changelogAssetSize, '255112');
+});
+
+test('validates only the selected historical hosted SaaS lane', () => {
+  const fixture = releaseRecoveryFixture();
+  fixture.requestedSaasLane = 'operations';
+  fixture.jobs = fixture.jobs.filter(
+    (job) => !PUBLIC_SAAS_JOBS.includes(job.name),
+  );
+  fixture.jobs.find(
+    (job) => job.name === 'Deploy hosted SaaS through private operations',
+  ).conclusion = 'success';
+  fixture.jobs.push(recoveryJob('Deploy hosted SaaS', 'skipped'));
+
+  assert.equal(
+    validateReleaseRecoveryEvidence(fixture).releaseSha,
+    RECOVERY_SHA,
+  );
+});
+
+test('rejects a recovery draft that already has versioned install assets', () => {
+  for (const name of [
+    'genfeed-selfhosted.tar.gz',
+    'genfeed-selfhosted.tar.gz.sha256',
+  ]) {
+    const fixture = releaseRecoveryFixture();
+    fixture.releases[0].assets.push({
+      digest: `sha256:${'a'.repeat(64)}`,
+      id: 600000000,
+      name,
+      size: 100,
+      state: 'uploaded',
+    });
+
+    assert.throws(
+      () => validateReleaseRecoveryEvidence(fixture),
+      /must not already contain versioned install assets/,
+    );
+  }
+});
+
+test('requires one immutable non-empty historical changelog asset', () => {
+  for (const mutate of [
+    (asset) => {
+      asset.size = 0;
+    },
+    (asset) => {
+      asset.digest = null;
+    },
+    (_asset, release) => {
+      release.assets.push({ ...release.assets[0], id: 521044449 });
+    },
+  ]) {
+    const fixture = releaseRecoveryFixture();
+    mutate(fixture.releases[0].assets[0], fixture.releases[0]);
+    assert.throws(
+      () => validateReleaseRecoveryEvidence(fixture),
+      /exactly one non-empty, uploaded CHANGELOG\.md asset with a sha256 digest/,
+    );
+  }
+});
+
+test('proves only the final historical attachment step failed', () => {
+  const prerequisiteFailure = releaseRecoveryFixture();
+  const artifactJob = prerequisiteFailure.jobs.find(
+    (job) => job.name === ARTIFACT_JOB_NAME,
+  );
+  artifactJob.steps.find(
+    (step) => step.name === 'Smoke create against the release bundle',
+  ).conclusion = 'failure';
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(prerequisiteFailure),
+    /Smoke create against the release bundle.*expected success/,
+  );
+
+  const attachmentSucceeded = releaseRecoveryFixture();
+  attachmentSucceeded.jobs
+    .find((job) => job.name === ARTIFACT_JOB_NAME)
+    .steps.find(
+      (step) => step.name === 'Attach install bundle to draft GitHub release',
+    ).conclusion = 'success';
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(attachmentSucceeded),
+    /Attach install bundle to draft GitHub release.*expected failure/,
+  );
+});
+
+test('rejects mismatched run identity and wrong-SHA gate evidence', () => {
+  const wrongRun = releaseRecoveryFixture();
+  wrongRun.run.display_title = 'Release v9.9.9';
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(wrongRun),
+    /display title.*expected Release v0\.1\.66/,
+  );
+
+  const wrongSha = releaseRecoveryFixture();
+  wrongSha.jobs.find(
+    (job) => job.name === 'Full Suite / CI Gate / Build',
+  ).head_sha = 'a'.repeat(40);
+  assert.throws(
+    () => validateReleaseRecoveryEvidence(wrongSha),
+    /Full Suite.*wrong-SHA/,
+  );
+});
 
 test('release ties the dispatched tag to the root package.json version', () => {
   const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
@@ -103,22 +374,14 @@ test('failed stable releases recover only from exact historical run evidence', (
     validate,
     /RECOVERY_RUN_ID: \$\{\{ inputs\.recovery_run_id \}\}/,
   );
-  assert.match(validate, /actions\/runs\/\$\{RECOVERY_RUN_ID\}/);
+  assert.match(validate, /node scripts\/ci\/release-recovery-evidence\.mjs/);
+  assert.match(recoveryEvidenceScript, /actions\/runs\/\$\{runId\}/);
   assert.match(
-    validate,
-    /actions\/runs\/\$\{RECOVERY_RUN_ID\}\/jobs\?filter=latest/,
+    recoveryEvidenceScript,
+    /actions\/runs\/\$\{runId\}\/jobs\?filter=latest&per_page=100/,
   );
 
   for (const evidence of [
-    '.repository.full_name',
-    '.head_repository.full_name',
-    '.path',
-    '.event',
-    '.display_title',
-    '.head_branch',
-    '.head_sha',
-    '.status',
-    '.conclusion',
     'Full Suite / CI Gate / Build',
     'Full Suite / E2E Suite / E2E Gate (all shards)',
     'Full Suite / Build & Boot Check / Build & Boot Check',
@@ -131,12 +394,12 @@ test('failed stable releases recover only from exact historical run evidence', (
     'Publish GitHub release',
   ]) {
     assert.ok(
-      validate.includes(evidence),
+      recoveryEvidenceScript.includes(evidence),
       `release recovery must validate ${evidence}`,
     );
   }
 
-  assert.match(validate, /draft_target.*release_sha/);
+  assert.match(recoveryEvidenceScript, /target_commitish.*releaseSha/);
   assert.match(validate, /draft_body_sha256/);
   assert.match(validate, /Preserving its existing title and release notes/);
   assert.match(
@@ -159,6 +422,11 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
     'deploy-saas-via-operations',
     'release.yml',
   );
+  const imageBuild = jobBlock(
+    selfHostedWorkflow,
+    'build-and-push',
+    '_publish-selfhosted-core.yml',
+  );
 
   assert.match(verifySuite, /inputs\.recovery_run_id == ''/);
   assert.match(deploySaas, /inputs\.recovery_run_id == ''/);
@@ -172,8 +440,26 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
     /if: \$\{\{ inputs\.reuse_existing_image != true \}\}/,
   );
   assert.match(selfHostedWorkflow, /image_digest:/);
+  assert.match(
+    selfHostedWorkflow,
+    /overwrite_files: \$\{\{ inputs\.reuse_existing_image != true \}\}/,
+  );
+  assert.match(
+    selfHostedWorkflow,
+    /Refuse pre-existing versioned install assets/,
+  );
+  assert.match(selfHostedWorkflow, /install_asset_count/);
+  assert.match(selfHostedWorkflow, /local_digest="sha256:\$\(sha256sum/);
+  assert.match(selfHostedWorkflow, /archive_asset_id:/);
+  assert.match(selfHostedWorkflow, /archive_asset_digest:/);
+  assert.match(selfHostedWorkflow, /checksum_asset_id:/);
+  assert.match(selfHostedWorkflow, /checksum_asset_digest:/);
   assert.match(selfHostedWorkflow, /org\.opencontainers\.image\.revision/);
   assert.match(selfHostedWorkflow, /actual_revision.*EXPECTED_REVISION/);
+  assert.match(
+    imageBuild,
+    /permissions:\n {6}contents: read\n {6}packages: write/,
+  );
 
   const promote = jobBlock(releaseWorkflow, 'promote-community', 'release.yml');
   assert.match(
@@ -197,6 +483,13 @@ test('recovery gates irreversible promotion and preserves the draft until public
   const publish = jobBlock(releaseWorkflow, 'publish-release', 'release.yml');
   assert.match(publish, /EXPECTED_DRAFT_ID/);
   assert.match(publish, /EXPECTED_DRAFT_BODY_SHA256/);
+  assert.match(publish, /EXPECTED_CHANGELOG_ASSET_ID/);
+  assert.match(publish, /EXPECTED_CHANGELOG_ASSET_DIGEST/);
+  assert.match(publish, /EXPECTED_CHANGELOG_ASSET_SIZE/);
+  assert.match(publish, /EXPECTED_ARCHIVE_ASSET_ID/);
+  assert.match(publish, /EXPECTED_ARCHIVE_ASSET_DIGEST/);
+  assert.match(publish, /EXPECTED_CHECKSUM_ASSET_ID/);
+  assert.match(publish, /EXPECTED_CHECKSUM_ASSET_DIGEST/);
   assert.match(publish, /genfeed-selfhosted\.tar\.gz/);
   assert.match(publish, /genfeed-selfhosted\.tar\.gz\.sha256/);
   assert.match(
