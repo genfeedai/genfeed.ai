@@ -351,6 +351,19 @@ export class BrandsService extends BaseService<
       );
     }
 
+    return this.patchBrandRow(id, updateBrandDto);
+  }
+
+  /**
+   * Row-level brand patch without the API-surface agentConfig guard. Internal
+   * domain flows that assemble a combined write (brand-kit draft apply) use
+   * this so the guard's "use updateAgentConfig" rule keeps applying to
+   * external callers only.
+   */
+  private async patchBrandRow(
+    id: string,
+    updateBrandDto: Partial<UpdateBrandDto>,
+  ): Promise<BrandDocument> {
     const brand = await super.patch(
       id,
       omitUndefinedFields(
@@ -701,7 +714,7 @@ export class BrandsService extends BaseService<
         this.delegate.findFirst({
           where: criteria,
         }) as Promise<BrandDocument | null>,
-      (id, updates) => this.patch(id, updates),
+      (id, updates) => this.patchBrandRow(id, updates),
     );
   }
 

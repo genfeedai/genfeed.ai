@@ -353,14 +353,6 @@
       "workspace": "api"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/services/brands.service.spec.ts",
-      "fingerprint": "f4d9aede2b6f70d4c8f6",
-      "message": "Object literal may only specify known properties, and 'tone' does not exist in type 'UpdateBrandAgentPlatformOverrideDto'.",
-      "workspace": "api"
-    },
-    {
       "code": 2769,
       "count": 1,
       "file": "apps/server/api/src/collections/brands/services/default-recurring-content.service.spec.ts",
