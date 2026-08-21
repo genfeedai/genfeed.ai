@@ -235,7 +235,10 @@ describe('AgentCampaignsController', () => {
         ...mockUser,
         brandId: undefined,
       } as unknown as AuthenticatedUser;
-      const query = buildQuery();
+      const query = controller.buildFindAllQuery(
+        userWithoutBrand,
+        {} as AgentCampaignsQueryDto,
+      );
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },

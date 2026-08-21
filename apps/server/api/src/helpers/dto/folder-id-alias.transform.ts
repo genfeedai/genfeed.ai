@@ -1,4 +1,4 @@
-import type { TransformFnParams } from 'class-transformer';
+import type { QueryAliasResolver } from '@api/helpers/pipes/validation.pipe';
 
 /**
  * Accept the client's `folder` query key on a DTO that declares `folderId`.
@@ -10,19 +10,22 @@ import type { TransformFnParams } from 'class-transformer';
  * controller ever sees it — the folder axis silently widened to "all folders"
  * instead of failing loudly.
  *
- * The transform runs on the plain source object during `plainToInstance`, so it
- * reads `folder` before whitelisting removes it. An explicit `folderId` still
- * wins; nothing else about the alias survives onto the instance.
+ * This hook runs from the pipe AFTER `plainToInstance` (which skips
+ * `@Transform` for source-absent keys under `exposeDefaultValues: true`) and
+ * BEFORE validation, so an explicit `folderId` still wins and nothing else
+ * about the alias survives onto the instance.
  */
-export function resolveFolderIdAlias({
-  obj,
-  value,
-}: TransformFnParams): unknown {
-  if (value !== undefined && value !== null && value !== '') {
-    return value;
+export const resolveFolderIdAlias: QueryAliasResolver = (
+  source,
+  instance,
+): void => {
+  const target = instance as { folderId?: string | null };
+  if (target.folderId !== undefined && target.folderId !== null) {
+    return;
   }
 
-  const alias = (obj as Record<string, unknown> | undefined)?.folder;
-
-  return typeof alias === 'string' && alias !== '' ? alias : value;
-}
+  const alias = source.folder;
+  if (typeof alias === 'string' && alias !== '') {
+    target.folderId = alias;
+  }
+};

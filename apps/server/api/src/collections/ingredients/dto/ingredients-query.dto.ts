@@ -1,5 +1,4 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { resolveFolderIdAlias } from '@api/helpers/dto/folder-id-alias.transform';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
@@ -18,12 +17,6 @@ export class IngredientsQueryDto extends BaseQueryDto {
     required: false,
     type: String,
   })
-  // `@Expose()` makes class-transformer visit `folderId` even when the
-  // request only carries the `folder` alias, so `resolveFolderIdAlias`
-  // actually runs. Without it the key is absent from the source object and
-  // the transform is skipped entirely.
-  @Expose()
-  @Transform(resolveFolderIdAlias)
   @IsOptional()
   @IsEntityId()
   folderId?: string | null;
