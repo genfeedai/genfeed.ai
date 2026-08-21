@@ -1244,10 +1244,12 @@ describe('BrandRemixRunsService', () => {
     // The losing submission must never persist a review claim; reconciliation
     // writes without a review payload may still land.
     expect(
-      contentRun.updateMany.mock.calls.some(
-        ({ data }) =>
-          typeof data?.config === 'string' && data.config.includes('"review"'),
-      ),
+      contentRun.updateMany.mock.calls.some((call) => {
+        const data = call[0] as { config?: unknown };
+        return (
+          typeof data?.config === 'string' && data.config.includes('"review"')
+        );
+      }),
     ).toBe(false);
   });
 
