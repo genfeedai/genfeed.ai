@@ -28,6 +28,15 @@ on:
         required: false
         default: ""
         type: string
+      reuse_existing_image:
+        description: "Reuse and verify the already-published immutable version tag instead of rebuilding it"
+        required: false
+        default: false
+        type: boolean
+    outputs:
+      image_digest:
+        description: "Verified immutable digest behind the versioned Community image tag"
+        value: ${{ jobs.publish-install-artifact.outputs.image_digest }}
 
 # Reusable-workflow GITHUB_TOKEN is the intersection of caller + this
 # file. A workflow-level `contents: read` caps every job at read, so
@@ -40,6 +49,7 @@ permissions:
 jobs:
   verify-selfhosted:
     name: Self-Hosted Build Verify
+    if: ${{ inputs.reuse_existing_image != true }}
     permissions:
       contents: read
       packages: write
@@ -47,6 +57,7 @@ jobs:
 
   build-and-push:
     name: Build & Push Self-Hosted Image
+    if: ${{ inputs.reuse_existing_image != true }}
     needs: verify-selfhosted
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -93,12 +104,24 @@ jobs:
 
   publish-install-artifact:
     name: Publish & Smoke Public Install Artifact
-    if: inputs.attach_assets
-    needs: build-and-push
+    if: |
+      always() &&
+      inputs.attach_assets &&
+      (
+        (inputs.reuse_existing_image == true &&
+          needs.verify-selfhosted.result == 'skipped' &&
+          needs.build-and-push.result == 'skipped') ||
+        (inputs.reuse_existing_image != true &&
+          needs.verify-selfhosted.result == 'success' &&
+          needs.build-and-push.result == 'success')
+      )
+    needs: [verify-selfhosted, build-and-push]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
+    outputs:
+      image_digest: ${{ steps.verify-image.outputs.image_digest }}
     env:
       RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
@@ -162,6 +185,7 @@ jobs:
               "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
 
       - name: Anonymous exact-image pull and metadata check
+        id: verify-image
         env:
           EXPECTED_REVISION: ${{ inputs.checkout_ref }}
           IMAGE_TAG: ${{ inputs.image_tag }}
@@ -175,6 +199,14 @@ jobs:
 
           test "${actual_version}" = "${IMAGE_TAG}"
           test "${actual_revision}" = "${EXPECTED_REVISION}"
+
+          repo_digest="$(docker image inspect "${image}" --format '{{ index .RepoDigests 0 }}')"
+          image_digest="${repo_digest##*@}"
+          [[ "${image_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Exact Community image ${image} did not resolve to an immutable sha256 digest."
+            exit 1
+          }
+          echo "image_digest=${image_digest}" >>"${GITHUB_OUTPUT}"
 
       - name: Attach install bundle to draft GitHub release
         uses: softprops/action-gh-release@v3

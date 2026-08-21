@@ -12,6 +12,10 @@ on:
         description: "stable release tag (vX.Y.Z)"
         required: true
         type: string
+      recovery_run_id:
+        description: "Optional failed Release run ID whose unpublished draft and proved-green gates must be recovered at the original SHA"
+        required: false
+        type: string
       saas_lane:
         description: "Where hosted SaaS deploy compute runs. monorepo = public-repo jobs (default). operations = paid private console dispatch."
         required: false
@@ -34,10 +38,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      actions: read
       contents: write
     outputs:
+      draft_body_sha256: ${{ steps.release.outputs.draft_body_sha256 }}
+      draft_id: ${{ steps.release.outputs.draft_id }}
       image_tag: ${{ steps.release.outputs.image_tag }}
       major_minor_tag: ${{ steps.release.outputs.major_minor_tag }}
+      recovery_mode: ${{ steps.release.outputs.recovery_mode }}
+      recovery_run_id: ${{ steps.release.outputs.recovery_run_id }}
+      recovery_saas_verified: ${{ steps.release.outputs.recovery_saas_verified }}
+      recovery_suite_verified: ${{ steps.release.outputs.recovery_suite_verified }}
       release_sha: ${{ steps.release.outputs.release_sha }}
       release_tag: ${{ steps.release.outputs.release_tag }}
     steps:
@@ -57,11 +68,227 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve release source and recovery evidence
+        id: source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          REQUESTED_SAAS_LANE: ${{ inputs.saas_lane }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          fail() {
+            echo "::error::$*"
+            exit 1
+          }
+
+          release_sha="${GITHUB_SHA}"
+          recovery_mode=false
+          recovery_saas_verified=false
+          recovery_suite_verified=false
+          draft_body_sha256=""
+          draft_id=""
+
+          if [ -n "${RECOVERY_RUN_ID}" ]; then
+            [[ "${RECOVERY_RUN_ID}" =~ ^[1-9][0-9]*$ ]] || \
+              fail "recovery_run_id must be a positive numeric GitHub Actions run ID."
+
+            recovery_mode=true
+            prior_run="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RECOVERY_RUN_ID}")"
+
+            require_run_value() {
+              local query="$1"
+              local expected="$2"
+              local label="$3"
+              local actual
+              actual="$(jq -r "${query} // \"\"" <<<"${prior_run}")"
+              [ "${actual}" = "${expected}" ] || \
+                fail "Recovery run ${RECOVERY_RUN_ID} has ${label}=${actual:-<empty>}, expected ${expected}."
+            }
+
+            require_run_value '.repository.full_name' "${GITHUB_REPOSITORY}" 'repository'
+            require_run_value '.head_repository.full_name' "${GITHUB_REPOSITORY}" 'head repository'
+            require_run_value '(.id | tostring)' "${RECOVERY_RUN_ID}" 'run ID'
+            require_run_value '.path' '.github/workflows/release.yml' 'workflow path'
+            require_run_value '.event' 'workflow_dispatch' 'event'
+            require_run_value '.display_title' "Release ${REQUESTED_TAG}" 'display title'
+            require_run_value '.head_branch' 'master' 'head branch'
+            require_run_value '.status' 'completed' 'status'
+            require_run_value '.conclusion' 'failure' 'conclusion'
+
+            release_sha="$(jq -r '.head_sha // ""' <<<"${prior_run}")"
+            [[ "${release_sha}" =~ ^[0-9a-f]{40}$ ]] || \
+              fail "Recovery run ${RECOVERY_RUN_ID} does not expose an exact lowercase source SHA."
+
+            jobs_pages="$(gh api --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/actions/runs/${RECOVERY_RUN_ID}/jobs?filter=latest&per_page=100")"
+            jobs="$(jq -c '[.[].jobs[]]' <<<"${jobs_pages}")"
+
+            require_job_conclusion() {
+              local job_name="$1"
+              local expected_conclusion="$2"
+              local matches count actual_conclusion actual_sha actual_status
+              matches="$(jq -c --arg name "${job_name}" \
+                '[.[] | select(.name == $name)]' <<<"${jobs}")"
+              count="$(jq 'length' <<<"${matches}")"
+              [ "${count}" -eq 1 ] || \
+                fail "Recovery evidence requires exactly one ${job_name} job; found ${count}."
+              actual_conclusion="$(jq -r '.[0].conclusion // ""' <<<"${matches}")"
+              actual_sha="$(jq -r '.[0].head_sha // ""' <<<"${matches}")"
+              actual_status="$(jq -r '.[0].status // ""' <<<"${matches}")"
+              [ "${actual_status}" = 'completed' ] || \
+                fail "Recovery evidence job ${job_name} is not completed."
+              [ "${actual_sha}" = "${release_sha}" ] || \
+                fail "Recovery evidence job ${job_name} ran at ${actual_sha}, not ${release_sha}."
+              [ "${actual_conclusion}" = "${expected_conclusion}" ] || \
+                fail "Recovery evidence job ${job_name} concluded ${actual_conclusion}, expected ${expected_conclusion}."
+            }
+
+            suite_count="$(jq '[.[] | select(.name | startswith("Full Suite /"))] | length' <<<"${jobs}")"
+            [ "${suite_count}" -gt 0 ] || fail 'Recovery run contains no Full Suite job evidence.'
+            invalid_suite_jobs="$(jq --arg sha "${release_sha}" '[
+              .[]
+              | select(.name | startswith("Full Suite /"))
+              | select(
+                  .status != "completed"
+                  or .head_sha != $sha
+                  or ((.conclusion != "success") and (.conclusion != "skipped"))
+                )
+            ] | length' <<<"${jobs}")"
+            [ "${invalid_suite_jobs}" -eq 0 ] || \
+              fail "Recovery run has ${invalid_suite_jobs} incomplete, failed, or wrong-SHA Full Suite jobs."
+            required_suite_jobs=(
+              'Full Suite / CI Gate / Trust Check'
+              'Full Suite / CI Gate / Executable Contracts'
+              'Full Suite / CI Gate / Secretlint (changed files)'
+              'Full Suite / CI Gate / Format'
+              'Full Suite / CI Gate / Lint'
+              'Full Suite / CI Gate / Gitleaks'
+              'Full Suite / CI Gate / Test Plan'
+              'Full Suite / CI Gate / Typecheck'
+              'Full Suite / CI Gate / Spec Typecheck'
+              'Full Suite / CI Gate / Test Web and Mobile'
+              'Full Suite / CI Gate / Test Packages'
+              'Full Suite / CI Gate / Test Server Services'
+              'Full Suite / CI Gate / OpenAPI Spec Drift'
+              'Full Suite / CI Gate / Test API (Shard 1/4)'
+              'Full Suite / CI Gate / Test API (Shard 2/4)'
+              'Full Suite / CI Gate / Test API (Shard 3/4)'
+              'Full Suite / CI Gate / Test API (Shard 4/4)'
+              'Full Suite / CI Gate / Test App (Shard 1/4)'
+              'Full Suite / CI Gate / Test App (Shard 2/4)'
+              'Full Suite / CI Gate / Test App (Shard 3/4)'
+              'Full Suite / CI Gate / Test App (Shard 4/4)'
+              'Full Suite / CI Gate / Build'
+              'Full Suite / E2E Suite / Frontend Authed E2E (real Better Auth)'
+              'Full Suite / E2E Suite / E2E Route Coverage Gate'
+              'Full Suite / E2E Suite / API E2E Tests'
+              'Full Suite / E2E Suite / Frontend E2E (Shard 1/4)'
+              'Full Suite / E2E Suite / Frontend E2E (Shard 2/4)'
+              'Full Suite / E2E Suite / Frontend E2E (Shard 3/4)'
+              'Full Suite / E2E Suite / Frontend E2E (Shard 4/4)'
+              'Full Suite / E2E Suite / E2E Gate (all shards)'
+              'Full Suite / E2E Suite / Merge E2E Reports'
+              'Full Suite / Build & Boot Check / Build & Boot Check'
+              'Full Suite / Build & Boot Check / Server Bundle Boot Check'
+            )
+            for required_suite_job in "${required_suite_jobs[@]}"; do
+              require_job_conclusion "${required_suite_job}" success
+            done
+            recovery_suite_verified=true
+
+            case "${REQUESTED_SAAS_LANE}" in
+              monorepo)
+                require_job_conclusion 'Deploy hosted SaaS / Validate public source' success
+                require_job_conclusion 'Deploy hosted SaaS / Deploy hosted SaaS / Deploy ECS' success
+                require_job_conclusion 'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy web' success
+                require_job_conclusion 'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy app' success
+                require_job_conclusion 'Deploy hosted SaaS / Deploy hosted SaaS / Deploy Vercel frontends / Deploy docs' success
+                require_job_conclusion 'Deploy hosted SaaS / Deploy hosted SaaS / Post-deploy smoke' success
+                require_job_conclusion 'Deploy hosted SaaS through private operations' skipped
+                ;;
+              operations)
+                require_job_conclusion 'Deploy hosted SaaS through private operations' success
+                ;;
+              *)
+                fail "Unsupported SaaS lane ${REQUESTED_SAAS_LANE}."
+                ;;
+            esac
+            recovery_saas_verified=true
+
+            require_job_conclusion 'Validate release and create draft' success
+            require_job_conclusion 'Publish Community / Self-Hosted Build Verify / Build & Boot Check (Self-Hosted)' success
+            require_job_conclusion 'Publish Community / Build & Push Self-Hosted Image' success
+            require_job_conclusion 'Publish Community / Publish & Smoke Public Install Artifact' failure
+            require_job_conclusion 'Publish npm Packages' skipped
+            require_job_conclusion 'Promote Community release channels' skipped
+            require_job_conclusion 'Publish GitHub release' skipped
+
+            release_pages="$(gh api --paginate --slurp \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100")"
+            release_matches="$(jq -c --arg tag "${REQUESTED_TAG}" \
+              '[.[][] | select(.tag_name == $tag)]' <<<"${release_pages}")"
+            release_count="$(jq 'length' <<<"${release_matches}")"
+            [ "${release_count}" -eq 1 ] || \
+              fail "Recovery requires exactly one GitHub release draft for ${REQUESTED_TAG}; found ${release_count}."
+            release_json="$(jq -c '.[0]' <<<"${release_matches}")"
+            [ "$(jq -r '.draft' <<<"${release_json}")" = 'true' ] || \
+              fail "Recovery requires ${REQUESTED_TAG} to remain an unpublished draft."
+            [ "$(jq -r '.published_at // ""' <<<"${release_json}")" = '' ] || \
+              fail "Recovery refuses already-published release ${REQUESTED_TAG}."
+            draft_target="$(jq -r '.target_commitish // ""' <<<"${release_json}")"
+            [ "${draft_target}" = "${release_sha}" ] || \
+              fail "Recovery draft ${REQUESTED_TAG} targets ${draft_target}, not historical run SHA ${release_sha}."
+            if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${REQUESTED_TAG}" >/dev/null 2>&1; then
+              fail "Recovery refuses ${REQUESTED_TAG} because its Git tag already exists."
+            fi
+
+            draft_id="$(jq -r '.id' <<<"${release_json}")"
+            [[ "${draft_id}" =~ ^[0-9]+$ ]] || fail 'Recovery draft has an invalid release ID.'
+            draft_body="$(jq -r '.body // ""' <<<"${release_json}")"
+            draft_body_sha256="$(printf '%s' "${draft_body}" | sha256sum | awk '{print $1}')"
+
+            {
+              echo "## Partial release recovery evidence"
+              echo
+              echo "- Prior run: ${RECOVERY_RUN_ID}"
+              echo "- Release: \`${REQUESTED_TAG}\`"
+              echo "- Pinned SHA: \`${release_sha}\`"
+              echo "- Full Suite: proved green from the prior run"
+              echo "- Hosted SaaS (${REQUESTED_SAAS_LANE}): proved green from the prior run"
+              echo "- Community image: prior build/push proved green; the exact image will be reused and reverified"
+              echo "- Irreversible promotion, npm, and publication jobs: proved skipped"
+            } >>"${GITHUB_STEP_SUMMARY}"
+          fi
+
+          {
+            echo "draft_body_sha256=${draft_body_sha256}"
+            echo "draft_id=${draft_id}"
+            echo "recovery_mode=${recovery_mode}"
+            echo "recovery_run_id=${RECOVERY_RUN_ID}"
+            echo "recovery_saas_verified=${recovery_saas_verified}"
+            echo "recovery_suite_verified=${recovery_suite_verified}"
+            echo "release_sha=${release_sha}"
+          } >>"${GITHUB_OUTPUT}"
+
       - name: Checkout pinned master SHA
         uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ steps.source.outputs.release_sha }}
+
+      - name: Verify recovery source remains on master
+        if: ${{ inputs.recovery_run_id != '' }}
+        env:
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "${RELEASE_SHA}" origin/master || {
+            echo "::error::Historical release SHA ${RELEASE_SHA} is no longer reachable from master."
+            exit 1
+          }
 
       # One repo version (RELEASING.md → Version contract): the root package.json
       # is bumped in a normal PR and the dispatched tag must name that version.
@@ -80,6 +307,7 @@ jobs:
       # git-cliff section for this tag, and the full CHANGELOG.md is attached to
       # the release as an asset. cliff.toml owns grouping and PR links.
       - name: Generate release notes
+        if: ${{ inputs.recovery_run_id == '' }}
         uses: orhun/git-cliff-action@v4.8.0
         with:
           config: cliff.toml
@@ -88,6 +316,7 @@ jobs:
           OUTPUT: release-notes.md
 
       - name: Generate full changelog
+        if: ${{ inputs.recovery_run_id == '' }}
         uses: orhun/git-cliff-action@v4.8.0
         with:
           config: cliff.toml
@@ -99,12 +328,19 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_DRAFT_BODY_SHA256: ${{ steps.source.outputs.draft_body_sha256 }}
+          RECOVERY_DRAFT_ID: ${{ steps.source.outputs.draft_id }}
+          RECOVERY_MODE: ${{ steps.source.outputs.recovery_mode }}
+          RECOVERY_RUN_ID: ${{ steps.source.outputs.recovery_run_id }}
+          RECOVERY_SAAS_VERIFIED: ${{ steps.source.outputs.recovery_saas_verified }}
+          RECOVERY_SUITE_VERIFIED: ${{ steps.source.outputs.recovery_suite_verified }}
           REQUESTED_TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ steps.source.outputs.release_sha }}
         run: |
           set -euo pipefail
 
           release_tag="${REQUESTED_TAG}"
-          release_sha="${GITHUB_SHA}"
+          release_sha="${SOURCE_SHA}"
           if [[ ! "${release_tag}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             echo "::error::Stable release tag must use vX.Y.Z: ${release_tag}"
             exit 1
@@ -137,9 +373,25 @@ jobs:
               echo "::error::Draft ${release_tag} targets ${draft_target}, not pinned master SHA ${release_sha}."
               exit 1
             fi
-            gh release edit "${release_tag}" --notes-file release-notes.md
-            echo "Reusing draft release ${release_tag} at ${release_sha}; refreshed release notes."
+            if [ "${RECOVERY_MODE}" = 'true' ]; then
+              draft_id="$(jq -r '.id' <<<"${release_json}")"
+              draft_body="$(jq -r '.body // ""' <<<"${release_json}")"
+              draft_body_sha256="$(printf '%s' "${draft_body}" | sha256sum | awk '{print $1}')"
+              if [ "${draft_id}" != "${RECOVERY_DRAFT_ID}" ] || \
+                 [ "${draft_body_sha256}" != "${RECOVERY_DRAFT_BODY_SHA256}" ]; then
+                echo "::error::Recovery draft identity or notes changed after historical evidence validation."
+                exit 1
+              fi
+              echo "Reusing draft release ${release_tag} at ${release_sha}. Preserving its existing title and release notes."
+            else
+              gh release edit "${release_tag}" --notes-file release-notes.md
+              echo "Reusing draft release ${release_tag} at ${release_sha}; refreshed release notes."
+            fi
           else
+            if [ "${RECOVERY_MODE}" = 'true' ]; then
+              echo "::error::Recovery draft ${release_tag} disappeared after historical evidence validation."
+              exit 1
+            fi
             if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
               echo "::error::Tag ${release_tag} already exists without a reusable draft release."
               exit 1
@@ -153,17 +405,38 @@ jobs:
             echo "Created draft release ${release_tag} at ${release_sha}."
           fi
 
-          gh release upload "${release_tag}" CHANGELOG.md --clobber
+          if [ "${RECOVERY_MODE}" != 'true' ]; then
+            gh release upload "${release_tag}" CHANGELOG.md --clobber
+          fi
+
+          release_json="$(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
+              jq --arg tag "${release_tag}" '[.[][] | select(.tag_name == $tag)] | first // empty'
+          )"
+          draft_id="$(jq -r '.id // ""' <<<"${release_json}")"
+          draft_body="$(jq -r '.body // ""' <<<"${release_json}")"
+          draft_body_sha256="$(printf '%s' "${draft_body}" | sha256sum | awk '{print $1}')"
+          [[ "${draft_id}" =~ ^[0-9]+$ ]] || {
+            echo "::error::Validated draft ${release_tag} no longer has a stable release ID."
+            exit 1
+          }
 
           {
+            echo "draft_body_sha256=${draft_body_sha256}"
+            echo "draft_id=${draft_id}"
             echo "image_tag=${image_tag}"
             echo "major_minor_tag=${major_minor_tag}"
+            echo "recovery_mode=${RECOVERY_MODE}"
+            echo "recovery_run_id=${RECOVERY_RUN_ID}"
+            echo "recovery_saas_verified=${RECOVERY_SAAS_VERIFIED}"
+            echo "recovery_suite_verified=${RECOVERY_SUITE_VERIFIED}"
             echo "release_sha=${release_sha}"
             echo "release_tag=${release_tag}"
           } >>"${GITHUB_OUTPUT}"
 
   verify-suite:
     name: Full Suite
+    if: ${{ inputs.recovery_run_id == '' }}
     needs: validate-release
     permissions:
       actions: write
@@ -178,6 +451,16 @@ jobs:
   publish-community:
     name: Publish Community
     needs: [validate-release, verify-suite]
+    if: |
+      always() &&
+      needs.validate-release.result == 'success' &&
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_suite_verified == 'true' &&
+          needs.verify-suite.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          needs.verify-suite.result == 'success')
+      )
     permissions:
       contents: write
       packages: write
@@ -189,10 +472,11 @@ jobs:
       image_tag: ${{ needs.validate-release.outputs.image_tag }}
       major_minor_tag: ""
       release_tag: ${{ needs.validate-release.outputs.release_tag }}
+      reuse_existing_image: ${{ needs.validate-release.outputs.recovery_mode == 'true' }}
 
   deploy-saas:
     name: Deploy hosted SaaS
-    if: ${{ inputs.saas_lane != 'operations' }}
+    if: ${{ inputs.recovery_run_id == '' && inputs.saas_lane != 'operations' }}
     needs: [validate-release, verify-suite]
     permissions:
       id-token: write
@@ -210,7 +494,7 @@ jobs:
 
   deploy-saas-via-operations:
     name: Deploy hosted SaaS through private operations
-    if: ${{ inputs.saas_lane == 'operations' }}
+    if: ${{ inputs.recovery_run_id == '' && inputs.saas_lane == 'operations' }}
     needs: [validate-release, verify-suite]
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -327,7 +611,14 @@ jobs:
       !cancelled() &&
       needs.validate-release.result == 'success' &&
       needs.publish-community.result == 'success' &&
-      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_saas_verified == 'true' &&
+          needs.deploy-saas.result == 'skipped' &&
+          needs.deploy-saas-via-operations.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success'))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -335,6 +626,7 @@ jobs:
       packages: write
     env:
       IMAGE: ghcr.io/${{ github.repository }}
+      IMAGE_DIGEST: ${{ needs.publish-community.outputs.image_digest }}
       IMAGE_TAG: ${{ needs.validate-release.outputs.image_tag }}
       MAJOR_MINOR_TAG: ${{ needs.validate-release.outputs.major_minor_tag }}
     steps:
@@ -351,10 +643,19 @@ jobs:
       - name: Advance stable Community channels
         run: |
           set -euo pipefail
+          [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Community publisher returned an invalid image digest: ${IMAGE_DIGEST}"
+            exit 1
+          }
+          actual_digest="sha256:$(docker buildx imagetools inspect "${IMAGE}:${IMAGE_TAG}" --raw | sha256sum | awk '{print $1}')"
+          if [ "${actual_digest}" != "${IMAGE_DIGEST}" ]; then
+            echo "::error::Immutable image ${IMAGE}:${IMAGE_TAG} moved from ${IMAGE_DIGEST} to ${actual_digest}."
+            exit 1
+          fi
           docker buildx imagetools create \
             --tag "${IMAGE}:${MAJOR_MINOR_TAG}" \
             --tag "${IMAGE}:latest" \
-            "${IMAGE}:${IMAGE_TAG}"
+            "${IMAGE}@${IMAGE_DIGEST}"
 
   # npm is the one irreversible lane, so it runs after community and SaaS are
   # green rather than beside them. It publishes every enrolled package whose
@@ -372,7 +673,14 @@ jobs:
       !cancelled() &&
       needs.validate-release.result == 'success' &&
       needs.publish-community.result == 'success' &&
-      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_saas_verified == 'true' &&
+          needs.deploy-saas.result == 'skipped' &&
+          needs.deploy-saas-via-operations.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success'))
+      )
     permissions:
       contents: read
       id-token: write
@@ -399,7 +707,14 @@ jobs:
       needs.publish-community.result == 'success' &&
       needs.promote-community.result == 'success' &&
       needs.publish-packages.result == 'success' &&
-      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_saas_verified == 'true' &&
+          needs.deploy-saas.result == 'skipped' &&
+          needs.deploy-saas-via-operations.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success'))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -407,12 +722,45 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
+      EXPECTED_DRAFT_BODY_SHA256: ${{ needs.validate-release.outputs.draft_body_sha256 }}
+      EXPECTED_DRAFT_ID: ${{ needs.validate-release.outputs.draft_id }}
       RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
       RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
     steps:
       - name: Publish verified release
         run: |
           set -euo pipefail
+
+          release_pages="$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100")"
+          release_matches="$(jq -c --arg tag "${RELEASE_TAG}" \
+            '[.[][] | select(.tag_name == $tag)]' <<<"${release_pages}")"
+          test "$(jq 'length' <<<"${release_matches}")" -eq 1
+          release_json="$(jq -c '.[0]' <<<"${release_matches}")"
+          test "$(jq -r '.id' <<<"${release_json}")" = "${EXPECTED_DRAFT_ID}"
+          test "$(jq -r '.draft' <<<"${release_json}")" = 'true'
+          test "$(jq -r '.published_at // ""' <<<"${release_json}")" = ''
+          test "$(jq -r '.target_commitish' <<<"${release_json}")" = "${RELEASE_SHA}"
+
+          draft_body="$(jq -r '.body // ""' <<<"${release_json}")"
+          draft_body_sha256="$(printf '%s' "${draft_body}" | sha256sum | awk '{print $1}')"
+          test "${draft_body_sha256}" = "${EXPECTED_DRAFT_BODY_SHA256}"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "::error::Git tag ${RELEASE_TAG} appeared before the verified draft was published."
+            exit 1
+          fi
+
+          for required_asset in \
+            genfeed-selfhosted.tar.gz \
+            genfeed-selfhosted.tar.gz.sha256; do
+            asset_count="$(jq --arg name "${required_asset}" \
+              '[.assets[] | select(.name == $name and .size > 0)] | length' <<<"${release_json}")"
+            test "${asset_count}" -eq 1 || {
+              echo "::error::Draft ${RELEASE_TAG} is missing exactly one non-empty ${required_asset} asset."
+              exit 1
+            }
+          done
+
           gh release edit "${RELEASE_TAG}" --draft=false --latest
           {
             echo "## Release published"
