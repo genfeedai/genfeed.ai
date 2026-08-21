@@ -527,11 +527,13 @@ jobs:
       - publish-community
       - deploy-saas
       - deploy-saas-via-operations
+      - publish-packages
     if: |
       always() &&
       !cancelled() &&
       needs.validate-release.result == 'success' &&
       needs.publish-community.result == 'success' &&
+      needs.publish-packages.result == 'success' &&
       (
         (needs.validate-release.outputs.recovery_mode == 'true' &&
           needs.validate-release.outputs.recovery_saas_verified == 'true' &&

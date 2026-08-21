@@ -4,6 +4,10 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import {
+  runRecoveryNpmPlanGuard,
+  validateRecoveryNpmPlan,
+} from './recovery-npm-plan-guard.mjs';
 import { validateReleaseRecoveryEvidence } from './release-recovery-evidence.mjs';
 
 // Contract for the OSS release tooling decided in #2995 (children #2999, #3001):
@@ -323,6 +327,72 @@ test('rejects a renamed historical recovery draft', () => {
   );
 });
 
+test('allows historical npm recovery only when the registry plan is empty', () => {
+  assert.deepEqual(
+    validateRecoveryNpmPlan({
+      hasPackages: 'false',
+      recoveryRunId: RECOVERY_RUN_ID,
+      validatedHistoricalRecovery: 'true',
+    }),
+    {
+      hasPackages: false,
+      recoveryRunId: RECOVERY_RUN_ID,
+    },
+  );
+
+  assert.throws(
+    () =>
+      validateRecoveryNpmPlan({
+        hasPackages: 'true',
+        recoveryRunId: RECOVERY_RUN_ID,
+        validatedHistoricalRecovery: 'true',
+      }),
+    /cannot publish pending npm packages.*new release from current master/i,
+  );
+});
+
+test('historical npm recovery fails closed on incomplete evidence', () => {
+  const valid = {
+    hasPackages: 'false',
+    recoveryRunId: RECOVERY_RUN_ID,
+    validatedHistoricalRecovery: 'true',
+  };
+
+  assert.throws(
+    () =>
+      validateRecoveryNpmPlan({
+        ...valid,
+        validatedHistoricalRecovery: 'false',
+      }),
+    /validated historical recovery/i,
+  );
+  assert.throws(
+    () => validateRecoveryNpmPlan({ ...valid, recoveryRunId: '' }),
+    /positive recovery run ID/i,
+  );
+  assert.throws(
+    () => validateRecoveryNpmPlan({ ...valid, hasPackages: 'unknown' }),
+    /has_packages must be exactly true or false/i,
+  );
+});
+
+test('historical npm recovery reports its verified no-op', () => {
+  const output = [];
+  const result = runRecoveryNpmPlanGuard({
+    env: {
+      HAS_PACKAGES: 'false',
+      RECOVERY_RUN_ID,
+      VALIDATED_HISTORICAL_RECOVERY: 'true',
+    },
+    write: (message) => output.push(message),
+  });
+
+  assert.equal(result.hasPackages, false);
+  assert.deepEqual(output, [
+    `Historical recovery ${RECOVERY_RUN_ID} has an empty npm plan; no registry publication will run.`,
+  ]);
+});
+
 test('release ties the dispatched tag to the root package.json version', () => {
   const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
 
@@ -491,6 +561,10 @@ test('recovery gates irreversible promotion and preserves the draft until public
     assert.match(job, /recovery_saas_verified == 'true'/);
     assert.match(job, /needs\.publish-community\.result == 'success'/);
   }
+
+  const promote = jobBlock(releaseWorkflow, 'promote-community', 'release.yml');
+  assert.match(promote, /^ {6}- publish-packages$/m);
+  assert.match(promote, /needs\.publish-packages\.result == 'success'/);
 
   const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
   assert.match(validate, /RECOVERY_DRAFT_ID/);
