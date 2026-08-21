@@ -6,7 +6,7 @@ import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibrary
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
-import { ComponentSize } from '@genfeedai/enums';
+import { AlertCategory, ComponentSize } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -14,23 +14,35 @@ import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
+import StudioRemixRunPanel from '@pages/studio/generate/components/StudioRemixRunPanel';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
 import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioGenerateModels';
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
+import { useStudioRemixRun } from '@pages/studio/generate/hooks/useStudioRemixRun';
+import { StudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
   resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import { buildStudioRemixRunEdits } from '@pages/studio/generate/utils/studio-remix-run';
 import { NotificationsService } from '@services/core/notifications.service';
+import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Searchbar from '@ui/primitives/searchbar';
 import { useTranslations } from 'next-intl';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 const STUDIO_REFERENCE_TYPES = ['image/*'];
 
@@ -43,8 +55,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const { brandId, settings: organizationSettings } = useBrand();
   const agentApiService = useAgentApiService();
-  const { resetSettings, settings, setType, type, updateSettings } =
-    useStudioGenerateSettings();
+  const {
+    applyTypeSettings,
+    isHydrated,
+    resetSettings,
+    settings,
+    setType,
+    type,
+    updateSettings,
+  } = useStudioGenerateSettings();
 
   const [prompt, setPrompt] = useState('');
   const [search, setSearch] = useState('');
@@ -164,6 +183,37 @@ export default function StudioGenerateWorkspace(): ReactElement {
     settings,
     type,
   });
+  const {
+    error: remixError,
+    run: remixRun,
+    start: startRemixRun,
+    status: remixStatus,
+    submitForReview,
+    vary,
+  } = useStudioRemixRun();
+  const appliedRemixRevisionRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isHydrated || !remixRun) {
+      return;
+    }
+
+    const revisionKey = `${remixRun.id}:${remixRun.revision}`;
+    if (appliedRemixRevisionRef.current === revisionKey) {
+      return;
+    }
+    appliedRemixRevisionRef.current = revisionKey;
+
+    const output = remixRun.draft.output;
+    setPrompt(remixRun.draft.intent.objective);
+    applyTypeSettings(output.kind, {
+      aspectRatio: output.aspectRatio,
+      ...('durationSeconds' in output
+        ? { duration: output.durationSeconds }
+        : { duration: undefined }),
+      outputs: output.count,
+    });
+  }, [applyTypeSettings, isHydrated, remixRun]);
   const assetActions = useStudioGenerateAssetActions({
     onAttachReference: handleAttachGeneratedReference,
     onDeleted: removeJob,
@@ -193,8 +243,27 @@ export default function StudioGenerateWorkspace(): ReactElement {
     if (isUploading || isListening || isTranscribing) {
       return;
     }
+    if (remixRun) {
+      if (type === 'image' || type === 'video' || type === 'avatar') {
+        void startRemixRun(
+          buildStudioRemixRunEdits(remixRun, prompt, settings, type),
+        );
+      }
+      return;
+    }
     void submit(prompt, referenceUrls);
-  }, [isListening, isTranscribing, isUploading, prompt, referenceUrls, submit]);
+  }, [
+    isListening,
+    isTranscribing,
+    isUploading,
+    prompt,
+    referenceUrls,
+    remixRun,
+    settings,
+    startRemixRun,
+    submit,
+    type,
+  ]);
 
   const handleSelectContentReference = useCallback(
     (item: ContentMentionItem) => {
@@ -286,6 +355,22 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
       <div className="flex-1 overflow-auto px-6 py-6">
         <div className="mx-auto flex max-w-5xl flex-col gap-4">
+          {remixRun ? (
+            <StudioRemixRunPanel
+              error={remixError}
+              isWorking={remixStatus === 'working'}
+              onReview={(variantIds) => {
+                void submitForReview(variantIds);
+              }}
+              onVary={() => {
+                void vary();
+              }}
+              run={remixRun}
+            />
+          ) : remixError ? (
+            <Alert type={AlertCategory.ERROR}>{remixError}</Alert>
+          ) : null}
+
           <StudioGenerateResults
             assetActions={assetActions}
             isLoading={isLoadingGallery}
@@ -302,30 +387,37 @@ export default function StudioGenerateWorkspace(): ReactElement {
         showTopFade
       >
         <div {...(capabilities.hasReferences ? dragHandlers : {})}>
-          <StudioGenerateComposer
-            attachedAssets={attachedAssets}
-            isDragActive={capabilities.hasReferences && dragState.isActive}
-            isGenerating={isGenerating}
-            isListening={isListening}
-            isLoadingModels={isLoadingModels}
-            isTranscribing={isTranscribing}
-            isUploading={isUploading}
-            models={models}
-            onAddFiles={addFiles}
-            onOpenLibrary={() => setIsContentLibraryOpen(true)}
-            onPromptChange={setPrompt}
-            onRemoveAttachedAsset={handleRemoveAttachedAsset}
-            onResetSettings={resetSettings}
-            onSettingsChange={updateSettings}
-            onStartListening={startListening}
-            onStopListening={stopListening}
-            onSubmit={handleSubmit}
-            onTypeChange={setType}
-            prompt={prompt}
-            settings={settings}
-            shouldShowVoiceInput={shouldShowVoiceInput}
-            type={type}
-          />
+          <StudioRemixRunScope
+            canSelectAvatar={Boolean(
+              remixRun && 'avatarAssetId' in remixRun.draft.identity,
+            )}
+            isActive={Boolean(remixRun)}
+          >
+            <StudioGenerateComposer
+              attachedAssets={attachedAssets}
+              isDragActive={capabilities.hasReferences && dragState.isActive}
+              isGenerating={isGenerating || remixStatus === 'working'}
+              isListening={isListening}
+              isLoadingModels={isLoadingModels}
+              isTranscribing={isTranscribing}
+              isUploading={isUploading}
+              models={models}
+              onAddFiles={addFiles}
+              onOpenLibrary={() => setIsContentLibraryOpen(true)}
+              onPromptChange={setPrompt}
+              onRemoveAttachedAsset={handleRemoveAttachedAsset}
+              onResetSettings={resetSettings}
+              onSettingsChange={updateSettings}
+              onStartListening={startListening}
+              onStopListening={stopListening}
+              onSubmit={handleSubmit}
+              onTypeChange={setType}
+              prompt={prompt}
+              settings={settings}
+              shouldShowVoiceInput={shouldShowVoiceInput}
+              type={type}
+            />
+          </StudioRemixRunScope>
         </div>
       </PromptBarContainer>
 
