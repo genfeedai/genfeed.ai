@@ -1228,8 +1228,11 @@ describe('BrandRemixRunsService', () => {
         variantIds: ['variant-1'],
       }),
     ).rejects.toMatchObject({
-      detail: expect.stringContaining('concurrent'),
-      title: 'Concurrent review submission',
+      response: {
+        detail: expect.stringContaining('concurrent'),
+        title: 'Concurrent review submission',
+      },
+      status: 409,
     });
     expect(contentRun.updateMany).toHaveBeenCalledTimes(1);
   });
