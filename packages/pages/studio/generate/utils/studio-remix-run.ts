@@ -1,11 +1,25 @@
 import type {
+  BrandRemixDraft,
   BrandRemixDraftEdits,
   BrandRemixRunView,
 } from '@api-types/contracts';
+import { pairedBrandRemixIdentitySchema } from '@api-types/contracts';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,
 } from '@pages/studio/generate/types';
+
+/**
+ * The durable identity union also carries the empty prefill shape, which does
+ * not narrow through an `in` check. Parse through the contract schema so only
+ * a real paired avatar/voice identity survives.
+ */
+export function resolvePairedRemixIdentity(
+  identity: BrandRemixDraft['identity'],
+): ReturnType<typeof pairedBrandRemixIdentitySchema.parse> | null {
+  const parsed = pairedBrandRemixIdentitySchema.safeParse(identity);
+  return parsed.success ? parsed.data : null;
+}
 
 export function buildStudioRemixRunEdits(
   run: BrandRemixRunView,
@@ -17,14 +31,14 @@ export function buildStudioRemixRunEdits(
     type === 'image' || type === 'video' || type === 'avatar'
       ? type
       : run.draft.output.kind;
-  const hasCanonicalIdentity = 'avatarAssetId' in run.draft.identity;
+  const canonicalIdentity = resolvePairedRemixIdentity(run.draft.identity);
   return {
     fidelityMode: run.draft.fidelityMode,
-    ...(outputKind === 'avatar' && hasCanonicalIdentity
-      ? { identity: run.draft.identity }
+    ...(outputKind === 'avatar' && canonicalIdentity
+      ? { identity: canonicalIdentity }
       : outputKind !== 'avatar' &&
           run.draft.output.kind === 'avatar' &&
-          hasCanonicalIdentity
+          canonicalIdentity
         ? {
             identity: {
               avatarAssetId: null,

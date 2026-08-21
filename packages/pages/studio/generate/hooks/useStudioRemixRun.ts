@@ -10,6 +10,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import { resolvePairedRemixIdentity } from '@pages/studio/generate/utils/studio-remix-run';
 import { parseStudioRemixRunId } from '@pages/studio/generate/utils/studio-remix-run-url';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
@@ -46,9 +47,10 @@ export interface UseStudioRemixRunResult {
 
 function buildVaryEdits(run: BrandRemixRunView): BrandRemixDraftEdits {
   const { draft } = run;
+  const canonicalIdentity = resolvePairedRemixIdentity(draft.identity);
   return {
     fidelityMode: draft.fidelityMode,
-    ...('avatarAssetId' in draft.identity ? { identity: draft.identity } : {}),
+    ...(canonicalIdentity ? { identity: canonicalIdentity } : {}),
     intent: draft.intent,
     output: {
       aspectRatio: draft.output.aspectRatio,

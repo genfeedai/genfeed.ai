@@ -192,12 +192,16 @@ export const brandRemixReferenceEditSchema = generationBriefReferenceSchema
   })
   .strict();
 
-const pairedBrandRemixIdentitySchema = z
+export const pairedBrandRemixIdentitySchema = z
   .object({
     avatarAssetId: opaqueIdSchema,
     speechVoiceId: opaqueIdSchema,
   })
   .strict();
+
+export type PairedBrandRemixIdentity = z.infer<
+  typeof pairedBrandRemixIdentitySchema
+>;
 
 export const brandRemixIdentitySchema = z.union([
   z.object({}).strict(),

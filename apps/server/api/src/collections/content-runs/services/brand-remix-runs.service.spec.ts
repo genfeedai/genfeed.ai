@@ -776,7 +776,7 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
-      ({ where }?: { where?: Record<string, unknown> }) => {
+      ({ where }: { where?: Record<string, unknown> } = {}) => {
         if (where && 'generationPrompt' in where) {
           return Promise.resolve([]);
         }
@@ -877,7 +877,7 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
-      ({ where }?: { where?: Record<string, unknown> }) => {
+      ({ where }: { where?: Record<string, unknown> } = {}) => {
         if (where && 'generationPrompt' in where) {
           return Promise.resolve([{ id: 'image-orphan-1' }]);
         }
