@@ -265,12 +265,84 @@ describe('package and worktree review follow-ups', () => {
       'inputs.dry_run == false && inputs.trusted_release_call != true',
     );
     expect(packageWorkflow).toContain(
-      "inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true'",
+      "inputs.validated_historical_recovery != true && inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true'",
     );
     expect(packageWorkflow).not.toContain(
       "github.event_name == 'workflow_dispatch' && inputs.dry_run == false",
     );
     expect(releaseWorkflow).toContain('trusted_release_call: true');
+  });
+
+  it('allows historical recovery only when the current controller proves npm is a no-op', () => {
+    const dollar = '$';
+    const packageWorkflow = readText('.github/workflows/publish-packages.yml');
+    const releaseWorkflow = readText('.github/workflows/release.yml');
+    const workflowCall = packageWorkflow
+      .split('  workflow_call:\n')[1]
+      ?.split('  workflow_dispatch:\n')[0];
+    const workflowDispatch = packageWorkflow
+      .split('  workflow_dispatch:\n')[1]
+      ?.split('\nconcurrency:\n')[0];
+    const planJob = packageWorkflow
+      .split('\n  plan:\n')[1]
+      ?.split('\n  preflight:\n')[0];
+    const preflightJob = packageWorkflow
+      .split('\n  preflight:\n')[1]
+      ?.split('\n  publish:\n')[0];
+    const publishJob = packageWorkflow.split('\n  publish:\n')[1];
+
+    expect(workflowCall).toContain('validated_historical_recovery:');
+    expect(workflowCall).toMatch(
+      /validated_historical_recovery:[\s\S]*?default: false[\s\S]*?type: boolean/,
+    );
+    expect(workflowCall).toContain('recovery_run_id:');
+    expect(workflowCall).toMatch(
+      /recovery_run_id:[\s\S]*?default: ''[\s\S]*?type: string/,
+    );
+    expect(workflowDispatch).not.toContain('validated_historical_recovery');
+    expect(workflowDispatch).not.toContain('recovery_run_id');
+
+    expect(planJob).toContain(
+      `if: ${dollar}{{ inputs.dry_run == false || inputs.validated_historical_recovery == true }}`,
+    );
+    expect(planJob).toContain(
+      `VALIDATED_HISTORICAL_RECOVERY: ${dollar}{{ inputs.validated_historical_recovery }}`,
+    );
+    expect(planJob).toContain(
+      `git merge-base --is-ancestor "${dollar}{HEAD_SHA}" "${dollar}{MASTER_SHA}"`,
+    );
+    expect(planJob).toContain('- name: Checkout current release controller');
+    expect(planJob).toContain(`ref: ${dollar}{{ github.sha }}`);
+    expect(planJob).toContain('path: .release-controller');
+    expect(planJob).toContain(
+      `HAS_PACKAGES: ${dollar}{{ steps.plan.outputs.has_packages }}`,
+    );
+    expect(planJob).toContain(
+      'run: node .release-controller/scripts/ci/recovery-npm-plan-guard.mjs',
+    );
+
+    expect(preflightJob).toContain(
+      `if: ${dollar}{{ inputs.validated_historical_recovery != true && needs.plan.outputs.has_packages == 'true' }}`,
+    );
+    expect(publishJob).toContain(
+      `if: ${dollar}{{ inputs.validated_historical_recovery != true && inputs.dry_run == false`,
+    );
+    expect(publishJob).toContain(
+      `[ "${dollar}{HEAD_SHA}" != "${dollar}{CHECKOUT_REF}" ]`,
+    );
+    expect(publishJob).toContain('git fetch --no-tags origin master');
+    expect(publishJob).toContain(
+      `[ "${dollar}{HEAD_SHA}" != "${dollar}{MASTER_SHA}" ]`,
+    );
+    expect(publishJob).not.toContain('git merge-base --is-ancestor');
+    expect(publishJob).not.toContain('validated historical recovery');
+
+    expect(releaseWorkflow).toContain(
+      `validated_historical_recovery: ${dollar}{{ needs.validate-release.outputs.recovery_mode == 'true' }}`,
+    );
+    expect(releaseWorkflow).toContain(
+      `recovery_run_id: ${dollar}{{ needs.validate-release.outputs.recovery_run_id }}`,
+    );
   });
 });
 

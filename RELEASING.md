@@ -67,6 +67,38 @@ reuse the same version safely. It publishes the GitHub release and advances
 `latest` only after both community and SaaS succeed. A tag or draft release
 alone is not evidence that production shipped.
 
+If a failed canonical `Release` already deployed hosted SaaS and pushed the
+versioned Community image, recover that same version through `Release` on
+`master`: enter the unchanged tag, the failed run's numeric ID in
+`recovery_run_id`, and the same `saas_lane` used by the failed run. Do not rerun
+the historical workflow and do not bump the version. Recovery fails closed
+unless GitHub proves that the prior run belongs to this repository, ran the
+canonical workflow from `master`, matches the requested tag and unpublished
+draft, and used the draft's exact historical SHA. It also requires the prior
+Full Suite, hosted SaaS deploy/smoke, and versioned image jobs to be green while
+every bundle build, smoke, and image-verification step succeeded, only the draft
+attachment step failed, and every irreversible promotion/npm/publication job
+was skipped. The draft must still contain exactly one non-empty `CHANGELOG.md`
+asset with the historical asset ID and digest, and zero install tarball or
+checksum assets.
+
+The recovery run keeps the draft title and notes unchanged, checks out the
+historical SHA, skips only those proved-green Full Suite and SaaS gates, and
+reuses the existing versioned image without pushing over it. The current
+workflow anonymously pulls that image, verifies its OCI version/revision and
+immutable digest, rebuilds and smokes the missing install bundle, and attaches
+the assets with current permissions. The upload refuses to overwrite existing
+versioned assets, then captures and revalidates the new tarball/checksum IDs and
+digests together with the unchanged historical changelog before publication.
+Channel promotion uses the verified image digest. npm publication and making
+the existing draft public remain gated on all recovery evidence plus the
+rebuilt Community artifact. npm publication always requires the pinned SHA to
+equal current `master`. A validated historical recovery may continue only when
+the registry-drift plan is empty; if any enrolled package would publish, the
+recovery fails closed and a new release must run from current `master`. This lets
+the v66 recovery preserve truthful npm provenance because its verified plan is a
+no-op, without creating a generic historical publication path.
+
 The self-hosted release contract is version-bound:
 
 - GitHub tag `v1.2.3`
@@ -88,10 +120,12 @@ exactly at current `master`; the workflow rebuilds the exact image and reruns
 the public smoke before attaching assets. Never use recovery to overwrite a
 version that users already consumed.
 
-For an unconsumed failed release whose tag is behind `master` (including the
-assetless v0.5.0 incident), first reverify that it has no image/assets/deployment,
-then delete and re-cut the same release tag at the fixed `master` commit. Do not
-burn a new version for a release that never shipped.
+For an unconsumed failed release whose tag is behind `master` and has no image,
+assets, or deployment, first reverify that none of those outputs exist, then
+delete and re-cut the same release tag at the fixed `master` commit. This path
+does not apply once either distribution lane consumed the historical SHA; use
+the explicit `recovery_run_id` path above instead. Do not burn a new version for
+a release that never fully shipped.
 
 The Community container package `genfeed.ai` must be public before the anonymous
 artifact smoke can pass. For the initial private-to-public migration, let the

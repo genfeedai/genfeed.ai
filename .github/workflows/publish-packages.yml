@@ -12,7 +12,7 @@ on:
   workflow_call:
     inputs:
       checkout_ref:
-        description: 'Pinned master SHA the release verified'
+        description: 'Pinned release SHA verified by the canonical Release workflow'
         required: true
         type: string
       dry_run:
@@ -25,6 +25,16 @@ on:
         required: false
         default: false
         type: boolean
+      validated_historical_recovery:
+        description: 'Validate a historical release only when its npm plan is empty'
+        required: false
+        default: false
+        type: boolean
+      recovery_run_id:
+        description: 'Previously validated failed Release run; required for historical recovery'
+        required: false
+        default: ''
+        type: string
       packages_json:
         description: 'Optional explicit release set; empty means detect registry drift'
         required: false
@@ -87,6 +97,59 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Validate pinned release source
+        if: ${{ inputs.dry_run == false || inputs.validated_historical_recovery == true }}
+        env:
+          CHECKOUT_REF: ${{ inputs.checkout_ref }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          TRUSTED_RELEASE_CALL: ${{ inputs.trusted_release_call }}
+          VALIDATED_HISTORICAL_RECOVERY: ${{ inputs.validated_historical_recovery }}
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Package releases are only allowed from master. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+          if ! [[ "${CHECKOUT_REF}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Real package publishes require an exact 40-character checkout SHA."
+            exit 1
+          fi
+
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "${HEAD_SHA}" != "${CHECKOUT_REF}" ]; then
+            echo "::error::Checked out ${HEAD_SHA}, expected the pinned release SHA ${CHECKOUT_REF}."
+            exit 1
+          fi
+
+          git fetch --no-tags origin master
+          MASTER_SHA="$(git rev-parse origin/master)"
+
+          if [ "${VALIDATED_HISTORICAL_RECOVERY}" = 'true' ]; then
+            if [ "${TRUSTED_RELEASE_CALL}" != 'true' ] || [ "${DRY_RUN}" != 'false' ]; then
+              echo "::error::Historical package recovery requires a trusted real Release workflow call."
+              exit 1
+            fi
+            if ! [[ "${RECOVERY_RUN_ID}" =~ ^[1-9][0-9]*$ ]]; then
+              echo "::error::Historical package recovery requires a positive recovery_run_id."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "${HEAD_SHA}" "${MASTER_SHA}"; then
+              echo "::error::The recovered release SHA must remain an ancestor of current master."
+              exit 1
+            fi
+          else
+            if [ -n "${RECOVERY_RUN_ID}" ]; then
+              echo "::error::recovery_run_id is only valid with validated_historical_recovery=true."
+              exit 1
+            fi
+            if [ "${HEAD_SHA}" != "${MASTER_SHA}" ]; then
+              echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
+              exit 1
+            fi
+          fi
+
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
@@ -112,10 +175,27 @@ jobs:
             node scripts/npm-release-plan.mjs
           fi
 
+      - name: Checkout current release controller
+        if: ${{ inputs.validated_historical_recovery == true }}
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: .release-controller
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Require an empty npm plan for historical recovery
+        if: ${{ inputs.validated_historical_recovery == true }}
+        env:
+          HAS_PACKAGES: ${{ steps.plan.outputs.has_packages }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          VALIDATED_HISTORICAL_RECOVERY: ${{ inputs.validated_historical_recovery }}
+        run: node .release-controller/scripts/ci/recovery-npm-plan-guard.mjs
+
   preflight:
     name: Preflight immutable package tarballs
     needs: plan
-    if: ${{ needs.plan.outputs.has_packages == 'true' }}
+    if: ${{ inputs.validated_historical_recovery != true && needs.plan.outputs.has_packages == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -181,7 +261,7 @@ jobs:
 
   publish:
     name: Publish preflighted package tarballs
-    if: ${{ inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true' }}
+    if: ${{ inputs.validated_historical_recovery != true && inputs.dry_run == false && inputs.trusted_release_call == true && needs.plan.outputs.has_packages == 'true' }}
     needs: [plan, preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -197,6 +277,35 @@ jobs:
           ref: ${{ inputs.checkout_ref || github.sha }}
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Revalidate real publication source
+        env:
+          CHECKOUT_REF: ${{ inputs.checkout_ref }}
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Package releases are only allowed from master. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+          if ! [[ "${CHECKOUT_REF}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Real package publishes require an exact 40-character checkout SHA."
+            exit 1
+          fi
+
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "${HEAD_SHA}" != "${CHECKOUT_REF}" ]; then
+            echo "::error::Checked out ${HEAD_SHA}, expected the pinned release SHA ${CHECKOUT_REF}."
+            exit 1
+          fi
+
+          git fetch --no-tags origin master
+          MASTER_SHA="$(git rev-parse origin/master)"
+
+          if [ "${HEAD_SHA}" != "${MASTER_SHA}" ]; then
+            echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
+            exit 1
+          fi
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -217,18 +326,6 @@ jobs:
               throw new Error(`npm >=11.5.1 is required for OIDC trusted publishing; found ${process.argv[1]}`);
             }
           ' "$(npm --version)"
-
-      - name: Require unchanged master
-        run: |
-          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
-            echo "::error::Package releases are only allowed from master. Current ref: ${GITHUB_REF}"
-            exit 1
-          fi
-          git fetch origin master
-          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/master)" ]; then
-            echo "::error::Master advanced after this release was dispatched. Run a new release from current master."
-            exit 1
-          fi
 
       - name: Download immutable release plan and tarballs
         uses: actions/download-artifact@v8

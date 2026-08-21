@@ -90,7 +90,10 @@ test('defaults hosted SaaS compute to the public monorepo reusable workflow', ()
   assert.match(releaseWorkflow, /saas_lane:/);
 
   const deploy = jobBlock('deploy-saas');
-  assert.match(deploy, /if: \$\{\{ inputs\.saas_lane != 'operations' \}\}/);
+  assert.match(
+    deploy,
+    /if: \$\{\{ inputs\.recovery_run_id == '' && inputs\.saas_lane != 'operations' \}\}/,
+  );
   assert.match(
     deploy,
     /uses: \.\/\.github\/workflows\/deploy-hosted-saas\.yml/,
@@ -107,7 +110,10 @@ test('defaults hosted SaaS compute to the public monorepo reusable workflow', ()
 test('keeps the private operations dispatch as an explicit fallback lane', () => {
   const deploy = jobBlock('deploy-saas-via-operations');
 
-  assert.match(deploy, /if: \$\{\{ inputs\.saas_lane == 'operations' \}\}/);
+  assert.match(
+    deploy,
+    /if: \$\{\{ inputs\.recovery_run_id == '' && inputs\.saas_lane == 'operations' \}\}/,
+  );
   assert.match(deploy, /CONSOLE_REPOSITORY: genfeedai\/console\.genfeed\.ai/);
   assert.match(deploy, /CONSOLE_WORKFLOW: deploy-hosted-saas\.yml/);
   assert.match(deploy, /GH_TOKEN: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/);
@@ -506,7 +512,7 @@ test('keeps smoke retry budget consistent with the configured URL set', () => {
   );
 });
 
-test('blocks irreversible release promotion until the selected SaaS lane succeeds', () => {
+test('blocks irreversible promotion until normal or recovered SaaS evidence is exact', () => {
   for (const jobId of [
     'promote-community',
     'publish-packages',
@@ -526,7 +532,12 @@ test('blocks irreversible release promotion until the selected SaaS lane succeed
     assert.match(
       block,
       /needs\.deploy-saas\.result == 'success' \|\| needs\.deploy-saas-via-operations\.result == 'success'/,
-      `${jobId} must promote only when one SaaS lane succeeded`,
+      `${jobId} must promote a normal release only when one SaaS lane succeeded`,
+    );
+    assert.match(
+      block,
+      /needs\.validate-release\.outputs\.recovery_mode == 'true'[\s\S]*needs\.validate-release\.outputs\.recovery_saas_verified == 'true'[\s\S]*needs\.deploy-saas\.result == 'skipped'[\s\S]*needs\.deploy-saas-via-operations\.result == 'skipped'/,
+      `${jobId} must promote a recovery only from validated historical SaaS evidence`,
     );
   }
 });

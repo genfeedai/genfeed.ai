@@ -28,6 +28,27 @@ on:
         required: false
         default: ""
         type: string
+      reuse_existing_image:
+        description: "Reuse and verify the already-published immutable version tag instead of rebuilding it"
+        required: false
+        default: false
+        type: boolean
+    outputs:
+      archive_asset_digest:
+        description: "Verified digest of the immutable self-hosted archive release asset"
+        value: ${{ jobs.publish-install-artifact.outputs.archive_asset_digest }}
+      archive_asset_id:
+        description: "GitHub release asset ID for the immutable self-hosted archive"
+        value: ${{ jobs.publish-install-artifact.outputs.archive_asset_id }}
+      checksum_asset_digest:
+        description: "Verified digest of the immutable self-hosted checksum release asset"
+        value: ${{ jobs.publish-install-artifact.outputs.checksum_asset_digest }}
+      checksum_asset_id:
+        description: "GitHub release asset ID for the immutable self-hosted checksum"
+        value: ${{ jobs.publish-install-artifact.outputs.checksum_asset_id }}
+      image_digest:
+        description: "Verified immutable digest behind the versioned Community image tag"
+        value: ${{ jobs.publish-install-artifact.outputs.image_digest }}
 
 # Reusable-workflow GITHUB_TOKEN is the intersection of caller + this
 # file. A workflow-level `contents: read` caps every job at read, so
@@ -40,6 +61,7 @@ permissions:
 jobs:
   verify-selfhosted:
     name: Self-Hosted Build Verify
+    if: ${{ inputs.reuse_existing_image != true }}
     permissions:
       contents: read
       packages: write
@@ -47,9 +69,13 @@ jobs:
 
   build-and-push:
     name: Build & Push Self-Hosted Image
+    if: ${{ inputs.reuse_existing_image != true }}
     needs: verify-selfhosted
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout release source
         uses: actions/checkout@v7.0.1
@@ -93,12 +119,28 @@ jobs:
 
   publish-install-artifact:
     name: Publish & Smoke Public Install Artifact
-    if: inputs.attach_assets
-    needs: build-and-push
+    if: |
+      always() &&
+      inputs.attach_assets &&
+      (
+        (inputs.reuse_existing_image == true &&
+          needs.verify-selfhosted.result == 'skipped' &&
+          needs.build-and-push.result == 'skipped') ||
+        (inputs.reuse_existing_image != true &&
+          needs.verify-selfhosted.result == 'success' &&
+          needs.build-and-push.result == 'success')
+      )
+    needs: [verify-selfhosted, build-and-push]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
+    outputs:
+      archive_asset_digest: ${{ steps.verify-assets.outputs.archive_asset_digest }}
+      archive_asset_id: ${{ steps.verify-assets.outputs.archive_asset_id }}
+      checksum_asset_digest: ${{ steps.verify-assets.outputs.checksum_asset_digest }}
+      checksum_asset_id: ${{ steps.verify-assets.outputs.checksum_asset_id }}
+      image_digest: ${{ steps.verify-image.outputs.image_digest }}
     env:
       RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
@@ -162,6 +204,7 @@ jobs:
               "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
 
       - name: Anonymous exact-image pull and metadata check
+        id: verify-image
         env:
           EXPECTED_REVISION: ${{ inputs.checkout_ref }}
           IMAGE_TAG: ${{ inputs.image_tag }}
@@ -176,6 +219,46 @@ jobs:
           test "${actual_version}" = "${IMAGE_TAG}"
           test "${actual_revision}" = "${EXPECTED_REVISION}"
 
+          repo_digest="$(docker image inspect "${image}" --format '{{ index .RepoDigests 0 }}')"
+          image_digest="${repo_digest##*@}"
+          [[ "${image_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Exact Community image ${image} did not resolve to an immutable sha256 digest."
+            exit 1
+          }
+          echo "image_digest=${image_digest}" >>"${GITHUB_OUTPUT}"
+
+      - name: Refuse pre-existing versioned install assets
+        if: ${{ inputs.reuse_existing_image == true }}
+        env:
+          EXPECTED_RELEASE_SHA: ${{ inputs.checkout_ref }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          release_pages="$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100")"
+          release_matches="$(jq -c --arg tag "${RELEASE_TAG}" \
+            '[.[][] | select(.tag_name == $tag)]' <<<"${release_pages}")"
+          if [ "$(jq 'length' <<<"${release_matches}")" -ne 1 ]; then
+            echo "::error::Expected exactly one draft release for ${RELEASE_TAG} before asset attachment."
+            exit 1
+          fi
+          release_json="$(jq -c '.[0]' <<<"${release_matches}")"
+          if [ "$(jq -r '.draft' <<<"${release_json}")" != 'true' ] || \
+             [ "$(jq -r '.published_at // ""' <<<"${release_json}")" != '' ] || \
+             [ "$(jq -r '.target_commitish // ""' <<<"${release_json}")" != "${EXPECTED_RELEASE_SHA}" ]; then
+            echo "::error::Release ${RELEASE_TAG} is not the expected unpublished draft at ${EXPECTED_RELEASE_SHA}."
+            exit 1
+          fi
+          install_asset_count="$(jq '[.assets[] | select(
+            .name == "genfeed-selfhosted.tar.gz"
+            or .name == "genfeed-selfhosted.tar.gz.sha256"
+          )] | length' <<<"${release_json}")"
+          if [ "${install_asset_count}" -ne 0 ]; then
+            echo "::error::Versioned install assets already exist; immutable release assets are never replaced."
+            exit 1
+          fi
+
       - name: Attach install bundle to draft GitHub release
         uses: softprops/action-gh-release@v3
         with:
@@ -183,6 +266,63 @@ jobs:
           target_commitish: ${{ inputs.checkout_ref }}
           draft: true
           fail_on_unmatched_files: true
+          overwrite_files: ${{ inputs.reuse_existing_image != true }}
           files: |
             ${{ steps.bundle.outputs.archive }}
             ${{ steps.bundle.outputs.checksum }}
+
+      - name: Verify immutable install asset identities
+        id: verify-assets
+        env:
+          ARCHIVE_PATH: ${{ steps.bundle.outputs.archive }}
+          CHECKSUM_PATH: ${{ steps.bundle.outputs.checksum }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          release_pages="$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100")"
+          release_matches="$(jq -c --arg tag "${RELEASE_TAG}" \
+            '[.[][] | select(.tag_name == $tag)]' <<<"${release_pages}")"
+          if [ "$(jq 'length' <<<"${release_matches}")" -ne 1 ]; then
+            echo "::error::Expected exactly one draft release for ${RELEASE_TAG} after asset attachment."
+            exit 1
+          fi
+          release_json="$(jq -c '.[0]' <<<"${release_matches}")"
+
+          verify_asset() {
+            local asset_name="$1"
+            local local_path="$2"
+            local output_prefix="$3"
+            local matches asset_json asset_id asset_digest asset_size local_digest local_size
+
+            matches="$(jq -c --arg name "${asset_name}" \
+              '[.assets[] | select(.name == $name)]' <<<"${release_json}")"
+            if [ "$(jq 'length' <<<"${matches}")" -ne 1 ]; then
+              echo "::error::Draft ${RELEASE_TAG} must contain exactly one ${asset_name} asset."
+              exit 1
+            fi
+            asset_json="$(jq -c '.[0]' <<<"${matches}")"
+            asset_id="$(jq -r '.id | tostring' <<<"${asset_json}")"
+            asset_digest="$(jq -r '.digest // ""' <<<"${asset_json}")"
+            asset_size="$(jq -r '.size | tostring' <<<"${asset_json}")"
+            local_digest="sha256:$(sha256sum "${local_path}" | awk '{print $1}')"
+            local_size="$(stat -c '%s' "${local_path}")"
+
+            [[ "${asset_id}" =~ ^[1-9][0-9]*$ ]] && \
+              [[ "${asset_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] && \
+              [ "${asset_digest}" = "${local_digest}" ] && \
+              [ "${asset_size}" = "${local_size}" ] && \
+              [ "$(jq -r '.state // ""' <<<"${asset_json}")" = 'uploaded' ] || {
+                echo "::error::Uploaded ${asset_name} identity does not match the locally verified artifact."
+                exit 1
+              }
+
+            {
+              echo "${output_prefix}_asset_digest=${asset_digest}"
+              echo "${output_prefix}_asset_id=${asset_id}"
+            } >>"${GITHUB_OUTPUT}"
+          }
+
+          verify_asset 'genfeed-selfhosted.tar.gz' "${ARCHIVE_PATH}" archive
+          verify_asset 'genfeed-selfhosted.tar.gz.sha256' "${CHECKSUM_PATH}" checksum

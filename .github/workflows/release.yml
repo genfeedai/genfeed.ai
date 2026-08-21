@@ -12,6 +12,10 @@ on:
         description: "stable release tag (vX.Y.Z)"
         required: true
         type: string
+      recovery_run_id:
+        description: "Optional failed Release run ID whose unpublished draft and proved-green gates must be recovered at the original SHA"
+        required: false
+        type: string
       saas_lane:
         description: "Where hosted SaaS deploy compute runs. monorepo = public-repo jobs (default). operations = paid private console dispatch."
         required: false
@@ -34,10 +38,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
+      actions: read
       contents: write
     outputs:
+      changelog_asset_digest: ${{ steps.release.outputs.changelog_asset_digest }}
+      changelog_asset_id: ${{ steps.release.outputs.changelog_asset_id }}
+      changelog_asset_size: ${{ steps.release.outputs.changelog_asset_size }}
+      draft_body_sha256: ${{ steps.release.outputs.draft_body_sha256 }}
+      draft_id: ${{ steps.release.outputs.draft_id }}
+      draft_title: ${{ steps.release.outputs.draft_title }}
       image_tag: ${{ steps.release.outputs.image_tag }}
       major_minor_tag: ${{ steps.release.outputs.major_minor_tag }}
+      recovery_mode: ${{ steps.release.outputs.recovery_mode }}
+      recovery_run_id: ${{ steps.release.outputs.recovery_run_id }}
+      recovery_saas_verified: ${{ steps.release.outputs.recovery_saas_verified }}
+      recovery_suite_verified: ${{ steps.release.outputs.recovery_suite_verified }}
       release_sha: ${{ steps.release.outputs.release_sha }}
       release_tag: ${{ steps.release.outputs.release_tag }}
     steps:
@@ -57,11 +72,64 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout release controller
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Resolve release source and recovery evidence
+        id: source
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          REQUESTED_SAAS_LANE: ${{ inputs.saas_lane }}
+          REQUESTED_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RECOVERY_RUN_ID}" ]; then
+            {
+              echo "artifact_job_id="
+              echo "changelog_asset_digest="
+              echo "changelog_asset_id="
+              echo "changelog_asset_size="
+              echo "draft_body_sha256="
+              echo "draft_id="
+              echo "draft_title="
+              echo "recovery_mode=false"
+              echo "recovery_run_id="
+              echo "recovery_saas_verified=false"
+              echo "recovery_suite_verified=false"
+              echo "release_sha=${GITHUB_SHA}"
+            } >>"${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          node scripts/ci/release-recovery-evidence.mjs
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${REQUESTED_TAG}" >/dev/null 2>&1; then
+            echo "::error::Recovery refuses ${REQUESTED_TAG} because its Git tag already exists."
+            exit 1
+          fi
+
       - name: Checkout pinned master SHA
         uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ steps.source.outputs.release_sha }}
+
+      - name: Verify recovery source remains on master
+        if: ${{ inputs.recovery_run_id != '' }}
+        env:
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "${RELEASE_SHA}" origin/master || {
+            echo "::error::Historical release SHA ${RELEASE_SHA} is no longer reachable from master."
+            exit 1
+          }
 
       # One repo version (RELEASING.md → Version contract): the root package.json
       # is bumped in a normal PR and the dispatched tag must name that version.
@@ -80,6 +148,7 @@ jobs:
       # git-cliff section for this tag, and the full CHANGELOG.md is attached to
       # the release as an asset. cliff.toml owns grouping and PR links.
       - name: Generate release notes
+        if: ${{ inputs.recovery_run_id == '' }}
         uses: orhun/git-cliff-action@v4.8.0
         with:
           config: cliff.toml
@@ -88,6 +157,7 @@ jobs:
           OUTPUT: release-notes.md
 
       - name: Generate full changelog
+        if: ${{ inputs.recovery_run_id == '' }}
         uses: orhun/git-cliff-action@v4.8.0
         with:
           config: cliff.toml
@@ -99,12 +169,23 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RECOVERY_CHANGELOG_ASSET_DIGEST: ${{ steps.source.outputs.changelog_asset_digest }}
+          RECOVERY_CHANGELOG_ASSET_ID: ${{ steps.source.outputs.changelog_asset_id }}
+          RECOVERY_CHANGELOG_ASSET_SIZE: ${{ steps.source.outputs.changelog_asset_size }}
+          RECOVERY_DRAFT_BODY_SHA256: ${{ steps.source.outputs.draft_body_sha256 }}
+          RECOVERY_DRAFT_ID: ${{ steps.source.outputs.draft_id }}
+          RECOVERY_DRAFT_TITLE: ${{ steps.source.outputs.draft_title }}
+          RECOVERY_MODE: ${{ steps.source.outputs.recovery_mode }}
+          RECOVERY_RUN_ID: ${{ steps.source.outputs.recovery_run_id }}
+          RECOVERY_SAAS_VERIFIED: ${{ steps.source.outputs.recovery_saas_verified }}
+          RECOVERY_SUITE_VERIFIED: ${{ steps.source.outputs.recovery_suite_verified }}
           REQUESTED_TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ steps.source.outputs.release_sha }}
         run: |
           set -euo pipefail
 
           release_tag="${REQUESTED_TAG}"
-          release_sha="${GITHUB_SHA}"
+          release_sha="${SOURCE_SHA}"
           if [[ ! "${release_tag}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             echo "::error::Stable release tag must use vX.Y.Z: ${release_tag}"
             exit 1
@@ -137,9 +218,50 @@ jobs:
               echo "::error::Draft ${release_tag} targets ${draft_target}, not pinned master SHA ${release_sha}."
               exit 1
             fi
-            gh release edit "${release_tag}" --notes-file release-notes.md
-            echo "Reusing draft release ${release_tag} at ${release_sha}; refreshed release notes."
+            if [ "${RECOVERY_MODE}" = 'true' ]; then
+              draft_id="$(jq -r '.id' <<<"${release_json}")"
+              draft_title="$(jq -r '.name // ""' <<<"${release_json}")"
+              draft_body_sha256="$(jq -j '.body // ""' <<<"${release_json}" | sha256sum | awk '{print $1}')"
+              if [ "${draft_id}" != "${RECOVERY_DRAFT_ID}" ] || \
+                 [ "${draft_title}" != "${RECOVERY_DRAFT_TITLE}" ] || \
+                 [ "${draft_title}" != "${release_tag}" ] || \
+                 [ "${draft_body_sha256}" != "${RECOVERY_DRAFT_BODY_SHA256}" ]; then
+                echo "::error::Recovery draft identity, title, or notes changed after historical evidence validation."
+                exit 1
+              fi
+
+              install_asset_count="$(jq '[.assets[] | select(
+                .name == "genfeed-selfhosted.tar.gz"
+                or .name == "genfeed-selfhosted.tar.gz.sha256"
+              )] | length' <<<"${release_json}")"
+              if [ "${install_asset_count}" -ne 0 ]; then
+                echo "::error::Recovery draft gained a versioned install asset before bundle rebuild."
+                exit 1
+              fi
+
+              changelog_matches="$(jq -c '[.assets[] | select(.name == "CHANGELOG.md")]' <<<"${release_json}")"
+              if [ "$(jq 'length' <<<"${changelog_matches}")" -ne 1 ]; then
+                echo "::error::Recovery draft no longer has exactly one CHANGELOG.md asset."
+                exit 1
+              fi
+              changelog_json="$(jq -c '.[0]' <<<"${changelog_matches}")"
+              if [ "$(jq -r '.id | tostring' <<<"${changelog_json}")" != "${RECOVERY_CHANGELOG_ASSET_ID}" ] || \
+                 [ "$(jq -r '.digest // ""' <<<"${changelog_json}")" != "${RECOVERY_CHANGELOG_ASSET_DIGEST}" ] || \
+                 [ "$(jq -r '.size | tostring' <<<"${changelog_json}")" != "${RECOVERY_CHANGELOG_ASSET_SIZE}" ] || \
+                 [ "$(jq -r '.state // ""' <<<"${changelog_json}")" != 'uploaded' ]; then
+                echo "::error::Recovery changelog asset changed after historical evidence validation."
+                exit 1
+              fi
+              echo "Reusing draft release ${release_tag} at ${release_sha}. Preserving its existing title and release notes."
+            else
+              gh release edit "${release_tag}" --notes-file release-notes.md
+              echo "Reusing draft release ${release_tag} at ${release_sha}; refreshed release notes."
+            fi
           else
+            if [ "${RECOVERY_MODE}" = 'true' ]; then
+              echo "::error::Recovery draft ${release_tag} disappeared after historical evidence validation."
+              exit 1
+            fi
             if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
               echo "::error::Tag ${release_tag} already exists without a reusable draft release."
               exit 1
@@ -153,17 +275,89 @@ jobs:
             echo "Created draft release ${release_tag} at ${release_sha}."
           fi
 
-          gh release upload "${release_tag}" CHANGELOG.md --clobber
+          if [ "${RECOVERY_MODE}" != 'true' ]; then
+            gh release upload "${release_tag}" CHANGELOG.md --clobber
+          fi
+
+          release_json="$(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
+              jq --arg tag "${release_tag}" '[.[][] | select(.tag_name == $tag)] | first // empty'
+          )"
+          install_asset_count="$(jq '[.assets[] | select(
+            .name == "genfeed-selfhosted.tar.gz"
+            or .name == "genfeed-selfhosted.tar.gz.sha256"
+          )] | length' <<<"${release_json}")"
+          if [ "${RECOVERY_MODE}" = 'true' ] && [ "${install_asset_count}" -ne 0 ]; then
+            echo "::error::Draft ${release_tag} must contain no versioned install assets before immutable attachment."
+            exit 1
+          fi
+
+          changelog_matches="$(jq -c '[.assets[] | select(.name == "CHANGELOG.md")]' <<<"${release_json}")"
+          if [ "$(jq 'length' <<<"${changelog_matches}")" -ne 1 ]; then
+            echo "::error::Draft ${release_tag} must contain exactly one CHANGELOG.md asset."
+            exit 1
+          fi
+          changelog_json="$(jq -c '.[0]' <<<"${changelog_matches}")"
+          changelog_asset_id="$(jq -r '.id | tostring' <<<"${changelog_json}")"
+          changelog_asset_digest="$(jq -r '.digest // ""' <<<"${changelog_json}")"
+          changelog_asset_size="$(jq -r '.size | tostring' <<<"${changelog_json}")"
+          changelog_asset_state="$(jq -r '.state // ""' <<<"${changelog_json}")"
+          [[ "${changelog_asset_id}" =~ ^[1-9][0-9]*$ ]] && \
+            [[ "${changelog_asset_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] && \
+            [[ "${changelog_asset_size}" =~ ^[1-9][0-9]*$ ]] && \
+            [ "${changelog_asset_state}" = 'uploaded' ] || {
+              echo "::error::Draft ${release_tag} changelog must be non-empty, uploaded, and content-addressed."
+              exit 1
+            }
+
+          if [ "${RECOVERY_MODE}" = 'true' ] && {
+            [ "${changelog_asset_id}" != "${RECOVERY_CHANGELOG_ASSET_ID}" ] ||
+            [ "${changelog_asset_digest}" != "${RECOVERY_CHANGELOG_ASSET_DIGEST}" ] ||
+            [ "${changelog_asset_size}" != "${RECOVERY_CHANGELOG_ASSET_SIZE}" ];
+          }; then
+            echo "::error::Recovery changelog asset changed before draft validation completed."
+            exit 1
+          fi
+
+          draft_id="$(jq -r '.id // ""' <<<"${release_json}")"
+          draft_title="$(jq -r '.name // ""' <<<"${release_json}")"
+          draft_target="$(jq -r '.target_commitish // ""' <<<"${release_json}")"
+          draft_body_sha256="$(jq -j '.body // ""' <<<"${release_json}" | sha256sum | awk '{print $1}')"
+          [[ "${draft_id}" =~ ^[0-9]+$ ]] || {
+            echo "::error::Validated draft ${release_tag} no longer has a stable release ID."
+            exit 1
+          }
+          if [ "${RECOVERY_MODE}" = 'true' ] && {
+            [ "${draft_id}" != "${RECOVERY_DRAFT_ID}" ] ||
+            [ "${draft_title}" != "${RECOVERY_DRAFT_TITLE}" ] ||
+            [ "${draft_title}" != "${release_tag}" ] ||
+            [ "${draft_target}" != "${release_sha}" ] ||
+            [ "${draft_body_sha256}" != "${RECOVERY_DRAFT_BODY_SHA256}" ];
+          }; then
+            echo "::error::Recovery draft identity, title, target, or notes changed before asset work."
+            exit 1
+          fi
 
           {
+            echo "changelog_asset_digest=${changelog_asset_digest}"
+            echo "changelog_asset_id=${changelog_asset_id}"
+            echo "changelog_asset_size=${changelog_asset_size}"
+            echo "draft_body_sha256=${draft_body_sha256}"
+            echo "draft_id=${draft_id}"
+            echo "draft_title=${draft_title}"
             echo "image_tag=${image_tag}"
             echo "major_minor_tag=${major_minor_tag}"
+            echo "recovery_mode=${RECOVERY_MODE}"
+            echo "recovery_run_id=${RECOVERY_RUN_ID}"
+            echo "recovery_saas_verified=${RECOVERY_SAAS_VERIFIED}"
+            echo "recovery_suite_verified=${RECOVERY_SUITE_VERIFIED}"
             echo "release_sha=${release_sha}"
             echo "release_tag=${release_tag}"
           } >>"${GITHUB_OUTPUT}"
 
   verify-suite:
     name: Full Suite
+    if: ${{ inputs.recovery_run_id == '' }}
     needs: validate-release
     permissions:
       actions: write
@@ -178,6 +372,16 @@ jobs:
   publish-community:
     name: Publish Community
     needs: [validate-release, verify-suite]
+    if: |
+      always() &&
+      needs.validate-release.result == 'success' &&
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_suite_verified == 'true' &&
+          needs.verify-suite.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          needs.verify-suite.result == 'success')
+      )
     permissions:
       contents: write
       packages: write
@@ -189,10 +393,11 @@ jobs:
       image_tag: ${{ needs.validate-release.outputs.image_tag }}
       major_minor_tag: ""
       release_tag: ${{ needs.validate-release.outputs.release_tag }}
+      reuse_existing_image: ${{ needs.validate-release.outputs.recovery_mode == 'true' }}
 
   deploy-saas:
     name: Deploy hosted SaaS
-    if: ${{ inputs.saas_lane != 'operations' }}
+    if: ${{ inputs.recovery_run_id == '' && inputs.saas_lane != 'operations' }}
     needs: [validate-release, verify-suite]
     permissions:
       id-token: write
@@ -210,7 +415,7 @@ jobs:
 
   deploy-saas-via-operations:
     name: Deploy hosted SaaS through private operations
-    if: ${{ inputs.saas_lane == 'operations' }}
+    if: ${{ inputs.recovery_run_id == '' && inputs.saas_lane == 'operations' }}
     needs: [validate-release, verify-suite]
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -322,12 +527,21 @@ jobs:
       - publish-community
       - deploy-saas
       - deploy-saas-via-operations
+      - publish-packages
     if: |
       always() &&
       !cancelled() &&
       needs.validate-release.result == 'success' &&
       needs.publish-community.result == 'success' &&
-      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
+      needs.publish-packages.result == 'success' &&
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_saas_verified == 'true' &&
+          needs.deploy-saas.result == 'skipped' &&
+          needs.deploy-saas-via-operations.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success'))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -335,6 +549,7 @@ jobs:
       packages: write
     env:
       IMAGE: ghcr.io/${{ github.repository }}
+      IMAGE_DIGEST: ${{ needs.publish-community.outputs.image_digest }}
       IMAGE_TAG: ${{ needs.validate-release.outputs.image_tag }}
       MAJOR_MINOR_TAG: ${{ needs.validate-release.outputs.major_minor_tag }}
     steps:
@@ -351,10 +566,19 @@ jobs:
       - name: Advance stable Community channels
         run: |
           set -euo pipefail
+          [[ "${IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Community publisher returned an invalid image digest: ${IMAGE_DIGEST}"
+            exit 1
+          }
+          actual_digest="sha256:$(docker buildx imagetools inspect "${IMAGE}:${IMAGE_TAG}" --raw | sha256sum | awk '{print $1}')"
+          if [ "${actual_digest}" != "${IMAGE_DIGEST}" ]; then
+            echo "::error::Immutable image ${IMAGE}:${IMAGE_TAG} moved from ${IMAGE_DIGEST} to ${actual_digest}."
+            exit 1
+          fi
           docker buildx imagetools create \
             --tag "${IMAGE}:${MAJOR_MINOR_TAG}" \
             --tag "${IMAGE}:latest" \
-            "${IMAGE}:${IMAGE_TAG}"
+            "${IMAGE}@${IMAGE_DIGEST}"
 
   # npm is the one irreversible lane, so it runs after community and SaaS are
   # green rather than beside them. It publishes every enrolled package whose
@@ -372,7 +596,14 @@ jobs:
       !cancelled() &&
       needs.validate-release.result == 'success' &&
       needs.publish-community.result == 'success' &&
-      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_saas_verified == 'true' &&
+          needs.deploy-saas.result == 'skipped' &&
+          needs.deploy-saas-via-operations.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success'))
+      )
     permissions:
       contents: read
       id-token: write
@@ -380,7 +611,9 @@ jobs:
     with:
       checkout_ref: ${{ needs.validate-release.outputs.release_sha }}
       dry_run: false
+      recovery_run_id: ${{ needs.validate-release.outputs.recovery_run_id }}
       trusted_release_call: true
+      validated_historical_recovery: ${{ needs.validate-release.outputs.recovery_mode == 'true' }}
     secrets: inherit
 
   publish-release:
@@ -399,20 +632,105 @@ jobs:
       needs.publish-community.result == 'success' &&
       needs.promote-community.result == 'success' &&
       needs.publish-packages.result == 'success' &&
-      (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success')
+      (
+        (needs.validate-release.outputs.recovery_mode == 'true' &&
+          needs.validate-release.outputs.recovery_saas_verified == 'true' &&
+          needs.deploy-saas.result == 'skipped' &&
+          needs.deploy-saas-via-operations.result == 'skipped') ||
+        (needs.validate-release.outputs.recovery_mode != 'true' &&
+          (needs.deploy-saas.result == 'success' || needs.deploy-saas-via-operations.result == 'success'))
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: write
     env:
+      EXPECTED_ARCHIVE_ASSET_DIGEST: ${{ needs.publish-community.outputs.archive_asset_digest }}
+      EXPECTED_ARCHIVE_ASSET_ID: ${{ needs.publish-community.outputs.archive_asset_id }}
+      EXPECTED_CHANGELOG_ASSET_DIGEST: ${{ needs.validate-release.outputs.changelog_asset_digest }}
+      EXPECTED_CHANGELOG_ASSET_ID: ${{ needs.validate-release.outputs.changelog_asset_id }}
+      EXPECTED_CHANGELOG_ASSET_SIZE: ${{ needs.validate-release.outputs.changelog_asset_size }}
+      EXPECTED_CHECKSUM_ASSET_DIGEST: ${{ needs.publish-community.outputs.checksum_asset_digest }}
+      EXPECTED_CHECKSUM_ASSET_ID: ${{ needs.publish-community.outputs.checksum_asset_id }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
+      EXPECTED_DRAFT_BODY_SHA256: ${{ needs.validate-release.outputs.draft_body_sha256 }}
+      EXPECTED_DRAFT_ID: ${{ needs.validate-release.outputs.draft_id }}
+      EXPECTED_DRAFT_TITLE: ${{ needs.validate-release.outputs.draft_title }}
       RELEASE_SHA: ${{ needs.validate-release.outputs.release_sha }}
       RELEASE_TAG: ${{ needs.validate-release.outputs.release_tag }}
     steps:
       - name: Publish verified release
         run: |
           set -euo pipefail
+
+          release_pages="$(gh api --paginate --slurp \
+            "repos/${GITHUB_REPOSITORY}/releases?per_page=100")"
+          release_matches="$(jq -c --arg tag "${RELEASE_TAG}" \
+            '[.[][] | select(.tag_name == $tag)]' <<<"${release_pages}")"
+          test "$(jq 'length' <<<"${release_matches}")" -eq 1
+          release_json="$(jq -c '.[0]' <<<"${release_matches}")"
+          test "$(jq -r '.id' <<<"${release_json}")" = "${EXPECTED_DRAFT_ID}"
+          test "$(jq -r '.name // ""' <<<"${release_json}")" = "${EXPECTED_DRAFT_TITLE}"
+          test "$(jq -r '.name // ""' <<<"${release_json}")" = "${RELEASE_TAG}"
+          test "$(jq -r '.draft' <<<"${release_json}")" = 'true'
+          test "$(jq -r '.published_at // ""' <<<"${release_json}")" = ''
+          test "$(jq -r '.target_commitish' <<<"${release_json}")" = "${RELEASE_SHA}"
+
+          draft_body_sha256="$(jq -j '.body // ""' <<<"${release_json}" | sha256sum | awk '{print $1}')"
+          test "${draft_body_sha256}" = "${EXPECTED_DRAFT_BODY_SHA256}"
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "::error::Git tag ${RELEASE_TAG} appeared before the verified draft was published."
+            exit 1
+          fi
+
+          verify_asset_identity() {
+            local asset_name="$1"
+            local expected_id="$2"
+            local expected_digest="$3"
+            local expected_size="${4:-}"
+            local matches asset_json actual_id actual_digest actual_size
+
+            matches="$(jq -c --arg name "${asset_name}" \
+              '[.assets[] | select(.name == $name)]' <<<"${release_json}")"
+            if [ "$(jq 'length' <<<"${matches}")" -ne 1 ]; then
+              echo "::error::Draft ${RELEASE_TAG} must contain exactly one ${asset_name} asset."
+              exit 1
+            fi
+            asset_json="$(jq -c '.[0]' <<<"${matches}")"
+            actual_id="$(jq -r '.id | tostring' <<<"${asset_json}")"
+            actual_digest="$(jq -r '.digest // ""' <<<"${asset_json}")"
+            actual_size="$(jq -r '.size | tostring' <<<"${asset_json}")"
+
+            [[ "${expected_id}" =~ ^[1-9][0-9]*$ ]] && \
+              [[ "${expected_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] && \
+              [ "${actual_id}" = "${expected_id}" ] && \
+              [ "${actual_digest}" = "${expected_digest}" ] && \
+              [[ "${actual_size}" =~ ^[1-9][0-9]*$ ]] && \
+              [ "$(jq -r '.state // ""' <<<"${asset_json}")" = 'uploaded' ] || {
+                echo "::error::Draft ${RELEASE_TAG} asset ${asset_name} changed after verification."
+                exit 1
+              }
+            if [ -n "${expected_size}" ] && [ "${actual_size}" != "${expected_size}" ]; then
+              echo "::error::Draft ${RELEASE_TAG} asset ${asset_name} changed size after verification."
+              exit 1
+            fi
+          }
+
+          verify_asset_identity \
+            CHANGELOG.md \
+            "${EXPECTED_CHANGELOG_ASSET_ID}" \
+            "${EXPECTED_CHANGELOG_ASSET_DIGEST}" \
+            "${EXPECTED_CHANGELOG_ASSET_SIZE}"
+          verify_asset_identity \
+            genfeed-selfhosted.tar.gz \
+            "${EXPECTED_ARCHIVE_ASSET_ID}" \
+            "${EXPECTED_ARCHIVE_ASSET_DIGEST}"
+          verify_asset_identity \
+            genfeed-selfhosted.tar.gz.sha256 \
+            "${EXPECTED_CHECKSUM_ASSET_ID}" \
+            "${EXPECTED_CHECKSUM_ASSET_DIGEST}"
+
           gh release edit "${RELEASE_TAG}" --draft=false --latest
           {
             echo "## Release published"
