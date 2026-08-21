@@ -3,6 +3,7 @@
 import { IngredientFormat, IngredientStatus } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -53,7 +54,7 @@ export function useStudioGenerateAssetActions({
   const patchIngredient = useCallback(
     async (
       ingredient: IIngredient,
-      patch: Partial<IIngredient>,
+      patch: Partial<Ingredient>,
       actionLabel: string,
     ) => {
       try {

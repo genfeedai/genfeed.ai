@@ -212,7 +212,7 @@ export default function SkillCatalogCard({
                 })}
                 checked={isEnabled}
                 className="absolute top-4 right-4"
-                disabled={isTogglingSkill}
+                isDisabled={isTogglingSkill}
                 onCheckedChange={() => onToggleSkill(skill.slug)}
               />
             </div>

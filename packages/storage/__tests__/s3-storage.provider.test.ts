@@ -4,12 +4,24 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockSend = vi.fn();
-const uploadDoneMock = vi.fn();
-const uploadCtorMock = vi.fn();
-const clientConfigs: Array<Record<string, unknown>> = [];
-const profileCredentialProvider = vi.fn();
-const fromIniMock = vi.fn(() => profileCredentialProvider);
+const {
+  clientConfigs,
+  fromIniMock,
+  mockSend,
+  profileCredentialProvider,
+  uploadCtorMock,
+  uploadDoneMock,
+} = vi.hoisted(() => {
+  const profileCredentialProvider = vi.fn();
+  return {
+    clientConfigs: [] as Array<Record<string, unknown>>,
+    fromIniMock: vi.fn(() => profileCredentialProvider),
+    mockSend: vi.fn(),
+    profileCredentialProvider,
+    uploadCtorMock: vi.fn(),
+    uploadDoneMock: vi.fn(),
+  };
+});
 
 vi.mock('@aws-sdk/credential-provider-ini', () => ({
   fromIni: fromIniMock,
