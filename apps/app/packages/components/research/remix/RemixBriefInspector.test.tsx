@@ -92,6 +92,13 @@ vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
   useVoiceCatalog: (...args: unknown[]) => mocks.voiceHook(...args),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/overlays/context-inspector/ContextInspector', () => ({
   default: ({
     children,

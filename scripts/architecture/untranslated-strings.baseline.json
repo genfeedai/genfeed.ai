@@ -251,7 +251,6 @@
     "apps/app/packages/components/research/ads/AdsResearchAdCards.tsx": 6,
     "apps/app/packages/components/research/ads/AdsResearchDetailSidebar.tsx": 27,
     "apps/app/packages/components/research/ads/AdsResearchFilterPanel.tsx": 2,
-    "apps/app/packages/components/research/ads/AdsResearchPageClient.tsx": 6,
     "apps/app/src/components/models/ModelBrowserModal.tsx": 8,
     "apps/app/src/components/shell/AppProtectedTopbar.tsx": 2,
     "apps/app/src/components/workspace-shell/UniversalWorkspaceShell.tsx": 2,

@@ -1,4 +1,18 @@
 {
+  "adsResearch": {
+    "actions": {
+      "filters": "Filters",
+      "manageConnections": "Manage ad connections"
+    },
+    "connection": {
+      "description": "Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.",
+      "title": "Connect accounts for your campaigns"
+    },
+    "errors": {
+      "title": "Ads hub needs attention"
+    },
+    "reviewPolicy": "Launch plans require review. No external campaign objects are created from Ads Research."
+  },
   "platforms": {
     "home": {
       "accountsLabel": "Connected accounts",
@@ -69,12 +83,83 @@
     "publish": "Publish",
     "retryLibraryLink": "Retry Library link"
   },
+  "remixBrief": {
+    "errors": {
+      "title": "Remix brief needs attention"
+    },
+    "identity": {
+      "chooseAvatar": "Choose avatar",
+      "chooseVoice": "Choose voice",
+      "help": "Choose the durable Library avatar and voice rows. Provider ids and media URLs are resolved only on the server.",
+      "incomplete": "Choose both an avatar and a voice to continue.",
+      "title": "Avatar identity"
+    },
+    "intent": {
+      "spokenScriptHelp": "This text is spoken exactly as written. Put visual or provider direction in Visual direction instead."
+    },
+    "loading": {
+      "description": "Genfeed is resolving the hook, structure, visual pattern, and safe brand defaults from the canonical source.",
+      "title": "Reading the source and your brand…"
+    },
+    "output": {
+      "fidelityHelp": "Guided keeps the source pattern flexible. Off uses the source only as inspiration. Strict is currently unavailable and returns blocked readiness before generation.",
+      "fidelityLabel": "Fidelity",
+      "title": "Output",
+      "types": {
+        "avatar": "Avatar",
+        "image": "Image",
+        "video": "Video"
+      },
+      "variationCountMany": "{count} variations",
+      "variationCountOne": "{count} variation"
+    },
+    "readiness": {
+      "readyDescription": "Source, brand, references, and output are ready."
+    },
+    "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+    "references": {
+      "empty": "No explicit references. Brand defaults remain active.",
+      "help": "Server defaults are already applied. Add explicit Library assets only when they should steer this run.",
+      "managedByBrand": "Managed by Brand",
+      "roleLabel": "Use asset as",
+      "title": "Brand references"
+    },
+    "source": {
+      "patternTitle": "What is working"
+    }
+  },
   "studioGenerate": {
     "description": "One prompt bar for every asset type, enriched with your brand.",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
     "generating": "Generating…",
     "loadingModels": "Loading models…",
+    "outputTypes": {
+      "avatar": "Avatar",
+      "image": "Image",
+      "video": "Video"
+    },
+    "remixOutput": {
+      "description": "These settings are saved to this remix run before generation.",
+      "title": "Output"
+    },
+    "remixRun": {
+      "identity": {
+        "avatar": "Avatar · {id}",
+        "voice": "Voice · {id}"
+      },
+      "metaHandoffUnavailable": "Meta handoff is waiting for approved creative upload support.",
+      "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
+      "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
+      "readinessTitle": "{state} run",
+      "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+      "review": {
+        "open": "Open Review",
+        "openPublishDrafts": "Open Publish drafts",
+        "summaryMany": "Review batch {batchId} · {count} drafts",
+        "summaryOne": "Review batch {batchId} · {count} draft"
+      }
+    },
     "title": "Generate"
   },
   "warmupAccounts": {

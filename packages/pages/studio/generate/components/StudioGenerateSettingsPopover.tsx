@@ -33,6 +33,7 @@ import {
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { Palette, Settings2, Sparkles, UserRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo, useState } from 'react';
 
 type StudioSettingsSectionId = 'look' | 'identity' | 'output' | 'brand';
@@ -139,6 +140,7 @@ function StudioRemixOutputSettingsPopover({
   settings,
   type,
 }: StudioGenerateSettingsPopoverProps): ReactElement {
+  const translate = useTranslations('pages.studioGenerate');
   const hasDuration = type === 'video' || type === 'avatar';
   const summary = describeRemixOutputSettings(settings, type);
 
@@ -162,9 +164,11 @@ function StudioRemixOutputSettingsPopover({
       <PopoverPanelContent align="start" className="w-80 p-3" side="top">
         <div className="flex flex-col gap-3">
           <div>
-            <p className="text-sm font-medium text-foreground">Output</p>
+            <p className="text-sm font-medium text-foreground">
+              {translate('remixOutput.title')}
+            </p>
             <p className="text-xs text-muted-foreground">
-              These settings are saved to this remix run before generation.
+              {translate('remixOutput.description')}
             </p>
           </div>
           <SettingRow label="Aspect ratio">

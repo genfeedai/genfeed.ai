@@ -142,10 +142,16 @@ export default function StudioGenerateComposer({
                   <SelectValue placeholder="Output type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="image">Image</SelectItem>
-                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="image">
+                    {translate('outputTypes.image')}
+                  </SelectItem>
+                  <SelectItem value="video">
+                    {translate('outputTypes.video')}
+                  </SelectItem>
                   {canSelectAvatar ? (
-                    <SelectItem value="avatar">Avatar</SelectItem>
+                    <SelectItem value="avatar">
+                      {translate('outputTypes.avatar')}
+                    </SelectItem>
                   ) : null}
                 </SelectContent>
               </Select>

@@ -33,9 +33,12 @@ vi.mock('@ui/prompt-bars/components/shell/PromptBarShell', () => ({
   PROMPT_BAR_SURFACE_CLASS: 'prompt-bar-surface',
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => key,
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
 
 const baseProps = {
   isGenerating: false,

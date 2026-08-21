@@ -20,6 +20,7 @@ import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Columns2, Funnel as Filter, Megaphone, Table } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent } from 'react';
 
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
@@ -57,6 +58,7 @@ export default function AdsResearchPageClient({
 }: {
   initialPlatform?: AdsResearchPlatform | 'all';
 }) {
+  const translate = useTranslations('pages.adsResearch');
   const {
     adAccounts,
     adPackResult,
@@ -203,7 +205,7 @@ export default function AdsResearchPageClient({
       {(resultsError || accountsError || detailError) && (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           <div className="space-y-1">
-            <div className="font-medium">Ads hub needs attention</div>
+            <div className="font-medium">{translate('errors.title')}</div>
             <div className="text-xs text-foreground/70">
               {detailError?.message ||
                 accountsError?.message ||
@@ -226,7 +228,9 @@ export default function AdsResearchPageClient({
               size={ButtonSize.SM}
               className="mt-1"
             >
-              <Link href={credentialsHref}>Manage ad connections</Link>
+              <Link href={credentialsHref}>
+                {translate('actions.manageConnections')}
+              </Link>
             </Button>
           }
         />
@@ -256,7 +260,7 @@ export default function AdsResearchPageClient({
                 icon={<Filter className="size-4" />}
                 onClick={() => setShowFilters(!showFilters)}
               >
-                Filters
+                {translate('actions.filters')}
               </Button>
               <ButtonDropdown
                 name="sort"
@@ -314,11 +318,10 @@ export default function AdsResearchPageClient({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <div className="font-medium">
-                    Connect accounts for your campaigns
+                    {translate('connection.title')}
                   </div>
                   <div className="text-xs text-foreground/70">
-                    Showing public winners only. Connect Meta, Google/YouTube,
-                    or TikTok Ads to pull in your own campaigns.
+                    {translate('connection.description')}
                   </div>
                 </div>
                 <Button
@@ -327,7 +330,9 @@ export default function AdsResearchPageClient({
                   size={ButtonSize.SM}
                   className="shrink-0"
                 >
-                  <Link href={credentialsHref}>Manage ad connections</Link>
+                  <Link href={credentialsHref}>
+                    {translate('actions.manageConnections')}
+                  </Link>
                 </Button>
               </div>
             </Alert>
@@ -335,8 +340,7 @@ export default function AdsResearchPageClient({
 
           {hasCredentials && results.summary.reviewPolicy ? (
             <p className="mb-4 text-xs text-foreground/45">
-              Launch plans require review. No external campaign objects are
-              created from Ads Research.
+              {translate('reviewPolicy')}
             </p>
           ) : null}
 

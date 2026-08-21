@@ -19,6 +19,13 @@ vi.mock('@pages/studio/generate/hooks/useStudioGenerateIdentities', () => ({
     mocks.identityHook(...args),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/primitives/popover', () => ({
   Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   PopoverPanelContent: ({ children }: { children: ReactNode }) => (

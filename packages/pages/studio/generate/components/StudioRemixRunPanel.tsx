@@ -9,6 +9,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { GitBranch, Send, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 export interface StudioRemixRunPanelProps {
@@ -32,6 +33,7 @@ export default function StudioRemixRunPanel({
   onVary,
   run,
 }: StudioRemixRunPanelProps): ReactElement {
+  const translate = useTranslations('pages.studioGenerate');
   const { activeHref } = useOrgUrl();
   const readyVariantIds =
     run.execution?.variants
@@ -64,7 +66,10 @@ export default function StudioRemixRunPanel({
             <Badge variant="secondary">{formatLabel(run.phase)}</Badge>
             <Badge variant="ghost">{run.brand.name}</Badge>
             <span className="text-xs text-muted-foreground">
-              Recipe v{run.recipeVersion} · revision {run.revision}
+              {translate('remixRun.recipeRevision', {
+                recipeVersion: run.recipeVersion,
+                revision: run.revision,
+              })}
             </span>
           </div>
           <h2 className="mt-2 text-sm font-semibold text-foreground">
@@ -113,7 +118,9 @@ export default function StudioRemixRunPanel({
         >
           <div className="space-y-1">
             <p className="font-medium">
-              {formatLabel(run.readiness.state)} run
+              {translate('remixRun.readinessTitle', {
+                state: formatLabel(run.readiness.state),
+              })}
             </p>
             {run.readiness.issues.map((issue) => (
               <p className="text-xs" key={`${issue.code}:${issue.field}`}>
@@ -142,10 +149,14 @@ export default function StudioRemixRunPanel({
           role="group"
         >
           <Badge variant="secondary">
-            Avatar · {run.draft.identity.avatarAssetId}
+            {translate('remixRun.identity.avatar', {
+              id: run.draft.identity.avatarAssetId,
+            })}
           </Badge>
           <Badge variant="secondary">
-            Voice · {run.draft.identity.speechVoiceId}
+            {translate('remixRun.identity.voice', {
+              id: run.draft.identity.speechVoiceId,
+            })}
           </Badge>
         </div>
       ) : null}
@@ -182,8 +193,15 @@ export default function StudioRemixRunPanel({
       {run.review ? (
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
           <span className="text-muted-foreground">
-            Review batch {run.review.batchId} · {run.review.postIds.length}{' '}
-            drafts
+            {translate(
+              run.review.postIds.length === 1
+                ? 'remixRun.review.summaryOne'
+                : 'remixRun.review.summaryMany',
+              {
+                batchId: run.review.batchId,
+                count: run.review.postIds.length,
+              },
+            )}
           </span>
           <div className="flex flex-wrap items-center gap-3">
             <Link
@@ -192,14 +210,14 @@ export default function StudioRemixRunPanel({
                 `${APP_ROUTES.PUBLISH.REVIEW}?batch=${encodeURIComponent(run.review.batchId)}`,
               )}
             >
-              Open Review
+              {translate('remixRun.review.open')}
             </Link>
             {hasApprovedOrganicDrafts ? (
               <Link
                 className="font-medium text-primary hover:text-primary/80"
                 href={activeHref(APP_ROUTES.PUBLISH.SCHEDULED)}
               >
-                Open Publish drafts
+                {translate('remixRun.review.openPublishDrafts')}
               </Link>
             ) : null}
           </div>
@@ -208,21 +226,24 @@ export default function StudioRemixRunPanel({
 
       {isMetaHandoffUnavailable ? (
         <Alert type={AlertCategory.INFO}>
-          Meta handoff is waiting for approved creative upload support.
+          {translate('remixRun.metaHandoffUnavailable')}
         </Alert>
       ) : null}
 
       {run.paidDraft ? (
         <Alert type={AlertCategory.SUCCESS}>
-          Campaign {run.paidDraft.campaignId}, ad set {run.paidDraft.adSetId},
-          and ad {run.paidDraft.adId} are PAUSED for review.
+          {translate('remixRun.paidDraftSummary', {
+            adId: run.paidDraft.adId,
+            adSetId: run.paidDraft.adSetId,
+            campaignId: run.paidDraft.campaignId,
+          })}
         </Alert>
       ) : null}
 
       {!run.execution ? (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Sparkles className="size-4" />
-          Review the prefilled recipe below, then generate its variations.
+          {translate('remixRun.prefillHelp')}
         </div>
       ) : null}
     </section>

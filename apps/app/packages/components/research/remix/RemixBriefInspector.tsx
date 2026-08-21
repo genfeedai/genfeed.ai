@@ -35,6 +35,7 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { Library, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -216,6 +217,7 @@ function AvatarIdentityFields({
   onSpeechVoiceIdChange,
   speechVoiceId,
 }: AvatarIdentityFieldsProps): ReactElement {
+  const translate = useTranslations('pages.remixBrief');
   const { brandId, organizationId } = useBrand();
   const { avatars, isLoading: isLoadingAvatars } =
     useAvatarImages(organizationId);
@@ -254,12 +256,16 @@ function AvatarIdentityFields({
         <SelectTrigger aria-label="Avatar identity">
           <SelectValue
             placeholder={
-              isLoadingAvatars ? 'Loading avatars…' : 'Choose avatar'
+              isLoadingAvatars
+                ? 'Loading avatars…'
+                : translate('identity.chooseAvatar')
             }
           />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">Choose avatar</SelectItem>
+          <SelectItem value="none">
+            {translate('identity.chooseAvatar')}
+          </SelectItem>
           {readyAvatars.map((avatar) => (
             <SelectItem key={avatar.id} value={avatar.id}>
               {getIngredientDisplayLabel(avatar)}
@@ -276,11 +282,17 @@ function AvatarIdentityFields({
       >
         <SelectTrigger aria-label="Voice identity">
           <SelectValue
-            placeholder={isLoadingVoices ? 'Loading voices…' : 'Choose voice'}
+            placeholder={
+              isLoadingVoices
+                ? 'Loading voices…'
+                : translate('identity.chooseVoice')
+            }
           />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">Choose voice</SelectItem>
+          <SelectItem value="none">
+            {translate('identity.chooseVoice')}
+          </SelectItem>
           {readyVoices.map((voice) => (
             <SelectItem key={voice.id} value={voice.id}>
               {getVoiceName(voice)}
@@ -294,6 +306,7 @@ function AvatarIdentityFields({
 }
 
 export default function RemixBriefInspector(): ReactElement {
+  const translate = useTranslations('pages.remixBrief');
   const { close, confirm, error, isOpen, retry, run, status } =
     useDiscoverRemix();
   const [editor, setEditor] = useState<RemixEditorState>(EMPTY_EDITOR);
@@ -350,7 +363,10 @@ export default function RemixBriefInspector(): ReactElement {
   const footer = run ? (
     <div className="flex items-center justify-between gap-3 px-5 py-4">
       <p className="text-xs text-muted-foreground">
-        Recipe v{run.recipeVersion} · revision {run.revision}
+        {translate('recipeRevision', {
+          recipeVersion: run.recipeVersion,
+          revision: run.revision,
+        })}
       </p>
       <div className="flex items-center gap-2">
         <Button
@@ -394,11 +410,10 @@ export default function RemixBriefInspector(): ReactElement {
           role="status"
         >
           <p className="text-sm font-medium text-foreground">
-            Reading the source and your brand…
+            {translate('loading.title')}
           </p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Genfeed is resolving the hook, structure, visual pattern, and safe
-            brand defaults from the canonical source.
+            {translate('loading.description')}
           </p>
         </div>
       ) : null}
@@ -406,7 +421,7 @@ export default function RemixBriefInspector(): ReactElement {
       {error ? (
         <Alert type={AlertCategory.ERROR}>
           <div className="space-y-1">
-            <p className="font-medium">Remix brief needs attention</p>
+            <p className="font-medium">{translate('errors.title')}</p>
             <p className="text-xs">{error}</p>
             {!run ? (
               <div className="flex gap-2 pt-2">
@@ -446,7 +461,7 @@ export default function RemixBriefInspector(): ReactElement {
             </div>
             <div>
               <p className="gen-label-sm text-muted-foreground">
-                What is working
+                {translate('source.patternTitle')}
               </p>
               <dl className="mt-2 space-y-2">
                 {patternEntries.map(([key, value]) => (
@@ -477,7 +492,7 @@ export default function RemixBriefInspector(): ReactElement {
                 </ul>
               ) : (
                 <p className="text-xs">
-                  Source, brand, references, and output are ready.
+                  {translate('readiness.readyDescription')}
                 </p>
               )}
             </div>
@@ -492,8 +507,7 @@ export default function RemixBriefInspector(): ReactElement {
               </Label>
               {editor.outputKind === 'avatar' ? (
                 <p className="mb-2 text-xs text-muted-foreground">
-                  This text is spoken exactly as written. Put visual or provider
-                  direction in Visual direction instead.
+                  {translate('intent.spokenScriptHelp')}
                 </p>
               ) : null}
               <Textarea
@@ -546,7 +560,9 @@ export default function RemixBriefInspector(): ReactElement {
           <section className="space-y-4 border-b border-border pb-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-foreground">Output</p>
+                <p className="text-sm font-medium text-foreground">
+                  {translate('output.title')}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {formatLabel(run.draft.target.kind)} ·{' '}
                   {formatLabel(run.draft.target.platform)}
@@ -570,9 +586,15 @@ export default function RemixBriefInspector(): ReactElement {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="image">Image</SelectItem>
-                  <SelectItem value="video">Video</SelectItem>
-                  <SelectItem value="avatar">Avatar</SelectItem>
+                  <SelectItem value="image">
+                    {translate('output.types.image')}
+                  </SelectItem>
+                  <SelectItem value="video">
+                    {translate('output.types.video')}
+                  </SelectItem>
+                  <SelectItem value="avatar">
+                    {translate('output.types.avatar')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -600,7 +622,12 @@ export default function RemixBriefInspector(): ReactElement {
                 <SelectContent>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
                     <SelectItem key={count} value={String(count)}>
-                      {count} variation{count === 1 ? '' : 's'}
+                      {translate(
+                        count === 1
+                          ? 'output.variationCountOne'
+                          : 'output.variationCountMany',
+                        { count },
+                      )}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -609,11 +636,11 @@ export default function RemixBriefInspector(): ReactElement {
 
             <div className="space-y-2">
               <div>
-                <Label htmlFor="remix-fidelity">Fidelity</Label>
+                <Label htmlFor="remix-fidelity">
+                  {translate('output.fidelityLabel')}
+                </Label>
                 <p className="text-xs text-muted-foreground">
-                  Guided keeps the source pattern flexible. Off uses the source
-                  only as inspiration. Strict is currently unavailable and
-                  returns blocked readiness before generation.
+                  {translate('output.fidelityHelp')}
                 </p>
               </div>
               <Select
@@ -625,7 +652,10 @@ export default function RemixBriefInspector(): ReactElement {
                 }
                 value={editor.fidelityMode}
               >
-                <SelectTrigger aria-label="Fidelity" id="remix-fidelity">
+                <SelectTrigger
+                  aria-label={translate('output.fidelityLabel')}
+                  id="remix-fidelity"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -644,11 +674,10 @@ export default function RemixBriefInspector(): ReactElement {
               <div className="space-y-3 border-t border-border pt-4">
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    Avatar identity
+                    {translate('identity.title')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Choose the durable Library avatar and voice rows. Provider
-                    ids and media URLs are resolved only on the server.
+                    {translate('identity.help')}
                   </p>
                 </div>
                 <AvatarIdentityFields
@@ -669,7 +698,7 @@ export default function RemixBriefInspector(): ReactElement {
                 />
                 {!isAvatarIdentityComplete ? (
                   <p className="text-xs text-warning">
-                    Choose both an avatar and a voice to continue.
+                    {translate('identity.incomplete')}
                   </p>
                 ) : null}
               </div>
@@ -680,11 +709,10 @@ export default function RemixBriefInspector(): ReactElement {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Brand references
+                  {translate('references.title')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Server defaults are already applied. Add explicit Library
-                  assets only when they should steer this run.
+                  {translate('references.help')}
                 </p>
               </div>
               <Button
@@ -730,21 +758,25 @@ export default function RemixBriefInspector(): ReactElement {
                         withWrapper={false}
                       />
                     ) : (
-                      <Badge variant="ghost">Managed by Brand</Badge>
+                      <Badge variant="ghost">
+                        {translate('references.managedByBrand')}
+                      </Badge>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
               <div className="gen-shell-empty-state p-4 text-xs text-muted-foreground">
-                No explicit references. Brand defaults remain active.
+                {translate('references.empty')}
               </div>
             )}
 
             {isPickingReference ? (
               <div className="overflow-hidden border border-border bg-background">
                 <div className="flex items-center gap-3 border-b border-border p-3">
-                  <Label htmlFor="remix-reference-role">Use asset as</Label>
+                  <Label htmlFor="remix-reference-role">
+                    {translate('references.roleLabel')}
+                  </Label>
                   <Select
                     onValueChange={(value) =>
                       setReferenceRole(value as BrandRemixReference['role'])

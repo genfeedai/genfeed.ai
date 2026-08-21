@@ -9,6 +9,13 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 const run = {
   brand: { contextMode: 'brand', id: 'brand-1', name: 'Northstar' },
   draft: {
