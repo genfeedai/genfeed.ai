@@ -3,11 +3,12 @@
 import type { BrandRemixRunView } from '@api-types/contracts';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
-import { GitBranch, Send, Sparkles } from 'lucide-react';
+import { Copy, GitBranch, Send, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -54,6 +55,15 @@ export default function StudioRemixRunPanel({
     run.draft.target.kind === 'organic' &&
     run.phase === 'approved' &&
     Boolean(run.review?.approvedPostIds.length);
+  const clipboardService = ClipboardService.getInstance();
+  const copyVariantGroup = (variantId: string, assetIds: string[]): void => {
+    const group = [
+      run.draft.intent.objective,
+      '',
+      ...assetIds.map((assetId) => `• ${assetId}`),
+    ].join('\n');
+    void clipboardService.copyToClipboard(`${variantId}\n${group}`);
+  };
 
   return (
     <section
@@ -184,7 +194,22 @@ export default function StudioRemixRunPanel({
                     : 'Waiting for durable asset ids'}
                 </p>
               </div>
-              <Badge variant="ghost">{formatLabel(variant.status)}</Badge>
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge variant="ghost">{formatLabel(variant.status)}</Badge>
+                {variant.status === 'ready' && variant.assetIds.length ? (
+                  <Button
+                    ariaLabel={translate('remixRun.copyGroup')}
+                    icon={<Copy className="size-3.5" />}
+                    isDisabled={isWorking}
+                    label={translate('remixRun.copyGroup')}
+                    onClick={() =>
+                      copyVariantGroup(variant.id, variant.assetIds)
+                    }
+                    size={ButtonSize.XS}
+                    variant={ButtonVariant.GHOST}
+                  />
+                ) : null}
+              </div>
             </div>
           ))}
         </div>

@@ -124,6 +124,36 @@ describe('StudioRemixRunPanel', () => {
     expect(onReview).toHaveBeenCalledWith(['variant-1']);
   });
 
+  it('copies the grouped caption and assets of a ready variant', async () => {
+    const { ClipboardService } = await import(
+      '@genfeedai/services/core/clipboard.service'
+    );
+    const copyToClipboard = vi.fn();
+    vi.spyOn(ClipboardService, 'getInstance').mockReturnValue({
+      copyToClipboard,
+    } as never);
+
+    render(
+      <StudioRemixRunPanel
+        error={null}
+        isWorking={false}
+        onReview={vi.fn()}
+        onVary={vi.fn()}
+        run={run}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy outputs' }));
+
+    expect(copyToClipboard).toHaveBeenCalledTimes(1);
+    expect(copyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining('variant-1'),
+    );
+    expect(copyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining('video-1'),
+    );
+  });
+
   it('locks review submission once a batch exists and explains the unavailable Meta handoff after approval', () => {
     const paidRun = {
       ...run,
