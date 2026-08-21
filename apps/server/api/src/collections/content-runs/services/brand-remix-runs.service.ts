@@ -44,6 +44,7 @@ import type { GenerationBrief } from '@api-types/contracts/generation-brief.cont
 import { generationBriefSchema } from '@api-types/contracts/generation-brief.contract';
 import {
   AssetCategory,
+  ContentFormat,
   ContentRunStatus,
   IngredientCategory,
   IngredientStatus,
@@ -488,7 +489,9 @@ export class BrandRemixRunsService {
       selectedAssetIds,
     );
     const format: ReviewBatchItemFormat =
-      config.draft.output.kind === 'image' ? 'image' : 'video';
+      config.draft.output.kind === 'image'
+        ? ContentFormat.IMAGE
+        : ContentFormat.VIDEO;
     const platform = config.draft.target.platform;
     const items = selected.flatMap((variant) =>
       variant.assetIds.map((ingredientId) => ({

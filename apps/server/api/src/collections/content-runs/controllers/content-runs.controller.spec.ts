@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { CreateBrandRemixRunDto } from '@api/collections/content-runs/dto/brand-remix-run.dto';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
@@ -224,7 +225,7 @@ describe('ContentRunsController', () => {
 
   describe('brand remix runs', () => {
     it('creates a server-prefilled remix scoped to the route brand', async () => {
-      const body = {
+      const body: CreateBrandRemixRunDto = {
         source: { kind: 'source_post', sourcePostId: 'source-post-1' },
       };
       mockBrandRemixRunsService.create.mockResolvedValue({ id: 'run-1' });
