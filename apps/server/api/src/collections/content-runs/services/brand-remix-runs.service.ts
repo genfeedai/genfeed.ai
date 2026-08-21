@@ -345,14 +345,39 @@ export class BrandRemixRunsService {
     const resumablePhase =
       activeConfig.phase === 'generating' ||
       activeConfig.phase === 'partially_ready';
-    const variants = resumablePhase
-      ? activeConfig.execution?.variants.filter(
+    const resumable = resumablePhase
+      ? (activeConfig.execution?.variants.filter(
           (variant) =>
             variant.assetIds.length === 0 &&
             (variant.status === 'queued' || variant.status === 'processing'),
-        )
+        ) ?? [])
       : [];
-    if (!variants?.length) {
+    if (!resumable.length) {
+      return this.project(run, brandContext, activeConfig);
+    }
+
+    // Crash recovery first: adopt durable placeholders that a previous
+    // attempt persisted before an interruption linked them into the config,
+    // so a resumed run never pays for the same variant twice.
+    const stuck = resumable.filter(
+      (variant) => variant.status === 'processing',
+    );
+    if (stuck.length) {
+      activeConfig = await this.adoptOrphanedPlaceholders({
+        brandId,
+        config: activeConfig,
+        organizationId,
+        runId,
+        variants: stuck,
+      });
+    }
+    const variants = resumable.filter(
+      (variant) =>
+        !activeConfig.execution?.variants.find(
+          (candidate) => candidate.id === variant.id,
+        )?.assetIds.length,
+    );
+    if (!variants.length) {
       return this.project(run, brandContext, activeConfig);
     }
 
@@ -1609,6 +1634,57 @@ export class BrandRemixRunsService {
       );
     }
     return id;
+  }
+
+  /**
+   * A crash between provider placeholder persistence and config linkage leaves
+   * a durable Ingredient that no variant references. Adopt those orphans
+   * before re-dispatching so an interrupted run never pays for the same
+   * variant twice. The provider prompt is deterministic per recipe revision,
+   * so brand-scoped unlinked ingredients compiled for this exact prompt are
+   * this run's orphans.
+   */
+  private async adoptOrphanedPlaceholders(params: {
+    brandId: string;
+    config: BrandRemixRunConfig;
+    organizationId: string;
+    runId: string;
+    variants: BrandRemixExecution['variants'];
+  }): Promise<BrandRemixRunConfig> {
+    let config = params.config;
+    if (!config.execution) return config;
+    const linkedAssetIds = config.execution.variants.flatMap(
+      (variant) => variant.assetIds,
+    );
+    const category =
+      config.draft.output.kind === 'image'
+        ? IngredientCategory.IMAGE
+        : IngredientCategory.VIDEO;
+    const orphans = await this.prisma.ingredient.findMany({
+      select: { id: true },
+      where: scopedWhere(params.organizationId, {
+        brandId: params.brandId,
+        category,
+        generationPrompt: this.compileProviderPrompt(config),
+        id: linkedAssetIds.length ? { notIn: linkedAssetIds } : undefined,
+        isDeleted: false,
+      }),
+      orderBy: { createdAt: 'asc' },
+      take: params.variants.length,
+    });
+    for (const [index, orphan] of orphans.entries()) {
+      const variant = params.variants[index];
+      if (!variant) break;
+      config = await this.patchGeneratingVariant({
+        organizationId: params.organizationId,
+        patch: { assetIds: [orphan.id.toString()], status: 'processing' },
+        recipeRevision: variant.recipeRevision,
+        runId: params.runId,
+        status: ContentRunStatus.RUNNING,
+        variantId: variant.id,
+      });
+    }
+    return config;
   }
 
   private async reconcile(

@@ -775,10 +775,17 @@ describe('BrandRemixRunsService', () => {
       stored.status = (data.status ?? stored.status) as ContentRunStatus;
       return Promise.resolve({ count: 1 });
     });
-    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'image-in-flight', status: IngredientStatus.PROCESSING },
-      { id: 'image-ready', status: IngredientStatus.GENERATED },
-    ]);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ where }?: { where?: Record<string, unknown> }) => {
+        if (where && 'generationPrompt' in where) {
+          return Promise.resolve([]);
+        }
+        return Promise.resolve([
+          { id: 'image-in-flight', status: IngredientStatus.PROCESSING },
+          { id: 'image-ready', status: IngredientStatus.GENERATED },
+        ]);
+      },
+    );
     imageGenerationService.generateImage
       .mockImplementationOnce(async (_user, _dto, _request, onCreated) => {
         await onCreated?.('image-resumed-1');
@@ -815,6 +822,104 @@ describe('BrandRemixRunsService', () => {
         }),
         expect.objectContaining({
           assetIds: ['image-resumed-2'],
+          id: 'variant-crashed-before-link',
+        }),
+      ]),
+    );
+  });
+
+  it('adopts an orphaned placeholder after a crash instead of paying for the variant twice', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        identity: {},
+        output: { aspectRatio: '1:1', count: 2, kind: 'image' },
+      },
+      execution: {
+        actualCount: 0,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original TikTok execution for Acme.',
+            requestedText: [],
+            subjects: ['Acme'],
+            visualDirection: 'Use an original product-led composition.',
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [{ assetId: 'brand-reference-1', role: 'product' }],
+          version: 1,
+        },
+        requestedCount: 2,
+        variants: [
+          {
+            assetIds: [],
+            id: 'variant-queued',
+            recipeRevision: 1,
+            status: 'queued',
+          },
+          {
+            assetIds: [],
+            id: 'variant-crashed-before-link',
+            recipeRevision: 1,
+            status: 'processing',
+          },
+        ],
+      },
+      phase: 'generating',
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ where }?: { where?: Record<string, unknown> }) => {
+        if (where && 'generationPrompt' in where) {
+          return Promise.resolve([{ id: 'image-orphan-1' }]);
+        }
+        return Promise.resolve([
+          { id: 'image-orphan-1', status: IngredientStatus.PROCESSING },
+          { id: 'image-resumed-1', status: IngredientStatus.PROCESSING },
+        ]);
+      },
+    );
+    imageGenerationService.generateImage.mockImplementation(
+      async (_user, _dto, _request, onCreated) => {
+        await onCreated?.('image-resumed-1');
+        return { data: { id: 'image-resumed-1', type: 'ingredient' } };
+      },
+    );
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      request as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(imageGenerationService.generateImage).toHaveBeenCalledTimes(1);
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          generationPrompt: expect.any(String),
+          isDeleted: false,
+        }),
+      }),
+    );
+    expect(result.execution?.variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          assetIds: ['image-resumed-1'],
+          id: 'variant-queued',
+        }),
+        expect.objectContaining({
+          assetIds: ['image-orphan-1'],
           id: 'variant-crashed-before-link',
         }),
       ]),
