@@ -490,4 +490,169 @@ test.describe('Discover prefilled remix handoff', () => {
     ).toBeVisible({ timeout: 10_000 });
     expect(reads).toBeGreaterThanOrEqual(2);
   });
+
+  test('links an approved organic TikTok run to its Publish drafts downstream', async ({
+    authenticatedPage,
+  }) => {
+    const baseRun = buildRun({
+      id: 'run-publish-1',
+      platform: 'tiktok',
+      target: 'organic',
+    });
+    const approvedRun: BrandRemixRunView = {
+      ...baseRun,
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['draft-post-1'],
+        batchId: 'review-batch-1',
+        postIds: ['draft-post-1'],
+      },
+      status: ContentRunStatus.COMPLETED,
+    };
+    await authenticatedPage.route(
+      '**/content-runs/run-publish-1/remix',
+      async (route) => {
+        await fulfillJson(route, jsonApi(approvedRun));
+      },
+    );
+
+    await authenticatedPage.goto(
+      `${BRAND_BASE}/studio/generate?run=run-publish-1`,
+    );
+
+    const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
+    await expect(panel).toBeVisible();
+    const publishDrafts = panel.getByRole('link', {
+      name: 'Open Publish drafts',
+    });
+    await expect(publishDrafts).toHaveAttribute(
+      'href',
+      /\/publish\/scheduled$/,
+    );
+  });
+
+  test('surfaces the honest blocked Meta paid handoff instead of a fake campaign', async ({
+    authenticatedPage,
+  }) => {
+    let prepareCalled = false;
+    const baseRun = buildRun({
+      id: 'run-meta-paid-1',
+      platform: 'meta',
+      target: 'paid',
+    });
+    const approvedRun: BrandRemixRunView = {
+      ...baseRun,
+      phase: 'approved',
+      readiness: {
+        issues: [
+          {
+            code: 'missing_required_reference',
+            field: 'references',
+            message:
+              'Upload an approved remix asset to Meta creative storage before creating the paused campaign, ad set, and ad atomically.',
+            severity: 'blocked',
+          },
+        ],
+        state: 'blocked',
+      },
+      review: {
+        approvedPostIds: ['draft-post-1'],
+        batchId: 'review-batch-1',
+        postIds: ['draft-post-1'],
+      },
+      status: ContentRunStatus.COMPLETED,
+    };
+    await authenticatedPage.route(
+      '**/content-runs/run-meta-paid-1/remix',
+      async (route) => {
+        await fulfillJson(route, jsonApi(approvedRun));
+      },
+    );
+    await authenticatedPage.route(
+      '**/content-runs/run-meta-paid-1/remix/paid-draft',
+      async (route) => {
+        prepareCalled = true;
+        await fulfillJson(route, jsonApi(approvedRun));
+      },
+    );
+
+    await authenticatedPage.goto(
+      `${BRAND_BASE}/studio/generate?run=run-meta-paid-1`,
+    );
+
+    const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
+    await expect(panel).toBeVisible();
+    await expect(
+      panel.getByText(/Upload an approved remix asset to Meta creative/),
+    ).toBeVisible();
+    await expect(panel.getByText(/Meta handoff is waiting/)).toBeVisible();
+    expect(prepareCalled).toBe(false);
+  });
+
+  test('copies the grouped caption and assets of a ready TikTok variant', async ({
+    authenticatedPage,
+    browserName,
+  }) => {
+    test.skip(browserName === 'webkit', 'Clipboard grants are Chromium-only');
+    await authenticatedPage
+      .context()
+      .grantPermissions(['clipboard-read', 'clipboard-write']);
+    const baseRun = buildRun({
+      id: 'run-copy-1',
+      platform: 'tiktok',
+      target: 'organic',
+    });
+    const readyRun: BrandRemixRunView = {
+      ...baseRun,
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided' as const,
+          intent: {
+            objective: baseRun.draft.intent.objective,
+            requestedText: [],
+            subjects: ['Northstar'],
+          },
+          mediaKind: 'image' as const,
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [],
+          version: 1 as const,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['generated-image-1'],
+            id: 'variant-copy-1',
+            recipeRevision: 1,
+            status: 'ready' as const,
+          },
+        ],
+      },
+      phase: 'ready_for_review',
+      status: ContentRunStatus.COMPLETED,
+    };
+    await authenticatedPage.route(
+      '**/content-runs/run-copy-1/remix',
+      async (route) => {
+        await fulfillJson(route, jsonApi(readyRun));
+      },
+    );
+
+    await authenticatedPage.goto(
+      `${BRAND_BASE}/studio/generate?run=run-copy-1`,
+    );
+
+    const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
+    await expect(panel).toBeVisible();
+    await panel.getByRole('button', { name: 'Copy outputs' }).click();
+
+    const clipboard = await authenticatedPage.evaluate(() =>
+      navigator.clipboard.readText(),
+    );
+    expect(clipboard).toContain('variant-copy-1');
+    expect(clipboard).toContain('generated-image-1');
+    expect(clipboard).toContain(baseRun.draft.intent.objective);
+  });
 });
