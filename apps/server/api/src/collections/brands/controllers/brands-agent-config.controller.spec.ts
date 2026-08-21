@@ -151,7 +151,7 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     await expect(
       controller.updateEnabledSkills(
         mockRequest,
-        { ...mockUser, organizationId: undefined } as User,
+        { ...mockUser, organizationId: undefined } as unknown as User,
         mockBrand.id,
         { enabledSkills: ['content-writing'] },
       ),
