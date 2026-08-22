@@ -244,6 +244,20 @@ describe('MetaAdsService', () => {
     }
   });
 
+  it('rejects an empty Meta image upload response with a recoverable error', async () => {
+    const { service } = createService();
+    const privateMethods = service as unknown as MetaAdsPrivateMethods;
+    privateMethods.makePostRequest = vi.fn().mockResolvedValue({ images: {} });
+
+    await expect(
+      service.uploadAdImage(
+        'access-token',
+        'act-1',
+        'https://cdn.example/image.jpg',
+      ),
+    ).rejects.toThrow('Meta did not return a usable uploaded image');
+  });
+
   it('uses a Meta-returned thumbnail URL for video creatives', async () => {
     const { service } = createService();
     const privateMethods = service as unknown as MetaAdsPrivateMethods;

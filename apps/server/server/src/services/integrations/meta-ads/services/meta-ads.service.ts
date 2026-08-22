@@ -940,6 +940,9 @@ export class MetaAdsService {
       });
 
       const imageData = Object.values(response.images)[0];
+      if (!imageData?.hash || !imageData.url) {
+        throw new Error('Meta did not return a usable uploaded image.');
+      }
       this.loggerService.log(
         `${caller} uploaded image for ${adAccountId}, hash: ${imageData.hash}`,
       );
