@@ -556,6 +556,11 @@ export class BrandRemixRunsService {
     const creditBarrier = new GenerationReservationBarrier(
       variants.length,
       async () => {
+        if (byokCredits.size > 0 && byokCredits.size !== creditAmounts.size) {
+          throw new ConflictException(
+            'Remix variants resolved mixed BYOK billing modes; no provider work was started.',
+          );
+        }
         const total = [...creditAmounts.entries()].reduce(
           (sum, [variantId, amount]) =>
             sum + (byokCredits.has(variantId) ? 0 : amount),

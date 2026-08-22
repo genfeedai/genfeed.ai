@@ -1607,7 +1607,7 @@ describe('BrandRemixRunsService', () => {
   it('records avatar BYOK usage without checking or deducting platform credits', async () => {
     const created = await createPersistedRun({
       draft: {
-        output: { aspectRatio: '9:16', count: 1, kind: 'avatar' },
+        output: { aspectRatio: '9:16', count: 2, kind: 'avatar' },
       },
     });
     let stored = created;
@@ -1618,14 +1618,17 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     byokService.isByokActiveForProvider.mockResolvedValue(true);
+    let generatedCount = 0;
     avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
       async (_params, _context, onCreated, scope, onCredits) => {
         expect(scope).toMatchObject({ isByokBypass: true });
-        await onCreated?.('avatar-byok-1');
+        const index = ++generatedCount;
+        const ingredientId = `avatar-byok-${index}`;
+        await onCreated?.(ingredientId);
         await onCredits?.();
         return {
-          externalId: 'heygen-byok-1',
-          ingredientId: 'avatar-byok-1',
+          externalId: `heygen-byok-${index}`,
+          ingredientId,
           status: 'processing',
         };
       },
@@ -1636,7 +1639,7 @@ describe('BrandRemixRunsService', () => {
     });
 
     expect(request.creditsConfig).toMatchObject({
-      amount: 1,
+      amount: 2,
       deferred: false,
       isByokBypass: true,
       modelKey: 'heygen/avatar',
@@ -1876,6 +1879,74 @@ describe('BrandRemixRunsService', () => {
       });
     },
   );
+
+  it('stops provider dispatch when variants resolve mixed BYOK billing modes', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '1:1', count: 2, kind: 'image' },
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    let preparedCount = 0;
+    let providerConsumptions = 0;
+    imageGenerationService.generateImage.mockImplementation(
+      async (_user, _dto, variantRequest, onCreated, _scope, onCredits) => {
+        const index = ++preparedCount;
+        const ingredientId = `image-mixed-credit-${index}`;
+        variantRequest.creditsConfig = {
+          ...variantRequest.creditsConfig,
+          amount: 4,
+          deferred: false,
+          ...(index === 1
+            ? {
+                isByokBypass: true,
+                modelKey: 'fal-ai/byok-model',
+                provider: 'fal',
+              }
+            : { isByokBypass: false }),
+        };
+        await onCreated?.(ingredientId);
+        await onCredits?.();
+        providerConsumptions += 1;
+        return { data: { id: ingredientId, type: 'ingredient' } };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 0,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      creditRequest as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(providerConsumptions).toBe(0);
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(result.execution?.variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          error: expect.stringContaining('mixed BYOK'),
+          status: 'failed',
+        }),
+      ]),
+    );
+  });
 
   it('passes an operator-authored Avatar script verbatim after trimming', async () => {
     const exactScript = '  Here is the exact line our avatar should say.  ';
