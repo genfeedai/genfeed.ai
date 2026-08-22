@@ -72,21 +72,41 @@ existing Library `Ingredient`, linked through a `ContentRunVariant`; the run
 records requested and actual counts, recipe/compiler versions, source pattern,
 reference roles, and partial or degraded results.
 
-Sending organic variants to Review uses the existing manual-review batch. It
-creates canonical draft `Post` records and does not publish them. Approval
-without a schedule leaves the posts in draft state for an explicit downstream
-publish action. Run, variant, generation, workflow, Post, and performance IDs
-preserve the lineage needed to compare results later without treating
+For media runs, Genfeed reserves and links one run-scoped `Ingredient` for
+every requested output before the first provider call. A retry adopts only
+placeholders owned by that run and variant index. Reservations that never
+reached a provider are failed and safely recreated; provider-dispatched work is
+left in flight and reconciled instead of being charged twice. Copy variations
+use the same grouped manifest and retain their generated text directly on each
+variant.
+
+Sending variants to Review uses the existing manual-review batch inside an
+immutable system workflow execution. It creates idempotent canonical draft
+`Post` records with source, run, recipe, variant, Ingredient, workflow, and
+workflow-execution lineage, and does not publish them. Approval without a
+schedule leaves organic posts in draft state for an explicit downstream
+publish action. Run, variant, generation, workflow, Post, ad, and performance
+IDs preserve the lineage needed to compare results later without treating
 correlation as causation.
 
 ## Paid Meta boundary
 
-Creative generation from a Meta ad source is supported, but external Meta
-campaign creation is capability-gated. The product does not claim that a
-campaign was created and does not offer the handoff action until it can upload
-the approved media, verify the connected Page and ad account, create and
-reconcile every external object safely, and prove the campaign, ad set, and ad
-are all paused. No path in this workflow activates spend automatically.
+An approved paid remix sourced from an authorized connected Meta ad can create
+or resume a campaign draft. The internal workflow verifies the connected Page
+and selected ad account, validates the approved Post and Library Ingredient,
+uploads media only when necessary, and deterministically creates or reuses the
+campaign, ad set, and ad. It then forces all three objects to `PAUSED`, including
+on replay. The remix surface exposes no activation method, so enabling spend
+remains a separate explicit Ads Manager action.
+
+The draft campaign carries a conservative 5 units/day in the ad account's
+billing currency so Meta can materialize the campaign hierarchy. Because every
+object is paused, that budget cannot spend until an operator separately reviews
+and activates the campaign in Ads Manager.
+
+Public Meta research remains eligible for creative prefill, but it cannot be
+used as authority to write to an ad account. A paid handoff therefore requires
+the stable credential, ad-account, and ad IDs from a connected source.
 
 ## Security invariants
 

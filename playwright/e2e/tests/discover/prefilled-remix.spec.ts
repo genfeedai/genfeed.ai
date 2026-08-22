@@ -1,6 +1,7 @@
 import type { BrandRemixRunView } from '@genfeedai/api-types/contracts';
 import { ContentRunStatus } from '@genfeedai/enums';
 import type { Page, Route } from '@playwright/test';
+import { mockReviewQueue } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 
 const BRAND_BASE = '/test-org/brand-1';
@@ -11,12 +12,14 @@ type RemixPlatform = 'meta' | 'tiktok';
 interface RemixFixtureOptions {
   id: string;
   platform: RemixPlatform;
+  source?: 'connected' | 'public';
   target: 'organic' | 'paid';
 }
 
 function buildRun({
   id,
   platform,
+  source = 'public',
   target,
 }: RemixFixtureOptions): BrandRemixRunView {
   const selector =
@@ -26,10 +29,18 @@ function buildRun({
           sourceReferenceId: 'tiktok-reference-1',
           trendId: 'tiktok-trend-1',
         }
-      : {
-          adPerformanceId: 'ad-performance-meta-1',
-          kind: 'public_ad' as const,
-        };
+      : source === 'connected'
+        ? {
+            adAccountId: 'act_123',
+            adId: 'meta-ad-1',
+            credentialId: 'credential-meta-1',
+            kind: 'connected_ad' as const,
+            platform: 'meta' as const,
+          }
+        : {
+            adPerformanceId: 'ad-performance-meta-1',
+            kind: 'public_ad' as const,
+          };
 
   return {
     brand: {
@@ -68,6 +79,9 @@ function buildRun({
     revision: 1,
     sourceSnapshot: {
       capturedAt: FIXED_TIME,
+      ...(platform === 'meta' && source === 'connected'
+        ? { destinationUrl: 'https://northstar.example/product' }
+        : {}),
       evidence: ['Strong proof-led structure'],
       metrics: { engagementRate: 8.4 },
       pattern: {
@@ -144,6 +158,7 @@ async function routeRemixRun(
   page: Page,
   options: RemixFixtureOptions,
   onCreate: (body: Record<string, unknown>) => void,
+  isReviewApproved: () => boolean = () => false,
 ): Promise<void> {
   let run = buildRun(options);
 
@@ -158,6 +173,13 @@ async function routeRemixRun(
         ...run,
         revision: run.revision + 1,
         updatedAt: '2026-08-20T10:01:00.000Z',
+      };
+    }
+    if (isReviewApproved() && run.review) {
+      run = {
+        ...run,
+        phase: 'approved',
+        review: { ...run.review, approvedPostIds: run.review.postIds },
       };
     }
     await fulfillJson(route, jsonApi(run));
@@ -211,6 +233,8 @@ async function routeRemixRun(
           approvedPostIds: [],
           batchId: 'review-batch-1',
           postIds: ['draft-post-1'],
+          workflowExecutionId: 'review-workflow-execution-1',
+          workflowId: 'review-workflow-1',
         },
       };
       await fulfillJson(route, jsonApi(run));
@@ -219,9 +243,10 @@ async function routeRemixRun(
 }
 
 test.describe('Discover prefilled remix handoff', () => {
-  test('takes an eligible TikTok trend through a durable Studio run and Review draft', async ({
+  test('takes an eligible TikTok trend through Review approval to a Publish draft', async ({
     authenticatedPage,
   }) => {
+    let approved = false;
     let createBody: Record<string, unknown> | null = null;
     await routeRemixRun(
       authenticatedPage,
@@ -229,8 +254,30 @@ test.describe('Discover prefilled remix handoff', () => {
       (body) => {
         createBody = body;
       },
+      () => approved,
     );
     await routeTikTokTrend(authenticatedPage);
+    await mockReviewQueue(authenticatedPage, {
+      batchId: 'review-batch-1',
+      itemAttributes: {
+        contentRunId: 'run-tiktok-1',
+        creativeVersion: 'recipe-1',
+        format: 'image',
+        ingredientId: 'generated-image-1',
+        label: 'Northstar TikTok remix',
+        platform: 'tiktok',
+        sourceActionId: 'tiktok-reference-1',
+        sourceWorkflowId: 'review-workflow-1',
+        sourceWorkflowName: 'Brand Remix Review Handoff',
+        variantId: 'variant-1',
+        workflowExecutionId: 'review-workflow-execution-1',
+      },
+      itemId: 'review-item-tiktok-1',
+      onItemAction: (body) => {
+        if (body.action === 'approve') approved = true;
+      },
+      postId: 'draft-post-1',
+    });
 
     await authenticatedPage.goto(`${BRAND_BASE}/discover/tiktok`);
     await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
@@ -273,6 +320,21 @@ test.describe('Discover prefilled remix handoff', () => {
       'href',
       /\/publish\/review\?batch=review-batch-1$/,
     );
+    await reviewLink.click();
+    await expect(
+      authenticatedPage.getByText('Brand Remix Review Handoff'),
+    ).toBeVisible();
+    await authenticatedPage
+      .getByRole('button', { name: 'Approve and open draft' })
+      .click();
+    await expect.poll(() => approved).toBe(true);
+
+    await authenticatedPage.goto(
+      `${BRAND_BASE}/studio/generate?run=run-tiktok-1`,
+    );
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Open Publish drafts' }),
+    ).toHaveAttribute('href', /\/publish\/scheduled$/);
   });
 
   test('turns a public Meta winner into the same editable server-prefilled run', async ({
@@ -506,6 +568,8 @@ test.describe('Discover prefilled remix handoff', () => {
         approvedPostIds: ['draft-post-1'],
         batchId: 'review-batch-1',
         postIds: ['draft-post-1'],
+        workflowExecutionId: 'review-workflow-execution-1',
+        workflowId: 'review-workflow-1',
       },
       status: ContentRunStatus.COMPLETED,
     };
@@ -531,62 +595,193 @@ test.describe('Discover prefilled remix handoff', () => {
     );
   });
 
-  test('surfaces the honest blocked Meta paid handoff instead of a fake campaign', async ({
+  test('takes a connected Meta ad through Review into a PAUSED campaign draft', async ({
     authenticatedPage,
   }) => {
-    let prepareCalled = false;
-    const baseRun = buildRun({
-      id: 'run-meta-paid-1',
+    let approved = false;
+    let createBody: Record<string, unknown> | null = null;
+    let paidDraftBody: Record<string, unknown> | null = null;
+    await routeRemixRun(
+      authenticatedPage,
+      {
+        id: 'run-meta-paid-1',
+        platform: 'meta',
+        source: 'connected',
+        target: 'paid',
+      },
+      (body) => {
+        createBody = body;
+      },
+      () => approved,
+    );
+    const connectedAd = {
+      accountName: 'Northstar Ads',
+      adAccountId: 'act_123',
+      channel: 'feed',
+      credentialId: 'credential-meta-1',
+      headline: 'Proof-led Meta winner',
+      id: 'connected-meta-1',
+      metrics: { ctr: 0.041, performanceScore: 96, roas: 5.1 },
       platform: 'meta',
-      target: 'paid',
-    });
-    const approvedRun: BrandRemixRunView = {
-      ...baseRun,
-      phase: 'approved',
-      readiness: {
-        issues: [
-          {
-            code: 'missing_required_reference',
-            field: 'references',
-            message:
-              'Upload an approved remix asset to Meta creative storage before creating the paused campaign, ad set, and ad atomically.',
-            severity: 'blocked',
-          },
-        ],
-        state: 'blocked',
-      },
-      review: {
-        approvedPostIds: ['draft-post-1'],
-        batchId: 'review-batch-1',
-        postIds: ['draft-post-1'],
-      },
-      status: ContentRunStatus.COMPLETED,
+      source: 'my_accounts',
+      sourceId: 'meta-ad-1',
+      title: 'Connected Meta proof winner',
     };
     await authenticatedPage.route(
-      '**/content-runs/run-meta-paid-1/remix',
+      /\/ads\/research(?:\?.*)?$/,
       async (route) => {
-        await fulfillJson(route, jsonApi(approvedRun));
+        await fulfillJson(route, {
+          connectedAds: [connectedAd],
+          filters: {},
+          publicAds: [],
+          summary: {
+            connectedCount: 1,
+            publicCount: 0,
+            reviewPolicy: 'All remixes remain paused for review.',
+            selectedPlatform: 'meta',
+            selectedSource: 'all',
+          },
+        });
       },
     );
+    await authenticatedPage.route(
+      /\/ads\/research\/my_accounts\/meta-ad-1(?:\?.*)?$/,
+      async (route) => {
+        await fulfillJson(route, {
+          ...connectedAd,
+          creative: { body: 'Research-only source copy.' },
+          landingPageUrl: 'https://northstar.example/product',
+          patternSummary: [
+            {
+              id: 'proof-first',
+              label: 'Proof first',
+              score: 96,
+              summary: 'Lead with evidence before the offer.',
+            },
+          ],
+        });
+      },
+    );
+    await mockReviewQueue(authenticatedPage, {
+      batchId: 'review-batch-1',
+      itemAttributes: {
+        contentRunId: 'run-meta-paid-1',
+        creativeVersion: 'recipe-1',
+        format: 'image',
+        ingredientId: 'generated-image-1',
+        label: 'Northstar Meta remix',
+        platform: 'meta',
+        sourceActionId: 'meta-ad-1',
+        sourceWorkflowId: 'review-workflow-1',
+        sourceWorkflowName: 'Brand Remix Review Handoff',
+        variantId: 'variant-1',
+        workflowExecutionId: 'review-workflow-execution-1',
+      },
+      itemId: 'review-item-1',
+      onItemAction: (body) => {
+        if (body.action === 'approve') approved = true;
+      },
+      postId: 'draft-post-1',
+    });
     await authenticatedPage.route(
       '**/content-runs/run-meta-paid-1/remix/paid-draft',
       async (route) => {
-        prepareCalled = true;
-        await fulfillJson(route, jsonApi(approvedRun));
+        paidDraftBody = route.request().postDataJSON() as Record<
+          string,
+          unknown
+        >;
+        const paidRun = buildRun({
+          id: 'run-meta-paid-1',
+          platform: 'meta',
+          source: 'connected',
+          target: 'paid',
+        });
+        await fulfillJson(
+          route,
+          jsonApi({
+            ...paidRun,
+            paidDraft: {
+              adAccountId: 'act_123',
+              adId: 'ad-paused-1',
+              adSetId: 'adset-paused-1',
+              campaignId: 'campaign-paused-1',
+              credentialId: 'credential-meta-1',
+              ingredientId: 'generated-image-1',
+              postId: 'draft-post-1',
+              recipeRevision: 1,
+              recipeVersion: 1,
+              replayed: false,
+              status: 'PAUSED',
+              variantId: 'variant-1',
+              workflowExecutionId: 'meta-workflow-execution-1',
+              workflowId: 'meta-workflow-1',
+            },
+            phase: 'paid_draft_ready',
+            review: {
+              approvedPostIds: ['draft-post-1'],
+              batchId: 'review-batch-1',
+              postIds: ['draft-post-1'],
+              workflowExecutionId: 'review-workflow-execution-1',
+              workflowId: 'review-workflow-1',
+            },
+            status: ContentRunStatus.COMPLETED,
+          }),
+        );
       },
     );
+
+    await authenticatedPage.goto(`${BRAND_BASE}/discover/ads/meta`);
+    await authenticatedPage
+      .getByRole('button', {
+        name: 'Select Connected Meta proof winner for research context',
+      })
+      .click();
+    await authenticatedPage
+      .getByRole('button', { name: 'Remix for my brand' })
+      .click();
+    await authenticatedPage
+      .getByRole('button', { name: 'Continue to Studio' })
+      .click();
+
+    const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
+    await expect(panel).toBeVisible();
+    await authenticatedPage.getByRole('button', { name: 'Generate' }).click();
+    await panel.getByRole('button', { name: 'Send 1 to Review' }).click();
+    await panel.getByRole('link', { name: 'Open Review' }).click();
+    await expect(
+      authenticatedPage.getByText('Brand Remix Review Handoff'),
+    ).toBeVisible();
+    await authenticatedPage
+      .getByRole('button', { name: 'Approve and open draft' })
+      .click();
+    await expect.poll(() => approved).toBe(true);
 
     await authenticatedPage.goto(
       `${BRAND_BASE}/studio/generate?run=run-meta-paid-1`,
     );
+    await panel
+      .getByRole('button', { name: 'Prepare paused Meta draft' })
+      .click();
 
-    const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
-    await expect(panel).toBeVisible();
-    await expect(
-      panel.getByText(/Upload an approved remix asset to Meta creative/),
-    ).toBeVisible();
-    await expect(panel.getByText(/Meta handoff is waiting/)).toBeVisible();
-    expect(prepareCalled).toBe(false);
+    await expect(panel.getByText(/campaign-paused-1/)).toBeVisible();
+    await expect(panel.getByText(/adset-paused-1/)).toBeVisible();
+    await expect(panel.getByText(/ad-paused-1/)).toBeVisible();
+    await expect(panel.getByText(/PAUSED/)).toBeVisible();
+    expect(createBody).toMatchObject({
+      source: {
+        adAccountId: 'act_123',
+        adId: 'meta-ad-1',
+        credentialId: 'credential-meta-1',
+        kind: 'connected_ad',
+        platform: 'meta',
+      },
+    });
+    expect(paidDraftBody).toMatchObject({
+      destination: {
+        adAccountId: 'act_123',
+        credentialId: 'credential-meta-1',
+      },
+    });
   });
 
   test('copies the grouped caption and assets of a ready TikTok variant', async ({
