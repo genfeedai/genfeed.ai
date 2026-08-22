@@ -119,6 +119,8 @@ export interface AdsAdapterContext {
   adAccountId: string;
   loginCustomerId?: string;
   developerToken?: string;
+  /** X Ads only: funding instrument backing new campaign spend. */
+  fundingInstrumentId?: string;
 }
 
 export interface IAdsAdapter {
