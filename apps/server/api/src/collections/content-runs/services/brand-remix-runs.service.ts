@@ -2346,6 +2346,9 @@ export class BrandRemixRunsService {
       params.variants.map((variant) => variant.id),
     );
     const adoptedVariantIds = new Set<string>();
+    const unadoptedOrphanIds = new Set(
+      orphans.map((orphan) => orphan.id.toString()),
+    );
     for (const orphan of orphans) {
       const indexedVariant =
         orphan.groupIndex == null
@@ -2375,6 +2378,19 @@ export class BrandRemixRunsService {
         variantId: variant.id,
       });
       adoptedVariantIds.add(variant.id);
+      unadoptedOrphanIds.delete(orphan.id.toString());
+    }
+    if (unadoptedOrphanIds.size > 0) {
+      await this.prisma.ingredient.updateMany({
+        data: { status: IngredientStatus.FAILED },
+        where: scopedWhere(params.organizationId, {
+          brandId: params.brandId,
+          groupId: params.runId,
+          id: { in: [...unadoptedOrphanIds] },
+          status: { not: IngredientStatus.FAILED },
+          templateVersion: config.revision,
+        }),
+      });
     }
     return config;
   }

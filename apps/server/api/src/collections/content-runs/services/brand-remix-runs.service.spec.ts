@@ -1261,6 +1261,18 @@ describe('BrandRemixRunsService', () => {
         }),
       }),
     );
+    expect(prisma.ingredient.updateMany).toHaveBeenCalledWith({
+      data: { status: IngredientStatus.FAILED },
+      where: expect.objectContaining({
+        brandId: 'brand-1',
+        groupId: 'run-1',
+        id: { in: ['image-orphan-duplicate'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: { not: IngredientStatus.FAILED },
+        templateVersion: 1,
+      }),
+    });
     expect(result.execution?.variants).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
