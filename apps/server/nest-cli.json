@@ -253,6 +253,21 @@
       "root": "workers",
       "sourceRoot": "workers/src",
       "type": "application"
+    },
+    "workers-fal-model-sync": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "workers/fal-model-sync.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "workers/tsconfig.app.json"
+      },
+      "entryFile": "maintenance/fal-model-sync.entrypoint",
+      "root": "workers",
+      "sourceRoot": "workers/src",
+      "type": "application"
     }
   },
   "root": ".",
