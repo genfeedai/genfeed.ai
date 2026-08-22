@@ -223,10 +223,17 @@ export class FacebookService {
         const { access_token, expires_in } = response.data;
 
         const responseScope = readOAuthTokenScopeField(response.data);
-        const grantedScopes =
-          responseScope === undefined || responseScope === null
-            ? await this.getGrantedPermissions(access_token)
-            : responseScope;
+        let grantedScopes = responseScope;
+        if (responseScope === undefined || responseScope === null) {
+          try {
+            grantedScopes = await this.getGrantedPermissions(access_token);
+          } catch (permissionError: unknown) {
+            this.loggerService.warn(
+              'Facebook permission capture failed after token refresh',
+              permissionError,
+            );
+          }
+        }
 
         return await this.credentialsService.patch(credentials.id, {
           accessToken: access_token,

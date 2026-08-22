@@ -160,6 +160,39 @@ describe('FacebookController', () => {
       expect(result).toBeDefined();
     });
 
+    it('keeps the connection when permission capture is temporarily unavailable', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockRejectedValue(
+        new Error('Graph permissions unavailable'),
+      );
+
+      await expect(
+        controller.verify({} as never, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        }),
+      ).resolves.toBeDefined();
+
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.not.objectContaining({
+          grantedScopes: expect.anything(),
+          grantedScopesCapturedAt: expect.anything(),
+        }),
+      );
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('permission capture failed'),
+        expect.any(Error),
+      );
+    });
+
     it('throws when code or state is missing', async () => {
       await expect(
         controller.verify({} as never, { code: 'auth-code' }),

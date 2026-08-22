@@ -135,10 +135,18 @@ export class FacebookController {
       }
 
       const profile = await this.facebookService.getUserProfile(accessToken);
-      const grantedScopes =
-        scope === undefined || scope === null
-          ? await this.facebookService.getGrantedPermissions(accessToken)
-          : scope;
+      let grantedScopes = scope;
+      if (scope === undefined || scope === null) {
+        try {
+          grantedScopes =
+            await this.facebookService.getGrantedPermissions(accessToken);
+        } catch (permissionError: unknown) {
+          this.loggerService.warn(
+            `${url} permission capture failed after connection`,
+            permissionError,
+          );
+        }
+      }
 
       let updatedCredential = await this.credentialsService.patch(
         credential.id,
