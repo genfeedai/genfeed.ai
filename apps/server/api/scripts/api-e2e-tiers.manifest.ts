@@ -12,6 +12,7 @@ export type ApiE2eTierManifest = {
 export const API_E2E_TIER_MANIFEST: ApiE2eTierManifest = {
   coreFiles: [
     'test/e2e/integrations.e2e-spec.ts',
+    'test/integration/brand-remix-paid-draft.integration.spec.ts',
     'test/integration/generation-credit-decrement.integration.spec.ts',
     'test/integration/health.e2e-spec.spec.ts',
     'test/integration/launch-path-contracts.integration.spec.ts',

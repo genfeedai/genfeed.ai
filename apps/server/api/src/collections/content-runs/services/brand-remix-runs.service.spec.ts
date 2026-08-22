@@ -2356,7 +2356,7 @@ describe('BrandRemixRunsService', () => {
     expect(contentRun.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          config: { equals: expect.any(Object) },
+          config: { equals: created.config },
         }),
       }),
     );
