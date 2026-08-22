@@ -34,7 +34,7 @@
         "properties": {
           "prompt": { "type": "string" },
           "image_url": { "type": "string", "format": "uri" },
-          "duration": { "type": "string", "enum": ["5", "10"] },
+          "duration": { "$ref": "#/components/schemas/Duration" },
           "resolution": { "type": "string", "enum": ["720p", "1080p"] }
         }
       },
@@ -51,6 +51,10 @@
             }
           }
         }
+      },
+      "Duration": {
+        "type": "string",
+        "enum": ["5", "10"]
       }
     }
   }

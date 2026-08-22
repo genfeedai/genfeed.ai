@@ -40,14 +40,7 @@
           "image_size": {
             "oneOf": [
               { "type": "string", "enum": ["square_hd", "landscape_16_9"] },
-              {
-                "type": "object",
-                "required": ["width", "height"],
-                "properties": {
-                  "width": { "type": "integer" },
-                  "height": { "type": "integer" }
-                }
-              }
+              { "$ref": "#/components/schemas/ImageSize" }
             ]
           },
           "seed": { "type": "integer" }
@@ -68,6 +61,14 @@
         "required": ["url"],
         "properties": {
           "url": { "type": "string", "format": "uri" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" }
+        }
+      },
+      "ImageSize": {
+        "type": "object",
+        "required": ["width", "height"],
+        "properties": {
           "width": { "type": "integer" },
           "height": { "type": "integer" }
         }

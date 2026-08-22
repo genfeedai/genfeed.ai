@@ -84,4 +84,19 @@ describe('Fal pricing contracts', () => {
     expect(decimalUsdToMicros('0.0000005')).toBe(1n);
     expect(decimalUsdToMicros('12.3456789')).toBe(12_345_679n);
   });
+
+  it('normalizes sub-micro numeric prices without exponential notation', () => {
+    const normalized = normalizeFalPrice({
+      currency: 'USD',
+      endpoint_id: 'fal-ai/sub-micro',
+      unit: 'image',
+      unit_price: 4e-7,
+    });
+
+    expect(normalized.unitPrice).toBe('0.0000004');
+    expect(mapFalPricing(normalized)).toMatchObject({
+      supported: true,
+      unitPriceMicros: 0n,
+    });
+  });
 });

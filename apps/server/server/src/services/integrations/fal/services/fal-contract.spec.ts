@@ -39,6 +39,15 @@ describe('reviewed Fal execution contracts', () => {
     const schemas = extractFalEndpointSchemas(fixture('image-openapi.json'));
 
     expect(schemas.input.required).toEqual(['prompt', 'image_urls']);
+    expect(schemas.input.properties?.image_size).toMatchObject({
+      oneOf: expect.arrayContaining([
+        expect.objectContaining({ type: 'object' }),
+      ]),
+    });
+    expect(schemas.output.properties?.images?.items).toMatchObject({
+      required: ['url'],
+      type: 'object',
+    });
     expect(schemas.output.required).toEqual(['images']);
     expect(
       classifyFalSchemaFamily('image-to-image', schemas.input, schemas.output),

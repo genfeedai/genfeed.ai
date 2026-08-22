@@ -116,6 +116,28 @@ describe('FalModelContractSyncService', () => {
     expect(update.data).not.toHaveProperty('reviewedProviderContractVersion');
   });
 
+  it('preserves a legacy active endpoint until its first contract is reviewed', async () => {
+    const { model, service } = harness();
+
+    const result = await service.synchronizeModel(
+      {
+        endpoint: 'fal-ai/per-image',
+        id: 'model-1',
+        isActive: true,
+        provider: ModelProvider.FAL,
+        reviewedProviderContractVersion: null,
+      },
+      providerModel(),
+      price('fal-ai/per-image'),
+    );
+
+    const update = model.update.mock.calls[0]?.[0];
+    expect(update.data.pendingProviderContractVersion).toBe(result.version);
+    expect(update.data.providerSyncStatus).toBe('review_required');
+    expect(update.data).not.toHaveProperty('isActive');
+    expect(update.data).not.toHaveProperty('isDefault');
+  });
+
   it('marks the reviewed version fresh without changing activation', async () => {
     const { model, service } = harness();
     const first = await service.synchronizeModel(
@@ -175,6 +197,26 @@ describe('FalModelContractSyncService', () => {
         'quarantined',
       );
     }
+  });
+
+  it('preserves the schema failure reason when pricing is also unsupported', async () => {
+    const { modelProviderContract, service } = harness();
+
+    await service.synchronizeModel(
+      {
+        endpoint: 'fal-ai/per-token',
+        id: 'model-1',
+        isActive: false,
+        provider: ModelProvider.FAL,
+        reviewedProviderContractVersion: null,
+      },
+      { ...providerModel('fal-ai/per-token'), openapi: {} },
+      price('fal-ai/per-token'),
+    );
+
+    expect(
+      modelProviderContract.upsert.mock.calls[0]?.[0].create.unsupportedReason,
+    ).toBe('invalid_or_missing_openapi');
   });
 
   it('records sanitized failure state without mutating the reviewed contract', async () => {

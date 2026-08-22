@@ -411,4 +411,30 @@ describe('ModelsService', () => {
     expect(modelDelegate.update).not.toHaveBeenCalled();
     expect(providerContractDelegate.update).not.toHaveBeenCalled();
   });
+
+  it('blocks a reviewed Fal schema family that does not match the model category', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        category: ModelCategory.IMAGE,
+        endpoint: 'fal-ai/video-contract-on-image-model',
+        pendingProviderContractVersion: 'sha256:wrong-media',
+        provider: ModelProvider.FAL,
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'contract-wrong-media',
+      inputSchema: { required: ['prompt'], type: 'object' },
+      mappingStatus: 'supported',
+      pricingType: 'per-second',
+      schemaFamily: 'video-text-v1',
+      unitPriceMicros: 25_000n,
+      version: 'sha256:wrong-media',
+    });
+
+    await expect(
+      service.approveRegistryModel('model-1', {}, 'operator-1'),
+    ).rejects.toThrow('does not match the model category');
+    expect(modelDelegate.update).not.toHaveBeenCalled();
+    expect(providerContractDelegate.update).not.toHaveBeenCalled();
+  });
 });

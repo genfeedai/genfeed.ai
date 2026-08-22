@@ -222,6 +222,11 @@ describe('CronFalModelWatcherService', () => {
       const result = await service.discoverNewModels();
 
       expect(result.newModelsFound).toBe(0);
+      expect(modelsService.prisma.model.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isDeleted: false, organizationId: null },
+        }),
+      );
       expect(modelDiscoveryService.createDraftModel).not.toHaveBeenCalled();
       expect(falContractSyncService.synchronizeModel).toHaveBeenCalledWith(
         expect.objectContaining({ endpoint: 'fal-ai/flux/dev' }),
