@@ -82,6 +82,7 @@ export class WorkflowNotificationDeliveryService {
       return;
     }
 
+    // tenant-scope-ignore: preferences are globally user-owned; delivery.userId comes from the organization-scoped claimed delivery above
     const preference = await this.prisma.notificationPreference.findFirst({
       select: { isEnabled: true },
       where: {
