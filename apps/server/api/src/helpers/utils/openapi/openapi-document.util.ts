@@ -1,5 +1,10 @@
 import type { INestApplication } from '@nestjs/common';
-import type { OpenAPIObject } from '@nestjs/swagger';
+import type {
+  OpenAPIObject,
+  OperationObject,
+  ResponseObject,
+  SchemaObject,
+} from '@nestjs/swagger';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 /**
@@ -67,6 +72,98 @@ export function createOpenApiBuilderOptions(params: {
     .build();
 }
 
+const HTTP_METHODS = [
+  'get',
+  'put',
+  'post',
+  'delete',
+  'options',
+  'head',
+  'patch',
+  'trace',
+] as const;
+
+const JSON_API_ERROR_SCHEMAS: Record<string, SchemaObject> = {
+  JsonApiError: {
+    properties: {
+      code: { type: 'string' },
+      detail: { type: 'string' },
+      source: { $ref: '#/components/schemas/JsonApiErrorSource' },
+      title: { type: 'string' },
+    },
+    required: ['code', 'title', 'detail'],
+    type: 'object',
+  },
+  JsonApiErrorDocument: {
+    properties: {
+      errors: {
+        items: { $ref: '#/components/schemas/JsonApiError' },
+        type: 'array',
+      },
+    },
+    required: ['errors'],
+    type: 'object',
+  },
+  JsonApiErrorSource: {
+    properties: {
+      parameter: { type: 'string' },
+      pointer: { type: 'string' },
+    },
+    type: 'object',
+  },
+};
+
+function createErrorResponse(description: string): ResponseObject {
+  return {
+    content: {
+      'application/json': {
+        schema: { $ref: '#/components/schemas/JsonApiErrorDocument' },
+      },
+    },
+    description,
+  };
+}
+
+/**
+ * Make cross-cutting runtime contracts explicit for SDKs and autonomous
+ * clients. Nest decorators remain the source of route-specific success
+ * responses; the global exception filters provide one JSON:API error envelope
+ * for every route, so documenting 4XX/5XX ranges here matches real behavior.
+ */
+export function enrichOpenApiDocument(document: OpenAPIObject): OpenAPIObject {
+  document.components ??= {};
+  document.components.schemas = {
+    ...(document.components.schemas ?? {}),
+    ...JSON_API_ERROR_SCHEMAS,
+  };
+
+  for (const pathItem of Object.values(document.paths)) {
+    for (const method of HTTP_METHODS) {
+      const operation = pathItem[method] as OperationObject | undefined;
+      if (!operation) {
+        continue;
+      }
+
+      if (!operation.description?.trim()) {
+        operation.description =
+          operation.summary?.trim() ||
+          operation.operationId ||
+          'Genfeed API operation';
+      }
+
+      operation.responses ??= {};
+      operation.responses['4XX'] ??= createErrorResponse(
+        'Client error returned as a JSON:API error document.',
+      );
+      operation.responses['5XX'] ??= createErrorResponse(
+        'Server error returned as a JSON:API error document.',
+      );
+    }
+  }
+
+  return document;
+}
+
 /**
  * Creates the full OpenAPI document with stable operationIds and
  * deterministically sorted keys.
@@ -79,7 +176,7 @@ export function buildStableOpenApiDocument(
     operationIdFactory: stableOperationIdFactory,
   });
 
-  return sortKeysDeep(document);
+  return sortKeysDeep(enrichOpenApiDocument(document));
 }
 
 /**

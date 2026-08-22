@@ -125,6 +125,19 @@ describe('RateLimitGuard', () => {
     expect(mockSetHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', 95);
   });
 
+  it('sets the standard RateLimit header triplet', async () => {
+    const { guard, context, mockSetHeader } = createMockContext({
+      currentCount: 5,
+      rateLimitOptions: { limit: 100, windowMs: 60000 },
+    });
+
+    await guard.canActivate(context as never);
+
+    expect(mockSetHeader).toHaveBeenCalledWith('RateLimit-Limit', 100);
+    expect(mockSetHeader).toHaveBeenCalledWith('RateLimit-Remaining', 95);
+    expect(mockSetHeader).toHaveBeenCalledWith('RateLimit-Reset', 60);
+  });
+
   it('sets expiry on first request (count=1)', async () => {
     const { guard, context, mockExpire } = createMockContext({
       currentCount: 1,
