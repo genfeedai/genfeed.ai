@@ -91,10 +91,18 @@ Action family; the 2026-08-22 migration resolved 23 families. Immutable pins
 trade automatic tag movement for reviewed weekly update PRs, which is
 intentional.
 
+The migration intentionally advances `actions/cache` from v5 to v6.1.0 rather
+than representing it as a pin-only substitution. The upstream v6 release
+migrates the implementation to ESM, and v6.1.0 adds read-only cache handling.
+The published v5 and v6.1.0 `action.yml` contracts have the same Node 24
+runtime, inputs, outputs, and restore/save entrypoints; the resolved v6.1.0 SHA
+was verified against the upstream commit. PR CI remains the behavioral gate for
+the three cache uses in `setup-bun-env`.
+
 Recent successful changed-scope PR CI runs observed during the audit completed
 their full required path in roughly 36 to 56 minutes, including dependency
 ordering and runner waits. Rapid follow-up pushes were being cancelled within
-their PR-scoped concurrency groups, so this pin-only change adds no routing
+their PR-scoped concurrency groups, so this hardening adds no routing
 workflow or new critical-path job.
 
 Seven obsolete merge-group runs still had to be cancelled after their PRs were
