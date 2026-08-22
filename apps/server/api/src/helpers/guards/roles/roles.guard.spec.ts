@@ -239,7 +239,7 @@ describe('RolesGuard', () => {
   });
 
   it('skips role and active-organization membership checks when the handler opts out', async () => {
-    vi.spyOn(reflector, 'get').mockImplementation((metadataKey: string) =>
+    vi.spyOn(reflector, 'get').mockImplementation((metadataKey: unknown) =>
       metadataKey === SKIP_ROLES_KEY ? true : undefined,
     );
     const context = createContext({
@@ -252,7 +252,7 @@ describe('RolesGuard', () => {
   });
 
   it('still requires an authenticated user when the handler skips roles', async () => {
-    vi.spyOn(reflector, 'get').mockImplementation((metadataKey: string) =>
+    vi.spyOn(reflector, 'get').mockImplementation((metadataKey: unknown) =>
       metadataKey === SKIP_ROLES_KEY ? true : undefined,
     );
 
