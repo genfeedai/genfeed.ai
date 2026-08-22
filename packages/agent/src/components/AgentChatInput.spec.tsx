@@ -631,9 +631,11 @@ describe('AgentChatInput', () => {
   it('opens the library picker from the reference toolbar control', async () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
-    fireEvent.click(screen.getByLabelText('Add context'));
+    fireEvent.pointerDown(screen.getByLabelText('Add context'));
     fireEvent.click(
-      screen.getByRole('menuitem', { name: 'Reference library content' }),
+      await screen.findByRole('menuitem', {
+        name: 'Reference library content',
+      }),
     );
 
     expect(
@@ -647,9 +649,11 @@ describe('AgentChatInput', () => {
   it('attaches a library pick as a removable visual tile (no caret token)', async () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
-    fireEvent.click(screen.getByLabelText('Add context'));
+    fireEvent.pointerDown(screen.getByLabelText('Add context'));
     fireEvent.click(
-      screen.getByRole('menuitem', { name: 'Reference library content' }),
+      await screen.findByRole('menuitem', {
+        name: 'Reference library content',
+      }),
     );
     fireEvent.click(
       await screen.findByRole('option', { name: 'Reference Launch post' }),
