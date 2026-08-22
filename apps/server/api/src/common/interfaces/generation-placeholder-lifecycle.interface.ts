@@ -10,5 +10,6 @@ export type GenerationPlaceholderCreatedCallback = (
 export interface GenerationPlaceholderScope {
   groupId: string;
   groupIndex: number;
+  isByokBypass?: boolean;
   settleCreditsExternally?: boolean;
 }

@@ -35,6 +35,7 @@ import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-defer
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
+import { ByokService } from '@api/services/byok/byok.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BRAND_REMIX_RUN_CONTRACT,
@@ -58,9 +59,10 @@ import {
 } from '@api-types/contracts/brand-remix-run.contract';
 import type { GenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import { generationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { sourcePostVariationCredits } from '@genfeedai/constants';
+import { MODEL_KEYS, sourcePostVariationCredits } from '@genfeedai/constants';
 import {
   AssetCategory,
+  ByokProvider,
   ContentFormat,
   ContentIntelligencePlatform,
   ContentRunStatus,
@@ -79,6 +81,8 @@ import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
 } from '@nestjs/common';
@@ -161,6 +165,7 @@ export class BrandRemixRunsService {
     private readonly pausedMetaCampaignDraftService: PausedMetaCampaignDraftService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly byokService: ByokService,
     @Inject(BRAND_REMIX_RUNTIME)
     private readonly runtime: BrandRemixRuntime,
   ) {}
@@ -357,6 +362,34 @@ export class BrandRemixRunsService {
         'Avatar remix generation requires a deferred credit reservation.',
       );
     }
+    const avatarByokBypass =
+      config.draft.output.kind === 'avatar' &&
+      (await this.byokService.isByokActiveForProvider(
+        organizationId,
+        ByokProvider.HEYGEN,
+      ));
+    if (
+      avatarByokBypass &&
+      !(await this.byokService.isByokBillingInGoodStanding(organizationId))
+    ) {
+      throw new HttpException(
+        {
+          detail:
+            'BYOK access is suspended due to an unpaid platform fee invoice. Please update your payment method or purchase a credit pack.',
+          title: 'BYOK billing past due',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    if (avatarByokBypass) {
+      const creditsRequest = request as RemixCreditsRequest;
+      creditsRequest.creditsConfig = {
+        ...creditsRequest.creditsConfig,
+        isByokBypass: true,
+        modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+        provider: ByokProvider.HEYGEN,
+      };
+    }
 
     let activeConfig = config;
     if (!activeConfig.execution) {
@@ -521,6 +554,7 @@ export class BrandRemixRunsService {
           0,
         );
         if (
+          !avatarByokBypass &&
           total > 0 &&
           !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
             organizationId,
@@ -608,6 +642,7 @@ export class BrandRemixRunsService {
             placeholderScope: {
               groupId: runId,
               groupIndex,
+              isByokBypass: avatarByokBypass,
               settleCreditsExternally: true,
             },
             request: variantRequest,

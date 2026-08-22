@@ -99,6 +99,10 @@ describe('BrandRemixRunsService', () => {
     getOrganizationCreditsBalance: vi.fn(),
   };
   const systemWorkflowProvenanceService = { runAction: vi.fn() };
+  const byokService = {
+    isByokActiveForProvider: vi.fn(),
+    isByokBillingInGoodStanding: vi.fn(),
+  };
   const runtime = {
     now: () => new Date('2026-08-20T10:00:00.000Z'),
     randomId: vi.fn(),
@@ -179,6 +183,8 @@ describe('BrandRemixRunsService', () => {
       true,
     );
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
+    byokService.isByokActiveForProvider.mockResolvedValue(false);
+    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     systemWorkflowProvenanceService.runAction.mockImplementation(
       async (_input, action) => {
         const provenance = {
@@ -204,6 +210,7 @@ describe('BrandRemixRunsService', () => {
       pausedMetaCampaignDraftService as never,
       creditsUtilsService as never,
       systemWorkflowProvenanceService as never,
+      byokService as never,
       runtime,
     );
   });
@@ -1515,6 +1522,48 @@ describe('BrandRemixRunsService', () => {
       amount: 3,
       deferred: false,
     });
+  });
+
+  it('records avatar BYOK usage without checking or deducting platform credits', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '9:16', count: 1, kind: 'avatar' },
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, scope, onCredits) => {
+        expect(scope).toMatchObject({ isByokBypass: true });
+        await onCreated?.('avatar-byok-1');
+        await onCredits?.();
+        return {
+          externalId: 'heygen-byok-1',
+          ingredientId: 'avatar-byok-1',
+          status: 'processing',
+        };
+      },
+    );
+
+    await service.start('org-1', 'run-1', user, request as never, {
+      expectedRevision: 1,
+    });
+
+    expect(request.creditsConfig).toMatchObject({
+      amount: 1,
+      deferred: false,
+      isByokBypass: true,
+      modelKey: 'heygen/avatar',
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('preserves an explicit positive Avatar credit amount', async () => {

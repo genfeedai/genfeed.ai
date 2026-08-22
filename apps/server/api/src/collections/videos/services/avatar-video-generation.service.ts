@@ -149,7 +149,10 @@ export class AvatarVideoGenerationService {
       ingredientId = String(ingredientData.id);
       await onPlaceholderCreated?.(ingredientId);
 
-      if (placeholderScope?.settleCreditsExternally) {
+      if (
+        placeholderScope?.settleCreditsExternally &&
+        !placeholderScope.isByokBypass
+      ) {
         const hasCredits =
           await this.creditsUtilsService.checkOrganizationCreditsAvailable(
             context.organizationId,
