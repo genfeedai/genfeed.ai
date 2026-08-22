@@ -173,7 +173,7 @@ export class PausedMetaCampaignDraftService {
         const campaigns = await this.metaAdsService.listCampaigns(
           accessToken,
           resolvedAdAccountId,
-          { allPages: true, limit: 200 },
+          { limit: 1, name: campaignName },
         );
         const existingCampaign = campaigns.find(
           (campaign) => campaign.name === campaignName,
@@ -196,7 +196,7 @@ export class PausedMetaCampaignDraftService {
           accessToken,
           resolvedAdAccountId,
           campaignId,
-          { allPages: true },
+          { name: adSetName },
         );
         const existingAdSet = adSets.find((adSet) => adSet.name === adSetName);
         const adSetId =
@@ -217,7 +217,7 @@ export class PausedMetaCampaignDraftService {
           accessToken,
           resolvedAdAccountId,
           adSetId,
-          { allPages: true },
+          { name: adName },
         );
         const existingAd = ads.find((ad) => ad.name === adName);
         let adId = existingAd?.id;
@@ -233,7 +233,7 @@ export class PausedMetaCampaignDraftService {
             const uploadedVideos = await this.metaAdsService.listAdVideos(
               accessToken,
               resolvedAdAccountId,
-              { allPages: true },
+              { title: adName },
             );
             const existingVideo = uploadedVideos.find(
               (video) => video.title === adName,

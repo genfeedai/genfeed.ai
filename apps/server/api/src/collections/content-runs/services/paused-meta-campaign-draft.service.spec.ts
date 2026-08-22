@@ -199,6 +199,23 @@ describe('PausedMetaCampaignDraftService', () => {
     expect(metaAdsService.createAdSet).not.toHaveBeenCalled();
     expect(metaAdsService.createAd).not.toHaveBeenCalled();
     expect(metaAdsService.uploadAdImage).not.toHaveBeenCalled();
+    expect(metaAdsService.listCampaigns).toHaveBeenCalledWith(
+      'legacy-plaintext-token',
+      'act_123',
+      { limit: 1, name: 'Genfeed Remix run-1-2-variant-1' },
+    );
+    expect(metaAdsService.listAdSets).toHaveBeenCalledWith(
+      'legacy-plaintext-token',
+      'act_123',
+      'campaign-1',
+      { name: 'Genfeed Remix run-1-2-variant-1 Ad Set' },
+    );
+    expect(metaAdsService.listAds).toHaveBeenCalledWith(
+      'legacy-plaintext-token',
+      'act_123',
+      'adset-1',
+      { name: 'Genfeed Remix run-1-2-variant-1 Ad' },
+    );
   });
 
   it('recovers a partial ad failure without duplicating campaign or ad set objects', async () => {

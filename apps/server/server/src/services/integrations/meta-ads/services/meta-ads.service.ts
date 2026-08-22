@@ -223,11 +223,30 @@ export class MetaAdsService {
   async listCampaigns(
     accessToken: string,
     adAccountId: string,
-    params?: { allPages?: boolean; status?: string; limit?: number },
+    params?: {
+      allPages?: boolean;
+      limit?: number;
+      name?: string;
+      status?: string;
+    },
   ): Promise<MetaCampaign[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      const filtering = [
+        ...(params?.status
+          ? [
+              {
+                field: 'effective_status',
+                operator: 'IN',
+                value: [params.status],
+              },
+            ]
+          : []),
+        ...(params?.name
+          ? [{ field: 'name', operator: 'EQUAL', value: params.name }]
+          : []),
+      ];
       const campaigns = await this.listGraphPages<{
         id: string;
         name: string;
@@ -244,14 +263,8 @@ export class MetaAdsService {
           fields:
             'id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time',
           limit: params?.limit || 50,
-          ...(params?.status && {
-            filtering: JSON.stringify([
-              {
-                field: 'effective_status',
-                operator: 'IN',
-                value: [params.status],
-              },
-            ]),
+          ...(filtering.length > 0 && {
+            filtering: JSON.stringify(filtering),
           }),
         },
         Boolean(params?.allPages),
@@ -281,7 +294,7 @@ export class MetaAdsService {
     accessToken: string,
     adAccountId: string,
     campaignId?: string,
-    options?: { allPages?: boolean },
+    options?: { allPages?: boolean; name?: string },
   ): Promise<MetaNamedAdObject[]> {
     const items = await this.listGraphPages<{
       campaign_id?: string;
@@ -293,7 +306,12 @@ export class MetaAdsService {
       campaignId ? `${campaignId}/adsets` : `${adAccountId}/adsets`,
       {
         fields: 'id,name,status,campaign_id',
-        limit: 200,
+        limit: options?.name ? 1 : 200,
+        ...(options?.name && {
+          filtering: JSON.stringify([
+            { field: 'name', operator: 'EQUAL', value: options.name },
+          ]),
+        }),
       },
       Boolean(options?.allPages),
     );
@@ -306,7 +324,7 @@ export class MetaAdsService {
     accessToken: string,
     adAccountId: string,
     adSetId?: string,
-    options?: { allPages?: boolean },
+    options?: { allPages?: boolean; name?: string },
   ): Promise<MetaNamedAdObject[]> {
     const items = await this.listGraphPages<{
       adset_id?: string;
@@ -318,7 +336,12 @@ export class MetaAdsService {
       adSetId ? `${adSetId}/ads` : `${adAccountId}/ads`,
       {
         fields: 'id,name,status,adset_id',
-        limit: 200,
+        limit: options?.name ? 1 : 200,
+        ...(options?.name && {
+          filtering: JSON.stringify([
+            { field: 'name', operator: 'EQUAL', value: options.name },
+          ]),
+        }),
       },
       Boolean(options?.allPages),
     );
@@ -330,12 +353,20 @@ export class MetaAdsService {
   async listAdVideos(
     accessToken: string,
     adAccountId: string,
-    options?: { allPages?: boolean },
+    options?: { allPages?: boolean; title?: string },
   ): Promise<MetaAdVideo[]> {
     return this.listGraphPages<MetaAdVideo>(
       accessToken,
       `${adAccountId}/advideos`,
-      { fields: 'id,title', limit: 200 },
+      {
+        fields: 'id,title',
+        limit: options?.title ? 1 : 200,
+        ...(options?.title && {
+          filtering: JSON.stringify([
+            { field: 'title', operator: 'EQUAL', value: options.title },
+          ]),
+        }),
+      },
       Boolean(options?.allPages),
     );
   }

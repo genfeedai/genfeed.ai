@@ -104,6 +104,68 @@ describe('MetaAdsService', () => {
     });
   });
 
+  it('uses exact server-side name filters for deterministic replay lookups', async () => {
+    const { service } = createService();
+    const privateMethods = service as unknown as MetaAdsPrivateMethods;
+    privateMethods.makeRequest = vi.fn().mockResolvedValue({ data: [] });
+
+    await service.listCampaigns('access-token', 'act-1', {
+      limit: 1,
+      name: 'Campaign name',
+    });
+    await service.listAdSets('access-token', 'act-1', 'campaign-1', {
+      name: 'Ad set name',
+    });
+    await service.listAds('access-token', 'act-1', 'ad-set-1', {
+      name: 'Ad name',
+    });
+    await service.listAdVideos('access-token', 'act-1', {
+      title: 'Video title',
+    });
+
+    expect(privateMethods.makeRequest).toHaveBeenNthCalledWith(
+      1,
+      'access-token',
+      'act-1/campaigns',
+      expect.objectContaining({
+        filtering: JSON.stringify([
+          { field: 'name', operator: 'EQUAL', value: 'Campaign name' },
+        ]),
+        limit: 1,
+      }),
+    );
+    expect(privateMethods.makeRequest).toHaveBeenNthCalledWith(
+      2,
+      'access-token',
+      'campaign-1/adsets',
+      expect.objectContaining({
+        filtering: JSON.stringify([
+          { field: 'name', operator: 'EQUAL', value: 'Ad set name' },
+        ]),
+      }),
+    );
+    expect(privateMethods.makeRequest).toHaveBeenNthCalledWith(
+      3,
+      'access-token',
+      'ad-set-1/ads',
+      expect.objectContaining({
+        filtering: JSON.stringify([
+          { field: 'name', operator: 'EQUAL', value: 'Ad name' },
+        ]),
+      }),
+    );
+    expect(privateMethods.makeRequest).toHaveBeenNthCalledWith(
+      4,
+      'access-token',
+      'act-1/advideos',
+      expect.objectContaining({
+        filtering: JSON.stringify([
+          { field: 'title', operator: 'EQUAL', value: 'Video title' },
+        ]),
+      }),
+    );
+  });
+
   it('fails closed at the pagination safety limit instead of scanning forever', async () => {
     const { service } = createService();
     const privateMethods = service as unknown as MetaAdsPrivateMethods;
