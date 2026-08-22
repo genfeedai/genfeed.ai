@@ -24,7 +24,10 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  AVATAR_GENERATION_CREDIT_COST,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
 import {
   ActivitySource,
   ByokProvider,
@@ -156,7 +159,7 @@ export class AvatarVideoGenerationService {
         const hasCredits =
           await this.creditsUtilsService.checkOrganizationCreditsAvailable(
             context.organizationId,
-            1,
+            AVATAR_GENERATION_CREDIT_COST,
           );
         if (!hasCredits) {
           throw new HttpException(
@@ -218,7 +221,7 @@ export class AvatarVideoGenerationService {
         await this.creditsUtilsService.deductCreditsFromOrganization(
           context.organizationId,
           context.userId,
-          1,
+          AVATAR_GENERATION_CREDIT_COST,
           `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
           ActivitySource.VIDEO_GENERATION,
         );

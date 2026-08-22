@@ -59,7 +59,11 @@ import {
 } from '@api-types/contracts/brand-remix-run.contract';
 import type { GenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import { generationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { MODEL_KEYS, sourcePostVariationCredits } from '@genfeedai/constants';
+import {
+  AVATAR_GENERATION_CREDIT_COST,
+  MODEL_KEYS,
+  sourcePostVariationCredits,
+} from '@genfeedai/constants';
 import {
   AssetCategory,
   ByokProvider,
@@ -101,7 +105,6 @@ const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const REVIEW_CLAIM_LEASE_MS = 5 * 60 * 1000;
 const GENERATION_CLAIM_LEASE_MS = 5 * 60 * 1000;
 const PAID_DRAFT_CLAIM_LEASE_MS = 5 * 60 * 1000;
-const AVATAR_REMIX_CREDIT_COST = 1;
 
 const RUN_SELECT = {
   brandId: true,
@@ -596,7 +599,7 @@ export class BrandRemixRunsService {
                 Number.isFinite(requestedAmount) &&
                 requestedAmount > 0
                   ? requestedAmount
-                  : AVATAR_REMIX_CREDIT_COST,
+                  : AVATAR_GENERATION_CREDIT_COST,
               deferred: true,
             };
           } else {

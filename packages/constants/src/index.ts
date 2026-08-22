@@ -3,6 +3,7 @@ export * from './agent-program-templates.constant';
 export * from './api.constant';
 export * from './api-key-presets.constant';
 export * from './api-key-scope-labels.constant';
+export * from './avatar-generation-pricing.constant';
 export * from './batch-generation-pricing.constant';
 export * from './carousel.constant';
 export * from './context-embedding.constant';
