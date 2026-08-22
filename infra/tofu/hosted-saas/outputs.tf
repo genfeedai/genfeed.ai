@@ -27,6 +27,11 @@ output "redis_primary_endpoint" {
   value       = aws_elasticache_replication_group.redis.primary_endpoint_address
 }
 
+output "redis_replication_group_id" {
+  description = "ElastiCache replication group id for AUTH enablement checks during deploy."
+  value       = aws_elasticache_replication_group.redis.id
+}
+
 output "service_names" {
   value = [for k, m in module.service : m.service_name]
 }

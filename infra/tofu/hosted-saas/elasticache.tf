@@ -3,6 +3,15 @@
 # connect with TLS and AUTH; the auth token is stored as an SSM SecureString and
 # injected into ECS task definitions as REDIS_PASSWORD.
 
+# Live endpoint without a graph edge onto the managed resource. Task
+# definitions interpolate this so OpenTofu `-target` on one-off task defs
+# cannot also apply Redis AUTH (1.12 forbids mixing `-target` and `-exclude`).
+# The cluster already exists; AUTH is applied later, after ECS injects
+# REDIS_PASSWORD.
+data "aws_elasticache_replication_group" "current" {
+  replication_group_id = "${local.name_prefix}-redis"
+}
+
 resource "aws_elasticache_subnet_group" "redis" {
   name       = "${local.name_prefix}-redis"
   subnet_ids = local.private_subnet_ids
@@ -40,6 +49,6 @@ resource "aws_elasticache_replication_group" "redis" {
   # REDIS_PASSWORD, so in-flight unauthenticated clients are not locked out.
   transit_encryption_mode    = "required"
   auth_token                 = random_password.redis_auth_token.result
-  auth_token_update_strategy = "SET"
+  auth_token_update_strategy = var.redis_auth_token_update_strategy
   apply_immediately          = true
 }
