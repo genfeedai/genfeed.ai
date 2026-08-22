@@ -32,6 +32,7 @@ const run = {
     variants: [
       {
         assetIds: ['video-1'],
+        content: 'Lead with proof, then invite the audience to try Northstar.',
         id: 'variant-1',
         recipeRevision: 2,
         status: 'ready',
@@ -72,6 +73,12 @@ describe('StudioRemixRunPanel', () => {
     expect(screen.getByText('Recipe v1 · revision 2')).toBeVisible();
     expect(screen.getByText('variant-1')).toBeVisible();
     expect(screen.getByText('variant-2')).toBeVisible();
+    expect(screen.getByText('1 of 2 outputs ready')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Lead with proof, then invite the audience to try Northstar.',
+      ),
+    ).toBeVisible();
     expect(screen.getByText('Product · Brand Default')).toBeVisible();
   });
 
@@ -150,11 +157,14 @@ describe('StudioRemixRunPanel', () => {
       expect.stringContaining('variant-1'),
     );
     expect(copyToClipboard).toHaveBeenCalledWith(
-      expect.stringContaining('video-1'),
+      expect.stringContaining(
+        'Lead with proof, then invite the audience to try Northstar.',
+      ),
     );
   });
 
-  it('locks review submission once a batch exists and explains the unavailable Meta handoff after approval', () => {
+  it('locks review submission once a batch exists and prepares a paused Meta draft after approval', () => {
+    const onPreparePaidDraft = vi.fn();
     const paidRun = {
       ...run,
       draft: {
@@ -173,6 +183,7 @@ describe('StudioRemixRunPanel', () => {
         error={null}
         isWorking={false}
         onReview={vi.fn()}
+        onPreparePaidDraft={onPreparePaidDraft}
         onVary={vi.fn()}
         run={paidRun}
       />,
@@ -191,6 +202,7 @@ describe('StudioRemixRunPanel', () => {
         error={null}
         isWorking={false}
         onReview={vi.fn()}
+        onPreparePaidDraft={onPreparePaidDraft}
         onVary={vi.fn()}
         run={{
           ...paidRun,
@@ -200,14 +212,10 @@ describe('StudioRemixRunPanel', () => {
       />,
     );
 
-    expect(
-      screen.queryByRole('button', { name: /Meta handoff/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Meta handoff is waiting for approved creative upload support.',
-      ),
-    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Prepare paused Meta draft' }),
+    );
+    expect(onPreparePaidDraft).toHaveBeenCalledTimes(1);
   });
 
   it('links an approved organic run to its canonical Publish drafts', () => {

@@ -687,6 +687,57 @@ describe('BrandRemixRunsService', () => {
     ]);
   });
 
+  it('attaches every requested placeholder before the first provider side effect', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '1:1', count: 3, kind: 'image' },
+      },
+    });
+    let stored = created;
+    const attachedCounts: number[] = [];
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    imageGenerationService.generateImage.mockImplementation(
+      async (_user, _dto, _request, onCreated, reservation) => {
+        await onCreated?.(`image-${reservation.groupIndex}`);
+        const execution = (
+          stored.config as {
+            execution?: { variants: Array<{ assetIds: string[] }> };
+          }
+        ).execution;
+        attachedCounts.push(
+          execution?.variants.filter((variant) => variant.assetIds.length > 0)
+            .length ?? 0,
+        );
+        return {
+          data: {
+            id: `image-${reservation.groupIndex}`,
+            type: 'ingredient',
+          },
+        };
+      },
+    );
+
+    await service.start('org-1', 'run-1', user, request as never, {
+      expectedRevision: 1,
+    });
+
+    expect(attachedCounts).toEqual([3, 3, 3]);
+    expect(imageGenerationService.generateImage).toHaveBeenCalledTimes(3);
+    expect(imageGenerationService.generateImage).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(Function),
+      { groupId: 'run-1', groupIndex: 0 },
+    );
+  });
+
   it('blocks strict fidelity before any generation provider call', async () => {
     const created = await createPersistedRun({
       draft: {
@@ -777,7 +828,7 @@ describe('BrandRemixRunsService', () => {
     });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
       ({ where }: { where?: Record<string, unknown> } = {}) => {
-        if (where && 'generationPrompt' in where) {
+        if (where && 'groupId' in where) {
           return Promise.resolve([]);
         }
         return Promise.resolve([
@@ -907,8 +958,9 @@ describe('BrandRemixRunsService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           brandId: 'brand-1',
-          generationPrompt: expect.any(String),
+          groupId: 'run-1',
           isDeleted: false,
+          status: { not: IngredientStatus.FAILED },
         }),
       }),
     );
@@ -1241,16 +1293,12 @@ describe('BrandRemixRunsService', () => {
       },
       status: 409,
     });
-    // The losing submission must never persist a review claim; reconciliation
-    // writes without a review payload may still land.
     expect(
-      contentRun.updateMany.mock.calls.some((call) => {
-        const data = call[0] as { config?: unknown };
-        return (
-          typeof data?.config === 'string' && data.config.includes('"review"')
-        );
-      }),
-    ).toBe(false);
+      batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+    expect(
+      trendReferenceCorpusService.recordPostRemixLineage,
+    ).not.toHaveBeenCalled();
   });
 
   it('returns an explicit blocked readiness result instead of faking a Meta campaign', async () => {
