@@ -95,7 +95,7 @@ describe('WorkflowNotificationDeliveryService', () => {
     });
   });
 
-  it('does not retry a permanent Resend rejection', async () => {
+  it('retries a transient notifications gateway failure', async () => {
     const prisma = {
       notificationDelivery: {
         findUnique: vi.fn().mockResolvedValue({
@@ -125,7 +125,7 @@ describe('WorkflowNotificationDeliveryService', () => {
     const notifications = {
       deliverEmail: vi
         .fn()
-        .mockRejectedValue(new EmailDeliveryError(false, 502)),
+        .mockRejectedValue(new EmailDeliveryError(true, 502)),
     };
     const service = new WorkflowNotificationDeliveryService(
       prisma as never,
@@ -137,7 +137,7 @@ describe('WorkflowNotificationDeliveryService', () => {
     await service.deliver('delivery-1');
 
     expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith({
-      data: expect.objectContaining({ status: 'failed' }),
+      data: expect.objectContaining({ status: 'retry_pending' }),
       where: {
         id: 'delivery-1',
         isDeleted: false,

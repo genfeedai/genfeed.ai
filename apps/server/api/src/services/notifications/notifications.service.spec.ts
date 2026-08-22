@@ -1,4 +1,5 @@
 import {
+  EmailDeliveryError,
   NotificationEvent,
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
@@ -411,7 +412,7 @@ describe('NotificationsService', () => {
       expect(mockPublisher.publish).not.toHaveBeenCalled();
     });
 
-    it('rejects when the notifications service rejects delivery', async () => {
+    it('classifies a notifications gateway 502 as retryable', async () => {
       mockSafeFetch.mockResolvedValue(
         new Response(
           JSON.stringify({ message: 'Provider rejected delivery' }),
@@ -419,8 +420,12 @@ describe('NotificationsService', () => {
         ),
       );
 
-      await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Email delivery failed',
+      await expect(service.deliverEmail(payload)).rejects.toEqual(
+        expect.objectContaining<Partial<EmailDeliveryError>>({
+          message: 'Email delivery failed',
+          retryable: true,
+          statusCode: 502,
+        }),
       );
       expect(loggerService.error).toHaveBeenCalledWith(
         'NotificationsService synchronous email delivery failed',
