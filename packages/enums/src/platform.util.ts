@@ -35,6 +35,7 @@ export const PLATFORM_DISPLAY_LABELS: Readonly<
   [Platform.TWITTER]: 'X',
   [Platform.WHATSAPP]: 'WhatsApp',
   [Platform.WORDPRESS]: 'WordPress',
+  [Platform.X_ADS]: 'X Ads',
   [Platform.YOUTUBE]: 'YouTube',
 };
 
@@ -68,6 +69,7 @@ const PLATFORM_COMPACT_LABELS: Readonly<Record<Platform, string>> = {
   [Platform.UNIPILE]: 'UP',
   [Platform.WHATSAPP]: 'WA',
   [Platform.WORDPRESS]: 'WP',
+  [Platform.X_ADS]: 'XA',
   [Platform.YOUTUBE]: 'YT',
 };
 

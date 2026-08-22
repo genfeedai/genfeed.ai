@@ -18,6 +18,9 @@ describe('platform-prisma.mapper', () => {
       expect(toPrismaCredentialPlatform('GOOGLE_SEARCH_CONSOLE')).toBe(
         'GOOGLE_SEARCH_CONSOLE',
       );
+      expect(toPrismaCredentialPlatform('x_ads')).toBe('X_ADS');
+      expect(toPrismaCredentialPlatform('x-ads')).toBe('X_ADS');
+      expect(toPrismaCredentialPlatform('X_ADS')).toBe('X_ADS');
     });
 
     it('maps DEV_TO / devto aliases onto Prisma DEVTO', () => {
@@ -54,6 +57,7 @@ describe('platform-prisma.mapper', () => {
       expect(fromPrismaCredentialPlatform('GOOGLE_ADS')).toBe(
         Platform.GOOGLE_ADS,
       );
+      expect(fromPrismaCredentialPlatform('X_ADS')).toBe(Platform.X_ADS);
       expect(fromPrismaCredentialPlatform('DEVTO')).toBe(Platform.DEV_TO);
       expect(fromPrismaCredentialPlatform('devto')).toBe(Platform.DEV_TO);
     });

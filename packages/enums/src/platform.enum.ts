@@ -6,6 +6,7 @@ export enum Platform {
   GOOGLE_ADS = 'google_ads',
   GOOGLE_SEARCH_CONSOLE = 'google_search_console',
   TWITTER = 'twitter',
+  X_ADS = 'x_ads',
   LINKEDIN = 'linkedin',
   PINTEREST = 'pinterest',
   REDDIT = 'reddit',
