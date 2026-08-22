@@ -63,6 +63,11 @@ export interface IEmailDeliveryResponse {
   emailId: string;
 }
 
+export interface IEmailDeliveryErrorResponse {
+  message: string;
+  retryable: boolean;
+}
+
 export interface ICrmLeadOutreachEmailPayload {
   to: string;
   leadId: string;

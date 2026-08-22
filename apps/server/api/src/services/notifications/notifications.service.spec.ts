@@ -437,6 +437,44 @@ describe('NotificationsService', () => {
       );
     });
 
+    it('preserves an explicit permanent provider rejection', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            message: 'Email provider rejected delivery',
+            retryable: false,
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 422,
+          },
+        ),
+      );
+
+      await expect(service.deliverEmail(payload)).rejects.toEqual(
+        expect.objectContaining<Partial<EmailDeliveryError>>({
+          retryable: false,
+          statusCode: 422,
+        }),
+      );
+    });
+
+    it('treats internal authentication failures as retryable infrastructure errors', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(JSON.stringify({ message: 'Unauthorized' }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 401,
+        }),
+      );
+
+      await expect(service.deliverEmail(payload)).rejects.toEqual(
+        expect.objectContaining<Partial<EmailDeliveryError>>({
+          retryable: true,
+          statusCode: 401,
+        }),
+      );
+    });
+
     it('rejects a malformed success response', async () => {
       mockSafeFetch.mockResolvedValue(
         new Response(JSON.stringify({ emailId: '' }), {

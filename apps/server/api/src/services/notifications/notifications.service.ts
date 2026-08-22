@@ -1,6 +1,7 @@
 import type {
   IChatbotMetadata,
   IDiscordEmbed,
+  IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
   IEmailDeliveryResponse,
   IIngredientNotificationData,
@@ -43,6 +44,9 @@ function isRetryableEmailDeliveryStatus(
 ): boolean {
   return (
     statusCode === undefined ||
+    statusCode === 401 ||
+    statusCode === 403 ||
+    statusCode === 404 ||
     statusCode === 408 ||
     statusCode === 425 ||
     statusCode === 429 ||
@@ -239,6 +243,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
 
   /** Request-time provider acceptance for durable and authentication email. */
   async deliverEmail(payload: IEmailDeliveryRequest): Promise<string> {
+    let explicitRetryability: boolean | undefined;
     let statusCode: number | undefined;
 
     try {
@@ -284,6 +289,9 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
 
       statusCode = response.status;
       if (!response.ok) {
+        const errorResponse =
+          await this.readEmailDeliveryErrorResponse(response);
+        explicitRetryability = errorResponse?.retryable;
         throw new Error(
           `Notifications service returned HTTP ${response.status}`,
         );
@@ -304,10 +312,31 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         statusCode === undefined ? undefined : { statusCode },
       );
       throw new EmailDeliveryError(
-        isRetryableEmailDeliveryStatus(statusCode),
+        explicitRetryability ?? isRetryableEmailDeliveryStatus(statusCode),
         statusCode,
         error,
       );
+    }
+  }
+
+  private async readEmailDeliveryErrorResponse(
+    response: Response,
+  ): Promise<IEmailDeliveryErrorResponse | null> {
+    try {
+      const value: unknown = await response.json();
+      if (typeof value !== 'object' || value === null) {
+        return null;
+      }
+
+      const message = Reflect.get(value, 'message');
+      const retryable = Reflect.get(value, 'retryable');
+      if (typeof message !== 'string' || typeof retryable !== 'boolean') {
+        return null;
+      }
+
+      return { message, retryable };
+    } catch {
+      return null;
     }
   }
 
