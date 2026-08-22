@@ -10,6 +10,32 @@ import type {
 } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 
+type NotificationPreferenceRecord = {
+  channel: string;
+  createdAt: Date;
+  id: string;
+  isDeleted: boolean;
+  isEnabled: boolean;
+  topic: string;
+  updatedAt: Date;
+  userId: string;
+};
+
+function toNotificationPreference(
+  preference: NotificationPreferenceRecord,
+): INotificationPreference {
+  return {
+    channel: preference.channel as NotificationChannel,
+    createdAt: preference.createdAt.toISOString(),
+    id: preference.id,
+    isDeleted: preference.isDeleted,
+    isEnabled: preference.isEnabled,
+    topic: preference.topic as NotificationTopic,
+    updatedAt: preference.updatedAt.toISOString(),
+    userId: preference.userId,
+  };
+}
+
 @Injectable()
 export class NotificationPreferenceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -23,14 +49,21 @@ export class NotificationPreferenceService {
       where: { channel, isDeleted: false, topic, userId },
     });
 
-    return (preference ?? {
+    if (preference) {
+      return toNotificationPreference(preference);
+    }
+
+    const now = new Date().toISOString();
+    return {
       channel,
+      createdAt: now,
       id: `default-${userId}-${topic}-${channel}`,
       isDeleted: false,
       isEnabled: false,
       topic,
+      updatedAt: now,
       userId,
-    }) as INotificationPreference;
+    };
   }
 
   async setForUser(
@@ -39,10 +72,12 @@ export class NotificationPreferenceService {
     topic: NotificationTopic = WORKFLOW_STATUS_NOTIFICATION_TOPIC,
     channel: NotificationChannel = EMAIL_NOTIFICATION_CHANNEL,
   ): Promise<INotificationPreference> {
-    return (await this.prisma.notificationPreference.upsert({
+    const preference = await this.prisma.notificationPreference.upsert({
       create: { channel, isEnabled, topic, userId },
       update: { isDeleted: false, isEnabled },
       where: { userId_topic_channel: { channel, topic, userId } },
-    })) as INotificationPreference;
+    });
+
+    return toNotificationPreference(preference);
   }
 }

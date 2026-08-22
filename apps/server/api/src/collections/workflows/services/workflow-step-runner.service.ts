@@ -24,6 +24,7 @@ import {
   CredentialPlatform,
   PostVisibility,
   TargetExecutionState,
+  WorkflowExecutionTrigger,
   WorkflowStatus,
   WorkflowStepCategory,
   WorkflowStepStatus,
@@ -90,7 +91,7 @@ export class WorkflowStepRunnerService extends BaseService<
       String(workflow.organizationId),
       {
         totalNodes: workflow.steps.length,
-        trigger: 'legacy-steps',
+        trigger: WorkflowExecutionTrigger.LEGACY_STEPS,
         workflowId,
       },
     );

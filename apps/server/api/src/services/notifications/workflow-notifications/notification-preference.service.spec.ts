@@ -20,8 +20,12 @@ describe('NotificationPreferenceService', () => {
       notificationPreference: {
         upsert: vi.fn().mockResolvedValue({
           channel: 'email',
+          createdAt: new Date('2026-08-22T00:00:00.000Z'),
+          id: 'preference-1',
+          isDeleted: false,
           isEnabled: true,
           topic: 'workflow.status',
+          updatedAt: new Date('2026-08-22T00:00:00.000Z'),
           userId: 'user-1',
         }),
       },
