@@ -313,7 +313,9 @@ describe('OrganizationsController', () => {
     });
 
     it('returns the mine collection as the documented raw option array', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
+        { id: 'member_1', isActive: true, organizationId: 'org_active' },
+      ]);
       mockOrganizationsService.findOne.mockResolvedValue({
         id: 'org_active',
         label: 'Active Org',
