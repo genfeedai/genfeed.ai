@@ -420,7 +420,7 @@ describe('NotificationsService', () => {
       );
 
       await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+        'Email delivery failed',
       );
       expect(loggerService.error).toHaveBeenCalledWith(
         'NotificationsService synchronous email delivery failed',
@@ -438,7 +438,7 @@ describe('NotificationsService', () => {
       );
 
       await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+        'Email delivery failed',
       );
     });
 
@@ -448,7 +448,7 @@ describe('NotificationsService', () => {
       );
 
       await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+        'Email delivery failed',
       );
       expect(mockSafeFetch).not.toHaveBeenCalled();
     });
@@ -457,7 +457,7 @@ describe('NotificationsService', () => {
       mockSafeFetch.mockRejectedValue(new Error('socket exposed detail'));
 
       await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+        'Email delivery failed',
       );
       expect(loggerService.error).toHaveBeenCalledWith(
         'NotificationsService synchronous email delivery failed',

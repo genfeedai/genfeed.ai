@@ -10,6 +10,7 @@ import {
   getCanonicalId,
   nestedSettingsRecord,
 } from '@api/collections/users/controllers/users-relationships.helpers';
+import { UpdateWorkflowEmailNotificationPreferenceDto } from '@api/collections/users/dto/update-workflow-email-notification-preference.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -27,8 +28,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import {
   BrandSerializer,
+  NotificationPreferenceSerializer,
   OrganizationSerializer,
   SettingSerializer,
 } from '@genfeedai/serializers';
@@ -60,7 +63,42 @@ export class UsersRelationshipsController {
     private readonly loggerService: LoggerService,
     private readonly membersService: MembersService,
     private readonly userAccessCacheService: UserAccessCacheService,
+    private readonly notificationPreferenceService: NotificationPreferenceService,
   ) {}
+
+  @Get('me/notification-preferences/workflow-status/email')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    operationId: 'UsersController.findWorkflowEmailNotificationPreference',
+    summary: 'findWorkflowEmailNotificationPreference',
+  })
+  async findWorkflowEmailNotificationPreference(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+  ) {
+    const data = await this.notificationPreferenceService.findForUser(
+      user.userId ?? user.id,
+    );
+    return serializeSingle(request, NotificationPreferenceSerializer, data);
+  }
+
+  @Patch('me/notification-preferences/workflow-status/email')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  @ApiOperation({
+    operationId: 'UsersController.updateWorkflowEmailNotificationPreference',
+    summary: 'updateWorkflowEmailNotificationPreference',
+  })
+  async updateWorkflowEmailNotificationPreference(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: UpdateWorkflowEmailNotificationPreferenceDto,
+  ) {
+    const data = await this.notificationPreferenceService.setForUser(
+      user.userId ?? user.id,
+      dto.isEnabled,
+    );
+    return serializeSingle(request, NotificationPreferenceSerializer, data);
+  }
 
   @Get('me/brands')
   @Cache({

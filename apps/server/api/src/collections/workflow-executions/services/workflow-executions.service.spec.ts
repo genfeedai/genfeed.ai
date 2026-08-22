@@ -23,6 +23,8 @@ describe('WorkflowExecutionsService', () => {
         result: {},
         startedAt: new Date('2026-06-29T00:00:00.000Z'),
         trigger: 'manual',
+        userId: 'actor-user-1',
+        workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
         workflowId: 'workflow-1',
       }),
       findMany: vi.fn().mockResolvedValue([]),
@@ -32,11 +34,18 @@ describe('WorkflowExecutionsService', () => {
     const prisma = {
       $executeRaw: vi.fn().mockResolvedValue(0),
       $queryRaw: vi.fn().mockResolvedValue([]),
+      $transaction: vi.fn(async (callback: (client: unknown) => unknown) =>
+        callback(prisma),
+      ),
       workflowExecution,
     };
 
     const workflowEventWebhookService = {
       emitExecutionOutcome: vi.fn().mockResolvedValue(undefined),
+    };
+    const workflowNotificationOutboxService = {
+      enqueueAfterCommit: vi.fn().mockResolvedValue(undefined),
+      recordWorkflowOutcome: vi.fn().mockResolvedValue('delivery-1'),
     };
 
     return {
@@ -45,7 +54,9 @@ describe('WorkflowExecutionsService', () => {
         prisma as never,
         logger as never,
         workflowEventWebhookService as never,
+        workflowNotificationOutboxService as never,
       ),
+      workflowNotificationOutboxService,
       workflowEventWebhookService,
     };
   };
@@ -525,6 +536,8 @@ describe('WorkflowExecutionsService', () => {
       result: {},
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
       trigger: 'manual',
+      userId: 'actor-user-1',
+      workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
       workflowId: 'workflow-1',
     });
     prisma.workflowExecution.update.mockResolvedValue({
@@ -564,5 +577,26 @@ describe('WorkflowExecutionsService', () => {
         status: SharedWorkflowExecutionStatus.FAILED,
       }),
     );
+  });
+
+  it('records the workflow owner delivery in the terminal transaction', async () => {
+    const { service, workflowNotificationOutboxService } = makeService();
+
+    await service.completeExecution('execution-1');
+
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        actorUserId: 'actor-user-1',
+        executionId: 'execution-1',
+        status: 'completed',
+        workflowOwnerUserId: 'owner-user-1',
+      }),
+    );
+    expect(
+      workflowNotificationOutboxService.enqueueAfterCommit,
+    ).toHaveBeenCalledWith('delivery-1');
   });
 });

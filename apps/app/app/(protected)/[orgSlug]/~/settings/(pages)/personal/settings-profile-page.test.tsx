@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   errorNotification: vi.fn(),
   mutateUser: vi.fn(),
   patchSettings: vi.fn(),
+  findWorkflowEmailPreference: vi.fn(),
+  getUsersService: vi.fn(),
+  patchWorkflowEmailPreference: vi.fn(),
   setTheme: vi.fn(),
 }));
 
@@ -37,7 +40,6 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
       settings: {
         isAdvancedMode: true,
         isVideoNotificationsEmail: true,
-        isWorkflowNotificationsEmail: false,
         theme: 'dark',
       },
     },
@@ -46,9 +48,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() =>
-    vi.fn().mockResolvedValue({ patchMeSettings: mocks.patchSettings }),
-  ),
+  useAuthedService: vi.fn(() => mocks.getUsersService),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -76,6 +76,17 @@ describe('SettingsProfilePage', () => {
     vi.clearAllMocks();
     mocks.currentTheme = 'dark';
     mocks.patchSettings.mockResolvedValue(undefined);
+    mocks.getUsersService.mockResolvedValue({
+      findWorkflowEmailNotificationPreference:
+        mocks.findWorkflowEmailPreference,
+      patchMeSettings: mocks.patchSettings,
+      patchWorkflowEmailNotificationPreference:
+        mocks.patchWorkflowEmailPreference,
+    });
+    mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: false });
+    mocks.patchWorkflowEmailPreference.mockImplementation(
+      async (isEnabled: boolean) => ({ isEnabled }),
+    );
   });
 
   it('should render without crashing', () => {
@@ -145,5 +156,24 @@ describe('SettingsProfilePage', () => {
         'Failed to save your appearance preference.',
       );
     });
+  });
+
+  it('loads and persists the durable workflow email preference', async () => {
+    const user = userEvent.setup();
+    mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: true });
+    render(<SettingsProfilePage />);
+
+    const toggle = screen.getByRole('switch', { name: 'Workflow Emails' });
+    await waitFor(() => expect(toggle).toBeChecked());
+    await user.click(toggle);
+
+    await waitFor(() => {
+      expect(mocks.patchWorkflowEmailPreference).toHaveBeenCalledWith(false);
+    });
+    expect(mocks.patchSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        isWorkflowNotificationsEmail: expect.anything(),
+      }),
+    );
   });
 });

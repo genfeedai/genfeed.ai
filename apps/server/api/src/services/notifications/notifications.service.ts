@@ -25,6 +25,29 @@ import Redis from 'ioredis';
 
 export type { INotificationEvent as NotificationEvent };
 
+export class EmailDeliveryError extends Error {
+  constructor(
+    readonly retryable: boolean,
+    readonly statusCode?: number,
+  ) {
+    super('Email delivery failed');
+    this.name = EmailDeliveryError.name;
+  }
+}
+
+function isRetryableEmailDeliveryStatus(
+  statusCode: number | undefined,
+): boolean {
+  return (
+    statusCode === undefined ||
+    statusCode === 408 ||
+    statusCode === 425 ||
+    statusCode === 429 ||
+    statusCode === 503 ||
+    (statusCode !== undefined && statusCode >= 500 && statusCode !== 502)
+  );
+}
+
 @Injectable()
 export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   private publisher: Redis;
@@ -212,11 +235,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /**
-   * Auth email needs request-time provider acceptance so the browser cannot
-   * report success after only a Redis publish. All other notification email
-   * keeps using sendEmail's asynchronous path.
-   */
+  /** Request-time provider acceptance for durable and authentication email. */
   async deliverEmail(payload: IEmailDeliveryRequest): Promise<string> {
     let statusCode: number | undefined;
 
@@ -282,7 +301,10 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         error,
         statusCode === undefined ? undefined : { statusCode },
       );
-      throw new Error('Auth email delivery failed');
+      throw new EmailDeliveryError(
+        isRetryableEmailDeliveryStatus(statusCode),
+        statusCode,
+      );
     }
   }
 
@@ -310,24 +332,6 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       organizationId: input.organizationId,
       payload: input,
       type: 'email',
-    });
-  }
-
-  sendWorkflowStatusEmail(input: {
-    to: string;
-    workflowId: string;
-    workflowLabel: string;
-    status: 'completed' | 'failed';
-    error?: string;
-    organizationId?: string;
-    userId?: string;
-  }): Promise<void> {
-    return this.sendNotification({
-      action: 'workflow_status_email',
-      organizationId: input.organizationId,
-      payload: input,
-      type: 'email',
-      userId: input.userId,
     });
   }
 

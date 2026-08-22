@@ -265,22 +265,6 @@ export class NotificationsPublisherService {
       userId,
       workflowId,
     });
-
-    if (status === 'completed' || status === 'failed') {
-      await this.maybeSendWorkflowStatusEmail({
-        error:
-          status === 'failed' && typeof metadata?.error === 'string'
-            ? metadata.error
-            : undefined,
-        status,
-        userId,
-        workflowId,
-        workflowLabel:
-          typeof metadata?.workflowLabel === 'string'
-            ? metadata.workflowLabel
-            : workflowId,
-      });
-    }
   }
 
   /**
@@ -385,31 +369,6 @@ export class NotificationsPublisherService {
       to: email,
       url: 'https://app.genfeed.ai/content/videos',
       userId: input.userId,
-    });
-  }
-
-  private async maybeSendWorkflowStatusEmail(input: {
-    workflowId: string;
-    workflowLabel: string;
-    status: 'completed' | 'failed';
-    userId: string;
-    error?: string;
-  }): Promise<void> {
-    const { email, settings } = await this.getEmailNotificationContext(
-      input.userId,
-    );
-
-    if (!email || settings?.isWorkflowNotificationsEmail !== true) {
-      return;
-    }
-
-    await this.notificationsService.sendWorkflowStatusEmail({
-      error: input.error,
-      status: input.status,
-      to: email,
-      userId: input.userId,
-      workflowId: input.workflowId,
-      workflowLabel: input.workflowLabel,
     });
   }
 }

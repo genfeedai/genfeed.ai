@@ -15,7 +15,6 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly isTrendNotificationsInApp: Setting['isTrendNotificationsInApp'];
   declare readonly isTrendNotificationsTelegram: Setting['isTrendNotificationsTelegram'];
   declare readonly isTrendNotificationsEmail: Setting['isTrendNotificationsEmail'];
-  declare readonly isWorkflowNotificationsEmail: Setting['isWorkflowNotificationsEmail'];
   declare readonly isVideoNotificationsEmail: Setting['isVideoNotificationsEmail'];
   declare readonly trendNotificationsTelegramChatId: Setting['trendNotificationsTelegramChatId'];
   declare readonly trendNotificationsEmailAddress: Setting['trendNotificationsEmailAddress'];

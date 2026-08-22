@@ -104,6 +104,8 @@ import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/
 import { InsightGenerationProcessor } from '@workers/processors/api/queues/insight-generation/insight-generation.processor';
 import { KnowledgeSourceIngestProcessor } from '@workers/processors/api/queues/knowledge-source-ingest/knowledge-source-ingest.processor';
 import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycle-email/lifecycle-email.processor';
+import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
+import { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
@@ -246,7 +248,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
       useExisting: YoutubeService,
     },
 
-    // --- queues/ processors (24) ---
+    // --- queues/ processors (25) ---
     AdBulkUploadProcessor,
     AdOptimizationProcessor,
     AdSyncGoogleProcessor,
@@ -270,6 +272,8 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     InsightGenerationProcessor,
     KnowledgeSourceIngestProcessor,
     LifecycleEmailProcessor,
+    NotificationDeliveryProcessor,
+    NotificationDeliveryRecoveryService,
     PatternExtractionProcessor,
     PostPublishProcessor,
     ReplyBotPollingProcessor,

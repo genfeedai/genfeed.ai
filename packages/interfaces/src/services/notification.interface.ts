@@ -19,7 +19,6 @@ export type INotificationPayloadTypes =
   | IEmailPayload
   | ICrmLeadOutreachEmailPayload
   | ITrendSummaryPayload
-  | IWorkflowStatusEmailPayload
   | IVideoStatusEmailPayload
   | IDiscordCardPayload
   | IChatbotPayload
@@ -71,16 +70,6 @@ export interface ICrmLeadOutreachEmailPayload {
   company?: string;
   subject?: string;
   organizationId?: string;
-}
-
-export interface IWorkflowStatusEmailPayload {
-  to: string;
-  workflowId: string;
-  workflowLabel: string;
-  status: 'completed' | 'failed';
-  error?: string;
-  organizationId?: string;
-  userId?: string;
 }
 
 export interface IVideoStatusEmailPayload {

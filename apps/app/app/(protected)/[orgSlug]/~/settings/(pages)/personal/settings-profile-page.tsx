@@ -1,7 +1,7 @@
 'use client';
 
 // biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import {
   type AppLocale,
@@ -33,7 +33,6 @@ import { Switch } from '@ui/primitives/switch';
 
 type ExtendedSettingPatch = Partial<ISetting> & {
   isVideoNotificationsEmail?: boolean;
-  isWorkflowNotificationsEmail?: boolean;
 };
 
 // Baked in at module load, matching ServiceWorkerRegistrar. The pseudo-locale is
@@ -60,6 +59,34 @@ export default function SettingsProfilePage() {
   );
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isWorkflowNotificationsEmail, setIsWorkflowNotificationsEmail] =
+    useState(false);
+  const [isWorkflowPreferenceLoading, setIsWorkflowPreferenceLoading] =
+    useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+
+    void getUsersService()
+      .then((service) => service.findWorkflowEmailNotificationPreference())
+      .then((preference) => {
+        if (isActive) {
+          setIsWorkflowNotificationsEmail(preference.isEnabled);
+        }
+      })
+      .catch((error: unknown) => {
+        logger.error('Failed to load workflow email preference', error);
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsWorkflowPreferenceLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [getUsersService]);
 
   const patchSettings = useCallback(
     async (patch: ExtendedSettingPatch) => {
@@ -117,6 +144,27 @@ export default function SettingsProfilePage() {
     ],
   );
 
+  const handleWorkflowEmailPreferenceChange = useCallback(
+    async (isEnabled: boolean) => {
+      const previousValue = isWorkflowNotificationsEmail;
+      setIsWorkflowNotificationsEmail(isEnabled);
+      setIsSaving(true);
+      try {
+        const service = await getUsersService();
+        const preference =
+          await service.patchWorkflowEmailNotificationPreference(isEnabled);
+        setIsWorkflowNotificationsEmail(preference.isEnabled);
+      } catch (error: unknown) {
+        logger.error('Failed to update workflow email preference', error);
+        setIsWorkflowNotificationsEmail(previousValue);
+        notifications.error('Failed to save your workflow email preference.');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [getUsersService, isWorkflowNotificationsEmail, notifications],
+  );
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-form">
@@ -139,9 +187,6 @@ export default function SettingsProfilePage() {
     : isThemePreference(storedTheme)
       ? storedTheme
       : DEFAULT_THEME;
-  const isWorkflowNotificationsEmail =
-    (currentUser?.settings as ExtendedSettingPatch | undefined)
-      ?.isWorkflowNotificationsEmail ?? false;
   const isVideoNotificationsEmail =
     (currentUser?.settings as ExtendedSettingPatch | undefined)
       ?.isVideoNotificationsEmail ?? false;
@@ -240,11 +285,9 @@ export default function SettingsProfilePage() {
             label="Workflow Emails"
             description="Send an email when a workflow completes or fails."
             isChecked={isWorkflowNotificationsEmail}
-            isDisabled={isSaving}
+            isDisabled={isSaving || isWorkflowPreferenceLoading}
             onChange={(e) =>
-              patchSettings({
-                isWorkflowNotificationsEmail: e.target.checked,
-              })
+              handleWorkflowEmailPreferenceChange(e.target.checked)
             }
           />
           <Switch

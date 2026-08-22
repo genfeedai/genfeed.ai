@@ -7,6 +7,7 @@ import type {
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -79,6 +80,11 @@ type WorkflowExecutionCompletionRow = {
   startedAt: Date | null;
   trigger: string | null;
   workflowId: string;
+  userId: string;
+  workflow: {
+    label: string | null;
+    userId: string;
+  };
 };
 
 type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
@@ -179,6 +185,7 @@ export class WorkflowExecutionsService extends BaseService<
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
     private readonly workflowEventWebhookService: WorkflowEventWebhookService,
+    private readonly workflowNotificationOutboxService: WorkflowNotificationOutboxService,
   ) {
     super(prisma, 'workflowExecution', logger);
   }
@@ -464,7 +471,9 @@ export class WorkflowExecutionsService extends BaseService<
         organizationId: true,
         startedAt: true,
         trigger: true,
+        userId: true,
         workflowId: true,
+        workflow: { select: { label: true, userId: true } },
       },
       where: { id: executionId },
     })) as WorkflowExecutionCompletionRow | null;
@@ -490,27 +499,51 @@ export class WorkflowExecutionsService extends BaseService<
       });
     }
 
-    const result = await this.prisma.workflowExecution.update({
-      data: {
-        completedAt,
-        ...(completion?.creditsUsed !== undefined
-          ? { creditsUsed: completion.creditsUsed }
-          : {}),
-        durationMs,
-        error,
-        etaCurrentPhase: error ? 'Failed' : 'Completed',
-        etaUpdatedAt: completedAt,
-        ...(completion?.failedNodeId !== undefined
-          ? { failedNodeId: completion.failedNodeId }
-          : {}),
-        progress: 100,
-        remainingDurationMs: 0,
-        status: error
-          ? PrismaWorkflowExecutionStatus.FAILED
-          : PrismaWorkflowExecutionStatus.COMPLETED,
+    const { deliveryId, result } = await this.prisma.$transaction(
+      async (transaction) => {
+        const updatedExecution = await transaction.workflowExecution.update({
+          data: {
+            completedAt,
+            ...(completion?.creditsUsed !== undefined
+              ? { creditsUsed: completion.creditsUsed }
+              : {}),
+            durationMs,
+            error,
+            etaCurrentPhase: error ? 'Failed' : 'Completed',
+            etaUpdatedAt: completedAt,
+            ...(completion?.failedNodeId !== undefined
+              ? { failedNodeId: completion.failedNodeId }
+              : {}),
+            progress: 100,
+            remainingDurationMs: 0,
+            status: error
+              ? PrismaWorkflowExecutionStatus.FAILED
+              : PrismaWorkflowExecutionStatus.COMPLETED,
+          },
+          where: scopedWhere(execution.organizationId, { id: executionId }),
+        });
+        const durableDeliveryId =
+          await this.workflowNotificationOutboxService.recordWorkflowOutcome(
+            transaction,
+            {
+              actorUserId: execution.userId,
+              error: error ?? null,
+              executionId,
+              occurredAt: completedAt,
+              organizationId: execution.organizationId,
+              status: error ? 'failed' : 'completed',
+              trigger: execution.trigger,
+              workflowId: execution.workflowId,
+              workflowLabel: execution.workflow.label ?? 'Untitled workflow',
+              workflowOwnerUserId: execution.workflow.userId,
+            },
+          );
+
+        return { deliveryId: durableDeliveryId, result: updatedExecution };
       },
-      where: scopedWhere(execution.organizationId, { id: executionId }),
-    });
+    );
+
+    await this.workflowNotificationOutboxService.enqueueAfterCommit(deliveryId);
 
     const document = this.normalizeDocument(result);
     const creditsUsed =

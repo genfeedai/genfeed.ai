@@ -22,11 +22,21 @@ function createLogger(): LoggerService {
   } as unknown as LoggerService;
 }
 
-function createRunner(websocket?: NotificationsPublisherService) {
+function createRunner(
+  websocket?: NotificationsPublisherService,
+  workflowExecutionsService?: {
+    completeExecution: ReturnType<typeof vi.fn>;
+    createExecution: ReturnType<typeof vi.fn>;
+    startExecution: ReturnType<typeof vi.fn>;
+  },
+) {
   const runner = new WorkflowStepRunnerService(
     {} as unknown as PrismaService,
     createLogger(),
     websocket,
+    undefined,
+    undefined,
+    workflowExecutionsService as never,
   );
   const patch = vi.spyOn(runner, 'patch').mockResolvedValue({} as never);
   const findOne = vi.spyOn(runner, 'findOne');
@@ -101,5 +111,43 @@ describe('WorkflowStepRunnerService', () => {
         expect.any(Object),
       );
     });
+  });
+
+  it('gives legacy step runs the same durable execution identity', async () => {
+    const workflowExecutionsService = {
+      completeExecution: vi.fn().mockResolvedValue({}),
+      createExecution: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+      startExecution: vi.fn().mockResolvedValue({}),
+    };
+    const { findOne, runner } = createRunner(
+      undefined,
+      workflowExecutionsService,
+    );
+    findOne.mockResolvedValue({
+      id: WORKFLOW_ID,
+      isDeleted: false,
+      label: 'Legacy workflow',
+      organizationId: MOCK_ORG_ID,
+      steps: [],
+      userId: MOCK_USER_ID,
+    } as unknown as WorkflowDocument);
+
+    await runner.executeWorkflow(WORKFLOW_ID);
+
+    expect(workflowExecutionsService.createExecution).toHaveBeenCalledWith(
+      MOCK_USER_ID,
+      MOCK_ORG_ID,
+      expect.objectContaining({
+        trigger: 'legacy-steps',
+        workflowId: WORKFLOW_ID,
+      }),
+    );
+    expect(workflowExecutionsService.startExecution).toHaveBeenCalledWith(
+      'execution-1',
+    );
+    expect(workflowExecutionsService.completeExecution).toHaveBeenCalledWith(
+      'execution-1',
+      undefined,
+    );
   });
 });

@@ -593,6 +593,8 @@ model User {
   warmupAccountsCustomer   WarmupAccount[]           @relation("warmup_account_customer")
   lifecycleEmailPreference LifecycleEmailPreference?
   lifecycleEmailDeliveries LifecycleEmailDelivery[]
+  notificationPreferences  NotificationPreference[]
+  notificationDeliveries   NotificationDelivery[]
   contentVersionPins       ContentVersionPin[]
   publishApprovals         PublishApproval[]
 
@@ -662,6 +664,8 @@ model Organization {
   agentStrategyReports          AgentStrategyReport[]
   workflows                     Workflow[]
   workflowExecutions            WorkflowExecution[]
+  notificationEvents            NotificationEvent[]
+  notificationDeliveries        NotificationDelivery[]
   batchWorkflowJobs             BatchWorkflowJob[]
   contentRuns                   ContentRun[]
   bots                          Bot[]
@@ -1181,7 +1185,6 @@ model Setting {
   isTrendNotificationsInApp        Boolean                    @default(true)
   isTrendNotificationsTelegram     Boolean                    @default(false)
   isTrendNotificationsEmail        Boolean                    @default(false)
-  isWorkflowNotificationsEmail     Boolean                    @default(false)
   isVideoNotificationsEmail        Boolean                    @default(false)
   trendNotificationsTelegramChatId String?
   trendNotificationsEmailAddress   String?
@@ -2546,6 +2549,76 @@ model LifecycleEmailDelivery {
   @@index([status, scheduledFor], map: "lifecycle_email_deliveries_due_idx")
   @@index([triggerKey], map: "lifecycle_email_deliveries_trigger_idx")
   @@map("lifecycle_email_deliveries")
+}
+
+/// Immutable product event used as the durable source for notification fan-out.
+model NotificationEvent {
+  id               String                 @id @default(cuid())
+  organizationId   String
+  organization     Organization           @relation(fields: [organizationId], references: [id])
+  eventKey         String
+  deduplicationKey String                 @unique
+  sourceType       String
+  sourceId         String
+  actorUserId      String?
+  payload          Json
+  occurredAt       DateTime
+  isDeleted        Boolean                @default(false)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  deliveries       NotificationDelivery[]
+
+  @@index([organizationId, eventKey, occurredAt(sort: Desc)], map: "notification_events_org_key_occurred_idx")
+  @@index([sourceType, sourceId], map: "notification_events_source_idx")
+  @@map("notification_events")
+}
+
+/// Account-level subscription to a typed notification topic and channel.
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  topic     String
+  channel   String
+  isEnabled Boolean  @default(false)
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, topic, channel], map: "notification_preferences_user_topic_channel_key")
+  @@index([userId, isDeleted], map: "notification_preferences_user_deleted_idx")
+  @@map("notification_preferences")
+}
+
+/// Durable per-recipient delivery state. Redis jobs only wake this record up.
+model NotificationDelivery {
+  id                String            @id @default(cuid())
+  eventId           String
+  event             NotificationEvent @relation(fields: [eventId], references: [id])
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  organizationId    String
+  organization      Organization      @relation(fields: [organizationId], references: [id])
+  topic             String
+  channel           String
+  provider          String
+  status            String            @default("pending")
+  attemptCount      Int               @default(0)
+  nextAttemptAt     DateTime          @default(now())
+  lockedAt          DateTime?
+  deliveredAt       DateTime?
+  skippedAt         DateTime?
+  providerMessageId String?
+  lastError         String?
+  idempotencyKey    String            @unique
+  isDeleted         Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([eventId, userId, channel], map: "notification_deliveries_event_user_channel_key")
+  @@index([status, nextAttemptAt, isDeleted], map: "notification_deliveries_due_idx")
+  @@index([organizationId, userId, createdAt(sort: Desc)], map: "notification_deliveries_org_user_created_idx")
+  @@map("notification_deliveries")
 }
 
 model CreditBalance {

@@ -13,6 +13,7 @@ import { UsersRelationshipsController } from '@api/collections/users/controllers
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
 import { CommonModule } from '@api/common/common.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     CommonModule,
     FilesClientModule,
     MembersModule,
+    NotificationsModule,
     OrganizationsCoreModule,
     SettingsModule,
     SubscriptionsModule,
