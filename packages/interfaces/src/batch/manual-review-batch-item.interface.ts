@@ -25,6 +25,7 @@ export interface ManualReviewBatchItem {
   gateOverallScore?: number;
   gateReasons: string[];
   hookVersion?: string;
+  ingredientId?: string;
   mediaUrl?: string;
   opportunitySourceType?: 'trend' | 'event' | 'evergreen';
   opportunityTopic?: string;
@@ -37,6 +38,7 @@ export interface ManualReviewBatchItem {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  workflowExecutionId?: string;
   status: BatchItemStatus;
   variantId?: string;
   versionPinId?: string;

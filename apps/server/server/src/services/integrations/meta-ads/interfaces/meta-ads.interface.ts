@@ -117,7 +117,14 @@ export interface CreateAdCreativeInput {
   imageHash?: string;
   videoId?: string;
   linkUrl: string;
+  pageId?: string;
   callToAction?: string;
+}
+
+export interface MetaNamedAdObject {
+  id: string;
+  name: string;
+  status: string;
 }
 
 export interface CreateAdParams {

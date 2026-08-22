@@ -5,3 +5,10 @@
 export type GenerationPlaceholderCreatedCallback = (
   ingredientId: string,
 ) => Promise<void>;
+
+/** Durable ownership used to recover only placeholders created for one run. */
+export interface GenerationPlaceholderScope {
+  groupId: string;
+  groupIndex: number;
+  settleCreditsExternally?: boolean;
+}

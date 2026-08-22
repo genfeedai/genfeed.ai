@@ -58,6 +58,8 @@ export interface IBatchItem {
   prompt?: string;
   caption?: string;
   contentRunId?: string;
+  creativeVersion?: string;
+  ingredientId?: string;
   mediaUrl?: string;
   postId?: string;
   platform?: string;
@@ -76,6 +78,7 @@ export interface IBatchItem {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  workflowExecutionId?: string;
   type?: 'content' | 'engagement';
   targetPostId?: string;
   targetPostUrl?: string;

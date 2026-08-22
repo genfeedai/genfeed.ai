@@ -64,7 +64,7 @@ describe('BrandRemixRunsService', () => {
     asset: { findMany: vi.fn() },
     contentRun,
     credential: { findFirst: vi.fn() },
-    ingredient: { findMany: vi.fn() },
+    ingredient: { findMany: vi.fn(), updateMany: vi.fn() },
     post: { findFirst: vi.fn(), findMany: vi.fn() },
     sourcePost: { findFirst: vi.fn() },
     trendSourceReference: { findFirst: vi.fn() },
@@ -83,6 +83,13 @@ describe('BrandRemixRunsService', () => {
   const avatarVideoGenerationService = { generateAvatarVideo: vi.fn() };
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
+  const contentGeneratorService = { generateContent: vi.fn() };
+  const pausedMetaCampaignDraftService = { prepare: vi.fn() };
+  const creditsUtilsService = {
+    checkOrganizationCreditsAvailable: vi.fn(),
+    getOrganizationCreditsBalance: vi.fn(),
+  };
+  const systemWorkflowProvenanceService = { runAction: vi.fn() };
   const runtime = {
     now: () => new Date('2026-08-20T10:00:00.000Z'),
     randomId: vi.fn(),
@@ -144,6 +151,20 @@ describe('BrandRemixRunsService', () => {
         status: IngredientStatus.GENERATED,
       },
     ]);
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+      true,
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
+    systemWorkflowProvenanceService.runAction.mockImplementation(
+      async (_input, action) => {
+        const provenance = {
+          executionId: 'workflow-execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Brand Remix Review Handoff',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    );
 
     service = new BrandRemixRunsService(
       prisma,
@@ -155,6 +176,10 @@ describe('BrandRemixRunsService', () => {
       avatarVideoGenerationService as never,
       batchGenerationService as never,
       trendReferenceCorpusService as never,
+      contentGeneratorService as never,
+      pausedMetaCampaignDraftService as never,
+      creditsUtilsService as never,
+      systemWorkflowProvenanceService as never,
       runtime,
     );
   });
@@ -346,6 +371,11 @@ describe('BrandRemixRunsService', () => {
         text: expect.not.stringContaining('painful old workflow'),
       }),
       request,
+      expect.any(Function),
+      expect.objectContaining({
+        groupId: 'run-1',
+        settleCreditsExternally: true,
+      }),
       expect.any(Function),
     );
   });
@@ -607,6 +637,12 @@ describe('BrandRemixRunsService', () => {
       }),
       request,
       expect.any(Function),
+      expect.objectContaining({
+        groupId: 'run-1',
+        groupIndex: 0,
+        settleCreditsExternally: true,
+      }),
+      expect.any(Function),
     );
     expect(result.execution).toMatchObject({
       actualCount: 0,
@@ -660,8 +696,16 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     imageGenerationService.generateImage.mockImplementation(
-      async (_user, _dto, _request, onPlaceholderCreated) => {
+      async (
+        _user,
+        _dto,
+        _request,
+        onPlaceholderCreated,
+        _scope,
+        onCreditsPrepared,
+      ) => {
         await onPlaceholderCreated?.('image-linked-before-provider');
+        await onCreditsPrepared?.();
         order.push('provider');
         return {
           data: {
@@ -687,6 +731,87 @@ describe('BrandRemixRunsService', () => {
     ]);
   });
 
+  it('makes a concurrent start loser perform no provider side effect', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+      },
+    });
+    contentRun.findFirst.mockResolvedValue(created);
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      const next = data.config as Record<string, unknown>;
+      return Promise.resolve(
+        next.generationClaim ? { count: 0 } : { count: 1 },
+      );
+    });
+
+    await service.start('org-1', 'run-1', user, request as never, {
+      expectedRevision: 1,
+    });
+
+    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+    expect(videoGenerationService.generateVideo).not.toHaveBeenCalled();
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('generates grouped copy with durable partial-output reasons', async () => {
+    const created = await createPersistedRun({
+      draft: { output: { count: 3, kind: 'copy' } },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    contentGeneratorService.generateContent
+      .mockResolvedValueOnce([{ content: 'Original brand copy one.' }])
+      .mockResolvedValueOnce([{ content: 'Original brand copy two.' }])
+      .mockResolvedValueOnce([{ content: 'Original brand copy two.' }]);
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      request as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(result).toMatchObject({
+      execution: {
+        actualCount: 2,
+        partialReason: expect.stringContaining('1 requested copy'),
+        requestedCount: 3,
+        variants: [
+          expect.objectContaining({
+            content: 'Original brand copy one.',
+            status: 'ready',
+          }),
+          expect.objectContaining({
+            content: 'Original brand copy two.',
+            status: 'ready',
+          }),
+          expect.objectContaining({ status: 'failed' }),
+        ],
+      },
+      phase: 'partially_ready',
+    });
+    expect(contentGeneratorService.generateContent).toHaveBeenCalledTimes(3);
+    const creditCheckOrder =
+      creditsUtilsService.checkOrganizationCreditsAvailable.mock
+        .invocationCallOrder[0];
+    const generationOrder =
+      contentGeneratorService.generateContent.mock.invocationCallOrder[0];
+    expect(creditCheckOrder).toBeDefined();
+    expect(generationOrder).toBeDefined();
+    expect(creditCheckOrder ?? Number.MAX_SAFE_INTEGER).toBeLessThan(
+      generationOrder ?? 0,
+    );
+  });
+
   it('attaches every requested placeholder before the first provider side effect', async () => {
     const created = await createPersistedRun({
       draft: {
@@ -702,7 +827,14 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     imageGenerationService.generateImage.mockImplementation(
-      async (_user, _dto, _request, onCreated, reservation) => {
+      async (
+        _user,
+        _dto,
+        _request,
+        onCreated,
+        reservation,
+        onCreditsPrepared,
+      ) => {
         await onCreated?.(`image-${reservation.groupIndex}`);
         const execution = (
           stored.config as {
@@ -713,6 +845,7 @@ describe('BrandRemixRunsService', () => {
           execution?.variants.filter((variant) => variant.assetIds.length > 0)
             .length ?? 0,
         );
+        await onCreditsPrepared?.();
         return {
           data: {
             id: `image-${reservation.groupIndex}`,
@@ -734,7 +867,12 @@ describe('BrandRemixRunsService', () => {
       expect.any(Object),
       expect.any(Object),
       expect.any(Function),
-      { groupId: 'run-1', groupIndex: 0 },
+      {
+        groupId: 'run-1',
+        groupIndex: 0,
+        settleCreditsExternally: true,
+      },
+      expect.any(Function),
     );
   });
 
@@ -758,6 +896,43 @@ describe('BrandRemixRunsService', () => {
     expect(
       avatarVideoGenerationService.generateAvatarVideo,
     ).not.toHaveBeenCalled();
+  });
+
+  it('persists an actionable Guided degradation when an optional signal is omitted', async () => {
+    contentRun.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeRun(data.config as Record<string, unknown>)),
+    );
+
+    const result = await service.create('org-1', 'brand-1', {
+      edits: {
+        fidelityMode: 'guided',
+        output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+        references: [{ assetId: 'brand-reference-1', role: 'first_frame' }],
+      },
+      source: { kind: 'source_post', sourcePostId: 'source-post-1' },
+    });
+
+    expect(result).toMatchObject({
+      draft: { fidelityMode: 'guided' },
+      readiness: {
+        issues: [
+          expect.objectContaining({
+            code: 'unsupported_reference_role',
+            severity: 'degraded',
+          }),
+        ],
+        state: 'degraded',
+      },
+    });
+    expect(contentRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            readiness: expect.objectContaining({ state: 'degraded' }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('resumes only unlinked queued or processing variants after a crash', async () => {
@@ -838,14 +1013,20 @@ describe('BrandRemixRunsService', () => {
       },
     );
     imageGenerationService.generateImage
-      .mockImplementationOnce(async (_user, _dto, _request, onCreated) => {
-        await onCreated?.('image-resumed-1');
-        return { data: { id: 'image-resumed-1', type: 'ingredient' } };
-      })
-      .mockImplementationOnce(async (_user, _dto, _request, onCreated) => {
-        await onCreated?.('image-resumed-2');
-        return { data: { id: 'image-resumed-2', type: 'ingredient' } };
-      });
+      .mockImplementationOnce(
+        async (_user, _dto, _request, onCreated, _scope, onCredits) => {
+          await onCreated?.('image-resumed-1');
+          await onCredits?.();
+          return { data: { id: 'image-resumed-1', type: 'ingredient' } };
+        },
+      )
+      .mockImplementationOnce(
+        async (_user, _dto, _request, onCreated, _scope, onCredits) => {
+          await onCreated?.('image-resumed-2');
+          await onCredits?.();
+          return { data: { id: 'image-resumed-2', type: 'ingredient' } };
+        },
+      );
 
     const result = await service.start(
       'org-1',
@@ -929,8 +1110,8 @@ describe('BrandRemixRunsService', () => {
     });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
       ({ where }: { where?: Record<string, unknown> } = {}) => {
-        if (where && 'generationPrompt' in where) {
-          return Promise.resolve([{ id: 'image-orphan-1' }]);
+        if (where && 'groupId' in where) {
+          return Promise.resolve([{ groupIndex: 1, id: 'image-orphan-1' }]);
         }
         return Promise.resolve([
           { id: 'image-orphan-1', status: IngredientStatus.PROCESSING },
@@ -939,8 +1120,9 @@ describe('BrandRemixRunsService', () => {
       },
     );
     imageGenerationService.generateImage.mockImplementation(
-      async (_user, _dto, _request, onCreated) => {
+      async (_user, _dto, _request, onCreated, _scope, onCredits) => {
         await onCreated?.('image-resumed-1');
+        await onCredits?.();
         return { data: { id: 'image-resumed-1', type: 'ingredient' } };
       },
     );
@@ -1054,8 +1236,9 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     imageGenerationService.generateImage.mockImplementation(
-      async (_user, _dto, _request, onCreated) => {
+      async (_user, _dto, _request, onCreated, _scope, onCredits) => {
         await onCreated?.('image-semantic-1');
+        await onCredits?.();
         return { data: { id: 'image-semantic-1', type: 'ingredient' } };
       },
     );
@@ -1083,8 +1266,9 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
-      async (_params, _context, onCreated) => {
+      async (_params, _context, onCreated, _scope, onCredits) => {
         await onCreated?.('avatar-semantic-1');
+        await onCredits?.();
         return {
           externalId: 'heygen-1',
           ingredientId: 'avatar-semantic-1',
@@ -1111,6 +1295,11 @@ describe('BrandRemixRunsService', () => {
         organizationId: 'org-1',
       }),
       expect.any(Function),
+      expect.objectContaining({
+        groupId: 'run-1',
+        settleCreditsExternally: true,
+      }),
+      expect.any(Function),
     );
     const providerText =
       avatarVideoGenerationService.generateAvatarVideo.mock.calls[0]?.[0].text;
@@ -1134,8 +1323,9 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
-      async (_params, _context, onCreated) => {
+      async (_params, _context, onCreated, _scope, onCredits) => {
         await onCreated?.('avatar-script-1');
+        await onCredits?.();
         return {
           externalId: 'heygen-script-1',
           ingredientId: 'avatar-script-1',
@@ -1216,7 +1406,9 @@ describe('BrandRemixRunsService', () => {
             contentRunId: 'run-1',
             ingredientId: 'image-1',
             sourceActionId: 'source-post-1',
+            sourceWorkflowId: 'workflow-1',
             variantId: 'variant-1',
+            workflowExecutionId: 'workflow-execution-1',
           }),
         ],
       },
@@ -1224,9 +1416,21 @@ describe('BrandRemixRunsService', () => {
       'org-1',
       'brand-remix:run-1:review:1:variant-1',
     );
+    expect(systemWorkflowProvenanceService.runAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'brand-remix-review-handoff',
+      }),
+      expect.any(Function),
+    );
     expect(result).toMatchObject({
       phase: 'in_review',
-      review: { approvedPostIds: [], batchId: 'batch-1', postIds: ['post-1'] },
+      review: {
+        approvedPostIds: [],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+      },
     });
   });
 
@@ -1301,14 +1505,42 @@ describe('BrandRemixRunsService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('returns an explicit blocked readiness result instead of faking a Meta campaign', async () => {
+  it('claims and persists an idempotent paused Meta campaign result', async () => {
     const created = await createPersistedRun({
       draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
       phase: 'approved',
       review: {
         approvedPostIds: ['post-1'],
         batchId: 'batch-1',
         postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
       },
     });
     contentRun.findFirst.mockResolvedValue(created);
@@ -1319,6 +1551,27 @@ describe('BrandRemixRunsService', () => {
         reviewDecision: PersistedReviewDecision.APPROVED,
       },
     ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        id: 'credential-1',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare.mockResolvedValue({
+      adAccountId: 'act-1',
+      adId: 'ad-1',
+      adSetId: 'ad-set-1',
+      campaignId: 'campaign-1',
+      credentialId: 'credential-1',
+      ingredientId: 'image-1',
+      postId: 'post-1',
+      recipeRevision: 1,
+      recipeVersion: 1,
+      replayed: false,
+      status: 'PAUSED',
+      variantId: 'variant-1',
+      workflowExecutionId: 'workflow-execution-1',
+      workflowId: 'workflow-1',
+    });
     let stored = created;
     contentRun.updateMany.mockImplementation(({ data }) => {
       stored = makeRun(data.config as Record<string, unknown>);
@@ -1330,19 +1583,25 @@ describe('BrandRemixRunsService', () => {
       'org-1',
       'run-1',
       'user-1',
-      {},
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
     );
 
-    expect(result.readiness).toMatchObject({
-      issues: [
-        expect.objectContaining({
-          code: 'missing_required_reference',
-          severity: 'blocked',
-        }),
-      ],
-      state: 'blocked',
+    expect(result).toMatchObject({
+      paidDraft: {
+        adId: 'ad-1',
+        adSetId: 'ad-set-1',
+        campaignId: 'campaign-1',
+        status: 'PAUSED',
+      },
+      phase: 'paid_draft_ready',
     });
-    expect(adsResearchService.prepareCampaignForReview).not.toHaveBeenCalled();
+    expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
   });
 
   async function createPersistedRun(

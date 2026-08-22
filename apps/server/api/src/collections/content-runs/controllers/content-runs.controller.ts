@@ -11,12 +11,19 @@ import { BrandRemixRunsService } from '@api/collections/content-runs/services/br
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import {
+  Credits,
+  DeferCreditsUntilModelResolution,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ContentRunStatus } from '@genfeedai/enums';
+import { ActivitySource, ContentRunStatus } from '@genfeedai/enums';
 import { ContentRunSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -27,6 +34,8 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
 
@@ -136,6 +145,13 @@ export class ContentRunsController {
   }
 
   @Post('content-runs/:id/remix/start')
+  @Credits({
+    description: 'Brand remix generation',
+    source: ActivitySource.SCRIPT,
+  })
+  @DeferCreditsUntilModelResolution()
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
   async startBrandRemixRun(
     @Req() req: Request,
     @Param('id') id: string,

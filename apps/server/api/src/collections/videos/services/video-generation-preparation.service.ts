@@ -25,6 +25,7 @@ import {
   resolveInlinePromptText,
   resolveStoredPromptText,
 } from '@api/collections/videos/services/video-generation-prompt.util';
+import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { resolveGenerationDimensions } from '@api/helpers/utils/credits/generation-credit-cost.util';
@@ -145,6 +146,7 @@ export class VideoGenerationPreparationService {
 
   async prepare(
     resolved: ResolvedVideoGenerationRequest,
+    placeholderScope?: GenerationPlaceholderScope,
   ): Promise<VideoGenerationContext> {
     const { brand, createVideoDto, model, referenceIds, request, user } =
       resolved;
@@ -234,6 +236,8 @@ export class VideoGenerationPreparationService {
         extension: MetadataExtension.MP4,
         generationPrompt: promptText,
         generationSeed: createVideoDto.seed,
+        groupId: placeholderScope?.groupId,
+        groupIndex: placeholderScope?.groupIndex,
         hasAudio: createVideoDto.isAudioEnabled,
         height,
         isDefault: createVideoDto.isDefault,

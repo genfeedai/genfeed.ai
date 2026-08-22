@@ -41,6 +41,7 @@ export interface BatchItemFull extends BatchItem {
   opportunityTopic?: string;
   creativeVersion?: string;
   hookVersion?: string;
+  ingredientId?: string;
   contentRunId?: string;
   variantId?: string;
   scheduleSlot?: string;
@@ -48,6 +49,7 @@ export interface BatchItemFull extends BatchItem {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  workflowExecutionId?: string;
   createdAt?: string;
   versionPinId?: string;
   publishApproval?: IPublishApproval;

@@ -18,6 +18,7 @@ import type {
   MetaImageUploadResponse,
   MetaInsightsData,
   MetaInsightsParams,
+  MetaNamedAdObject,
   MetaTopPerformer,
   MetaVideoUploadResponse,
   UpdateAdSetParams,
@@ -221,6 +222,48 @@ export class MetaAdsService {
     }
   }
 
+  async listAdSets(
+    accessToken: string,
+    adAccountId: string,
+    campaignId?: string,
+  ): Promise<MetaNamedAdObject[]> {
+    const response = await this.makeRequest<{
+      data: Array<{
+        campaign_id?: string;
+        id: string;
+        name: string;
+        status: string;
+      }>;
+    }>(accessToken, `${adAccountId}/adsets`, {
+      fields: 'id,name,status,campaign_id',
+      limit: 200,
+    });
+    return response.data
+      .filter((item) => !campaignId || item.campaign_id === campaignId)
+      .map(({ id, name, status }) => ({ id, name, status }));
+  }
+
+  async listAds(
+    accessToken: string,
+    adAccountId: string,
+    adSetId?: string,
+  ): Promise<MetaNamedAdObject[]> {
+    const response = await this.makeRequest<{
+      data: Array<{
+        adset_id?: string;
+        id: string;
+        name: string;
+        status: string;
+      }>;
+    }>(accessToken, `${adAccountId}/ads`, {
+      fields: 'id,name,status,adset_id',
+      limit: 200,
+    });
+    return response.data
+      .filter((item) => !adSetId || item.adset_id === adSetId)
+      .map(({ id, name, status }) => ({ id, name, status }));
+  }
+
   async getCampaignInsights(
     accessToken: string,
     campaignId: string,
@@ -387,17 +430,20 @@ export class MetaAdsService {
       });
 
       const adsWithMetrics = response.data
-        .filter((ad) => ad.insights?.data?.[0])
-        .map((ad) => {
-          const insights = this.normalizeInsights(ad.insights!.data[0]);
+        .flatMap((ad) => {
+          const insightData = ad.insights?.data[0];
+          if (!insightData) return [];
+          const insights = this.normalizeInsights(insightData);
           const value = this.extractMetricValue(insights, metric);
-          return {
-            id: ad.id,
-            insights,
-            metric,
-            name: ad.name,
-            value,
-          };
+          return [
+            {
+              id: ad.id,
+              insights,
+              metric,
+              name: ad.name,
+              value,
+            },
+          ];
         })
         .sort((a, b) => b.value - a.value)
         .slice(0, limit);
@@ -649,6 +695,10 @@ export class MetaAdsService {
     }
   }
 
+  async pauseAdSet(accessToken: string, adSetId: string): Promise<void> {
+    await this.makePostRequest(accessToken, adSetId, { status: 'PAUSED' });
+  }
+
   async createAd(
     accessToken: string,
     adAccountId: string,
@@ -657,28 +707,26 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const creativeSpec: Record<string, unknown> = {
-        link_data: {
-          link: params.creative.linkUrl,
-          ...(params.creative.title && { name: params.creative.title }),
-          ...(params.creative.body && { message: params.creative.body }),
-          ...(params.creative.imageHash && {
-            image_hash: params.creative.imageHash,
-          }),
-          ...(params.creative.callToAction && {
-            call_to_action: {
-              type: params.creative.callToAction,
-              value: { link: params.creative.linkUrl },
-            },
-          }),
-        },
-        object_story_spec: {
-          page_id: '', // Will be set by FB if page is connected
-        },
+      const linkData = {
+        link: params.creative.linkUrl,
+        ...(params.creative.title && { name: params.creative.title }),
+        ...(params.creative.body && { message: params.creative.body }),
+        ...(params.creative.imageHash && {
+          image_hash: params.creative.imageHash,
+        }),
+        ...(params.creative.callToAction && {
+          call_to_action: {
+            type: params.creative.callToAction,
+            value: { link: params.creative.linkUrl },
+          },
+        }),
+      };
+      const objectStorySpec: Record<string, unknown> = {
+        page_id: params.creative.pageId ?? '',
       };
 
       if (params.creative.videoId) {
-        creativeSpec.video_data = {
+        objectStorySpec.video_data = {
           video_id: params.creative.videoId,
           ...(params.creative.title && { title: params.creative.title }),
           ...(params.creative.body && { message: params.creative.body }),
@@ -689,7 +737,10 @@ export class MetaAdsService {
             },
           }),
         };
+      } else {
+        objectStorySpec.link_data = linkData;
       }
+      const creativeSpec = { object_story_spec: objectStorySpec };
 
       const data: Record<string, unknown> = {
         adset_id: params.adSetId,

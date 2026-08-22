@@ -302,6 +302,16 @@ export class BatchGenerationCreationService {
           ? String(reviewItem.contentRunId)
           : undefined;
         let postId = reviewItem.postId;
+        if (!postId && reviewItem.targetIdempotencyKey) {
+          const existing = await this.prisma.post.findFirst({
+            select: { id: true },
+            where: scopedWhere(orgId, {
+              brandId: dto.brandId,
+              targetIdempotencyKey: reviewItem.targetIdempotencyKey,
+            }),
+          });
+          postId = existing?.id;
+        }
         if (!postId) {
           const post = await this.postsService.create({
             brandId: dto.brandId,
@@ -325,9 +335,11 @@ export class BatchGenerationCreationService {
             sourceWorkflowId: reviewItem.sourceWorkflowId,
             sourceWorkflowName: reviewItem.sourceWorkflowName,
             targetExecutionState: TargetExecutionState.DRAFT,
+            targetIdempotencyKey: reviewItem.targetIdempotencyKey,
             userId: userId,
             variantId: reviewItem.variantId,
             visibility: PostVisibility.PUBLIC,
+            workflowExecutionId: reviewItem.workflowExecutionId,
           } as PostCreateInput);
 
           postId = String((post as Record<string, unknown>).id ?? post.id);
@@ -343,6 +355,7 @@ export class BatchGenerationCreationService {
           gateOverallScore: reviewItem.gateOverallScore,
           gateReasons: reviewItem.gateReasons ?? [],
           hookVersion: reviewItem.hookVersion,
+          ingredientId: reviewItem.ingredientId,
           mediaUrl: reviewItem.mediaUrl,
           opportunitySourceType: reviewItem.opportunitySourceType,
           opportunityTopic: reviewItem.opportunityTopic,
@@ -358,6 +371,7 @@ export class BatchGenerationCreationService {
           sourceWorkflowName: reviewItem.sourceWorkflowName,
           status: BatchItemStatus.COMPLETED,
           variantId: reviewItem.variantId,
+          workflowExecutionId: reviewItem.workflowExecutionId,
         });
       }
     } catch (error: unknown) {

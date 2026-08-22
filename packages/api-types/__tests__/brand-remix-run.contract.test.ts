@@ -80,6 +80,7 @@ describe('brand remix run contract', () => {
       status: 'PAUSED',
       variantId: 'variant_1',
       workflowExecutionId: 'workflow_execution_1',
+      workflowId: 'workflow_1',
     });
 
     expect(draft.status).toBe('PAUSED');

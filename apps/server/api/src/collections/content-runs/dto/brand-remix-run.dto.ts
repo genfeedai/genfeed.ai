@@ -68,11 +68,10 @@ class PausedMetaCampaignDestinationDto {
 }
 
 export class PreparePausedMetaCampaignDraftDto {
-  @ApiProperty({ required: false, type: PausedMetaCampaignDestinationDto })
-  @IsOptional()
+  @ApiProperty({ type: PausedMetaCampaignDestinationDto })
   @ValidateNested()
   @Type(() => PausedMetaCampaignDestinationDto)
-  destination?: PausedMetaCampaignDestinationDto;
+  destination!: PausedMetaCampaignDestinationDto;
 
   @ApiProperty({ required: false })
   @IsOptional()

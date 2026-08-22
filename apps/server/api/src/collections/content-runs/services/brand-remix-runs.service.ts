@@ -2,10 +2,14 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
+import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
+import { GenerationReservationBarrier } from '@api/collections/content-runs/services/generation-reservation-barrier';
+import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -13,10 +17,16 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from '@api/collections/workflows/services/system-workflow-provenance.service';
 import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
+import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -42,6 +52,7 @@ import {
 } from '@api-types/contracts/brand-remix-run.contract';
 import type { GenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import { generationBriefSchema } from '@api-types/contracts/generation-brief.contract';
+import { sourcePostVariationCredits } from '@genfeedai/constants';
 import {
   AssetCategory,
   ContentFormat,
@@ -49,6 +60,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   PersistedReviewDecision,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import type {
   AdsResearchDetail,
@@ -73,7 +85,10 @@ const GENERATION_READY_STATUSES = new Set<string>([
 const SUPPORTED_ASPECT_RATIOS = new Set(['1:1', '4:5', '9:16', '16:9']);
 const MAX_ERROR_LENGTH = 900;
 const MAX_SERIALIZATION_RETRIES = 3;
+const MAX_VARIANT_PATCH_RETRIES = 16;
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
+const REVIEW_CLAIM_LEASE_MS = 5 * 60 * 1000;
+const GENERATION_CLAIM_LEASE_MS = 5 * 60 * 1000;
 
 const RUN_SELECT = {
   brandId: true,
@@ -113,6 +128,14 @@ interface GenerationDimensions {
   width: number;
 }
 
+type RemixCreditsRequest = Request & {
+  creditsConfig?: {
+    amount?: number;
+    deferred?: boolean;
+    [key: string]: unknown;
+  };
+};
+
 @Injectable()
 export class BrandRemixRunsService {
   constructor(
@@ -125,6 +148,10 @@ export class BrandRemixRunsService {
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
+    private readonly contentGeneratorService: ContentGeneratorService,
+    private readonly pausedMetaCampaignDraftService: PausedMetaCampaignDraftService,
+    private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     @Inject(BRAND_REMIX_RUNTIME)
     private readonly runtime: BrandRemixRuntime,
   ) {}
@@ -147,11 +174,18 @@ export class BrandRemixRunsService {
         input.source.platform,
       );
     }
-    const reusable = await this.findReusablePrefilledRun(
+    const resolvedSource = await this.resolveSource(
       organizationId,
       brandId,
       input.source,
     );
+    const reusable = input.edits
+      ? null
+      : await this.findReusablePrefilledRun(
+          organizationId,
+          brandId,
+          input.source,
+        );
     if (reusable) {
       return this.project(
         reusable,
@@ -159,11 +193,6 @@ export class BrandRemixRunsService {
         this.parseConfig(reusable.config, reusable.id),
       );
     }
-    const resolvedSource = await this.resolveSource(
-      organizationId,
-      brandId,
-      input.source,
-    );
     const defaults = this.defaultDraft(brandContext, resolvedSource);
     const draft = await this.resolveDraft(
       organizationId,
@@ -242,10 +271,13 @@ export class BrandRemixRunsService {
       ...config,
       draft,
       execution: undefined,
+      generationClaim: undefined,
       paidDraft: undefined,
+      paidDraftOperation: undefined,
       phase: 'prefilled',
       readiness: this.buildReadiness(brandContext, draft),
       review: undefined,
+      reviewClaim: undefined,
       revision: config.revision + 1,
     });
     const updated = await this.compareAndSwapConfig({
@@ -342,6 +374,22 @@ export class BrandRemixRunsService {
       activeConfig = this.parseConfig(run.config, run.id);
     }
 
+    if (activeConfig.generationClaim) {
+      const claimAge =
+        this.runtime.now().getTime() -
+        new Date(activeConfig.generationClaim.claimedAt).getTime();
+      if (claimAge < GENERATION_CLAIM_LEASE_MS) {
+        return this.project(run, brandContext, activeConfig);
+      }
+      activeConfig = await this.recoverStalledReservations({
+        brandId,
+        config: activeConfig,
+        organizationId,
+        runId,
+      });
+      run = await this.requireRun(organizationId, runId);
+    }
+
     const resumablePhase =
       activeConfig.phase === 'generating' ||
       activeConfig.phase === 'partially_ready';
@@ -355,6 +403,32 @@ export class BrandRemixRunsService {
     if (!resumable.length) {
       return this.project(run, brandContext, activeConfig);
     }
+
+    const claimedConfig = brandRemixRunConfigSchema.parse({
+      ...activeConfig,
+      generationClaim: {
+        claimedAt: this.runtime.now().toISOString(),
+        id: `${runId}:generate:${activeConfig.revision}`,
+        variantIds: resumable.map((variant) => variant.id),
+      },
+    });
+    const generationClaim = await this.compareAndSwapExactConfig({
+      expectedConfig: activeConfig,
+      nextConfig: claimedConfig,
+      organizationId,
+      runId,
+      status: ContentRunStatus.RUNNING,
+    });
+    if (!generationClaim) {
+      const latest = await this.requireRun(organizationId, runId);
+      return this.project(
+        latest,
+        brandContext,
+        this.parseConfig(latest.config, runId),
+      );
+    }
+    run = generationClaim;
+    activeConfig = claimedConfig;
 
     // Crash recovery first: adopt durable placeholders that a previous
     // attempt persisted before an interruption linked them into the config,
@@ -378,16 +452,37 @@ export class BrandRemixRunsService {
         )?.assetIds.length,
     );
     if (!variants.length) {
-      return this.project(run, brandContext, activeConfig);
+      return this.clearGenerationClaimAndProject({
+        brandContext,
+        config: activeConfig,
+        organizationId,
+        run,
+        runId,
+      });
     }
 
     const generationUser = { ...user, brandId };
-    for (const variant of variants) {
-      await this.resolveSource(
-        organizationId,
+    if (activeConfig.draft.output.kind === 'copy') {
+      activeConfig = await this.generateCopyVariants({
         brandId,
-        activeConfig.sourceSnapshot.selector,
-      );
+        config: activeConfig,
+        organizationId,
+        runId,
+        request,
+        variants,
+      });
+      const copied = await this.requireRun(organizationId, runId);
+      const reconciled = await this.reconcile(copied);
+      return this.clearGenerationClaimAndProject({
+        brandContext,
+        config: reconciled.config,
+        organizationId,
+        run: reconciled.run,
+        runId,
+      });
+    }
+
+    for (const variant of variants) {
       activeConfig = await this.patchGeneratingVariant({
         organizationId,
         patch: { status: 'processing' },
@@ -396,63 +491,135 @@ export class BrandRemixRunsService {
         status: ContentRunStatus.RUNNING,
         variantId: variant.id,
       });
+    }
 
-      let linkedAssetId: string | undefined;
-      try {
-        const assetId = await this.dispatchVariant({
-          brandId,
-          config: activeConfig,
-          onPlaceholderCreated: async (ingredientId) => {
+    const creditAmounts = new Map<string, number>();
+    const successfulVariants = new Set<string>();
+    const barrier = new GenerationReservationBarrier(variants.length);
+    const creditBarrier = new GenerationReservationBarrier(
+      variants.length,
+      async () => {
+        const total = [...creditAmounts.values()].reduce(
+          (sum, amount) => sum + amount,
+          0,
+        );
+        if (
+          total > 0 &&
+          !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+            organizationId,
+            total,
+          ))
+        ) {
+          const balance =
+            await this.creditsUtilsService.getOrganizationCreditsBalance(
+              organizationId,
+            );
+          throw createInsufficientCreditsException(total, balance);
+        }
+      },
+    );
+    await Promise.all(
+      variants.map(async (variant) => {
+        let linkedAssetId: string | undefined;
+        const groupIndex =
+          activeConfig.execution?.variants.findIndex(
+            (candidate) => candidate.id === variant.id,
+          ) ?? -1;
+        try {
+          const variantRequest = Object.assign(
+            Object.create(Object.getPrototypeOf(request)),
+            request,
+          ) as RemixCreditsRequest;
+          const originalCredits = (request as RemixCreditsRequest)
+            .creditsConfig;
+          variantRequest.creditsConfig = originalCredits
+            ? { ...originalCredits, deferred: true }
+            : undefined;
+          const assetId = await this.dispatchVariant({
+            brandId,
+            config: activeConfig,
+            onPlaceholderCreated: async (ingredientId) => {
+              activeConfig = await this.patchGeneratingVariant({
+                organizationId,
+                patch: {
+                  assetIds: [ingredientId],
+                  status: 'processing',
+                },
+                recipeRevision: config.revision,
+                runId,
+                status: ContentRunStatus.RUNNING,
+                variantId: variant.id,
+              });
+              linkedAssetId = ingredientId;
+              await barrier.arrive();
+            },
+            onCreditsPrepared: async () => {
+              creditAmounts.set(
+                variant.id,
+                variantRequest.creditsConfig?.amount ??
+                  (activeConfig.draft.output.kind === 'avatar' ? 1 : 0),
+              );
+              await creditBarrier.arrive();
+            },
+            placeholderScope: {
+              groupId: runId,
+              groupIndex,
+              settleCreditsExternally: true,
+            },
+            request: variantRequest,
+            user: generationUser,
+          });
+          if (linkedAssetId && linkedAssetId !== assetId) {
+            throw new ConflictException(
+              'Generation returned a different Ingredient than its durable placeholder.',
+            );
+          }
+          if (!linkedAssetId) {
             activeConfig = await this.patchGeneratingVariant({
               organizationId,
-              patch: {
-                assetIds: [ingredientId],
-                status: 'processing',
-              },
+              patch: { assetIds: [assetId], status: 'processing' },
               recipeRevision: config.revision,
               runId,
               status: ContentRunStatus.RUNNING,
               variantId: variant.id,
             });
-            linkedAssetId = ingredientId;
-          },
-          request,
-          user: generationUser,
-        });
-        if (linkedAssetId && linkedAssetId !== assetId) {
-          throw new ConflictException(
-            'Generation returned a different Ingredient than its durable placeholder.',
-          );
-        }
-        if (!linkedAssetId) {
+          }
+          successfulVariants.add(variant.id);
+        } catch (error: unknown) {
+          barrier.fail(error);
+          creditBarrier.fail(error);
           activeConfig = await this.patchGeneratingVariant({
             organizationId,
-            patch: { assetIds: [assetId], status: 'processing' },
+            patch: {
+              error: this.errorMessage(error),
+              status: 'failed',
+            },
             recipeRevision: config.revision,
             runId,
             status: ContentRunStatus.RUNNING,
             variantId: variant.id,
           });
         }
-      } catch (error: unknown) {
-        activeConfig = await this.patchGeneratingVariant({
-          organizationId,
-          patch: {
-            error: this.errorMessage(error),
-            status: 'failed',
-          },
-          recipeRevision: config.revision,
-          runId,
-          status: ContentRunStatus.RUNNING,
-          variantId: variant.id,
-        });
-      }
-    }
+      }),
+    );
+    finalizeOutputCredits(
+      request,
+      [...successfulVariants].reduce(
+        (sum, variantId) => sum + (creditAmounts.get(variantId) ?? 0),
+        0,
+      ),
+    );
 
     const reconciled = await this.reconcile(
       await this.requireRun(organizationId, runId),
     );
-    return this.project(reconciled.run, brandContext, reconciled.config);
+    return this.clearGenerationClaimAndProject({
+      brandContext,
+      config: reconciled.config,
+      organizationId,
+      run: reconciled.run,
+      runId,
+    });
   }
 
   async submitForReview(
@@ -496,7 +663,9 @@ export class BrandRemixRunsService {
       selected.length === 0 ||
       selected.some(
         (variant) =>
-          variant.status !== 'ready' || variant.assetIds.length === 0,
+          variant.status !== 'ready' ||
+          (config.draft.output.kind !== 'copy' &&
+            variant.assetIds.length === 0),
       ) ||
       (requestedIds && selected.length !== requestedIds.size)
     ) {
@@ -514,47 +683,128 @@ export class BrandRemixRunsService {
       selectedAssetIds,
     );
     const format: ReviewBatchItemFormat =
-      config.draft.output.kind === 'image'
-        ? ContentFormat.IMAGE
-        : ContentFormat.VIDEO;
+      config.draft.output.kind === 'copy'
+        ? 'post'
+        : config.draft.output.kind === 'image'
+          ? ContentFormat.IMAGE
+          : ContentFormat.VIDEO;
     const platform = config.draft.target.platform;
-    const items = selected.flatMap((variant) =>
-      variant.assetIds.map((ingredientId) => ({
-        caption: config.draft.intent.objective,
-        contentRunId: run.id,
-        creativeVersion: `recipe-${config.revision}`,
-        format,
-        ingredientId,
-        label: `${brandContext.brand.label} remix ${variant.id}`,
-        platform,
-        prompt: config.execution?.generationBrief.intent.objective,
-        publishIntent:
-          config.draft.target.kind === 'paid' ? 'campaign' : 'test',
-        sourceActionId: config.sourceSnapshot.sourceId,
-        sourceWorkflowId: run.id,
-        sourceWorkflowName: BRAND_REMIX_RUN_CONTRACT,
-        variantId: variant.id,
-      })),
-    );
     const selectedKey = selected
       .map((variant) => variant.id)
       .sort()
-      .join(',');
-    const batch = await this.batchGenerationService.createManualReviewBatch(
-      { brandId, items },
-      userId,
-      organizationId,
-      `brand-remix:${run.id}:review:${config.revision}:${selectedKey}`,
+      .join(':');
+    let claimedConfig = config;
+    if (config.reviewClaim) {
+      const claimedIds = [...config.reviewClaim.selectedVariantIds].sort();
+      const requestedVariantIds = selected.map((variant) => variant.id).sort();
+      if (claimedIds.join(':') !== requestedVariantIds.join(':')) {
+        throw new ConflictException({
+          detail:
+            'Resume the variants already claimed by the interrupted Review handoff.',
+          title: 'Review variants already claimed',
+        });
+      }
+      const claimAge =
+        this.runtime.now().getTime() -
+        new Date(config.reviewClaim.claimedAt).getTime();
+      if (claimAge < REVIEW_CLAIM_LEASE_MS) {
+        throw new ConflictException({
+          detail:
+            'A concurrent review submission already claimed this remix. Reload it and retry.',
+          title: 'Concurrent review submission',
+        });
+      }
+    } else {
+      claimedConfig = brandRemixRunConfigSchema.parse({
+        ...config,
+        reviewClaim: {
+          claimedAt: this.runtime.now().toISOString(),
+          id: `${run.id}:review:${config.revision}`,
+          selectedVariantIds: selected.map((variant) => variant.id),
+          status: 'claimed',
+        },
+      });
+      const claimed = await this.compareAndSwapExactConfig({
+        expectedConfig: config,
+        nextConfig: claimedConfig,
+        organizationId,
+        runId,
+        status: ContentRunStatus.COMPLETED,
+      });
+      if (!claimed) {
+        throw new ConflictException({
+          detail:
+            'A concurrent review submission already claimed this remix. Reload it and retry.',
+          title: 'Concurrent review submission',
+        });
+      }
+    }
+    const workflow = await this.systemWorkflowProvenanceService.runAction(
+      {
+        actionType: 'brand-remix-review-handoff',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_REVIEW_HANDOFF,
+        description:
+          'Creates canonical draft Posts for selected brand remix variants and routes them to mandatory Review.',
+        inputValues: {
+          contentRunId: run.id,
+          recipeRevision: config.revision,
+          selectedVariantIds: selected.map((variant) => variant.id),
+        },
+        label: 'Brand Remix Review Handoff',
+        organizationId,
+        source: 'BrandRemixRunsService.submitForReview',
+        trigger: WorkflowExecutionTrigger.MANUAL,
+        userId,
+      },
+      async (provenance) => {
+        const items = selected.flatMap((variant) => {
+          const ingredientIds =
+            config.draft.output.kind === 'copy'
+              ? [undefined]
+              : variant.assetIds;
+          return ingredientIds.map((ingredientId) => ({
+            caption: variant.content ?? config.draft.intent.objective,
+            contentRunId: run.id,
+            creativeVersion: `recipe-${config.revision}`,
+            format,
+            ...(ingredientId ? { ingredientId } : {}),
+            label: `${brandContext.brand.label} remix ${variant.id}`,
+            platform,
+            prompt: config.execution?.generationBrief.intent.objective,
+            publishIntent:
+              config.draft.target.kind === 'paid' ? 'campaign' : 'test',
+            sourceActionId: config.sourceSnapshot.sourceId,
+            sourceWorkflowId: provenance.workflowId,
+            sourceWorkflowName: provenance.workflowLabel,
+            targetIdempotencyKey: `brand-remix:${run.id}:${config.revision}:${variant.id}:${ingredientId ?? 'copy'}`,
+            variantId: variant.id,
+            workflowExecutionId: provenance.executionId,
+          }));
+        });
+        const batch = await this.batchGenerationService.createManualReviewBatch(
+          { brandId, items },
+          userId,
+          organizationId,
+          `brand-remix:${run.id}:review:${config.revision}:${selectedKey}`,
+        );
+        return { batch, itemCount: items.length };
+      },
     );
+    const { batch, itemCount } = workflow.result;
     const postIds = batch.items.flatMap((item) =>
       item.postId ? [item.postId] : [],
     );
-    if (postIds.length !== items.length) {
+    if (postIds.length !== itemCount) {
       throw new ConflictException({
         detail:
           'Review did not create a canonical draft for every remix asset.',
         title: 'Review handoff incomplete',
       });
+    }
+
+    const completedReviewClaim = claimedConfig.reviewClaim;
+    if (!completedReviewClaim) {
+      throw new ConflictException('The durable Review claim is missing.');
     }
 
     const selector = config.sourceSnapshot.selector;
@@ -578,16 +828,22 @@ export class BrandRemixRunsService {
     }
 
     const nextConfig = brandRemixRunConfigSchema.parse({
-      ...config,
+      ...claimedConfig,
       phase: 'in_review',
       review: {
         approvedPostIds: [],
         batchId: batch.id,
         postIds,
+        workflowExecutionId: workflow.provenance.executionId,
+        workflowId: workflow.provenance.workflowId,
+      },
+      reviewClaim: {
+        ...completedReviewClaim,
+        status: 'completed',
       },
     });
     const updated = await this.compareAndSwapExactConfig({
-      expectedConfig: config,
+      expectedConfig: claimedConfig,
       nextConfig,
       organizationId,
       runId,
@@ -634,51 +890,111 @@ export class BrandRemixRunsService {
         title: 'Unsupported campaign target',
       });
     }
-    if (config.phase !== 'approved' || !config.review?.approvedPostIds.length) {
+    if (config.paidDraft) {
+      return this.project(run, brandContext, {
+        ...config,
+        paidDraft: { ...config.paidDraft, replayed: true },
+      });
+    }
+    if (
+      (config.phase !== 'approved' && config.phase !== 'paid_draft_creating') ||
+      !config.review?.approvedPostIds.length
+    ) {
       throw new ConflictException({
         detail:
           'Approve at least one Review draft before preparing a campaign.',
         title: 'Campaign review is incomplete',
       });
     }
-    if (input.destination) {
-      await this.assertConnectedCredential(
-        organizationId,
-        brandId,
-        input.destination.credentialId,
-        'meta',
+    await this.assertConnectedCredential(
+      organizationId,
+      brandId,
+      input.destination.credentialId,
+      'meta',
+    );
+    const selectedVariant =
+      config.execution?.variants.find(
+        (variant) => variant.id === input.variantId,
+      ) ??
+      config.execution?.variants.find((variant) => variant.status === 'ready');
+    if (selectedVariant?.status !== 'ready') {
+      throw new ConflictException(
+        'Select a ready approved remix variant for the Meta draft.',
       );
     }
-
-    // The existing ads-research launch-prep call only returns a PAUSED-shaped
-    // object; it does not persist a Meta campaign. Creating campaign/ad-set rows
-    // before the generated Ingredient has a Meta image hash/video id would leave
-    // a partial external campaign. Surface the real blocker instead.
-    const issue = {
-      code: 'missing_required_reference' as const,
-      field: 'references' as const,
-      message:
-        'Upload an approved remix asset to Meta creative storage before creating the paused campaign, ad set, and ad atomically.',
-      severity: 'blocked' as const,
+    const operation = {
+      adAccountId: input.destination.adAccountId,
+      claimedAt: this.runtime.now().toISOString(),
+      credentialId: input.destination.credentialId,
+      id: `${run.id}:meta:${config.revision}:${selectedVariant.id}`,
+      linkUrl:
+        config.sourceSnapshot.destinationUrl ??
+        config.sourceSnapshot.canonicalUrl,
+      variantId: selectedVariant.id,
     };
-    const nextConfig = brandRemixRunConfigSchema.parse({
-      ...config,
-      readiness: {
-        issues: [
-          ...config.readiness.issues.filter(
-            (current) => current.message !== issue.message,
-          ),
-          issue,
-        ],
-        state: 'blocked',
-      },
-    });
-    const updated = await this.persistConfig(
+    if (!operation.linkUrl) {
+      throw new ConflictException(
+        'The authorized source has no HTTPS campaign destination.',
+      );
+    }
+    let claimedConfig = config;
+    if (!config.paidDraftOperation) {
+      claimedConfig = brandRemixRunConfigSchema.parse({
+        ...config,
+        paidDraftOperation: operation,
+        phase: 'paid_draft_creating',
+      });
+      const claimed = await this.compareAndSwapExactConfig({
+        expectedConfig: config,
+        nextConfig: claimedConfig,
+        organizationId,
+        runId,
+        status: ContentRunStatus.RUNNING,
+      });
+      if (!claimed) {
+        throw new ConflictException(
+          'A concurrent Meta draft action won the claim.',
+        );
+      }
+    } else if (
+      config.paidDraftOperation.credentialId !==
+        input.destination.credentialId ||
+      config.paidDraftOperation.adAccountId !== input.destination.adAccountId ||
+      config.paidDraftOperation.variantId !== selectedVariant.id
+    ) {
+      throw new ConflictException(
+        'Resume the existing Meta draft destination and variant.',
+      );
+    }
+    const paidDraft = await this.pausedMetaCampaignDraftService.prepare({
+      adAccountId: input.destination.adAccountId,
+      brandId,
+      config: claimedConfig,
+      credentialId: input.destination.credentialId,
+      linkUrl: operation.linkUrl,
       organizationId,
       runId,
+      userId: _userId,
+      variant: selectedVariant,
+    });
+    const nextConfig = brandRemixRunConfigSchema.parse({
+      ...claimedConfig,
+      paidDraft,
+      paidDraftOperation: undefined,
+      phase: 'paid_draft_ready',
+    });
+    const updated = await this.compareAndSwapExactConfig({
+      expectedConfig: claimedConfig,
       nextConfig,
-      ContentRunStatus.COMPLETED,
-    );
+      organizationId,
+      runId,
+      status: ContentRunStatus.COMPLETED,
+    });
+    if (!updated) {
+      throw new ConflictException(
+        'The Meta draft result changed concurrently.',
+      );
+    }
     return this.project(updated, brandContext, nextConfig);
   }
 
@@ -996,6 +1312,9 @@ export class BrandRemixRunsService {
           detail.previewUrl ?? detail.landingPageUrl,
         ),
         capturedAt: this.runtime.now().toISOString(),
+        ...(this.publicUrl(detail.landingPageUrl)
+          ? { destinationUrl: this.publicUrl(detail.landingPageUrl) }
+          : {}),
         evidence,
         metrics: this.numericRecord(detail.metrics),
         pattern: {
@@ -1154,8 +1473,13 @@ export class BrandRemixRunsService {
         ? undefined
         : (patch.durationSeconds ??
           ('durationSeconds' in current ? current.durationSeconds : undefined));
+    if (kind === 'copy') {
+      return { count: patch.count ?? current.count, kind };
+    }
+    const currentAspectRatio =
+      'aspectRatio' in current ? current.aspectRatio : '9:16';
     const base = {
-      aspectRatio: patch.aspectRatio ?? current.aspectRatio,
+      aspectRatio: patch.aspectRatio ?? currentAspectRatio,
       count: patch.count ?? current.count,
     };
     if (kind === 'image') return { ...base, kind };
@@ -1177,6 +1501,9 @@ export class BrandRemixRunsService {
     const explicitRoles = new Set(
       explicitReferences.map((reference) => reference.role),
     );
+    const explicitAssetIds = new Set(
+      explicitReferences.map((reference) => reference.assetId),
+    );
     const defaults = brandKit.references
       .map((asset) => ({
         assetId: asset.id,
@@ -1184,7 +1511,11 @@ export class BrandRemixRunsService {
         role: this.brandAssetRole(asset.label),
         source: 'brand_default' as const,
       }))
-      .filter((reference) => !explicitRoles.has(reference.role))
+      .filter(
+        (reference) =>
+          !explicitRoles.has(reference.role) &&
+          !explicitAssetIds.has(reference.assetId),
+      )
       .slice(0, 3);
     return [...explicitReferences, ...defaults];
   }
@@ -1212,7 +1543,10 @@ export class BrandRemixRunsService {
         severity: 'degraded',
       });
     }
-    if (!SUPPORTED_ASPECT_RATIOS.has(draft.output.aspectRatio)) {
+    if (
+      'aspectRatio' in draft.output &&
+      !SUPPORTED_ASPECT_RATIOS.has(draft.output.aspectRatio)
+    ) {
       issues.push({
         code: 'unsupported_aspect_ratio',
         field: 'output',
@@ -1276,7 +1610,7 @@ export class BrandRemixRunsService {
         code: 'unsupported_reference_role',
         field: 'references',
         message: 'First-frame and last-frame references require video output.',
-        severity: 'blocked',
+        severity: draft.fidelityMode === 'guided' ? 'degraded' : 'blocked',
       });
     }
 
@@ -1407,6 +1741,14 @@ export class BrandRemixRunsService {
     config: BrandRemixRunConfig,
   ): GenerationBrief {
     const draft = config.draft;
+    const references =
+      draft.output.kind === 'image' && draft.fidelityMode === 'guided'
+        ? draft.references.filter(
+            (reference) =>
+              reference.role !== 'first_frame' &&
+              reference.role !== 'last_frame',
+          )
+        : draft.references;
     const common = {
       constraints: [
         ...(draft.intent.offer
@@ -1426,23 +1768,16 @@ export class BrandRemixRunsService {
         },
       ],
       fidelityMode: draft.fidelityMode,
-      output: {
-        aspectRatio: draft.output.aspectRatio,
-        ...('durationSeconds' in draft.output &&
-        draft.output.durationSeconds !== undefined
-          ? { durationSeconds: draft.output.durationSeconds }
-          : {}),
-      },
       provenance: [
         { field: 'intent.objective', source: 'user' as const },
         { field: 'intent.subjects', source: 'brand' as const },
         { field: 'intent.visualDirection', source: 'performance' as const },
-        ...draft.references.map((reference) => ({
+        ...references.map((reference) => ({
           field: `references.${reference.assetId}`,
           source: 'reference' as const,
         })),
       ],
-      references: draft.references.map(({ assetId, description, role }) => ({
+      references: references.map(({ assetId, description, role }) => ({
         assetId,
         ...(description ? { description } : {}),
         role,
@@ -1458,11 +1793,27 @@ export class BrandRemixRunsService {
       subjects: [context.brand.label],
       visualDirection: draft.intent.visualDirection,
     };
+    if (draft.output.kind === 'copy') {
+      return generationBriefSchema.parse({
+        ...common,
+        intent,
+        mediaKind: 'text',
+        output: {},
+      });
+    }
+    const output = {
+      aspectRatio: draft.output.aspectRatio,
+      ...('durationSeconds' in draft.output &&
+      draft.output.durationSeconds !== undefined
+        ? { durationSeconds: draft.output.durationSeconds }
+        : {}),
+    };
     if (draft.output.kind === 'image') {
       return generationBriefSchema.parse({
         ...common,
         intent,
         mediaKind: 'image',
+        output,
       });
     }
     return generationBriefSchema.parse({
@@ -1477,6 +1828,7 @@ export class BrandRemixRunsService {
         motion: draft.intent.pacing,
       },
       mediaKind: 'video',
+      output,
     });
   }
 
@@ -1484,10 +1836,17 @@ export class BrandRemixRunsService {
     brandId: string;
     config: BrandRemixRunConfig;
     onPlaceholderCreated: GenerationPlaceholderCreatedCallback;
+    onCreditsPrepared: () => Promise<void>;
+    placeholderScope: { groupId: string; groupIndex: number };
     request: Request;
     user: User;
   }): Promise<string> {
     const draft = params.config.draft;
+    if (draft.output.kind === 'copy') {
+      throw new ConflictException(
+        'Copy variants use the text generation path.',
+      );
+    }
     const references = draft.references.map((reference) => reference.assetId);
     const dimensions = this.dimensions(draft.output.aspectRatio);
     const prompt = this.compileProviderPrompt(params.config);
@@ -1509,6 +1868,8 @@ export class BrandRemixRunsService {
         } as CreateImageDto,
         params.request,
         params.onPlaceholderCreated,
+        params.placeholderScope,
+        params.onCreditsPrepared,
       );
       return this.generatedAssetId(response);
     }
@@ -1533,6 +1894,8 @@ export class BrandRemixRunsService {
         } as CreateVideoDto,
         params.request,
         params.onPlaceholderCreated,
+        params.placeholderScope,
+        params.onCreditsPrepared,
       );
       return this.generatedAssetId(response);
     }
@@ -1553,6 +1916,8 @@ export class BrandRemixRunsService {
         userId: params.user.userId ?? params.user.id,
       },
       params.onPlaceholderCreated,
+      params.placeholderScope,
+      params.onCreditsPrepared,
     );
     return result.ingredientId;
   }
@@ -1661,19 +2026,28 @@ export class BrandRemixRunsService {
         ? IngredientCategory.IMAGE
         : IngredientCategory.VIDEO;
     const orphans = await this.prisma.ingredient.findMany({
-      select: { id: true },
+      select: { groupIndex: true, id: true },
       where: scopedWhere(params.organizationId, {
         brandId: params.brandId,
         category,
-        generationPrompt: this.compileProviderPrompt(config),
+        groupId: params.runId,
         id: linkedAssetIds.length ? { notIn: linkedAssetIds } : undefined,
         isDeleted: false,
+        status: { not: IngredientStatus.FAILED },
       }),
-      orderBy: { createdAt: 'asc' },
+      orderBy: { groupIndex: 'asc' },
       take: params.variants.length,
     });
-    for (const [index, orphan] of orphans.entries()) {
-      const variant = params.variants[index];
+    for (const orphan of orphans) {
+      const variant =
+        (orphan.groupIndex == null
+          ? undefined
+          : config.execution.variants[orphan.groupIndex]) ??
+        config.execution.variants.find(
+          (candidate) =>
+            params.variants.some((variant) => variant.id === candidate.id) &&
+            candidate.assetIds.length === 0,
+        );
       if (!variant) break;
       config = await this.patchGeneratingVariant({
         organizationId: params.organizationId,
@@ -1685,6 +2059,234 @@ export class BrandRemixRunsService {
       });
     }
     return config;
+  }
+
+  private async generateCopyVariants(params: {
+    brandId: string;
+    config: BrandRemixRunConfig;
+    organizationId: string;
+    request: Request;
+    runId: string;
+    variants: BrandRemixExecution['variants'];
+  }): Promise<BrandRemixRunConfig> {
+    const requestedCredits = sourcePostVariationCredits(params.variants.length);
+    if (
+      !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        params.organizationId,
+        requestedCredits,
+      ))
+    ) {
+      const balance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(
+          params.organizationId,
+        );
+      throw createInsufficientCreditsException(requestedCredits, balance);
+    }
+    let config = params.config;
+    const seen = new Set(
+      config.execution?.variants.flatMap((variant) =>
+        variant.status === 'ready' && variant.content
+          ? [variant.content.trim()]
+          : [],
+      ) ?? [],
+    );
+    let successfulCount = 0;
+    for (const variant of params.variants) {
+      config = await this.patchGeneratingVariant({
+        organizationId: params.organizationId,
+        patch: { error: undefined, status: 'processing' },
+        recipeRevision: variant.recipeRevision,
+        runId: params.runId,
+        status: ContentRunStatus.RUNNING,
+        variantId: variant.id,
+      });
+      try {
+        const generated = await this.contentGeneratorService.generateContent(
+          params.organizationId,
+          {
+            additionalContext: [
+              `Source pattern: ${JSON.stringify(params.config.sourceSnapshot.pattern)}`,
+              'Create original brand-owned copy. Never quote, name, or closely paraphrase the source.',
+            ],
+            brandId: params.brandId,
+            platform: params.config.draft.target.platform,
+            topic: this.compileProviderPrompt(params.config),
+            variationsCount: 1,
+          },
+        );
+        const content = generated[0]?.content.trim();
+        if (!content || seen.has(content)) {
+          throw new ConflictException(
+            'The content engine returned no distinct usable copy.',
+          );
+        }
+        seen.add(content);
+        successfulCount += 1;
+        config = await this.patchGeneratingVariant({
+          organizationId: params.organizationId,
+          patch: { content, error: undefined, status: 'ready' },
+          recipeRevision: variant.recipeRevision,
+          runId: params.runId,
+          status: ContentRunStatus.RUNNING,
+          variantId: variant.id,
+        });
+      } catch (error: unknown) {
+        config = await this.patchGeneratingVariant({
+          organizationId: params.organizationId,
+          patch: {
+            content: undefined,
+            error: this.errorMessage(error),
+            status: 'failed',
+          },
+          recipeRevision: variant.recipeRevision,
+          runId: params.runId,
+          status: ContentRunStatus.RUNNING,
+          variantId: variant.id,
+        });
+      }
+    }
+    const actualCount =
+      config.execution?.variants.filter((variant) => variant.status === 'ready')
+        .length ?? 0;
+    finalizeOutputCredits(
+      params.request,
+      sourcePostVariationCredits(successfulCount),
+    );
+    const execution = config.execution;
+    if (!execution) return config;
+    const nextConfig = brandRemixRunConfigSchema.parse({
+      ...config,
+      execution: {
+        ...execution,
+        actualCount,
+        ...(actualCount < execution.requestedCount
+          ? {
+              partialReason: `${execution.requestedCount - actualCount} requested copy outputs were not distinct and usable.`,
+            }
+          : { partialReason: undefined }),
+      },
+      phase:
+        actualCount === execution.requestedCount
+          ? 'ready_for_review'
+          : actualCount > 0
+            ? 'partially_ready'
+            : 'failed',
+    });
+    const updated = await this.compareAndSwapExactConfig({
+      expectedConfig: config,
+      nextConfig,
+      organizationId: params.organizationId,
+      runId: params.runId,
+      status:
+        actualCount > 0 ? ContentRunStatus.COMPLETED : ContentRunStatus.FAILED,
+    });
+    if (!updated) {
+      throw new ConflictException(
+        'The copy generation result changed concurrently.',
+      );
+    }
+    return nextConfig;
+  }
+
+  private async recoverStalledReservations(params: {
+    brandId: string;
+    config: BrandRemixRunConfig;
+    organizationId: string;
+    runId: string;
+  }): Promise<BrandRemixRunConfig> {
+    const processing =
+      params.config.execution?.variants.filter(
+        (variant) =>
+          variant.status === 'processing' && variant.assetIds.length > 0,
+      ) ?? [];
+    if (processing.length === 0) return params.config;
+    const ingredients = await this.prisma.ingredient.findMany({
+      select: {
+        id: true,
+        metadata: { select: { externalId: true } },
+        status: true,
+      },
+      where: scopedWhere(params.organizationId, {
+        brandId: params.brandId,
+        groupId: params.runId,
+        id: { in: processing.flatMap((variant) => variant.assetIds) },
+      }),
+    });
+    const byId = new Map(
+      ingredients.map((ingredient) => [ingredient.id, ingredient]),
+    );
+    let config = params.config;
+    for (const variant of processing) {
+      const reservations = variant.assetIds
+        .map((assetId) => byId.get(assetId))
+        .filter((ingredient) => ingredient !== undefined);
+      const undispatched =
+        reservations.length === variant.assetIds.length &&
+        reservations.every(
+          (ingredient) =>
+            ingredient.status === IngredientStatus.PROCESSING &&
+            !ingredient.metadata?.externalId,
+        );
+      if (!undispatched) continue;
+      await this.prisma.ingredient.updateMany({
+        data: { status: IngredientStatus.FAILED },
+        where: scopedWhere(params.organizationId, {
+          brandId: params.brandId,
+          id: { in: variant.assetIds },
+        }),
+      });
+      config = await this.patchGeneratingVariant({
+        organizationId: params.organizationId,
+        patch: {
+          assetIds: [],
+          error:
+            'Recovered a run-scoped reservation that never reached its provider.',
+          status: 'queued',
+        },
+        recipeRevision: variant.recipeRevision,
+        runId: params.runId,
+        status: ContentRunStatus.RUNNING,
+        variantId: variant.id,
+      });
+    }
+    return config;
+  }
+
+  private async clearGenerationClaimAndProject(params: {
+    brandContext: ResolvedBrandContext;
+    config: BrandRemixRunConfig;
+    organizationId: string;
+    run: BrandRemixRunRecord;
+    runId: string;
+  }): Promise<BrandRemixRunView> {
+    if (!params.config.generationClaim) {
+      return this.project(params.run, params.brandContext, params.config);
+    }
+    const nextConfig = brandRemixRunConfigSchema.parse({
+      ...params.config,
+      generationClaim: undefined,
+    });
+    const updated = await this.compareAndSwapExactConfig({
+      expectedConfig: params.config,
+      nextConfig,
+      organizationId: params.organizationId,
+      runId: params.runId,
+      status:
+        params.run.status === ContentRunStatus.FAILED
+          ? ContentRunStatus.FAILED
+          : params.run.status === ContentRunStatus.COMPLETED
+            ? ContentRunStatus.COMPLETED
+            : ContentRunStatus.RUNNING,
+    });
+    if (!updated) {
+      const latest = await this.requireRun(params.organizationId, params.runId);
+      return this.project(
+        latest,
+        params.brandContext,
+        this.parseConfig(latest.config, latest.id),
+      );
+    }
+    return this.project(updated, params.brandContext, nextConfig);
   }
 
   private async reconcile(
@@ -1767,7 +2369,8 @@ export class BrandRemixRunsService {
           ? ContentRunStatus.FAILED
           : phase === 'ready_for_review' ||
               phase === 'in_review' ||
-              phase === 'approved'
+              phase === 'approved' ||
+              phase === 'paid_draft_ready'
             ? ContentRunStatus.COMPLETED
             : ContentRunStatus.RUNNING;
       changed ||=
@@ -1858,7 +2461,7 @@ export class BrandRemixRunsService {
     status: ContentRunStatus;
     variantId: string;
   }): Promise<BrandRemixRunConfig> {
-    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+    for (let attempt = 0; attempt < MAX_VARIANT_PATCH_RETRIES; attempt += 1) {
       const run = await this.requireRun(params.organizationId, params.runId);
       const current = this.parseConfig(run.config, run.id);
       const variant = current.execution?.variants.find(
@@ -1950,22 +2553,6 @@ export class BrandRemixRunsService {
       });
     }
     return this.requireRun(params.organizationId, params.runId);
-  }
-
-  private async persistConfig(
-    organizationId: string,
-    runId: string,
-    config: BrandRemixRunConfig,
-    status: ContentRunStatus,
-  ): Promise<BrandRemixRunRecord> {
-    const result = await this.prisma.contentRun.updateMany({
-      data: { config: this.toJson(config), status },
-      where: scopedWhere(organizationId, { id: runId }),
-    });
-    if (result.count !== 1) {
-      throw new NotFoundException('Brand remix run', runId);
-    }
-    return this.requireRun(organizationId, runId);
   }
 
   private async requireRun(
