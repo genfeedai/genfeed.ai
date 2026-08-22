@@ -56,6 +56,7 @@ export interface MusicGenerationPayload {
 export interface AvatarGenerationPayload {
   voiceId?: string;
   avatarId?: string;
+  photoUrl?: string;
   text: string;
   speech: string;
 }
