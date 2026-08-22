@@ -164,6 +164,10 @@ notifications/MCP services plus Postgres. Optional integrations are configured
 with environment variables in `.env`; they are not separate compose
 profiles in the Community quick-start file.
 
+Self-hosters who configure `FAL_API_KEY` can synchronize reviewed Fal schemas
+and account pricing through the weekly worker job or the protected
+[one-shot operator command](./operations/fal-model-sync.md).
+
 ## Optional ComfyUI Configuration
 
 The Community image does not start the separate GPU service workspaces. For

@@ -305,7 +305,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'livestream-bot-session:LivestreamBotSession': [],
   'metadata:Metadata': ['modelLabel'],
-  'model:Model': ['providerConfig'],
+  'model:Model': [],
   'monitored-account:MonitoredAccount': ['lastPostId'],
   'optimization:Optimization': [
     'changes',

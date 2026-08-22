@@ -10,6 +10,11 @@ import {
 import type { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import {
+  adaptFalImageRequest,
+  type FalJsonSchema,
+  type FalSchemaFamily,
+} from '@server/services/integrations/fal/services/fal-contract';
 
 @Injectable()
 export class FalImageGenerationProviderAdapter
@@ -26,7 +31,7 @@ export class FalImageGenerationProviderAdapter
   async prepare(
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider> {
-    const input = {
+    const legacyInput = {
       image_size: {
         height: request.height,
         width: request.width,
@@ -39,6 +44,20 @@ export class FalImageGenerationProviderAdapter
         : {}),
       prompt: request.prompt,
     };
+    const input =
+      request.modelSchemaFamily && request.modelInputSchema
+        ? adaptFalImageRequest(
+            request.modelSchemaFamily as FalSchemaFamily,
+            request.modelInputSchema as FalJsonSchema,
+            {
+              height: request.height,
+              prompt: request.prompt,
+              referenceImageUrls: request.referenceImageUrls,
+              seed: request.createImageDto.seed,
+              width: request.width,
+            },
+          )
+        : legacyInput;
 
     return {
       additionalActivityFailure: 'ignore',

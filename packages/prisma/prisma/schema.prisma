@@ -2957,6 +2957,20 @@ model Model {
   trigger         String?
   triggerWord     String?
 
+  // Provider execution contracts are reviewed snapshots. Synchronization may
+  // replace only the pending version; runtime fields stay pinned to the last
+  // approved contract until an operator promotes the candidate.
+  reviewedProviderContractVersion String?
+  pendingProviderContractVersion  String?
+  providerSchemaFamily             String?
+  providerInputSchema              Json?
+  providerSyncStatus               String?
+  providerSchemaSyncedAt           DateTime?
+  providerPricingSyncedAt          DateTime?
+  providerSyncFailedAt             DateTime?
+  providerSyncFailureCode          String?
+  providerContracts                ModelProviderContract[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2965,6 +2979,43 @@ model Model {
   @@index([organizationId, isActive, isDeleted])
   @@unique([provider, endpoint], map: "models_provider_endpoint_key")
   @@map("models")
+}
+
+/// Append-only provider metadata snapshots. Raw schemas and commercial price
+/// metadata never enter model serializers; reviewed projections are copied to
+/// Model only when an operator approves a supported candidate.
+model ModelProviderContract {
+  id                    String   @id @default(cuid())
+  modelId               String
+  model                 Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  provider              String
+  endpoint              String
+  version               String
+  openapiVersion        String?
+  openapi               Json
+  inputSchema           Json
+  outputSchema          Json
+  schemaFamily          String?
+  pricing               Json
+  currency              String?
+  billingUnit           String?
+  unitPrice             String?
+  unitPriceMicros       BigInt?
+  conditionalDimensions Json     @default("{}")
+  pricingType           String?
+  mappingStatus         String
+  unsupportedReason     String?
+  reviewStatus          String   @default("pending")
+  reviewedAt            DateTime?
+  reviewedBy            String?
+  discoveredAt          DateTime @default(now())
+  lastSeenAt            DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([modelId, reviewStatus, discoveredAt(sort: Desc)], map: "model_provider_contracts_model_review_discovered_idx")
+  @@unique([provider, endpoint, version], map: "model_provider_contracts_identity_version_key")
+  @@map("model_provider_contracts")
 }
 
 // ═══════════════════════════════════════════════════════════════

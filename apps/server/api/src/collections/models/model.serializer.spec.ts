@@ -1,6 +1,20 @@
 import { IngredientCategory } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 
+function serializedAttributes(
+  result: ReturnType<typeof ModelSerializer.serialize>,
+): Record<string, unknown> {
+  if (
+    !result.data ||
+    Array.isArray(result.data) ||
+    result.data.attributes === undefined
+  ) {
+    throw new Error('Expected one serialized model resource');
+  }
+
+  return result.data.attributes;
+}
+
 describe('ModelSerializer', () => {
   it('serializes model with cost, isActive and isDefault attributes', () => {
     const now = new Date();
@@ -18,12 +32,14 @@ describe('ModelSerializer', () => {
       updatedAt: now,
     });
 
-    expect(result.data.attributes).toHaveProperty('cost', 5);
-    expect(result.data.attributes).toHaveProperty('isActive', true);
-    expect(result.data.attributes).toHaveProperty('isDefault', false);
+    const attributes = serializedAttributes(result);
+
+    expect(attributes).toHaveProperty('cost', 5);
+    expect(attributes).toHaveProperty('isActive', true);
+    expect(attributes).toHaveProperty('isDefault', false);
   });
 
-  it('serializes dynamic registry metadata', () => {
+  it('keeps raw provider commercial metadata private', () => {
     const now = new Date();
     const result = ModelSerializer.serialize({
       id: '1',
@@ -41,18 +57,22 @@ describe('ModelSerializer', () => {
       parentModelId: 'base-model',
       provider: 'openai',
       providerConfig: { source: 'provider-sync' },
+      providerCostUsd: 0.025,
       trainingId: 'training-1',
       updatedAt: now,
     });
 
-    expect(result.data.attributes).toMatchObject({
+    const attributes = serializedAttributes(result);
+
+    expect(attributes).toMatchObject({
       isDiscovered: true,
       isPublic: true,
-      margin: 0.2,
       organizationId: 'org-1',
       parentModelId: 'base-model',
-      providerConfig: { source: 'provider-sync' },
       trainingId: 'training-1',
     });
+    expect(attributes).not.toHaveProperty('margin');
+    expect(attributes).not.toHaveProperty('providerConfig');
+    expect(attributes).not.toHaveProperty('providerCostUsd');
   });
 });

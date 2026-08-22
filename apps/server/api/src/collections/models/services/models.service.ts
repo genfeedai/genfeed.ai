@@ -25,6 +25,30 @@ const PAGINATION_OPTION_KEYS = new Set([
   'useFacet',
 ]);
 
+const IMAGE_FAL_SCHEMA_FAMILIES = new Set([
+  'image-edit-multi-v1',
+  'image-edit-single-v1',
+  'image-text-v1',
+]);
+const VIDEO_FAL_SCHEMA_FAMILIES = new Set(['video-image-v1', 'video-text-v1']);
+
+function isFalSchemaFamilyCompatible(
+  category: string,
+  schemaFamily: string,
+): boolean {
+  if (IMAGE_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
+    return [ModelCategory.IMAGE, ModelCategory.IMAGE_EDIT].includes(
+      category as ModelCategory,
+    );
+  }
+  if (VIDEO_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
+    return [ModelCategory.VIDEO, ModelCategory.VIDEO_EDIT].includes(
+      category as ModelCategory,
+    );
+  }
+  return false;
+}
+
 type FindAvailableModelsParams = {
   category?: string;
   enabledModelIds?: string[];
@@ -39,6 +63,13 @@ type RegistryReviewPatch = Partial<UpdateModelDto> & {
   reviewedAt?: Date;
   reviewedBy?: string;
   reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
+  reviewedProviderContractVersion?: string;
+  pendingProviderContractVersion?: null;
+  providerInputSchema?: Prisma.InputJsonValue;
+  providerSchemaFamily?: string;
+  providerSyncStatus?: string;
+  pricingType?: string;
+  providerCostUsd?: number;
   succeededBy?: string;
 };
 
@@ -64,7 +95,12 @@ export class ModelsService extends BaseService<
       return {};
     }
 
-    return this.isModelRecord(document.config) ? document.config : {};
+    if (this.isModelRecord(document.config)) {
+      return document.config;
+    }
+    return this.isModelRecord(document.providerConfig)
+      ? document.providerConfig
+      : {};
   }
 
   private normalizeModelDocument(document: PrismaModel): ModelDocument {
@@ -475,6 +511,43 @@ export class ModelsService extends BaseService<
     }
 
     const now = new Date();
+    const pendingVersion = existing.pendingProviderContractVersion;
+    const pendingContract = pendingVersion
+      ? await this.prisma.modelProviderContract.findUnique({
+          where: {
+            provider_endpoint_version: {
+              endpoint: existing.endpoint,
+              provider: existing.provider,
+              version: pendingVersion,
+            },
+          },
+        })
+      : null;
+
+    if (
+      pendingVersion &&
+      (pendingContract?.mappingStatus !== 'supported' ||
+        !pendingContract.schemaFamily ||
+        !pendingContract.pricingType ||
+        pendingContract.unitPriceMicros === null)
+    ) {
+      throw new BadRequestException(
+        'The pending provider contract is quarantined and cannot be activated',
+      );
+    }
+    if (
+      pendingContract?.schemaFamily &&
+      existing.provider === ModelProvider.FAL &&
+      !isFalSchemaFamilyCompatible(
+        existing.category,
+        pendingContract.schemaFamily,
+      )
+    ) {
+      throw new BadRequestException(
+        'The pending provider contract schema family does not match the model category',
+      );
+    }
+
     const patch: RegistryReviewPatch = {
       ...updateDto,
       isActive: true,
@@ -484,11 +557,46 @@ export class ModelsService extends BaseService<
       reviewedBy,
     };
 
+    if (pendingContract) {
+      patch.pendingProviderContractVersion = null;
+      patch.providerCostUsd =
+        Number(pendingContract.unitPriceMicros) / 1_000_000;
+      patch.providerInputSchema =
+        pendingContract.inputSchema as Prisma.InputJsonValue;
+      patch.providerSchemaFamily = pendingContract.schemaFamily as string;
+      patch.providerSyncStatus = 'fresh';
+      patch.pricingType = pendingContract.pricingType as string;
+      patch.reviewedProviderContractVersion = pendingContract.version;
+    }
+
     if (!existing.lastSyncedAt) {
       patch.lastSyncedAt = now;
     }
 
-    return this.patch(modelId, patch);
+    if (!pendingContract) {
+      return this.patch(modelId, patch);
+    }
+
+    const data = this.splitModelData(
+      patch as Record<string, unknown>,
+      this.getProviderConfig(existing),
+    );
+    const updated = await this.prisma.$transaction(async (transaction) => {
+      const nextModel = await transaction.model.update({
+        data: data as Prisma.ModelUpdateInput,
+        where: { id: modelId, isDeleted: false, organizationId: null },
+      });
+      await transaction.modelProviderContract.update({
+        data: {
+          reviewStatus: 'approved',
+          reviewedAt: now,
+          reviewedBy,
+        },
+        where: { id: pendingContract.id },
+      });
+      return nextModel;
+    });
+    return this.normalizeModelDocument(updated);
   }
 
   async rejectRegistryModel(

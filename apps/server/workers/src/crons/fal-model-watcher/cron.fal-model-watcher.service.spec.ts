@@ -6,13 +6,23 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
+import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
+import { FalModelContractSyncService } from '@workers/services/fal-model-contract-sync.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 
 describe('CronFalModelWatcherService', () => {
   let service: CronFalModelWatcherService;
   let modelsService: {
     prisma: { model: { findMany: ReturnType<typeof vi.fn> } };
+  };
+  let falContractSyncService: {
+    recordFailure: ReturnType<typeof vi.fn>;
+    synchronizeModel: ReturnType<typeof vi.fn>;
+  };
+  let falPlatformClient: {
+    fetchModels: ReturnType<typeof vi.fn>;
+    fetchPricing: ReturnType<typeof vi.fn>;
   };
   let modelDiscoveryService: vi.Mocked<ModelDiscoveryService>;
   let configService: vi.Mocked<ConfigService>;
@@ -34,19 +44,9 @@ describe('CronFalModelWatcherService', () => {
     },
   ] as unknown as ServerModelRecord[];
 
-  const originalFetch = globalThis.fetch;
-
-  /** Mock a single-page fal model search response. */
+  /** Mock one fully collected Fal model-search result. */
   function mockFalResponse(models: IFalModel[]): void {
-    globalThis.fetch = vi.fn().mockResolvedValueOnce({
-      json: () =>
-        Promise.resolve({
-          has_more: false,
-          models,
-          next_cursor: null,
-        }),
-      ok: true,
-    } as Response);
+    falPlatformClient.fetchModels.mockResolvedValueOnce(models);
   }
 
   beforeEach(async () => {
@@ -62,8 +62,11 @@ describe('CronFalModelWatcherService', () => {
                 findMany: vi.fn().mockResolvedValue(
                   mockExistingModels.map((model) => ({
                     endpoint: model.endpoint,
+                    id: model.id,
+                    isActive: model.isActive,
                     key: model.key,
                     provider: model.provider,
+                    reviewedProviderContractVersion: null,
                   })),
                 ),
               },
@@ -82,6 +85,24 @@ describe('CronFalModelWatcherService', () => {
           provide: ConfigService,
           useValue: {
             get: vi.fn().mockReturnValue('test-fal-key'),
+          },
+        },
+        {
+          provide: FalPlatformClient,
+          useValue: {
+            fetchModels: vi.fn(),
+            fetchPricing: vi.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: FalModelContractSyncService,
+          useValue: {
+            recordFailure: vi.fn().mockResolvedValue(undefined),
+            synchronizeModel: vi.fn().mockResolvedValue({
+              drifted: false,
+              quarantined: false,
+              version: 'sha256:candidate',
+            }),
           },
         },
         {
@@ -112,6 +133,12 @@ describe('CronFalModelWatcherService', () => {
       ModelsService,
     ) as unknown as typeof modelsService;
     modelDiscoveryService = module.get(ModelDiscoveryService);
+    falContractSyncService = module.get(
+      FalModelContractSyncService,
+    ) as unknown as typeof falContractSyncService;
+    falPlatformClient = module.get(
+      FalPlatformClient,
+    ) as unknown as typeof falPlatformClient;
     configService = module.get(ConfigService);
     notificationsService = module.get(NotificationsService);
     loggerService = module.get(LoggerService);
@@ -119,7 +146,6 @@ describe('CronFalModelWatcherService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-    globalThis.fetch = originalFetch;
   });
 
   it('should be defined', () => {
@@ -196,11 +222,17 @@ describe('CronFalModelWatcherService', () => {
       const result = await service.discoverNewModels();
 
       expect(result.newModelsFound).toBe(0);
+      expect(modelsService.prisma.model.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isDeleted: false, organizationId: null },
+        }),
+      );
       expect(modelDiscoveryService.createDraftModel).not.toHaveBeenCalled();
-      // Freshness tracking only touches Fal rows flagged isDiscovered.
-      expect(modelDiscoveryService.touchLastSyncedAt).toHaveBeenCalledWith(
-        ModelProvider.FAL,
-        ['fal-ai/flux/dev'],
+      expect(falContractSyncService.synchronizeModel).toHaveBeenCalledWith(
+        expect.objectContaining({ endpoint: 'fal-ai/flux/dev' }),
+        expect.objectContaining({ endpoint_id: 'fal-ai/flux/dev' }),
+        [],
+        expect.any(Date),
       );
     });
 
@@ -283,11 +315,10 @@ describe('CronFalModelWatcherService', () => {
 
     it('soft-fails when FAL_API_KEY is not configured', async () => {
       configService.get.mockReturnValue(undefined as unknown as string);
-      globalThis.fetch = vi.fn();
 
       const result = await service.discoverNewModels();
 
-      expect(globalThis.fetch).not.toHaveBeenCalled();
+      expect(falPlatformClient.fetchModels).not.toHaveBeenCalled();
       expect(result.totalPolled).toBe(0);
       expect(result.draftsCreated).toBe(0);
       expect(loggerService.warn).toHaveBeenCalledWith(
@@ -295,60 +326,43 @@ describe('CronFalModelWatcherService', () => {
       );
     });
 
-    it('follows the cursor across pages', async () => {
-      globalThis.fetch = vi
-        .fn()
-        .mockResolvedValueOnce({
-          json: () =>
-            Promise.resolve({
-              has_more: true,
-              models: [
-                {
-                  endpoint_id: 'fal-ai/page-one',
-                  metadata: { category: 'text-to-image' },
-                },
-              ],
-              next_cursor: 'cursor-2',
-            }),
-          ok: true,
-        } as Response)
-        .mockResolvedValueOnce({
-          json: () =>
-            Promise.resolve({
-              has_more: false,
-              models: [
-                {
-                  endpoint_id: 'fal-ai/page-two',
-                  metadata: { category: 'text-to-video' },
-                },
-              ],
-              next_cursor: null,
-            }),
-          ok: true,
-        } as Response);
+    it('requests pricing for every endpoint collected by the paginated client', async () => {
+      mockFalResponse([
+        {
+          endpoint_id: 'fal-ai/page-one',
+          metadata: { category: 'text-to-image' },
+        },
+        {
+          endpoint_id: 'fal-ai/page-two',
+          metadata: { category: 'text-to-video' },
+        },
+      ]);
       modelDiscoveryService.createDraftModel.mockResolvedValue({
         id: 'draft',
       } as unknown as ServerModelRecord);
 
       const result = await service.discoverNewModels();
 
-      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(falPlatformClient.fetchPricing).toHaveBeenCalledWith([
+        'fal-ai/page-one',
+        'fal-ai/page-two',
+      ]);
       expect(result.totalPolled).toBe(2);
       expect(result.newModelsFound).toBe(2);
     });
 
     it('handles API errors gracefully', async () => {
-      globalThis.fetch = vi.fn().mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      } as Response);
+      falPlatformClient.fetchModels.mockRejectedValueOnce(
+        new Error('Fal platform request failed after 3 attempts (500)'),
+      );
 
       const result = await service.discoverNewModels();
 
       expect(result.totalPolled).toBe(0);
-      expect(result.errors).toBe(0);
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('fal API returned 500'),
+      expect(result.errors).toBe(1);
+      expect(falContractSyncService.recordFailure).toHaveBeenCalledWith(
+        'fal_sync_failed',
+        expect.any(Date),
       );
     });
 

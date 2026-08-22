@@ -34,6 +34,13 @@ export interface IModel extends IBaseEntity {
   minCost?: number;
   providerCostUsd?: number;
   providerConfig?: Record<string, unknown>;
+  reviewedProviderContractVersion?: string;
+  pendingProviderContractVersion?: string;
+  providerSchemaFamily?: string;
+  providerSyncStatus?: 'failed' | 'fresh' | 'quarantined' | 'review_required';
+  providerSchemaSyncedAt?: Date;
+  providerPricingSyncedAt?: Date;
+  providerSyncFailedAt?: Date;
 
   // Output capability fields (from DB)
   aspectRatios?: string[];

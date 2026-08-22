@@ -84,7 +84,9 @@ export class ImageGenerationProviderDispatchService {
       height: context.height,
       model: context.model,
       modelEndpoint: context.modelEndpoint,
+      modelInputSchema: context.modelInputSchema,
       modelProvider: context.modelProvider,
+      modelSchemaFamily: context.modelSchemaFamily,
       onExternalJobCreated: async (externalId) => {
         await this.metadataService.patch(
           context.metadataData.id,
