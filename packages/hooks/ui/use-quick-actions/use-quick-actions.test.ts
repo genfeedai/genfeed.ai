@@ -128,6 +128,7 @@ const mockHandlers = {
   onConvertToGif: vi.fn(),
   onConvertToPreset: vi.fn(),
   onConvertToVideo: vi.fn(),
+  onCopy: vi.fn(),
   onCreateVariation: vi.fn(),
   onDelete: vi.fn(),
   onDownload: vi.fn(),
