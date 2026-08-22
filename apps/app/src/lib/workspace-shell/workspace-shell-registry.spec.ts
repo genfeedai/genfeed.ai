@@ -117,7 +117,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
     ['/acme/moonrise/automate/campaigns/campaign-1', 'Automate', 'Program'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
-    ['/acme/moonrise/automate/agents', 'Automate', 'Team'],
+    ['/acme/moonrise/automate/agents', 'Automate', 'Agents'],
     ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
     ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
     // /publish/posts/:id has its own case below: it carries parent and root
@@ -146,14 +146,14 @@ describe('workspace shell trusted registry', () => {
     },
   );
 
-  it('nests agent detail under the Agents list', () => {
+  it('nests agent detail under Team', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/automate/agents/agent-1')
         ?.breadcrumb,
     ).toEqual({
       leafLabel: 'Agent',
       parentHref: '/automate/agents',
-      parentLabel: 'Agents',
+      parentLabel: 'Team',
       rootLabel: 'Automate',
     });
   });
