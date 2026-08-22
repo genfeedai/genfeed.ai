@@ -305,8 +305,7 @@ export class BatchGenerationCreationService {
         if (!postId && reviewItem.targetIdempotencyKey) {
           const existing = await this.prisma.post.findFirst({
             select: { id: true, isDeleted: true },
-            // tenant-scope-ignore: organizationId and brandId are pinned;
-            // isDeleted is omitted so the unique key can restore a tombstone.
+            // tenant-scope-ignore: organizationId and brandId are pinned; isDeleted is omitted so the unique key can restore a tombstone
             where: {
               brandId: dto.brandId,
               organizationId: orgId,
