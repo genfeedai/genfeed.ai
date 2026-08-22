@@ -173,7 +173,9 @@ describe('desktop release QA', () => {
       'Attach macOS artifacts to GitHub release',
     );
 
-    expect(publishStep).toContain('uses: softprops/action-gh-release@v3');
+    expect(publishStep).toMatch(
+      /uses: softprops\/action-gh-release@[0-9a-f]{40} # v3\.\d+\.\d+/,
+    );
     expect(publishStep).toContain('tag_name: $' + '{{ github.ref_name }}');
     expect(publishStep).toContain('make_latest: false');
   });
