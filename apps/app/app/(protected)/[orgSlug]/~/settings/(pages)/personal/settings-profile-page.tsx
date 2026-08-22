@@ -307,6 +307,7 @@ export default function SettingsProfilePage() {
       >
         <div className="space-y-3">
           <Switch
+            aria-label={translate('settings.profile.workflowEmail.label')}
             label={translate('settings.profile.workflowEmail.label')}
             description={translate(
               'settings.profile.workflowEmail.description',

@@ -609,10 +609,16 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
-      expect(creative.link_data.name).toBe('Shop Now');
-      expect(creative.link_data.message).toBe('Best deals this summer!');
-      expect(creative.link_data.image_hash).toBe('abc123hash');
-      expect(creative.link_data.link).toBe('https://example.com/landing');
+      expect(creative.object_story_spec.link_data.name).toBe('Shop Now');
+      expect(creative.object_story_spec.link_data.message).toBe(
+        'Best deals this summer!',
+      );
+      expect(creative.object_story_spec.link_data.image_hash).toBe(
+        'abc123hash',
+      );
+      expect(creative.object_story_spec.link_data.link).toBe(
+        'https://example.com/landing',
+      );
     });
 
     it('should include call to action in creative', async () => {
@@ -625,7 +631,9 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
-      expect(creative.link_data.call_to_action.type).toBe('SHOP_NOW');
+      expect(creative.object_story_spec.link_data.call_to_action.type).toBe(
+        'SHOP_NOW',
+      );
     });
 
     it('should include video_data when videoId is provided', async () => {
@@ -648,8 +656,8 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
-      expect(creative.video_data.video_id).toBe('vid_123');
-      expect(creative.video_data.title).toBe('Watch This');
+      expect(creative.object_story_spec.video_data.video_id).toBe('vid_123');
+      expect(creative.object_story_spec.video_data.title).toBe('Watch This');
     });
 
     it('should handle minimal creative (linkUrl only)', async () => {
@@ -668,9 +676,11 @@ describe('MetaAdsService - Write Operations', () => {
         unknown
       >;
       const creative = JSON.parse(params.creative as string);
-      expect(creative.link_data.link).toBe('https://example.com');
-      expect(creative.link_data.name).toBeUndefined();
-      expect(creative.link_data.message).toBeUndefined();
+      expect(creative.object_story_spec.link_data.link).toBe(
+        'https://example.com',
+      );
+      expect(creative.object_story_spec.link_data.name).toBeUndefined();
+      expect(creative.object_story_spec.link_data.message).toBeUndefined();
     });
 
     it('should throw and log error on API failure', async () => {
