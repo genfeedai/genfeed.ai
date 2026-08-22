@@ -284,6 +284,25 @@ function wrapCollectionInJsonApi<T>(
   };
 }
 
+export function buildEmptyElementsAggregatePayload() {
+  const emptyCollection = (type: string) =>
+    wrapCollectionInJsonApi([], type, type);
+
+  return {
+    data: {
+      blacklists: emptyCollection('element-blacklists'),
+      cameraMovements: emptyCollection('element-camera-movements'),
+      cameras: emptyCollection('element-cameras'),
+      lenses: emptyCollection('element-lenses'),
+      lightings: emptyCollection('element-lightings'),
+      moods: emptyCollection('element-moods'),
+      scenes: emptyCollection('element-scenes'),
+      sounds: emptyCollection('element-sounds'),
+      styles: emptyCollection('element-styles'),
+    },
+  };
+}
+
 function buildProtectedAppBootstrapPayload() {
   return {
     access: {
@@ -1629,6 +1648,14 @@ export async function setupApiMocks(
   });
 
   // Core resource routes (prod api.genfeed.ai + local dev)
+  await routeApi('/elements**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify(buildEmptyElementsAggregatePayload()),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApi('/videos/**', handleVideoRoutes);
 
   await routeApi('/images/**', handleImageRoutes);
