@@ -21,7 +21,7 @@ import {
   modelProviderToByokProvider,
 } from '@api/services/byok/byok-provider-map.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import type { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import type { ByokProvider } from '@genfeedai/enums';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -82,7 +82,7 @@ export class VideoGenerationCreditsService {
   private async resolveActiveByokProvider(
     organizationId: string,
     modelKey: string,
-    modelProvider?: ModelProvider,
+    modelProvider?: string,
   ): Promise<ByokProvider | undefined> {
     const provider =
       (modelProvider
