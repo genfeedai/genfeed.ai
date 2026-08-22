@@ -11,7 +11,10 @@ import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avata
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import type {
+  GenerationPlaceholderCreatedCallback,
+  GenerationPlaceholderScope,
+} from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -21,7 +24,10 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  AVATAR_GENERATION_CREDIT_COST,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
 import {
   ActivitySource,
   ByokProvider,
@@ -112,6 +118,8 @@ export class AvatarVideoGenerationService {
     params: AvatarVideoGenerationParams,
     context: AvatarVideoGenerationContext,
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
+    placeholderScope?: GenerationPlaceholderScope,
+    onCreditsPrepared?: () => Promise<void>,
   ): Promise<AvatarVideoGenerationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let ingredientId: string | null = null;
@@ -129,6 +137,8 @@ export class AvatarVideoGenerationService {
           brandId: brand.id,
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
+          groupId: placeholderScope?.groupId,
+          groupIndex: placeholderScope?.groupIndex,
           model: MODEL_KEYS.HEYGEN_AVATAR,
           organizationId: context.organizationId,
           parentId:
@@ -142,11 +152,36 @@ export class AvatarVideoGenerationService {
       ingredientId = String(ingredientData.id);
       await onPlaceholderCreated?.(ingredientId);
 
+      if (
+        placeholderScope?.settleCreditsExternally &&
+        !placeholderScope.isByokBypass
+      ) {
+        const hasCredits =
+          await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+            context.organizationId,
+            AVATAR_GENERATION_CREDIT_COST,
+          );
+        if (!hasCredits) {
+          throw new HttpException(
+            {
+              detail: 'Insufficient credits for avatar generation.',
+              title: 'Insufficient credits',
+            },
+            HttpStatus.PAYMENT_REQUIRED,
+          );
+        }
+      }
+      await onCreditsPrepared?.();
+
       const photoUrl = await this.resolvePhotoUrl(
         params,
         context,
         resolvedIdentity.photoIngredientId,
         resolvedIdentity.photoUrl,
+      );
+      await this.metadataService.patch(
+        metadataData.id,
+        new MetadataEntity({ externalProvider: ByokProvider.HEYGEN }),
       );
       const materializedIdentity = await this.materializeSavedVoice(
         resolvedIdentity,
@@ -182,13 +217,15 @@ export class AvatarVideoGenerationService {
         }),
       );
 
-      await this.creditsUtilsService.deductCreditsFromOrganization(
-        context.organizationId,
-        context.userId,
-        1,
-        `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
-        ActivitySource.VIDEO_GENERATION,
-      );
+      if (!placeholderScope?.settleCreditsExternally) {
+        await this.creditsUtilsService.deductCreditsFromOrganization(
+          context.organizationId,
+          context.userId,
+          AVATAR_GENERATION_CREDIT_COST,
+          `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
+          ActivitySource.VIDEO_GENERATION,
+        );
+      }
 
       await this.publishInitialStatus(ingredientId, context.userId);
 

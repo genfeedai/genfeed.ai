@@ -24,6 +24,14 @@ const MAX_REVIEW_ITEMS = 100;
 
 class ManualReviewBatchItemDto {
   @ApiProperty({
+    description: 'Durable key preventing duplicate canonical draft Posts',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  targetIdempotencyKey?: string;
+
+  @ApiProperty({
     description: 'Content format for the review item',
     enum: REVIEW_BATCH_ITEM_FORMATS,
     enumName: 'ReviewBatchItemFormat',
@@ -111,6 +119,14 @@ class ManualReviewBatchItemDto {
   @IsOptional()
   @IsString()
   sourceWorkflowName?: string;
+
+  @ApiProperty({
+    description: 'Originating workflow execution identifier',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  workflowExecutionId?: string;
 
   @ApiProperty({
     description: 'Originating content run identifier for publish attribution',

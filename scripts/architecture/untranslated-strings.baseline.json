@@ -81,7 +81,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewDetailPanelHeader.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewGrid.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewHistoryPanel.tsx": 2,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewLineagePanel.tsx": 7,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewPostHoverPreview.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewPublishOutcomePanel.tsx": 13,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/settings/agent-defaults/content.tsx": 3,

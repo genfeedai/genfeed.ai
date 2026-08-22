@@ -6,6 +6,7 @@ import {
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
+import { ByokProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -285,6 +286,34 @@ describe('CreditsGuard', () => {
       deferred: true,
       description: 'Image generation',
     });
+  });
+
+  it('applies a provider BYOK bypass before returning a deferred request', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+      if (key === CREDITS_KEY) {
+        return {
+          description: 'Avatar generation',
+          provider: ByokProvider.HEYGEN,
+        };
+      }
+      if (key === CREDITS_DEFER_MODEL_RESOLUTION_KEY) return true;
+      return undefined;
+    });
+    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    const ctx = createContext();
+
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+
+    const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
+    expect(req.creditsConfig).toMatchObject({
+      amount: 0,
+      deferred: true,
+      isByokBypass: true,
+      provider: ByokProvider.HEYGEN,
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('stores creditsConfig on the request after successful check', async () => {

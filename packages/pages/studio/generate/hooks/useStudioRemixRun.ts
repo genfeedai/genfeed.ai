@@ -52,16 +52,19 @@ function buildVaryEdits(run: BrandRemixRunView): BrandRemixDraftEdits {
     fidelityMode: draft.fidelityMode,
     ...(canonicalIdentity ? { identity: canonicalIdentity } : {}),
     intent: draft.intent,
-    output: {
-      aspectRatio: draft.output.aspectRatio,
-      count: draft.output.count,
-      kind: draft.output.kind,
-      ...(draft.output.kind === 'image'
-        ? { durationSeconds: null }
-        : draft.output.durationSeconds
-          ? { durationSeconds: draft.output.durationSeconds }
-          : {}),
-    },
+    output:
+      draft.output.kind === 'copy'
+        ? { count: draft.output.count, kind: 'copy' }
+        : {
+            aspectRatio: draft.output.aspectRatio,
+            count: draft.output.count,
+            kind: draft.output.kind,
+            ...(draft.output.kind === 'image'
+              ? { durationSeconds: null }
+              : draft.output.durationSeconds
+                ? { durationSeconds: draft.output.durationSeconds }
+                : {}),
+          },
     references: draft.references
       .filter((reference) => reference.source === 'explicit')
       .map((reference) => ({

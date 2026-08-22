@@ -1,8 +1,10 @@
 import {
   brandRemixExecutionSchema,
+  brandRemixOutputSchema,
   brandRemixReadinessSchema,
   brandRemixRunViewSchema,
   createBrandRemixRunSchema,
+  pausedMetaCampaignDraftSchema,
   reviseBrandRemixRunSchema,
 } from '@api-types/contracts/brand-remix-run.contract';
 import { describe, expect, test } from 'vitest';
@@ -25,6 +27,70 @@ const imageBrief = {
 } as const;
 
 describe('brand remix run contract', () => {
+  test('models grouped copy variants without inventing a second run contract', () => {
+    expect(brandRemixOutputSchema.parse({ count: 3, kind: 'copy' })).toEqual({
+      count: 3,
+      kind: 'copy',
+    });
+
+    expect(
+      brandRemixExecutionSchema.parse({
+        actualCount: 1,
+        generationBrief: {
+          ...imageBrief,
+          mediaKind: 'text',
+          output: {},
+          references: [],
+        },
+        partialReason: '2 outputs were rejected as too similar to the source.',
+        requestedCount: 3,
+        variants: [
+          {
+            assetIds: [],
+            content: 'A distinct, brand-owned TikTok caption.',
+            id: 'variant_copy_1',
+            recipeRevision: 2,
+            status: 'ready',
+          },
+        ],
+      }),
+    ).toMatchObject({
+      actualCount: 1,
+      partialReason: expect.any(String),
+      variants: [
+        expect.objectContaining({
+          content: 'A distinct, brand-owned TikTok caption.',
+        }),
+      ],
+    });
+  });
+
+  test('requires complete immutable lineage for a paused Meta draft', () => {
+    const draft = pausedMetaCampaignDraftSchema.parse({
+      adAccountId: 'act_123',
+      adId: 'ad_1',
+      adSetId: 'adset_1',
+      campaignId: 'campaign_1',
+      credentialId: 'credential_1',
+      ingredientId: 'ingredient_1',
+      postId: 'post_1',
+      recipeRevision: 2,
+      recipeVersion: 1,
+      replayed: false,
+      status: 'PAUSED',
+      variantId: 'variant_1',
+      workflowExecutionId: 'workflow_execution_1',
+      workflowId: 'workflow_1',
+    });
+
+    expect(draft.status).toBe('PAUSED');
+    expect(draft).toMatchObject({
+      ingredientId: 'ingredient_1',
+      postId: 'post_1',
+      variantId: 'variant_1',
+    });
+  });
+
   test('accepts a versioned TikTok trend run with durable semantic references', () => {
     const run = brandRemixRunViewSchema.parse({
       brand: {

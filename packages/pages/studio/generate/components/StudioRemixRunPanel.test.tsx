@@ -32,6 +32,7 @@ const run = {
     variants: [
       {
         assetIds: ['video-1'],
+        content: 'Lead with proof, then invite the audience to try Northstar.',
         id: 'variant-1',
         recipeRevision: 2,
         status: 'ready',
@@ -72,6 +73,12 @@ describe('StudioRemixRunPanel', () => {
     expect(screen.getByText('Recipe v1 · revision 2')).toBeVisible();
     expect(screen.getByText('variant-1')).toBeVisible();
     expect(screen.getByText('variant-2')).toBeVisible();
+    expect(screen.getByText('1 of 2 outputs ready')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Lead with proof, then invite the audience to try Northstar.',
+      ),
+    ).toBeVisible();
     expect(screen.getByText('Product · Brand Default')).toBeVisible();
   });
 
@@ -150,11 +157,14 @@ describe('StudioRemixRunPanel', () => {
       expect.stringContaining('variant-1'),
     );
     expect(copyToClipboard).toHaveBeenCalledWith(
-      expect.stringContaining('video-1'),
+      expect.stringContaining(
+        'Lead with proof, then invite the audience to try Northstar.',
+      ),
     );
   });
 
-  it('locks review submission once a batch exists and explains the unavailable Meta handoff after approval', () => {
+  it('locks review submission once a batch exists and prepares a paused Meta draft after approval', () => {
+    const onPreparePaidDraft = vi.fn();
     const paidRun = {
       ...run,
       draft: {
@@ -162,10 +172,22 @@ describe('StudioRemixRunPanel', () => {
         target: { kind: 'paid' as const, platform: 'meta' as const },
       },
       phase: 'in_review' as const,
+      sourceSnapshot: {
+        ...run.sourceSnapshot,
+        selector: {
+          adAccountId: 'act-1',
+          adId: 'ad-1',
+          credentialId: 'credential-1',
+          kind: 'connected_ad' as const,
+          platform: 'meta' as const,
+        },
+      },
       review: {
         approvedPostIds: [],
         batchId: 'batch-1',
         postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
       },
     };
     const { rerender } = render(
@@ -173,6 +195,7 @@ describe('StudioRemixRunPanel', () => {
         error={null}
         isWorking={false}
         onReview={vi.fn()}
+        onPreparePaidDraft={onPreparePaidDraft}
         onVary={vi.fn()}
         run={paidRun}
       />,
@@ -191,6 +214,7 @@ describe('StudioRemixRunPanel', () => {
         error={null}
         isWorking={false}
         onReview={vi.fn()}
+        onPreparePaidDraft={onPreparePaidDraft}
         onVary={vi.fn()}
         run={{
           ...paidRun,
@@ -200,12 +224,54 @@ describe('StudioRemixRunPanel', () => {
       />,
     );
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Prepare paused Meta draft' }),
+    );
+    expect(onPreparePaidDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains why an approved paid Meta run cannot hand off a non-Meta source', () => {
+    render(
+      <StudioRemixRunPanel
+        error={null}
+        isWorking={false}
+        onPreparePaidDraft={vi.fn()}
+        onReview={vi.fn()}
+        onVary={vi.fn()}
+        run={{
+          ...run,
+          draft: {
+            ...run.draft,
+            target: { kind: 'paid', platform: 'meta' },
+          },
+          phase: 'approved',
+          review: {
+            approvedPostIds: ['post-1'],
+            batchId: 'batch-1',
+            postIds: ['post-1'],
+            workflowExecutionId: 'workflow-execution-1',
+            workflowId: 'workflow-1',
+          },
+          sourceSnapshot: {
+            ...run.sourceSnapshot,
+            selector: {
+              adAccountId: 'tiktok-account-1',
+              adId: 'tiktok-ad-1',
+              credentialId: 'credential-1',
+              kind: 'connected_ad',
+              platform: 'tiktok',
+            },
+          },
+        }}
+      />,
+    );
+
     expect(
-      screen.queryByRole('button', { name: /Meta handoff/i }),
+      screen.queryByRole('button', { name: 'Prepare paused Meta draft' }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        'Meta handoff is waiting for approved creative upload support.',
+        'Paused Meta handoff requires a connected Meta ad source and an available Meta Ads connection.',
       ),
     ).toBeVisible();
   });
@@ -224,6 +290,8 @@ describe('StudioRemixRunPanel', () => {
             approvedPostIds: ['post-1'],
             batchId: 'batch-1',
             postIds: ['post-1'],
+            workflowExecutionId: 'workflow-execution-1',
+            workflowId: 'workflow-1',
           },
         }}
       />,

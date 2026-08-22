@@ -180,6 +180,10 @@ describe('VideoGenerationService', () => {
     const creditsService = new VideoGenerationCreditsService(
       creditsUtilsService as never,
       modelsService as never,
+      {
+        isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+        isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
+      } as never,
     );
     const executionService = new VideoGenerationExecutionService(
       activitiesService as never,
@@ -474,6 +478,19 @@ describe('VideoGenerationService', () => {
       ).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).not.toHaveBeenCalled();
     });
+  });
+
+  it('persists the selected provider before the external generation call', async () => {
+    const { service, klingAIService, metadataService } = createService();
+    klingAIService.queueGenerateTextToVideo.mockImplementation(async () => {
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-1',
+        expect.objectContaining({ externalProvider: 'klingai' }),
+      );
+      return 'kling-job';
+    });
+
+    await service.generateVideo(buildUser(), baseDto(), buildRequest());
   });
 
   // Finding 5 — every batch placeholder gets its own indexed external id.

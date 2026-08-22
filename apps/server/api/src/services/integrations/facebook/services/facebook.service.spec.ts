@@ -2,12 +2,13 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { of, throwError } from 'rxjs';
 
 describe('FacebookService', () => {
   let service: FacebookService;
-  let configService: ConfigService;
 
   const mockConfigService = {
     get: vi.fn((key: string) => {
@@ -24,6 +25,7 @@ describe('FacebookService', () => {
   const mockCredentialsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    patch: vi.fn(),
     update: vi.fn(),
   };
 
@@ -63,7 +65,6 @@ describe('FacebookService', () => {
     }).compile();
 
     service = module.get<FacebookService>(FacebookService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   afterEach(() => {
@@ -163,6 +164,98 @@ describe('FacebookService', () => {
       expect(profile.id).toBe('123');
       expect(profile.name).toBe('Test User');
       expect(profile.email).toBe('test@fb.com');
+    });
+  });
+
+  describe('getGrantedPermissions', () => {
+    it('captures only permissions Meta reports as granted', async () => {
+      const { of } = await import('rxjs');
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: {
+            data: [
+              { permission: 'ads_read', status: 'granted' },
+              { permission: 'ads_management', status: 'granted' },
+              { permission: 'pages_manage_posts', status: 'declined' },
+            ],
+          },
+        }),
+      );
+
+      const result = await service.getGrantedPermissions('valid-token');
+
+      expect(result).toEqual(['ads_management', 'ads_read']);
+      expect(mockHttpService.get).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v18.0/me/permissions',
+        { params: { access_token: 'valid-token' } },
+      );
+    });
+
+    it('distinguishes a captured empty grant set from a malformed payload', async () => {
+      const { of } = await import('rxjs');
+      mockHttpService.get
+        .mockReturnValueOnce(of({ data: {} }))
+        .mockReturnValueOnce(of({ data: { data: [] } }));
+
+      await expect(
+        service.getGrantedPermissions('valid-token'),
+      ).resolves.toBeUndefined();
+      await expect(
+        service.getGrantedPermissions('valid-token'),
+      ).resolves.toEqual([]);
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('keeps the refreshed credential connected when permission capture fails', async () => {
+      vi.spyOn(EncryptionUtil, 'decrypt').mockReturnValue('decrypted-token');
+      mockCredentialsService.findOne.mockResolvedValue({
+        accessToken: 'encrypted-token',
+        id: 'credential-1',
+      });
+      mockCredentialsService.patch.mockResolvedValue({
+        accessToken: 'long-lived-token',
+        id: 'credential-1',
+        isConnected: true,
+      });
+      mockHttpService.get
+        .mockReturnValueOnce(
+          of({
+            data: {
+              access_token: 'long-lived-token',
+              expires_in: 5_184_000,
+            },
+          }),
+        )
+        .mockReturnValueOnce(
+          throwError(() => new Error('Graph permissions unavailable')),
+        );
+
+      await expect(
+        service.refreshToken('organization-1', 'brand-1'),
+      ).resolves.toEqual(
+        expect.objectContaining({
+          accessToken: 'long-lived-token',
+          isConnected: true,
+        }),
+      );
+
+      expect(mockCredentialsService.patch).toHaveBeenCalledTimes(1);
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'credential-1',
+        expect.objectContaining({
+          accessToken: 'long-lived-token',
+          isConnected: true,
+        }),
+      );
+      expect(mockCredentialsService.patch).not.toHaveBeenCalledWith(
+        'credential-1',
+        { isConnected: false },
+      );
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('permission capture failed'),
+        expect.any(Error),
+      );
     });
   });
 });

@@ -10,7 +10,11 @@
 
 import { z } from 'zod';
 
-export const generationBriefMediaKindValues = ['image', 'video'] as const;
+export const generationBriefMediaKindValues = [
+  'image',
+  'text',
+  'video',
+] as const;
 
 export const generationFidelityModeValues = [
   'off',
@@ -226,8 +230,19 @@ export const videoGenerationBriefSchema = z
   })
   .strict();
 
+export const textGenerationBriefSchema = z
+  .object({
+    ...generationBriefBaseShape,
+    intent: generationBriefIntentSchema,
+    mediaKind: z.literal('text'),
+    output: z.object({}).strict(),
+    references: z.array(generationBriefReferenceSchema).max(20).default([]),
+  })
+  .strict();
+
 export const generationBriefSchema = z.discriminatedUnion('mediaKind', [
   imageGenerationBriefSchema,
+  textGenerationBriefSchema,
   videoGenerationBriefSchema,
 ]);
 
@@ -272,5 +287,6 @@ export type VideoGenerationBriefOutput = z.infer<
   typeof videoGenerationBriefOutputSchema
 >;
 export type ImageGenerationBrief = z.infer<typeof imageGenerationBriefSchema>;
+export type TextGenerationBrief = z.infer<typeof textGenerationBriefSchema>;
 export type VideoGenerationBrief = z.infer<typeof videoGenerationBriefSchema>;
 export type GenerationBrief = z.infer<typeof generationBriefSchema>;

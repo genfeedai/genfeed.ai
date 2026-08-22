@@ -111,6 +111,7 @@ export class CreditsGuard implements CanActivate {
 
     try {
       let requiredCredits: number;
+      let creditsDeferred = false;
 
       // Try to get model and outputs from request body (supports JSON:API data.attributes)
       let modelKey: string | undefined;
@@ -390,13 +391,15 @@ export class CreditsGuard implements CanActivate {
           'Credits guard: autoSelectModel detected, deferring credit check',
         );
         request.creditsConfig = { ...creditsConfig, amount: 0, deferred: true };
-        return true;
+        creditsDeferred = true;
+        requiredCredits = 0;
       } else if (shouldDeferModelResolution) {
         this.loggerService.debug(
           'Credits guard: deferring credit check until controller resolves default model',
         );
         request.creditsConfig = { ...creditsConfig, amount: 0, deferred: true };
-        return true;
+        creditsDeferred = true;
+        requiredCredits = 0;
       } else if (creditsConfig.amount !== undefined) {
         requiredCredits = creditsConfig.amount;
       } else {
@@ -486,7 +489,6 @@ export class CreditsGuard implements CanActivate {
       let byokProvider: ByokProvider | undefined = creditsConfig.provider;
 
       if (!byokProvider && resolvedModel?.provider) {
-        // @ts-expect-error TS2345
         byokProvider = modelProviderToByokProvider(resolvedModel.provider);
       }
 
@@ -539,6 +541,7 @@ export class CreditsGuard implements CanActivate {
           request.creditsConfig = {
             ...creditsConfig,
             amount: requiredCredits,
+            ...(creditsDeferred ? { deferred: true } : {}),
             isByokBypass: true,
             modelKey: modelKey || creditsConfig.modelKey,
           };
@@ -546,6 +549,8 @@ export class CreditsGuard implements CanActivate {
         }
       }
       // --- End BYOK bypass ---
+
+      if (creditsDeferred) return true;
 
       const hasEnoughCredits =
         await this.creditsUtilsService.checkOrganizationCreditsAvailable(

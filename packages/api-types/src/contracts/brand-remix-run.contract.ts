@@ -33,7 +33,12 @@ export const brandRemixOrganicPlatformValues = [
   'instagram',
   'youtube',
 ] as const;
-export const brandRemixOutputKindValues = ['image', 'video', 'avatar'] as const;
+export const brandRemixOutputKindValues = [
+  'copy',
+  'image',
+  'video',
+  'avatar',
+] as const;
 export const brandRemixPhaseValues = [
   'prefilled',
   'generating',
@@ -112,6 +117,7 @@ export const brandRemixSourceSnapshotSchema = z
     authorHandle: shortTextSchema.optional(),
     canonicalUrl: z.string().url().max(2_048).optional(),
     capturedAt: z.string().datetime(),
+    destinationUrl: z.string().url().max(2_048).optional(),
     evidence: z.array(shortTextSchema).max(50).default([]),
     metrics: z.record(z.string().trim().min(1).max(100), z.number().finite()),
     pattern: brandRemixSourcePatternSchema,
@@ -154,6 +160,12 @@ export const brandRemixIntentSchema = z
   .strict();
 
 export const brandRemixOutputSchema = z.discriminatedUnion('kind', [
+  z
+    .object({
+      count: z.number().int().min(1).max(8),
+      kind: z.literal('copy'),
+    })
+    .strict(),
   z
     .object({
       aspectRatio: aspectRatioSchema,
@@ -223,6 +235,7 @@ export const brandRemixDraftSchema = z
 export const brandRemixReadinessIssueCodeValues = [
   'organization_defaults',
   'missing_avatar',
+  'missing_ads_management',
   'missing_voice',
   'missing_required_reference',
   'source_media_unavailable',
@@ -239,6 +252,7 @@ export const brandRemixReadinessIssueSchema = z
     field: z.enum([
       'intent',
       'output',
+      'target',
       'fidelityMode',
       'references',
       'avatarAssetId',
@@ -259,6 +273,7 @@ export const brandRemixReadinessSchema = z
 export const brandRemixOutputVariantSchema = z
   .object({
     assetIds: z.array(opaqueIdSchema).max(20).default([]),
+    content: longTextSchema.optional(),
     error: shortTextSchema.optional(),
     id: opaqueIdSchema,
     recipeRevision: z.number().int().positive(),
@@ -283,8 +298,17 @@ export const brandRemixExecutionSchema = z
   .object({
     actualCount: z.number().int().min(0).max(8),
     generationBrief: durableBrandRemixGenerationBriefSchema,
+    partialReason: shortTextSchema.optional(),
     requestedCount: z.number().int().min(1).max(8),
     variants: z.array(brandRemixOutputVariantSchema).max(8),
+  })
+  .strict();
+
+export const brandRemixGenerationClaimSchema = z
+  .object({
+    claimedAt: z.string().datetime(),
+    id: opaqueIdSchema,
+    variantIds: z.array(opaqueIdSchema).min(1).max(8),
   })
   .strict();
 
@@ -293,17 +317,47 @@ export const brandRemixReviewSchema = z
     approvedPostIds: z.array(opaqueIdSchema).max(8).default([]),
     batchId: opaqueIdSchema,
     postIds: z.array(opaqueIdSchema).max(8),
+    workflowExecutionId: opaqueIdSchema.optional(),
+    workflowId: opaqueIdSchema.optional(),
+  })
+  .strict();
+
+export const brandRemixReviewClaimSchema = z
+  .object({
+    claimedAt: z.string().datetime(),
+    id: opaqueIdSchema,
+    selectedVariantIds: z.array(opaqueIdSchema).min(1).max(8),
+    status: z.enum(['claimed', 'completed']),
   })
   .strict();
 
 export const pausedMetaCampaignDraftSchema = z
   .object({
+    adAccountId: opaqueIdSchema,
     adId: opaqueIdSchema,
     adSetId: opaqueIdSchema,
     campaignId: opaqueIdSchema,
+    credentialId: opaqueIdSchema,
+    ingredientId: opaqueIdSchema,
+    postId: opaqueIdSchema,
+    recipeRevision: z.number().int().positive(),
+    recipeVersion: z.literal(BRAND_REMIX_RUN_VERSION),
     replayed: z.boolean(),
     status: z.literal('PAUSED'),
+    variantId: opaqueIdSchema,
     workflowExecutionId: opaqueIdSchema,
+    workflowId: opaqueIdSchema.optional(),
+  })
+  .strict();
+
+export const pausedMetaCampaignDraftOperationSchema = z
+  .object({
+    adAccountId: opaqueIdSchema,
+    claimedAt: z.string().datetime(),
+    credentialId: opaqueIdSchema,
+    id: opaqueIdSchema,
+    linkUrl: z.string().url().max(2_048),
+    variantId: opaqueIdSchema,
   })
   .strict();
 
@@ -320,11 +374,14 @@ export const brandRemixRunConfigSchema = z
     contract: z.literal(BRAND_REMIX_RUN_CONTRACT),
     draft: brandRemixDraftSchema,
     execution: brandRemixExecutionSchema.optional(),
+    generationClaim: brandRemixGenerationClaimSchema.optional(),
     paidDraft: pausedMetaCampaignDraftSchema.optional(),
+    paidDraftOperation: pausedMetaCampaignDraftOperationSchema.optional(),
     phase: z.enum(brandRemixPhaseValues),
     readiness: brandRemixReadinessSchema,
     recipeVersion: z.literal(BRAND_REMIX_RUN_VERSION),
     review: brandRemixReviewSchema.optional(),
+    reviewClaim: brandRemixReviewClaimSchema.optional(),
     revision: z.number().int().positive(),
     source: z.nativeEnum(ContentRunSource).optional(),
     sourceSnapshot: brandRemixSourceSnapshotSchema,
@@ -340,12 +397,15 @@ export const brandRemixRunViewSchema = z
     createdAt: z.string().datetime(),
     draft: brandRemixDraftSchema,
     execution: brandRemixExecutionSchema.optional(),
+    generationClaim: brandRemixGenerationClaimSchema.optional(),
     id: opaqueIdSchema,
     paidDraft: pausedMetaCampaignDraftSchema.optional(),
+    paidDraftOperation: pausedMetaCampaignDraftOperationSchema.optional(),
     phase: z.enum(brandRemixPhaseValues),
     readiness: brandRemixReadinessSchema,
     recipeVersion: z.literal(BRAND_REMIX_RUN_VERSION),
     review: brandRemixReviewSchema.optional(),
+    reviewClaim: brandRemixReviewClaimSchema.optional(),
     revision: z.number().int().positive(),
     source: z.nativeEnum(ContentRunSource).optional(),
     sourceSnapshot: brandRemixSourceSnapshotSchema,
@@ -422,8 +482,7 @@ export const preparePausedMetaCampaignDraftSchema = z
         adAccountId: opaqueIdSchema,
         credentialId: opaqueIdSchema,
       })
-      .strict()
-      .optional(),
+      .strict(),
     variantId: opaqueIdSchema.optional(),
   })
   .strict();

@@ -15,15 +15,22 @@ import {
   videoOutputCount,
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import { ByokService } from '@api/services/byok/byok.service';
+import {
+  modelKeyToByokProvider,
+  modelProviderToByokProvider,
+} from '@api/services/byok/byok-provider-map.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import type { ByokProvider, ModelProvider } from '@genfeedai/enums';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class VideoGenerationCreditsService {
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly modelsService: ModelsService,
+    private readonly byokService: ByokService,
   ) {}
 
   async ensureDeferredCredits(
@@ -39,12 +46,18 @@ export class VideoGenerationCreditsService {
 
     const { requiredCredits, resolvedModelDoc } =
       await this.resolveRequiredCredits(createVideoDto, model);
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+    const byokProvider = await this.resolveActiveByokProvider(
+      organization,
+      model,
+      resolvedModelDoc?.provider,
+    );
+    if (
+      !byokProvider &&
+      !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
         requiredCredits,
-      );
-    if (!hasCredits) {
+      ))
+    ) {
       const balance =
         await this.creditsUtilsService.getOrganizationCreditsBalance(
           organization,
@@ -57,6 +70,44 @@ export class VideoGenerationCreditsService {
       model,
       resolvedModelDoc ? buildPricingAuditStamp(resolvedModelDoc) : undefined,
     );
+    if (byokProvider) {
+      reqWithCredits.creditsConfig = {
+        ...reqWithCredits.creditsConfig,
+        isByokBypass: true,
+        provider: byokProvider,
+      };
+    }
+  }
+
+  private async resolveActiveByokProvider(
+    organizationId: string,
+    modelKey: string,
+    modelProvider?: ModelProvider,
+  ): Promise<ByokProvider | undefined> {
+    const provider =
+      (modelProvider
+        ? modelProviderToByokProvider(modelProvider)
+        : undefined) ?? modelKeyToByokProvider(modelKey);
+    if (
+      !provider ||
+      !(await this.byokService.isByokActiveForProvider(
+        organizationId,
+        provider,
+      ))
+    ) {
+      return undefined;
+    }
+    if (!(await this.byokService.isByokBillingInGoodStanding(organizationId))) {
+      throw new HttpException(
+        {
+          detail:
+            'BYOK access is suspended due to an unpaid platform fee invoice. Please update your payment method or purchase a credit pack.',
+          title: 'BYOK billing past due',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    return provider;
   }
 
   private async resolveRequiredCredits(

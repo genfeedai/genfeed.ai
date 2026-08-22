@@ -12,7 +12,7 @@ const MODEL_PROVIDER_TO_BYOK: Record<string, ByokProvider> = {
  * Used when a model document has a `provider` field.
  */
 export function modelProviderToByokProvider(
-  modelProvider: ModelProvider,
+  modelProvider: string,
 ): ByokProvider | undefined {
   return MODEL_PROVIDER_TO_BYOK[modelProvider];
 }

@@ -25,9 +25,7 @@ describe('byok-provider-map.util', () => {
     });
 
     it('should return undefined for unknown provider', () => {
-      expect(
-        modelProviderToByokProvider('unknown' as ModelProvider),
-      ).toBeUndefined();
+      expect(modelProviderToByokProvider('unknown')).toBeUndefined();
     });
   });
 

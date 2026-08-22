@@ -70,6 +70,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ByokService } from '@api/services/byok/byok.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -262,6 +263,13 @@ describe('ImagesOperationsController', () => {
           provide: BrandsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(mockBrand),
+          },
+        },
+        {
+          provide: ByokService,
+          useValue: {
+            isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+            isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
           },
         },
         {

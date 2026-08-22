@@ -26,11 +26,14 @@ export function buildStudioRemixRunEdits(
   prompt: string,
   settings: StudioGenerateSettings,
   type: StudioGenerateType,
+  selectedLibraryAssetIds: string[] = [],
 ): BrandRemixDraftEdits {
   const outputKind =
-    type === 'image' || type === 'video' || type === 'avatar'
-      ? type
-      : run.draft.output.kind;
+    run.draft.output.kind === 'copy'
+      ? 'copy'
+      : type === 'image' || type === 'video' || type === 'avatar'
+        ? type
+        : run.draft.output.kind;
   const canonicalIdentity = resolvePairedRemixIdentity(run.draft.identity);
   return {
     fidelityMode: run.draft.fidelityMode,
@@ -50,25 +53,40 @@ export function buildStudioRemixRunEdits(
       ...run.draft.intent,
       objective: prompt.trim(),
     },
-    output: {
-      aspectRatio: settings.aspectRatio,
-      count: settings.outputs,
-      kind: outputKind,
-      ...(outputKind === 'image'
-        ? { durationSeconds: null }
-        : settings.duration
-          ? { durationSeconds: settings.duration }
-          : {}),
-    },
-    references: run.draft.references
-      .filter((reference) => reference.source === 'explicit')
-      .map((reference) => ({
-        assetId: reference.assetId,
-        ...(reference.description
-          ? { description: reference.description }
-          : {}),
-        role: reference.role,
-      })),
+    output:
+      outputKind === 'copy'
+        ? { count: settings.outputs, kind: outputKind }
+        : {
+            aspectRatio: settings.aspectRatio,
+            count: settings.outputs,
+            kind: outputKind,
+            ...(outputKind === 'image'
+              ? { durationSeconds: null }
+              : settings.duration
+                ? { durationSeconds: settings.duration }
+                : {}),
+          },
+    references: [
+      ...run.draft.references
+        .filter((reference) => reference.source === 'explicit')
+        .map((reference) => ({
+          assetId: reference.assetId,
+          ...(reference.description
+            ? { description: reference.description }
+            : {}),
+          role: reference.role,
+        })),
+      ...selectedLibraryAssetIds
+        .filter(
+          (assetId) =>
+            !run.draft.references.some(
+              (reference) =>
+                reference.assetId === assetId &&
+                reference.source === 'explicit',
+            ),
+        )
+        .map((assetId) => ({ assetId, role: 'style' as const })),
+    ],
     target: run.draft.target,
   };
 }

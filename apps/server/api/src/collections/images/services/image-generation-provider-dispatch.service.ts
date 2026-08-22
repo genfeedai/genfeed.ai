@@ -115,6 +115,17 @@ export class ImageGenerationProviderDispatchService {
       return null;
     }
 
+    const externalProvider = this.providerRegistry.providerFor(
+      context.model,
+      context.modelProvider,
+    );
+    if (externalProvider) {
+      await this.metadataService.patch(
+        context.metadataData.id,
+        new MetadataEntity({ externalProvider }),
+      );
+    }
+
     const pollIds = [context.ingredientData.id.toString()];
     const generationPromise = this.execute(context, provider, pollIds);
 

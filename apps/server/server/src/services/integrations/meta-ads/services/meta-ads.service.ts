@@ -13,17 +13,37 @@ import type {
   MetaAdAccount,
   MetaAdCreative,
   MetaAdSetTargeting,
+  MetaAdVideo,
   MetaCampaign,
   MetaCampaignComparison,
   MetaImageUploadResponse,
   MetaInsightsData,
   MetaInsightsParams,
+  MetaNamedAdObject,
   MetaTopPerformer,
   MetaVideoUploadResponse,
   UpdateAdSetParams,
   UpdateCampaignParams,
 } from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { firstValueFrom } from 'rxjs';
+
+interface MetaGraphPage<T> {
+  data: T[];
+  paging?: {
+    cursors?: { after?: string };
+    next?: string;
+  };
+}
+
+const MAX_GRAPH_PAGE_COUNT = 25;
+const VIDEO_THUMBNAIL_RETRY_DELAYS_MS = [0, 1_000, 2_000, 4_000] as const;
+
+export class MetaGraphPaginationLimitError extends Error {
+  constructor(path: string) {
+    super(`Meta Graph pagination exceeded the safe page limit for ${path}.`);
+    this.name = 'MetaGraphPaginationLimitError';
+  }
+}
 
 @Injectable()
 export class MetaAdsService {
@@ -135,6 +155,46 @@ export class MetaAdsService {
     });
   }
 
+  private async listGraphPages<T>(
+    accessToken: string,
+    path: string,
+    params: Record<string, unknown>,
+    allPages: boolean,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    const seenCursors = new Set<string>();
+    let after: string | undefined;
+    let pageCount = 0;
+    let shouldContinue = true;
+
+    while (shouldContinue) {
+      const response = await this.makeRequest<MetaGraphPage<T>>(
+        accessToken,
+        path,
+        { ...params, ...(after ? { after } : {}) },
+      );
+      pageCount += 1;
+      items.push(...response.data);
+      const nextCursor = response.paging?.cursors?.after;
+      if (
+        !allPages ||
+        typeof response.paging?.next !== 'string' ||
+        !nextCursor ||
+        seenCursors.has(nextCursor)
+      ) {
+        shouldContinue = false;
+        continue;
+      }
+      if (pageCount >= MAX_GRAPH_PAGE_COUNT) {
+        throw new MetaGraphPaginationLimitError(path);
+      }
+      seenCursors.add(nextCursor);
+      after = nextCursor;
+    }
+
+    return items;
+  }
+
   async getAdAccounts(accessToken: string): Promise<MetaAdAccount[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -170,38 +230,54 @@ export class MetaAdsService {
   async listCampaigns(
     accessToken: string,
     adAccountId: string,
-    params?: { status?: string; limit?: number },
+    params?: {
+      allPages?: boolean;
+      limit?: number;
+      name?: string;
+      status?: string;
+    },
   ): Promise<MetaCampaign[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.makeRequest<{
-        data: Array<{
-          id: string;
-          name: string;
-          objective: string;
-          status: string;
-          daily_budget?: string;
-          lifetime_budget?: string;
-          start_time?: string;
-          stop_time?: string;
-        }>;
-      }>(accessToken, `${adAccountId}/campaigns`, {
-        fields:
-          'id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time',
-        limit: params?.limit || 50,
-        ...(params?.status && {
-          filtering: JSON.stringify([
-            {
-              field: 'effective_status',
-              operator: 'IN',
-              value: [params.status],
-            },
-          ]),
-        }),
-      });
+      const filtering = [
+        ...(params?.status
+          ? [
+              {
+                field: 'effective_status',
+                operator: 'IN',
+                value: [params.status],
+              },
+            ]
+          : []),
+        ...(params?.name
+          ? [{ field: 'name', operator: 'EQUAL', value: params.name }]
+          : []),
+      ];
+      const campaigns = await this.listGraphPages<{
+        id: string;
+        name: string;
+        objective: string;
+        status: string;
+        daily_budget?: string;
+        lifetime_budget?: string;
+        start_time?: string;
+        stop_time?: string;
+      }>(
+        accessToken,
+        `${adAccountId}/campaigns`,
+        {
+          fields:
+            'id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time',
+          limit: params?.limit || 50,
+          ...(filtering.length > 0 && {
+            filtering: JSON.stringify(filtering),
+          }),
+        },
+        Boolean(params?.allPages),
+      );
 
-      return response.data.map((campaign) => ({
+      return campaigns.map((campaign) => ({
         dailyBudget: campaign.daily_budget
           ? Number(campaign.daily_budget) / 100
           : undefined,
@@ -219,6 +295,103 @@ export class MetaAdsService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  async listAdSets(
+    accessToken: string,
+    adAccountId: string,
+    campaignId?: string,
+    options?: { allPages?: boolean; name?: string },
+  ): Promise<MetaNamedAdObject[]> {
+    const items = await this.listGraphPages<{
+      campaign_id?: string;
+      id: string;
+      name: string;
+      status: string;
+    }>(
+      accessToken,
+      campaignId ? `${campaignId}/adsets` : `${adAccountId}/adsets`,
+      {
+        fields: 'id,name,status,campaign_id',
+        limit: options?.name ? 1 : 200,
+        ...(options?.name && {
+          filtering: JSON.stringify([
+            { field: 'name', operator: 'EQUAL', value: options.name },
+          ]),
+        }),
+      },
+      Boolean(options?.allPages),
+    );
+    return items
+      .filter((item) => !campaignId || item.campaign_id === campaignId)
+      .map(({ id, name, status }) => ({ id, name, status }));
+  }
+
+  async listAds(
+    accessToken: string,
+    adAccountId: string,
+    adSetId?: string,
+    options?: { allPages?: boolean; name?: string },
+  ): Promise<MetaNamedAdObject[]> {
+    const items = await this.listGraphPages<{
+      adset_id?: string;
+      id: string;
+      name: string;
+      status: string;
+    }>(
+      accessToken,
+      adSetId ? `${adSetId}/ads` : `${adAccountId}/ads`,
+      {
+        fields: 'id,name,status,adset_id',
+        limit: options?.name ? 1 : 200,
+        ...(options?.name && {
+          filtering: JSON.stringify([
+            { field: 'name', operator: 'EQUAL', value: options.name },
+          ]),
+        }),
+      },
+      Boolean(options?.allPages),
+    );
+    return items
+      .filter((item) => !adSetId || item.adset_id === adSetId)
+      .map(({ id, name, status }) => ({ id, name, status }));
+  }
+
+  async listAdVideos(
+    accessToken: string,
+    adAccountId: string,
+    options?: { allPages?: boolean },
+  ): Promise<MetaAdVideo[]> {
+    return this.listGraphPages<MetaAdVideo>(
+      accessToken,
+      `${adAccountId}/advideos`,
+      { fields: 'id,title', limit: 200 },
+      Boolean(options?.allPages),
+    );
+  }
+
+  async getAdVideoThumbnailUrl(
+    accessToken: string,
+    videoId: string,
+  ): Promise<string> {
+    for (const delayMs of VIDEO_THUMBNAIL_RETRY_DELAYS_MS) {
+      if (delayMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+      }
+      const response = await this.makeRequest<
+        MetaGraphPage<{ is_preferred?: boolean; uri?: string }>
+      >(accessToken, `${videoId}/thumbnails`, {
+        fields: 'is_preferred,uri',
+        limit: 100,
+      });
+      const thumbnail =
+        response.data.find((item) => item.is_preferred && item.uri)?.uri ??
+        response.data.find((item) => item.uri)?.uri;
+      if (thumbnail) return thumbnail;
+    }
+    throw new Error(
+      'Meta video processing did not produce a usable thumbnail in time.',
+    );
   }
 
   async getCampaignInsights(
@@ -387,17 +560,20 @@ export class MetaAdsService {
       });
 
       const adsWithMetrics = response.data
-        .filter((ad) => ad.insights?.data?.[0])
-        .map((ad) => {
-          const insights = this.normalizeInsights(ad.insights!.data[0]);
+        .flatMap((ad) => {
+          const insightData = ad.insights?.data[0];
+          if (!insightData) return [];
+          const insights = this.normalizeInsights(insightData);
           const value = this.extractMetricValue(insights, metric);
-          return {
-            id: ad.id,
-            insights,
-            metric,
-            name: ad.name,
-            value,
-          };
+          return [
+            {
+              id: ad.id,
+              insights,
+              metric,
+              name: ad.name,
+              value,
+            },
+          ];
         })
         .sort((a, b) => b.value - a.value)
         .slice(0, limit);
@@ -649,6 +825,10 @@ export class MetaAdsService {
     }
   }
 
+  async pauseAdSet(accessToken: string, adSetId: string): Promise<void> {
+    await this.makePostRequest(accessToken, adSetId, { status: 'PAUSED' });
+  }
+
   async createAd(
     accessToken: string,
     adAccountId: string,
@@ -657,28 +837,29 @@ export class MetaAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const creativeSpec: Record<string, unknown> = {
-        link_data: {
-          link: params.creative.linkUrl,
-          ...(params.creative.title && { name: params.creative.title }),
-          ...(params.creative.body && { message: params.creative.body }),
-          ...(params.creative.imageHash && {
-            image_hash: params.creative.imageHash,
-          }),
-          ...(params.creative.callToAction && {
-            call_to_action: {
-              type: params.creative.callToAction,
-              value: { link: params.creative.linkUrl },
-            },
-          }),
-        },
-        object_story_spec: {
-          page_id: '', // Will be set by FB if page is connected
-        },
+      const linkData = {
+        link: params.creative.linkUrl,
+        ...(params.creative.title && { name: params.creative.title }),
+        ...(params.creative.body && { message: params.creative.body }),
+        ...(params.creative.imageHash && {
+          image_hash: params.creative.imageHash,
+        }),
+        ...(params.creative.callToAction && {
+          call_to_action: {
+            type: params.creative.callToAction,
+            value: { link: params.creative.linkUrl },
+          },
+        }),
+      };
+      const objectStorySpec: Record<string, unknown> = {
+        page_id: params.creative.pageId ?? '',
       };
 
       if (params.creative.videoId) {
-        creativeSpec.video_data = {
+        objectStorySpec.video_data = {
+          ...(params.creative.thumbnailUrl && {
+            image_url: params.creative.thumbnailUrl,
+          }),
           video_id: params.creative.videoId,
           ...(params.creative.title && { title: params.creative.title }),
           ...(params.creative.body && { message: params.creative.body }),
@@ -689,7 +870,10 @@ export class MetaAdsService {
             },
           }),
         };
+      } else {
+        objectStorySpec.link_data = linkData;
       }
+      const creativeSpec = { object_story_spec: objectStorySpec };
 
       const data: Record<string, unknown> = {
         adset_id: params.adSetId,
@@ -755,6 +939,9 @@ export class MetaAdsService {
       });
 
       const imageData = Object.values(response.images)[0];
+      if (!imageData?.hash || !imageData.url) {
+        throw new Error('Meta did not return a usable uploaded image.');
+      }
       this.loggerService.log(
         `${caller} uploaded image for ${adAccountId}, hash: ${imageData.hash}`,
       );

@@ -4091,7 +4091,9 @@ export async function mockReviewQueue(
   page: Page,
   options: {
     batchId?: string;
+    itemAttributes?: Record<string, unknown>;
     itemId?: string;
+    onItemAction?: (body: Record<string, unknown>) => void;
     postId?: string;
   } = {},
 ): Promise<void> {
@@ -4121,6 +4123,7 @@ export async function mockReviewQueue(
         postId,
         prompt: 'Turn the winning clip into a reviewable draft.',
         status: 'completed',
+        ...options.itemAttributes,
       },
     ],
     status: 'completed',
@@ -4165,6 +4168,9 @@ export async function mockReviewQueue(
     `/batches/${batchId}/items/action`,
     async (route) => {
       if (route.request().method() === 'POST') {
+        options.onItemAction?.(
+          route.request().postDataJSON() as Record<string, unknown>,
+        );
         await route.fulfill({
           body: JSON.stringify(
             buildJsonApiDocument('batches', batchId, batchDetail),

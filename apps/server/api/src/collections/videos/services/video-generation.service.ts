@@ -4,7 +4,10 @@ import { VideoGenerationCompletionService } from '@api/collections/videos/servic
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
-import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import type {
+  GenerationPlaceholderCreatedCallback,
+  GenerationPlaceholderScope,
+} from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
@@ -28,21 +31,27 @@ export class VideoGenerationService {
     createVideoDto: CreateVideoDto,
     request: Request,
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
+    placeholderScope?: GenerationPlaceholderScope,
+    onCreditsPrepared?: () => Promise<void>,
   ): Promise<JsonApiSingleResponse> {
     const resolved = await this.preparationService.resolve(
       user,
       createVideoDto,
       request,
     );
-    await this.creditsService.ensureDeferredCredits(
-      createVideoDto,
-      resolved.model,
-      resolved.user.organizationId,
-      request,
+    const context = await this.preparationService.prepare(
+      resolved,
+      placeholderScope,
     );
-    const context = await this.preparationService.prepare(resolved);
     try {
       await onPlaceholderCreated?.(context.ingredientData.id.toString());
+      await this.creditsService.ensureDeferredCredits(
+        createVideoDto,
+        resolved.model,
+        resolved.user.organizationId,
+        request,
+      );
+      await onCreditsPrepared?.();
     } catch (error: unknown) {
       return this.executionService.failPlaceholderBeforeDispatch(
         context,

@@ -93,6 +93,7 @@ describe('AvatarVideoGenerationService', () => {
       fleetService,
       heygenService,
       ingredientsService,
+      metadataService,
       orgSettingsService,
       service,
       sharedService,
@@ -115,6 +116,7 @@ describe('AvatarVideoGenerationService', () => {
       brandsService,
       fleetService,
       heygenService,
+      metadataService,
       service,
       sharedService,
       voicesService,
@@ -138,6 +140,11 @@ describe('AvatarVideoGenerationService', () => {
         ingredientData: { id: 'avatar-ingredient-1' },
         metadataData: { id: 'avatar-metadata-1' },
       };
+    });
+    metadataService.patch.mockImplementation(async (_id, entity) => {
+      if ((entity as { externalProvider?: string }).externalProvider) {
+        order.push('provider-marked');
+      }
     });
     fleetService.generateVoice.mockImplementation(async () => {
       order.push('fleet');
@@ -167,6 +174,7 @@ describe('AvatarVideoGenerationService', () => {
     expect(order).toEqual([
       'placeholder',
       'linked:avatar-ingredient-1',
+      'provider-marked',
       'fleet',
       'fleet-poll',
       'heygen',

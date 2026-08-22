@@ -20,7 +20,10 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import type {
+  GenerationPlaceholderCreatedCallback,
+  GenerationPlaceholderScope,
+} from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
@@ -111,6 +114,8 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto,
     request: Request,
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
+    placeholderScope?: GenerationPlaceholderScope,
+    onCreditsPrepared?: () => Promise<void>,
   ): Promise<JsonApiSingleResponse> {
     const {
       brand,
@@ -181,6 +186,7 @@ export class ImageGenerationService {
         user,
         referenceIds,
         referenceImageUrls,
+        placeholderScope,
         style,
         width,
       });
@@ -221,6 +227,13 @@ export class ImageGenerationService {
 
     try {
       await onPlaceholderCreated?.(ingredientData.id.toString());
+      await this.creditsService.ensureDeferredCredits(
+        createImageDto,
+        model,
+        user.organizationId,
+        request,
+      );
+      await onCreditsPrepared?.();
     } catch (error: unknown) {
       return this.imageGenerationProviderDispatchService.failPlaceholderBeforeDispatch(
         context,
@@ -327,13 +340,6 @@ export class ImageGenerationService {
         : undefined;
     const modelSchemaFamily =
       registeredModel?.providerSchemaFamily ?? undefined;
-
-    await this.creditsService.ensureDeferredCredits(
-      createImageDto,
-      model,
-      user.organizationId,
-      request,
-    );
 
     if (
       !this.imageGenerationProviderDispatchService.supports(
@@ -468,6 +474,7 @@ export class ImageGenerationService {
     promptOriginalText: string;
     referenceIds: string[];
     referenceImageUrls: string[];
+    placeholderScope?: GenerationPlaceholderScope;
     style?: string;
     user: User;
     width: number;
@@ -490,6 +497,7 @@ export class ImageGenerationService {
       user,
       referenceIds,
       referenceImageUrls,
+      placeholderScope,
       style,
       width,
     } = params;
@@ -565,6 +573,8 @@ export class ImageGenerationService {
         generationPrompt: promptOriginalText,
         generationSeed: createImageDto.seed,
         generationSource,
+        groupId: placeholderScope?.groupId,
+        groupIndex: placeholderScope?.groupIndex,
         height,
         isDefault: createImageDto.isDefault,
         model,

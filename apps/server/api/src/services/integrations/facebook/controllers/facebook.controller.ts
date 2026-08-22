@@ -10,7 +10,10 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
+import {
+  buildGrantedScopesCredentialPatch,
+  parseGrantedOAuthScopes,
+} from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -135,6 +138,20 @@ export class FacebookController {
       }
 
       const profile = await this.facebookService.getUserProfile(accessToken);
+      const normalizedTokenScopes = parseGrantedOAuthScopes(scope);
+      let grantedScopes: unknown =
+        normalizedTokenScopes.length > 0 ? normalizedTokenScopes : undefined;
+      if (grantedScopes === undefined) {
+        try {
+          grantedScopes =
+            await this.facebookService.getGrantedPermissions(accessToken);
+        } catch (permissionError: unknown) {
+          this.loggerService.warn(
+            `${url} permission capture failed after connection`,
+            permissionError,
+          );
+        }
+      }
 
       let updatedCredential = await this.credentialsService.patch(
         credential.id,
@@ -146,7 +163,7 @@ export class FacebookController {
           isConnected: true,
           isDeleted: false,
           oauthState: null,
-          ...buildGrantedScopesCredentialPatch(scope),
+          ...buildGrantedScopesCredentialPatch(grantedScopes),
         },
       );
 

@@ -144,7 +144,13 @@ describe('ImageGenerationProviderDispatchService', () => {
   });
 
   it('routes KlingAI with the existing request and metadata normalization', async () => {
-    klingAIService.queueGenerateImage.mockResolvedValue('kling-job-1');
+    klingAIService.queueGenerateImage.mockImplementation(async () => {
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-1',
+        expect.objectContaining({ externalProvider: 'klingai' }),
+      );
+      return 'kling-job-1';
+    });
     const context = buildContext();
 
     const plan = await service.dispatch(context);

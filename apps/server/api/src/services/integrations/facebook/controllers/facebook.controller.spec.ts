@@ -26,6 +26,7 @@ describe('FacebookController', () => {
     exchangeAuthCodeForAccessToken: vi.fn(),
     generateAuthUrl: vi.fn(),
     getPostAnalytics: vi.fn(),
+    getGrantedPermissions: vi.fn(),
     getUserPages: vi.fn(),
     getUserProfile: vi.fn(),
     schedulePost: vi.fn(),
@@ -126,6 +127,10 @@ describe('FacebookController', () => {
         name: 'Person',
         picture: { data: { url: 'https://facebook.example/avatar.jpg' } },
       });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([
+        'ads_management',
+        'ads_read',
+      ]);
 
       const result = await controller.verify({} as never, {
         code: 'auth-code',
@@ -135,7 +140,13 @@ describe('FacebookController', () => {
       expect(
         mockCredentialsService.findPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.FACEBOOK);
-      expect(mockCredentialsService.patch).toHaveBeenCalled();
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.objectContaining({
+          grantedScopes: ['ads_management', 'ads_read'],
+          grantedScopesCapturedAt: expect.any(Date),
+        }),
+      );
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
         'cred-1',
         'test-object-id',
@@ -147,6 +158,70 @@ describe('FacebookController', () => {
         },
       );
       expect(result).toBeDefined();
+    });
+
+    it('keeps the connection when permission capture is temporarily unavailable', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockRejectedValue(
+        new Error('Graph permissions unavailable'),
+      );
+
+      await expect(
+        controller.verify({} as never, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        }),
+      ).resolves.toBeDefined();
+
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.not.objectContaining({
+          grantedScopes: expect.anything(),
+          grantedScopesCapturedAt: expect.anything(),
+        }),
+      );
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('permission capture failed'),
+        expect.any(Error),
+      );
+    });
+
+    it('falls back to the permissions endpoint when the token scope is malformed', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+        scope: '',
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([
+        'ads_management',
+        'ads_read',
+      ]);
+
+      await controller.verify({} as never, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(mockFacebookService.getGrantedPermissions).toHaveBeenCalledWith(
+        'facebook-token',
+      );
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.objectContaining({
+          grantedScopes: ['ads_management', 'ads_read'],
+        }),
+      );
     });
 
     it('throws when code or state is missing', async () => {

@@ -3,6 +3,7 @@ import { BrandRemixRunsService } from '@api/collections/content-runs/services/br
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentRunStatus,
+  IngredientCategory,
   IngredientStatus,
   PersistedReviewDecision,
 } from '@genfeedai/enums';
@@ -53,6 +54,14 @@ const makeRun = (config: Record<string, unknown>) => ({
   updatedAt,
 });
 
+type TestCreditsRequest = Request & {
+  creditsConfig: {
+    amount: number;
+    deferred: boolean;
+    description: string;
+  };
+};
+
 describe('BrandRemixRunsService', () => {
   const contentRun = {
     create: vi.fn(),
@@ -64,7 +73,7 @@ describe('BrandRemixRunsService', () => {
     asset: { findMany: vi.fn() },
     contentRun,
     credential: { findFirst: vi.fn() },
-    ingredient: { findMany: vi.fn() },
+    ingredient: { findMany: vi.fn(), updateMany: vi.fn() },
     post: { findFirst: vi.fn(), findMany: vi.fn() },
     sourcePost: { findFirst: vi.fn() },
     trendSourceReference: { findFirst: vi.fn() },
@@ -83,11 +92,29 @@ describe('BrandRemixRunsService', () => {
   const avatarVideoGenerationService = { generateAvatarVideo: vi.fn() };
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
+  const contentGeneratorService = { generateContent: vi.fn() };
+  const pausedMetaCampaignDraftService = { prepare: vi.fn() };
+  const creditsUtilsService = {
+    checkOrganizationCreditsAvailable: vi.fn(),
+    getOrganizationCreditsBalance: vi.fn(),
+  };
+  const systemWorkflowProvenanceService = { runAction: vi.fn() };
+  const byokService = {
+    isByokActiveForProvider: vi.fn(),
+    isByokBillingInGoodStanding: vi.fn(),
+  };
   const runtime = {
     now: () => new Date('2026-08-20T10:00:00.000Z'),
     randomId: vi.fn(),
   };
-  const request = { context: { organizationId: 'org-1' } } as Request;
+  const request = {
+    context: { organizationId: 'org-1' },
+    creditsConfig: {
+      amount: 0,
+      deferred: true,
+      description: 'Brand remix generation',
+    },
+  } as unknown as TestCreditsRequest;
   const user = {
     brandId: 'brand-1',
     id: 'user-1',
@@ -98,6 +125,11 @@ describe('BrandRemixRunsService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    request.creditsConfig = {
+      amount: 0,
+      deferred: true,
+      description: 'Brand remix generation',
+    };
     (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
       (
         operation: (transaction: { contentRun: typeof contentRun }) => unknown,
@@ -144,6 +176,25 @@ describe('BrandRemixRunsService', () => {
         status: IngredientStatus.GENERATED,
       },
     ]);
+    (
+      prisma.ingredient.updateMany as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({ count: 1 });
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+      true,
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
+    byokService.isByokActiveForProvider.mockResolvedValue(false);
+    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
+    systemWorkflowProvenanceService.runAction.mockImplementation(
+      async (_input, action) => {
+        const provenance = {
+          executionId: 'workflow-execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Brand Remix Review Handoff',
+        };
+        return { provenance, result: await action(provenance) };
+      },
+    );
 
     service = new BrandRemixRunsService(
       prisma,
@@ -155,6 +206,11 @@ describe('BrandRemixRunsService', () => {
       avatarVideoGenerationService as never,
       batchGenerationService as never,
       trendReferenceCorpusService as never,
+      contentGeneratorService as never,
+      pausedMetaCampaignDraftService as never,
+      creditsUtilsService as never,
+      systemWorkflowProvenanceService as never,
+      byokService as never,
       runtime,
     );
   });
@@ -347,6 +403,11 @@ describe('BrandRemixRunsService', () => {
       }),
       request,
       expect.any(Function),
+      expect.objectContaining({
+        groupId: 'run-1',
+        settleCreditsExternally: true,
+      }),
+      expect.any(Function),
     );
   });
 
@@ -368,7 +429,11 @@ describe('BrandRemixRunsService', () => {
     ).rejects.toThrow(BadRequestException);
 
     expect(prisma.credential.findFirst).toHaveBeenCalledWith({
-      select: { id: true },
+      select: {
+        grantedScopes: true,
+        grantedScopesCapturedAt: true,
+        id: true,
+      },
       where: {
         brandId: 'brand-1',
         id: 'credential-other-brand',
@@ -607,6 +672,12 @@ describe('BrandRemixRunsService', () => {
       }),
       request,
       expect.any(Function),
+      expect.objectContaining({
+        groupId: 'run-1',
+        groupIndex: 0,
+        settleCreditsExternally: true,
+      }),
+      expect.any(Function),
     );
     expect(result.execution).toMatchObject({
       actualCount: 0,
@@ -660,8 +731,16 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     imageGenerationService.generateImage.mockImplementation(
-      async (_user, _dto, _request, onPlaceholderCreated) => {
+      async (
+        _user,
+        _dto,
+        _request,
+        onPlaceholderCreated,
+        _scope,
+        onCreditsPrepared,
+      ) => {
         await onPlaceholderCreated?.('image-linked-before-provider');
+        await onCreditsPrepared?.();
         order.push('provider');
         return {
           data: {
@@ -687,6 +766,162 @@ describe('BrandRemixRunsService', () => {
     ]);
   });
 
+  it('makes a concurrent start loser perform no provider side effect', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+      },
+    });
+    contentRun.findFirst.mockResolvedValue(created);
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      const next = data.config as Record<string, unknown>;
+      return Promise.resolve(
+        next.generationClaim ? { count: 0 } : { count: 1 },
+      );
+    });
+
+    await service.start('org-1', 'run-1', user, request as never, {
+      expectedRevision: 1,
+    });
+
+    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+    expect(videoGenerationService.generateVideo).not.toHaveBeenCalled();
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('generates grouped copy with durable partial-output reasons', async () => {
+    const created = await createPersistedRun({
+      draft: { output: { count: 3, kind: 'copy' } },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    contentGeneratorService.generateContent
+      .mockResolvedValueOnce([{ content: 'Original brand copy one.' }])
+      .mockResolvedValueOnce([{ content: 'Original brand copy two.' }])
+      .mockResolvedValueOnce([{ content: 'Original brand copy two.' }]);
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      request as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(result).toMatchObject({
+      execution: {
+        actualCount: 2,
+        partialReason: expect.stringContaining('1 requested copy'),
+        requestedCount: 3,
+        variants: [
+          expect.objectContaining({
+            content: 'Original brand copy one.',
+            status: 'ready',
+          }),
+          expect.objectContaining({
+            content: 'Original brand copy two.',
+            status: 'ready',
+          }),
+          expect.objectContaining({ status: 'failed' }),
+        ],
+      },
+      phase: 'partially_ready',
+    });
+    expect(contentGeneratorService.generateContent).toHaveBeenCalledTimes(3);
+    const creditCheckOrder =
+      creditsUtilsService.checkOrganizationCreditsAvailable.mock
+        .invocationCallOrder[0];
+    const generationOrder =
+      contentGeneratorService.generateContent.mock.invocationCallOrder[0];
+    expect(creditCheckOrder).toBeDefined();
+    expect(generationOrder).toBeDefined();
+    expect(creditCheckOrder ?? Number.MAX_SAFE_INTEGER).toBeLessThan(
+      generationOrder ?? 0,
+    );
+  });
+
+  it('attaches every requested placeholder before the first provider side effect', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '1:1', count: 3, kind: 'image' },
+      },
+    });
+    let stored = created;
+    const attachedCounts: number[] = [];
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    imageGenerationService.generateImage.mockImplementation(
+      async (
+        _user,
+        _dto,
+        _request,
+        onCreated,
+        reservation,
+        onCreditsPrepared,
+      ) => {
+        await onCreated?.(`image-${reservation.groupIndex}`);
+        const execution = (
+          stored.config as {
+            execution?: { variants: Array<{ assetIds: string[] }> };
+          }
+        ).execution;
+        attachedCounts.push(
+          execution?.variants.filter((variant) => variant.assetIds.length > 0)
+            .length ?? 0,
+        );
+        await onCreditsPrepared?.();
+        return {
+          data: {
+            id: `image-${reservation.groupIndex}`,
+            type: 'ingredient',
+          },
+        };
+      },
+    );
+
+    await service.start('org-1', 'run-1', user, request as never, {
+      expectedRevision: 1,
+    });
+
+    expect(attachedCounts).toEqual([3, 3, 3]);
+    expect(prisma.ingredient.updateMany).toHaveBeenNthCalledWith(1, {
+      data: { templateVersion: 1 },
+      where: {
+        brandId: 'brand-1',
+        groupId: 'run-1',
+        groupIndex: 0,
+        id: 'image-0',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(imageGenerationService.generateImage).toHaveBeenCalledTimes(3);
+    expect(imageGenerationService.generateImage).toHaveBeenNthCalledWith(
+      1,
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(Function),
+      {
+        groupId: 'run-1',
+        groupIndex: 0,
+        settleCreditsExternally: true,
+      },
+      expect.any(Function),
+    );
+  });
+
   it('blocks strict fidelity before any generation provider call', async () => {
     const created = await createPersistedRun({
       draft: {
@@ -707,6 +942,43 @@ describe('BrandRemixRunsService', () => {
     expect(
       avatarVideoGenerationService.generateAvatarVideo,
     ).not.toHaveBeenCalled();
+  });
+
+  it('persists an actionable Guided degradation when an optional signal is omitted', async () => {
+    contentRun.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeRun(data.config as Record<string, unknown>)),
+    );
+
+    const result = await service.create('org-1', 'brand-1', {
+      edits: {
+        fidelityMode: 'guided',
+        output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+        references: [{ assetId: 'brand-reference-1', role: 'first_frame' }],
+      },
+      source: { kind: 'source_post', sourcePostId: 'source-post-1' },
+    });
+
+    expect(result).toMatchObject({
+      draft: { fidelityMode: 'guided' },
+      readiness: {
+        issues: [
+          expect.objectContaining({
+            code: 'unsupported_reference_role',
+            severity: 'degraded',
+          }),
+        ],
+        state: 'degraded',
+      },
+    });
+    expect(contentRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            readiness: expect.objectContaining({ state: 'degraded' }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('resumes only unlinked queued or processing variants after a crash', async () => {
@@ -777,7 +1049,7 @@ describe('BrandRemixRunsService', () => {
     });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
       ({ where }: { where?: Record<string, unknown> } = {}) => {
-        if (where && 'generationPrompt' in where) {
+        if (where && 'groupId' in where) {
           return Promise.resolve([]);
         }
         return Promise.resolve([
@@ -787,14 +1059,20 @@ describe('BrandRemixRunsService', () => {
       },
     );
     imageGenerationService.generateImage
-      .mockImplementationOnce(async (_user, _dto, _request, onCreated) => {
-        await onCreated?.('image-resumed-1');
-        return { data: { id: 'image-resumed-1', type: 'ingredient' } };
-      })
-      .mockImplementationOnce(async (_user, _dto, _request, onCreated) => {
-        await onCreated?.('image-resumed-2');
-        return { data: { id: 'image-resumed-2', type: 'ingredient' } };
-      });
+      .mockImplementationOnce(
+        async (_user, _dto, _request, onCreated, _scope, onCredits) => {
+          await onCreated?.('image-resumed-1');
+          await onCredits?.();
+          return { data: { id: 'image-resumed-1', type: 'ingredient' } };
+        },
+      )
+      .mockImplementationOnce(
+        async (_user, _dto, _request, onCreated, _scope, onCredits) => {
+          await onCreated?.('image-resumed-2');
+          await onCredits?.();
+          return { data: { id: 'image-resumed-2', type: 'ingredient' } };
+        },
+      );
 
     const result = await service.start(
       'org-1',
@@ -826,6 +1104,68 @@ describe('BrandRemixRunsService', () => {
         }),
       ]),
     );
+  });
+
+  it('does not redispatch a provider-marked reservation after its lease expires', async () => {
+    const created = await createPersistedRun({
+      execution: {
+        actualCount: 0,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Introduce Acme with a concise result-led script.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'video',
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [{ assetId: 'brand-reference-1', role: 'product' }],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['avatar-in-flight'],
+            id: 'variant-in-flight',
+            recipeRevision: 1,
+            status: 'processing',
+          },
+        ],
+      },
+      generationClaim: {
+        claimedAt: '2026-08-20T09:50:00.000Z',
+        id: 'run-1:generate:1',
+        variantIds: ['variant-in-flight'],
+      },
+      phase: 'generating',
+    });
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'avatar-in-flight',
+        metadata: { externalId: null, externalProvider: 'heygen' },
+        status: IngredientStatus.PROCESSING,
+      },
+    ]);
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      request as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+    expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(result.execution?.variants[0]).toMatchObject({
+      assetIds: ['avatar-in-flight'],
+      status: 'processing',
+    });
   });
 
   it('adopts an orphaned placeholder after a crash instead of paying for the variant twice', async () => {
@@ -878,8 +1218,11 @@ describe('BrandRemixRunsService', () => {
     });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
       ({ where }: { where?: Record<string, unknown> } = {}) => {
-        if (where && 'generationPrompt' in where) {
-          return Promise.resolve([{ id: 'image-orphan-1' }]);
+        if (where && 'groupId' in where) {
+          return Promise.resolve([
+            { groupIndex: 1, id: 'image-orphan-1' },
+            { groupIndex: 1, id: 'image-orphan-duplicate' },
+          ]);
         }
         return Promise.resolve([
           { id: 'image-orphan-1', status: IngredientStatus.PROCESSING },
@@ -888,8 +1231,9 @@ describe('BrandRemixRunsService', () => {
       },
     );
     imageGenerationService.generateImage.mockImplementation(
-      async (_user, _dto, _request, onCreated) => {
+      async (_user, _dto, _request, onCreated, _scope, onCredits) => {
         await onCreated?.('image-resumed-1');
+        await onCredits?.();
         return { data: { id: 'image-resumed-1', type: 'ingredient' } };
       },
     );
@@ -903,15 +1247,42 @@ describe('BrandRemixRunsService', () => {
     );
 
     expect(imageGenerationService.generateImage).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(result.execution?.variants)).not.toContain(
+      'image-orphan-duplicate',
+    );
     expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           brandId: 'brand-1',
-          generationPrompt: expect.any(String),
+          groupId: 'run-1',
           isDeleted: false,
+          status: { not: IngredientStatus.FAILED },
+          templateVersion: 1,
         }),
       }),
     );
+    const orphanLookup = (
+      prisma.ingredient.findMany as ReturnType<typeof vi.fn>
+    ).mock.calls.find(
+      ([query]) =>
+        query &&
+        typeof query === 'object' &&
+        'where' in query &&
+        (query.where as Record<string, unknown>).groupId === 'run-1',
+    )?.[0] as Record<string, unknown> | undefined;
+    expect(orphanLookup).not.toHaveProperty('take');
+    expect(prisma.ingredient.updateMany).toHaveBeenCalledWith({
+      data: { status: IngredientStatus.FAILED },
+      where: expect.objectContaining({
+        brandId: 'brand-1',
+        groupId: 'run-1',
+        id: { in: ['image-orphan-duplicate'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: { not: IngredientStatus.FAILED },
+        templateVersion: 1,
+      }),
+    });
     expect(result.execution?.variants).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -920,6 +1291,128 @@ describe('BrandRemixRunsService', () => {
         }),
         expect.objectContaining({
           assetIds: ['image-orphan-1'],
+          id: 'variant-crashed-before-link',
+        }),
+      ]),
+    );
+  });
+
+  it('adopts an orphaned Avatar placeholder after a crash without redispatching it', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '9:16', count: 2, kind: 'avatar' },
+      },
+      execution: {
+        actualCount: 0,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Introduce Acme with a concise result-led script.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'video',
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [{ assetId: 'brand-reference-1', role: 'product' }],
+          version: 1,
+        },
+        requestedCount: 2,
+        variants: [
+          {
+            assetIds: [],
+            id: 'variant-queued',
+            recipeRevision: 1,
+            status: 'queued',
+          },
+          {
+            assetIds: [],
+            id: 'variant-crashed-before-link',
+            recipeRevision: 1,
+            status: 'processing',
+          },
+        ],
+      },
+      phase: 'generating',
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ where }: { where?: Record<string, unknown> } = {}) => {
+        if (where && 'groupId' in where) {
+          return Promise.resolve([{ groupIndex: 1, id: 'avatar-orphan-1' }]);
+        }
+        const requestedIds = (where?.id as { in?: string[] } | undefined)?.in;
+        if (requestedIds?.includes('avatar-1')) {
+          return Promise.resolve([
+            {
+              brandId: 'brand-1',
+              category: 'AVATAR',
+              id: 'avatar-1',
+              status: IngredientStatus.GENERATED,
+            },
+            {
+              brandId: 'brand-1',
+              category: 'VOICE',
+              externalVoiceId: 'voice-external-1',
+              id: 'voice-1',
+              isCloned: true,
+              status: IngredientStatus.GENERATED,
+            },
+          ]);
+        }
+        return Promise.resolve([
+          { id: 'avatar-orphan-1', status: IngredientStatus.PROCESSING },
+          { id: 'avatar-resumed-1', status: IngredientStatus.PROCESSING },
+        ]);
+      },
+    );
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        await onCreated?.('avatar-resumed-1');
+        await onCredits?.();
+        return {
+          externalId: 'heygen-resumed-1',
+          ingredientId: 'avatar-resumed-1',
+          status: 'processing',
+        };
+      },
+    );
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      request as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).toHaveBeenCalledTimes(1);
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: IngredientCategory.AVATAR,
+          groupId: 'run-1',
+          templateVersion: 1,
+        }),
+      }),
+    );
+    expect(result.execution?.variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          assetIds: ['avatar-resumed-1'],
+          id: 'variant-queued',
+        }),
+        expect.objectContaining({
+          assetIds: ['avatar-orphan-1'],
           id: 'variant-crashed-before-link',
         }),
       ]),
@@ -1002,8 +1495,9 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     imageGenerationService.generateImage.mockImplementation(
-      async (_user, _dto, _request, onCreated) => {
+      async (_user, _dto, _request, onCreated, _scope, onCredits) => {
         await onCreated?.('image-semantic-1');
+        await onCredits?.();
         return { data: { id: 'image-semantic-1', type: 'ingredient' } };
       },
     );
@@ -1031,8 +1525,9 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
-      async (_params, _context, onCreated) => {
+      async (_params, _context, onCreated, _scope, onCredits) => {
         await onCreated?.('avatar-semantic-1');
+        await onCredits?.();
         return {
           externalId: 'heygen-1',
           ingredientId: 'avatar-semantic-1',
@@ -1059,6 +1554,11 @@ describe('BrandRemixRunsService', () => {
         organizationId: 'org-1',
       }),
       expect.any(Function),
+      expect.objectContaining({
+        groupId: 'run-1',
+        settleCreditsExternally: true,
+      }),
+      expect.any(Function),
     );
     const providerText =
       avatarVideoGenerationService.generateAvatarVideo.mock.calls[0]?.[0].text;
@@ -1067,6 +1567,395 @@ describe('BrandRemixRunsService', () => {
     expect(providerText).not.toContain('constraint:');
     expect(providerText).not.toContain('Create an original');
     expect(providerText).not.toContain(sourcePost.text);
+  });
+
+  it('settles one credit for every successful Avatar variant', async () => {
+    const created = await createPersistedRun();
+    let stored = created;
+    let generatedCount = 0;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        generatedCount += 1;
+        const ingredientId = `avatar-credit-${generatedCount}`;
+        await onCreated?.(ingredientId);
+        await onCredits?.();
+        return {
+          externalId: `heygen-credit-${generatedCount}`,
+          ingredientId,
+          status: 'processing',
+        };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 0,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    await service.start('org-1', 'run-1', user, creditRequest as never, {
+      expectedRevision: 1,
+    });
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith('org-1', 3);
+    expect(creditRequest.creditsConfig).toMatchObject({
+      amount: 3,
+      deferred: false,
+    });
+  });
+
+  it('records avatar BYOK usage without checking or deducting platform credits', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '9:16', count: 2, kind: 'avatar' },
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    let generatedCount = 0;
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, scope, onCredits) => {
+        expect(scope).toMatchObject({ isByokBypass: true });
+        const index = ++generatedCount;
+        const ingredientId = `avatar-byok-${index}`;
+        await onCreated?.(ingredientId);
+        await onCredits?.();
+        return {
+          externalId: `heygen-byok-${index}`,
+          ingredientId,
+          status: 'processing',
+        };
+      },
+    );
+
+    await service.start('org-1', 'run-1', user, request as never, {
+      expectedRevision: 1,
+    });
+
+    expect(request.creditsConfig).toMatchObject({
+      amount: 2,
+      deferred: false,
+      isByokBypass: true,
+      modelKey: 'heygen/avatar',
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('preserves an explicit positive Avatar credit amount', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '9:16', count: 1, kind: 'avatar' },
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        await onCreated?.('avatar-explicit-credit-1');
+        await onCredits?.();
+        return {
+          externalId: 'heygen-explicit-credit-1',
+          ingredientId: 'avatar-explicit-credit-1',
+          status: 'processing',
+        };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 5,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    await service.start('org-1', 'run-1', user, creditRequest as never, {
+      expectedRevision: 1,
+    });
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith('org-1', 5);
+    expect(creditRequest.creditsConfig).toMatchObject({
+      amount: 5,
+      deferred: false,
+    });
+  });
+
+  it('stops Avatar provider consumption when aggregate credit reservation fails', async () => {
+    const created = await createPersistedRun();
+    let stored = created;
+    let providerConsumptions = 0;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+      false,
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        const ingredientId = `avatar-credit-blocked-${providerConsumptions + 1}`;
+        await onCreated?.(ingredientId);
+        await onCredits?.();
+        providerConsumptions += 1;
+        return {
+          externalId: `heygen-credit-blocked-${providerConsumptions}`,
+          ingredientId,
+          status: 'processing',
+        };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 0,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      creditRequest as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(providerConsumptions).toBe(0);
+    expect(result.phase).toBe('failed');
+    expect(result.execution?.variants).toEqual(
+      expect.arrayContaining([expect.objectContaining({ status: 'failed' })]),
+    );
+    expect(creditRequest.creditsConfig).toMatchObject({
+      amount: 0,
+      deferred: false,
+    });
+  });
+
+  it('rejects Avatar generation without a deferred credit contract before claiming the run', async () => {
+    const created = await createPersistedRun();
+    contentRun.findFirst.mockResolvedValue(created);
+    const noCreditsRequest = {
+      context: { organizationId: 'org-1' },
+    } as Request;
+
+    await expect(
+      service.start('org-1', 'run-1', user, noCreditsRequest, {
+        expectedRevision: 1,
+      }),
+    ).rejects.toThrow('requires a deferred credit reservation');
+
+    expect(contentRun.updateMany).not.toHaveBeenCalled();
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each(['image', 'video'] as const)(
+    'preserves explicit %s remix credit settlement',
+    async (kind) => {
+      const created = await createPersistedRun({
+        draft: {
+          output: { aspectRatio: '1:1', count: 1, kind },
+        },
+      });
+      let stored = created;
+      contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+      contentRun.updateMany.mockImplementation(({ data }) => {
+        stored = makeRun(data.config as Record<string, unknown>);
+        stored.status = (data.status ?? stored.status) as ContentRunStatus;
+        return Promise.resolve({ count: 1 });
+      });
+      const generator =
+        kind === 'image'
+          ? imageGenerationService.generateImage
+          : videoGenerationService.generateVideo;
+      generator.mockImplementation(
+        async (_user, _dto, _request, onCreated, _scope, onCredits) => {
+          const ingredientId = `${kind}-explicit-credit-1`;
+          await onCreated?.(ingredientId);
+          await onCredits?.();
+          return { data: { id: ingredientId, type: 'ingredient' } };
+        },
+      );
+      const creditRequest = {
+        ...request,
+        creditsConfig: {
+          amount: 4,
+          deferred: true,
+          description: 'Brand remix generation',
+        },
+      };
+
+      await service.start('org-1', 'run-1', user, creditRequest as never, {
+        expectedRevision: 1,
+      });
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith('org-1', 4);
+      expect(creditRequest.creditsConfig).toMatchObject({
+        amount: 4,
+        deferred: false,
+      });
+    },
+  );
+
+  it.each(['image', 'video'] as const)(
+    'records resolved-provider BYOK usage for %s remixes without platform credits',
+    async (kind) => {
+      const created = await createPersistedRun({
+        draft: {
+          output: { aspectRatio: '1:1', count: 1, kind },
+        },
+      });
+      let stored = created;
+      contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+      contentRun.updateMany.mockImplementation(({ data }) => {
+        stored = makeRun(data.config as Record<string, unknown>);
+        stored.status = (data.status ?? stored.status) as ContentRunStatus;
+        return Promise.resolve({ count: 1 });
+      });
+      const generator =
+        kind === 'image'
+          ? imageGenerationService.generateImage
+          : videoGenerationService.generateVideo;
+      generator.mockImplementation(
+        async (_user, _dto, variantRequest, onCreated, _scope, onCredits) => {
+          const ingredientId = `${kind}-byok-credit-1`;
+          await onCreated?.(ingredientId);
+          variantRequest.creditsConfig = {
+            ...variantRequest.creditsConfig,
+            amount: 4,
+            deferred: false,
+            isByokBypass: true,
+            modelKey: 'fal-ai/byok-model',
+            provider: 'fal',
+          };
+          await onCredits?.();
+          return { data: { id: ingredientId, type: 'ingredient' } };
+        },
+      );
+      const creditRequest = {
+        ...request,
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          description: 'Brand remix generation',
+        },
+      };
+
+      await service.start('org-1', 'run-1', user, creditRequest as never, {
+        expectedRevision: 1,
+      });
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(creditRequest.creditsConfig).toMatchObject({
+        amount: 4,
+        deferred: false,
+        isByokBypass: true,
+        modelKey: 'fal-ai/byok-model',
+        provider: 'fal',
+      });
+    },
+  );
+
+  it('stops provider dispatch when variants resolve mixed BYOK billing modes', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '1:1', count: 2, kind: 'image' },
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    let preparedCount = 0;
+    let providerConsumptions = 0;
+    imageGenerationService.generateImage.mockImplementation(
+      async (_user, _dto, variantRequest, onCreated, _scope, onCredits) => {
+        const index = ++preparedCount;
+        const ingredientId = `image-mixed-credit-${index}`;
+        variantRequest.creditsConfig = {
+          ...variantRequest.creditsConfig,
+          amount: 4,
+          deferred: false,
+          ...(index === 1
+            ? {
+                isByokBypass: true,
+                modelKey: 'fal-ai/byok-model',
+                provider: 'fal',
+              }
+            : { isByokBypass: false }),
+        };
+        await onCreated?.(ingredientId);
+        await onCredits?.();
+        providerConsumptions += 1;
+        return { data: { id: ingredientId, type: 'ingredient' } };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 0,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      creditRequest as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(providerConsumptions).toBe(0);
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(result.execution?.variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          error: expect.stringContaining('mixed BYOK'),
+          status: 'failed',
+        }),
+      ]),
+    );
   });
 
   it('passes an operator-authored Avatar script verbatim after trimming', async () => {
@@ -1082,8 +1971,9 @@ describe('BrandRemixRunsService', () => {
       return Promise.resolve({ count: 1 });
     });
     avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
-      async (_params, _context, onCreated) => {
+      async (_params, _context, onCreated, _scope, onCredits) => {
         await onCreated?.('avatar-script-1');
+        await onCredits?.();
         return {
           externalId: 'heygen-script-1',
           ingredientId: 'avatar-script-1',
@@ -1164,7 +2054,9 @@ describe('BrandRemixRunsService', () => {
             contentRunId: 'run-1',
             ingredientId: 'image-1',
             sourceActionId: 'source-post-1',
+            sourceWorkflowId: 'workflow-1',
             variantId: 'variant-1',
+            workflowExecutionId: 'workflow-execution-1',
           }),
         ],
       },
@@ -1172,9 +2064,21 @@ describe('BrandRemixRunsService', () => {
       'org-1',
       'brand-remix:run-1:review:1:variant-1',
     );
+    expect(systemWorkflowProvenanceService.runAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'brand-remix-review-handoff',
+      }),
+      expect.any(Function),
+    );
     expect(result).toMatchObject({
       phase: 'in_review',
-      review: { approvedPostIds: [], batchId: 'batch-1', postIds: ['post-1'] },
+      review: {
+        approvedPostIds: [],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+      },
     });
   });
 
@@ -1222,13 +2126,16 @@ describe('BrandRemixRunsService', () => {
       items: [{ id: 'item-1', postId: 'post-1' }],
     });
     // Reconciliation writes succeed; only the review claim loses the race.
-    contentRun.updateMany.mockImplementation(({ data }) =>
-      Promise.resolve(
-        JSON.stringify(data.config).includes('"review"')
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      const nextConfig = data.config as {
+        reviewClaim?: { status?: string };
+      };
+      return Promise.resolve(
+        nextConfig.reviewClaim?.status === 'claimed'
           ? { count: 0 }
           : { count: 1 },
-      ),
-    );
+      );
+    });
 
     await expect(
       service.submitForReview('org-1', 'run-1', 'user-1', {
@@ -1241,26 +2148,134 @@ describe('BrandRemixRunsService', () => {
       },
       status: 409,
     });
-    // The losing submission must never persist a review claim; reconciliation
-    // writes without a review payload may still land.
     expect(
-      contentRun.updateMany.mock.calls.some((call) => {
-        const data = call[0] as { config?: unknown };
-        return (
-          typeof data?.config === 'string' && data.config.includes('"review"')
-        );
-      }),
-    ).toBe(false);
+      batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+    expect(
+      trendReferenceCorpusService.recordPostRemixLineage,
+    ).not.toHaveBeenCalled();
   });
 
-  it('returns an explicit blocked readiness result instead of faking a Meta campaign', async () => {
+  it('reclaims an expired Review lease through CAS before creating side effects', async () => {
+    const created = await createPersistedRun({
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original TikTok visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'ready_for_review',
+    });
+    const stored = makeRun({
+      ...(created.config as Record<string, unknown>),
+      reviewClaim: {
+        claimedAt: '2026-08-20T09:50:00.000Z',
+        id: 'run-1:review:1',
+        selectedVariantIds: ['variant-1'],
+        status: 'claimed',
+      },
+    });
+    contentRun.findFirst.mockResolvedValue(stored);
+    contentRun.updateMany.mockResolvedValue({ count: 0 });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        id: 'image-1',
+        status: IngredientStatus.GENERATED,
+      },
+    ]);
+
+    await expect(
+      service.submitForReview('org-1', 'run-1', 'user-1', {
+        variantIds: ['variant-1'],
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        detail: expect.stringContaining('concurrent'),
+        title: 'Concurrent review submission',
+      },
+      status: 409,
+    });
+
+    expect(contentRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            reviewClaim: expect.objectContaining({
+              claimedAt: '2026-08-20T10:00:00.000Z',
+            }),
+          }),
+        }),
+        where: expect.objectContaining({
+          config: { equals: stored.config },
+        }),
+      }),
+    );
+    expect(
+      batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+    expect(
+      trendReferenceCorpusService.recordPostRemixLineage,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('claims and persists an idempotent paused Meta campaign result', async () => {
     const created = await createPersistedRun({
       draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
       phase: 'approved',
       review: {
         approvedPostIds: ['post-1'],
         batchId: 'batch-1',
         postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
       },
     });
     contentRun.findFirst.mockResolvedValue(created);
@@ -1271,6 +2286,29 @@ describe('BrandRemixRunsService', () => {
         reviewDecision: PersistedReviewDecision.APPROVED,
       },
     ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management', 'ads_read'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare.mockResolvedValue({
+      adAccountId: 'act-1',
+      adId: 'ad-1',
+      adSetId: 'ad-set-1',
+      campaignId: 'campaign-1',
+      credentialId: 'credential-1',
+      ingredientId: 'image-1',
+      postId: 'post-1',
+      recipeRevision: 1,
+      recipeVersion: 1,
+      replayed: false,
+      status: 'PAUSED',
+      variantId: 'variant-1',
+      workflowExecutionId: 'workflow-execution-1',
+      workflowId: 'workflow-1',
+    });
     let stored = created;
     contentRun.updateMany.mockImplementation(({ data }) => {
       stored = makeRun(data.config as Record<string, unknown>);
@@ -1282,20 +2320,789 @@ describe('BrandRemixRunsService', () => {
       'org-1',
       'run-1',
       'user-1',
-      {},
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
     );
 
-    expect(result.readiness).toMatchObject({
-      issues: [
-        expect.objectContaining({
-          code: 'missing_required_reference',
-          severity: 'blocked',
-        }),
-      ],
-      state: 'blocked',
+    expect(result).toMatchObject({
+      paidDraft: {
+        adId: 'ad-1',
+        adSetId: 'ad-set-1',
+        campaignId: 'campaign-1',
+        status: 'PAUSED',
+      },
+      phase: 'paid_draft_ready',
     });
-    expect(adsResearchService.prepareCampaignForReview).not.toHaveBeenCalled();
+    expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-other',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('already exists for another destination');
+    expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
   });
+
+  it('keeps a Meta draft blocked before provider calls when ads_management is missing', async () => {
+    const created = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockResolvedValue(stored);
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      contentRun.findFirst.mockResolvedValue(stored);
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_read'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(result).toMatchObject({
+      phase: 'approved',
+      readiness: {
+        issues: [
+          expect.objectContaining({
+            code: 'missing_ads_management',
+            field: 'target',
+            severity: 'blocked',
+          }),
+        ],
+        state: 'blocked',
+      },
+    });
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+  });
+
+  it('keeps a partial Meta failure recoverable without marking a paid draft', async () => {
+    const created = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'review-workflow-execution-1',
+        workflowId: 'review-workflow-1',
+      },
+    });
+    let stored = created;
+    let interruptedClaimRelease = false;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      const nextConfig = data.config as Record<string, unknown>;
+      if (
+        !interruptedClaimRelease &&
+        nextConfig.phase === 'approved' &&
+        !nextConfig.paidDraftOperation
+      ) {
+        interruptedClaimRelease = true;
+        stored = makeRun({
+          ...(stored.config as Record<string, unknown>),
+          readiness: {
+            issues: [
+              {
+                code: 'organization_defaults',
+                field: 'intent',
+                message: 'Brand-specific context is incomplete.',
+                severity: 'degraded',
+              },
+            ],
+            state: 'degraded',
+          },
+        });
+        return Promise.resolve({ count: 0 });
+      }
+      stored = makeRun(nextConfig);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management', 'ads_read'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare
+      .mockRejectedValueOnce(new Error('Meta ad creation failed'))
+      .mockResolvedValueOnce({
+        adAccountId: 'act-1',
+        adId: 'ad-1',
+        adSetId: 'ad-set-1',
+        campaignId: 'campaign-1',
+        credentialId: 'credential-1',
+        ingredientId: 'image-1',
+        postId: 'post-1',
+        recipeRevision: 1,
+        recipeVersion: 1,
+        replayed: true,
+        status: 'PAUSED',
+        variantId: 'variant-1',
+        workflowExecutionId: 'meta-workflow-execution-1',
+        workflowId: 'meta-workflow-1',
+      });
+    const body = {
+      destination: {
+        adAccountId: 'act-1',
+        credentialId: 'credential-1',
+      },
+      variantId: 'variant-1',
+    };
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', body),
+    ).rejects.toThrow('Meta ad creation failed');
+    expect(interruptedClaimRelease).toBe(true);
+    expect(stored.config).toMatchObject({
+      phase: 'approved',
+    });
+    expect(
+      (stored.config as Record<string, unknown>).paidDraft,
+    ).toBeUndefined();
+    expect(
+      (stored.config as Record<string, unknown>).paidDraftOperation,
+    ).toBeUndefined();
+
+    const recovered = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      body,
+    );
+
+    expect(recovered).toMatchObject({
+      paidDraft: { adId: 'ad-1', replayed: true, status: 'PAUSED' },
+      phase: 'paid_draft_ready',
+    });
+  });
+
+  it('does not release a newer reclaimed Meta operation after a stale provider failure', async () => {
+    const approved = await createApprovedMetaRun();
+    let stored = approved;
+    let interceptedRelease = false;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      const nextConfig = data.config as Record<string, unknown>;
+      if (
+        !interceptedRelease &&
+        nextConfig.phase === 'approved' &&
+        !nextConfig.paidDraftOperation
+      ) {
+        interceptedRelease = true;
+        const staleOperation = (stored.config as Record<string, unknown>)
+          .paidDraftOperation as Record<string, unknown>;
+        stored = makeRun({
+          ...(stored.config as Record<string, unknown>),
+          paidDraftOperation: {
+            ...staleOperation,
+            claimedAt: '2026-08-20T10:00:01.000Z',
+          },
+        });
+        return Promise.resolve({ count: 0 });
+      }
+      stored = makeRun(nextConfig);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare.mockRejectedValue(
+      new Error('stale Meta provider failure'),
+    );
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('stale Meta provider failure');
+
+    expect(interceptedRelease).toBe(true);
+    expect(stored.config).toMatchObject({
+      paidDraftOperation: {
+        claimedAt: '2026-08-20T10:00:01.000Z',
+        id: 'run-1:meta:1:variant-1',
+      },
+      phase: 'paid_draft_creating',
+    });
+  });
+
+  it('reclaims an expired Meta operation for a corrected destination', async () => {
+    const approved = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'review-workflow-execution-1',
+        workflowId: 'review-workflow-1',
+      },
+    });
+    let stored = makeRun({
+      ...(approved.config as Record<string, unknown>),
+      paidDraftOperation: {
+        adAccountId: 'act-old',
+        claimedAt: '2026-08-20T09:50:00.000Z',
+        credentialId: 'credential-old',
+        id: 'run-1:meta:1:variant-1',
+        linkUrl: 'https://tiktok.example/@creator/video/1',
+        variantId: 'variant-1',
+      },
+      phase: 'paid_draft_creating',
+    });
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-new',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare.mockResolvedValue({
+      adAccountId: 'act-new',
+      adId: 'ad-new',
+      adSetId: 'ad-set-new',
+      campaignId: 'campaign-new',
+      credentialId: 'credential-new',
+      ingredientId: 'image-1',
+      postId: 'post-1',
+      recipeRevision: 1,
+      recipeVersion: 1,
+      replayed: false,
+      status: 'PAUSED',
+      variantId: 'variant-1',
+      workflowExecutionId: 'meta-workflow-execution-new',
+      workflowId: 'meta-workflow-new',
+    });
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-new',
+          credentialId: 'credential-new',
+        },
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(result).toMatchObject({
+      paidDraft: {
+        adAccountId: 'act-new',
+        credentialId: 'credential-new',
+      },
+      phase: 'paid_draft_ready',
+    });
+    expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adAccountId: 'act-new',
+        credentialId: 'credential-new',
+      }),
+    );
+  });
+
+  it('preserves paid_draft_ready when approved Review posts reconcile', async () => {
+    const approved = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'review-workflow-execution-1',
+        workflowId: 'review-workflow-1',
+      },
+    });
+    let stored = makeRun({
+      ...(approved.config as Record<string, unknown>),
+      paidDraft: {
+        adAccountId: 'act-1',
+        adId: 'ad-1',
+        adSetId: 'ad-set-1',
+        campaignId: 'campaign-1',
+        credentialId: 'credential-1',
+        ingredientId: 'image-1',
+        postId: 'post-1',
+        recipeRevision: 1,
+        recipeVersion: 1,
+        replayed: false,
+        status: 'PAUSED',
+        variantId: 'variant-1',
+        workflowExecutionId: 'meta-workflow-execution-1',
+        workflowId: 'meta-workflow-1',
+      },
+      phase: 'paid_draft_ready',
+    });
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+
+    const result = await service.get('org-1', 'run-1');
+
+    expect(result.phase).toBe('paid_draft_ready');
+    expect(result.paidDraft).toMatchObject({ status: 'PAUSED' });
+  });
+
+  it('blocks same-destination retries while the Meta claim lease is active', async () => {
+    const approved = await createApprovedMetaRun();
+    let stored = makeRun({
+      ...(approved.config as Record<string, unknown>),
+      paidDraftOperation: {
+        adAccountId: 'act-1',
+        claimedAt: '2026-08-20T10:00:00.000Z',
+        credentialId: 'credential-1',
+        id: 'run-1:meta:1:variant-1',
+        linkUrl: 'https://tiktok.example/@creator/video/1',
+        variantId: 'variant-1',
+      },
+      phase: 'paid_draft_creating',
+    });
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(result.phase).toBe('paid_draft_creating');
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+  });
+
+  it('does not call Meta when the paid-draft claim loses its exact-config CAS', async () => {
+    const created = await createApprovedMetaRun();
+    created.status = ContentRunStatus.COMPLETED;
+    contentRun.findFirst.mockResolvedValue(created);
+    contentRun.updateMany.mockResolvedValue({ count: 0 });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('concurrent Meta draft action');
+
+    expect(contentRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          config: { equals: created.config },
+        }),
+      }),
+    );
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+  });
+
+  it('rejects an explicit unknown paid-draft variant instead of falling back', async () => {
+    const created = await createApprovedMetaRun();
+    created.status = ContentRunStatus.COMPLETED;
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-missing',
+      }),
+    ).rejects.toThrow('does not exist');
+
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+    expect(contentRun.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('recovers a successful Meta result after a concurrent config write wins the first result CAS', async () => {
+    const created = await createApprovedMetaRun();
+    created.status = ContentRunStatus.COMPLETED;
+    let stored = created;
+    let interruptedResultWrite = false;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data, where }) => {
+      const nextConfig = data.config as Record<string, unknown>;
+      if ('paidDraft' in nextConfig && !interruptedResultWrite) {
+        interruptedResultWrite = true;
+        stored = makeRun({
+          ...(stored.config as Record<string, unknown>),
+          readiness: {
+            issues: [
+              {
+                code: 'organization_defaults',
+                field: 'intent',
+                message: 'Brand-specific context is incomplete.',
+                severity: 'degraded',
+              },
+            ],
+            state: 'degraded',
+          },
+        });
+        stored.status = ContentRunStatus.RUNNING;
+        return Promise.resolve({ count: 0 });
+      }
+      if (
+        JSON.stringify(where.config.equals) !== JSON.stringify(stored.config)
+      ) {
+        return Promise.resolve({ count: 0 });
+      }
+      stored = makeRun(nextConfig);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare.mockResolvedValue({
+      adAccountId: 'act-1',
+      adId: 'ad-1',
+      adSetId: 'ad-set-1',
+      campaignId: 'campaign-1',
+      credentialId: 'credential-1',
+      ingredientId: 'image-1',
+      postId: 'post-1',
+      recipeRevision: 1,
+      recipeVersion: 1,
+      replayed: false,
+      status: 'PAUSED',
+      variantId: 'variant-1',
+      workflowExecutionId: 'meta-workflow-execution-1',
+      workflowId: 'meta-workflow-1',
+    });
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(interruptedResultWrite).toBe(true);
+    expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      paidDraft: { adId: 'ad-1', status: 'PAUSED' },
+      phase: 'paid_draft_ready',
+      readiness: { state: 'degraded' },
+    });
+    expect(stored.config).toMatchObject({
+      paidDraft: { adId: 'ad-1', status: 'PAUSED' },
+      phase: 'paid_draft_ready',
+      readiness: { state: 'degraded' },
+    });
+    expect(
+      (stored.config as Record<string, unknown>).paidDraftOperation,
+    ).toBeUndefined();
+  });
+
+  async function createApprovedMetaRun() {
+    return createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'review-workflow-execution-1',
+        workflowId: 'review-workflow-1',
+      },
+    });
+  }
 
   async function createPersistedRun(
     overrides: {

@@ -1,4 +1,5 @@
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
+import { ModelProvider } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,6 +14,10 @@ describe('ImageGenerationCreditsService', () => {
   const providerRegistry = {
     providerFor: vi.fn(),
   };
+  const byokService = {
+    isByokActiveForProvider: vi.fn(),
+    isByokBillingInGoodStanding: vi.fn(),
+  };
 
   let service: ImageGenerationCreditsService;
 
@@ -20,6 +25,8 @@ describe('ImageGenerationCreditsService', () => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue({ cost: 10 });
     providerRegistry.providerFor.mockReturnValue('fal');
+    byokService.isByokActiveForProvider.mockResolvedValue(false);
+    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
@@ -27,6 +34,7 @@ describe('ImageGenerationCreditsService', () => {
       creditsUtilsService as never,
       modelsService as never,
       providerRegistry as never,
+      byokService as never,
     );
   });
 
@@ -88,6 +96,33 @@ describe('ImageGenerationCreditsService', () => {
         providerCostUsd: null,
       },
     });
+  });
+
+  it('records resolved-provider BYOK usage without requiring platform credits', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      provider: ModelProvider.FAL,
+    });
+    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    const request = { creditsConfig: { deferred: true } };
+
+    await service.ensureDeferredCredits(
+      { outputs: 2, height: 1080, width: 1920 } as never,
+      'fal/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(request.creditsConfig).toMatchObject({
+      amount: 20,
+      deferred: false,
+      isByokBypass: true,
+      modelKey: 'fal/model',
+      provider: 'fal',
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('stamps provider-cost pricing metadata for live-priced models', async () => {

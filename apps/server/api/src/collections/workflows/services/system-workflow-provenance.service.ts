@@ -25,6 +25,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export const SYSTEM_WORKFLOW_ACTION_IDS = {
+  BRAND_REMIX_PAUSED_META_DRAFT: 'brand-remix-paused-meta-draft',
+  BRAND_REMIX_REVIEW_HANDOFF: 'brand-remix-review-handoff',
   CAMPAIGN_DM_AUTOMATION: 'campaign-dm-automation',
   CAMPAIGN_REPLY_AUTOMATION: 'campaign-reply-automation',
   EVERGREEN_RELEASE_EXPANSION: 'evergreen-release-expansion',
@@ -52,6 +54,20 @@ export type SystemWorkflowActionDefinition = {
 
 export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDefinition[] =
   [
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
+      changeSummary: 'Initial paused-only Meta draft workflow.',
+      description:
+        'Creates or replays a reviewed brand remix campaign, ad set, and ad while forcing every object to remain paused.',
+      label: 'Brand Remix Paused Meta Draft',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_REVIEW_HANDOFF,
+      changeSummary: 'Initial brand remix Review handoff workflow.',
+      description:
+        'Creates canonical draft Posts for selected brand remix variants and routes them to mandatory Review.',
+      label: 'Brand Remix Review Handoff',
+    },
     {
       canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
       changeSummary:

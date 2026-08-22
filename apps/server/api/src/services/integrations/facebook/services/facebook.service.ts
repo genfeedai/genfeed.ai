@@ -17,6 +17,11 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+interface FacebookPermission {
+  permission?: unknown;
+  status?: unknown;
+}
+
 @Injectable()
 export class FacebookService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -146,6 +151,38 @@ export class FacebookService {
     }
   }
 
+  public async getGrantedPermissions(
+    accessToken: string,
+  ): Promise<string[] | undefined> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(
+          `${this.graphUrl}/${this.apiVersion}/me/permissions`,
+          { params: { access_token: accessToken } },
+        ),
+      );
+      const permissions = Array.isArray(response.data?.data)
+        ? (response.data.data as FacebookPermission[])
+        : undefined;
+      if (!permissions) return undefined;
+      return [
+        ...new Set(
+          permissions.flatMap((permission) =>
+            permission.status === 'granted' &&
+            typeof permission.permission === 'string'
+              ? [permission.permission]
+              : [],
+          ),
+        ),
+      ].sort();
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
   public async refreshToken(
     organizationId: string,
     brandId: string,
@@ -188,6 +225,19 @@ export class FacebookService {
 
         const { access_token, expires_in } = response.data;
 
+        const responseScope = readOAuthTokenScopeField(response.data);
+        let grantedScopes = responseScope;
+        if (responseScope === undefined || responseScope === null) {
+          try {
+            grantedScopes = await this.getGrantedPermissions(access_token);
+          } catch (permissionError: unknown) {
+            this.loggerService.warn(
+              'Facebook permission capture failed after token refresh',
+              permissionError,
+            );
+          }
+        }
+
         return await this.credentialsService.patch(credentials.id, {
           accessToken: access_token,
           accessTokenExpiry: expires_in
@@ -195,9 +245,7 @@ export class FacebookService {
             : undefined,
           isConnected: true,
           isDeleted: false,
-          ...buildGrantedScopesCredentialPatch(
-            readOAuthTokenScopeField(response.data),
-          ),
+          ...buildGrantedScopesCredentialPatch(grantedScopes),
         });
       }
 
