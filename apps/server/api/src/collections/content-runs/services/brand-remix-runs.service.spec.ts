@@ -172,6 +172,9 @@ describe('BrandRemixRunsService', () => {
         status: IngredientStatus.GENERATED,
       },
     ]);
+    (
+      prisma.ingredient.updateMany as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({ count: 1 });
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
@@ -885,6 +888,17 @@ describe('BrandRemixRunsService', () => {
     });
 
     expect(attachedCounts).toEqual([3, 3, 3]);
+    expect(prisma.ingredient.updateMany).toHaveBeenNthCalledWith(1, {
+      data: { templateVersion: 1 },
+      where: {
+        brandId: 'brand-1',
+        groupId: 'run-1',
+        groupIndex: 0,
+        id: 'image-0',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(imageGenerationService.generateImage).toHaveBeenCalledTimes(3);
     expect(imageGenerationService.generateImage).toHaveBeenNthCalledWith(
       1,
@@ -1168,6 +1182,7 @@ describe('BrandRemixRunsService', () => {
           groupId: 'run-1',
           isDeleted: false,
           status: { not: IngredientStatus.FAILED },
+          templateVersion: 1,
         }),
       }),
     );
@@ -1289,6 +1304,7 @@ describe('BrandRemixRunsService', () => {
         where: expect.objectContaining({
           category: IngredientCategory.AVATAR,
           groupId: 'run-1',
+          templateVersion: 1,
         }),
       }),
     );

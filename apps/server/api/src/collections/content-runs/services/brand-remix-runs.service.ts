@@ -570,6 +570,20 @@ export class BrandRemixRunsService {
             brandId,
             config: activeConfig,
             onPlaceholderCreated: async (ingredientId) => {
+              const tagged = await this.prisma.ingredient.updateMany({
+                data: { templateVersion: config.revision },
+                where: scopedWhere(organizationId, {
+                  brandId,
+                  groupId: runId,
+                  groupIndex,
+                  id: ingredientId,
+                }),
+              });
+              if (tagged.count !== 1) {
+                throw new ConflictException(
+                  'The generated placeholder could not be bound to this remix revision.',
+                );
+              }
               activeConfig = await this.patchGeneratingVariant({
                 organizationId,
                 patch: {
@@ -2206,11 +2220,9 @@ export class BrandRemixRunsService {
 
   /**
    * A crash between provider placeholder persistence and config linkage leaves
-   * a durable Ingredient that no variant references. Adopt those orphans
-   * before re-dispatching so an interrupted run never pays for the same
-   * variant twice. The provider prompt is deterministic per recipe revision,
-   * so brand-scoped unlinked ingredients compiled for this exact prompt are
-   * this run's orphans.
+   * a durable Ingredient that no variant references. Adopt only placeholders
+   * tagged for this exact run and recipe revision before re-dispatching so an
+   * interrupted run never pays for the same variant twice.
    */
   private async adoptOrphanedPlaceholders(params: {
     brandId: string;
@@ -2241,6 +2253,7 @@ export class BrandRemixRunsService {
         id: linkedAssetIds.length ? { notIn: linkedAssetIds } : undefined,
         isDeleted: false,
         status: { not: IngredientStatus.FAILED },
+        templateVersion: config.revision,
       }),
       orderBy: { groupIndex: 'asc' },
       take: params.variants.length,
