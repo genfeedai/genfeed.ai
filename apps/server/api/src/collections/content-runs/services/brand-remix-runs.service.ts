@@ -539,6 +539,15 @@ export class BrandRemixRunsService {
           variantRequest.creditsConfig = originalCredits
             ? { ...originalCredits, deferred: true }
             : undefined;
+          if (
+            activeConfig.draft.output.kind === 'avatar' &&
+            variantRequest.creditsConfig
+          ) {
+            variantRequest.creditsConfig = {
+              ...variantRequest.creditsConfig,
+              amount: 1,
+            };
+          }
           const assetId = await this.dispatchVariant({
             brandId,
             config: activeConfig,
@@ -560,8 +569,7 @@ export class BrandRemixRunsService {
             onCreditsPrepared: async () => {
               creditAmounts.set(
                 variant.id,
-                variantRequest.creditsConfig?.amount ??
-                  (activeConfig.draft.output.kind === 'avatar' ? 1 : 0),
+                variantRequest.creditsConfig?.amount ?? 0,
               );
               await creditBarrier.arrive();
             },

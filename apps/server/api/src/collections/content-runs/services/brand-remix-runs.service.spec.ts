@@ -1310,6 +1310,51 @@ describe('BrandRemixRunsService', () => {
     expect(providerText).not.toContain(sourcePost.text);
   });
 
+  it('settles one credit for every successful Avatar variant', async () => {
+    const created = await createPersistedRun();
+    let stored = created;
+    let generatedCount = 0;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        generatedCount += 1;
+        const ingredientId = `avatar-credit-${generatedCount}`;
+        await onCreated?.(ingredientId);
+        await onCredits?.();
+        return {
+          externalId: `heygen-credit-${generatedCount}`,
+          ingredientId,
+          status: 'processing',
+        };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 0,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    await service.start('org-1', 'run-1', user, creditRequest as never, {
+      expectedRevision: 1,
+    });
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith('org-1', 3);
+    expect(creditRequest.creditsConfig).toMatchObject({
+      amount: 3,
+      deferred: false,
+    });
+  });
+
   it('passes an operator-authored Avatar script verbatim after trimming', async () => {
     const exactScript = '  Here is the exact line our avatar should say.  ';
     const created = await createPersistedRun({
