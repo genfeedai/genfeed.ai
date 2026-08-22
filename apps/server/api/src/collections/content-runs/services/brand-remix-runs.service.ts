@@ -709,7 +709,6 @@ export class BrandRemixRunsService {
       .map((variant) => variant.id)
       .sort()
       .join(':');
-    let claimedConfig = config;
     if (config.reviewClaim) {
       const claimedIds = [...config.reviewClaim.selectedVariantIds].sort();
       const requestedVariantIds = selected.map((variant) => variant.id).sort();
@@ -730,30 +729,29 @@ export class BrandRemixRunsService {
           title: 'Concurrent review submission',
         });
       }
-    } else {
-      claimedConfig = brandRemixRunConfigSchema.parse({
-        ...config,
-        reviewClaim: {
-          claimedAt: this.runtime.now().toISOString(),
-          id: `${run.id}:review:${config.revision}`,
-          selectedVariantIds: selected.map((variant) => variant.id),
-          status: 'claimed',
-        },
+    }
+    const claimedConfig = brandRemixRunConfigSchema.parse({
+      ...config,
+      reviewClaim: {
+        claimedAt: this.runtime.now().toISOString(),
+        id: `${run.id}:review:${config.revision}`,
+        selectedVariantIds: selected.map((variant) => variant.id),
+        status: 'claimed',
+      },
+    });
+    const claimed = await this.compareAndSwapExactConfig({
+      expectedConfig: config,
+      nextConfig: claimedConfig,
+      organizationId,
+      runId,
+      status: ContentRunStatus.COMPLETED,
+    });
+    if (!claimed) {
+      throw new ConflictException({
+        detail:
+          'A concurrent review submission already claimed this remix. Reload it and retry.',
+        title: 'Concurrent review submission',
       });
-      const claimed = await this.compareAndSwapExactConfig({
-        expectedConfig: config,
-        nextConfig: claimedConfig,
-        organizationId,
-        runId,
-        status: ContentRunStatus.COMPLETED,
-      });
-      if (!claimed) {
-        throw new ConflictException({
-          detail:
-            'A concurrent review submission already claimed this remix. Reload it and retry.',
-          title: 'Concurrent review submission',
-        });
-      }
     }
     const workflow = await this.systemWorkflowProvenanceService.runAction(
       {

@@ -1649,13 +1649,16 @@ describe('BrandRemixRunsService', () => {
       items: [{ id: 'item-1', postId: 'post-1' }],
     });
     // Reconciliation writes succeed; only the review claim loses the race.
-    contentRun.updateMany.mockImplementation(({ data }) =>
-      Promise.resolve(
-        JSON.stringify(data.config).includes('"review"')
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      const nextConfig = data.config as {
+        reviewClaim?: { status?: string };
+      };
+      return Promise.resolve(
+        nextConfig.reviewClaim?.status === 'claimed'
           ? { count: 0 }
           : { count: 1 },
-      ),
-    );
+      );
+    });
 
     await expect(
       service.submitForReview('org-1', 'run-1', 'user-1', {
@@ -1668,6 +1671,90 @@ describe('BrandRemixRunsService', () => {
       },
       status: 409,
     });
+    expect(
+      batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+    expect(
+      trendReferenceCorpusService.recordPostRemixLineage,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('reclaims an expired Review lease through CAS before creating side effects', async () => {
+    const created = await createPersistedRun({
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original TikTok visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'ready_for_review',
+    });
+    const stored = makeRun({
+      ...(created.config as Record<string, unknown>),
+      reviewClaim: {
+        claimedAt: '2026-08-20T09:50:00.000Z',
+        id: 'run-1:review:1',
+        selectedVariantIds: ['variant-1'],
+        status: 'claimed',
+      },
+    });
+    contentRun.findFirst.mockResolvedValue(stored);
+    contentRun.updateMany.mockResolvedValue({ count: 0 });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        category: 'IMAGE',
+        id: 'image-1',
+        status: IngredientStatus.GENERATED,
+      },
+    ]);
+
+    await expect(
+      service.submitForReview('org-1', 'run-1', 'user-1', {
+        variantIds: ['variant-1'],
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        detail: expect.stringContaining('concurrent'),
+        title: 'Concurrent review submission',
+      },
+      status: 409,
+    });
+
+    expect(contentRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            reviewClaim: expect.objectContaining({
+              claimedAt: '2026-08-20T10:00:00.000Z',
+            }),
+          }),
+        }),
+        where: expect.objectContaining({
+          config: { equals: stored.config },
+        }),
+      }),
+    );
     expect(
       batchGenerationService.createManualReviewBatch,
     ).not.toHaveBeenCalled();
