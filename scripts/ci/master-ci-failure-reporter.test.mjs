@@ -149,26 +149,28 @@ test('reportMasterCiFailure creates tracker and triages project fields', async (
   assert.ok(optionIds.includes(BLAST_RADIUS_INFRA));
 });
 
-test('reportMasterCiFailure still succeeds when project GraphQL is denied', async () => {
+test('reportMasterCiFailure files the issue but fails when project GraphQL is denied', async () => {
   const { github, created } = createGithubMock({ openIssues: [] });
   github.graphql = async () => {
     throw new Error('Resource not accessible by integration');
   };
   const warnings = [];
 
-  const result = await reportMasterCiFailure({
-    github,
-    owner: 'genfeedai',
-    repo: 'genfeed.ai',
-    body: 'first red push',
-    date: '2026-08-08',
-    core: {
-      info: () => {},
-      warning: (m) => warnings.push(m),
-    },
-  });
+  await assert.rejects(
+    reportMasterCiFailure({
+      github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'first red push',
+      date: '2026-08-08',
+      core: {
+        info: () => {},
+        warning: (m) => warnings.push(m),
+      },
+    }),
+    /Resource not accessible by integration/,
+  );
 
-  assert.equal(result.action, 'created');
   assert.equal(created.length, 1);
   assert.ok(warnings.some((w) => w.includes('Could not triage')));
 });
@@ -249,6 +251,11 @@ test('a red master gate files the tracker and a green one resolves it', () => {
   assert.match(report, /needs\.tests-gate\.result == 'failure'/);
   assert.match(report, /issues: write/);
   assert.match(report, /master-ci-failure-reporter\.mjs/);
+  assert.match(
+    report,
+    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
+    'Project #12 writes must use the existing PAT, not repository GITHUB_TOKEN',
+  );
 
   const resolve = ciJob('master-failure-resolve');
   assert.match(resolve, /needs: \[tests-gate\]/);

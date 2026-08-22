@@ -6,8 +6,9 @@
  * in Backlog with no priority while CI stays red. The project/field/option ids
  * live here once so a board reshuffle is a one-file change.
  *
- * Board writes are best-effort by contract: issues still file when Projects
- * GraphQL is denied; the Actions log records the miss.
+ * Issue creation happens before board triage, but a denied Project mutation is
+ * fatal to the reporter job. A red reporter is deliberate: P0 is an operational
+ * contract, not optional metadata that may disappear into a warning.
  */
 
 /** Org project #12 — genfeed.ai */
@@ -23,8 +24,10 @@ export const WORK_TYPE_BUG = '2f513127';
 export const BLAST_RADIUS_INFRA = '82415f41';
 
 /**
- * Best-effort: add the issue to Project #12 and set the P0 triage fields.
- * Never throws — board writes must not block filing the issue.
+ * Add the issue to Project #12 and set the P0 triage fields.
+ * Throws after logging when Project writes fail. Reporter callers create or
+ * update the issue first, so the tracker remains available while Actions stays
+ * visibly red until the credential/permission boundary is repaired.
  *
  * @param {object} github Octokit-compatible client (rest + graphql)
  * @param {{ owner: string, repo: string, issueNumber: number, trackerName: string, core?: object }} input
@@ -91,6 +94,6 @@ export async function triageCiFailureOnProject(
     core.warning?.(
       `Could not triage ${trackerName} #${issueNumber} on Project #12: ${message}`,
     );
-    return { ok: false, error: message };
+    throw error;
   }
 }
