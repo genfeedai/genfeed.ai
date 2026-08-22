@@ -10,7 +10,7 @@ import {
 } from '@workers/services/fal-model-contract-sync.service';
 
 const fixtureDir = fileURLToPath(
-  new URL('../../../test/fixtures/fal/', import.meta.url),
+  new URL('../../test/fixtures/fal/', import.meta.url),
 );
 const imageOpenapi = JSON.parse(
   readFileSync(join(fixtureDir, 'image-openapi.json'), 'utf8'),
