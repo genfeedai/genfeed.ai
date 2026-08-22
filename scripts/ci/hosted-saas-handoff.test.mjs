@@ -409,6 +409,12 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     /-exclude=aws_elasticache_replication_group\.redis/,
   );
   assert.match(publicDeployCore, /Require Redis TLS and AUTH/);
+  const registerApply = publicDeployCore.slice(
+    publicDeployCore.indexOf(
+      'Register migration, backfill, and boot-smoke task definitions',
+    ),
+    publicDeployCore.indexOf('Snapshot RDS before migrations'),
+  );
   const rollApply = publicDeployCore.slice(
     publicDeployCore.indexOf('Tofu apply (roll services to new image)'),
     publicDeployCore.indexOf('Wait for services stable'),
@@ -417,8 +423,12 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     publicDeployCore.indexOf('Require Redis TLS and AUTH'),
     publicDeployCore.indexOf('Print active service logs on rollout failure'),
   );
+  assert.match(registerApply, /-target=aws_ecs_task_definition\.migrate/);
+  assert.doesNotMatch(registerApply, /-exclude=/);
   assert.match(rollApply, /-exclude=aws_elasticache_replication_group\.redis/);
+  assert.doesNotMatch(rollApply, /-target=/);
   assert.match(authApply, /-target=aws_elasticache_replication_group\.redis/);
+  assert.doesNotMatch(authApply, /-exclude=/);
 });
 
 test('passes deploy values through env instead of interpolating into shell or JS', () => {
