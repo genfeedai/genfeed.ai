@@ -13,6 +13,7 @@ import type {
   MetaAdAccount,
   MetaAdCreative,
   MetaAdSetTargeting,
+  MetaAdVideo,
   MetaCampaign,
   MetaCampaignComparison,
   MetaImageUploadResponse,
@@ -323,6 +324,38 @@ export class MetaAdsService {
     return items
       .filter((item) => !adSetId || item.adset_id === adSetId)
       .map(({ id, name, status }) => ({ id, name, status }));
+  }
+
+  async listAdVideos(
+    accessToken: string,
+    adAccountId: string,
+    options?: { allPages?: boolean },
+  ): Promise<MetaAdVideo[]> {
+    return this.listGraphPages<MetaAdVideo>(
+      accessToken,
+      `${adAccountId}/advideos`,
+      { fields: 'id,title', limit: 200 },
+      Boolean(options?.allPages),
+    );
+  }
+
+  async getAdVideoThumbnailUrl(
+    accessToken: string,
+    videoId: string,
+  ): Promise<string> {
+    const response = await this.makeRequest<
+      MetaGraphPage<{ is_preferred?: boolean; uri?: string }>
+    >(accessToken, `${videoId}/thumbnails`, {
+      fields: 'is_preferred,uri',
+      limit: 100,
+    });
+    const thumbnail =
+      response.data.find((item) => item.is_preferred && item.uri)?.uri ??
+      response.data.find((item) => item.uri)?.uri;
+    if (!thumbnail) {
+      throw new Error('Meta did not return a usable video thumbnail.');
+    }
+    return thumbnail;
   }
 
   async getCampaignInsights(
@@ -788,9 +821,10 @@ export class MetaAdsService {
 
       if (params.creative.videoId) {
         objectStorySpec.video_data = {
+          ...(params.creative.thumbnailUrl && {
+            image_url: params.creative.thumbnailUrl,
+          }),
           video_id: params.creative.videoId,
-          video_thumbnail_id: '0',
-          video_thumbnail_source: 'generated_default',
           ...(params.creative.title && { title: params.creative.title }),
           ...(params.creative.body && { message: params.creative.body }),
           ...(params.creative.callToAction && {

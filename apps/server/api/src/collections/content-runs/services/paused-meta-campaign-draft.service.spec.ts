@@ -13,8 +13,10 @@ describe('PausedMetaCampaignDraftService', () => {
     createAdSet: vi.fn(),
     createCampaign: vi.fn(),
     getAdAccounts: vi.fn(),
+    getAdVideoThumbnailUrl: vi.fn(),
     listAds: vi.fn(),
     listAdSets: vi.fn(),
+    listAdVideos: vi.fn(),
     listCampaigns: vi.fn(),
     pauseAd: vi.fn(),
     pauseAdSet: vi.fn(),
@@ -108,6 +110,7 @@ describe('PausedMetaCampaignDraftService', () => {
     metaAdsService.listCampaigns.mockResolvedValue([]);
     metaAdsService.listAdSets.mockResolvedValue([]);
     metaAdsService.listAds.mockResolvedValue([]);
+    metaAdsService.listAdVideos.mockResolvedValue([]);
     metaAdsService.createCampaign.mockResolvedValue('campaign-1');
     metaAdsService.createAdSet.mockResolvedValue('adset-1');
     metaAdsService.uploadAdImage.mockResolvedValue({
@@ -115,6 +118,10 @@ describe('PausedMetaCampaignDraftService', () => {
       url: 'https://meta.example/image.jpg',
     });
     metaAdsService.createAd.mockResolvedValue('ad-1');
+    metaAdsService.getAdVideoThumbnailUrl.mockResolvedValue(
+      'https://meta.example/video-thumbnail.jpg',
+    );
+    metaAdsService.uploadAdVideo.mockResolvedValue({ videoId: 'video-1' });
     workflowProvenanceService.runAction.mockImplementation(
       async (_options, action) => ({
         provenance: {
@@ -221,6 +228,64 @@ describe('PausedMetaCampaignDraftService', () => {
     expect(metaAdsService.createCampaign).toHaveBeenCalledTimes(1);
     expect(metaAdsService.createAdSet).toHaveBeenCalledTimes(1);
     expect(metaAdsService.createAd).toHaveBeenCalledTimes(2);
+  });
+
+  it('reuses a named video upload after an ad-creation failure and selects its thumbnail', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.VIDEO,
+      cdnUrl: 'https://cdn.northstar.example/video.mp4',
+      id: 'video-ingredient-1',
+      status: IngredientStatus.GENERATED,
+    });
+    const videoInput = {
+      ...input,
+      variant: { ...input.variant, assetIds: ['video-ingredient-1'] },
+    };
+    metaAdsService.listAdVideos
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'video-1',
+          title: 'Genfeed Remix run-1-2-variant-1 Ad',
+        },
+      ]);
+    metaAdsService.createAd
+      .mockRejectedValueOnce(new Error('Meta ad creation failed'))
+      .mockResolvedValueOnce('ad-1');
+
+    await expect(service.prepare(videoInput)).rejects.toThrow(
+      'Meta ad creation failed',
+    );
+    metaAdsService.listCampaigns.mockResolvedValue([
+      {
+        id: 'campaign-1',
+        name: 'Genfeed Remix run-1-2-variant-1',
+      },
+    ]);
+    metaAdsService.listAdSets.mockResolvedValue([
+      {
+        id: 'adset-1',
+        name: 'Genfeed Remix run-1-2-variant-1 Ad Set',
+      },
+    ]);
+
+    await service.prepare(videoInput);
+
+    expect(metaAdsService.uploadAdVideo).toHaveBeenCalledTimes(1);
+    expect(metaAdsService.getAdVideoThumbnailUrl).toHaveBeenCalledWith(
+      'legacy-plaintext-token',
+      'video-1',
+    );
+    expect(metaAdsService.createAd).toHaveBeenCalledWith(
+      'legacy-plaintext-token',
+      'act_123',
+      expect.objectContaining({
+        creative: expect.objectContaining({
+          thumbnailUrl: 'https://meta.example/video-thumbnail.jpg',
+          videoId: 'video-1',
+        }),
+      }),
+    );
   });
 
   it('rejects a foreign ad account before any upload or create', async () => {

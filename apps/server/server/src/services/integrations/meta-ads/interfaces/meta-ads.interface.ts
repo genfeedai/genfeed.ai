@@ -119,12 +119,18 @@ export interface CreateAdCreativeInput {
   linkUrl: string;
   pageId?: string;
   callToAction?: string;
+  thumbnailUrl?: string;
 }
 
 export interface MetaNamedAdObject {
   id: string;
   name: string;
   status: string;
+}
+
+export interface MetaAdVideo {
+  id: string;
+  title: string;
 }
 
 export interface CreateAdParams {

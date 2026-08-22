@@ -222,19 +222,39 @@ export class PausedMetaCampaignDraftService {
         const existingAd = ads.find((ad) => ad.name === adName);
         let adId = existingAd?.id;
         if (!adId) {
-          const creative =
-            ingredient.category === IngredientCategory.IMAGE
-              ? await this.metaAdsService.uploadAdImage(
+          const creative = await (async () => {
+            if (ingredient.category === IngredientCategory.IMAGE) {
+              return this.metaAdsService.uploadAdImage(
+                accessToken,
+                resolvedAdAccountId,
+                mediaUrl,
+              );
+            }
+            const uploadedVideos = await this.metaAdsService.listAdVideos(
+              accessToken,
+              resolvedAdAccountId,
+              { allPages: true },
+            );
+            const existingVideo = uploadedVideos.find(
+              (video) => video.title === adName,
+            );
+            return (
+              (existingVideo ? { videoId: existingVideo.id } : undefined) ??
+              (await this.metaAdsService.uploadAdVideo(
+                accessToken,
+                resolvedAdAccountId,
+                mediaUrl,
+                adName,
+              ))
+            );
+          })();
+          const thumbnailUrl =
+            'videoId' in creative
+              ? await this.metaAdsService.getAdVideoThumbnailUrl(
                   accessToken,
-                  resolvedAdAccountId,
-                  mediaUrl,
+                  creative.videoId,
                 )
-              : await this.metaAdsService.uploadAdVideo(
-                  accessToken,
-                  resolvedAdAccountId,
-                  mediaUrl,
-                  adName,
-                );
+              : undefined;
           adId = await this.metaAdsService.createAd(
             accessToken,
             resolvedAdAccountId,
@@ -245,7 +265,7 @@ export class PausedMetaCampaignDraftService {
                 callToAction: 'LEARN_MORE',
                 ...('hash' in creative
                   ? { imageHash: creative.hash }
-                  : { videoId: creative.videoId }),
+                  : { thumbnailUrl, videoId: creative.videoId }),
                 linkUrl: input.linkUrl,
                 pageId,
                 title: input.config.draft.intent.hook,

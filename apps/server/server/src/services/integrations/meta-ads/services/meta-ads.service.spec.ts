@@ -130,7 +130,27 @@ describe('MetaAdsService', () => {
     expect(privateMethods.makeRequest).toHaveBeenCalledTimes(25);
   });
 
-  it('requests Meta generated thumbnail selection for video creatives', async () => {
+  it('selects the preferred generated thumbnail returned by Meta', async () => {
+    const { service } = createService();
+    const privateMethods = service as unknown as MetaAdsPrivateMethods;
+    privateMethods.makeRequest = vi.fn().mockResolvedValue({
+      data: [
+        { is_preferred: false, uri: 'https://meta.example/thumbnail-1.jpg' },
+        { is_preferred: true, uri: 'https://meta.example/thumbnail-2.jpg' },
+      ],
+    });
+
+    await expect(
+      service.getAdVideoThumbnailUrl('access-token', 'video-1'),
+    ).resolves.toBe('https://meta.example/thumbnail-2.jpg');
+    expect(privateMethods.makeRequest).toHaveBeenCalledWith(
+      'access-token',
+      'video-1/thumbnails',
+      { fields: 'is_preferred,uri', limit: 100 },
+    );
+  });
+
+  it('uses a Meta-returned thumbnail URL for video creatives', async () => {
     const { service } = createService();
     const privateMethods = service as unknown as MetaAdsPrivateMethods;
     privateMethods.makePostRequest = vi.fn().mockResolvedValue({ id: 'ad-1' });
@@ -142,6 +162,7 @@ describe('MetaAdsService', () => {
         callToAction: 'LEARN_MORE',
         linkUrl: 'https://acme.example.test/offer',
         pageId: 'page-1',
+        thumbnailUrl: 'https://meta.example/thumbnail.jpg',
         videoId: 'video-1',
       },
       name: 'Acme video ad',
@@ -157,10 +178,15 @@ describe('MetaAdsService', () => {
       };
     };
     expect(creative.object_story_spec?.video_data).toMatchObject({
+      image_url: 'https://meta.example/thumbnail.jpg',
       video_id: 'video-1',
-      video_thumbnail_id: '0',
-      video_thumbnail_source: 'generated_default',
     });
+    expect(creative.object_story_spec?.video_data).not.toHaveProperty(
+      'video_thumbnail_id',
+    );
+    expect(creative.object_story_spec?.video_data).not.toHaveProperty(
+      'video_thumbnail_source',
+    );
     expect(data.status).toBe('PAUSED');
   });
 });
