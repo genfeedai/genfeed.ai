@@ -1945,14 +1945,6 @@
       "workspace": "api"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/integrations/__tests__/integrations.controller.spec.ts",
-      "fingerprint": "7d4efefa29594b15b603",
-      "message": "Conversion of type '{ _id: string; config: { allowedUserIds: string[]; defaultWorkflow: string; }; createdAt: Date; encryptedToken: string; isDeleted: false; organization: string; platform: IntegrationPlatform.TELEGRAM; status: IntegrationStatus.ACTIVE; updatedAt: Date; }' to type '{ isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string; config: JsonValue; status: IntegrationStatus; platform: IntegrationPlatform; encryptedToken: string; lastError: Date | null; lastErrorMessage: string | null; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ _id: string; config: { allowedUserIds: string[]; defaultWorkflow: string; }; createdAt: Date; encryptedToken: string; isDeleted: false; organization: string; platform: IntegrationPlatform.TELEGRAM; status: IntegrationStatus.ACTIVE; updatedAt: Date; }' is missing the following properties from type '{ isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string; config: JsonValue; status: IntegrationStatus; platform: IntegrationPlatform; encryptedToken: string; lastError: Date | null; lastErrorMessage: string | null; }': id, organizationId, lastError, lastErrorMessage",
-      "workspace": "api"
-    },
-    {
       "code": 2698,
       "count": 1,
       "file": "apps/server/api/src/endpoints/integrations/__tests__/integrations.controller.spec.ts",

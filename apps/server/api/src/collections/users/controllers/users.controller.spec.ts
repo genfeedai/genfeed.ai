@@ -123,7 +123,6 @@ describe('UsersController', () => {
       filesClientService as unknown as FilesClientService,
       membersService as unknown as MembersService,
       userAccessCacheService,
-      notificationPreferenceService as never,
     );
     relationshipsController = new UsersRelationshipsController(
       brandsService as unknown as BrandsService,
@@ -133,6 +132,7 @@ describe('UsersController', () => {
       mockLogger as unknown as LoggerService,
       membersService as unknown as MembersService,
       userAccessCacheService,
+      notificationPreferenceService as never,
     );
   });
 
