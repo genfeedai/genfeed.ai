@@ -59,6 +59,16 @@ export default function StudioRemixRunPanel({
     run.draft.target.kind === 'organic' &&
     run.phase === 'approved' &&
     Boolean(run.review?.approvedPostIds.length);
+  const outputSummary = [
+    formatLabel(run.draft.target.kind),
+    formatLabel(run.draft.target.platform),
+    formatLabel(run.draft.output.kind),
+    'aspectRatio' in run.draft.output
+      ? run.draft.output.aspectRatio
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const clipboardService = ClipboardService.getInstance();
   const copyVariantGroup = (
     variantId: string,
@@ -93,12 +103,7 @@ export default function StudioRemixRunPanel({
           <h2 className="mt-2 text-sm font-semibold text-foreground">
             {run.sourceSnapshot.title}
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {formatLabel(run.draft.target.kind)} ·{' '}
-            {formatLabel(run.draft.target.platform)} ·{' '}
-            {formatLabel(run.draft.output.kind)} ·{' '}
-            {run.draft.output.aspectRatio}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{outputSummary}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {run.execution ? (
