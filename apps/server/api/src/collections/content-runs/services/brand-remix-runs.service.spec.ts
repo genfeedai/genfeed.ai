@@ -54,6 +54,8 @@ const makeRun = (config: Record<string, unknown>) => ({
   updatedAt,
 });
 
+type TestRun = ReturnType<typeof makeRun>;
+
 type TestCreditsRequest = Request & {
   creditsConfig: {
     amount: number;
@@ -371,19 +373,10 @@ describe('BrandRemixRunsService', () => {
         output: { aspectRatio: '1:1', count: 1, kind: 'image' },
       },
     });
-    contentRun.findFirst.mockResolvedValue(created);
-    contentRun.updateMany.mockResolvedValue({ count: 1 });
+    installExactConfigStore(created);
     imageGenerationService.generateImage.mockResolvedValue({
       data: { id: 'image-1', type: 'ingredient' },
     });
-    let stored = created;
-    contentRun.updateMany.mockImplementation(({ data }) => {
-      stored = makeRun(data.config as Record<string, unknown>);
-      stored.status = (data.status ?? stored.status) as ContentRunStatus;
-      contentRun.findFirst.mockResolvedValue(stored);
-      return Promise.resolve({ count: 1 });
-    });
-
     const result = await service.start(
       'org-1',
       'run-1',
@@ -401,7 +394,10 @@ describe('BrandRemixRunsService', () => {
       expect.objectContaining({
         text: expect.not.stringContaining('painful old workflow'),
       }),
-      request,
+      expect.objectContaining({
+        context: { organizationId: 'org-1' },
+        creditsConfig: expect.objectContaining({ deferred: true }),
+      }),
       expect.any(Function),
       expect.objectContaining({
         groupId: 'run-1',
@@ -636,19 +632,10 @@ describe('BrandRemixRunsService', () => {
         output: { aspectRatio: '1:1', count: 2, kind: 'image' },
       },
     });
-    contentRun.findFirst.mockResolvedValue(created);
-    contentRun.updateMany.mockResolvedValue({ count: 1 });
+    installExactConfigStore(created);
     imageGenerationService.generateImage
       .mockResolvedValueOnce({ data: { id: 'image-1', type: 'ingredient' } })
       .mockResolvedValueOnce({ data: { id: 'image-2', type: 'ingredient' } });
-
-    let stored = created;
-    contentRun.updateMany.mockImplementation(({ data }) => {
-      stored = makeRun(data.config as Record<string, unknown>);
-      stored.status = (data.status ?? stored.status) as ContentRunStatus;
-      contentRun.findFirst.mockResolvedValue(stored);
-      return Promise.resolve({ count: 1 });
-    });
 
     const result = await service.start(
       'org-1',
@@ -670,7 +657,10 @@ describe('BrandRemixRunsService', () => {
         references: ['brand-reference-1'],
         width: 1024,
       }),
-      request,
+      expect.objectContaining({
+        context: { organizationId: 'org-1' },
+        creditsConfig: expect.objectContaining({ deferred: true }),
+      }),
       expect.any(Function),
       expect.objectContaining({
         groupId: 'run-1',
@@ -853,14 +843,8 @@ describe('BrandRemixRunsService', () => {
         output: { aspectRatio: '1:1', count: 3, kind: 'image' },
       },
     });
-    let stored = created;
+    const getStored = installExactConfigStore(created);
     const attachedCounts: number[] = [];
-    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
-    contentRun.updateMany.mockImplementation(({ data }) => {
-      stored = makeRun(data.config as Record<string, unknown>);
-      stored.status = (data.status ?? stored.status) as ContentRunStatus;
-      return Promise.resolve({ count: 1 });
-    });
     imageGenerationService.generateImage.mockImplementation(
       async (
         _user,
@@ -872,7 +856,7 @@ describe('BrandRemixRunsService', () => {
       ) => {
         await onCreated?.(`image-${reservation.groupIndex}`);
         const execution = (
-          stored.config as {
+          getStored().config as {
             execution?: { variants: Array<{ assetIds: string[] }> };
           }
         ).execution;
@@ -1040,13 +1024,7 @@ describe('BrandRemixRunsService', () => {
       },
       phase: 'partially_ready',
     });
-    let stored = created;
-    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
-    contentRun.updateMany.mockImplementation(({ data }) => {
-      stored = makeRun(data.config as Record<string, unknown>);
-      stored.status = (data.status ?? stored.status) as ContentRunStatus;
-      return Promise.resolve({ count: 1 });
-    });
+    installExactConfigStore(created);
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
       ({ where }: { where?: Record<string, unknown> } = {}) => {
         if (where && 'groupId' in where) {
@@ -1142,6 +1120,7 @@ describe('BrandRemixRunsService', () => {
       phase: 'generating',
     });
     contentRun.findFirst.mockResolvedValue(created);
+    contentRun.updateMany.mockResolvedValue({ count: 1 });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         id: 'avatar-in-flight',
@@ -1707,14 +1686,8 @@ describe('BrandRemixRunsService', () => {
 
   it('stops Avatar provider consumption when aggregate credit reservation fails', async () => {
     const created = await createPersistedRun();
-    let stored = created;
+    const getStored = installExactConfigStore(created);
     let providerConsumptions = 0;
-    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
-    contentRun.updateMany.mockImplementation(({ data }) => {
-      stored = makeRun(data.config as Record<string, unknown>);
-      stored.status = (data.status ?? stored.status) as ContentRunStatus;
-      return Promise.resolve({ count: 1 });
-    });
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       false,
     );
@@ -1751,6 +1724,7 @@ describe('BrandRemixRunsService', () => {
 
     expect(providerConsumptions).toBe(0);
     expect(result.phase).toBe('failed');
+    expect(getStored().config).toMatchObject({ phase: 'failed' });
     expect(result.execution?.variants).toEqual(
       expect.arrayContaining([expect.objectContaining({ status: 'failed' })]),
     );
@@ -2195,6 +2169,7 @@ describe('BrandRemixRunsService', () => {
         status: 'claimed',
       },
     });
+    stored.status = ContentRunStatus.COMPLETED;
     contentRun.findFirst.mockResolvedValue(stored);
     contentRun.updateMany.mockResolvedValue({ count: 0 });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -2280,6 +2255,9 @@ describe('BrandRemixRunsService', () => {
     });
     contentRun.findFirst.mockResolvedValue(created);
     contentRun.updateMany.mockResolvedValue({ count: 1 });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
     (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         id: 'post-1',
@@ -2315,7 +2293,6 @@ describe('BrandRemixRunsService', () => {
       contentRun.findFirst.mockResolvedValue(stored);
       return Promise.resolve({ count: 1 });
     });
-
     const result = await service.preparePausedMetaDraft(
       'org-1',
       'run-1',
@@ -2397,6 +2374,9 @@ describe('BrandRemixRunsService', () => {
       contentRun.findFirst.mockResolvedValue(stored);
       return Promise.resolve({ count: 1 });
     });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
     (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         id: 'post-1',
@@ -2509,6 +2489,9 @@ describe('BrandRemixRunsService', () => {
       stored.status = (data.status ?? stored.status) as ContentRunStatus;
       return Promise.resolve({ count: 1 });
     });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
     (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         id: 'post-1',
@@ -2603,6 +2586,9 @@ describe('BrandRemixRunsService', () => {
       stored.status = (data.status ?? stored.status) as ContentRunStatus;
       return Promise.resolve({ count: 1 });
     });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
     (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         id: 'post-1',
@@ -2696,6 +2682,9 @@ describe('BrandRemixRunsService', () => {
       stored.status = (data.status ?? stored.status) as ContentRunStatus;
       return Promise.resolve({ count: 1 });
     });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
     (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       {
         id: 'post-1',
@@ -2973,7 +2962,7 @@ describe('BrandRemixRunsService', () => {
     contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
     contentRun.updateMany.mockImplementation(({ data, where }) => {
       const nextConfig = data.config as Record<string, unknown>;
-      if ('paidDraft' in nextConfig && !interruptedResultWrite) {
+      if (nextConfig.paidDraft !== undefined && !interruptedResultWrite) {
         interruptedResultWrite = true;
         stored = makeRun({
           ...(stored.config as Record<string, unknown>),
@@ -3102,6 +3091,27 @@ describe('BrandRemixRunsService', () => {
         workflowId: 'review-workflow-1',
       },
     });
+  }
+
+  function installExactConfigStore(initial: TestRun): () => TestRun {
+    let stored = initial;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data, where }) => {
+      const expectedConfig = (
+        where as { config?: { equals?: unknown } } | undefined
+      )?.config?.equals;
+      if (
+        expectedConfig !== undefined &&
+        JSON.stringify(expectedConfig) !== JSON.stringify(stored.config)
+      ) {
+        return Promise.resolve({ count: 0 });
+      }
+      const next = makeRun(data.config as Record<string, unknown>);
+      next.status = (data.status ?? stored.status) as ContentRunStatus;
+      stored = next;
+      return Promise.resolve({ count: 1 });
+    });
+    return () => stored;
   }
 
   async function createPersistedRun(
