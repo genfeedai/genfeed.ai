@@ -115,10 +115,18 @@ export function mapFalPricing(price: NormalizedFalPrice): FalPricingMapping {
     return { reason: `unsupported_unit:${unit}`, supported: false };
   }
 
+  const unitPriceMicros = decimalUsdToMicros(price.unitPrice);
+  if (unitPriceMicros === 0n && /[1-9]/.test(price.unitPrice)) {
+    return {
+      reason: 'unit_price_below_minimum_precision',
+      supported: false,
+    };
+  }
+
   return {
     pricingType,
     providerCostUsd: Number(price.unitPrice),
     supported: true,
-    unitPriceMicros: decimalUsdToMicros(price.unitPrice),
+    unitPriceMicros,
   };
 }

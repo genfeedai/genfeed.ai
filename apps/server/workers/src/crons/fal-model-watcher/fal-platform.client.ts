@@ -28,6 +28,7 @@ const MAX_PAGES = 100;
 const MODELS_PAGE_LIMIT = 50;
 const PRICING_ENDPOINT_LIMIT = 50;
 const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_RETRY_DELAY_MS = 30_000;
 
 @Injectable()
 export class FalPlatformClient {
@@ -165,19 +166,25 @@ export class FalPlatformClient {
   }
 
   private retryDelayMs(response: Response, attempt: number): number {
+    const clampDelay = (delayMs: number) =>
+      Math.min(delayMs, MAX_RETRY_DELAY_MS);
     const retryAfter = response.headers.get('Retry-After');
     if (retryAfter) {
       const seconds = Number(retryAfter);
-      if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000;
+      if (Number.isFinite(seconds) && seconds >= 0) {
+        return clampDelay(seconds * 1_000);
+      }
       const dateDelay = Date.parse(retryAfter) - Date.now();
-      if (Number.isFinite(dateDelay) && dateDelay > 0) return dateDelay;
+      if (Number.isFinite(dateDelay) && dateDelay > 0) {
+        return clampDelay(dateDelay);
+      }
     }
 
     const reset = Number(response.headers.get('x-ratelimit-reset'));
     if (Number.isFinite(reset) && reset > 0) {
       const resetDelay = reset * 1_000 - Date.now();
-      if (resetDelay > 0) return resetDelay;
+      if (resetDelay > 0) return clampDelay(resetDelay);
     }
-    return 250 * 2 ** (attempt - 1);
+    return clampDelay(250 * 2 ** (attempt - 1));
   }
 }

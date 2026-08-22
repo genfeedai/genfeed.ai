@@ -325,7 +325,8 @@ export function adaptFalVideoRequest(
   const allowedProperties = schema.properties ?? {};
   const input = Object.fromEntries(
     Object.entries(request.promptParams).filter(
-      ([key, value]) => key in allowedProperties && value !== undefined,
+      ([key, value]) =>
+        Object.hasOwn(allowedProperties, key) && value !== undefined,
     ),
   );
   input.prompt = request.prompt;

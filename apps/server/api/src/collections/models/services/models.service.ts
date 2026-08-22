@@ -95,7 +95,12 @@ export class ModelsService extends BaseService<
       return {};
     }
 
-    return this.isModelRecord(document.config) ? document.config : {};
+    if (this.isModelRecord(document.config)) {
+      return document.config;
+    }
+    return this.isModelRecord(document.providerConfig)
+      ? document.providerConfig
+      : {};
   }
 
   private normalizeModelDocument(document: PrismaModel): ModelDocument {
