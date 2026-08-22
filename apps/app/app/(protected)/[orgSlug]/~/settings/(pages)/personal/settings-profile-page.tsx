@@ -13,6 +13,7 @@ import {
   THEME_PREFERENCES,
   type ThemePreference,
 } from '@genfeedai/constants';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ISetting } from '@genfeedai/interfaces';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
@@ -22,6 +23,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
+import Alert from '@ui/feedback/alert/Alert';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,
@@ -34,6 +37,8 @@ import { Switch } from '@ui/primitives/switch';
 type ExtendedSettingPatch = Partial<ISetting> & {
   isVideoNotificationsEmail?: boolean;
 };
+
+type WorkflowPreferenceLoadState = 'error' | 'loading' | 'ready';
 
 // Baked in at module load, matching ServiceWorkerRegistrar. The pseudo-locale is
 // a QA instrument, not a language — a customer who lands on accented, padded
@@ -61,32 +66,26 @@ export default function SettingsProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isWorkflowNotificationsEmail, setIsWorkflowNotificationsEmail] =
     useState(false);
-  const [isWorkflowPreferenceLoading, setIsWorkflowPreferenceLoading] =
-    useState(true);
+  const [workflowPreferenceLoadState, setWorkflowPreferenceLoadState] =
+    useState<WorkflowPreferenceLoadState>('loading');
+  const loadWorkflowPreference = useCallback(async () => {
+    setWorkflowPreferenceLoadState('loading');
+
+    try {
+      const service = await getUsersService();
+      const preference =
+        await service.findWorkflowEmailNotificationPreference();
+      setIsWorkflowNotificationsEmail(preference.isEnabled);
+      setWorkflowPreferenceLoadState('ready');
+    } catch (error) {
+      logger.error('Failed to load workflow email preference', error);
+      setWorkflowPreferenceLoadState('error');
+    }
+  }, [getUsersService]);
 
   useEffect(() => {
-    let isActive = true;
-
-    void getUsersService()
-      .then((service) => service.findWorkflowEmailNotificationPreference())
-      .then((preference) => {
-        if (isActive) {
-          setIsWorkflowNotificationsEmail(preference.isEnabled);
-        }
-      })
-      .catch((error: unknown) => {
-        logger.error('Failed to load workflow email preference', error);
-      })
-      .finally(() => {
-        if (isActive) {
-          setIsWorkflowPreferenceLoading(false);
-        }
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [getUsersService]);
+    void loadWorkflowPreference();
+  }, [loadWorkflowPreference]);
 
   const patchSettings = useCallback(
     async (patch: ExtendedSettingPatch) => {
@@ -285,11 +284,26 @@ export default function SettingsProfilePage() {
             label="Workflow Emails"
             description="Send an email when a workflow completes or fails."
             isChecked={isWorkflowNotificationsEmail}
-            isDisabled={isSaving || isWorkflowPreferenceLoading}
+            isDisabled={isSaving || workflowPreferenceLoadState !== 'ready'}
             onChange={(e) =>
               handleWorkflowEmailPreferenceChange(e.target.checked)
             }
           />
+          {workflowPreferenceLoadState === 'error' ? (
+            <Alert type={AlertCategory.WARNING}>
+              <div className="flex items-center justify-between gap-3">
+                <span>Workflow email preference could not be loaded.</span>
+                <Button
+                  label="Retry"
+                  onClick={() => {
+                    void loadWorkflowPreference();
+                  }}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+              </div>
+            </Alert>
+          ) : null}
           <Switch
             label="Video Emails"
             description="Send an email when a video generation completes or fails."

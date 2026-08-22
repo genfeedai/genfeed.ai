@@ -176,4 +176,23 @@ describe('SettingsProfilePage', () => {
       }),
     );
   });
+
+  it('keeps an unknown workflow preference disabled and supports retry', async () => {
+    const user = userEvent.setup();
+    mocks.findWorkflowEmailPreference.mockRejectedValueOnce(
+      new Error('load failed'),
+    );
+    render(<SettingsProfilePage />);
+
+    const toggle = screen.getByRole('switch', { name: 'Workflow Emails' });
+    expect(
+      await screen.findByText('Workflow email preference could not be loaded.'),
+    ).toBeInTheDocument();
+    expect(toggle).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => expect(toggle).toBeEnabled());
+    expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledTimes(2);
+  });
 });
