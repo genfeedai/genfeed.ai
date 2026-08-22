@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
  * E2E Tests for YouTube → AI Clip Factory (/studio/clips)
@@ -27,6 +28,22 @@ function isClipProjectCollectionUrl(url: string): boolean {
 
 const MOCK_PROJECT_ID = '000000000000000000001234';
 const MOCK_YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+function jsonApiProject(status: string): {
+  data: {
+    attributes: { status: string };
+    id: string;
+    type: 'clip-projects';
+  };
+} {
+  return {
+    data: {
+      attributes: { status },
+      id: MOCK_PROJECT_ID,
+      type: 'clip-projects',
+    },
+  };
+}
 
 /**
  * Mirrors the clip-results poll interval in the progress-step effect of
@@ -105,12 +122,7 @@ async function mockGetProject(page: Page, status = 'analyzing') {
     }
 
     await route.fulfill({
-      body: JSON.stringify({
-        data: {
-          attributes: { status },
-          id: MOCK_PROJECT_ID,
-        },
-      }),
+      body: JSON.stringify(jsonApiProject(status)),
       contentType: 'application/json',
       status: 200,
     });
@@ -282,10 +294,12 @@ test.describe('Clip Factory', () => {
     await mockAnalyzeRequest(authenticatedPage);
     await mockHighlightsPolling(authenticatedPage);
 
+    let hasRequestedGeneration = false;
     await authenticatedPage.route(API_GENERATE, async (route) => {
       generateRequestBody = JSON.parse(
         route.request().postData() ?? '{}',
       ) as Record<string, unknown>;
+      hasRequestedGeneration = true;
       await route.fulfill({
         body: JSON.stringify({
           clipCount: 3,
@@ -304,12 +318,9 @@ test.describe('Clip Factory', () => {
       }
 
       await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            _id: MOCK_PROJECT_ID,
-            status: 'generating',
-          },
-        }),
+        body: JSON.stringify(
+          jsonApiProject(hasRequestedGeneration ? 'generating' : 'analyzed'),
+        ),
         contentType: 'application/json',
         status: 200,
       });
@@ -404,9 +415,7 @@ test.describe('Clip Factory', () => {
       // reads issued after generation started count as progress-step polls.
       if (!hasRequestedGeneration) {
         await route.fulfill({
-          body: JSON.stringify({
-            data: { _id: MOCK_PROJECT_ID, status: 'analyzed' },
-          }),
+          body: JSON.stringify(jsonApiProject('analyzed')),
           contentType: 'application/json',
           status: 200,
         });
@@ -416,12 +425,9 @@ test.describe('Clip Factory', () => {
       projectPollCount += 1;
 
       await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            _id: MOCK_PROJECT_ID,
-            status: hasReleasedCompletion ? 'completed' : 'generating',
-          },
-        }),
+        body: JSON.stringify(
+          jsonApiProject(hasReleasedCompletion ? 'completed' : 'generating'),
+        ),
         contentType: 'application/json',
         status: 200,
       });
@@ -576,9 +582,7 @@ test.describe('Clip Factory', () => {
       }
 
       await route.fulfill({
-        body: JSON.stringify({
-          data: { _id: MOCK_PROJECT_ID, status: 'completed' },
-        }),
+        body: JSON.stringify(jsonApiProject('completed')),
         contentType: 'application/json',
         status: 200,
       });
@@ -688,6 +692,7 @@ test.describe('Clip Factory', () => {
   test('unauthenticated user is redirected away from clip factory', async ({
     unauthenticatedPage,
   }) => {
+    skipIfPlaywrightAuthBypassed();
     await unauthenticatedPage.goto(CLIPS_URL, {
       waitUntil: 'domcontentloaded',
     });
