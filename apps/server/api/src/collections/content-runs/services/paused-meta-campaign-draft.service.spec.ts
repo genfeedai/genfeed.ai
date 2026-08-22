@@ -194,6 +194,35 @@ describe('PausedMetaCampaignDraftService', () => {
     expect(metaAdsService.uploadAdImage).not.toHaveBeenCalled();
   });
 
+  it('recovers a partial ad failure without duplicating campaign or ad set objects', async () => {
+    metaAdsService.createAd
+      .mockRejectedValueOnce(new Error('Meta ad creation failed'))
+      .mockResolvedValueOnce('ad-1');
+
+    await expect(service.prepare(input)).rejects.toThrow(
+      'Meta ad creation failed',
+    );
+
+    metaAdsService.listCampaigns.mockResolvedValue([
+      { id: 'campaign-1', name: 'Genfeed Remix run-1-2-variant-1' },
+    ]);
+    metaAdsService.listAdSets.mockResolvedValue([
+      { id: 'adset-1', name: 'Genfeed Remix run-1-2-variant-1 Ad Set' },
+    ]);
+
+    const result = await service.prepare(input);
+
+    expect(result).toMatchObject({
+      adId: 'ad-1',
+      adSetId: 'adset-1',
+      campaignId: 'campaign-1',
+      status: 'PAUSED',
+    });
+    expect(metaAdsService.createCampaign).toHaveBeenCalledTimes(1);
+    expect(metaAdsService.createAdSet).toHaveBeenCalledTimes(1);
+    expect(metaAdsService.createAd).toHaveBeenCalledTimes(2);
+  });
+
   it('rejects a foreign ad account before any upload or create', async () => {
     metaAdsService.getAdAccounts.mockResolvedValue([]);
 

@@ -93,6 +93,7 @@ const MAX_VARIANT_PATCH_RETRIES = 16;
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const REVIEW_CLAIM_LEASE_MS = 5 * 60 * 1000;
 const GENERATION_CLAIM_LEASE_MS = 5 * 60 * 1000;
+const PAID_DRAFT_CLAIM_LEASE_MS = 5 * 60 * 1000;
 
 const RUN_SELECT = {
   brandId: true,
@@ -1045,9 +1046,31 @@ export class BrandRemixRunsService {
       config.paidDraftOperation.adAccountId !== input.destination.adAccountId ||
       config.paidDraftOperation.variantId !== selectedVariant.id
     ) {
-      throw new ConflictException(
-        'Resume the existing Meta draft destination and variant.',
-      );
+      const claimAge =
+        this.runtime.now().getTime() -
+        new Date(config.paidDraftOperation.claimedAt).getTime();
+      if (claimAge < PAID_DRAFT_CLAIM_LEASE_MS) {
+        throw new ConflictException(
+          'Resume the existing Meta draft destination and variant until its recovery lease expires.',
+        );
+      }
+      claimedConfig = brandRemixRunConfigSchema.parse({
+        ...config,
+        paidDraftOperation: operation,
+        phase: 'paid_draft_creating',
+      });
+      const reclaimed = await this.compareAndSwapExactConfig({
+        expectedConfig: config,
+        nextConfig: claimedConfig,
+        organizationId,
+        runId,
+        status: ContentRunStatus.RUNNING,
+      });
+      if (!reclaimed) {
+        throw new ConflictException(
+          'A concurrent Meta draft recovery won the claim.',
+        );
+      }
     }
     const paidDraft = await this.pausedMetaCampaignDraftService.prepare({
       adAccountId: input.destination.adAccountId,
@@ -2502,7 +2525,11 @@ export class BrandRemixRunsService {
       const approved =
         posts.length === config.review.postIds.length &&
         approvedPostIds.length === posts.length;
-      const phase = approved ? 'approved' : config.phase;
+      const preservesPaidDraftPhase =
+        config.phase === 'paid_draft_creating' ||
+        config.phase === 'paid_draft_ready';
+      const phase =
+        approved && !preservesPaidDraftPhase ? 'approved' : config.phase;
       changed ||=
         approvedPostIds.length !== config.review.approvedPostIds.length ||
         phase !== config.phase;
@@ -2511,7 +2538,9 @@ export class BrandRemixRunsService {
         phase,
         review: { ...config.review, approvedPostIds },
       });
-      if (approved) status = ContentRunStatus.COMPLETED;
+      if (approved && phase !== 'paid_draft_creating') {
+        status = ContentRunStatus.COMPLETED;
+      }
     }
 
     if (!changed && run.status === status) return { config, run };
