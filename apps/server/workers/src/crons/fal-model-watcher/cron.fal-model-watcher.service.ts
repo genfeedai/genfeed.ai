@@ -98,7 +98,7 @@ export class CronFalModelWatcherService {
           provider: true,
           reviewedProviderContractVersion: true,
         },
-        where: { isDeleted: false },
+        where: { isDeleted: false, organizationId: null },
       });
       const existingFalModels = new Map<string, FalSyncModelRecord>(
         registryRows
@@ -169,7 +169,7 @@ export class CronFalModelWatcherService {
 
             if (!draft) continue;
             summary.draftsCreated++;
-            registryModel = draft as unknown as FalSyncModelRecord;
+            registryModel = draft;
             await this.sendDiscoveryNotification(
               model.endpoint_id,
               this.detectModelCategory(model),

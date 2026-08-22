@@ -36,7 +36,20 @@ function exactDecimal(value: unknown): string {
     return value;
   }
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
-    return String(value);
+    const serialized = String(value);
+    const [coefficient, exponentValue] = serialized.toLowerCase().split('e');
+    if (exponentValue === undefined) return serialized;
+
+    const [whole, fraction = ''] = (coefficient as string).split('.');
+    const digits = `${whole}${fraction}`;
+    const decimalIndex = (whole as string).length + Number(exponentValue);
+    if (decimalIndex <= 0) {
+      return `0.${'0'.repeat(-decimalIndex)}${digits}`;
+    }
+    if (decimalIndex >= digits.length) {
+      return `${digits}${'0'.repeat(decimalIndex - digits.length)}`;
+    }
+    return `${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`;
   }
   throw new Error('Fal pricing has an invalid unit_price');
 }

@@ -133,10 +133,13 @@ export class FalModelContractSyncService {
     }
 
     const quarantined = candidate.mappingStatus === 'quarantined';
+    const activationPatch =
+      model.isActive && !model.reviewedProviderContractVersion
+        ? {}
+        : { isActive: false, isDefault: false };
     await this.modelsService.prisma.model.update({
       data: {
-        isActive: false,
-        isDefault: false,
+        ...activationPatch,
         pendingProviderContractVersion: candidate.version,
         providerPricingSyncedAt: now,
         providerSchemaSyncedAt: now,
@@ -201,10 +204,10 @@ export class FalModelContractSyncService {
     const price = normalizedPrices.length === 1 ? normalizedPrices[0] : null;
     const pricingMapping = price ? mapFalPricing(price) : null;
     if (!price) {
-      unsupportedReason =
+      unsupportedReason ??=
         normalizedPrices.length > 1 ? 'ambiguous_pricing' : 'missing_pricing';
     } else if (pricingMapping && !pricingMapping.supported) {
-      unsupportedReason = pricingMapping.reason;
+      unsupportedReason ??= pricingMapping.reason;
     }
 
     const supported = Boolean(schemaFamily && pricingMapping?.supported);

@@ -7,6 +7,7 @@ export enum FalSchemaFamily {
 }
 
 export interface FalJsonSchema extends Record<string, unknown> {
+  allOf?: FalJsonSchema[];
   anyOf?: FalJsonSchema[];
   enum?: unknown[];
   items?: FalJsonSchema;
@@ -66,6 +67,51 @@ function resolveLocalRef(
   return asSchema(current);
 }
 
+function resolveSchemaRefs(
+  openapi: Record<string, unknown>,
+  schema: FalJsonSchema,
+  resolvingRefs = new Set<string>(),
+): FalJsonSchema {
+  const ref = typeof schema.$ref === 'string' ? schema.$ref : null;
+  if (ref && resolvingRefs.has(ref)) {
+    return schema;
+  }
+
+  const nextResolvingRefs = new Set(resolvingRefs);
+  let resolved = schema;
+  if (ref) {
+    nextResolvingRefs.add(ref);
+    resolved = { ...resolveLocalRef(openapi, schema), ...schema };
+    delete resolved.$ref;
+  }
+
+  const result: FalJsonSchema = { ...resolved };
+  if (resolved.properties) {
+    result.properties = Object.fromEntries(
+      Object.entries(resolved.properties).map(([key, property]) => [
+        key,
+        resolveSchemaRefs(openapi, property, nextResolvingRefs),
+      ]),
+    );
+  }
+  if (resolved.items) {
+    result.items = resolveSchemaRefs(
+      openapi,
+      resolved.items,
+      nextResolvingRefs,
+    );
+  }
+  for (const keyword of ['allOf', 'anyOf', 'oneOf'] as const) {
+    const variants = resolved[keyword];
+    if (variants) {
+      result[keyword] = variants.map((variant) =>
+        resolveSchemaRefs(openapi, variant, nextResolvingRefs),
+      );
+    }
+  }
+  return result;
+}
+
 function readContentSchema(
   openapi: Record<string, unknown>,
   container: unknown,
@@ -81,7 +127,7 @@ function readContentSchema(
       'Fal OpenAPI operation is missing application/json content',
     );
   }
-  return resolveLocalRef(openapi, asSchema(media.schema));
+  return resolveSchemaRefs(openapi, asSchema(media.schema));
 }
 
 export function extractFalEndpointSchemas(

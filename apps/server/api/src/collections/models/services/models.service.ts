@@ -25,6 +25,30 @@ const PAGINATION_OPTION_KEYS = new Set([
   'useFacet',
 ]);
 
+const IMAGE_FAL_SCHEMA_FAMILIES = new Set([
+  'image-edit-multi-v1',
+  'image-edit-single-v1',
+  'image-text-v1',
+]);
+const VIDEO_FAL_SCHEMA_FAMILIES = new Set(['video-image-v1', 'video-text-v1']);
+
+function isFalSchemaFamilyCompatible(
+  category: string,
+  schemaFamily: string,
+): boolean {
+  if (IMAGE_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
+    return [ModelCategory.IMAGE, ModelCategory.IMAGE_EDIT].includes(
+      category as ModelCategory,
+    );
+  }
+  if (VIDEO_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
+    return [ModelCategory.VIDEO, ModelCategory.VIDEO_EDIT].includes(
+      category as ModelCategory,
+    );
+  }
+  return false;
+}
+
 type FindAvailableModelsParams = {
   category?: string;
   enabledModelIds?: string[];
@@ -504,6 +528,18 @@ export class ModelsService extends BaseService<
     ) {
       throw new BadRequestException(
         'The pending provider contract is quarantined and cannot be activated',
+      );
+    }
+    if (
+      pendingContract?.schemaFamily &&
+      existing.provider === ModelProvider.FAL &&
+      !isFalSchemaFamilyCompatible(
+        existing.category,
+        pendingContract.schemaFamily,
+      )
+    ) {
+      throw new BadRequestException(
+        'The pending provider contract schema family does not match the model category',
       );
     }
 
