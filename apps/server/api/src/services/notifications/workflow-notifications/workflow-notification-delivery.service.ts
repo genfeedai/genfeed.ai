@@ -179,10 +179,28 @@ export class WorkflowNotificationDeliveryService {
       },
     });
 
-    await Promise.all(
+    const enqueueResults = await Promise.allSettled(
       deliveries.map(({ id }) => this.queueService.enqueue(id)),
     );
-    return deliveries.length;
+    let recoveredCount = 0;
+
+    for (const [index, result] of enqueueResults.entries()) {
+      if (result.status === 'fulfilled') {
+        recoveredCount += 1;
+        continue;
+      }
+
+      this.logger.error(
+        'Durable notification recovery enqueue failed',
+        result.reason,
+        {
+          ...this.context,
+          deliveryId: deliveries[index]?.id,
+        },
+      );
+    }
+
+    return recoveredCount;
   }
 
   private async skip(

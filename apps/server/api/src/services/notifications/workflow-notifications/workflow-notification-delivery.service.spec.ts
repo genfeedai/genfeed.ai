@@ -145,4 +145,41 @@ describe('WorkflowNotificationDeliveryService', () => {
       },
     });
   });
+
+  it('continues a recovery sweep when one queue publish fails', async () => {
+    const prisma = {
+      notificationDelivery: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'delivery-1' },
+            { id: 'delivery-2' },
+            { id: 'delivery-3' },
+          ]),
+      },
+    };
+    const queue = {
+      enqueue: vi
+        .fn()
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Redis unavailable'))
+        .mockResolvedValueOnce(undefined),
+    };
+    const logger = { error: vi.fn(), warn: vi.fn() };
+    const service = new WorkflowNotificationDeliveryService(
+      prisma as never,
+      { deliverEmail: vi.fn() } as never,
+      queue as never,
+      logger as never,
+    );
+
+    await expect(service.recoverDueDeliveries()).resolves.toBe(2);
+
+    expect(queue.enqueue).toHaveBeenCalledTimes(3);
+    expect(logger.error).toHaveBeenCalledWith(
+      'Durable notification recovery enqueue failed',
+      expect.objectContaining({ message: 'Redis unavailable' }),
+      expect.objectContaining({ deliveryId: 'delivery-2' }),
+    );
+  });
 });
