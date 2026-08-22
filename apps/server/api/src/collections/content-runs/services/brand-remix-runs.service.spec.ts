@@ -2482,6 +2482,71 @@ describe('BrandRemixRunsService', () => {
     });
   });
 
+  it('does not release a newer reclaimed Meta operation after a stale provider failure', async () => {
+    const approved = await createApprovedMetaRun();
+    let stored = approved;
+    let interceptedRelease = false;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      const nextConfig = data.config as Record<string, unknown>;
+      if (
+        !interceptedRelease &&
+        nextConfig.phase === 'approved' &&
+        !nextConfig.paidDraftOperation
+      ) {
+        interceptedRelease = true;
+        const staleOperation = (stored.config as Record<string, unknown>)
+          .paidDraftOperation as Record<string, unknown>;
+        stored = makeRun({
+          ...(stored.config as Record<string, unknown>),
+          paidDraftOperation: {
+            ...staleOperation,
+            claimedAt: '2026-08-20T10:00:01.000Z',
+          },
+        });
+        return Promise.resolve({ count: 0 });
+      }
+      stored = makeRun(nextConfig);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare.mockRejectedValue(
+      new Error('stale Meta provider failure'),
+    );
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('stale Meta provider failure');
+
+    expect(interceptedRelease).toBe(true);
+    expect(stored.config).toMatchObject({
+      paidDraftOperation: {
+        claimedAt: '2026-08-20T10:00:01.000Z',
+        id: 'run-1:meta:1:variant-1',
+      },
+      phase: 'paid_draft_creating',
+    });
+  });
+
   it('reclaims an expired Meta operation for a corrected destination', async () => {
     const approved = await createPersistedRun({
       draft: { target: { kind: 'paid', platform: 'meta' } },

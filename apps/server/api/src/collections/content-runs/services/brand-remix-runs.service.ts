@@ -1231,6 +1231,8 @@ export class BrandRemixRunsService {
       if (
         !latestOperation ||
         latestOperation.id !== claimedConfig.paidDraftOperation?.id ||
+        latestOperation.claimedAt !==
+          claimedConfig.paidDraftOperation?.claimedAt ||
         latestOperation.credentialId !== paidDraft.credentialId ||
         latestOperation.adAccountId !== paidDraft.adAccountId ||
         latestOperation.variantId !== paidDraft.variantId
@@ -1263,11 +1265,17 @@ export class BrandRemixRunsService {
     organizationId: string;
     runId: string;
   }): Promise<void> {
-    const operationId = params.claimedConfig.paidDraftOperation?.id;
-    if (!operationId) return;
+    const claimedOperation = params.claimedConfig.paidDraftOperation;
+    if (!claimedOperation) return;
     let expectedConfig = params.claimedConfig;
     for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
-      if (expectedConfig.paidDraftOperation?.id !== operationId) return;
+      if (
+        expectedConfig.paidDraftOperation?.id !== claimedOperation.id ||
+        expectedConfig.paidDraftOperation.claimedAt !==
+          claimedOperation.claimedAt
+      ) {
+        return;
+      }
       const releasedConfig = brandRemixRunConfigSchema.parse({
         ...expectedConfig,
         paidDraftOperation: undefined,
