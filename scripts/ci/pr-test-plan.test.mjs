@@ -290,7 +290,7 @@ test('keeps the workflow wired to exact changed selection and dynamic shards', (
   );
   assert.match(
     workflow,
-    /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@v7/,
+    /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@[0-9a-f]{40} # v7\.\d+\.\d+/,
   );
 
   // The instrumented coverage runs shard off their own matrix rather than
@@ -412,7 +412,7 @@ test('the merge queue re-runs the gate on the queue merge commit', () => {
   assert.ok(gitleaksJob, 'ci.yml must define the gitleaks job');
   assert.match(
     gitleaksJob[1],
-    /uses: gitleaks\/gitleaks-action@v\d+\n(?: {8}.*\n)*? {8}if: github\.event_name != 'merge_group'/,
+    /uses: gitleaks\/gitleaks-action@[0-9a-f]{40} # v\d+\.\d+\.\d+\n(?: {8}.*\n)*? {8}if: github\.event_name != 'merge_group'/,
     'gitleaks-action must not run on merge_group',
   );
   assert.match(

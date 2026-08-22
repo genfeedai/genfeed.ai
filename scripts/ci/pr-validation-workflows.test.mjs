@@ -171,6 +171,21 @@ test('direct PR workflows cancel only within one PR or complete ref', () => {
   }
 });
 
+test('keeps pull_request_target metadata-only', () => {
+  const targetWorkflows = readdirSync(WORKFLOWS_DIRECTORY)
+    .filter((fileName) => /\.ya?ml$/.test(fileName))
+    .filter((fileName) =>
+      /^ {2}pull_request_target:/m.test(readWorkflow(fileName)),
+    )
+    .sort();
+
+  assert.deepEqual(targetWorkflows, ['pr-title.yml']);
+  const title = readWorkflow('pr-title.yml');
+  assert.match(title, /^permissions:\n {2}pull-requests: read$/m);
+  assert.doesNotMatch(title, /uses: actions\/checkout@/);
+  assert.doesNotMatch(title, /uses: \.\//);
+});
+
 test('enforces executable contracts through the aggregate suite', () => {
   // #1011 still requires CI to block new hard-coded content cron/action/publish
   // paths. Those scanners, Bull Board parity, and relation-alias ratchets run
@@ -295,7 +310,7 @@ test('server image PR validation bounds cache export without changing reachabili
   }
   assert.match(
     workflow,
-    /uses: docker\/build-push-action@v7[\s\S]*?push: false/,
+    /uses: docker\/build-push-action@[0-9a-f]{40} # v7\.\d+\.\d+[\s\S]*?push: false/,
   );
   assert.match(workflow, /^ {10}cache-from: type=gha,scope=server-image-pr$/m);
   assert.match(
@@ -313,7 +328,10 @@ test('self-hosted publisher can PATCH the draft GitHub release', () => {
     workflow,
     /^permissions:\n {2}contents: write\n {2}packages: write$/m,
   );
-  assert.match(workflow, /uses: softprops\/action-gh-release@v3/);
+  assert.match(
+    workflow,
+    /uses: softprops\/action-gh-release@[0-9a-f]{40} # v3\.\d+\.\d+/,
+  );
   assert.ok(workflow.includes('tag_name: ${{ env.RELEASE_TAG }}'));
   assert.ok(workflow.includes('target_commitish: ${{ inputs.checkout_ref }}'));
 });

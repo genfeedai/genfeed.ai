@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { ActionReference } from './check-github-action-versions';
 import {
+  type ActionRelease,
   compareVersionTags,
   isVersionTag,
   planActionVersionUpdates,
@@ -15,9 +16,17 @@ function reference(
   action: string,
   version: string,
   file = '.github/workflows/ci.yml',
+  release?: string,
 ): ActionReference {
-  return { action, file, line: 1, version };
+  return release
+    ? { action, file, line: 1, release, version }
+    : { action, file, line: 1, version };
 }
+
+const CHECKOUT_RELEASE: ActionRelease = {
+  sha: '3d3c42e5aac5ba805825da76410c181273ba90b1',
+  tag: 'v7.0.1',
+};
 
 describe('GitHub Action version updater', () => {
   it('accepts release tags and rejects branch or digest pins', () => {
@@ -38,81 +47,141 @@ describe('GitHub Action version updater', () => {
     expect(compareVersionTags('0.36.0', 'v0.36.0')).toBe(0);
   });
 
-  it('rewrites quoted, unquoted, and sub-action uses lines', () => {
+  it('rewrites mutable tags to immutable SHAs with reviewable release comments', () => {
     expect(
       rewriteUsesLine(
         '      - uses: actions/checkout@v7',
         'actions/checkout',
-        'v7.0.1',
+        CHECKOUT_RELEASE,
       ),
-    ).toBe('      - uses: actions/checkout@v7.0.1');
+    ).toBe(
+      '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
+    );
     expect(
       rewriteUsesLine(
         '        uses: "actions/checkout@v7.0.1"',
         'actions/checkout',
-        'v8.0.0',
+        CHECKOUT_RELEASE,
       ),
-    ).toBe('        uses: "actions/checkout@v8.0.0"');
+    ).toBe(
+      '        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1',
+    );
     expect(
       rewriteUsesLine(
         "        uses: 'github/codeql-action/init@v4'",
         'github/codeql-action',
-        'v5',
+        {
+          sha: 'db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28',
+          tag: 'v4',
+        },
       ),
-    ).toBe("        uses: 'github/codeql-action/init@v5'");
+    ).toBe(
+      "        uses: 'github/codeql-action/init@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28' # v4",
+    );
   });
 
-  it('leaves digest pins, other actions, and already-current pins alone', () => {
-    const digest =
+  it('refreshes labeled digest pins and leaves manual digests alone', () => {
+    const current =
       '        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1';
+    const old =
+      '        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v6';
+    const manual =
+      '        uses: PlasmoHQ/bpp@c15984c0a74f452851c605cab46f34d9fd6cb158';
 
-    expect(rewriteUsesLine(digest, 'actions/checkout', 'v8.0.0')).toBe(digest);
+    expect(rewriteUsesLine(current, 'actions/checkout', CHECKOUT_RELEASE)).toBe(
+      current,
+    );
+    expect(rewriteUsesLine(old, 'actions/checkout', CHECKOUT_RELEASE)).toBe(
+      current,
+    );
+    expect(rewriteUsesLine(manual, 'PlasmoHQ/bpp', CHECKOUT_RELEASE)).toBe(
+      manual,
+    );
     expect(
       rewriteUsesLine(
         '        uses: actions/setup-node@v7',
         'actions/checkout',
-        'v8.0.0',
+        CHECKOUT_RELEASE,
       ),
     ).toBe('        uses: actions/setup-node@v7');
-    expect(
-      rewriteUsesLine(
-        '        uses: actions/checkout@v7.0.1',
-        'actions/checkout',
-        'v7.0.1',
-      ),
-    ).toBe('        uses: actions/checkout@v7.0.1');
   });
 
-  it('plans one bump per action and refuses downgrades', () => {
+  it('preserves prose comments after the reviewable release label', () => {
+    expect(
+      rewriteUsesLine(
+        '        uses: actions/checkout@v6 # keep for compatibility',
+        'actions/checkout',
+        CHECKOUT_RELEASE,
+      ),
+    ).toBe(
+      '        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 | keep for compatibility',
+    );
+  });
+
+  it('plans one immutable release update per action and warns on suspicious labels', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const updates = planActionVersionUpdates(
       [
         reference('actions/checkout', 'v7.0.1'),
         reference(
           'actions/checkout',
-          'v7.0.1',
+          '93cb6efe18208431cddfb8368fd83d5badbf9bfd',
           '.github/actions/setup-bun-env/action.yml',
+          'v6',
         ),
         reference('actions/setup-node', 'v7'),
-        reference('orhun/git-cliff-action', 'v4.8.0'),
+        reference(
+          'orhun/git-cliff-action',
+          'f50e11560dce63f7c33227798f90b924471a88b5',
+          '.github/workflows/release.yml',
+          'v4.8.0',
+        ),
       ],
       new Map([
-        ['actions/checkout', 'v8.0.0'],
-        ['actions/setup-node', 'v7'],
-        ['orhun/git-cliff-action', 'v4.7.0'],
+        ['actions/checkout', CHECKOUT_RELEASE],
+        [
+          'actions/setup-node',
+          {
+            sha: '820762786026740c76f36085b0efc47a31fe5020',
+            tag: 'v7',
+          },
+        ],
+        [
+          'orhun/git-cliff-action',
+          {
+            sha: '0123456789012345678901234567890123456789',
+            tag: 'v4.7.0',
+          },
+        ],
       ]),
     );
 
     expect(updates).toEqual([
       {
         action: 'actions/checkout',
-        from: ['v7.0.1'],
-        to: 'v8.0.0',
+        from: ['93cb6efe18208431cddfb8368fd83d5badbf9bfd # v6', 'v7.0.1'],
+        to: CHECKOUT_RELEASE,
         files: [
           '.github/actions/setup-bun-env/action.yml',
           '.github/workflows/ci.yml',
         ],
       },
+      {
+        action: 'actions/setup-node',
+        from: ['v7'],
+        to: {
+          sha: '820762786026740c76f36085b0efc47a31fe5020',
+          tag: 'v7',
+        },
+        files: ['.github/workflows/ci.yml'],
+      },
     ]);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'recorded release v4.8.0 is newer than upstream v4.7.0',
+      ),
+    );
+    warn.mockRestore();
   });
 
   it('keeps Action pin bumps on the deps:update command', () => {
@@ -130,8 +199,16 @@ describe('GitHub Action version updater', () => {
   it('ignores branch pins when planning updates', () => {
     expect(
       planActionVersionUpdates(
-        [reference('genfeedai/console.genfeed.ai', 'master')],
-        new Map([['genfeedai/console.genfeed.ai', 'v1.0.0']]),
+        [reference('example/action', 'main')],
+        new Map([
+          [
+            'example/action',
+            {
+              sha: '0123456789012345678901234567890123456789',
+              tag: 'v1.0.0',
+            },
+          ],
+        ]),
       ),
     ).toEqual([]);
   });

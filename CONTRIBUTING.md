@@ -295,6 +295,9 @@ git diff --check
 Broad workspace builds and full test suites run in GitHub Actions. In the pull
 request, list exactly what you ran and any checks left to CI.
 
+The [CI/CD enforcement matrix](docs/ci-cd-enforcement.md) explains which rules
+are enforced by repository code and which remain GitHub administrator settings.
+
 ## Code standards
 
 - Keep TypeScript strict; do not introduce `any` or inline shortcut interfaces.
