@@ -58,6 +58,11 @@ vi.mock('@modelcontextprotocol/sdk/types.js', () => ({
 
 const mockSetBearerToken = vi.fn();
 const mockInstrumentServer = vi.fn();
+const mockGetPublicResources = vi
+  .fn()
+  .mockReturnValue([
+    { name: 'Agent guide', uri: 'https://genfeed.ai/llms.txt' },
+  ]);
 vi.mock('@mcp/services/client.service', () => ({
   ClientService: class MockClientService {
     setBearerToken = mockSetBearerToken;
@@ -67,6 +72,7 @@ vi.mock('@mcp/services/client.service', () => ({
 vi.mock('@mcp/services/tool-registry.service', () => ({
   ToolRegistryService: class MockToolRegistryService {
     getResources = vi.fn().mockReturnValue([]);
+    getPublicResources = mockGetPublicResources;
     getTools = vi.fn().mockReturnValue([]);
     handleResourceRead = vi.fn();
     handleToolCall = vi.fn();
@@ -229,6 +235,21 @@ describe('StreamableHttpService', () => {
         serverInstances[0],
         authContext,
       );
+    });
+
+    it('lists only public resources for an unauthenticated discovery request', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+      const registration = serverInstances[0].setRequestHandler.mock.calls.find(
+        ([schema]) => schema === 'ListResourcesRequestSchema',
+      );
+      const handler = registration?.[1] as () => unknown;
+
+      expect(handler()).toEqual({
+        resources: [
+          { name: 'Agent guide', uri: 'https://genfeed.ai/llms.txt' },
+        ],
+      });
+      expect(mockGetPublicResources).toHaveBeenCalledOnce();
     });
 
     it('responds 500 and still tears down when handleRequest throws', async () => {

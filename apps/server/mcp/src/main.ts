@@ -12,6 +12,7 @@ import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
+import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
 import {
   getMcpProtectedResourceMetadata,
   getMcpServerCard,
@@ -29,6 +30,7 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
+import express from 'express';
 
 interface AuthenticatedRequest extends Request {
   authContext?: {
@@ -51,6 +53,9 @@ const MCP_CORS_EXPOSED_HEADERS = [
   'Mcp-Protocol-Version',
   'Mcp-Session-Id',
   'Retry-After',
+  'RateLimit-Limit',
+  'RateLimit-Remaining',
+  'RateLimit-Reset',
   'WWW-Authenticate',
   'X-RateLimit-Limit',
   'X-RateLimit-Remaining',
@@ -113,6 +118,11 @@ async function main(): Promise<void> {
     }
 
     if (!token) {
+      if (isPublicMcpRequest(req.body)) {
+        next();
+        return;
+      }
+
       res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
       res.status(401).json({
         error: {
@@ -174,14 +184,19 @@ async function main(): Promise<void> {
     });
   }
 
-  expressApp.post('/mcp', mcpAuthMiddleware, (req: Request, res: Response) => {
-    streamableHttpService.handlePost(req, res).catch((err) => {
-      logger.error('Failed to handle MCP POST request', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    });
-  });
+  expressApp.post(
+    '/mcp',
+    express.json({ limit: '1mb' }),
+    mcpAuthMiddleware,
+    (req: Request, res: Response) => {
+      streamableHttpService.handlePost(req, res).catch((err) => {
+        logger.error('Failed to handle MCP POST request', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      });
+    },
+  );
 
   expressApp.get('/mcp', mcpAuthMiddleware, (req: Request, res: Response) => {
     streamableHttpService.handleGet(req, res).catch((err) => {

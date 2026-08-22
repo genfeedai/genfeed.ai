@@ -113,6 +113,9 @@ describe('applyRateLimitHeaders', () => {
     expect(setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '60');
     expect(setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', '42');
     expect(setHeader).toHaveBeenCalledWith('X-RateLimit-Reset', '99');
+    expect(setHeader).toHaveBeenCalledWith('RateLimit-Limit', '60');
+    expect(setHeader).toHaveBeenCalledWith('RateLimit-Remaining', '42');
+    expect(setHeader).toHaveBeenCalledWith('RateLimit-Reset', '99');
     expect(setHeader).not.toHaveBeenCalledWith(
       'Retry-After',
       expect.anything(),

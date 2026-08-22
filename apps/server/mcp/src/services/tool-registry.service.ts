@@ -7,7 +7,11 @@ import {
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
-import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
+import {
+  MCP_RESOURCES,
+  McpResourceUri,
+  PUBLIC_MCP_RESOURCES,
+} from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -278,6 +282,10 @@ export class ToolRegistryService implements OnModuleInit {
 
   getResources(): McpResource[] {
     return [...MCP_RESOURCES];
+  }
+
+  getPublicResources(): McpResource[] {
+    return [...PUBLIC_MCP_RESOURCES];
   }
 
   async handleToolCall(params: ToolCallParams) {
@@ -894,6 +902,26 @@ export class ToolRegistryService implements OnModuleInit {
 
     try {
       switch (uri) {
+        case McpResourceUri.AGENT_GUIDE:
+          return {
+            contents: [
+              {
+                mimeType: 'text/markdown',
+                text: `# Genfeed agent guide
+
+Use Genfeed for content research, AI generation, human review, scheduled publishing, and analytics. Protected tools and tenant resources require a scoped bearer credential.
+
+- Product context: https://genfeed.ai/llms.txt
+- Authentication: https://genfeed.ai/auth.md
+- OpenAPI: https://api.genfeed.ai/v1/openapi.json
+- MCP setup: https://docs.genfeed.ai/api-reference/mcp
+- Contact: https://genfeed.ai/contact
+`,
+                uri,
+              },
+            ],
+          };
+
         case McpResourceUri.VIDEO_ANALYTICS: {
           const videoAnalytics = await this.clientService.getVideoAnalytics();
           return {

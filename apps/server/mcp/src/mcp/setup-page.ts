@@ -171,6 +171,7 @@ export function getMcpServerCard() {
       'Create, review, automate, and publish content through Genfeed.',
     documentationUrl: 'https://docs.genfeed.ai/api-reference/mcp',
     iconUrl: 'https://cdn.genfeed.ai/assets/branding/logo.jpg',
+    name: 'genfeed-mcp-server',
     protocolVersion: '2025-06-18',
     serverInfo: {
       name: 'genfeed-mcp-server',
