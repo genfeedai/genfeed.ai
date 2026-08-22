@@ -373,7 +373,11 @@ describe('ModelsService', () => {
         reviewedProviderContractVersion: 'sha256:candidate',
         reviewStatus: 'approved',
       }),
-      where: { id: 'model-1' },
+      where: {
+        id: 'model-1',
+        isDeleted: false,
+        organizationId: null,
+      },
     });
     expect(providerContractDelegate.update).toHaveBeenCalledWith({
       data: expect.objectContaining({

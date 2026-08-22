@@ -543,7 +543,7 @@ export class ModelsService extends BaseService<
     const updated = await this.prisma.$transaction(async (transaction) => {
       const nextModel = await transaction.model.update({
         data: data as Prisma.ModelUpdateInput,
-        where: { id: modelId },
+        where: { id: modelId, isDeleted: false, organizationId: null },
       });
       await transaction.modelProviderContract.update({
         data: {
