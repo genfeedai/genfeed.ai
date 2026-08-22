@@ -29,8 +29,11 @@ export class EmailDeliveryError extends Error {
   constructor(
     readonly retryable: boolean,
     readonly statusCode?: number,
+    cause?: unknown,
   ) {
-    super('Email delivery failed');
+    super(`Email delivery failed (status ${statusCode ?? 'unknown'})`, {
+      cause,
+    });
     this.name = EmailDeliveryError.name;
   }
 }
@@ -303,6 +306,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       throw new EmailDeliveryError(
         isRetryableEmailDeliveryStatus(statusCode),
         statusCode,
+        error,
       );
     }
   }

@@ -422,7 +422,10 @@ describe('NotificationsService', () => {
 
       await expect(service.deliverEmail(payload)).rejects.toEqual(
         expect.objectContaining<Partial<EmailDeliveryError>>({
-          message: 'Email delivery failed',
+          cause: expect.objectContaining({
+            message: 'Notifications service returned HTTP 502',
+          }),
+          message: 'Email delivery failed (status 502)',
           retryable: true,
           statusCode: 502,
         }),
