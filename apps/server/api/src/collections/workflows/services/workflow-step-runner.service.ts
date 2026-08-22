@@ -58,12 +58,11 @@ export class WorkflowStepRunnerService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
     @Optional()
     private readonly websocketService?: NotificationsPublisherService,
     @Optional() private readonly postsService?: PostsService,
     @Optional() private readonly taskQueueClient?: TaskQueueClientService,
-    @Optional()
-    private readonly workflowExecutionsService?: WorkflowExecutionsService,
   ) {
     super(prisma, 'workflow', logger);
   }
@@ -86,7 +85,7 @@ export class WorkflowStepRunnerService extends BaseService<
       );
     }
 
-    const execution = await this.workflowExecutionsService?.createExecution(
+    const execution = await this.workflowExecutionsService.createExecution(
       String(workflow.userId),
       String(workflow.organizationId),
       {
@@ -95,9 +94,12 @@ export class WorkflowStepRunnerService extends BaseService<
         workflowId,
       },
     );
-    if (execution?.id) {
-      await this.workflowExecutionsService?.startExecution(execution.id);
+    if (!execution?.id) {
+      throw new Error(
+        'Workflow execution tracking did not return an execution id',
+      );
     }
+    await this.workflowExecutionsService.startExecution(execution.id);
 
     try {
       await this.patch(workflowId, {
@@ -121,10 +123,10 @@ export class WorkflowStepRunnerService extends BaseService<
         workflow,
         completed,
         failed,
-        execution?.id,
+        execution.id,
       );
     } catch (error: unknown) {
-      await this.recordRunFailure(workflowId, workflow, error, execution?.id);
+      await this.recordRunFailure(workflowId, workflow, error, execution.id);
       throw error;
     }
   }
@@ -282,7 +284,7 @@ export class WorkflowStepRunnerService extends BaseService<
     workflow: WorkflowEntity,
     completed: Set<string>,
     failed: Set<string>,
-    executionId?: string,
+    executionId: string,
   ): Promise<void> {
     const finalStatus =
       failed.size === 0 ? WorkflowStatus.COMPLETED : WorkflowStatus.FAILED;
@@ -316,21 +318,19 @@ export class WorkflowStepRunnerService extends BaseService<
       },
     );
 
-    if (executionId) {
-      await this.workflowExecutionsService?.completeExecution(
-        executionId,
-        failed.size > 0
-          ? `${failed.size} of ${workflow.steps.length} workflow steps failed`
-          : undefined,
-      );
-    }
+    await this.workflowExecutionsService.completeExecution(
+      executionId,
+      failed.size > 0
+        ? `${failed.size} of ${workflow.steps.length} workflow steps failed`
+        : undefined,
+    );
   }
 
   private async recordRunFailure(
     workflowId: string,
     workflow: WorkflowEntity,
     error: unknown,
-    executionId?: string,
+    executionId: string,
   ): Promise<void> {
     await this.patch(workflowId, {
       completedAt: new Date(),
@@ -352,12 +352,10 @@ export class WorkflowStepRunnerService extends BaseService<
       status: 'failed',
     });
 
-    if (executionId) {
-      await this.workflowExecutionsService?.completeExecution(
-        executionId,
-        (error as Error)?.message ?? 'Unknown error',
-      );
-    }
+    await this.workflowExecutionsService.completeExecution(
+      executionId,
+      (error as Error)?.message ?? 'Unknown error',
+    );
   }
 
   private async executeWorkflowStep(

@@ -24,19 +24,23 @@ function createLogger(): LoggerService {
 
 function createRunner(
   websocket?: NotificationsPublisherService,
-  workflowExecutionsService?: {
+  workflowExecutionsService: {
     completeExecution: ReturnType<typeof vi.fn>;
     createExecution: ReturnType<typeof vi.fn>;
     startExecution: ReturnType<typeof vi.fn>;
+  } = {
+    completeExecution: vi.fn().mockResolvedValue({}),
+    createExecution: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+    startExecution: vi.fn().mockResolvedValue({}),
   },
 ) {
   const runner = new WorkflowStepRunnerService(
     {} as unknown as PrismaService,
     createLogger(),
+    workflowExecutionsService as never,
     websocket,
     undefined,
     undefined,
-    workflowExecutionsService as never,
   );
   const patch = vi.spyOn(runner, 'patch').mockResolvedValue({} as never);
   const findOne = vi.spyOn(runner, 'findOne');
@@ -149,5 +153,33 @@ describe('WorkflowStepRunnerService', () => {
       'execution-1',
       undefined,
     );
+  });
+
+  it('does not run a workflow without a durable execution identity', async () => {
+    const workflowExecutionsService = {
+      completeExecution: vi.fn(),
+      createExecution: vi.fn().mockResolvedValue(null),
+      startExecution: vi.fn(),
+    };
+    const { findOne, patch, runner } = createRunner(
+      undefined,
+      workflowExecutionsService,
+    );
+    findOne.mockResolvedValue({
+      id: WORKFLOW_ID,
+      isDeleted: false,
+      label: 'Legacy workflow',
+      organizationId: MOCK_ORG_ID,
+      steps: [],
+      userId: MOCK_USER_ID,
+    } as unknown as WorkflowDocument);
+
+    await expect(runner.executeWorkflow(WORKFLOW_ID)).rejects.toThrow(
+      'Workflow execution tracking did not return an execution id',
+    );
+
+    expect(patch).not.toHaveBeenCalled();
+    expect(workflowExecutionsService.startExecution).not.toHaveBeenCalled();
+    expect(workflowExecutionsService.completeExecution).not.toHaveBeenCalled();
   });
 });
