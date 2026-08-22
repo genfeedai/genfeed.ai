@@ -102,10 +102,9 @@ export class StreamableHttpService {
 
     try {
       await server.connect(transport);
-      // The raw `/mcp` Express routes are registered before NestJS installs its
-      // body parser, so `req.body` is usually undefined here; pass it through
-      // explicitly so the SDK reads the raw stream as a fallback. This stays
-      // correct even if a body parser runs first.
+      // POST requests use a route-scoped JSON parser so the authentication
+      // boundary can classify public discovery methods. GET/DELETE have no
+      // body, and the SDK accepts `undefined` for those verbs.
       await transport.handleRequest(
         req,
         res,
@@ -163,7 +162,9 @@ export class StreamableHttpService {
     );
 
     server.setRequestHandler(ListResourcesRequestSchema, () => ({
-      resources: toolRegistry.getResources(),
+      resources: authContext
+        ? toolRegistry.getResources()
+        : toolRegistry.getPublicResources(),
     }));
 
     server.setRequestHandler(

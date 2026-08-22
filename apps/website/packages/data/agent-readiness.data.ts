@@ -107,6 +107,7 @@ export function buildMcpServerCard() {
       'Create, review, automate, and publish content through Genfeed.',
     documentationUrl: 'https://docs.genfeed.ai/api-reference/mcp',
     iconUrl: 'https://cdn.genfeed.ai/assets/branding/logo.jpg',
+    name: 'genfeed-mcp-server',
     protocolVersion: '2025-06-18',
     serverInfo: {
       name: 'genfeed-mcp-server',
@@ -135,6 +136,14 @@ export const HOMEPAGE_AGENT_MARKDOWN = `# Genfeed.ai
 
 > The open-source AI operating system for content creation, automation, publishing, and analytics.
 
+Genfeed gives creators, agencies, marketing teams, and autonomous agents one system for researching ideas, generating media and copy, reviewing drafts, scheduling releases, publishing to connected channels, and measuring the results. It is available as a managed cloud product and as an AGPL-licensed self-hosted stack.
+
+## When to use Genfeed
+
+Use Genfeed when a workflow needs to turn a brief, trend, source asset, or campaign goal into structured content and carry that work through review, approval, publication, and analytics. The platform is a good fit for repeatable multi-channel programs, batch media generation, content repurposing, scheduled publishing, and agent-driven operations that still require human approval for consequential actions.
+
+Do not use Genfeed as a general-purpose chat service or as an unreviewed path for external publishing. Mutating MCP actions declare their approval requirements, credentials are scoped, and callers should request only the permissions needed for the task.
+
 ## Start here
 
 - [Product overview](${WEBSITE_ORIGIN}/features)
@@ -142,6 +151,22 @@ export const HOMEPAGE_AGENT_MARKDOWN = `# Genfeed.ai
 - [Documentation](https://docs.genfeed.ai)
 - [Developer guide](${WEBSITE_ORIGIN}/developers)
 - [Agent Skills](${WEBSITE_ORIGIN}/skills)
+
+## Developer interfaces
+
+- [OpenAPI document](https://api.genfeed.ai/v1/openapi.json) — the canonical typed REST contract, versioned under /v1.
+- [MCP endpoint](${MCP_ENDPOINT}) — Streamable HTTP tools and resources for compatible agents.
+- [MCP setup guide](https://docs.genfeed.ai/api-reference/mcp) — connection, OAuth, API-key, and scope instructions.
+- [Command-line interface](https://www.npmjs.com/package/@genfeedai/cli) — install with npm install --global @genfeedai/cli, then run genfeed --help.
+- [REST documentation](https://docs.genfeed.ai/api-reference) — guides and endpoint reference.
+
+All protected requests use a bearer credential. Read [auth.md](${WEBSITE_ORIGIN}/auth.md) before registering an agent, and preserve the advertised OAuth and scope boundaries. REST errors use a JSON:API error document. Rate-limited responses include both standard RateLimit-* metadata and Retry-After when blocked.
+
+## Product boundaries
+
+Genfeed combines Studio for generation, Library for assets, Publisher and Calendar for distribution, Workflows for automation, Research for discovery, Brand OS for reusable context, and Analytics for measurement. Self-hosted installations own their infrastructure, data, storage, and model-provider credentials. Managed cloud handles those operations and meters generated output rather than imposing fixed content-count caps.
+
+Pricing and current plan details are published on the pricing page. Agents should not infer price, feature availability, or account entitlement from this summary; use the linked product pages and authenticated API responses as the source of truth.
 
 ## Agent discovery
 
@@ -151,6 +176,7 @@ export const HOMEPAGE_AGENT_MARKDOWN = `# Genfeed.ai
 - [OAuth instructions](${WEBSITE_ORIGIN}/auth.md)
 - [LLM index](${WEBSITE_ORIGIN}/llms.txt)
 - [Full LLM context](${WEBSITE_ORIGIN}/llms-full.txt)
+- [Contact and support](${WEBSITE_ORIGIN}/contact)
 `;
 
 export const AUTH_MARKDOWN = `# Genfeed auth.md

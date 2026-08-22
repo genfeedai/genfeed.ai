@@ -8,6 +8,7 @@ import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface'
  * renaming a resource silently drifted one surface away from the others.
  */
 export const McpResourceUri = {
+  AGENT_GUIDE: 'https://genfeed.ai/llms.txt',
   ORGANIZATION_ANALYTICS: 'genfeed://analytics/organization',
   VIDEO_ANALYTICS: 'genfeed://analytics/videos',
 } as const;
@@ -20,7 +21,18 @@ export type McpResourceUriValue =
  * to the MCP SDK spread a copy so the shared constant can never be mutated by a
  * request handler.
  */
+export const PUBLIC_MCP_RESOURCES: readonly McpResource[] = [
+  {
+    description:
+      'Agent-readable product, authentication, API, MCP, and contact discovery for Genfeed',
+    mimeType: 'text/markdown',
+    name: 'Genfeed agent guide',
+    uri: McpResourceUri.AGENT_GUIDE,
+  },
+];
+
 export const MCP_RESOURCES: readonly McpResource[] = [
+  ...PUBLIC_MCP_RESOURCES,
   {
     description: 'Get analytics for all videos in your organization',
     mimeType: 'application/json',
@@ -34,3 +46,10 @@ export const MCP_RESOURCES: readonly McpResource[] = [
     uri: McpResourceUri.ORGANIZATION_ANALYTICS,
   },
 ];
+
+export function isPublicMcpResourceUri(uri: unknown): uri is string {
+  return (
+    typeof uri === 'string' &&
+    PUBLIC_MCP_RESOURCES.some((resource) => resource.uri === uri)
+  );
+}

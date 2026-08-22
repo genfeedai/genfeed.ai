@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
+import {
+  MCP_RESOURCES,
+  McpResourceUri,
+  PUBLIC_MCP_RESOURCES,
+} from '@mcp/mcp/resource-catalog';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sourceRoot = path.resolve(here, '..');
@@ -31,9 +35,17 @@ describe('MCP resource catalog', () => {
     for (const resource of MCP_RESOURCES) {
       expect(resource.name).toBeTruthy();
       expect(resource.description).toBeTruthy();
-      expect(resource.mimeType).toBe('application/json');
-      expect(resource.uri.startsWith('genfeed://')).toBe(true);
+      expect(resource.mimeType).toMatch(/^(application\/json|text\/markdown)$/);
     }
+  });
+
+  it('exposes a safe public resource before tenant-scoped resources', () => {
+    expect(PUBLIC_MCP_RESOURCES).toHaveLength(1);
+    expect(PUBLIC_MCP_RESOURCES[0]).toMatchObject({
+      mimeType: 'text/markdown',
+      uri: McpResourceUri.AGENT_GUIDE,
+    });
+    expect(MCP_RESOURCES[0]).toEqual(PUBLIC_MCP_RESOURCES[0]);
   });
 
   /**

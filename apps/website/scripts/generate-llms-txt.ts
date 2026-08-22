@@ -169,6 +169,32 @@ function buildLlmsIndex(): string {
   );
   lines.push('');
 
+  lines.push('## When to use Genfeed');
+  lines.push('');
+  lines.push(
+    'Use Genfeed for repeatable content workflows that connect research, AI generation, human review, scheduled publishing, and performance analytics. It is especially useful for multi-channel campaigns, media batches, repurposing source material, and agent-assisted operations with explicit approval boundaries.',
+  );
+  lines.push('');
+
+  lines.push('## Developer resources');
+  lines.push('');
+  lines.push(
+    '- [OpenAPI document](https://api.genfeed.ai/v1/openapi.json): Canonical typed REST API contract under `/v1`',
+  );
+  lines.push(
+    `- [API catalog](${BASE_URL}/.well-known/api-catalog): REST and MCP discovery links`,
+  );
+  lines.push(
+    '- [MCP server](https://mcp.genfeed.ai/mcp): Streamable HTTP tools and resources for agents',
+  );
+  lines.push(
+    `- [Agent authentication](${BASE_URL}/auth.md): Scoped API-key and OAuth instructions`,
+  );
+  lines.push(
+    '- [Genfeed CLI](https://www.npmjs.com/package/@genfeedai/cli): Install with `npm install --global @genfeedai/cli` and run `genfeed --help`',
+  );
+  lines.push('');
+
   // Products
   lines.push('## Products');
   lines.push('');
@@ -218,6 +244,9 @@ function buildLlmsIndex(): string {
   lines.push('## Optional');
   lines.push('');
   lines.push(`- [About](${BASE_URL}/about): Company mission and team`);
+  lines.push(
+    `- [Contact](${BASE_URL}/contact): Support, security, privacy, and sales`,
+  );
   lines.push(`- [Blog](${BASE_URL}/articles): Articles and updates`);
   lines.push(`- [Demo](${BASE_URL}/demo): Book a personalized demo`);
   lines.push(`- [Privacy Policy](${BASE_URL}/privacy): Privacy policy`);

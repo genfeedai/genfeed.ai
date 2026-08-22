@@ -27,6 +27,7 @@ const config = createAppNextConfig({
             '<https://genfeed.ai/sitemap.xml>; rel="sitemap"',
             '<https://genfeed.ai/llms.txt>; rel="describedby"; type="text/plain"',
             '<https://genfeed.ai/llms-full.txt>; rel="describedby"; type="text/plain"',
+            '<https://api.genfeed.ai/v1/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
           ].join(', '),
         },
         {
@@ -35,6 +36,23 @@ const config = createAppNextConfig({
         },
       ],
       source: '/(.*)',
+    },
+    {
+      has: [
+        {
+          key: 'accept',
+          type: 'header',
+          value: '.*text/markdown.*',
+        },
+      ],
+      headers: [
+        {
+          key: 'Vary',
+          value:
+            'Accept, Accept-Encoding, RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch',
+        },
+      ],
+      source: '/',
     },
   ],
   rewrites: async () => ({
@@ -55,6 +73,11 @@ const config = createAppNextConfig({
     fallback: [],
   }),
   redirects: async () => [
+    {
+      destination: 'https://api.genfeed.ai/v1/openapi.json',
+      permanent: false,
+      source: '/openapi.json',
+    },
     {
       destination:
         'https://api.genfeed.ai/.well-known/oauth-authorization-server',

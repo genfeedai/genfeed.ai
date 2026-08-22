@@ -30,6 +30,9 @@ export function applyRateLimitHeaders(
   res.setHeader('X-RateLimit-Limit', String(result.limit));
   res.setHeader('X-RateLimit-Remaining', String(result.remaining));
   res.setHeader('X-RateLimit-Reset', String(result.resetAt));
+  res.setHeader('RateLimit-Limit', String(result.limit));
+  res.setHeader('RateLimit-Remaining', String(result.remaining));
+  res.setHeader('RateLimit-Reset', String(result.resetAt));
   if (!result.allowed) {
     res.setHeader('Retry-After', String(result.retryAfterSeconds));
   }

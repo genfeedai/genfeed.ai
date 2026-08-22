@@ -90,6 +90,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: 'https://genfeed.ai/about',
     },
     {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/contact',
+    },
+    {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.8,

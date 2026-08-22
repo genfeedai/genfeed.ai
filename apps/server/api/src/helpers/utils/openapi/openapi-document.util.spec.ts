@@ -109,6 +109,32 @@ describe('buildStableOpenApiDocument', () => {
     expect(document.paths['/spec-fixture-gadgets']?.get?.operationId).toBe(
       'SpecFixtureGadgetsController.findAll',
     );
+    expect(document.paths['/spec-fixture-gadgets']?.get?.description).toBe(
+      'SpecFixtureGadgetsController.findAll',
+    );
+    expect(
+      document.paths['/spec-fixture-gadgets']?.get?.responses,
+    ).toMatchObject({
+      '4XX': {
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/JsonApiErrorDocument',
+            },
+          },
+        },
+      },
+      '5XX': {
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/JsonApiErrorDocument',
+            },
+          },
+        },
+      },
+    });
+    expect(document.components?.schemas).toHaveProperty('JsonApiErrorDocument');
 
     expect(Object.keys(document.paths)).toEqual(
       [...Object.keys(document.paths)].sort(),

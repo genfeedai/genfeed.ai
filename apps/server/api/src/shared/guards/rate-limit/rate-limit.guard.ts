@@ -65,6 +65,12 @@ export class RateLimitGuard implements CanActivate {
       'X-RateLimit-Reset',
       new Date(Date.now() + windowMs).toISOString(),
     );
+    response.setHeader('RateLimit-Limit', limit);
+    response.setHeader(
+      'RateLimit-Remaining',
+      Math.max(0, limit - currentCount),
+    );
+    response.setHeader('RateLimit-Reset', Math.ceil(windowMs / 1000));
 
     // Check if limit exceeded
     if (currentCount > limit) {

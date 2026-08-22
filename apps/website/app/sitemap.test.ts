@@ -28,6 +28,7 @@ describe('website sitemap', () => {
     for (const slug of launchArticleSlugs) {
       expect(urls.has(`https://genfeed.ai/articles/${slug}`)).toBe(true);
     }
+    expect(urls.has('https://genfeed.ai/contact')).toBe(true);
   });
 
   it('merges API articles with launch fallbacks without duplicate URLs', async () => {

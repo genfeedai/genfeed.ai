@@ -1,6 +1,10 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
-import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
+import {
+  MCP_RESOURCES,
+  McpResourceUri,
+  PUBLIC_MCP_RESOURCES,
+} from '@mcp/mcp/resource-catalog';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -359,8 +363,13 @@ describe('ToolRegistryService', () => {
   it('getResources returns the shared catalog', () => {
     const resources = service.getResources();
     expect(resources).toEqual([...MCP_RESOURCES]);
-    expect(resources[0].uri).toBe('genfeed://analytics/videos');
-    expect(resources[1].uri).toBe('genfeed://analytics/organization');
+    expect(resources[0].uri).toBe(McpResourceUri.AGENT_GUIDE);
+    expect(resources[1].uri).toBe(McpResourceUri.VIDEO_ANALYTICS);
+    expect(resources[2].uri).toBe(McpResourceUri.ORGANIZATION_ANALYTICS);
+  });
+
+  it('getPublicResources returns only safe discovery content', () => {
+    expect(service.getPublicResources()).toEqual([...PUBLIC_MCP_RESOURCES]);
   });
 
   it('getResources hands out a copy, never the shared array', () => {
@@ -864,8 +873,20 @@ describe('ToolRegistryService', () => {
     );
   });
 
-  it('handleResourceRead returns org analytics', async () => {
+  it('handleResourceRead returns the public agent guide without API access', async () => {
     const result = await service.handleResourceRead({
+      uri: McpResourceUri.AGENT_GUIDE,
+    });
+
+    expect(
+      (result as { contents: { text: string }[] }).contents[0].text,
+    ).toContain('# Genfeed agent guide');
+    expect(clientService.getVideoAnalytics).not.toHaveBeenCalled();
+    expect(clientService.getOrganizationAnalytics).not.toHaveBeenCalled();
+  });
+
+  it('handleResourceRead returns org analytics', async () => {
+    await service.handleResourceRead({
       uri: 'genfeed://analytics/organization',
     });
 

@@ -202,12 +202,14 @@ async function main() {
 
     const limitMultiplier = nodeEnv === 'production' ? 100 : 1000;
     const limiter = rateLimit({
+      legacyHeaders: true,
       limit: 100 * limitMultiplier,
       skip: (req) =>
         req.path.startsWith('/v1/health') ||
         req.path === '/v1/openapi.json' ||
         req.path === '/v1/gpt-actions.json',
       windowMs: 1 * 60 * 1000,
+      standardHeaders: 'draft-6',
     });
 
     app.useStaticAssets(join(apiDir, '..', 'assets'));
