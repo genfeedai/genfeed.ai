@@ -13,6 +13,12 @@ const WORKFLOW_ID = testId('workflow');
 const SYSTEMIC_ERROR =
   'Systemic workflow templates cannot be executed directly. Clone the workflow first.';
 
+interface WorkflowExecutionsServiceStub {
+  completeExecution: ReturnType<typeof vi.fn>;
+  createExecution: ReturnType<typeof vi.fn>;
+  startExecution: ReturnType<typeof vi.fn>;
+}
+
 function createLogger(): LoggerService {
   return {
     debug: vi.fn(),
@@ -24,11 +30,7 @@ function createLogger(): LoggerService {
 
 function createRunner(
   websocket?: NotificationsPublisherService,
-  workflowExecutionsService: {
-    completeExecution: ReturnType<typeof vi.fn>;
-    createExecution: ReturnType<typeof vi.fn>;
-    startExecution: ReturnType<typeof vi.fn>;
-  } = {
+  workflowExecutionsService: WorkflowExecutionsServiceStub = {
     completeExecution: vi.fn().mockResolvedValue({}),
     createExecution: vi.fn().mockResolvedValue({ id: 'execution-1' }),
     startExecution: vi.fn().mockResolvedValue({}),
