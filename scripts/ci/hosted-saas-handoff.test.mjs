@@ -384,6 +384,12 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     ),
     'utf8',
   );
+  const variablesTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/variables.tf', import.meta.url),
+    ),
+    'utf8',
+  );
 
   assert.match(elasticacheTf, /transit_encryption_enabled\s+=\s+true/);
   assert.match(elasticacheTf, /transit_encryption_mode\s+=\s+"required"/);
@@ -391,12 +397,27 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
     elasticacheTf,
     /auth_token\s+=\s+random_password\.redis_auth_token\.result/,
   );
-  assert.match(elasticacheTf, /auth_token_update_strategy\s+=\s+"SET"/);
+  assert.match(
+    elasticacheTf,
+    /auth_token_update_strategy\s+=\s+var\.redis_auth_token_update_strategy/,
+  );
+  assert.match(
+    variablesTf,
+    /variable "redis_auth_token_update_strategy"[\s\S]*default\s+=\s+"SET"/,
+  );
   assert.doesNotMatch(
     elasticacheTf,
     /transit_encryption_mode\s+=\s+"preferred"/,
   );
   assert.doesNotMatch(elasticacheTf, /ignore_changes\s+=\s+\[auth_token/);
+  assert.match(
+    elasticacheTf,
+    /data "aws_elasticache_replication_group" "current"/,
+  );
+  assert.match(
+    elasticacheTf,
+    /replication_group_id\s+=\s+"\$\{local\.name_prefix\}-redis"/,
+  );
   assert.match(
     localsTf,
     /valueFrom\s+=\s+aws_ssm_parameter\.redis_password\.arn/,
@@ -404,6 +425,14 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
   assert.doesNotMatch(localsTf, /redis_task_secrets\s+=\s+\[\]/);
   assert.match(servicesTf, /REDIS_TLS", value = "true"/);
   assert.match(servicesTf, /rediss:\/\//);
+  assert.match(
+    servicesTf,
+    /data\.aws_elasticache_replication_group\.current\.primary_endpoint_address/,
+  );
+  assert.doesNotMatch(
+    servicesTf,
+    /aws_elasticache_replication_group\.redis\.primary_endpoint_address/,
+  );
   assert.match(
     publicDeployCore,
     /-exclude=aws_elasticache_replication_group\.redis/,
@@ -427,6 +456,8 @@ test('requires Redis TLS plus AUTH for shared ECS tasks', () => {
   assert.doesNotMatch(registerApply, /-exclude=/);
   assert.match(rollApply, /-exclude=aws_elasticache_replication_group\.redis/);
   assert.doesNotMatch(rollApply, /-target=/);
+  assert.match(authApply, /AuthTokenEnabled/);
+  assert.match(authApply, /TF_VAR_redis_auth_token_update_strategy=ROTATE/);
   assert.match(authApply, /-target=aws_elasticache_replication_group\.redis/);
   assert.doesNotMatch(authApply, /-exclude=/);
 });

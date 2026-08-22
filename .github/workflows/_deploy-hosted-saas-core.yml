@@ -345,9 +345,10 @@ jobs:
           TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
-          # OpenTofu 1.12 forbids mixing -target and -exclude. These targets
-          # already omit Redis, so AUTH/TLS stay off until the later Redis
-          # apply after services roll with REDIS_PASSWORD.
+          # OpenTofu 1.12 forbids mixing -target and -exclude. Task defs read
+          # the live Redis endpoint from a data source, so targeting them does
+          # not also apply AUTH. AUTH/TLS stay off until the later Redis apply
+          # after services roll with REDIS_PASSWORD.
           tofu apply -input=false -auto-approve \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
@@ -501,8 +502,25 @@ jobs:
           TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
+          set -euo pipefail
           # Tasks now present REDIS_PASSWORD. Tighten transport to required TLS
           # and set the AUTH token so unauthenticated clients are rejected.
+          # AWS rejects SET when the cluster has never had a token: ROTATE the
+          # first token in, then SET to drop the empty predecessor.
+          RG_ID="${TF_VAR_project}-production-redis"
+          AUTH_ENABLED="$(aws elasticache describe-replication-groups \
+            --replication-group-id "${RG_ID}" \
+            --query 'ReplicationGroups[0].AuthTokenEnabled' \
+            --output text)"
+          case "${AUTH_ENABLED}" in
+            True|true) ;;
+            *)
+              echo "Redis AUTH is not enabled yet; rotating in the first token."
+              TF_VAR_redis_auth_token_update_strategy=ROTATE \
+                tofu apply -input=false -auto-approve \
+                  -target=aws_elasticache_replication_group.redis
+              ;;
+          esac
           tofu apply -input=false -auto-approve \
             -target=aws_elasticache_replication_group.redis
 

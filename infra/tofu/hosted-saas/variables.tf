@@ -101,6 +101,17 @@ variable "image_tag" {
   description = "ECR tag of the server image to deploy (CI passes the immutable source SHA)."
 }
 
+variable "redis_auth_token_update_strategy" {
+  type        = string
+  default     = "SET"
+  description = "ElastiCache AUTH token strategy. SET replaces an existing token. ROTATE is required to add the first token on a cluster that has never had AUTH."
+
+  validation {
+    condition     = contains(["SET", "ROTATE"], var.redis_auth_token_update_strategy)
+    error_message = "redis_auth_token_update_strategy must be SET or ROTATE."
+  }
+}
+
 # ── Secrets ──────────────────────────────────────────────────────────
 variable "ssm_path" {
   type        = string

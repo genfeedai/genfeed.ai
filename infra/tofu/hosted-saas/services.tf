@@ -10,7 +10,7 @@ locals {
     { name = "GENFEEDAI_API_PUBLIC_URL", value = "https://${var.api_subdomain}.${var.domain}" },
     { name = "GENFEEDAI_API_URL", value = "http://api.genfeed.internal:${local.services.api.port}" },
     { name = "GENFEEDAI_MCP_PUBLIC_URL", value = "https://mcp.${var.domain}/mcp" },
-    { name = "REDIS_URL", value = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" },
+    { name = "REDIS_URL", value = "rediss://${data.aws_elasticache_replication_group.current.primary_endpoint_address}:6379" },
     { name = "REDIS_TLS", value = "true" },
     { name = "AWS_REGION", value = var.region },
     { name = "NODE_ENV", value = "production" },
