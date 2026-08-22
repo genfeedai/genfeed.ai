@@ -34,6 +34,8 @@ interface MetaGraphPage<T> {
   };
 }
 
+const MAX_GRAPH_PAGE_COUNT = 25;
+
 @Injectable()
 export class MetaAdsService {
   private readonly API_VERSION = 'v24.0';
@@ -153,6 +155,7 @@ export class MetaAdsService {
     const items: T[] = [];
     const seenCursors = new Set<string>();
     let after: string | undefined;
+    let pageCount = 0;
     let shouldContinue = true;
 
     while (shouldContinue) {
@@ -161,6 +164,7 @@ export class MetaAdsService {
         path,
         { ...params, ...(after ? { after } : {}) },
       );
+      pageCount += 1;
       items.push(...response.data);
       const nextCursor = response.paging?.cursors?.after;
       if (
@@ -171,6 +175,9 @@ export class MetaAdsService {
       ) {
         shouldContinue = false;
         continue;
+      }
+      if (pageCount >= MAX_GRAPH_PAGE_COUNT) {
+        throw new Error('Meta Graph pagination exceeded the safe page limit.');
       }
       seenCursors.add(nextCursor);
       after = nextCursor;
@@ -782,6 +789,8 @@ export class MetaAdsService {
       if (params.creative.videoId) {
         objectStorySpec.video_data = {
           video_id: params.creative.videoId,
+          video_thumbnail_id: '0',
+          video_thumbnail_source: 'generated_default',
           ...(params.creative.title && { title: params.creative.title }),
           ...(params.creative.body && { message: params.creative.body }),
           ...(params.creative.callToAction && {

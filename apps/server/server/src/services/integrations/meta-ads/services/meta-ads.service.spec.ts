@@ -20,6 +20,17 @@ type MetaAdsHttpParams = {
   ) => Record<string, string | number>;
 };
 
+type MetaAdsPrivateMethods = {
+  listGraphPages: <T>(
+    accessToken: string,
+    path: string,
+    params: Record<string, unknown>,
+    allPages: boolean,
+  ) => Promise<T[]>;
+  makePostRequest: ReturnType<typeof vi.fn>;
+  makeRequest: ReturnType<typeof vi.fn>;
+};
+
 function readHttpParams(
   service: MetaAdsServiceInstance,
   searchParams: URLSearchParams,
@@ -91,5 +102,65 @@ describe('MetaAdsService', () => {
       expect(params.age_min).toBe(18);
       expect(params.name).toBe('Prospecting');
     });
+  });
+
+  it('fails closed at the pagination safety limit instead of scanning forever', async () => {
+    const { service } = createService();
+    const privateMethods = service as unknown as MetaAdsPrivateMethods;
+    let page = 0;
+    privateMethods.makeRequest = vi.fn().mockImplementation(() => {
+      page += 1;
+      return Promise.resolve({
+        data: [{ id: `campaign-${page}` }],
+        paging: {
+          cursors: { after: `cursor-${page}` },
+          next: `https://graph.facebook.com/page/${page + 1}`,
+        },
+      });
+    });
+
+    await expect(
+      privateMethods.listGraphPages<{ id: string }>(
+        'access-token',
+        'act-1/campaigns',
+        { limit: 200 },
+        true,
+      ),
+    ).rejects.toThrow('pagination exceeded the safe page limit');
+    expect(privateMethods.makeRequest).toHaveBeenCalledTimes(25);
+  });
+
+  it('requests Meta generated thumbnail selection for video creatives', async () => {
+    const { service } = createService();
+    const privateMethods = service as unknown as MetaAdsPrivateMethods;
+    privateMethods.makePostRequest = vi.fn().mockResolvedValue({ id: 'ad-1' });
+
+    await service.createAd('access-token', 'act-1', {
+      adSetId: 'ad-set-1',
+      creative: {
+        body: 'See how Acme works.',
+        callToAction: 'LEARN_MORE',
+        linkUrl: 'https://acme.example.test/offer',
+        pageId: 'page-1',
+        videoId: 'video-1',
+      },
+      name: 'Acme video ad',
+    });
+
+    const data = privateMethods.makePostRequest.mock.calls[0]?.[2] as Record<
+      string,
+      unknown
+    >;
+    const creative = JSON.parse(String(data.creative)) as {
+      object_story_spec?: {
+        video_data?: Record<string, unknown>;
+      };
+    };
+    expect(creative.object_story_spec?.video_data).toMatchObject({
+      video_id: 'video-1',
+      video_thumbnail_id: '0',
+      video_thumbnail_source: 'generated_default',
+    });
+    expect(data.status).toBe('PAUSED');
   });
 });
