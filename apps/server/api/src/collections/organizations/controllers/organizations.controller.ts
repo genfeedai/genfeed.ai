@@ -54,6 +54,7 @@ import {
   Post,
   Query,
   Req,
+  SetMetadata,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -177,6 +178,7 @@ export class OrganizationsController extends BaseCRUDController<
     query: OrganizationQueryDto,
   ): Promise<JsonApiCollectionResponse>;
   @Get()
+  @SetMetadata('skipRoles', true)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,

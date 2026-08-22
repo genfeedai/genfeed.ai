@@ -169,6 +169,15 @@ describe('OrganizationsController', () => {
     controller = module.get<OrganizationsController>(OrganizationsController);
   });
 
+  it('lets membership discovery run before active-organization membership validation', () => {
+    expect(
+      Reflect.getMetadata(
+        'skipRoles',
+        OrganizationsController.prototype.findAll,
+      ),
+    ).toBe(true);
+  });
+
   describe('findMine', () => {
     it('resolves organizations from Prisma-shaped membership rows (organizationId scalar)', async () => {
       mockMembersService.findActiveForUserAccess.mockResolvedValue([

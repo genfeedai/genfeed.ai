@@ -37,7 +37,10 @@ import {
   useWorkspaceNavPanel,
   WorkspaceNavPanelProvider,
 } from '@/components/workspace-shell/WorkspaceNavPanelContext';
-import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
+import {
+  isFocusedOnboardingPath,
+  normalizeProtectedPathname,
+} from '@/lib/navigation/operator-shell';
 import {
   captureWorkspaceShellError,
   captureWorkspaceShellPerformance,
@@ -575,6 +578,7 @@ function AppProtectedLayoutContent({
     [rawPathname],
   );
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
+  const isFocusedOnboardingRoute = isFocusedOnboardingPath(pathname);
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   return (
@@ -582,9 +586,13 @@ function AppProtectedLayoutContent({
       <ProtectedProviders
         includeAssetSelectionProvider={!isEditorCanvasRoute}
         includeApiStatusCheck={false}
-        includeElementsProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
+        includeElementsProvider={
+          !isEditorCanvasRoute && !isFocusedOnboardingRoute && !isWorkspaceRoute
+        }
         initialBootstrap={initialBootstrap}
-        includePromptBarProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
+        includePromptBarProvider={
+          !isEditorCanvasRoute && !isFocusedOnboardingRoute && !isWorkspaceRoute
+        }
       >
         <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
           <OnboardingGuard>

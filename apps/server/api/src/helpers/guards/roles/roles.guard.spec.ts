@@ -237,6 +237,30 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 
+  it('skips role and active-organization membership checks when the handler opts out', async () => {
+    vi.spyOn(reflector, 'get').mockImplementation((metadataKey: string) =>
+      metadataKey === 'skipRoles' ? true : undefined,
+    );
+    const context = createContext({
+      organizationId: TOKEN_ORGANIZATION_ID,
+      userId: USER_ID,
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('still requires an authenticated user when the handler skips roles', async () => {
+    vi.spyOn(reflector, 'get').mockImplementation((metadataKey: string) =>
+      metadataKey === 'skipRoles' ? true : undefined,
+    );
+
+    await expect(guard.canActivate(createContext(undefined))).rejects.toThrow(
+      HttpException,
+    );
+    expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+
   it('throws when user is missing', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(['superadmin']);
     const context = createContext(undefined);

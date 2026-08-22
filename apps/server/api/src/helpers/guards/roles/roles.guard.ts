@@ -28,6 +28,8 @@ export class RolesGuard implements CanActivate {
       'roles',
       context.getHandler(),
     );
+    const skipRoles =
+      this.reflector.get<boolean>('skipRoles', context.getHandler()) === true;
 
     const req = context.switchToHttp().getRequest<Request & { user?: User }>();
     const user = req.user;
@@ -40,6 +42,13 @@ export class RolesGuard implements CanActivate {
         },
         HttpStatus.FORBIDDEN,
       );
+    }
+
+    // Authenticated discovery/catalog handlers can opt out when they must run
+    // before an active organization is known. Those handlers own their data
+    // scoping and still pass through the authentication check above.
+    if (skipRoles) {
+      return true;
     }
 
     // SUPERADMIN BYPASS: Platform-level superadmin has access to everything
