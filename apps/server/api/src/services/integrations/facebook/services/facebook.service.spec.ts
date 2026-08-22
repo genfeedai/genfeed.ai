@@ -191,7 +191,7 @@ describe('FacebookService', () => {
       );
     });
 
-    it('treats an empty or malformed permission payload as not captured', async () => {
+    it('distinguishes a captured empty grant set from a malformed payload', async () => {
       const { of } = await import('rxjs');
       mockHttpService.get
         .mockReturnValueOnce(of({ data: {} }))
@@ -202,7 +202,7 @@ describe('FacebookService', () => {
       ).resolves.toBeUndefined();
       await expect(
         service.getGrantedPermissions('valid-token'),
-      ).resolves.toBeUndefined();
+      ).resolves.toEqual([]);
     });
   });
 

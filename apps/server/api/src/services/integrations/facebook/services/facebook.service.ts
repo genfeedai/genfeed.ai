@@ -166,7 +166,7 @@ export class FacebookService {
       const permissions = Array.isArray(response.data?.data)
         ? (response.data.data as FacebookPermission[])
         : undefined;
-      if (!permissions?.length) return undefined;
+      if (!permissions) return undefined;
       return [
         ...new Set(
           permissions.flatMap((permission) =>
