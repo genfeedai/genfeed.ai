@@ -21,6 +21,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -122,9 +123,11 @@ export class FoldersController extends BaseCRUDController<
       folderId,
     );
 
-    // Moving a folder re-scopes it to wherever it now lives. Moving to the root
-    // leaves the scope untouched — writing `brandId: undefined` here would make
-    // `enrichUpdateDto` see the key and null out the brand.
+    // A move proposes the parent's scope. `assertPatchAllowed` later permits
+    // same-scope moves for members and reserves private/shared transitions for
+    // platform superadmins. Moving to the root leaves the scope untouched —
+    // writing `brandId: undefined` here would make `enrichUpdateDto` see the
+    // key and null out the brand.
     const movedDto = parent
       ? ({
           ...updateDto,
@@ -211,7 +214,11 @@ export class FoldersController extends BaseCRUDController<
   ): CreateFolderDto {
     const requestedBrandId = createDto.brandId?.toString();
 
-    if (requestedBrandId && requestedBrandId !== user.brandId?.toString()) {
+    if (
+      requestedBrandId &&
+      requestedBrandId !== user.brandId?.toString() &&
+      !getIsSuperAdmin(user)
+    ) {
       ErrorResponse.notFound('Brand', requestedBrandId);
     }
 
@@ -230,7 +237,11 @@ export class FoldersController extends BaseCRUDController<
     const requestedBrandId = updateDto.brandId?.toString();
     const currentBrandId = user.brandId?.toString();
 
-    if (requestedBrandId && requestedBrandId !== currentBrandId) {
+    if (
+      requestedBrandId &&
+      requestedBrandId !== currentBrandId &&
+      !getIsSuperAdmin(user)
+    ) {
       ErrorResponse.notFound('Brand', requestedBrandId);
     }
 
@@ -249,6 +260,26 @@ export class FoldersController extends BaseCRUDController<
     const brandId = user.brandId;
     const organizationId = user.organizationId;
     return this.isFolderInScope(entity, organizationId, brandId);
+  }
+
+  protected override assertPatchAllowed(
+    user: User,
+    existing: FolderDocument,
+    updateDto: Partial<UpdateFolderDto>,
+  ): void {
+    if (!Object.hasOwn(updateDto, 'brandId')) {
+      return;
+    }
+
+    const sourceBrandId = existing.brandId?.toString() || null;
+    const destinationBrandId = updateDto.brandId?.toString() || null;
+    if (sourceBrandId !== destinationBrandId && !getIsSuperAdmin(user)) {
+      throw new ForbiddenException({
+        detail:
+          'Only a platform superadmin can move a folder between brand-private and organization-shared scope',
+        title: 'Forbidden',
+      });
+    }
   }
 
   /**
@@ -284,7 +315,8 @@ export class FoldersController extends BaseCRUDController<
 
     if (
       !parent ||
-      !this.isFolderInScope(parent, user.organizationId, user.brandId)
+      (!getIsSuperAdmin(user) &&
+        !this.isFolderInScope(parent, user.organizationId, user.brandId))
     ) {
       ErrorResponse.notFound(this.entityName, parentId);
     }

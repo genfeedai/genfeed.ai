@@ -514,7 +514,7 @@ describe('FoldersController', () => {
       expect(foldersService.patch).not.toHaveBeenCalled();
     });
 
-    it('moves a folder into the current brand using the scalar foreign key', async () => {
+    it('rejects capturing an organization-shared folder into a brand', async () => {
       const mockExistingFolder = buildFolder({
         id: folderId,
         label: 'Shared Folder',
@@ -526,15 +526,13 @@ describe('FoldersController', () => {
         brandId: mockUser.brandId,
       });
 
-      await controller.update(mockRequest, mockUser, folderId, {
-        brandId: mockUser.brandId,
-      });
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, {
+          brandId: mockUser.brandId,
+        }),
+      ).rejects.toMatchObject({ status: 403 });
 
-      expect(foldersService.patch).toHaveBeenCalledWith(
-        folderId,
-        { brandId: mockUser.brandId },
-        [],
-      );
+      expect(foldersService.patch).not.toHaveBeenCalled();
     });
 
     it('rejects updates to folders in another organization', async () => {
@@ -717,6 +715,76 @@ describe('FoldersController', () => {
       expect(foldersService.patch).toHaveBeenCalledWith(
         folderId,
         { brandId: mockBrandId, parentId },
+        [],
+      );
+    });
+
+    it('rejects publishing a brand-private folder under a shared parent', async () => {
+      mockFoldersById({
+        [folderId]: buildFolder({
+          brandId: mockBrandId,
+          id: folderId,
+          organizationId: mockOrganizationId,
+        }),
+        [parentId]: buildFolder({
+          brandId: null,
+          id: parentId,
+          organizationId: mockOrganizationId,
+        }),
+      });
+
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, { parentId }),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(foldersService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects capturing a shared folder under a brand-private parent', async () => {
+      mockFoldersById({
+        [folderId]: buildFolder({
+          brandId: null,
+          id: folderId,
+          organizationId: mockOrganizationId,
+        }),
+        [parentId]: buildFolder({
+          brandId: mockBrandId,
+          id: parentId,
+          organizationId: mockOrganizationId,
+        }),
+      });
+
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, { parentId }),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(foldersService.patch).not.toHaveBeenCalled();
+    });
+
+    it('allows a superadmin to move a private folder into shared scope', async () => {
+      mockFoldersById({
+        [folderId]: buildFolder({
+          brandId: mockBrandId,
+          id: folderId,
+          organizationId: mockOrganizationId,
+        }),
+        [parentId]: buildFolder({
+          brandId: null,
+          id: parentId,
+          organizationId: mockOrganizationId,
+        }),
+      });
+      foldersService.patch.mockResolvedValue(
+        buildFolder({ brandId: null, id: folderId, parentId }),
+      );
+
+      await controller.update(mockRequest, mockSuperAdmin, folderId, {
+        parentId,
+      });
+
+      expect(foldersService.patch).toHaveBeenCalledWith(
+        folderId,
+        { brandId: null, parentId },
         [],
       );
     });
