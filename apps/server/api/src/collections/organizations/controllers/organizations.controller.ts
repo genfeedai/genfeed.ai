@@ -13,6 +13,7 @@ import { RolesService } from '@api/collections/roles/services/roles.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
@@ -54,7 +55,6 @@ import {
   Post,
   Query,
   Req,
-  SetMetadata,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -178,7 +178,7 @@ export class OrganizationsController extends BaseCRUDController<
     query: OrganizationQueryDto,
   ): Promise<JsonApiCollectionResponse>;
   @Get()
-  @SetMetadata('skipRoles', true)
+  @SkipRoles()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAll(
     @Req() request: Request,
@@ -261,20 +261,13 @@ export class OrganizationsController extends BaseCRUDController<
         members.map((member) => member.organizationId).filter(Boolean),
       ),
     ];
-    const orgIds =
-      membershipOrgIds.length > 0
-        ? membershipOrgIds
-        : user.organizationId
-          ? [user.organizationId]
-          : [];
-
-    if (!orgIds.length) {
+    if (!membershipOrgIds.length) {
       return [];
     }
 
     // Fetch all organizations
     const orgs = await Promise.all(
-      orgIds.map((orgId) =>
+      membershipOrgIds.map((orgId) =>
         this.organizationsService.findOne({
           id: orgId,
         }),

@@ -2,6 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
+import {
+  ROLES_KEY,
+  SKIP_ROLES_KEY,
+} from '@api/helpers/decorators/roles/roles.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
@@ -25,11 +29,12 @@ export class RolesGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.get<(string | MemberRole)[]>(
-      'roles',
+      ROLES_KEY,
       context.getHandler(),
     );
     const skipRoles =
-      this.reflector.get<boolean>('skipRoles', context.getHandler()) === true;
+      this.reflector.get<boolean>(SKIP_ROLES_KEY, context.getHandler()) ===
+      true;
 
     const req = context.switchToHttp().getRequest<Request & { user?: User }>();
     const user = req.user;

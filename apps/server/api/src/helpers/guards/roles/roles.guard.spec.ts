@@ -1,4 +1,5 @@
 import { MembersService } from '@api/collections/members/services/members.service';
+import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
@@ -239,7 +240,7 @@ describe('RolesGuard', () => {
 
   it('skips role and active-organization membership checks when the handler opts out', async () => {
     vi.spyOn(reflector, 'get').mockImplementation((metadataKey: string) =>
-      metadataKey === 'skipRoles' ? true : undefined,
+      metadataKey === SKIP_ROLES_KEY ? true : undefined,
     );
     const context = createContext({
       organizationId: TOKEN_ORGANIZATION_ID,
@@ -252,7 +253,7 @@ describe('RolesGuard', () => {
 
   it('still requires an authenticated user when the handler skips roles', async () => {
     vi.spyOn(reflector, 'get').mockImplementation((metadataKey: string) =>
-      metadataKey === 'skipRoles' ? true : undefined,
+      metadataKey === SKIP_ROLES_KEY ? true : undefined,
     );
 
     await expect(guard.canActivate(createContext(undefined))).rejects.toThrow(
