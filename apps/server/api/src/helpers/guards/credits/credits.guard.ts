@@ -489,7 +489,6 @@ export class CreditsGuard implements CanActivate {
       let byokProvider: ByokProvider | undefined = creditsConfig.provider;
 
       if (!byokProvider && resolvedModel?.provider) {
-        // @ts-expect-error TS2345
         byokProvider = modelProviderToByokProvider(resolvedModel.provider);
       }
 
