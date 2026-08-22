@@ -13,6 +13,12 @@ const WORKFLOW_ID = testId('workflow');
 const SYSTEMIC_ERROR =
   'Systemic workflow templates cannot be executed directly. Clone the workflow first.';
 
+interface WorkflowExecutionsServiceStub {
+  completeExecution: ReturnType<typeof vi.fn>;
+  createExecution: ReturnType<typeof vi.fn>;
+  startExecution: ReturnType<typeof vi.fn>;
+}
+
 function createLogger(): LoggerService {
   return {
     debug: vi.fn(),
@@ -22,11 +28,21 @@ function createLogger(): LoggerService {
   } as unknown as LoggerService;
 }
 
-function createRunner(websocket?: NotificationsPublisherService) {
+function createRunner(
+  websocket?: NotificationsPublisherService,
+  workflowExecutionsService: WorkflowExecutionsServiceStub = {
+    completeExecution: vi.fn().mockResolvedValue({}),
+    createExecution: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+    startExecution: vi.fn().mockResolvedValue({}),
+  },
+) {
   const runner = new WorkflowStepRunnerService(
     {} as unknown as PrismaService,
     createLogger(),
+    workflowExecutionsService as never,
     websocket,
+    undefined,
+    undefined,
   );
   const patch = vi.spyOn(runner, 'patch').mockResolvedValue({} as never);
   const findOne = vi.spyOn(runner, 'findOne');
@@ -101,5 +117,71 @@ describe('WorkflowStepRunnerService', () => {
         expect.any(Object),
       );
     });
+  });
+
+  it('gives legacy step runs the same durable execution identity', async () => {
+    const workflowExecutionsService = {
+      completeExecution: vi.fn().mockResolvedValue({}),
+      createExecution: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+      startExecution: vi.fn().mockResolvedValue({}),
+    };
+    const { findOne, runner } = createRunner(
+      undefined,
+      workflowExecutionsService,
+    );
+    findOne.mockResolvedValue({
+      id: WORKFLOW_ID,
+      isDeleted: false,
+      label: 'Legacy workflow',
+      organizationId: MOCK_ORG_ID,
+      steps: [],
+      userId: MOCK_USER_ID,
+    } as unknown as WorkflowDocument);
+
+    await runner.executeWorkflow(WORKFLOW_ID);
+
+    expect(workflowExecutionsService.createExecution).toHaveBeenCalledWith(
+      MOCK_USER_ID,
+      MOCK_ORG_ID,
+      expect.objectContaining({
+        trigger: 'legacy-steps',
+        workflowId: WORKFLOW_ID,
+      }),
+    );
+    expect(workflowExecutionsService.startExecution).toHaveBeenCalledWith(
+      'execution-1',
+    );
+    expect(workflowExecutionsService.completeExecution).toHaveBeenCalledWith(
+      'execution-1',
+      undefined,
+    );
+  });
+
+  it('does not run a workflow without a durable execution identity', async () => {
+    const workflowExecutionsService = {
+      completeExecution: vi.fn(),
+      createExecution: vi.fn().mockResolvedValue(null),
+      startExecution: vi.fn(),
+    };
+    const { findOne, patch, runner } = createRunner(
+      undefined,
+      workflowExecutionsService,
+    );
+    findOne.mockResolvedValue({
+      id: WORKFLOW_ID,
+      isDeleted: false,
+      label: 'Legacy workflow',
+      organizationId: MOCK_ORG_ID,
+      steps: [],
+      userId: MOCK_USER_ID,
+    } as unknown as WorkflowDocument);
+
+    await expect(runner.executeWorkflow(WORKFLOW_ID)).rejects.toThrow(
+      'Workflow execution tracking did not return an execution id',
+    );
+
+    expect(patch).not.toHaveBeenCalled();
+    expect(workflowExecutionsService.startExecution).not.toHaveBeenCalled();
+    expect(workflowExecutionsService.completeExecution).not.toHaveBeenCalled();
   });
 });

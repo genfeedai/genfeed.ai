@@ -27,6 +27,7 @@ describe('UsersController', () => {
   let requestContextCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
+  let notificationPreferenceService: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = testId('user');
   const orgId = userId;
@@ -92,6 +93,22 @@ describe('UsersController', () => {
     betterAuthIdentityCacheService = {
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
     };
+    notificationPreferenceService = {
+      findForUser: vi.fn().mockResolvedValue({
+        channel: 'email',
+        id: 'preference-1',
+        isEnabled: false,
+        topic: 'workflow.status',
+        userId,
+      }),
+      setForUser: vi.fn().mockResolvedValue({
+        channel: 'email',
+        id: 'preference-1',
+        isEnabled: true,
+        topic: 'workflow.status',
+        userId,
+      }),
+    };
     // The real fan-out over mocked caches, so the assertions below still prove
     // each individual cache is busted rather than just that the facade was hit.
     const userAccessCacheService = new UserAccessCacheService(
@@ -115,6 +132,7 @@ describe('UsersController', () => {
       mockLogger as unknown as LoggerService,
       membersService as unknown as MembersService,
       userAccessCacheService,
+      notificationPreferenceService as never,
     );
   });
 
@@ -125,6 +143,32 @@ describe('UsersController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
     expect(relationshipsController).toBeDefined();
+  });
+
+  describe('workflow email notification preference', () => {
+    it('reads the current account preference', async () => {
+      await relationshipsController.findWorkflowEmailNotificationPreference(
+        mockRequest,
+        mockUser,
+      );
+
+      expect(notificationPreferenceService.findForUser).toHaveBeenCalledWith(
+        userId,
+      );
+    });
+
+    it('updates only the current account preference', async () => {
+      await relationshipsController.updateWorkflowEmailNotificationPreference(
+        mockRequest,
+        mockUser,
+        { isEnabled: true },
+      );
+
+      expect(notificationPreferenceService.setForUser).toHaveBeenCalledWith(
+        userId,
+        true,
+      );
+    });
   });
 
   describe('relationship reads and selection', () => {

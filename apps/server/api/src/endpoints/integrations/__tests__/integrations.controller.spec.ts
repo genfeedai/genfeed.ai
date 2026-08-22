@@ -21,19 +21,21 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 const mockIntegration: OrgIntegration = {
-  _id: testId('integration') as unknown as string,
   config: {
     allowedUserIds: ['123', '456'],
     defaultWorkflow: 'wf-1',
   },
   createdAt: new Date('2024-01-01'),
   encryptedToken: 'encrypted-token',
+  id: testId('integration') as unknown as string,
   isDeleted: false,
-  organization: testId('org') as unknown as string,
+  lastError: null,
+  lastErrorMessage: null,
+  organizationId: testId('org') as unknown as string,
   platform: IntegrationPlatform.TELEGRAM,
   status: IntegrationStatus.ACTIVE,
   updatedAt: new Date('2024-01-01'),
-} as OrgIntegration;
+};
 
 describe('OrganizationsIntegrationsController', () => {
   let controller: OrganizationsIntegrationsController;

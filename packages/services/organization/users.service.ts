@@ -1,6 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   IBrand,
+  INotificationPreference,
   IOrganization,
   IQueryParams,
   ISetting,
@@ -10,7 +11,11 @@ import { Setting } from '@genfeedai/models/analytics/setting.model';
 import { User } from '@genfeedai/models/auth/user.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { Organization } from '@genfeedai/models/organization/organization.model';
-import { SettingSerializer, UserSerializer } from '@genfeedai/serializers';
+import {
+  NotificationPreferenceSerializer,
+  SettingSerializer,
+  UserSerializer,
+} from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -96,6 +101,29 @@ export class UsersService extends BaseService<User> {
       .patch<JsonApiResponseDocument>('me/settings', data)
       .then((res) => res.data)
       .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
+  }
+
+  public async findWorkflowEmailNotificationPreference(
+    signal?: AbortSignal,
+  ): Promise<INotificationPreference> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(
+        'me/notification-preferences/workflow-status/email',
+        { signal },
+      )
+      .then((res) => this.extractResource<INotificationPreference>(res.data));
+  }
+
+  public async patchWorkflowEmailNotificationPreference(
+    isEnabled: boolean,
+  ): Promise<INotificationPreference> {
+    const data = NotificationPreferenceSerializer.serialize({ isEnabled });
+    return await this.instance
+      .patch<JsonApiResponseDocument>(
+        'me/notification-preferences/workflow-status/email',
+        data,
+      )
+      .then((res) => this.extractResource<INotificationPreference>(res.data));
   }
 
   public async findMe(): Promise<IUser> {

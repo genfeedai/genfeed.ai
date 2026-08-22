@@ -42,6 +42,7 @@ import {
   INSIGHT_GENERATION_QUEUE,
   KNOWLEDGE_SOURCE_INGEST_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
+  NOTIFICATION_DELIVERY_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
@@ -99,6 +100,13 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
     }),
     BullModule.registerQueue(
       // ---------- Existing queues (crons + processors) ----------
+      {
+        defaultJobOptions: {
+          removeOnComplete: 500,
+          removeOnFail: 200,
+        },
+        name: NOTIFICATION_DELIVERY_QUEUE,
+      },
       {
         defaultJobOptions: {
           attempts: 3,

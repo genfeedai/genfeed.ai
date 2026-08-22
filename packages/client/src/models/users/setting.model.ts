@@ -12,7 +12,6 @@ export class Setting extends BaseEntity implements ISetting {
   public declare isTrendNotificationsInApp: boolean;
   public declare isTrendNotificationsTelegram: boolean;
   public declare isTrendNotificationsEmail: boolean;
-  public declare isWorkflowNotificationsEmail: boolean;
   public declare isVideoNotificationsEmail: boolean;
   public declare trendNotificationsTelegramChatId?: string;
   public declare trendNotificationsEmailAddress?: string;

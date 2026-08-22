@@ -600,40 +600,6 @@ describe('NotificationHandlerService', () => {
       );
     });
 
-    it('sends workflow completion emails', async () => {
-      await emit('workflow_status_email', {
-        status: 'completed',
-        to: 'a@b.c',
-        workflowId: 'wf-1',
-        workflowLabel: 'Daily Posts',
-      });
-
-      expect(mockResendService.sendEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          idempotencyKey: 'workflow-status/wf-1/completed',
-          subject: 'Workflow completed: Daily Posts',
-          text: 'Your workflow Daily Posts completed successfully.',
-        }),
-      );
-    });
-
-    it('sends workflow failure emails including the error', async () => {
-      await emit('workflow_status_email', {
-        error: 'node crashed',
-        status: 'failed',
-        to: 'a@b.c',
-        workflowId: 'wf-1',
-        workflowLabel: 'Daily Posts',
-      });
-
-      expect(mockResendService.sendEmail).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subject: 'Workflow failed: Daily Posts',
-          text: 'Your workflow Daily Posts failed: node crashed',
-        }),
-      );
-    });
-
     it('sends review gate pending emails with caption preview and cta', async () => {
       await emit('review_gate_pending', {
         captionPreview: 'Look at <this>',

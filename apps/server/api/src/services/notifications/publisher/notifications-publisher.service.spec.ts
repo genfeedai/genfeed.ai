@@ -8,7 +8,6 @@ describe('NotificationsPublisherService', () => {
   let redisService: { publish: ReturnType<typeof vi.fn> };
   let notificationsService: {
     sendVideoStatusEmail: ReturnType<typeof vi.fn>;
-    sendWorkflowStatusEmail: ReturnType<typeof vi.fn>;
   };
   let settingsService: { findOne: ReturnType<typeof vi.fn> };
   let prisma: { user: { findFirst: ReturnType<typeof vi.fn> } };
@@ -17,7 +16,6 @@ describe('NotificationsPublisherService', () => {
     redisService = { publish: vi.fn().mockResolvedValue(1) };
     notificationsService = {
       sendVideoStatusEmail: vi.fn().mockResolvedValue(undefined),
-      sendWorkflowStatusEmail: vi.fn().mockResolvedValue(undefined),
     };
     settingsService = { findOne: vi.fn().mockResolvedValue(null) };
     prisma = { user: { findFirst: vi.fn().mockResolvedValue(null) } };
@@ -202,30 +200,6 @@ describe('NotificationsPublisherService', () => {
         path: '/path',
         status: 'completed',
         to: 'user@example.com',
-      }),
-    );
-  });
-
-  it('sends workflow email when the user opted in', async () => {
-    prisma.user.findFirst.mockResolvedValue({ email: 'user@example.com' });
-    settingsService.findOne.mockResolvedValue({
-      isWorkflowNotificationsEmail: true,
-    });
-
-    await service.publishWorkflowStatus(
-      'workflow-1',
-      'failed',
-      testId('user'),
-      { error: 'boom', workflowLabel: 'My Flow' },
-    );
-
-    expect(notificationsService.sendWorkflowStatusEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        error: 'boom',
-        status: 'failed',
-        to: 'user@example.com',
-        workflowId: 'workflow-1',
-        workflowLabel: 'My Flow',
       }),
     );
   });

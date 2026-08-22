@@ -4,11 +4,24 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsProfilePage from './settings-profile-page';
 import '@testing-library/jest-dom/vitest';
 
+// Resolve against the real catalog so these assertions stay on the copy a user
+// reads without requiring a NextIntlClientProvider in this focused unit suite.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({
   currentTheme: 'dark',
   errorNotification: vi.fn(),
   mutateUser: vi.fn(),
   patchSettings: vi.fn(),
+  findWorkflowEmailPreference: vi.fn(),
+  getUsersService: vi.fn(),
+  patchWorkflowEmailPreference: vi.fn(),
   setTheme: vi.fn(),
 }));
 
@@ -37,7 +50,6 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
       settings: {
         isAdvancedMode: true,
         isVideoNotificationsEmail: true,
-        isWorkflowNotificationsEmail: false,
         theme: 'dark',
       },
     },
@@ -46,9 +58,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() =>
-    vi.fn().mockResolvedValue({ patchMeSettings: mocks.patchSettings }),
-  ),
+  useAuthedService: vi.fn(() => mocks.getUsersService),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -76,6 +86,17 @@ describe('SettingsProfilePage', () => {
     vi.clearAllMocks();
     mocks.currentTheme = 'dark';
     mocks.patchSettings.mockResolvedValue(undefined);
+    mocks.getUsersService.mockResolvedValue({
+      findWorkflowEmailNotificationPreference:
+        mocks.findWorkflowEmailPreference,
+      patchMeSettings: mocks.patchSettings,
+      patchWorkflowEmailNotificationPreference:
+        mocks.patchWorkflowEmailPreference,
+    });
+    mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: false });
+    mocks.patchWorkflowEmailPreference.mockImplementation(
+      async (isEnabled: boolean) => ({ isEnabled }),
+    );
   });
 
   it('should render without crashing', () => {
@@ -145,5 +166,59 @@ describe('SettingsProfilePage', () => {
         'Failed to save your appearance preference.',
       );
     });
+  });
+
+  it('loads and persists the durable workflow email preference', async () => {
+    const user = userEvent.setup();
+    mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: true });
+    render(<SettingsProfilePage />);
+
+    const toggle = screen.getByRole('switch', { name: 'Workflow Emails' });
+    await waitFor(() => expect(toggle).toBeChecked());
+    await user.click(toggle);
+
+    await waitFor(() => {
+      expect(mocks.patchWorkflowEmailPreference).toHaveBeenCalledWith(false);
+    });
+    expect(mocks.patchSettings).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        isWorkflowNotificationsEmail: expect.anything(),
+      }),
+    );
+  });
+
+  it('aborts the workflow preference load when the page unmounts', async () => {
+    const { unmount } = render(<SettingsProfilePage />);
+
+    await waitFor(() => {
+      expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledWith(
+        expect.any(AbortSignal),
+      );
+    });
+    const signal = mocks.findWorkflowEmailPreference.mock.calls[0]?.[0];
+    expect(signal?.aborted).toBe(false);
+
+    unmount();
+
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it('keeps an unknown workflow preference disabled and supports retry', async () => {
+    const user = userEvent.setup();
+    mocks.findWorkflowEmailPreference.mockRejectedValueOnce(
+      new Error('load failed'),
+    );
+    render(<SettingsProfilePage />);
+
+    const toggle = screen.getByRole('switch', { name: 'Workflow Emails' });
+    expect(
+      await screen.findByText('Workflow email preference could not be loaded.'),
+    ).toBeInTheDocument();
+    expect(toggle).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => expect(toggle).toBeEnabled());
+    expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledTimes(2);
   });
 });

@@ -121,8 +121,8 @@ describe('workflow.enum', () => {
   });
 
   describe('WorkflowExecutionTrigger', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(WorkflowExecutionTrigger)).toHaveLength(4);
+    it('should have 5 members', () => {
+      expect(Object.values(WorkflowExecutionTrigger)).toHaveLength(5);
     });
 
     it('should have correct values', () => {
@@ -130,6 +130,7 @@ describe('workflow.enum', () => {
       expect(WorkflowExecutionTrigger.SCHEDULED).toBe('scheduled');
       expect(WorkflowExecutionTrigger.EVENT).toBe('event');
       expect(WorkflowExecutionTrigger.API).toBe('api');
+      expect(WorkflowExecutionTrigger.LEGACY_STEPS).toBe('legacy-steps');
     });
   });
 });

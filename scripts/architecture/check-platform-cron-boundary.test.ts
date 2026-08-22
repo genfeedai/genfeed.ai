@@ -46,6 +46,29 @@ describe('check-platform-cron-boundary', () => {
     expect(result.violations[0]?.kind).toBe('untracked-cron');
   });
 
+  it('flags untracked static interval decorators', () => {
+    writeFixture(
+      'apps/server/workers/src/recovery.service.ts',
+      `
+        import { Interval } from '@nestjs/schedule';
+
+        export class RecoveryService {
+          @Interval(60_000)
+          async recover(): Promise<void> {}
+        }
+      `,
+    );
+
+    const result = runCheckPlatformCronBoundary({
+      sweepServiceAllowlist: [],
+      pendingMigrations: [],
+      platformAllowlist: [],
+    });
+
+    expect(result.violations).toHaveLength(1);
+    expect(result.violations[0]?.kind).toBe('untracked-cron');
+  });
+
   it('allows reviewed platform cron decorators', () => {
     writeFixture(
       'apps/server/workers/src/crons/platform.service.ts',

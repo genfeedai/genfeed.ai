@@ -1,8 +1,9 @@
 'use client';
 
 // biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
 import {
   type AppLocale,
   DEFAULT_LOCALE,
@@ -13,6 +14,7 @@ import {
   THEME_PREFERENCES,
   type ThemePreference,
 } from '@genfeedai/constants';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ISetting } from '@genfeedai/interfaces';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
@@ -22,6 +24,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
+import Alert from '@ui/feedback/alert/Alert';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,
@@ -33,8 +37,9 @@ import { Switch } from '@ui/primitives/switch';
 
 type ExtendedSettingPatch = Partial<ISetting> & {
   isVideoNotificationsEmail?: boolean;
-  isWorkflowNotificationsEmail?: boolean;
 };
+
+type WorkflowPreferenceLoadState = 'error' | 'loading' | 'ready';
 
 // Baked in at module load, matching ServiceWorkerRegistrar. The pseudo-locale is
 // a QA instrument, not a language — a customer who lands on accented, padded
@@ -50,6 +55,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 };
 
 export default function SettingsProfilePage() {
+  const translate = useTranslations('common');
   const { user, isLoaded } = useAuthUser();
   const { currentUser, mutateUser } = useCurrentUser();
   const { setTheme, theme } = useTheme();
@@ -60,6 +66,40 @@ export default function SettingsProfilePage() {
   );
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isWorkflowNotificationsEmail, setIsWorkflowNotificationsEmail] =
+    useState(false);
+  const [workflowPreferenceLoadState, setWorkflowPreferenceLoadState] =
+    useState<WorkflowPreferenceLoadState>('loading');
+  const [workflowPreferenceLoadRequest, setWorkflowPreferenceLoadRequest] =
+    useState(0);
+  const loadWorkflowPreference = useCallback(
+    async (signal: AbortSignal) => {
+      setWorkflowPreferenceLoadState('loading');
+
+      try {
+        const service = await getUsersService();
+        const preference =
+          await service.findWorkflowEmailNotificationPreference(signal);
+        signal.throwIfAborted();
+        setIsWorkflowNotificationsEmail(preference.isEnabled);
+        setWorkflowPreferenceLoadState('ready');
+      } catch (error) {
+        if (signal.aborted) {
+          return;
+        }
+        logger.error('Failed to load workflow email preference', error);
+        setWorkflowPreferenceLoadState('error');
+      }
+    },
+    [getUsersService],
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: workflowPreferenceLoadRequest intentionally re-runs the abortable load after a manual retry
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadWorkflowPreference(controller.signal);
+    return () => controller.abort();
+  }, [loadWorkflowPreference, workflowPreferenceLoadRequest]);
 
   const patchSettings = useCallback(
     async (patch: ExtendedSettingPatch) => {
@@ -117,6 +157,29 @@ export default function SettingsProfilePage() {
     ],
   );
 
+  const handleWorkflowEmailPreferenceChange = useCallback(
+    async (isEnabled: boolean) => {
+      const previousValue = isWorkflowNotificationsEmail;
+      setIsWorkflowNotificationsEmail(isEnabled);
+      setIsSaving(true);
+      try {
+        const service = await getUsersService();
+        const preference =
+          await service.patchWorkflowEmailNotificationPreference(isEnabled);
+        setIsWorkflowNotificationsEmail(preference.isEnabled);
+      } catch (error: unknown) {
+        logger.error('Failed to update workflow email preference', error);
+        setIsWorkflowNotificationsEmail(previousValue);
+        notifications.error(
+          translate('settings.profile.workflowEmail.saveError'),
+        );
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [getUsersService, isWorkflowNotificationsEmail, notifications, translate],
+  );
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-form">
@@ -139,9 +202,6 @@ export default function SettingsProfilePage() {
     : isThemePreference(storedTheme)
       ? storedTheme
       : DEFAULT_THEME;
-  const isWorkflowNotificationsEmail =
-    (currentUser?.settings as ExtendedSettingPatch | undefined)
-      ?.isWorkflowNotificationsEmail ?? false;
   const isVideoNotificationsEmail =
     (currentUser?.settings as ExtendedSettingPatch | undefined)
       ?.isVideoNotificationsEmail ?? false;
@@ -151,13 +211,20 @@ export default function SettingsProfilePage() {
       <Card label="Profile Information" bodyClassName="gap-3 p-4">
         <div className="space-y-3">
           <div>
-            <p className="text-sm text-muted-foreground">Name</p>
-            <p className="font-medium">{user?.fullName || 'Not set'}</p>
+            <p className="text-sm text-muted-foreground">
+              {translate('settings.profile.fields.name')}
+            </p>
+            <p className="font-medium">
+              {user?.fullName || translate('settings.profile.fields.notSet')}
+            </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Email</p>
+            <p className="text-sm text-muted-foreground">
+              {translate('settings.profile.fields.email')}
+            </p>
             <p className="font-medium">
-              {user?.primaryEmailAddress?.emailAddress || 'Not set'}
+              {user?.primaryEmailAddress?.emailAddress ||
+                translate('settings.profile.fields.notSet')}
             </p>
           </div>
         </div>
@@ -234,19 +301,39 @@ export default function SettingsProfilePage() {
         />
       </Card>
 
-      <Card label="Email Notifications" bodyClassName="gap-3 p-4">
+      <Card
+        label={translate('settings.profile.workflowEmail.cardTitle')}
+        bodyClassName="gap-3 p-4"
+      >
         <div className="space-y-3">
           <Switch
-            label="Workflow Emails"
-            description="Send an email when a workflow completes or fails."
+            label={translate('settings.profile.workflowEmail.label')}
+            description={translate(
+              'settings.profile.workflowEmail.description',
+            )}
             isChecked={isWorkflowNotificationsEmail}
-            isDisabled={isSaving}
+            isDisabled={isSaving || workflowPreferenceLoadState !== 'ready'}
             onChange={(e) =>
-              patchSettings({
-                isWorkflowNotificationsEmail: e.target.checked,
-              })
+              handleWorkflowEmailPreferenceChange(e.target.checked)
             }
           />
+          {workflowPreferenceLoadState === 'error' ? (
+            <Alert type={AlertCategory.WARNING}>
+              <div className="flex items-center justify-between gap-3">
+                <span>
+                  {translate('settings.profile.workflowEmail.loadError')}
+                </span>
+                <Button
+                  label={translate('actions.retry')}
+                  onClick={() => {
+                    setWorkflowPreferenceLoadRequest((request) => request + 1);
+                  }}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                />
+              </div>
+            </Alert>
+          ) : null}
           <Switch
             label="Video Emails"
             description="Send an email when a video generation completes or fails."

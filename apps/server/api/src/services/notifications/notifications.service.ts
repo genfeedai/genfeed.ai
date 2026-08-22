@@ -1,6 +1,7 @@
 import type {
   IChatbotMetadata,
   IDiscordEmbed,
+  IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
   IEmailDeliveryResponse,
   IIngredientNotificationData,
@@ -24,6 +25,34 @@ import {
 import Redis from 'ioredis';
 
 export type { INotificationEvent as NotificationEvent };
+
+export class EmailDeliveryError extends Error {
+  constructor(
+    readonly retryable: boolean,
+    readonly statusCode?: number,
+    cause?: unknown,
+  ) {
+    super(`Email delivery failed (status ${statusCode ?? 'unknown'})`, {
+      cause,
+    });
+    this.name = EmailDeliveryError.name;
+  }
+}
+
+function isRetryableEmailDeliveryStatus(
+  statusCode: number | undefined,
+): boolean {
+  return (
+    statusCode === undefined ||
+    statusCode === 401 ||
+    statusCode === 403 ||
+    statusCode === 404 ||
+    statusCode === 408 ||
+    statusCode === 425 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
+}
 
 @Injectable()
 export class NotificationsService implements OnModuleInit, OnModuleDestroy {
@@ -212,12 +241,9 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /**
-   * Auth email needs request-time provider acceptance so the browser cannot
-   * report success after only a Redis publish. All other notification email
-   * keeps using sendEmail's asynchronous path.
-   */
+  /** Request-time provider acceptance for durable and authentication email. */
   async deliverEmail(payload: IEmailDeliveryRequest): Promise<string> {
+    let explicitRetryability: boolean | undefined;
     let statusCode: number | undefined;
 
     try {
@@ -263,6 +289,9 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
 
       statusCode = response.status;
       if (!response.ok) {
+        const errorResponse =
+          await this.readEmailDeliveryErrorResponse(response);
+        explicitRetryability = errorResponse?.retryable;
         throw new Error(
           `Notifications service returned HTTP ${response.status}`,
         );
@@ -282,7 +311,32 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
         error,
         statusCode === undefined ? undefined : { statusCode },
       );
-      throw new Error('Auth email delivery failed');
+      throw new EmailDeliveryError(
+        explicitRetryability ?? isRetryableEmailDeliveryStatus(statusCode),
+        statusCode,
+        error,
+      );
+    }
+  }
+
+  private async readEmailDeliveryErrorResponse(
+    response: Response,
+  ): Promise<IEmailDeliveryErrorResponse | null> {
+    try {
+      const value: unknown = await response.json();
+      if (typeof value !== 'object' || value === null) {
+        return null;
+      }
+
+      const message = Reflect.get(value, 'message');
+      const retryable = Reflect.get(value, 'retryable');
+      if (typeof message !== 'string' || typeof retryable !== 'boolean') {
+        return null;
+      }
+
+      return { message, retryable };
+    } catch {
+      return null;
     }
   }
 
@@ -310,24 +364,6 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       organizationId: input.organizationId,
       payload: input,
       type: 'email',
-    });
-  }
-
-  sendWorkflowStatusEmail(input: {
-    to: string;
-    workflowId: string;
-    workflowLabel: string;
-    status: 'completed' | 'failed';
-    error?: string;
-    organizationId?: string;
-    userId?: string;
-  }): Promise<void> {
-    return this.sendNotification({
-      action: 'workflow_status_email',
-      organizationId: input.organizationId,
-      payload: input,
-      type: 'email',
-      userId: input.userId,
     });
   }
 

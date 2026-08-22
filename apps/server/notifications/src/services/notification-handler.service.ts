@@ -3,7 +3,6 @@ import type {
   ICrmLeadOutreachEmailPayload,
   IReviewGatePendingEmailPayload,
   IVideoStatusEmailPayload,
-  IWorkflowStatusEmailPayload,
 } from '@genfeedai/interfaces';
 import {
   buildSystemEmailHtml,
@@ -353,17 +352,6 @@ export class NotificationHandlerService implements OnModuleInit {
         }
         break;
 
-      case 'workflow_status_email':
-        if (
-          'to' in payload &&
-          'workflowId' in payload &&
-          'workflowLabel' in payload &&
-          'status' in payload
-        ) {
-          await this.sendWorkflowStatusEmail(payload);
-        }
-        break;
-
       case 'review_gate_pending':
         if (
           'to' in payload &&
@@ -517,33 +505,6 @@ export class NotificationHandlerService implements OnModuleInit {
       text: isFailure
         ? `Your video job failed${payload.error ? `: ${String(payload.error)}` : '.'}`
         : 'Your video has finished processing and is ready.',
-      to: String(payload.to || ''),
-    });
-  }
-
-  private async sendWorkflowStatusEmail(
-    payload: IWorkflowStatusEmailPayload,
-  ): Promise<void> {
-    const status = String(payload.status || '');
-    const isFailure = status === 'failed';
-    const workflowLabel = String(payload.workflowLabel || 'workflow');
-    const subject = isFailure
-      ? `Workflow failed: ${workflowLabel}`
-      : `Workflow completed: ${workflowLabel}`;
-    const body = isFailure
-      ? `<p>Your workflow <strong>${this.escapeHtml(workflowLabel)}</strong> failed${payload.error ? `: ${this.escapeHtml(String(payload.error))}` : '.'}</p>`
-      : `<p>Your workflow <strong>${this.escapeHtml(workflowLabel)}</strong> completed successfully.</p>`;
-
-    await this.resendService.sendEmail({
-      html: this.wrapEmailTemplate({
-        body,
-        title: subject,
-      }),
-      idempotencyKey: `workflow-status/${String(payload.workflowId || workflowLabel)}/${status}`,
-      subject,
-      text: isFailure
-        ? `Your workflow ${workflowLabel} failed${payload.error ? `: ${String(payload.error)}` : '.'}`
-        : `Your workflow ${workflowLabel} completed successfully.`,
       to: String(payload.to || ''),
     });
   }

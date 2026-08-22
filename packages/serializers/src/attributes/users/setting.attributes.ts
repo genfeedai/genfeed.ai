@@ -18,7 +18,6 @@ export const settingAttributes = createEntityAttributes([
   'isTrendNotificationsInApp',
   'isTrendNotificationsTelegram',
   'isTrendNotificationsEmail',
-  'isWorkflowNotificationsEmail',
   'isVideoNotificationsEmail',
   'trendNotificationsTelegramChatId',
   'trendNotificationsEmailAddress',

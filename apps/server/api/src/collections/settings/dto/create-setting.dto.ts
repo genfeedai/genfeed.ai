@@ -136,15 +136,6 @@ export class CreateSettingDto {
   @IsOptional()
   @ApiProperty({
     default: false,
-    description: 'Enable workflow completion and failure emails',
-    required: false,
-  })
-  readonly isWorkflowNotificationsEmail?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: false,
     description: 'Enable video completion and failure emails',
     required: false,
   })

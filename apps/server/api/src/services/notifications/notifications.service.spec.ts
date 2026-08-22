@@ -1,4 +1,5 @@
 import {
+  EmailDeliveryError,
   NotificationEvent,
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
@@ -411,7 +412,7 @@ describe('NotificationsService', () => {
       expect(mockPublisher.publish).not.toHaveBeenCalled();
     });
 
-    it('rejects when the notifications service rejects delivery', async () => {
+    it('classifies a notifications gateway 502 as retryable', async () => {
       mockSafeFetch.mockResolvedValue(
         new Response(
           JSON.stringify({ message: 'Provider rejected delivery' }),
@@ -419,13 +420,58 @@ describe('NotificationsService', () => {
         ),
       );
 
-      await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+      await expect(service.deliverEmail(payload)).rejects.toEqual(
+        expect.objectContaining<Partial<EmailDeliveryError>>({
+          cause: expect.objectContaining({
+            message: 'Notifications service returned HTTP 502',
+          }),
+          message: 'Email delivery failed (status 502)',
+          retryable: true,
+          statusCode: 502,
+        }),
       );
       expect(loggerService.error).toHaveBeenCalledWith(
         'NotificationsService synchronous email delivery failed',
         expect.objectContaining({ message: expect.any(String) }),
         { statusCode: 502 },
+      );
+    });
+
+    it('preserves an explicit permanent provider rejection', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            message: 'Email provider rejected delivery',
+            retryable: false,
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 422,
+          },
+        ),
+      );
+
+      await expect(service.deliverEmail(payload)).rejects.toEqual(
+        expect.objectContaining<Partial<EmailDeliveryError>>({
+          retryable: false,
+          statusCode: 422,
+        }),
+      );
+    });
+
+    it('treats internal authentication failures as retryable infrastructure errors', async () => {
+      mockSafeFetch.mockResolvedValue(
+        new Response(JSON.stringify({ message: 'Unauthorized' }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 401,
+        }),
+      );
+
+      await expect(service.deliverEmail(payload)).rejects.toEqual(
+        expect.objectContaining<Partial<EmailDeliveryError>>({
+          retryable: true,
+          statusCode: 401,
+        }),
       );
     });
 
@@ -438,7 +484,7 @@ describe('NotificationsService', () => {
       );
 
       await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+        'Email delivery failed',
       );
     });
 
@@ -448,7 +494,7 @@ describe('NotificationsService', () => {
       );
 
       await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+        'Email delivery failed',
       );
       expect(mockSafeFetch).not.toHaveBeenCalled();
     });
@@ -457,7 +503,7 @@ describe('NotificationsService', () => {
       mockSafeFetch.mockRejectedValue(new Error('socket exposed detail'));
 
       await expect(service.deliverEmail(payload)).rejects.toThrow(
-        'Auth email delivery failed',
+        'Email delivery failed',
       );
       expect(loggerService.error).toHaveBeenCalledWith(
         'NotificationsService synchronous email delivery failed',

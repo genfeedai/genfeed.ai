@@ -1,8 +1,5 @@
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadGatewayException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
 import { EmailDeliveriesController } from '@notifications/services/resend/email-deliveries.controller';
@@ -72,12 +69,15 @@ describe('EmailDeliveriesController', () => {
     );
 
     await expect(controller.deliver(payload)).rejects.toMatchObject({
-      message: 'Email delivery is temporarily unavailable',
+      response: {
+        message: 'Email delivery is temporarily unavailable',
+        retryable: true,
+      },
       status: 503,
     });
   });
 
-  it('maps permanent provider rejection to a safe bad gateway response', async () => {
+  it('preserves permanent provider rejection as non-retryable', async () => {
     resendService.sendEmail.mockRejectedValue(
       new ResendEmailDeliveryError('unverified sender detail', {
         providerCode: 'validation_error',
@@ -88,10 +88,12 @@ describe('EmailDeliveriesController', () => {
 
     const delivery = controller.deliver(payload);
 
-    await expect(delivery).rejects.toBeInstanceOf(BadGatewayException);
     await expect(delivery).rejects.toMatchObject({
-      message: 'Email provider rejected delivery',
-      status: 502,
+      response: {
+        message: 'Email provider rejected delivery',
+        retryable: false,
+      },
+      status: 422,
     });
   });
 });

@@ -1,15 +1,16 @@
 import type {
+  IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
   IEmailDeliveryResponse,
 } from '@genfeedai/interfaces';
 import {
-  BadGatewayException,
   Body,
   Controller,
   HttpCode,
   HttpStatus,
   Post,
   ServiceUnavailableException,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import { InternalApiKeyGuard } from '@notifications/guards/internal-api-key.guard';
@@ -32,9 +33,10 @@ export class EmailDeliveriesController {
       const emailId = await this.resendService.sendEmail(payload);
 
       if (!emailId) {
-        throw new ServiceUnavailableException(
-          'Email delivery is not configured',
-        );
+        throw new ServiceUnavailableException({
+          message: 'Email delivery is not configured',
+          retryable: true,
+        } satisfies IEmailDeliveryErrorResponse);
       }
 
       return { emailId };
@@ -45,12 +47,16 @@ export class EmailDeliveriesController {
 
       if (error instanceof ResendEmailDeliveryError) {
         if (error.retryable) {
-          throw new ServiceUnavailableException(
-            'Email delivery is temporarily unavailable',
-          );
+          throw new ServiceUnavailableException({
+            message: 'Email delivery is temporarily unavailable',
+            retryable: true,
+          } satisfies IEmailDeliveryErrorResponse);
         }
 
-        throw new BadGatewayException('Email provider rejected delivery');
+        throw new UnprocessableEntityException({
+          message: 'Email provider rejected delivery',
+          retryable: false,
+        } satisfies IEmailDeliveryErrorResponse);
       }
 
       throw error;
