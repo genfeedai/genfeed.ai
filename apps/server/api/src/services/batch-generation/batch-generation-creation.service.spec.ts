@@ -11,6 +11,7 @@ describe('BatchGenerationCreationService manual review Post linking', () => {
     batchItem: { upsert: vi.fn().mockResolvedValue({}) },
     ingredient: { findMany: vi.fn() },
     post: {
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       updateMany: vi.fn(),
     },
@@ -78,6 +79,47 @@ describe('BatchGenerationCreationService manual review Post linking', () => {
       }),
     );
     expect(result).toMatchObject({ id: 'batch-1' });
+  });
+
+  it('restores a tombstoned Post that owns the tenant idempotency key', async () => {
+    prisma.post.findFirst.mockResolvedValue({
+      id: 'post-tombstone-1',
+      isDeleted: true,
+    });
+
+    await service.createManualReviewBatch(
+      {
+        brandId: 'brand-1',
+        items: [
+          {
+            caption: 'Review this generated post',
+            format: 'post',
+            targetIdempotencyKey: 'run-1:variant-1',
+          },
+        ],
+      },
+      'user-1',
+      'org-1',
+    );
+
+    expect(prisma.post.findFirst).toHaveBeenCalledWith({
+      select: { id: true, isDeleted: true },
+      where: {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        targetIdempotencyKey: 'run-1:variant-1',
+      },
+    });
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      data: { isDeleted: false },
+      where: {
+        brandId: 'brand-1',
+        id: 'post-tombstone-1',
+        isDeleted: true,
+        organizationId: 'org-1',
+      },
+    });
+    expect(postsService.create).not.toHaveBeenCalled();
   });
 
   it('rejects a Post outside the requested organization or brand', async () => {

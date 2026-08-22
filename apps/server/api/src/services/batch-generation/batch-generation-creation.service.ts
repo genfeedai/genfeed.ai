@@ -304,13 +304,32 @@ export class BatchGenerationCreationService {
         let postId = reviewItem.postId;
         if (!postId && reviewItem.targetIdempotencyKey) {
           const existing = await this.prisma.post.findFirst({
-            select: { id: true },
-            where: scopedWhere(orgId, {
+            select: { id: true, isDeleted: true },
+            // tenant-scope-ignore: organizationId and brandId are pinned;
+            // isDeleted is omitted so the unique key can restore a tombstone.
+            where: {
               brandId: dto.brandId,
+              organizationId: orgId,
               targetIdempotencyKey: reviewItem.targetIdempotencyKey,
-            }),
+            },
           });
           postId = existing?.id;
+          if (existing?.isDeleted) {
+            const restored = await this.prisma.post.updateMany({
+              data: { isDeleted: false },
+              where: {
+                brandId: dto.brandId,
+                id: existing.id,
+                isDeleted: true,
+                organizationId: orgId,
+              },
+            });
+            if (restored.count !== 1) {
+              throw new BadRequestException(
+                'The idempotent Review Post changed while it was being restored',
+              );
+            }
+          }
         }
         if (!postId) {
           const post = await this.postsService.create({
