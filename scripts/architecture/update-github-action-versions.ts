@@ -1,31 +1,42 @@
 /**
- * Bump GitHub Action tag pins to the latest upstream release.
+ * Bump GitHub Action pins to the latest immutable upstream release commit.
  *
  * `bun run deps:update` (npm-check-updates) never sees `uses:` pins. This
- * script is the matching updater: one version per action, applied to every
- * workflow and composite action. Digest pins, local refs, container refs, and
- * branch pins (`master` / `main`) stay untouched.
+ * script is the matching updater: one full commit SHA per action, applied to
+ * every workflow and composite action, with the human-readable release tag in
+ * a trailing comment. Unlabeled digest pins, local refs, and container refs
+ * stay untouched. Branch pins (`master` / `main`) also stay untouched because
+ * no immutable commit can be inferred safely; the matching guard reports them
+ * as hard human-fix violations.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
 
 import {
   type ActionReference,
+  COMMIT_DIGEST,
   collectActionReferences,
   parseUsesLine,
   parseUsesTarget,
+  parseVersionComment,
 } from './check-github-action-versions';
 
-const COMMIT_DIGEST = /^[0-9a-f]{40}$/;
 const VERSION_TAG = /^(?:v)?\d+(?:\.\d+){0,3}(?:-[\w.]+)?$/i;
 const BRANCH_PIN = /^(master|main|develop|HEAD)$/i;
 
-export type GitHubReleaseLookup = (action: string) => Promise<string | null>;
+export type ActionRelease = {
+  sha: string;
+  tag: string;
+};
+
+export type GitHubReleaseLookup = (
+  action: string,
+) => Promise<ActionRelease | null>;
 
 export type PlannedActionUpdate = {
   action: string;
   from: string[];
-  to: string;
+  to: ActionRelease;
   files: string[];
 };
 
@@ -68,7 +79,7 @@ export function compareVersionTags(left: string, right: string): number {
 export function rewriteUsesLine(
   line: string,
   action: string,
-  nextVersion: string,
+  nextRelease: ActionRelease,
 ): string {
   const rawTarget = parseUsesLine(line);
 
@@ -83,26 +94,42 @@ export function rewriteUsesLine(
   }
 
   if (
-    COMMIT_DIGEST.test(parsed.version) ||
-    !isVersionTag(parsed.version) ||
-    parsed.version === nextVersion
+    (!isVersionTag(parsed.version) &&
+      !(COMMIT_DIGEST.test(parsed.version) && parseVersionComment(line))) ||
+    (parsed.version === nextRelease.sha &&
+      parseVersionComment(line) === nextRelease.tag)
   ) {
     return line;
   }
 
-  const nextTarget = `${rawTarget.slice(0, rawTarget.lastIndexOf('@'))}@${nextVersion}`;
+  const nextTarget = `${rawTarget.slice(0, rawTarget.lastIndexOf('@'))}@${nextRelease.sha}`;
+  const rewritten = line.replace(rawTarget, nextTarget);
+  const existingComment = rewritten.match(/\s+#\s*(.*?)\s*$/);
 
-  return line.replace(rawTarget, nextTarget);
+  if (existingComment?.index !== undefined) {
+    const comment = existingComment[1] ?? '';
+    const prose = comment
+      .replace(/^(?:v)?\d+(?:\.\d+){0,3}(?:-[\w.]+)?(?:\s+\|\s+)?/i, '')
+      .trim();
+    const suffix = prose ? ` | ${prose}` : '';
+
+    return `${rewritten.slice(0, existingComment.index).trimEnd()} # ${nextRelease.tag}${suffix}`;
+  }
+
+  return `${rewritten.trimEnd()} # ${nextRelease.tag}`;
 }
 
 export function planActionVersionUpdates(
   references: ActionReference[],
-  latestByAction: Map<string, string>,
+  latestByAction: Map<string, ActionRelease>,
 ): PlannedActionUpdate[] {
   const referencesByAction = new Map<string, ActionReference[]>();
 
   for (const reference of references) {
-    if (!isVersionTag(reference.version)) {
+    if (
+      !isVersionTag(reference.version) &&
+      !(COMMIT_DIGEST.test(reference.version) && reference.release)
+    ) {
       continue;
     }
 
@@ -123,19 +150,42 @@ export function planActionVersionUpdates(
   )) {
     const latest = latestByAction.get(action);
 
-    if (!latest || !isVersionTag(latest)) {
+    if (
+      !latest ||
+      !isVersionTag(latest.tag) ||
+      !COMMIT_DIGEST.test(latest.sha)
+    ) {
       continue;
     }
 
     const currentVersions = [
-      ...new Set(actionReferences.map(({ version }) => version)),
-    ].sort(compareVersionTags);
-    const newestCurrent = currentVersions.at(-1);
+      ...new Set(
+        actionReferences.map(({ release, version }) =>
+          release ? `${version} # ${release}` : version,
+        ),
+      ),
+    ].sort();
+    const newestCurrentRelease = actionReferences
+      .map(({ release, version }) => release ?? version)
+      .filter(isVersionTag)
+      .sort(compareVersionTags)
+      .at(-1);
 
     if (
-      (currentVersions.length === 1 && currentVersions[0] === latest) ||
-      (newestCurrent !== undefined &&
-        compareVersionTags(latest, newestCurrent) < 0)
+      newestCurrentRelease !== undefined &&
+      compareVersionTags(latest.tag, newestCurrentRelease) < 0
+    ) {
+      console.warn(
+        `Skipping ${action}: recorded release ${newestCurrentRelease} is newer than upstream ${latest.tag}; verify the pin comment and upstream release state.`,
+      );
+      continue;
+    }
+
+    if (
+      actionReferences.every(
+        ({ release, version }) =>
+          version === latest.sha && release === latest.tag,
+      )
     ) {
       continue;
     }
@@ -153,9 +203,36 @@ export function planActionVersionUpdates(
   return updates;
 }
 
-export async function fetchLatestReleaseTag(
+async function resolveReleaseCommit(
   action: string,
-): Promise<string | null> {
+  tag: string,
+  headers: Record<string, string>,
+): Promise<ActionRelease | null> {
+  const [owner, repository] = action.split('/');
+
+  if (!owner || !repository) {
+    return null;
+  }
+
+  const commitResponse = await fetch(
+    `https://api.github.com/repos/${owner}/${repository}/commits/${encodeURIComponent(tag)}`,
+    { headers },
+  );
+
+  if (!commitResponse.ok) {
+    return null;
+  }
+
+  const body = (await commitResponse.json()) as { sha?: unknown };
+
+  return typeof body.sha === 'string' && COMMIT_DIGEST.test(body.sha)
+    ? { sha: body.sha, tag }
+    : null;
+}
+
+export async function fetchLatestActionRelease(
+  action: string,
+): Promise<ActionRelease | null> {
   const [owner, repository] = action.split('/');
 
   if (!owner || !repository) {
@@ -186,7 +263,11 @@ export async function fetchLatestReleaseTag(
       typeof body.tag_name === 'string' ? body.tag_name : undefined;
 
     if (tagName && isVersionTag(tagName)) {
-      return tagName;
+      const release = await resolveReleaseCommit(action, tagName, headers);
+
+      if (release) {
+        return release;
+      }
     }
   }
 
@@ -205,7 +286,9 @@ export async function fetchLatestReleaseTag(
     .filter((name): name is string => name !== null && isVersionTag(name))
     .sort(compareVersionTags);
 
-  return versions.at(-1) ?? null;
+  const latestTag = versions.at(-1);
+
+  return latestTag ? resolveReleaseCommit(action, latestTag, headers) : null;
 }
 
 export function applyActionVersionUpdates(
@@ -234,8 +317,8 @@ export async function updateGitHubActionVersions(options?: {
   const actions = [...new Set(references.map(({ action }) => action))].sort(
     (left, right) => left.localeCompare(right),
   );
-  const lookup = options?.lookup ?? fetchLatestReleaseTag;
-  const latestByAction = new Map<string, string>();
+  const lookup = options?.lookup ?? fetchLatestActionRelease;
+  const latestByAction = new Map<string, ActionRelease>();
 
   for (const action of actions) {
     const latest = await lookup(action);
@@ -269,7 +352,7 @@ if (import.meta.main) {
 
   for (const update of updates) {
     console.log(
-      `- ${update.action}: ${update.from.join(', ')} -> ${update.to}`,
+      `- ${update.action}: ${update.from.join(', ')} -> ${update.to.sha} # ${update.to.tag}`,
     );
 
     for (const filePath of update.files) {

@@ -30,17 +30,17 @@ runs:
   using: composite
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v7
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Setup Bun
-      uses: oven-sh/setup-bun@v2
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       with:
         bun-version: ${{ inputs.bun-version }}
 
     - name: Cache bun modules
-      uses: actions/cache@v5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.bun/install/cache
         key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
@@ -49,7 +49,7 @@ runs:
 
     - name: Cache Turbo
       if: ${{ inputs.cache-turbo == 'true' }}
-      uses: actions/cache@v5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: .turbo
         key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
@@ -103,7 +103,7 @@ runs:
     - name: Cache Playwright browsers
       if: ${{ inputs.cache-playwright == 'true' }}
       id: playwright-cache
-      uses: actions/cache@v5
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ms-playwright
         key: ${{ runner.os }}-playwright-${{ hashFiles('**/bun.lock') }}

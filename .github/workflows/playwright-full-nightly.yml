@@ -33,10 +33,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js 24.x
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24.x"
 
@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload full-tier discovery summary
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-full-tier-discovery
           path: playwright/artifacts/report/full-tier-summary.json
@@ -62,7 +62,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -98,7 +98,7 @@ jobs:
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
 
       - name: Upload shard JSON inventory
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: playwright-full-json-${{ matrix.shard }}
@@ -107,7 +107,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload blob report (full shard ${{ matrix.shard }})
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: blob-report-full-${{ matrix.shard }}
@@ -116,7 +116,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload traces and screenshots (full shard ${{ matrix.shard }})
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: playwright-full-results-${{ matrix.shard }}
@@ -131,7 +131,7 @@ jobs:
     needs: [e2e-frontend-full]
     if: always()
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -140,7 +140,7 @@ jobs:
           cache-turbo: "false"
 
       - name: Download all blob reports
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: blob-report-full-*
           merge-multiple: true
@@ -151,7 +151,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload merged HTML report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: playwright-report-full-merged
@@ -160,7 +160,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Download shard traces and screenshots
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: always()
         with:
           pattern: playwright-full-results-*
@@ -168,7 +168,7 @@ jobs:
           path: all-full-results/
 
       - name: Upload merged traces
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: playwright-full-traces
@@ -177,7 +177,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload merged screenshots
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: playwright-full-screenshots
@@ -192,22 +192,22 @@ jobs:
     needs: [discover, e2e-frontend-full, e2e-merge-reports]
     if: always()
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js 24.x
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24.x"
 
       - name: Download discovery summary
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: playwright-full-tier-discovery
           path: playwright/artifacts/report/
 
       - name: Download shard JSON reports
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           # Every artifact contains results.json; separate directories prevent
@@ -228,7 +228,7 @@ jobs:
 
       - name: Upload full-tier summary
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-full-tier-summary
           path: playwright/artifacts/report/full-tier-summary.json
@@ -253,19 +253,19 @@ jobs:
       issues: write
     steps:
       - name: Checkout workflow helpers
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Download full-tier summary
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         continue-on-error: true
         with:
           name: playwright-full-tier-summary
           path: playwright/artifacts/report/
 
       - name: Open, reopen, or update the Playwright full-tier tracker
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

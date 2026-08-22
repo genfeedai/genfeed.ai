@@ -4,10 +4,11 @@ import {
   collectActionReferences,
   parseUsesLine,
   parseUsesTarget,
+  parseVersionComment,
 } from './check-github-action-versions';
 
-describe('GitHub Action version guard', () => {
-  it('keeps every tag-pinned action on one version repository-wide', () => {
+describe('GitHub Action pin guard', () => {
+  it('keeps every external action immutable and consistent repository-wide', () => {
     expect(checkGitHubActionVersions()).toEqual([]);
   });
 
@@ -42,6 +43,24 @@ describe('GitHub Action version guard', () => {
     });
   });
 
+  it('reads the human-reviewable release comment separately from the pin', () => {
+    expect(
+      parseVersionComment(
+        'uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
+      ),
+    ).toBe('v7.0.1');
+    expect(
+      parseVersionComment(
+        'uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 | keep this context',
+      ),
+    ).toBe('v7.0.1');
+    expect(
+      parseVersionComment(
+        'uses: PlasmoHQ/bpp@c15984c0a74f452851c605cab46f34d9fd6cb158',
+      ),
+    ).toBeNull();
+  });
+
   it('normalizes quoted and unquoted uses targets', () => {
     expect(parseUsesLine('uses: actions/checkout@v7')).toBe(
       'actions/checkout@v7',
@@ -52,5 +71,22 @@ describe('GitHub Action version guard', () => {
     expect(parseUsesLine("uses: 'actions/checkout@v7'")).toBe(
       'actions/checkout@v7',
     );
+  });
+
+  it('stores immutable pins and their release labels from real workflow files', () => {
+    const references = collectActionReferences();
+
+    expect(references.length).toBeGreaterThan(0);
+    expect(
+      references.every(({ version }) => /^[0-9a-f]{40}$/.test(version)),
+    ).toBe(true);
+    expect(
+      references.some(
+        ({ action, release }) =>
+          action === 'actions/checkout' &&
+          release !== undefined &&
+          /^v\d+\.\d+\.\d+$/.test(release),
+      ),
+    ).toBe(true);
   });
 });

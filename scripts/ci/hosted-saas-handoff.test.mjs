@@ -453,7 +453,10 @@ test('authenticates to the private GHCR server package before inspect or copy', 
     'utf8',
   );
 
-  assert.match(publicDeployCore, /uses: docker\/login-action@v4/);
+  assert.match(
+    publicDeployCore,
+    /uses: docker\/login-action@[0-9a-f]{40} # v4\.\d+\.\d+/,
+  );
   assert.match(publicDeployCore, /registry: ghcr\.io/);
   assert.match(publicDeployCore, /password: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
   assert.match(publicDeployCore, /private GHCR package/);

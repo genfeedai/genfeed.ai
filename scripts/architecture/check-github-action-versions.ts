@@ -1,5 +1,5 @@
 /**
- * Guard GitHub Action pins against version drift.
+ * Guard GitHub Action pins against mutable refs and version drift.
  *
  * Action versions cannot be centralised the way npm versions are. GitHub
  * resolves `uses:` before any expression context exists, so
@@ -9,22 +9,16 @@
  * lives in 70-odd places by design, and npm-check-updates never sees any of
  * them. `bun run deps:update` therefore also runs
  * `scripts/architecture/update-github-action-versions.ts` so package bumps and
- * Action pins stay on one command.
+ * Action pins stay on one command. The updater resolves the upstream release
+ * tag to its full commit SHA and retains the tag in a reviewable comment:
  *
- * What replaces a single source of truth is a single *rule*: an action pinned
- * by tag resolves to exactly one version across the repository. That needs no
- * maintained list, covers actions nobody has added yet, and catches the drift
- * that actually happens — a file the update PR missed. Two live examples when
- * this guard was written: `publish-packages.yml` sat on
- * `actions/upload-artifact@v4` while 27 other refs had moved to v7, and
- * `.github/actions/setup-bun-env/action.yml` sat on `actions/setup-node@v5`
- * after the workflows moved to v7, because composite actions are a second
- * surface that a workflows-only sweep walks straight past.
+ *   uses: actions/checkout@<40-character SHA> # v7.0.1
  *
- * Digest pins are exempt. `actions/checkout@93cb6ef… # v5` is a deliberate
- * supply-chain control and cannot be compared against a tag without resolving
- * the digest, so the two spellings are allowed to disagree. Bumping one is a
- * reviewed change, not a sweep.
+ * What replaces a single source of truth is a single *rule*: every external
+ * action uses a full immutable SHA, and one action resolves to one SHA across
+ * the repository. This covers actions nobody has added yet and catches drift
+ * across both workflows and composite actions. A digest without a release
+ * comment remains a deliberate manual pin; the updater does not move it.
  */
 
 import { readFileSync } from 'node:fs';
@@ -35,16 +29,20 @@ const WORKFLOW_GLOBS = [
   '.github/actions/**/action.{yml,yaml}',
 ];
 
-/** A 40-character hex ref is a commit digest, not a release tag. */
-const COMMIT_DIGEST = /^[0-9a-f]{40}$/;
+/** GitHub's immutable action policy requires a full 40-character commit SHA. */
+export const COMMIT_DIGEST = /^[0-9a-f]{40}$/;
 
 const USES_LINE = /^\s*(?:-\s*)?uses:\s*(?:"([^"]+)"|'([^']+)'|(\S+))/;
+const VERSION_COMMENT =
+  /\s+#\s+((?:v)?\d+(?:\.\d+){0,3}(?:-[\w.]+)?)(?:\s+\|\s+.*)?\s*$/i;
 
 export type ActionReference = {
   /** `owner/repo`, with any sub-action path stripped: sub-actions ship together. */
   action: string;
   file: string;
   line: number;
+  /** Human-reviewable upstream release tag, when the pin is updater-owned. */
+  release?: string;
   version: string;
 };
 
@@ -58,6 +56,10 @@ export function parseUsesLine(line: string): string | null {
   const usesMatch = line.match(USES_LINE);
 
   return usesMatch?.[1] ?? usesMatch?.[2] ?? usesMatch?.[3] ?? null;
+}
+
+export function parseVersionComment(line: string): string | null {
+  return line.match(VERSION_COMMENT)?.[1] ?? null;
 }
 
 /**
@@ -112,16 +114,23 @@ export function collectActionReferences(): ActionReference[] {
 
       const parsed = parseUsesTarget(usesTarget);
 
-      if (!parsed || COMMIT_DIGEST.test(parsed.version)) {
+      if (!parsed) {
         continue;
       }
 
-      references.push({
+      const release = parseVersionComment(line);
+      const reference: ActionReference = {
         action: parsed.action,
         file: filePath,
         line: index + 1,
         version: parsed.version,
-      });
+      };
+
+      if (release) {
+        reference.release = release;
+      }
+
+      references.push(reference);
     }
   }
 
@@ -147,32 +156,75 @@ export function checkGitHubActionVersions(): ActionVersionViolation[] {
   for (const [action, references] of [...referencesByAction].sort(
     ([left], [right]) => left.localeCompare(right),
   )) {
-    const versions = [...new Set(references.map(({ version }) => version))];
+    const mutableReferences = references.filter(
+      ({ version }) => !COMMIT_DIGEST.test(version),
+    );
 
-    if (versions.length < 2) {
-      continue;
+    if (mutableReferences.length > 0) {
+      violations.push({
+        action,
+        message: `${action} must use a full immutable commit SHA; mutable tags and branches are forbidden.`,
+        references: mutableReferences,
+      });
     }
 
-    // The most-used version is almost always the intended one, so reporting
-    // everything *except* it points straight at the files left behind rather
-    // than dumping all 70-odd refs of a widely used action.
-    const dominantVersion = [...versions].sort((left, right) => {
-      const countDifference =
-        references.filter(({ version }) => version === right).length -
-        references.filter(({ version }) => version === left).length;
+    const immutableReferences = references.filter(({ version }) =>
+      COMMIT_DIGEST.test(version),
+    );
+    const versions = [
+      ...new Set(immutableReferences.map(({ version }) => version)),
+    ];
 
-      return countDifference === 0
-        ? left.localeCompare(right)
-        : countDifference;
-    })[0];
+    if (versions.length > 1) {
+      // The most-used SHA is almost always the intended one, so reporting
+      // everything except it points straight at the files left behind.
+      const dominantVersion = [...versions].sort((left, right) => {
+        const countDifference =
+          immutableReferences.filter(({ version }) => version === right)
+            .length -
+          immutableReferences.filter(({ version }) => version === left).length;
 
-    violations.push({
-      action,
-      message: `${action} is tag-pinned to ${[...versions].sort().join(' and ')}; every tag pin for one action must match.`,
-      references: references.filter(
-        ({ version }) => version !== dominantVersion,
+        return countDifference === 0
+          ? left.localeCompare(right)
+          : countDifference;
+      })[0];
+
+      violations.push({
+        action,
+        message: `${action} is pinned to multiple SHAs; every reference for one action must match.`,
+        references: immutableReferences.filter(
+          ({ version }) => version !== dominantVersion,
+        ),
+      });
+    }
+
+    const releases = [
+      ...new Set(
+        references
+          .map(({ release }) => release)
+          .filter((release): release is string => release !== undefined),
       ),
-    });
+    ];
+
+    if (releases.length > 1) {
+      const dominantRelease = [...releases].sort((left, right) => {
+        const countDifference =
+          references.filter(({ release }) => release === right).length -
+          references.filter(({ release }) => release === left).length;
+
+        return countDifference === 0
+          ? left.localeCompare(right)
+          : countDifference;
+      })[0];
+
+      violations.push({
+        action,
+        message: `${action} has inconsistent release comments: ${[...releases].sort().join(' and ')}.`,
+        references: references.filter(
+          ({ release }) => release !== undefined && release !== dominantRelease,
+        ),
+      });
+    }
   }
 
   return violations;
@@ -197,12 +249,11 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  const referenceCount = collectActionReferences().length;
-  const actionCount = new Set(
-    collectActionReferences().map(({ action }) => action),
-  ).size;
+  const references = collectActionReferences();
+  const referenceCount = references.length;
+  const actionCount = new Set(references.map(({ action }) => action)).size;
 
   console.log(
-    `GitHub Action version guard passed: ${actionCount} actions consistent across ${referenceCount} tag pins.`,
+    `GitHub Action pin guard passed: ${actionCount} actions immutable and consistent across ${referenceCount} references.`,
   );
 }
