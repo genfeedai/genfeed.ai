@@ -48,13 +48,20 @@ export default function StudioRemixRunPanel({
   const isPaidMeta =
     run.draft.target.kind === 'paid' && run.draft.target.platform === 'meta';
   const hasCanonicalIdentity = 'avatarAssetId' in run.draft.identity;
-  const canPrepareMetaDraft =
+  const isMetaHandoffEligible =
     isPaidMeta &&
     run.phase === 'approved' &&
     Boolean(run.review?.approvedPostIds.length) &&
-    !run.paidDraft &&
+    !run.paidDraft;
+  const hasConnectedMetaSource =
     run.sourceSnapshot.selector.kind === 'connected_ad' &&
+    run.sourceSnapshot.selector.platform === 'meta';
+  const canPrepareMetaDraft =
+    isMetaHandoffEligible &&
+    hasConnectedMetaSource &&
     Boolean(onPreparePaidDraft);
+  const isMetaHandoffUnavailable =
+    isMetaHandoffEligible && !canPrepareMetaDraft;
   const hasApprovedOrganicDrafts =
     run.draft.target.kind === 'organic' &&
     run.phase === 'approved' &&
@@ -294,6 +301,12 @@ export default function StudioRemixRunPanel({
           size={ButtonSize.SM}
           variant={ButtonVariant.DEFAULT}
         />
+      ) : null}
+
+      {isMetaHandoffUnavailable ? (
+        <Alert type={AlertCategory.INFO}>
+          {translate('remixRun.metaHandoffUnavailable')}
+        </Alert>
       ) : null}
 
       {run.paidDraft ? (

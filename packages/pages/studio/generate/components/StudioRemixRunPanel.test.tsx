@@ -230,6 +230,52 @@ describe('StudioRemixRunPanel', () => {
     expect(onPreparePaidDraft).toHaveBeenCalledTimes(1);
   });
 
+  it('explains why an approved paid Meta run cannot hand off a non-Meta source', () => {
+    render(
+      <StudioRemixRunPanel
+        error={null}
+        isWorking={false}
+        onPreparePaidDraft={vi.fn()}
+        onReview={vi.fn()}
+        onVary={vi.fn()}
+        run={{
+          ...run,
+          draft: {
+            ...run.draft,
+            target: { kind: 'paid', platform: 'meta' },
+          },
+          phase: 'approved',
+          review: {
+            approvedPostIds: ['post-1'],
+            batchId: 'batch-1',
+            postIds: ['post-1'],
+            workflowExecutionId: 'workflow-execution-1',
+            workflowId: 'workflow-1',
+          },
+          sourceSnapshot: {
+            ...run.sourceSnapshot,
+            selector: {
+              adAccountId: 'tiktok-account-1',
+              adId: 'tiktok-ad-1',
+              credentialId: 'credential-1',
+              kind: 'connected_ad',
+              platform: 'tiktok',
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Prepare paused Meta draft' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Paused Meta handoff requires a connected Meta ad source and an available Meta Ads connection.',
+      ),
+    ).toBeVisible();
+  });
+
   it('links an approved organic run to its canonical Publish drafts', () => {
     render(
       <StudioRemixRunPanel
