@@ -253,6 +253,9 @@ describe('WorkflowExecutionsService', () => {
       organizationId: 'org-1',
       result: {},
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'manual',
+      userId: 'actor-user-1',
+      workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
       workflowId: 'workflow-1',
     });
 
@@ -264,7 +267,9 @@ describe('WorkflowExecutionsService', () => {
         organizationId: true,
         startedAt: true,
         trigger: true,
+        userId: true,
         workflowId: true,
+        workflow: { select: { label: true, userId: true } },
       },
       where: { id: 'execution-1' },
     });
@@ -297,6 +302,8 @@ describe('WorkflowExecutionsService', () => {
       result: {},
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
       trigger: 'scheduled',
+      userId: 'actor-user-1',
+      workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
       workflowId: 'workflow-1',
     });
     prisma.workflowExecution.update.mockResolvedValue({
