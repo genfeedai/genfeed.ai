@@ -544,17 +544,21 @@ export class BrandRemixRunsService {
     }
 
     const creditAmounts = new Map<string, number>();
+    const byokCredits = new Map<
+      string,
+      NonNullable<RemixCreditsRequest['creditsConfig']>
+    >();
     const successfulVariants = new Set<string>();
     const barrier = new GenerationReservationBarrier(variants.length);
     const creditBarrier = new GenerationReservationBarrier(
       variants.length,
       async () => {
-        const total = [...creditAmounts.values()].reduce(
-          (sum, amount) => sum + amount,
+        const total = [...creditAmounts.entries()].reduce(
+          (sum, [variantId, amount]) =>
+            sum + (byokCredits.has(variantId) ? 0 : amount),
           0,
         );
         if (
-          !avatarByokBypass &&
           total > 0 &&
           !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
             organizationId,
@@ -618,7 +622,7 @@ export class BrandRemixRunsService {
                   'The generated placeholder could not be bound to this remix revision.',
                 );
               }
-              activeConfig = await this.patchGeneratingVariant({
+              await this.patchGeneratingVariant({
                 organizationId,
                 patch: {
                   assetIds: [ingredientId],
@@ -633,6 +637,9 @@ export class BrandRemixRunsService {
               await barrier.arrive();
             },
             onCreditsPrepared: async () => {
+              if (variantRequest.creditsConfig?.isByokBypass === true) {
+                byokCredits.set(variant.id, variantRequest.creditsConfig);
+              }
               creditAmounts.set(
                 variant.id,
                 variantRequest.creditsConfig?.amount ?? 0,
@@ -681,6 +688,16 @@ export class BrandRemixRunsService {
         }
       }),
     );
+    const successfulByokCredits = [...successfulVariants]
+      .map((variantId) => byokCredits.get(variantId))
+      .find((creditsConfig) => creditsConfig !== undefined);
+    if (successfulByokCredits) {
+      (request as RemixCreditsRequest).creditsConfig = {
+        ...(request as RemixCreditsRequest).creditsConfig,
+        ...successfulByokCredits,
+        deferred: true,
+      };
+    }
     finalizeOutputCredits(
       request,
       [...successfulVariants].reduce(

@@ -1,4 +1,5 @@
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import { ModelProvider } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,18 +11,25 @@ describe('VideoGenerationCreditsService', () => {
   const modelsService = {
     findOne: vi.fn(),
   };
+  const byokService = {
+    isByokActiveForProvider: vi.fn(),
+    isByokBillingInGoodStanding: vi.fn(),
+  };
 
   let service: VideoGenerationCreditsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     modelsService.findOne.mockResolvedValue({ cost: 10 });
+    byokService.isByokActiveForProvider.mockResolvedValue(false);
+    byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
     service = new VideoGenerationCreditsService(
       creditsUtilsService as never,
       modelsService as never,
+      byokService as never,
     );
   });
 
@@ -85,5 +93,32 @@ describe('VideoGenerationCreditsService', () => {
         providerCostUsd: 0.24,
       },
     });
+  });
+
+  it('records resolved-provider BYOK usage without requiring platform credits', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      provider: ModelProvider.REPLICATE,
+    });
+    byokService.isByokActiveForProvider.mockResolvedValue(true);
+    const request = { creditsConfig: { deferred: true } };
+
+    await service.ensureDeferredCredits(
+      { duration: 5 } as never,
+      'kling/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(request.creditsConfig).toMatchObject({
+      amount: 10,
+      deferred: false,
+      isByokBypass: true,
+      modelKey: 'kling/model',
+      provider: 'replicate',
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 });

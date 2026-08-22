@@ -180,6 +180,10 @@ describe('VideoGenerationService', () => {
     const creditsService = new VideoGenerationCreditsService(
       creditsUtilsService as never,
       modelsService as never,
+      {
+        isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+        isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
+      } as never,
     );
     const executionService = new VideoGenerationExecutionService(
       activitiesService as never,

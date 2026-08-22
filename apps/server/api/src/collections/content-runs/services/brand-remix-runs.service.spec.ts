@@ -1736,6 +1736,67 @@ describe('BrandRemixRunsService', () => {
     },
   );
 
+  it.each(['image', 'video'] as const)(
+    'records resolved-provider BYOK usage for %s remixes without platform credits',
+    async (kind) => {
+      const created = await createPersistedRun({
+        draft: {
+          output: { aspectRatio: '1:1', count: 1, kind },
+        },
+      });
+      let stored = created;
+      contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+      contentRun.updateMany.mockImplementation(({ data }) => {
+        stored = makeRun(data.config as Record<string, unknown>);
+        stored.status = (data.status ?? stored.status) as ContentRunStatus;
+        return Promise.resolve({ count: 1 });
+      });
+      const generator =
+        kind === 'image'
+          ? imageGenerationService.generateImage
+          : videoGenerationService.generateVideo;
+      generator.mockImplementation(
+        async (_user, _dto, variantRequest, onCreated, _scope, onCredits) => {
+          const ingredientId = `${kind}-byok-credit-1`;
+          await onCreated?.(ingredientId);
+          variantRequest.creditsConfig = {
+            ...variantRequest.creditsConfig,
+            amount: 4,
+            deferred: false,
+            isByokBypass: true,
+            modelKey: 'fal-ai/byok-model',
+            provider: 'fal',
+          };
+          await onCredits?.();
+          return { data: { id: ingredientId, type: 'ingredient' } };
+        },
+      );
+      const creditRequest = {
+        ...request,
+        creditsConfig: {
+          amount: 0,
+          deferred: true,
+          description: 'Brand remix generation',
+        },
+      };
+
+      await service.start('org-1', 'run-1', user, creditRequest as never, {
+        expectedRevision: 1,
+      });
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(creditRequest.creditsConfig).toMatchObject({
+        amount: 4,
+        deferred: false,
+        isByokBypass: true,
+        modelKey: 'fal-ai/byok-model',
+        provider: 'fal',
+      });
+    },
+  );
+
   it('passes an operator-authored Avatar script verbatim after trimming', async () => {
     const exactScript = '  Here is the exact line our avatar should say.  ';
     const created = await createPersistedRun({

@@ -41,6 +41,7 @@ import { VideoMusicOrchestrationService } from '@api/collections/videos/services
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -233,6 +234,13 @@ describe('VideosController', () => {
           provide: BookmarksService,
           useValue: {
             addGeneratedIngredient: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ByokService,
+          useValue: {
+            isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+            isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
           },
         },
         {

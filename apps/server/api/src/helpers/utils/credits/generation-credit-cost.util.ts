@@ -1,4 +1,4 @@
-import { PricingType } from '@genfeedai/enums';
+import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import type { CreditsPricingMetadata } from '@genfeedai/interfaces';
 
 export const FALLBACK_GENERATION_CREDIT_COST = 5;
@@ -15,8 +15,10 @@ export type GenerationCreditModelPricing = {
 export type DeferredCreditsConfig = {
   amount?: number;
   deferred?: boolean;
+  isByokBypass?: boolean;
   modelKey?: string;
   pricingMetadata?: CreditsPricingMetadata;
+  provider?: ByokProvider;
 };
 
 export type DeferredCreditsRequest = {
