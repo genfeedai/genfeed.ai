@@ -154,6 +154,12 @@ async function routeTikTokTrend(page: Page): Promise<void> {
   });
 }
 
+async function openTikTokTrendFeed(page: Page): Promise<void> {
+  await page.goto(`${BRAND_BASE}/discover/tiktok`);
+  await page.getByRole('button', { name: 'Refresh' }).click();
+  await expect(page.getByRole('button', { name: 'Remix' })).toBeVisible();
+}
+
 async function routeRemixRun(
   page: Page,
   options: RemixFixtureOptions,
@@ -269,6 +275,7 @@ test.describe('Discover prefilled remix handoff', () => {
         sourceActionId: 'tiktok-reference-1',
         sourceWorkflowId: 'review-workflow-1',
         sourceWorkflowName: 'Brand Remix Review Handoff',
+        status: 'COMPLETED',
         variantId: 'variant-1',
         workflowExecutionId: 'review-workflow-execution-1',
       },
@@ -279,7 +286,7 @@ test.describe('Discover prefilled remix handoff', () => {
       postId: 'draft-post-1',
     });
 
-    await authenticatedPage.goto(`${BRAND_BASE}/discover/tiktok`);
+    await openTikTokTrendFeed(authenticatedPage);
     await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
 
     await expect(
@@ -454,7 +461,7 @@ test.describe('Discover prefilled remix handoff', () => {
       },
     );
 
-    await authenticatedPage.goto(`${BRAND_BASE}/discover/tiktok`);
+    await openTikTokTrendFeed(authenticatedPage);
     await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
 
     await expect(
@@ -674,6 +681,7 @@ test.describe('Discover prefilled remix handoff', () => {
         sourceActionId: 'meta-ad-1',
         sourceWorkflowId: 'review-workflow-1',
         sourceWorkflowName: 'Brand Remix Review Handoff',
+        status: 'COMPLETED',
         variantId: 'variant-1',
         workflowExecutionId: 'review-workflow-execution-1',
       },
