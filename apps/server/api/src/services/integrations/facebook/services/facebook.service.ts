@@ -151,7 +151,9 @@ export class FacebookService {
     }
   }
 
-  public async getGrantedPermissions(accessToken: string): Promise<string[]> {
+  public async getGrantedPermissions(
+    accessToken: string,
+  ): Promise<string[] | undefined> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -163,7 +165,8 @@ export class FacebookService {
       );
       const permissions = Array.isArray(response.data?.data)
         ? (response.data.data as FacebookPermission[])
-        : [];
+        : undefined;
+      if (!permissions?.length) return undefined;
       return [
         ...new Set(
           permissions.flatMap((permission) =>

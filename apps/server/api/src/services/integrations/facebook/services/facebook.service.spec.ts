@@ -190,6 +190,20 @@ describe('FacebookService', () => {
         { params: { access_token: 'valid-token' } },
       );
     });
+
+    it('treats an empty or malformed permission payload as not captured', async () => {
+      const { of } = await import('rxjs');
+      mockHttpService.get
+        .mockReturnValueOnce(of({ data: {} }))
+        .mockReturnValueOnce(of({ data: { data: [] } }));
+
+      await expect(
+        service.getGrantedPermissions('valid-token'),
+      ).resolves.toBeUndefined();
+      await expect(
+        service.getGrantedPermissions('valid-token'),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe('refreshToken', () => {
