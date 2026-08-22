@@ -907,6 +907,16 @@ export class BrandRemixRunsService {
       });
     }
     if (config.paidDraft) {
+      if (
+        config.paidDraft.credentialId !== input.destination.credentialId ||
+        config.paidDraft.adAccountId !== input.destination.adAccountId ||
+        (input.variantId !== undefined &&
+          config.paidDraft.variantId !== input.variantId)
+      ) {
+        throw new ConflictException(
+          'A paused Meta draft already exists for another destination or variant.',
+        );
+      }
       return this.project(run, brandContext, {
         ...config,
         paidDraft: { ...config.paidDraft, replayed: true },

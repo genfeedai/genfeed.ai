@@ -1653,6 +1653,17 @@ describe('BrandRemixRunsService', () => {
       phase: 'paid_draft_ready',
     });
     expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-other',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('already exists for another destination');
+    expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a Meta draft blocked before provider calls when ads_management is missing', async () => {
