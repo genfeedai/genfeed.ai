@@ -117,11 +117,12 @@ export function buildMusicPayload(
 
 export function buildAvatarPayload(
   promptData: PromptTextareaSchema & { isValid: boolean },
+  photoUrl?: string,
 ): AvatarGenerationPayload {
   const effectiveText = promptData.text?.trim() || '';
 
   return {
-    avatarId: promptData.avatarId,
+    ...(photoUrl ? { photoUrl } : { avatarId: promptData.avatarId }),
     speech: promptData.speech?.trim() || '',
     text: effectiveText,
     voiceId: promptData.voiceId,

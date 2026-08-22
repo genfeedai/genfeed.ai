@@ -16,6 +16,7 @@ import {
   buildImagePayload,
   buildVideoPayload,
 } from '@pages/studio/generate/utils/generation-payloads';
+import { resolveJsonApiIngredientId } from '@pages/studio/generate/utils/studio-generate-asset';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -140,7 +141,9 @@ export function useFastlaneGeneration({
 
   const subscribeToAsset = useCallback(
     (idea: FastlaneIdea, pendingId: string) => {
-      const url = `/${idea.format}s/${pendingId}`;
+      const resourceSegment =
+        idea.format === 'avatar' ? 'videos' : `${idea.format}s`;
+      const url = `/${resourceSegment}/${pendingId}`;
       let unsubscribe: (() => void) | null = null;
 
       const cleanupSubscription = () => {
@@ -165,7 +168,7 @@ export function useFastlaneGeneration({
             let ingredientUrl: string | undefined;
             let thumbnailUrl: string | undefined;
 
-            if (idea.format === 'video') {
+            if (idea.format === 'video' || idea.format === 'avatar') {
               const service = await getVideosService();
               const ingredient = await service.findOne(resolvedId);
               ingredientUrl = (ingredient as { url?: string }).url;
@@ -173,13 +176,6 @@ export function useFastlaneGeneration({
                 .thumbnailUrl;
             } else if (idea.format === 'image') {
               const service = await getImagesService();
-              const ingredient = await service.findOne(resolvedId);
-              ingredientUrl = (ingredient as { url?: string }).url;
-              thumbnailUrl = (ingredient as { thumbnailUrl?: string })
-                .thumbnailUrl;
-            } else {
-              // avatar — use IngredientsService
-              const service = await getIngredientsService();
               const ingredient = await service.findOne(resolvedId);
               ingredientUrl = (ingredient as { url?: string }).url;
               thumbnailUrl = (ingredient as { thumbnailUrl?: string })
@@ -232,7 +228,6 @@ export function useFastlaneGeneration({
     [
       getImagesService,
       getVideosService,
-      getIngredientsService,
       notificationsService,
       subscribe,
       updateAsset,
@@ -277,8 +272,21 @@ export function useFastlaneGeneration({
           );
         } else {
           // avatar
+          if (!avatarIngredientId) {
+            throw new Error('A default avatar portrait is required');
+          }
+
+          const ingredientsService = await getIngredientsService();
+          const [portrait] = await ingredientsService.findByIds([
+            avatarIngredientId,
+          ]);
+          const photoUrl = (portrait as { url?: string } | undefined)?.url;
+          if (!photoUrl) {
+            throw new Error('Default avatar portrait has no public photo URL');
+          }
+
           const service = await getHeyGenService();
-          const payload = buildAvatarPayload(promptData);
+          const payload = buildAvatarPayload(promptData, photoUrl);
           response = await service.generate(payload);
         }
       } catch (err) {
@@ -296,7 +304,10 @@ export function useFastlaneGeneration({
 
       let pendingIds: string[];
       try {
-        pendingIds = resolvePendingIds(response);
+        pendingIds =
+          idea.format === 'avatar'
+            ? [resolveJsonApiIngredientId(response)]
+            : resolvePendingIds(response);
       } catch {
         updateAsset(idea.id, {
           status: 'failed',
@@ -318,6 +329,7 @@ export function useFastlaneGeneration({
       getImagesService,
       getVideosService,
       getHeyGenService,
+      getIngredientsService,
       updateAsset,
       subscribeToAsset,
     ],

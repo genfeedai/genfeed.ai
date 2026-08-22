@@ -51,11 +51,11 @@ vi.mock('@services/ingredients/heygen.service', () => ({
   },
 }));
 
-const mockIngredientsFindOne = vi.fn();
+const mockIngredientsFindByIds = vi.fn();
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: {
     getInstance: () => ({
-      findOne: mockIngredientsFindOne,
+      findByIds: mockIngredientsFindByIds,
     }),
   },
 }));
@@ -78,16 +78,20 @@ vi.mock('@services/core/socket-manager.service', () => ({
   ) => ({ onSuccess, onFailed }),
 }));
 
+const mockBuildAvatarPayload = vi.fn(
+  (_promptData: unknown, photoUrl?: string) => ({
+    photoUrl,
+    text: 'test',
+    speech: '',
+    voiceId: 'voice-1',
+  }),
+);
+
 vi.mock('@pages/studio/generate/utils/generation-payloads', () => ({
   buildBaseGenerationPayload: vi.fn(() => ({})),
   buildImagePayload: vi.fn(() => ({})),
   buildVideoPayload: vi.fn(() => ({})),
-  buildAvatarPayload: vi.fn(() => ({
-    text: 'test',
-    speech: '',
-    avatarId: undefined,
-    voiceId: undefined,
-  })),
+  buildAvatarPayload: mockBuildAvatarPayload,
 }));
 
 vi.mock('@utils/network/generation.util', () => ({
@@ -137,7 +141,9 @@ describe('useFastlaneGeneration', () => {
     mockSubscribe.mockReturnValue(mockUnsubscribe);
     mockImagesPost.mockResolvedValue({ id: 'img-pending-1' });
     mockVideosPost.mockResolvedValue({ id: 'vid-pending-1' });
-    mockHeyGenGenerate.mockResolvedValue({ id: 'avatar-pending-1' });
+    mockHeyGenGenerate.mockResolvedValue({
+      data: { id: 'avatar-pending-1', type: 'ingredients' },
+    });
     mockImagesFindOne.mockResolvedValue({
       id: 'img-1',
       url: 'https://img.url',
@@ -148,10 +154,12 @@ describe('useFastlaneGeneration', () => {
       url: 'https://vid.url',
       thumbnailUrl: 'https://thumb.url',
     });
-    mockIngredientsFindOne.mockResolvedValue({
-      id: 'avatar-1',
-      url: 'https://avatar.url',
-    });
+    mockIngredientsFindByIds.mockResolvedValue([
+      {
+        id: 'avatar-1',
+        url: 'https://cdn.genfeed.test/avatar-1.png',
+      },
+    ]);
   });
 
   it('dispatches to the correct service for each format', async () => {
@@ -170,6 +178,77 @@ describe('useFastlaneGeneration', () => {
     expect(mockImagesPost).toHaveBeenCalledTimes(1);
     expect(mockVideosPost).toHaveBeenCalledTimes(1);
     expect(mockHeyGenGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves a Genfeed portrait and sends its photo URL to HeyGen', async () => {
+    const { result } = renderHook(() => useFastlaneGeneration(DEFAULT_PARAMS));
+
+    await act(async () => {
+      await result.current.startGeneration([makeIdea('avatar')]);
+    });
+
+    expect(mockIngredientsFindByIds).toHaveBeenCalledWith(['avatar-1']);
+    expect(mockBuildAvatarPayload).toHaveBeenCalledWith(
+      expect.anything(),
+      'https://cdn.genfeed.test/avatar-1.png',
+    );
+    expect(mockHeyGenGenerate).toHaveBeenCalledWith({
+      photoUrl: 'https://cdn.genfeed.test/avatar-1.png',
+      speech: '',
+      text: 'test',
+      voiceId: 'voice-1',
+    });
+    expect(mockHeyGenGenerate.mock.calls[0]?.[0]).not.toHaveProperty(
+      'avatarId',
+    );
+  });
+
+  it('reads the avatar JSON:API id and resolves the clip through videos', async () => {
+    let capturedHandler: { onSuccess: (r: unknown) => void } | undefined;
+    mockSubscribe.mockImplementation(
+      (_url: string, handler: { onSuccess: (r: unknown) => void }) => {
+        capturedHandler = handler;
+        return mockUnsubscribe;
+      },
+    );
+
+    const { result } = renderHook(() => useFastlaneGeneration(DEFAULT_PARAMS));
+
+    await act(async () => {
+      await result.current.startGeneration([makeIdea('avatar')]);
+    });
+
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      '/videos/avatar-pending-1',
+      expect.anything(),
+    );
+
+    await act(async () => {
+      await capturedHandler?.onSuccess({ id: 'avatar-pending-1' });
+    });
+
+    expect(mockVideosFindOne).toHaveBeenCalledWith('avatar-pending-1');
+    expect(
+      result.current.assets.find((asset) => asset.idea.format === 'avatar'),
+    ).toMatchObject({
+      ingredientId: 'avatar-pending-1',
+      status: 'ready',
+    });
+  });
+
+  it('marks an avatar failed with the provider rejection reason', async () => {
+    mockHeyGenGenerate.mockRejectedValue(new Error('Portrait rejected'));
+
+    const { result } = renderHook(() => useFastlaneGeneration(DEFAULT_PARAMS));
+
+    await act(async () => {
+      await result.current.startGeneration([makeIdea('avatar')]);
+    });
+
+    expect(result.current.assets[0]).toMatchObject({
+      errorMessage: 'Portrait rejected',
+      status: 'failed',
+    });
   });
 
   it('marks asset as failed when resolvePendingIds throws (no id in response)', async () => {

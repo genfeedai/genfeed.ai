@@ -199,6 +199,18 @@ describe('buildAvatarPayload', () => {
   it('defaults speech to an empty string', () => {
     expect(buildAvatarPayload(makePromptData()).speech).toBe('');
   });
+
+  it('uses a Genfeed portrait URL instead of its internal ingredient id', () => {
+    const payload = buildAvatarPayload(
+      makePromptData({ avatarId: 'ingredient-1' }),
+      'https://cdn.genfeed.test/portrait.png',
+    );
+
+    expect(payload).toMatchObject({
+      photoUrl: 'https://cdn.genfeed.test/portrait.png',
+    });
+    expect(payload).not.toHaveProperty('avatarId');
+  });
 });
 
 describe('buildRepromptData', () => {
