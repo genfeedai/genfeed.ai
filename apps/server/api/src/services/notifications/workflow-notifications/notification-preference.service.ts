@@ -8,21 +8,11 @@ import type {
   NotificationChannel,
   NotificationTopic,
 } from '@genfeedai/interfaces';
+import type { NotificationPreference } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
-type NotificationPreferenceRecord = {
-  channel: string;
-  createdAt: Date;
-  id: string;
-  isDeleted: boolean;
-  isEnabled: boolean;
-  topic: string;
-  updatedAt: Date;
-  userId: string;
-};
-
 function toNotificationPreference(
-  preference: NotificationPreferenceRecord,
+  preference: NotificationPreference,
 ): INotificationPreference {
   return {
     channel: preference.channel as NotificationChannel,
