@@ -195,7 +195,7 @@ export default function BrandSettingsSkillsPage() {
   const refreshCatalog = useCallback(async () => {
     const requestId = ++catalogRequestIdRef.current;
 
-    if (!isReady || !isScopeMatch) {
+    if (!brandId || !isReady || !isScopeMatch) {
       return;
     }
 
@@ -222,7 +222,7 @@ export default function BrandSettingsSkillsPage() {
         message: translate('errors.loadFailed'),
       });
     }
-  }, [getSkillsService, isReady, isScopeMatch, translate]);
+  }, [brandId, getSkillsService, isReady, isScopeMatch, translate]);
 
   useEffect(() => {
     void refreshCatalog();

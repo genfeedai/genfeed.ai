@@ -484,7 +484,7 @@ describe('VideoGenerationService', () => {
     const { service, klingAIService, metadataService } = createService();
     klingAIService.queueGenerateTextToVideo.mockImplementation(async () => {
       expect(metadataService.patch).toHaveBeenCalledWith(
-        'metadata-1',
+        'meta-0',
         expect.objectContaining({ externalProvider: 'klingai' }),
       );
       return 'kling-job';

@@ -5,7 +5,10 @@ import { BrandRemixRunsService } from '@api/collections/content-runs/services/br
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ContentRunStatus } from '@genfeedai/enums';
 import { PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -62,6 +65,15 @@ describe('ContentRunsController', () => {
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(SubscriptionGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(CreditsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideInterceptor(CreditsInterceptor)
+      .useValue({
+        intercept: (_context: unknown, next: { handle: () => unknown }) =>
+          next.handle(),
+      })
       .compile();
 
     controller = module.get(ContentRunsController);

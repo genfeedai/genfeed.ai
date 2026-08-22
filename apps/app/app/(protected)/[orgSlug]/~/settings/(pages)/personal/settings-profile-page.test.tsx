@@ -173,7 +173,9 @@ describe('SettingsProfilePage', () => {
     mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: true });
     render(<SettingsProfilePage />);
 
-    const toggle = screen.getByRole('switch', { name: 'Workflow Emails' });
+    const toggle = await screen.findByRole('switch', {
+      name: 'Workflow Emails',
+    });
     await waitFor(() => expect(toggle).toBeChecked());
     await user.click(toggle);
 
@@ -210,7 +212,9 @@ describe('SettingsProfilePage', () => {
     );
     render(<SettingsProfilePage />);
 
-    const toggle = screen.getByRole('switch', { name: 'Workflow Emails' });
+    const toggle = await screen.findByRole('switch', {
+      name: 'Workflow Emails',
+    });
     expect(
       await screen.findByText('Workflow email preference could not be loaded.'),
     ).toBeInTheDocument();

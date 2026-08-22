@@ -173,7 +173,7 @@ describe('BrandSettingsSkillsPage', () => {
     expect(skillButtons.length).toBeGreaterThan(0);
     expect(screen.getByText(/built in/i)).toBeInTheDocument();
     expect(
-      screen.getByRole('switch', { name: /enable youtube script setup/i }),
+      screen.getByRole('switch', { name: 'Enable YouTube Script Setup' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('group', { name: /filter skills by source/i }),
