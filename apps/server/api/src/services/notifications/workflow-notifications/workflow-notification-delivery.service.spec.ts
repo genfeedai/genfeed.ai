@@ -203,6 +203,57 @@ describe('WorkflowNotificationDeliveryService', () => {
     });
   });
 
+  it('does not resend a stale claim after the retry ceiling', async () => {
+    const prisma = {
+      notificationDelivery: {
+        findUnique: vi.fn().mockResolvedValue({
+          attemptCount: 6,
+          event: {
+            payload: {
+              error: 'provider unavailable',
+              executionId: 'execution-1',
+              status: 'failed',
+              trigger: 'agent',
+              version: 1,
+              workflowId: 'workflow-1',
+              workflowLabel: 'Daily Posts',
+            },
+          },
+          idempotencyKey: 'workflow-status/execution-1/failed',
+          organizationId: 'org-1',
+          user: { email: 'owner@example.com', isDeleted: false },
+          userId: 'owner-1',
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      notificationPreference: {
+        findFirst: vi.fn().mockResolvedValue({ isEnabled: true }),
+      },
+    };
+    const notifications = { deliverEmail: vi.fn() };
+    const service = new WorkflowNotificationDeliveryService(
+      prisma as never,
+      notifications as never,
+      { enqueue: vi.fn() } as never,
+      { warn: vi.fn() } as never,
+    );
+
+    await service.deliver('delivery-1');
+
+    expect(notifications.deliverEmail).not.toHaveBeenCalled();
+    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({
+        lastError: 'Retry limit exceeded after interrupted delivery',
+        status: 'failed',
+      }),
+      where: {
+        id: 'delivery-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
   it('continues a recovery sweep when one queue publish fails', async () => {
     const prisma = {
       notificationDelivery: {

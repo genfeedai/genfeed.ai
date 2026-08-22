@@ -82,6 +82,15 @@ export class WorkflowNotificationDeliveryService {
       return;
     }
 
+    if (delivery.attemptCount > MAX_ATTEMPTS) {
+      await this.failPermanently(
+        deliveryId,
+        delivery.organizationId,
+        'Retry limit exceeded after interrupted delivery',
+      );
+      return;
+    }
+
     // tenant-scope-ignore: preferences are globally user-owned; delivery.userId comes from the organization-scoped claimed delivery above
     const preference = await this.prisma.notificationPreference.findFirst({
       select: { isEnabled: true },
