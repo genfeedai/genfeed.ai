@@ -542,6 +542,23 @@ test('an incomplete published latest release can be rebuilt from current master 
     /gh release edit "\$\{RELEASE_TAG\}" --draft=false --latest/,
     'the same version becomes public only after assets, SaaS, npm, and promotion are green',
   );
+  assert.match(
+    publish,
+    /resolve_published_tag_sha/,
+    'publishing must resolve the recreated Git tag instead of trusting release target metadata',
+  );
+  assert.match(publish, /git\/ref\/tags\/\$\{RELEASE_TAG\}/);
+  assert.match(publish, /git\/tags\/\$\{object_sha\}/);
+  assert.match(
+    publish,
+    /published_tag_sha.*RELEASE_SHA/,
+    'publishing must prove the recreated tag resolves to the pinned release SHA',
+  );
+  assert.match(
+    publish,
+    /rollback_published_release/,
+    'a failed post-publish integrity check must return the release to a repairable draft',
+  );
 });
 
 test('recovery skips proved-green gates and reuses the exact immutable image', () => {
