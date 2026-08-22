@@ -1604,6 +1604,94 @@ describe('BrandRemixRunsService', () => {
     expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a Meta draft blocked before provider calls when ads_management is missing', async () => {
+    const created = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockResolvedValue(stored);
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      contentRun.findFirst.mockResolvedValue(stored);
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_read'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(result).toMatchObject({
+      phase: 'approved',
+      readiness: {
+        issues: [
+          expect.objectContaining({
+            code: 'missing_ads_management',
+            field: 'target',
+            severity: 'blocked',
+          }),
+        ],
+        state: 'blocked',
+      },
+    });
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+  });
+
   async function createPersistedRun(
     overrides: {
       draft?: Record<string, unknown>;
