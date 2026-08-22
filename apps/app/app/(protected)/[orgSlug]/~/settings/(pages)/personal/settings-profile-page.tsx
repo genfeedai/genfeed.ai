@@ -68,24 +68,36 @@ export default function SettingsProfilePage() {
     useState(false);
   const [workflowPreferenceLoadState, setWorkflowPreferenceLoadState] =
     useState<WorkflowPreferenceLoadState>('loading');
-  const loadWorkflowPreference = useCallback(async () => {
-    setWorkflowPreferenceLoadState('loading');
+  const [workflowPreferenceLoadRequest, setWorkflowPreferenceLoadRequest] =
+    useState(0);
+  const loadWorkflowPreference = useCallback(
+    async (signal: AbortSignal) => {
+      setWorkflowPreferenceLoadState('loading');
 
-    try {
-      const service = await getUsersService();
-      const preference =
-        await service.findWorkflowEmailNotificationPreference();
-      setIsWorkflowNotificationsEmail(preference.isEnabled);
-      setWorkflowPreferenceLoadState('ready');
-    } catch (error) {
-      logger.error('Failed to load workflow email preference', error);
-      setWorkflowPreferenceLoadState('error');
-    }
-  }, [getUsersService]);
+      try {
+        const service = await getUsersService();
+        const preference =
+          await service.findWorkflowEmailNotificationPreference(signal);
+        signal.throwIfAborted();
+        setIsWorkflowNotificationsEmail(preference.isEnabled);
+        setWorkflowPreferenceLoadState('ready');
+      } catch (error) {
+        if (signal.aborted) {
+          return;
+        }
+        logger.error('Failed to load workflow email preference', error);
+        setWorkflowPreferenceLoadState('error');
+      }
+    },
+    [getUsersService],
+  );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: workflowPreferenceLoadRequest intentionally re-runs the abortable load after a manual retry
   useEffect(() => {
-    void loadWorkflowPreference();
-  }, [loadWorkflowPreference]);
+    const controller = new AbortController();
+    void loadWorkflowPreference(controller.signal);
+    return () => controller.abort();
+  }, [loadWorkflowPreference, workflowPreferenceLoadRequest]);
 
   const patchSettings = useCallback(
     async (patch: ExtendedSettingPatch) => {
@@ -296,7 +308,7 @@ export default function SettingsProfilePage() {
                 <Button
                   label="Retry"
                   onClick={() => {
-                    void loadWorkflowPreference();
+                    setWorkflowPreferenceLoadRequest((request) => request + 1);
                   }}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}

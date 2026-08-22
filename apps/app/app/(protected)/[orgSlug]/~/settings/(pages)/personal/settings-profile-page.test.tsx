@@ -177,6 +177,22 @@ describe('SettingsProfilePage', () => {
     );
   });
 
+  it('aborts the workflow preference load when the page unmounts', async () => {
+    const { unmount } = render(<SettingsProfilePage />);
+
+    await waitFor(() => {
+      expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledWith(
+        expect.any(AbortSignal),
+      );
+    });
+    const signal = mocks.findWorkflowEmailPreference.mock.calls[0]?.[0];
+    expect(signal?.aborted).toBe(false);
+
+    unmount();
+
+    expect(signal?.aborted).toBe(true);
+  });
+
   it('keeps an unknown workflow preference disabled and supports retry', async () => {
     const user = userEvent.setup();
     mocks.findWorkflowEmailPreference.mockRejectedValueOnce(

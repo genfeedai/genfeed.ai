@@ -103,10 +103,13 @@ export class UsersService extends BaseService<User> {
       .then((res) => new Setting(this.extractResource<Partial<ISetting>>(res)));
   }
 
-  public async findWorkflowEmailNotificationPreference(): Promise<INotificationPreference> {
+  public async findWorkflowEmailNotificationPreference(
+    signal?: AbortSignal,
+  ): Promise<INotificationPreference> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         'me/notification-preferences/workflow-status/email',
+        { signal },
       )
       .then((res) => this.extractResource<INotificationPreference>(res.data));
   }
