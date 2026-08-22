@@ -100,7 +100,7 @@ export class CronFalModelWatcherService {
         },
         where: { isDeleted: false },
       });
-      const existingFalModels = new Map(
+      const existingFalModels = new Map<string, FalSyncModelRecord>(
         registryRows
           .filter((row) => row.provider === ModelProvider.FAL)
           .map((row) => [row.endpoint || row.key, row] as const),
@@ -178,7 +178,7 @@ export class CronFalModelWatcherService {
           }
 
           const syncResult = await this.falContractSyncService.synchronizeModel(
-            registryModel as FalSyncModelRecord,
+            registryModel,
             model,
             pricingByEndpoint.get(model.endpoint_id) ?? [],
             summary.timestamp,

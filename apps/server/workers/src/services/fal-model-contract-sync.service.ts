@@ -8,12 +8,12 @@ import {
   type FalEndpointSchemas,
 } from '@genfeedai/server/services/integrations/fal/services/fal-contract';
 import { Injectable } from '@nestjs/common';
-import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 import {
   mapFalPricing,
   type NormalizedFalPrice,
   normalizeFalPrice,
-} from './fal-pricing';
+} from '@workers/crons/fal-model-watcher/fal-pricing';
+import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 
 export interface FalSyncModelRecord {
   endpoint: string;
