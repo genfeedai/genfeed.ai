@@ -163,9 +163,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
 
   it('cancels the batch when the agent tool credit reserve fails (#2696)', () => {
     const source = readRepo(
-      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service.ts',
+      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-batch-generation.service.ts',
     );
-    expect(source).toContain('chargeBatchCredits');
+    expect(source).toContain('reserveCreditsOrCancel');
     expect(source).toContain('cancelBatch');
     expect(source).toContain(
       'failed to cancel batch after credit reserve failure',
@@ -246,7 +246,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const types = readRepo('packages/harness/src/types.ts');
     const mediaPrompt = readRepo('packages/harness/src/media-prompt.ts');
     const mediaHandler = readRepo(
-      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service.ts',
+      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-asset-generation.service.ts',
     );
     const ads = readRepo(
       'apps/server/api/src/endpoints/ads-research/ads-research.service.ts',

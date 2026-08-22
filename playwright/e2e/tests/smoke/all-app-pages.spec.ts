@@ -144,10 +144,14 @@ const protectedRouteBuckets: RouteBucket[] = [
   routeBucket('protected automate', protectedRoutes, (route) =>
     route.startsWith('/test-org/brand-1/automate'),
   ),
-  routeBucket('protected content operations', protectedRoutes, (route) =>
-    /^\/test-org\/brand-1\/(agent|discover|messages|overview|platforms|publish|studio|tasks|workflows|workspace)(\/|$)/.test(
-      route,
-    ),
+  routeBucket(
+    'protected content operations',
+    protectedRoutes,
+    (route) =>
+      route === '/test-org/brand-1' ||
+      /^\/test-org\/brand-1\/(agent|discover|messages|overview|platforms|publish|studio|tasks|workflows|workspace)(\/|$)/.test(
+        route,
+      ),
   ),
   routeBucket('protected brand settings', protectedRoutes, (route) =>
     route.startsWith('/test-org/brand-1/settings'),
