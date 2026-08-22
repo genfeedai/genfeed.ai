@@ -2398,6 +2398,105 @@ describe('BrandRemixRunsService', () => {
     expect(contentRun.updateMany).not.toHaveBeenCalled();
   });
 
+  it('recovers a successful Meta result after a concurrent config write wins the first result CAS', async () => {
+    const created = await createApprovedMetaRun();
+    created.status = ContentRunStatus.COMPLETED;
+    let stored = created;
+    let interruptedResultWrite = false;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data, where }) => {
+      const nextConfig = data.config as Record<string, unknown>;
+      if ('paidDraft' in nextConfig && !interruptedResultWrite) {
+        interruptedResultWrite = true;
+        stored = makeRun({
+          ...(stored.config as Record<string, unknown>),
+          readiness: {
+            issues: [
+              {
+                code: 'organization_defaults',
+                field: 'intent',
+                message: 'Brand-specific context is incomplete.',
+                severity: 'degraded',
+              },
+            ],
+            state: 'degraded',
+          },
+        });
+        stored.status = ContentRunStatus.RUNNING;
+        return Promise.resolve({ count: 0 });
+      }
+      if (
+        JSON.stringify(where.config.equals) !== JSON.stringify(stored.config)
+      ) {
+        return Promise.resolve({ count: 0 });
+      }
+      stored = makeRun(nextConfig);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+    pausedMetaCampaignDraftService.prepare.mockResolvedValue({
+      adAccountId: 'act-1',
+      adId: 'ad-1',
+      adSetId: 'ad-set-1',
+      campaignId: 'campaign-1',
+      credentialId: 'credential-1',
+      ingredientId: 'image-1',
+      postId: 'post-1',
+      recipeRevision: 1,
+      recipeVersion: 1,
+      replayed: false,
+      status: 'PAUSED',
+      variantId: 'variant-1',
+      workflowExecutionId: 'meta-workflow-execution-1',
+      workflowId: 'meta-workflow-1',
+    });
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(interruptedResultWrite).toBe(true);
+    expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      paidDraft: { adId: 'ad-1', status: 'PAUSED' },
+      phase: 'paid_draft_ready',
+      readiness: { state: 'degraded' },
+    });
+    expect(stored.config).toMatchObject({
+      paidDraft: { adId: 'ad-1', status: 'PAUSED' },
+      phase: 'paid_draft_ready',
+      readiness: { state: 'degraded' },
+    });
+    expect(
+      (stored.config as Record<string, unknown>).paidDraftOperation,
+    ).toBeUndefined();
+  });
+
   async function createApprovedMetaRun() {
     return createPersistedRun({
       draft: { target: { kind: 'paid', platform: 'meta' } },

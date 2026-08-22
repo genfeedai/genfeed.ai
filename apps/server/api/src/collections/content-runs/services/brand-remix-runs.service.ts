@@ -1134,12 +1134,52 @@ export class BrandRemixRunsService {
       runId,
       status: ContentRunStatus.COMPLETED,
     });
-    if (!updated) {
-      throw new ConflictException(
-        'The Meta draft result changed concurrently.',
-      );
+    if (updated) {
+      return this.project(updated, brandContext, nextConfig);
     }
-    return this.project(updated, brandContext, nextConfig);
+
+    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+      const latest = await this.requireRun(organizationId, runId);
+      const latestConfig = this.parseConfig(latest.config, runId);
+      if (latestConfig.paidDraft) {
+        if (
+          latestConfig.paidDraft.credentialId === paidDraft.credentialId &&
+          latestConfig.paidDraft.adAccountId === paidDraft.adAccountId &&
+          latestConfig.paidDraft.variantId === paidDraft.variantId
+        ) {
+          return this.project(latest, brandContext, latestConfig);
+        }
+        break;
+      }
+      const latestOperation = latestConfig.paidDraftOperation;
+      if (
+        !latestOperation ||
+        latestOperation.id !== claimedConfig.paidDraftOperation?.id ||
+        latestOperation.credentialId !== paidDraft.credentialId ||
+        latestOperation.adAccountId !== paidDraft.adAccountId ||
+        latestOperation.variantId !== paidDraft.variantId
+      ) {
+        break;
+      }
+      const recoveredConfig = brandRemixRunConfigSchema.parse({
+        ...latestConfig,
+        paidDraft,
+        paidDraftOperation: undefined,
+        phase: 'paid_draft_ready',
+      });
+      const recovered = await this.compareAndSwapExactConfig({
+        expectedConfig: latestConfig,
+        nextConfig: recoveredConfig,
+        organizationId,
+        runId,
+        status: ContentRunStatus.COMPLETED,
+      });
+      if (recovered) {
+        return this.project(recovered, brandContext, recoveredConfig);
+      }
+    }
+
+    throw new ConflictException('The Meta draft result changed concurrently.');
   }
 
   private async resolveBrandContext(
