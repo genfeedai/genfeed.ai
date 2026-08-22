@@ -1009,10 +1009,16 @@ export class BrandRemixRunsService {
       }
       config = readyConfig;
     }
+    const requestedVariant = config.execution?.variants.find(
+      (variant) => variant.id === input.variantId,
+    );
+    if (input.variantId !== undefined && !requestedVariant) {
+      throw new ConflictException(
+        'The requested remix variant does not exist on this run.',
+      );
+    }
     const selectedVariant =
-      config.execution?.variants.find(
-        (variant) => variant.id === input.variantId,
-      ) ??
+      requestedVariant ??
       config.execution?.variants.find((variant) => variant.status === 'ready');
     if (selectedVariant?.status !== 'ready') {
       throw new ConflictException(

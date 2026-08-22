@@ -2276,6 +2276,41 @@ describe('BrandRemixRunsService', () => {
     expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
   });
 
+  it('rejects an explicit unknown paid-draft variant instead of falling back', async () => {
+    const created = await createApprovedMetaRun();
+    created.status = ContentRunStatus.COMPLETED;
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-missing',
+      }),
+    ).rejects.toThrow('does not exist');
+
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+    expect(contentRun.updateMany).not.toHaveBeenCalled();
+  });
+
   async function createApprovedMetaRun() {
     return createPersistedRun({
       draft: { target: { kind: 'paid', platform: 'meta' } },
