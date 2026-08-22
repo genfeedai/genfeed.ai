@@ -103,6 +103,13 @@ export type CronBoundaryOptions = {
 
 export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
   {
+    file: 'apps/server/workers/src/processors/api/queues/notification-delivery/notification-delivery-recovery.service.ts',
+    id: 'notification-delivery-recovery',
+    methodName: 'recover',
+    reason:
+      'Platform recovery for durable notification deliveries after Redis outages, worker crashes, or expired delivery leases.',
+  },
+  {
     file: 'apps/server/api/src/services/video-completion/video-completion.service.ts',
     id: 'editor-render-reconciliation',
     methodName: 'reconcileEditorRenders',
@@ -317,10 +324,10 @@ function addIndexedEntry(
 }
 
 function collectScheduleImports(sourceFile: ts.SourceFile): {
-  cronIdentifiers: Set<string>;
+  scheduleIdentifiers: Set<string>;
   scheduleNamespaces: Set<string>;
 } {
-  const cronIdentifiers = new Set<string>();
+  const scheduleIdentifiers = new Set<string>();
   const scheduleNamespaces = new Set<string>();
 
   for (const statement of sourceFile.statements) {
@@ -342,18 +349,18 @@ function collectScheduleImports(sourceFile: ts.SourceFile): {
 
     for (const element of namedBindings.elements) {
       const importedName = element.propertyName?.text ?? element.name.text;
-      if (importedName === 'Cron') {
-        cronIdentifiers.add(element.name.text);
+      if (importedName === 'Cron' || importedName === 'Interval') {
+        scheduleIdentifiers.add(element.name.text);
       }
     }
   }
 
-  return { cronIdentifiers, scheduleNamespaces };
+  return { scheduleIdentifiers, scheduleNamespaces };
 }
 
-function isCronDecorator(
+function isScheduleDecorator(
   decorator: ts.Decorator,
-  cronIdentifiers: Set<string>,
+  scheduleIdentifiers: Set<string>,
   scheduleNamespaces: Set<string>,
 ): boolean {
   const { expression } = decorator;
@@ -365,12 +372,12 @@ function isCronDecorator(
   const callee = expression.expression;
 
   if (ts.isIdentifier(callee)) {
-    return cronIdentifiers.has(callee.text);
+    return scheduleIdentifiers.has(callee.text);
   }
 
   return (
     ts.isPropertyAccessExpression(callee) &&
-    callee.name.text === 'Cron' &&
+    (callee.name.text === 'Cron' || callee.name.text === 'Interval') &&
     ts.isIdentifier(callee.expression) &&
     scheduleNamespaces.has(callee.expression.text)
   );
@@ -405,10 +412,10 @@ function detectCronDecorators(
     ts.ScriptTarget.Latest,
     true,
   );
-  const { cronIdentifiers, scheduleNamespaces } =
+  const { scheduleIdentifiers, scheduleNamespaces } =
     collectScheduleImports(sourceFile);
 
-  if (cronIdentifiers.size === 0 && scheduleNamespaces.size === 0) {
+  if (scheduleIdentifiers.size === 0 && scheduleNamespaces.size === 0) {
     return [];
   }
 
@@ -421,7 +428,13 @@ function detectCronDecorators(
         : [];
 
       for (const decorator of decorators) {
-        if (!isCronDecorator(decorator, cronIdentifiers, scheduleNamespaces)) {
+        if (
+          !isScheduleDecorator(
+            decorator,
+            scheduleIdentifiers,
+            scheduleNamespaces,
+          )
+        ) {
           continue;
         }
 
@@ -580,7 +593,7 @@ export function runCheckPlatformCronBoundary(
       key,
       kind: 'duplicate-cron',
       message:
-        'Multiple detected @Cron decorators resolve to the same file/method key. Rename the method or extend the manifest key before classifying it.',
+        'Multiple detected @Cron/@Interval decorators resolve to the same file/method key. Rename the method or extend the manifest key before classifying it.',
     });
   }
 
@@ -596,7 +609,7 @@ export function runCheckPlatformCronBoundary(
         cron,
         kind: 'untracked-cron',
         message:
-          'Static @Cron is not classified. Tenant-product recurring automation must be workflow-backed; platform maintenance cron must be explicitly allowlisted.',
+          'Static @Cron/@Interval schedule is not classified. Tenant-product recurring automation must be workflow-backed; platform maintenance schedules must be explicitly allowlisted.',
       });
       continue;
     }
@@ -621,7 +634,7 @@ export function runCheckPlatformCronBoundary(
         entry: indexedEntry.entry,
         kind: 'stale-entry',
         message:
-          'Cron boundary manifest entry no longer matches a detected @Cron decorator. Remove or update this entry.',
+          'Cron boundary manifest entry no longer matches a detected @Cron/@Interval decorator. Remove or update this entry.',
       });
     }
   }
