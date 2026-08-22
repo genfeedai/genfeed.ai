@@ -98,7 +98,7 @@ jobs:
       - name: Check contributor trust
         id: check
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { data: pr } = await github.rest.pulls.get({
@@ -151,11 +151,11 @@ jobs:
       && github.event_name != 'release'
       && github.actor != 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v3
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         # gitleaks-action also hard-fails on `merge_group` ("The [merge_group]
         # event is not yet supported"), and Gitleaks is a required context on
         # the queue commit (#3143). Queue runs scan the same range below.
@@ -184,7 +184,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -227,7 +227,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -245,7 +245,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -262,7 +262,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -284,7 +284,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -316,7 +316,7 @@ jobs:
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -409,7 +409,7 @@ jobs:
       web_desktop_mobile: ${{ steps.plan.outputs.web_desktop_mobile }}
       extensions: ${{ steps.plan.outputs.extensions }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -426,7 +426,7 @@ jobs:
         run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ inputs.run_heavy_tests || github.event_name == 'merge_group' || contains(github.event.pull_request.labels.*.name, 'full-suite') }}"
       - name: Upload pull-request test plan
         if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pr-test-plan-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: ${{ steps.plan.outputs.manifest }}
@@ -458,7 +458,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.packages == 'true')
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -489,7 +489,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.server_services == 'true')
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -520,7 +520,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.web_desktop_mobile == 'true')
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -563,7 +563,7 @@ jobs:
       && (inputs.run_heavy_tests
         || needs.test-scope.outputs.extensions == 'true')
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -600,7 +600,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -635,7 +635,7 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.test-scope.outputs.app_matrix) }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -676,7 +676,7 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.test-scope.outputs.api_matrix) }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -717,7 +717,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -745,7 +745,7 @@ jobs:
     needs: [trust, test-scope]
     if: needs.trust.outputs.is-trusted == 'true' && needs.test-scope.outputs.api == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -765,7 +765,7 @@ jobs:
           bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-2.json
           cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
       - name: Upload generated OpenAPI spec
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: openapi-spec-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/openapi-emit-1.json
@@ -780,7 +780,7 @@ jobs:
     needs: [trust, format, lint, guards, typecheck]
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -825,7 +825,7 @@ jobs:
       - build
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'push') }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Aggregate test and build results
         env:
@@ -891,7 +891,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.test-scope.outputs.app_coverage_matrix) }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -931,7 +931,7 @@ jobs:
           cp apps/app/coverage/lcov.info coverage-shard/lcov.info || true
       - name: Upload app lcov
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
           path: coverage-shard
@@ -951,7 +951,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.test-scope.outputs.api_coverage_matrix) }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Bun environment
@@ -988,7 +988,7 @@ jobs:
           cp apps/server/api/coverage/lcov.info coverage-shard/lcov.info || true
       - name: Upload api lcov
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
           path: coverage-shard
@@ -1004,7 +1004,7 @@ jobs:
       always() && github.event_name == 'pull_request'
       && needs.trust.outputs.is-trusted == 'true'
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       # One download per surface so each surface resolves to a directory holding
@@ -1013,13 +1013,13 @@ jobs:
       # artifact is a surface state the report already models, not a step failure.
       - name: Download app coverage shards
         continue-on-error: true
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-*
           path: .changed-coverage/app
       - name: Download api coverage shards
         continue-on-error: true
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-*
           path: .changed-coverage/api
@@ -1043,7 +1043,7 @@ jobs:
             --annotate
       - name: Upload changed-code coverage report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: changed-code-coverage-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: changed-code-coverage.json
@@ -1083,12 +1083,12 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Open or update tracking issue (Priority P0)
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         with:
@@ -1162,12 +1162,12 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Close open master-ci-failure trackers
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         with:

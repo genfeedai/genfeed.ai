@@ -82,7 +82,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Checkout released source and matching tests
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.release.outputs.release_tag }}
 
@@ -245,7 +245,7 @@ jobs:
 
       - name: Upload container logs (on failure)
         if: failure() && env.COMPOSE_FILE != ''
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-e2e-compose-logs
           path: compose-logs.txt
@@ -253,7 +253,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-e2e-playwright-report
           path: playwright/artifacts/report/
@@ -278,14 +278,14 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Always use master reporter so a broken released tag still files P0.
           ref: master
           persist-credentials: false
 
       - name: Open or update tracking issue (Priority P0)
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IMAGE_TAG: ${{ needs.release-e2e.outputs.image_tag }}
           RELEASE_TAG: ${{ needs.release-e2e.outputs.release_tag }}
@@ -345,7 +345,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Always use master reporter so green auto-close works even when the
           # released tag predates this automation.
@@ -353,7 +353,7 @@ jobs:
           persist-credentials: false
 
       - name: Close open release-e2e trackers
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           IMAGE_TAG: ${{ needs.release-e2e.outputs.image_tag }}
           RELEASE_TAG: ${{ needs.release-e2e.outputs.release_tag }}
