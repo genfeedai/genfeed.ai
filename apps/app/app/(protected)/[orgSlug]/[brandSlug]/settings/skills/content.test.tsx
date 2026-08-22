@@ -11,6 +11,7 @@ const resolveAuthTokenMock = vi.fn();
 const listSkillsMock = vi.fn();
 const customizeSkillMock = vi.fn();
 const updateSkillMock = vi.fn();
+const toggleSkillMock = vi.fn();
 const selectedBrandMock = {
   agentConfig: {
     enabledSkills: [],
@@ -39,9 +40,18 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
     getToken: getTokenMock,
+    isLoaded: true,
+  }),
+}));
+
+vi.mock('@hooks/data/skills/use-brand-enabled-skills', () => ({
+  useBrandEnabledSkills: () => ({
+    enabledSlugs: [],
+    isLoading: false,
+    toggleSkill: toggleSkillMock,
   }),
 }));
 
@@ -61,8 +71,9 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../../tests/next-intl.stub'
   );
+  const translate = translateFromCatalog('common.settings.skills');
 
-  return { useTranslations: translateFromCatalog };
+  return { useTranslations: () => translate };
 });
 
 vi.mock('@services/content/skills.service', async () => {
