@@ -18,6 +18,7 @@ export class GenerationReservationBarrier {
       this.rejectBarrier = reject;
       this.resolveBarrier = resolve;
     });
+    void this.promise.catch(() => undefined);
   }
 
   async arrive(): Promise<void> {
