@@ -583,7 +583,9 @@ export default function RemixBriefInspector(): ReactElement {
                   {translate('output.title')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatLabel(run.draft.target.kind)} · manual Review required
+                  {translate('output.reviewRequired', {
+                    target: formatLabel(run.draft.target.kind),
+                  })}
                 </p>
               </div>
               <Badge variant="ghost">

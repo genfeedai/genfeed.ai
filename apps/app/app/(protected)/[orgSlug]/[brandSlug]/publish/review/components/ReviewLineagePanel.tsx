@@ -11,6 +11,7 @@ import { getPublisherPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import NextLink from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import type { ReviewPanelItem } from './review-panel.types';
 
@@ -20,69 +21,73 @@ interface ReviewLineagePanelProps {
 
 export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.publish.review.lineage');
+  const notRecorded = translate('notRecorded');
 
   return (
     <div className="space-y-3 border-b border-border px-4 py-4 last:border-b-0">
-      <h3 className="text-sm font-medium text-foreground">Lineage</h3>
+      <h3 className="text-sm font-medium text-foreground">
+        {translate('title')}
+      </h3>
       <DefinitionList className="text-sm">
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Run</DefinitionTerm>
+          <DefinitionTerm>{translate('run')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.contentRunId ?? 'Not recorded'}
+            {item.contentRunId ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Recipe</DefinitionTerm>
+          <DefinitionTerm>{translate('recipe')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.creativeVersion ?? 'Not recorded'}
+            {item.creativeVersion ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Variant</DefinitionTerm>
+          <DefinitionTerm>{translate('variant')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.variantId ?? 'Not recorded'}
+            {item.variantId ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Ingredient</DefinitionTerm>
+          <DefinitionTerm>{translate('ingredient')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.ingredientId ?? 'Copy-only output'}
+            {item.ingredientId ?? translate('copyOnlyOutput')}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Post</DefinitionTerm>
+          <DefinitionTerm>{translate('post')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.postId ?? 'Not recorded'}
+            {item.postId ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Topic</DefinitionTerm>
+          <DefinitionTerm>{translate('topic')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.opportunityTopic ?? 'Not recorded'}
+            {item.opportunityTopic ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Source type</DefinitionTerm>
+          <DefinitionTerm>{translate('sourceType')}</DefinitionTerm>
           <DefinitionDetail variant="value" className="capitalize">
-            {item.opportunitySourceType ?? 'Not recorded'}
+            {item.opportunitySourceType ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Workflow</DefinitionTerm>
+          <DefinitionTerm>{translate('workflow')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.sourceWorkflowName ?? item.sourceWorkflowId ?? 'Not recorded'}
+            {item.sourceWorkflowName ?? item.sourceWorkflowId ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Workflow run</DefinitionTerm>
+          <DefinitionTerm>{translate('workflowRun')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.workflowExecutionId ?? 'Not recorded'}
+            {item.workflowExecutionId ?? notRecorded}
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
-          <DefinitionTerm>Action</DefinitionTerm>
+          <DefinitionTerm>{translate('action')}</DefinitionTerm>
           <DefinitionDetail variant="value">
-            {item.sourceActionId ?? 'Not recorded'}
+            {item.sourceActionId ?? notRecorded}
           </DefinitionDetail>
         </div>
       </DefinitionList>
@@ -99,7 +104,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
               `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${item.workflowExecutionId}`,
             )}
           >
-            Open workflow run
+            {translate('openWorkflowRun')}
           </NextLink>
         </Button>
       ) : null}
@@ -112,7 +117,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
           withWrapper={false}
         >
           <NextLink href={href(getPublisherPostHref(item.postId))}>
-            Open draft
+            {translate('openDraft')}
           </NextLink>
         </Button>
       ) : null}

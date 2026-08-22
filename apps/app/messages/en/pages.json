@@ -278,6 +278,25 @@
       "saveChanges": "Save changes",
       "skip": "Skip",
       "write": "Write"
+    },
+    "review": {
+      "lineage": {
+        "action": "Action",
+        "copyOnlyOutput": "Copy-only output",
+        "ingredient": "Ingredient",
+        "notRecorded": "Not recorded",
+        "openDraft": "Open draft",
+        "openWorkflowRun": "Open workflow run",
+        "post": "Post",
+        "recipe": "Recipe",
+        "run": "Run",
+        "sourceType": "Source type",
+        "title": "Lineage",
+        "topic": "Topic",
+        "variant": "Variant",
+        "workflow": "Workflow",
+        "workflowRun": "Workflow run"
+      }
     }
   },
   "remixBrief": {
@@ -301,6 +320,7 @@
     "output": {
       "fidelityHelp": "Guided keeps the source pattern flexible while still steering brand look.",
       "fidelityLabel": "Fidelity",
+      "reviewRequired": "{target} · manual Review required",
       "title": "Output",
       "types": {
         "avatar": "Avatar",
