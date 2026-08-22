@@ -1,6 +1,7 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { sidebarLocator } from '../utils/app-chrome';
+import { E2E_BRAND_BASE, sidebarLocator } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Studio Page
@@ -16,7 +17,7 @@ export type StudioSurface = 'storyboard' | 'clips' | 'batch' | 'fastlane';
 
 export class StudioPage {
   readonly page: Page;
-  readonly url = '/studio';
+  readonly url = `${E2E_BRAND_BASE}${APP_ROUTES.STUDIO.ROOT}`;
 
   // Main layout elements
   readonly sidebar: Locator;
@@ -161,6 +162,7 @@ export class StudioPage {
    */
   async gotoSurface(surface: StudioSurface): Promise<void> {
     await this.page.goto(`${this.url}/${surface}`);
+    await this.page.waitForURL(new RegExp(`/studio/${surface}(?:/|\\?|$)`));
     await this.waitForPageLoad();
   }
 
