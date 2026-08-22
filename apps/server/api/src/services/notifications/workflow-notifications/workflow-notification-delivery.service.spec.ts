@@ -283,6 +283,9 @@ describe('WorkflowNotificationDeliveryService', () => {
 
     await expect(service.recoverDueDeliveries()).resolves.toBe(2);
 
+    expect(prisma.notificationDelivery.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { nextAttemptAt: 'asc' } }),
+    );
     expect(queue.enqueue).toHaveBeenCalledTimes(3);
     expect(logger.error).toHaveBeenCalledWith(
       'Durable notification recovery enqueue failed',

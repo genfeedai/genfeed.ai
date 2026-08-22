@@ -167,6 +167,7 @@ export class WorkflowNotificationDeliveryService {
     const leaseExpiredAt = new Date(now.getTime() - LOCK_LEASE_MS);
     // tenant-scope-ignore: system recovery intentionally spans tenants and selects only non-deleted due delivery ids
     const deliveries = await this.prisma.notificationDelivery.findMany({
+      orderBy: { nextAttemptAt: 'asc' },
       select: { id: true },
       take: MAX_RECOVERY_BATCH,
       where: {
