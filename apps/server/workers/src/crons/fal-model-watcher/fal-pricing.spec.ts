@@ -94,9 +94,9 @@ describe('Fal pricing contracts', () => {
     });
 
     expect(normalized.unitPrice).toBe('0.0000004');
-    expect(mapFalPricing(normalized)).toMatchObject({
-      supported: true,
-      unitPriceMicros: 0n,
+    expect(mapFalPricing(normalized)).toEqual({
+      reason: 'unit_price_below_minimum_precision',
+      supported: false,
     });
   });
 });

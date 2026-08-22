@@ -182,6 +182,21 @@ describe('reviewed Fal execution contracts', () => {
     });
   });
 
+  it('does not admit prototype properties from video prompt parameters', () => {
+    const schemas = extractFalEndpointSchemas(fixture('video-openapi.json'));
+
+    expect(
+      adaptFalVideoRequest(FalSchemaFamily.VIDEO_IMAGE, schemas.input, {
+        imageUrl: 'https://cdn.test/start.png',
+        prompt: 'slow camera push',
+        promptParams: { constructor: 'not-a-reviewed-field' },
+      }),
+    ).toEqual({
+      image_url: 'https://cdn.test/start.png',
+      prompt: 'slow camera push',
+    });
+  });
+
   it('does not classify arbitrary or unsupported schemas as executable', () => {
     expect(
       classifyFalSchemaFamily(

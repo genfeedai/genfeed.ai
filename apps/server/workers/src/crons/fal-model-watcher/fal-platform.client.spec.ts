@@ -144,6 +144,23 @@ describe('FalPlatformClient', () => {
     );
   });
 
+  it('clamps provider retry hints to the bounded synchronization delay', async () => {
+    const { client, fetcher, sleep } = harness();
+    fetcher
+      .mockResolvedValueOnce(
+        response({ error: { type: 'rate_limited' } }, 429, {
+          'Retry-After': '3600',
+        }),
+      )
+      .mockResolvedValueOnce(
+        response({ has_more: false, models: [], next_cursor: null }),
+      );
+
+    await client.fetchModels();
+
+    expect(sleep).toHaveBeenCalledWith(30_000);
+  });
+
   it('stops after the retry bound', async () => {
     const { client, fetcher } = harness();
     fetcher.mockResolvedValue(

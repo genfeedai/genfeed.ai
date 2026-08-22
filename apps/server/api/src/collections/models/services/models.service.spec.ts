@@ -379,6 +379,9 @@ describe('ModelsService', () => {
         organizationId: null,
       },
     });
+    expect(modelDelegate.update.mock.calls[0]?.[0].data.config).toEqual({
+      owner: 'google',
+    });
     expect(providerContractDelegate.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
         reviewStatus: 'approved',
