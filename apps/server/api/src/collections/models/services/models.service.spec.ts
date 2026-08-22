@@ -20,6 +20,11 @@ type MockModelDelegate = {
   updateMany: ReturnType<typeof vi.fn>;
 };
 
+type MockProviderContractDelegate = {
+  findUnique: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+};
+
 function makeModel(overrides: Record<string, unknown> = {}) {
   return {
     category: ModelCategory.IMAGE,
@@ -44,6 +49,7 @@ function makeModel(overrides: Record<string, unknown> = {}) {
 describe('ModelsService', () => {
   let service: ModelsService;
   let modelDelegate: MockModelDelegate;
+  let providerContractDelegate: MockProviderContractDelegate;
 
   beforeEach(() => {
     modelDelegate = {
@@ -55,10 +61,24 @@ describe('ModelsService', () => {
       update: vi.fn(),
       updateMany: vi.fn(),
     };
+    providerContractDelegate = {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    };
+
+    const transaction = {
+      model: modelDelegate,
+      modelProviderContract: providerContractDelegate,
+    };
 
     service = new ModelsService(
       {
+        $transaction: vi.fn(
+          (callback: (client: typeof transaction) => unknown) =>
+            callback(transaction),
+        ),
         model: modelDelegate,
+        modelProviderContract: providerContractDelegate,
         organization: {
           findUnique: vi.fn().mockResolvedValue({
             label: 'Acme Corp',
@@ -311,5 +331,80 @@ describe('ModelsService', () => {
 
     expect(result.id).toBe('trained-model');
     expect(modelDelegate.create).not.toHaveBeenCalled();
+  });
+
+  it('promotes only a supported pending Fal contract into runtime fields', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        endpoint: 'fal-ai/modern-image/edit',
+        pendingProviderContractVersion: 'sha256:candidate',
+        provider: ModelProvider.FAL,
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'contract-1',
+      inputSchema: { required: ['prompt', 'image_urls'], type: 'object' },
+      mappingStatus: 'supported',
+      pricingType: 'flat',
+      schemaFamily: 'image-edit-multi-v1',
+      unitPriceMicros: 25_000n,
+      version: 'sha256:candidate',
+    });
+    modelDelegate.update.mockResolvedValue(
+      makeModel({
+        providerCostUsd: 0.025,
+        reviewedProviderContractVersion: 'sha256:candidate',
+      }),
+    );
+
+    await service.approveRegistryModel('model-1', {}, 'operator-1');
+
+    expect(modelDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isActive: true,
+        pendingProviderContractVersion: null,
+        pricingType: 'flat',
+        providerCostUsd: 0.025,
+        providerInputSchema: {
+          required: ['prompt', 'image_urls'],
+          type: 'object',
+        },
+        providerSchemaFamily: 'image-edit-multi-v1',
+        reviewedProviderContractVersion: 'sha256:candidate',
+        reviewStatus: 'approved',
+      }),
+      where: { id: 'model-1' },
+    });
+    expect(providerContractDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        reviewStatus: 'approved',
+        reviewedBy: 'operator-1',
+      }),
+      where: { id: 'contract-1' },
+    });
+  });
+
+  it('blocks activation of a quarantined Fal contract', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        endpoint: 'fal-ai/token-priced',
+        pendingProviderContractVersion: 'sha256:unsupported',
+        provider: ModelProvider.FAL,
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'contract-unsupported',
+      mappingStatus: 'quarantined',
+      pricingType: null,
+      schemaFamily: 'image-text-v1',
+      unitPriceMicros: null,
+      version: 'sha256:unsupported',
+    });
+
+    await expect(
+      service.approveRegistryModel('model-1', {}, 'operator-1'),
+    ).rejects.toThrow('quarantined and cannot be activated');
+    expect(modelDelegate.update).not.toHaveBeenCalled();
+    expect(providerContractDelegate.update).not.toHaveBeenCalled();
   });
 });

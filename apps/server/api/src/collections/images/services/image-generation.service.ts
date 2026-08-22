@@ -112,8 +112,15 @@ export class ImageGenerationService {
     request: Request,
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
   ): Promise<JsonApiSingleResponse> {
-    const { brand, model, modelEndpoint, modelProvider, promptOriginalText } =
-      await this.resolveAndValidate(user, createImageDto, request);
+    const {
+      brand,
+      model,
+      modelEndpoint,
+      modelInputSchema,
+      modelProvider,
+      modelSchemaFamily,
+      promptOriginalText,
+    } = await this.resolveAndValidate(user, createImageDto, request);
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
     const promptBuilderBrand = {
@@ -193,7 +200,9 @@ export class ImageGenerationService {
       metadataData,
       model,
       modelEndpoint,
+      modelInputSchema,
       modelProvider,
+      modelSchemaFamily,
       outputs,
       pendingIngredientIds: [ingredientData.id.toString()],
       promptBuilderBrand,
@@ -244,7 +253,9 @@ export class ImageGenerationService {
     brand: ImageGenerationResolvedBrand;
     model: string;
     modelEndpoint: string;
+    modelInputSchema?: Record<string, unknown>;
     modelProvider?: string;
+    modelSchemaFamily?: string;
     promptOriginalText: string;
   }> {
     this.loggerService.log(`${this.constructorName} create`, {
@@ -307,6 +318,15 @@ export class ImageGenerationService {
       : undefined;
     const modelEndpoint = registeredModel?.endpoint || model;
     const modelProvider = registeredModel?.provider;
+    const rawInputSchema = registeredModel?.providerInputSchema;
+    const modelInputSchema =
+      rawInputSchema &&
+      typeof rawInputSchema === 'object' &&
+      !Array.isArray(rawInputSchema)
+        ? (rawInputSchema as Record<string, unknown>)
+        : undefined;
+    const modelSchemaFamily =
+      registeredModel?.providerSchemaFamily ?? undefined;
 
     await this.creditsService.ensureDeferredCredits(
       createImageDto,
@@ -334,7 +354,9 @@ export class ImageGenerationService {
       brand,
       model,
       modelEndpoint,
+      modelInputSchema,
       modelProvider,
+      modelSchemaFamily,
       promptOriginalText,
     };
   }

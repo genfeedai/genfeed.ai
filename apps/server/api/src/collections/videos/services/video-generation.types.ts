@@ -14,7 +14,9 @@ export interface DispatchVideoGenerationParams {
   imageUrl?: string;
   model: string;
   modelEndpoint?: string;
+  modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
+  modelSchemaFamily?: string;
   prompt: string;
   promptParams: Record<string, unknown>;
   width: number;
@@ -59,7 +61,9 @@ export interface ResolvedVideoGenerationRequest {
   createVideoDto: CreateVideoDto;
   model: string;
   modelEndpoint?: string;
+  modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
+  modelSchemaFamily?: string;
   referenceIds: string[];
   request: Request;
   user: User;

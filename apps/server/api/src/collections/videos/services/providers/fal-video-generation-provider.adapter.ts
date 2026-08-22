@@ -10,6 +10,11 @@ import type {
 import type { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import {
+  adaptFalVideoRequest,
+  type FalJsonSchema,
+  type FalSchemaFamily,
+} from '@server/services/integrations/fal/services/fal-contract';
 
 @Injectable()
 export class FalVideoGenerationProviderAdapter
@@ -26,13 +31,27 @@ export class FalVideoGenerationProviderAdapter
   async generate(
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult> {
+    const legacyInput = {
+      prompt: params.prompt,
+      ...(params.duration && { duration: params.duration }),
+      ...(params.imageUrl && { image_url: params.imageUrl }),
+    };
+    const input =
+      params.modelSchemaFamily && params.modelInputSchema
+        ? adaptFalVideoRequest(
+            params.modelSchemaFamily as FalSchemaFamily,
+            params.modelInputSchema as FalJsonSchema,
+            {
+              duration: params.duration,
+              imageUrl: params.imageUrl,
+              prompt: params.prompt,
+              promptParams: params.promptParams,
+            },
+          )
+        : legacyInput;
     const result = await this.falService.generateVideo(
       params.modelEndpoint ?? getFalEndpointFromModelKey(params.model),
-      {
-        prompt: params.prompt,
-        ...(params.duration && { duration: params.duration }),
-        ...(params.imageUrl && { image_url: params.imageUrl }),
-      },
+      input,
     );
     return {
       completion: 'remote-output',

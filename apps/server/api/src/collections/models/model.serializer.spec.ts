@@ -41,6 +41,7 @@ describe('ModelSerializer', () => {
       parentModelId: 'base-model',
       provider: 'openai',
       providerConfig: { source: 'provider-sync' },
+      providerCostUsd: 0.025,
       trainingId: 'training-1',
       updatedAt: now,
     });

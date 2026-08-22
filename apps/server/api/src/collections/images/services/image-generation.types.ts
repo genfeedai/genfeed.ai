@@ -56,7 +56,9 @@ export interface ImageGenerationContext {
   metadataData: ImageGenerationSavedMetadata;
   model: string;
   modelEndpoint?: string;
+  modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
+  modelSchemaFamily?: string;
   outputs: number;
   pendingIngredientIds: string[];
   promptBuilderBrand: {
@@ -92,7 +94,9 @@ export interface ImageGenerationProviderRequest {
   height: number;
   model: string;
   modelEndpoint?: string;
+  modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
+  modelSchemaFamily?: string;
   organizationId: string;
   outputs: number;
   prompt: string;

@@ -130,13 +130,22 @@ export class VideoGenerationPreparationService {
           validationOrgId,
         )
       : undefined;
+    const rawInputSchema = registeredModel?.providerInputSchema;
+    const modelInputSchema =
+      rawInputSchema &&
+      typeof rawInputSchema === 'object' &&
+      !Array.isArray(rawInputSchema)
+        ? (rawInputSchema as Record<string, unknown>)
+        : undefined;
 
     return {
       brand,
       createVideoDto,
       model,
       modelEndpoint: registeredModel?.endpoint || model,
+      modelInputSchema,
       modelProvider: registeredModel?.provider,
+      modelSchemaFamily: registeredModel?.providerSchemaFamily ?? undefined,
       referenceIds,
       request,
       user,

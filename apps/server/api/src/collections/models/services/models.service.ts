@@ -39,6 +39,13 @@ type RegistryReviewPatch = Partial<UpdateModelDto> & {
   reviewedAt?: Date;
   reviewedBy?: string;
   reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
+  reviewedProviderContractVersion?: string;
+  pendingProviderContractVersion?: null;
+  providerInputSchema?: Prisma.InputJsonValue;
+  providerSchemaFamily?: string;
+  providerSyncStatus?: string;
+  pricingType?: string;
+  providerCostUsd?: number;
   succeededBy?: string;
 };
 
@@ -475,6 +482,31 @@ export class ModelsService extends BaseService<
     }
 
     const now = new Date();
+    const pendingVersion = existing.pendingProviderContractVersion;
+    const pendingContract = pendingVersion
+      ? await this.prisma.modelProviderContract.findUnique({
+          where: {
+            provider_endpoint_version: {
+              endpoint: existing.endpoint,
+              provider: existing.provider,
+              version: pendingVersion,
+            },
+          },
+        })
+      : null;
+
+    if (
+      pendingVersion &&
+      (pendingContract?.mappingStatus !== 'supported' ||
+        !pendingContract.schemaFamily ||
+        !pendingContract.pricingType ||
+        pendingContract.unitPriceMicros === null)
+    ) {
+      throw new BadRequestException(
+        'The pending provider contract is quarantined and cannot be activated',
+      );
+    }
+
     const patch: RegistryReviewPatch = {
       ...updateDto,
       isActive: true,
@@ -484,11 +516,46 @@ export class ModelsService extends BaseService<
       reviewedBy,
     };
 
+    if (pendingContract) {
+      patch.pendingProviderContractVersion = null;
+      patch.providerCostUsd =
+        Number(pendingContract.unitPriceMicros) / 1_000_000;
+      patch.providerInputSchema =
+        pendingContract.inputSchema as Prisma.InputJsonValue;
+      patch.providerSchemaFamily = pendingContract.schemaFamily as string;
+      patch.providerSyncStatus = 'fresh';
+      patch.pricingType = pendingContract.pricingType as string;
+      patch.reviewedProviderContractVersion = pendingContract.version;
+    }
+
     if (!existing.lastSyncedAt) {
       patch.lastSyncedAt = now;
     }
 
-    return this.patch(modelId, patch);
+    if (!pendingContract) {
+      return this.patch(modelId, patch);
+    }
+
+    const data = this.splitModelData(
+      patch as Record<string, unknown>,
+      this.getProviderConfig(existing),
+    );
+    const updated = await this.prisma.$transaction(async (transaction) => {
+      const nextModel = await transaction.model.update({
+        data: data as Prisma.ModelUpdateInput,
+        where: { id: modelId },
+      });
+      await transaction.modelProviderContract.update({
+        data: {
+          reviewStatus: 'approved',
+          reviewedAt: now,
+          reviewedBy,
+        },
+        where: { id: pendingContract.id },
+      });
+      return nextModel;
+    });
+    return this.normalizeModelDocument(updated);
   }
 
   async rejectRegistryModel(
