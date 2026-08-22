@@ -1,4 +1,4 @@
-import type { IBaseEntity } from '../index';
+import type { IBaseEntity } from '../core/base.interface';
 
 export const NOTIFICATION_TOPICS = ['workflow.status'] as const;
 export type NotificationTopic = (typeof NOTIFICATION_TOPICS)[number];
