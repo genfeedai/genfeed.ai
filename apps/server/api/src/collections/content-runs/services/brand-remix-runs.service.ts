@@ -21,7 +21,10 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import type {
+  GenerationPlaceholderCreatedCallback,
+  GenerationPlaceholderScope,
+} from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -56,6 +59,7 @@ import { sourcePostVariationCredits } from '@genfeedai/constants';
 import {
   AssetCategory,
   ContentFormat,
+  ContentIntelligencePlatform,
   ContentRunStatus,
   IngredientCategory,
   IngredientStatus,
@@ -1837,7 +1841,7 @@ export class BrandRemixRunsService {
     config: BrandRemixRunConfig;
     onPlaceholderCreated: GenerationPlaceholderCreatedCallback;
     onCreditsPrepared: () => Promise<void>;
-    placeholderScope: { groupId: string; groupIndex: number };
+    placeholderScope: GenerationPlaceholderScope;
     request: Request;
     user: User;
   }): Promise<string> {
@@ -2018,7 +2022,8 @@ export class BrandRemixRunsService {
   }): Promise<BrandRemixRunConfig> {
     let config = params.config;
     if (!config.execution) return config;
-    const linkedAssetIds = config.execution.variants.flatMap(
+    const execution = config.execution;
+    const linkedAssetIds = execution.variants.flatMap(
       (variant) => variant.assetIds,
     );
     const category =
@@ -2042,8 +2047,8 @@ export class BrandRemixRunsService {
       const variant =
         (orphan.groupIndex == null
           ? undefined
-          : config.execution.variants[orphan.groupIndex]) ??
-        config.execution.variants.find(
+          : execution.variants[orphan.groupIndex]) ??
+        execution.variants.find(
           (candidate) =>
             params.variants.some((variant) => variant.id === candidate.id) &&
             candidate.assetIds.length === 0,
@@ -2106,10 +2111,13 @@ export class BrandRemixRunsService {
           {
             additionalContext: [
               `Source pattern: ${JSON.stringify(params.config.sourceSnapshot.pattern)}`,
+              `Target platform: ${params.config.draft.target.platform}`,
               'Create original brand-owned copy. Never quote, name, or closely paraphrase the source.',
             ],
             brandId: params.brandId,
-            platform: params.config.draft.target.platform,
+            platform: this.contentIntelligencePlatform(
+              params.config.draft.target.platform,
+            ),
             topic: this.compileProviderPrompt(params.config),
             variationsCount: 1,
           },
@@ -2250,6 +2258,14 @@ export class BrandRemixRunsService {
       });
     }
     return config;
+  }
+
+  private contentIntelligencePlatform(
+    platform: BrandRemixDraft['target']['platform'],
+  ): ContentIntelligencePlatform {
+    return platform === 'tiktok'
+      ? ContentIntelligencePlatform.TIKTOK
+      : ContentIntelligencePlatform.INSTAGRAM;
   }
 
   private async clearGenerationClaimAndProject(params: {

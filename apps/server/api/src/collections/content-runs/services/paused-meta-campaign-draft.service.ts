@@ -130,6 +130,8 @@ export class PausedMetaCampaignDraftService {
       throw new ConflictException('The approved media output is not ready.');
     }
     this.assertHttpsUrl(ingredient.cdnUrl, 'approved media');
+    const mediaUrl = ingredient.cdnUrl;
+    const pageId = credential.externalId;
 
     const suffix = `${input.runId}-${input.config.revision}-${input.variant.id}`;
     const campaignName = `Genfeed Remix ${suffix}`;
@@ -209,12 +211,12 @@ export class PausedMetaCampaignDraftService {
               ? await this.metaAdsService.uploadAdImage(
                   accessToken,
                   resolvedAdAccountId,
-                  ingredient.cdnUrl,
+                  mediaUrl,
                 )
               : await this.metaAdsService.uploadAdVideo(
                   accessToken,
                   resolvedAdAccountId,
-                  ingredient.cdnUrl,
+                  mediaUrl,
                   adName,
                 );
           adId = await this.metaAdsService.createAd(
@@ -229,7 +231,7 @@ export class PausedMetaCampaignDraftService {
                   ? { imageHash: creative.hash }
                   : { videoId: creative.videoId }),
                 linkUrl: input.linkUrl,
-                pageId: credential.externalId,
+                pageId,
                 title: input.config.draft.intent.hook,
               },
               name: adName,
@@ -272,7 +274,7 @@ export class PausedMetaCampaignDraftService {
         brandId: input.brandId,
         externalAdId: result.adId,
         genfeedContentId: ingredientId,
-        metadata: result,
+        metadata: { ...result },
         organizationId: input.organizationId,
         platform: 'meta',
         status: 'paused',
