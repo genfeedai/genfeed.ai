@@ -292,7 +292,7 @@ test.describe('Discover prefilled remix handoff', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: /Remix for Northstar/i }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByText('What is working')).toBeVisible();
+    await expect(authenticatedPage.getByText('Source pattern')).toBeVisible();
     await authenticatedPage
       .getByRole('button', { name: 'Continue to Studio' })
       .click();
