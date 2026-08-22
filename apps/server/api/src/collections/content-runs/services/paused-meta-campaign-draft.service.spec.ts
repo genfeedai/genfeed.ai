@@ -91,6 +91,8 @@ describe('PausedMetaCampaignDraftService', () => {
     prisma.credential.findFirst.mockResolvedValue({
       accessToken: 'legacy-plaintext-token',
       externalId: 'page-1',
+      grantedScopes: ['ads_management', 'ads_read'],
+      grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
       id: 'credential-1',
     });
     prisma.post.findFirst.mockResolvedValue({ id: 'post-1' });
@@ -199,6 +201,22 @@ describe('PausedMetaCampaignDraftService', () => {
       'selected Meta ad account is unavailable',
     );
 
+    expect(metaAdsService.uploadAdImage).not.toHaveBeenCalled();
+    expect(metaAdsService.createCampaign).not.toHaveBeenCalled();
+  });
+
+  it('rejects missing ads_management before the first Meta provider call', async () => {
+    prisma.credential.findFirst.mockResolvedValue({
+      accessToken: 'legacy-plaintext-token',
+      externalId: 'page-1',
+      grantedScopes: ['ads_read'],
+      grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+      id: 'credential-1',
+    });
+
+    await expect(service.prepare(input)).rejects.toThrow('ads_management');
+
+    expect(metaAdsService.getAdAccounts).not.toHaveBeenCalled();
     expect(metaAdsService.uploadAdImage).not.toHaveBeenCalled();
     expect(metaAdsService.createCampaign).not.toHaveBeenCalled();
   });

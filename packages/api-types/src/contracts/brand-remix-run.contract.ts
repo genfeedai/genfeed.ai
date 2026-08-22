@@ -235,6 +235,7 @@ export const brandRemixDraftSchema = z
 export const brandRemixReadinessIssueCodeValues = [
   'organization_defaults',
   'missing_avatar',
+  'missing_ads_management',
   'missing_voice',
   'missing_required_reference',
   'source_media_unavailable',
@@ -251,6 +252,7 @@ export const brandRemixReadinessIssueSchema = z
     field: z.enum([
       'intent',
       'output',
+      'target',
       'fidelityMode',
       'references',
       'avatarAssetId',

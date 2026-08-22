@@ -885,7 +885,7 @@ export class BrandRemixRunsService {
     const initial = await this.requireRun(organizationId, runId);
     const reconciled = await this.reconcile(initial);
     const run = reconciled.run;
-    const config = reconciled.config;
+    let config = reconciled.config;
     const brandId = this.requireBrandId(run);
     const brandContext = await this.resolveBrandContext(
       organizationId,
@@ -918,12 +918,83 @@ export class BrandRemixRunsService {
         title: 'Campaign review is incomplete',
       });
     }
-    await this.assertConnectedCredential(
+    const credential = await this.assertConnectedCredential(
       organizationId,
       brandId,
       input.destination.credentialId,
       'meta',
     );
+    const hasMetaAdsCapability = Boolean(
+      credential.grantedScopesCapturedAt &&
+        credential.grantedScopes.includes('ads_management'),
+    );
+    const capabilityIssue = {
+      code: 'missing_ads_management' as const,
+      field: 'target' as const,
+      message:
+        'Reconnect Meta and grant ads_management before preparing a paused campaign draft.',
+      severity: 'blocked' as const,
+    };
+    if (!hasMetaAdsCapability) {
+      const blockedConfig = brandRemixRunConfigSchema.parse({
+        ...config,
+        readiness: {
+          issues: [
+            ...config.readiness.issues.filter(
+              (issue) => issue.code !== capabilityIssue.code,
+            ),
+            capabilityIssue,
+          ],
+          state: 'blocked',
+        },
+      });
+      const updated = await this.compareAndSwapExactConfig({
+        expectedConfig: config,
+        nextConfig: blockedConfig,
+        organizationId,
+        runId,
+        status: run.status as ContentRunStatus,
+      });
+      if (!updated) {
+        throw new ConflictException(
+          'The Meta capability readiness changed concurrently.',
+        );
+      }
+      return this.project(updated, brandContext, blockedConfig);
+    }
+    if (
+      config.readiness.issues.some(
+        (issue) => issue.code === capabilityIssue.code,
+      )
+    ) {
+      const issues = config.readiness.issues.filter(
+        (issue) => issue.code !== capabilityIssue.code,
+      );
+      const readyConfig = brandRemixRunConfigSchema.parse({
+        ...config,
+        readiness: {
+          issues,
+          state: issues.some((issue) => issue.severity === 'blocked')
+            ? 'blocked'
+            : issues.length
+              ? 'degraded'
+              : 'ready',
+        },
+      });
+      const updated = await this.compareAndSwapExactConfig({
+        expectedConfig: config,
+        nextConfig: readyConfig,
+        organizationId,
+        runId,
+        status: run.status as ContentRunStatus,
+      });
+      if (!updated) {
+        throw new ConflictException(
+          'The Meta capability readiness changed concurrently.',
+        );
+      }
+      config = readyConfig;
+    }
     const selectedVariant =
       config.execution?.variants.find(
         (variant) => variant.id === input.variantId,
@@ -1351,9 +1422,13 @@ export class BrandRemixRunsService {
     brandId: string,
     credentialId: string,
     platform: 'google' | 'meta' | 'tiktok',
-  ): Promise<void> {
+  ) {
     const credential = await this.prisma.credential.findFirst({
-      select: { id: true },
+      select: {
+        grantedScopes: true,
+        grantedScopesCapturedAt: true,
+        id: true,
+      },
       where: {
         brandId,
         id: credentialId,
@@ -1370,6 +1445,7 @@ export class BrandRemixRunsService {
         title: 'Ads credential is unavailable',
       });
     }
+    return credential;
   }
 
   private defaultDraft(

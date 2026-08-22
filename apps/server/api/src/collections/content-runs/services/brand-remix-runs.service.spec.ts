@@ -398,7 +398,11 @@ describe('BrandRemixRunsService', () => {
     ).rejects.toThrow(BadRequestException);
 
     expect(prisma.credential.findFirst).toHaveBeenCalledWith({
-      select: { id: true },
+      select: {
+        grantedScopes: true,
+        grantedScopesCapturedAt: true,
+        id: true,
+      },
       where: {
         brandId: 'brand-1',
         id: 'credential-other-brand',
@@ -1598,6 +1602,8 @@ describe('BrandRemixRunsService', () => {
     ]);
     (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
       {
+        grantedScopes: ['ads_management', 'ads_read'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
         id: 'credential-1',
       },
     );

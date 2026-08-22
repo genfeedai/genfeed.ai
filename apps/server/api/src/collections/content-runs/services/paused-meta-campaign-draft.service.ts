@@ -65,7 +65,13 @@ export class PausedMetaCampaignDraftService {
   ): Promise<PausedMetaCampaignDraftResult> {
     this.assertHttpsUrl(input.linkUrl, 'campaign destination');
     const credential = await this.prisma.credential.findFirst({
-      select: { accessToken: true, externalId: true, id: true },
+      select: {
+        accessToken: true,
+        externalId: true,
+        grantedScopes: true,
+        grantedScopesCapturedAt: true,
+        id: true,
+      },
       where: {
         brandId: input.brandId,
         id: input.credentialId,
@@ -78,6 +84,14 @@ export class PausedMetaCampaignDraftService {
     if (!credential?.accessToken || !credential.externalId) {
       throw new BadRequestException(
         'The selected Meta credential or connected Page is unavailable.',
+      );
+    }
+    if (
+      !credential.grantedScopesCapturedAt ||
+      !credential.grantedScopes.includes('ads_management')
+    ) {
+      throw new BadRequestException(
+        'The selected Meta credential requires ads_management. Reconnect Meta and grant ads access.',
       );
     }
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
