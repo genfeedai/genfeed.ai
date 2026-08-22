@@ -1041,22 +1041,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 4,
-      "file": "apps/server/api/src/collections/models/model.serializer.spec.ts",
-      "fingerprint": "6f5acdade8eb4e2a228d",
-      "message": "Property 'attributes' does not exist on type 'JsonApiResource | JsonApiResource[]'.   Property 'attributes' does not exist on type 'JsonApiResource[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 4,
-      "file": "apps/server/api/src/collections/models/model.serializer.spec.ts",
-      "fingerprint": "567cd0bb7a278cd5e714",
-      "message": "'result.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/collections/musics/controllers/musics-operations.controller.spec.ts",

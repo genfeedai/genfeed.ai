@@ -4,7 +4,11 @@ import { ModelSerializer } from '@genfeedai/serializers';
 function serializedAttributes(
   result: ReturnType<typeof ModelSerializer.serialize>,
 ): Record<string, unknown> {
-  if (!result.data || Array.isArray(result.data)) {
+  if (
+    !result.data ||
+    Array.isArray(result.data) ||
+    result.data.attributes === undefined
+  ) {
     throw new Error('Expected one serialized model resource');
   }
 
