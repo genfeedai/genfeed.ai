@@ -150,6 +150,38 @@ describe('MetaAdsService', () => {
     );
   });
 
+  it('waits for Meta video processing before selecting a generated thumbnail', async () => {
+    vi.useFakeTimers();
+    try {
+      const { service } = createService();
+      const privateMethods = service as unknown as MetaAdsPrivateMethods;
+      privateMethods.makeRequest = vi
+        .fn()
+        .mockResolvedValueOnce({ data: [] })
+        .mockResolvedValueOnce({
+          data: [
+            {
+              is_preferred: true,
+              uri: 'https://meta.example/thumbnail-ready.jpg',
+            },
+          ],
+        });
+
+      const thumbnail = service.getAdVideoThumbnailUrl(
+        'access-token',
+        'video-1',
+      );
+      await vi.runAllTimersAsync();
+
+      await expect(thumbnail).resolves.toBe(
+        'https://meta.example/thumbnail-ready.jpg',
+      );
+      expect(privateMethods.makeRequest).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('uses a Meta-returned thumbnail URL for video creatives', async () => {
     const { service } = createService();
     const privateMethods = service as unknown as MetaAdsPrivateMethods;

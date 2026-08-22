@@ -36,6 +36,7 @@ interface MetaGraphPage<T> {
 }
 
 const MAX_GRAPH_PAGE_COUNT = 25;
+const VIDEO_THUMBNAIL_RETRY_DELAYS_MS = [0, 1_000, 2_000, 4_000] as const;
 
 @Injectable()
 export class MetaAdsService {
@@ -343,19 +344,24 @@ export class MetaAdsService {
     accessToken: string,
     videoId: string,
   ): Promise<string> {
-    const response = await this.makeRequest<
-      MetaGraphPage<{ is_preferred?: boolean; uri?: string }>
-    >(accessToken, `${videoId}/thumbnails`, {
-      fields: 'is_preferred,uri',
-      limit: 100,
-    });
-    const thumbnail =
-      response.data.find((item) => item.is_preferred && item.uri)?.uri ??
-      response.data.find((item) => item.uri)?.uri;
-    if (!thumbnail) {
-      throw new Error('Meta did not return a usable video thumbnail.');
+    for (const delayMs of VIDEO_THUMBNAIL_RETRY_DELAYS_MS) {
+      if (delayMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+      }
+      const response = await this.makeRequest<
+        MetaGraphPage<{ is_preferred?: boolean; uri?: string }>
+      >(accessToken, `${videoId}/thumbnails`, {
+        fields: 'is_preferred,uri',
+        limit: 100,
+      });
+      const thumbnail =
+        response.data.find((item) => item.is_preferred && item.uri)?.uri ??
+        response.data.find((item) => item.uri)?.uri;
+      if (thumbnail) return thumbnail;
     }
-    return thumbnail;
+    throw new Error(
+      'Meta video processing did not produce a usable thumbnail in time.',
+    );
   }
 
   async getCampaignInsights(
