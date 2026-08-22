@@ -38,6 +38,13 @@ interface MetaGraphPage<T> {
 const MAX_GRAPH_PAGE_COUNT = 25;
 const VIDEO_THUMBNAIL_RETRY_DELAYS_MS = [0, 1_000, 2_000, 4_000] as const;
 
+export class MetaGraphPaginationLimitError extends Error {
+  constructor(path: string) {
+    super(`Meta Graph pagination exceeded the safe page limit for ${path}.`);
+    this.name = 'MetaGraphPaginationLimitError';
+  }
+}
+
 @Injectable()
 export class MetaAdsService {
   private readonly API_VERSION = 'v24.0';
@@ -179,7 +186,7 @@ export class MetaAdsService {
         continue;
       }
       if (pageCount >= MAX_GRAPH_PAGE_COUNT) {
-        throw new Error('Meta Graph pagination exceeded the safe page limit.');
+        throw new MetaGraphPaginationLimitError(path);
       }
       seenCursors.add(nextCursor);
       after = nextCursor;
@@ -353,20 +360,12 @@ export class MetaAdsService {
   async listAdVideos(
     accessToken: string,
     adAccountId: string,
-    options?: { allPages?: boolean; title?: string },
+    options?: { allPages?: boolean },
   ): Promise<MetaAdVideo[]> {
     return this.listGraphPages<MetaAdVideo>(
       accessToken,
       `${adAccountId}/advideos`,
-      {
-        fields: 'id,title',
-        limit: options?.title ? 1 : 200,
-        ...(options?.title && {
-          filtering: JSON.stringify([
-            { field: 'title', operator: 'EQUAL', value: options.title },
-          ]),
-        }),
-      },
+      { fields: 'id,title', limit: 200 },
       Boolean(options?.allPages),
     );
   }

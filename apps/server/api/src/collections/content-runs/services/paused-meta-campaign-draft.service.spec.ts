@@ -1,5 +1,6 @@
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { MetaGraphPaginationLimitError } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PausedMetaCampaignDraftService', () => {
@@ -245,6 +246,7 @@ describe('PausedMetaCampaignDraftService', () => {
     expect(metaAdsService.createCampaign).toHaveBeenCalledTimes(1);
     expect(metaAdsService.createAdSet).toHaveBeenCalledTimes(1);
     expect(metaAdsService.createAd).toHaveBeenCalledTimes(2);
+    expect(result.replayed).toBe(true);
   });
 
   it('reuses a named video upload after an ad-creation failure and selects its thumbnail', async () => {
@@ -289,6 +291,11 @@ describe('PausedMetaCampaignDraftService', () => {
     await service.prepare(videoInput);
 
     expect(metaAdsService.uploadAdVideo).toHaveBeenCalledTimes(1);
+    expect(metaAdsService.listAdVideos).toHaveBeenCalledWith(
+      'legacy-plaintext-token',
+      'act_123',
+      { allPages: true },
+    );
     expect(metaAdsService.getAdVideoThumbnailUrl).toHaveBeenCalledWith(
       'legacy-plaintext-token',
       'video-1',
@@ -303,6 +310,27 @@ describe('PausedMetaCampaignDraftService', () => {
         }),
       }),
     );
+  });
+
+  it('fails closed when video replay cannot be proven within the safe scan limit', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.VIDEO,
+      cdnUrl: 'https://cdn.northstar.example/video.mp4',
+      id: 'video-ingredient-1',
+      status: IngredientStatus.GENERATED,
+    });
+    metaAdsService.listAdVideos.mockRejectedValue(
+      new MetaGraphPaginationLimitError('act_123/advideos'),
+    );
+
+    await expect(
+      service.prepare({
+        ...input,
+        variant: { ...input.variant, assetIds: ['video-ingredient-1'] },
+      }),
+    ).rejects.toThrow('no duplicate object was created');
+    expect(metaAdsService.uploadAdVideo).not.toHaveBeenCalled();
+    expect(metaAdsService.createAd).not.toHaveBeenCalled();
   });
 
   it('rejects a foreign ad account before any upload or create', async () => {

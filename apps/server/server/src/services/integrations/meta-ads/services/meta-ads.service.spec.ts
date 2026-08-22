@@ -104,7 +104,7 @@ describe('MetaAdsService', () => {
     });
   });
 
-  it('uses exact server-side name filters for deterministic replay lookups', async () => {
+  it('uses exact server-side name filters for deterministic ad-object replay lookups', async () => {
     const { service } = createService();
     const privateMethods = service as unknown as MetaAdsPrivateMethods;
     privateMethods.makeRequest = vi.fn().mockResolvedValue({ data: [] });
@@ -119,10 +119,6 @@ describe('MetaAdsService', () => {
     await service.listAds('access-token', 'act-1', 'ad-set-1', {
       name: 'Ad name',
     });
-    await service.listAdVideos('access-token', 'act-1', {
-      title: 'Video title',
-    });
-
     expect(privateMethods.makeRequest).toHaveBeenNthCalledWith(
       1,
       'access-token',
@@ -154,15 +150,41 @@ describe('MetaAdsService', () => {
         ]),
       }),
     );
+  });
+
+  it('scans documented video pages for deterministic replay titles', async () => {
+    const { service } = createService();
+    const privateMethods = service as unknown as MetaAdsPrivateMethods;
+    privateMethods.makeRequest = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [{ id: 'video-old', title: 'Older upload' }],
+        paging: {
+          cursors: { after: 'next-page' },
+          next: 'https://graph.facebook.com/next-page',
+        },
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: 'video-match', title: 'Video title' }],
+      });
+
+    await expect(
+      service.listAdVideos('access-token', 'act-1', { allPages: true }),
+    ).resolves.toEqual([
+      { id: 'video-old', title: 'Older upload' },
+      { id: 'video-match', title: 'Video title' },
+    ]);
     expect(privateMethods.makeRequest).toHaveBeenNthCalledWith(
-      4,
+      1,
       'access-token',
       'act-1/advideos',
-      expect.objectContaining({
-        filtering: JSON.stringify([
-          { field: 'title', operator: 'EQUAL', value: 'Video title' },
-        ]),
-      }),
+      { fields: 'id,title', limit: 200 },
+    );
+    expect(privateMethods.makeRequest).toHaveBeenNthCalledWith(
+      2,
+      'access-token',
+      'act-1/advideos',
+      { after: 'next-page', fields: 'id,title', limit: 200 },
     );
   });
 

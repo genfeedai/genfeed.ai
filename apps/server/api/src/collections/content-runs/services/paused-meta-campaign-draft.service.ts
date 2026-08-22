@@ -18,7 +18,10 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
-import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
+import {
+  MetaAdsService,
+  MetaGraphPaginationLimitError,
+} from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 const PAUSED_DRAFT_DAILY_BUDGET = 5;
 
@@ -151,7 +154,7 @@ export class PausedMetaCampaignDraftService {
     const campaignName = `Genfeed Remix ${suffix}`;
     const adSetName = `${campaignName} Ad Set`;
     const adName = `${campaignName} Ad`;
-    const workflow = await this.workflowProvenanceService.runAction(
+    const workflowRequest = this.workflowProvenanceService.runAction(
       {
         actionType: 'prepare-paused-meta-draft',
         canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
@@ -178,6 +181,7 @@ export class PausedMetaCampaignDraftService {
         const existingCampaign = campaigns.find(
           (campaign) => campaign.name === campaignName,
         );
+        let replayed = Boolean(existingCampaign);
         const campaignId =
           existingCampaign?.id ??
           (await this.metaAdsService.createCampaign(
@@ -199,6 +203,7 @@ export class PausedMetaCampaignDraftService {
           { name: adSetName },
         );
         const existingAdSet = adSets.find((adSet) => adSet.name === adSetName);
+        replayed ||= Boolean(existingAdSet);
         const adSetId =
           existingAdSet?.id ??
           (await this.metaAdsService.createAdSet(
@@ -220,6 +225,7 @@ export class PausedMetaCampaignDraftService {
           { name: adName },
         );
         const existingAd = ads.find((ad) => ad.name === adName);
+        replayed ||= Boolean(existingAd);
         let adId = existingAd?.id;
         if (!adId) {
           const creative = await (async () => {
@@ -233,11 +239,12 @@ export class PausedMetaCampaignDraftService {
             const uploadedVideos = await this.metaAdsService.listAdVideos(
               accessToken,
               resolvedAdAccountId,
-              { title: adName },
+              { allPages: true },
             );
             const existingVideo = uploadedVideos.find(
               (video) => video.title === adName,
             );
+            replayed ||= Boolean(existingVideo);
             return (
               (existingVideo ? { videoId: existingVideo.id } : undefined) ??
               (await this.metaAdsService.uploadAdVideo(
@@ -279,9 +286,17 @@ export class PausedMetaCampaignDraftService {
           this.metaAdsService.pauseAdSet(accessToken, adSetId),
           this.metaAdsService.pauseAd(accessToken, adId),
         ]);
-        return { adId, adSetId, campaignId, replayed: Boolean(existingAd) };
+        return { adId, adSetId, campaignId, replayed };
       },
     );
+    const workflow = await workflowRequest.catch((error: unknown) => {
+      if (error instanceof MetaGraphPaginationLimitError) {
+        throw new ConflictException(
+          'Meta replay lookup exceeded the safe pagination limit; no duplicate object was created.',
+        );
+      }
+      throw error;
+    });
 
     const result: PausedMetaCampaignDraftResult = {
       adAccountId: resolvedAdAccountId,
