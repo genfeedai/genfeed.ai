@@ -134,3 +134,62 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
     });
   });
 });
+
+describe('OrganizationSettingsService.ensureForOrganization', () => {
+  it('returns existing settings without creating a row', async () => {
+    const service = makeService();
+    const existing = { enabledModelIds: ['model_1'], id: 'set_1' };
+    vi.spyOn(service, 'findOne').mockResolvedValue(existing as never);
+    vi.spyOn(service, 'ensureEnabledModelIds').mockResolvedValue(
+      existing as never,
+    );
+    const create = vi.spyOn(service, 'create');
+
+    const result = await service.ensureForOrganization('org_1');
+
+    expect(result).toBe(existing);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('creates settings when the organization has no row', async () => {
+    const service = makeService();
+    const created = { enabledModelIds: ['model_1'], id: 'set_new' };
+    vi.spyOn(service, 'findOne').mockResolvedValue(null);
+    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
+      'model_1',
+    ]);
+    vi.spyOn(service, 'create').mockResolvedValue(created as never);
+    vi.spyOn(service, 'ensureEnabledModelIds').mockResolvedValue(
+      created as never,
+    );
+
+    const result = await service.ensureForOrganization('org_1');
+
+    expect(service.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabledModelIds: ['model_1'],
+        organizationId: 'org_1',
+      }),
+    );
+    expect(result).toBe(created);
+  });
+
+  it('re-reads after a unique constraint race', async () => {
+    const service = makeService();
+    const raced = { enabledModelIds: ['model_1'], id: 'set_raced' };
+    vi.spyOn(service, 'findOne')
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(raced as never);
+    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
+      'model_1',
+    ]);
+    vi.spyOn(service, 'create').mockRejectedValue({ code: 'P2002' });
+    vi.spyOn(service, 'ensureEnabledModelIds').mockResolvedValue(
+      raced as never,
+    );
+
+    const result = await service.ensureForOrganization('org_1');
+
+    expect(result).toBe(raced);
+  });
+});

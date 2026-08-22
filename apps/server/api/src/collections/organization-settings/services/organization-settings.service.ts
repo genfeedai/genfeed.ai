@@ -4,6 +4,7 @@ import { allowlistHasLiveModel } from '@api/collections/models/utils/enabled-mod
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -122,6 +123,57 @@ export class OrganizationSettingsService extends BaseService<
     return this.patch(setting.id, {
       enabledModelIds,
     });
+  }
+
+  /**
+   * Settings reads (including the org models allowlist) must not 404 when the
+   * row is missing. Demo/cloud orgs created before settings were required, or
+   * rows lost in a migration, still have to toggle models.
+   */
+  async ensureForOrganization(
+    organizationId: string,
+  ): Promise<OrganizationSettingDocument> {
+    const existing = await this.findOne({ organizationId });
+    if (existing) {
+      return this.ensureEnabledModelIds(existing);
+    }
+
+    const enabledModelIds = await this.getLatestMajorVersionModelIds();
+    try {
+      const created = await this.create({
+        brandsLimit: 0,
+        enabledModelIds,
+        isAutoEvaluateEnabled: false,
+        isFastlaneEnabled: false,
+        isGenerateArticlesEnabled: false,
+        isGenerateImagesEnabled: true,
+        isGenerateMusicEnabled: true,
+        isGenerateVideosEnabled: true,
+        isNotificationsDiscordEnabled: false,
+        isNotificationsTelegramEnabled: false,
+        isNotificationsEmailEnabled: true,
+        isVerifyIngredientEnabled: true,
+        isVerifyScriptEnabled: true,
+        isVerifyVideoEnabled: true,
+        isVoiceControlEnabled: false,
+        isWatermarkEnabled: true,
+        isWebhookEnabled: false,
+        isWhitelabelEnabled: false,
+        organizationId,
+        seatsLimit: DEFAULT_FREE_SEATS,
+        timezone: 'UTC',
+      });
+      return this.ensureEnabledModelIds(created);
+    } catch (error: unknown) {
+      if ((error as { code?: string }).code !== 'P2002') {
+        throw error;
+      }
+      const raced = await this.findOne({ organizationId });
+      if (!raced) {
+        throw error;
+      }
+      return this.ensureEnabledModelIds(raced);
+    }
   }
 
   private readJourneyState(

@@ -66,6 +66,7 @@ describe('OrganizationsSettingsController', () => {
 
   const mockOrganizationSettingsService = {
     ensureEnabledModelIds: vi.fn((settings) => Promise.resolve(settings)),
+    ensureForOrganization: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
   };
@@ -156,20 +157,20 @@ describe('OrganizationsSettingsController', () => {
     const organizationId = testId('org');
 
     it('should return organization settings', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
 
       const result = await controller.getSettings(mockReq, organizationId);
 
-      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organizationId,
-      });
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(organizationId);
       expect(result).toBeDefined();
     });
 
     it('prefers the repaired request context organization id when the path is stale', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
 
@@ -182,18 +183,23 @@ describe('OrganizationsSettingsController', () => {
         'org_legacy',
       );
 
-      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organizationId: 'org_current',
-      });
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith('org_current');
       expect(result).toBeDefined();
     });
 
-    it('should return not found when settings do not exist', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+    it('creates settings when the row is missing so model toggles can persist', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
 
       const result = await controller.getSettings(mockReq, organizationId);
 
-      expect(result).toHaveProperty('statusCode', 404);
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(organizationId);
+      expect(result).toEqual(mockOrganizationSettings);
     });
   });
 
@@ -204,7 +210,7 @@ describe('OrganizationsSettingsController', () => {
     };
 
     it('should update settings when settings exist', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
       mockOrganizationSettingsService.patch.mockResolvedValue({
@@ -218,13 +224,21 @@ describe('OrganizationsSettingsController', () => {
         updateDto,
       );
 
-      expect(organizationSettingsService.findOne).toHaveBeenCalled();
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalled();
       expect(organizationSettingsService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
-    it('should return not found when settings do not exist', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+    it('creates settings before patching when the row is missing', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+      mockOrganizationSettingsService.patch.mockResolvedValue({
+        ...mockOrganizationSettings,
+        ...updateDto,
+      });
 
       const result = await controller.updateSettings(
         mockReq,
@@ -232,11 +246,14 @@ describe('OrganizationsSettingsController', () => {
         updateDto,
       );
 
-      expect(result).toHaveProperty('statusCode', 404);
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(organizationId);
+      expect(result).toBeDefined();
     });
 
     it('should reject invalid avatar ingredient defaults', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
       mockIngredientsService.findAvatarImageById.mockResolvedValue(null);

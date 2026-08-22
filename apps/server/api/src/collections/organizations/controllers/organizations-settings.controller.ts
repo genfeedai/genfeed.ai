@@ -113,16 +113,10 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
-    const data = await this.organizationSettingsService.findOne({
-      organizationId: resolvedOrganizationId,
-    });
-
-    if (!data) {
-      return returnNotFound('Organization Settings', resolvedOrganizationId);
-    }
-
     const ensuredData =
-      await this.organizationSettingsService.ensureEnabledModelIds(data);
+      await this.organizationSettingsService.ensureForOrganization(
+        resolvedOrganizationId,
+      );
 
     return serializeSingle(req, OrganizationSettingSerializer, ensuredData);
   }
@@ -139,15 +133,10 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
-    const organizationSettings = await this.organizationSettingsService.findOne(
-      {
-        organizationId: resolvedOrganizationId,
-      },
-    );
-
-    if (!organizationSettings) {
-      return returnNotFound('Organization Settings', resolvedOrganizationId);
-    }
+    const organizationSettings =
+      await this.organizationSettingsService.ensureForOrganization(
+        resolvedOrganizationId,
+      );
 
     if (
       Array.isArray(settingsDto.enabledModelIds) &&
