@@ -1,6 +1,16 @@
 import { IngredientCategory } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 
+function serializedAttributes(
+  result: ReturnType<typeof ModelSerializer.serialize>,
+): Record<string, unknown> {
+  if (!result.data || Array.isArray(result.data)) {
+    throw new Error('Expected one serialized model resource');
+  }
+
+  return result.data.attributes;
+}
+
 describe('ModelSerializer', () => {
   it('serializes model with cost, isActive and isDefault attributes', () => {
     const now = new Date();
@@ -18,9 +28,11 @@ describe('ModelSerializer', () => {
       updatedAt: now,
     });
 
-    expect(result.data.attributes).toHaveProperty('cost', 5);
-    expect(result.data.attributes).toHaveProperty('isActive', true);
-    expect(result.data.attributes).toHaveProperty('isDefault', false);
+    const attributes = serializedAttributes(result);
+
+    expect(attributes).toHaveProperty('cost', 5);
+    expect(attributes).toHaveProperty('isActive', true);
+    expect(attributes).toHaveProperty('isDefault', false);
   });
 
   it('keeps raw provider commercial metadata private', () => {
@@ -46,15 +58,17 @@ describe('ModelSerializer', () => {
       updatedAt: now,
     });
 
-    expect(result.data.attributes).toMatchObject({
+    const attributes = serializedAttributes(result);
+
+    expect(attributes).toMatchObject({
       isDiscovered: true,
       isPublic: true,
       organizationId: 'org-1',
       parentModelId: 'base-model',
       trainingId: 'training-1',
     });
-    expect(result.data.attributes).not.toHaveProperty('margin');
-    expect(result.data.attributes).not.toHaveProperty('providerConfig');
-    expect(result.data.attributes).not.toHaveProperty('providerCostUsd');
+    expect(attributes).not.toHaveProperty('margin');
+    expect(attributes).not.toHaveProperty('providerConfig');
+    expect(attributes).not.toHaveProperty('providerCostUsd');
   });
 });

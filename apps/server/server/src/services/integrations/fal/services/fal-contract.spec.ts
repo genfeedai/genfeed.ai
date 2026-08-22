@@ -130,6 +130,9 @@ describe('reviewed Fal execution contracts', () => {
     );
 
     expect(family).toBe(FalSchemaFamily.VIDEO_IMAGE);
+    if (family === null) {
+      throw new Error('Expected the fixture to match a reviewed video family');
+    }
     expect(
       adaptFalVideoRequest(family, schemas.input, {
         duration: 5,

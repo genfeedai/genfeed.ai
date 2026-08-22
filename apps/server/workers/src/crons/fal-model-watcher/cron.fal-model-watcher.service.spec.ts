@@ -16,8 +16,14 @@ describe('CronFalModelWatcherService', () => {
   let modelsService: {
     prisma: { model: { findMany: ReturnType<typeof vi.fn> } };
   };
-  let falContractSyncService: vi.Mocked<FalModelContractSyncService>;
-  let falPlatformClient: vi.Mocked<FalPlatformClient>;
+  let falContractSyncService: {
+    recordFailure: ReturnType<typeof vi.fn>;
+    synchronizeModel: ReturnType<typeof vi.fn>;
+  };
+  let falPlatformClient: {
+    fetchModels: ReturnType<typeof vi.fn>;
+    fetchPricing: ReturnType<typeof vi.fn>;
+  };
   let modelDiscoveryService: vi.Mocked<ModelDiscoveryService>;
   let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
@@ -127,8 +133,12 @@ describe('CronFalModelWatcherService', () => {
       ModelsService,
     ) as unknown as typeof modelsService;
     modelDiscoveryService = module.get(ModelDiscoveryService);
-    falContractSyncService = module.get(FalModelContractSyncService);
-    falPlatformClient = module.get(FalPlatformClient);
+    falContractSyncService = module.get(
+      FalModelContractSyncService,
+    ) as unknown as typeof falContractSyncService;
+    falPlatformClient = module.get(
+      FalPlatformClient,
+    ) as unknown as typeof falPlatformClient;
     configService = module.get(ConfigService);
     notificationsService = module.get(NotificationsService);
     loggerService = module.get(LoggerService);

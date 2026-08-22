@@ -33,7 +33,7 @@ describe('FalImageGenerationProviderAdapter reviewed contracts', () => {
       promptId: 'prompt-1',
       referenceImageUrls: ['https://cdn.test/ref.png'],
       width: 1024,
-    } as ImageGenerationProviderRequest);
+    } as unknown as ImageGenerationProviderRequest);
 
     await provider.generate();
 
