@@ -275,6 +275,10 @@ const createImageGenerationService = () => {
     creditsUtilsService as never,
     modelsService as never,
     providerRegistry,
+    {
+      isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+      isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
+    } as never,
   );
 
   const service = new ImageGenerationService(

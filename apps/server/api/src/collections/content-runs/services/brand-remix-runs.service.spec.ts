@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentRunStatus,
@@ -8,7 +9,6 @@ import {
   PersistedReviewDecision,
 } from '@genfeedai/enums';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
@@ -3108,6 +3108,7 @@ describe('BrandRemixRunsService', () => {
     overrides: {
       draft?: Record<string, unknown>;
       execution?: Record<string, unknown>;
+      generationClaim?: Record<string, unknown>;
       phase?: string;
       review?: Record<string, unknown>;
     } = {},
@@ -3133,6 +3134,9 @@ describe('BrandRemixRunsService', () => {
           }
         : {}),
       ...(overrides.execution ? { execution: overrides.execution } : {}),
+      ...(overrides.generationClaim
+        ? { generationClaim: overrides.generationClaim }
+        : {}),
       ...(overrides.phase ? { phase: overrides.phase } : {}),
       ...(overrides.review ? { review: overrides.review } : {}),
     });
