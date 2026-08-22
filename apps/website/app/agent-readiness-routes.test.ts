@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GET as getAgentContent } from './.well-known/agent-content/home/route';
 import { GET as getAgentSkillsIndex } from './.well-known/agent-skills/index.json/route';
+import { GET as getApiCatalog } from './.well-known/api-catalog/route';
 import {
   dynamic as authAliasDynamic,
   revalidate as authAliasRevalidate,
@@ -62,8 +63,30 @@ describe('website discovery routes', () => {
     const body = await response.json();
 
     expect(response.headers.get('access-control-allow-origin')).toBe('*');
+    expect(body.name).toBe('genfeed-mcp-server');
     expect(body.serverInfo.name).toBe('genfeed-mcp-server');
     expect(body.transport.endpoint).toBe('https://mcp.genfeed.ai/mcp');
+  });
+
+  it('advertises the canonical OpenAPI document in the API catalog', async () => {
+    const response = getApiCatalog();
+    const body = await response.json();
+
+    expect(body.linkset[0].item).toContainEqual({
+      href: 'https://api.genfeed.ai/v1/openapi.json',
+      title: 'Genfeed REST API OpenAPI document',
+      type: 'application/vnd.oai.openapi+json',
+    });
+  });
+
+  it('gives agents enough homepage context to decide when to use Genfeed', async () => {
+    const response = getAgentContent();
+    const markdown = await response.text();
+
+    expect(markdown).toContain('## When to use Genfeed');
+    expect(markdown).toContain('## Developer interfaces');
+    expect(markdown).toContain('https://api.genfeed.ai/v1/openapi.json');
+    expect(markdown.length).toBeGreaterThan(1_500);
   });
 
   it('serves origin-bound OAuth Protected Resource Metadata', async () => {

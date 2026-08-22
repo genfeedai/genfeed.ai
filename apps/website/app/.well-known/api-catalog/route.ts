@@ -10,9 +10,9 @@ export function GET() {
         anchor: 'https://genfeed.ai',
         item: [
           {
-            href: 'https://api.genfeed.ai',
-            title: 'Genfeed REST API',
-            type: 'application/json',
+            href: 'https://api.genfeed.ai/v1/openapi.json',
+            title: 'Genfeed REST API OpenAPI document',
+            type: 'application/vnd.oai.openapi+json',
           },
           {
             href: 'https://mcp.genfeed.ai/mcp',

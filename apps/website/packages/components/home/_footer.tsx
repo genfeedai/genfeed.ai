@@ -79,6 +79,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: '/about', label: 'About' },
+      { href: '/contact', label: 'Contact' },
       { href: '/gen', label: '$GEN Token' },
       { href: '/privacy', label: 'Privacy' },
       { href: '/terms', label: 'Terms' },

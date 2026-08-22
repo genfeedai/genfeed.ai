@@ -38,6 +38,32 @@ describe('website next.config', () => {
     });
   });
 
+  it('varies the negotiated homepage response by Accept', async () => {
+    const headers = await config.headers?.();
+    const negotiatedHeaders = headers?.find(
+      (entry) =>
+        entry.source === '/' &&
+        entry.has?.some(
+          (condition) => 'key' in condition && condition.key === 'accept',
+        ),
+    );
+
+    expect(negotiatedHeaders?.headers).toContainEqual({
+      key: 'Vary',
+      value: expect.stringContaining('Accept'),
+    });
+  });
+
+  it('publishes the canonical OpenAPI document from the website origin', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: 'https://api.genfeed.ai/v1/openapi.json',
+      permanent: false,
+      source: '/openapi.json',
+    });
+  });
+
   it('delegates authorization-server discovery without redirecting origin-bound resource metadata', async () => {
     const redirects = await config.redirects?.();
 
