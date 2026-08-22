@@ -193,6 +193,37 @@ describe('FacebookController', () => {
       );
     });
 
+    it('falls back to the permissions endpoint when the token scope is malformed', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+        scope: '',
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        id: 'fb-user-1',
+        name: 'Person',
+      });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([
+        'ads_management',
+        'ads_read',
+      ]);
+
+      await controller.verify({} as never, {
+        code: 'auth-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(mockFacebookService.getGrantedPermissions).toHaveBeenCalledWith(
+        'facebook-token',
+      );
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.objectContaining({
+          grantedScopes: ['ads_management', 'ads_read'],
+        }),
+      );
+    });
+
     it('throws when code or state is missing', async () => {
       await expect(
         controller.verify({} as never, { code: 'auth-code' }),

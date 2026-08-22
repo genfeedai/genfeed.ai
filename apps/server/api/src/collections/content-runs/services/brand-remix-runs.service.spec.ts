@@ -2386,9 +2386,33 @@ describe('BrandRemixRunsService', () => {
       },
     });
     let stored = created;
+    let interruptedClaimRelease = false;
     contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
     contentRun.updateMany.mockImplementation(({ data }) => {
-      stored = makeRun(data.config as Record<string, unknown>);
+      const nextConfig = data.config as Record<string, unknown>;
+      if (
+        !interruptedClaimRelease &&
+        nextConfig.phase === 'approved' &&
+        !nextConfig.paidDraftOperation
+      ) {
+        interruptedClaimRelease = true;
+        stored = makeRun({
+          ...(stored.config as Record<string, unknown>),
+          readiness: {
+            issues: [
+              {
+                code: 'organization_defaults',
+                field: 'intent',
+                message: 'Brand-specific context is incomplete.',
+                severity: 'degraded',
+              },
+            ],
+            state: 'degraded',
+          },
+        });
+        return Promise.resolve({ count: 0 });
+      }
+      stored = makeRun(nextConfig);
       stored.status = (data.status ?? stored.status) as ContentRunStatus;
       return Promise.resolve({ count: 1 });
     });
@@ -2434,6 +2458,7 @@ describe('BrandRemixRunsService', () => {
     await expect(
       service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', body),
     ).rejects.toThrow('Meta ad creation failed');
+    expect(interruptedClaimRelease).toBe(true);
     expect(stored.config).toMatchObject({
       phase: 'approved',
     });

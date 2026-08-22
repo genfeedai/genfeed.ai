@@ -10,7 +10,10 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
+import {
+  buildGrantedScopesCredentialPatch,
+  parseGrantedOAuthScopes,
+} from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -135,8 +138,10 @@ export class FacebookController {
       }
 
       const profile = await this.facebookService.getUserProfile(accessToken);
-      let grantedScopes = scope;
-      if (scope === undefined || scope === null) {
+      const normalizedTokenScopes = parseGrantedOAuthScopes(scope);
+      let grantedScopes: unknown =
+        normalizedTokenScopes.length > 0 ? normalizedTokenScopes : undefined;
+      if (grantedScopes === undefined) {
         try {
           grantedScopes =
             await this.facebookService.getGrantedPermissions(accessToken);

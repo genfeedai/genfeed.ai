@@ -1187,17 +1187,10 @@ export class BrandRemixRunsService {
         variant: selectedVariant,
       });
     } catch (error: unknown) {
-      const releasedConfig = brandRemixRunConfigSchema.parse({
-        ...claimedConfig,
-        paidDraftOperation: undefined,
-        phase: 'approved',
-      });
-      await this.compareAndSwapExactConfig({
-        expectedConfig: claimedConfig,
-        nextConfig: releasedConfig,
+      await this.releasePaidDraftOperationAfterFailure({
+        claimedConfig,
         organizationId,
         runId,
-        status: ContentRunStatus.COMPLETED,
       });
       throw error;
     }
@@ -1260,6 +1253,34 @@ export class BrandRemixRunsService {
     }
 
     throw new ConflictException('The Meta draft result changed concurrently.');
+  }
+
+  private async releasePaidDraftOperationAfterFailure(params: {
+    claimedConfig: BrandRemixRunConfig;
+    organizationId: string;
+    runId: string;
+  }): Promise<void> {
+    const operationId = params.claimedConfig.paidDraftOperation?.id;
+    if (!operationId) return;
+    let expectedConfig = params.claimedConfig;
+    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+      if (expectedConfig.paidDraftOperation?.id !== operationId) return;
+      const releasedConfig = brandRemixRunConfigSchema.parse({
+        ...expectedConfig,
+        paidDraftOperation: undefined,
+        phase: 'approved',
+      });
+      const released = await this.compareAndSwapExactConfig({
+        expectedConfig,
+        nextConfig: releasedConfig,
+        organizationId: params.organizationId,
+        runId: params.runId,
+        status: ContentRunStatus.COMPLETED,
+      });
+      if (released) return;
+      const latest = await this.requireRun(params.organizationId, params.runId);
+      expectedConfig = this.parseConfig(latest.config, latest.id);
+    }
   }
 
   private async resolveBrandContext(
