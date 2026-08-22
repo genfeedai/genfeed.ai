@@ -43,8 +43,7 @@ function isRetryableEmailDeliveryStatus(
     statusCode === 408 ||
     statusCode === 425 ||
     statusCode === 429 ||
-    statusCode === 503 ||
-    (statusCode !== undefined && statusCode >= 500)
+    statusCode >= 500
   );
 }
 
