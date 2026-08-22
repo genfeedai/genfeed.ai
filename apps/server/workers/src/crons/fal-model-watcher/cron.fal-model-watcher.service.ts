@@ -6,25 +6,17 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
+import {
+  FalModelContractSyncService,
+  type FalSyncModelRecord,
+} from '@workers/crons/fal-model-watcher/fal-model-contract-sync.service';
+import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type {
   IFalModel,
-  IFalModelsResponse,
   IModelDiscoveryInput,
   IModelDiscoveryRunSummary,
 } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
-
-/** fal model search API — authentication is optional but rate limits are looser with a key */
-const FAL_MODELS_URL = 'https://api.fal.ai/v1/models';
-
-/** Maximum number of API pages to iterate to prevent runaway polling */
-const MAX_PAGES = 5;
-
-/** Page size requested from the fal model search API */
-const PAGE_LIMIT = 100;
-
-/** Timeout for individual fal API requests (30 seconds) */
-const API_TIMEOUT_MS = 30_000;
 
 /** Lifecycle status fal reports for endpoints that still accept requests */
 const FAL_MODEL_STATUS_ACTIVE = 'active';
@@ -58,6 +50,8 @@ export class CronFalModelWatcherService {
     private readonly modelDiscoveryService: ModelDiscoveryService,
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
+    private readonly falPlatformClient: FalPlatformClient,
+    private readonly falContractSyncService: FalModelContractSyncService,
   ) {}
 
   /**
@@ -78,9 +72,17 @@ export class CronFalModelWatcherService {
       draftsCreated: 0,
       errors: 0,
       newModelsFound: 0,
+      providerContractsDrifted: 0,
+      providerContractsQuarantined: 0,
+      providerContractsSynchronized: 0,
       timestamp: new Date(),
       totalPolled: 0,
     };
+
+    if (!this.configService.get('FAL_API_KEY')) {
+      this.logger.warn(`${url} FAL_API_KEY not configured, skipping sync`);
+      return summary;
+    }
 
     try {
       // Step 1: Fetch all known provider identities from the registry. The diff
@@ -88,24 +90,28 @@ export class CronFalModelWatcherService {
       // instead of pulling every row's JSONB config through
       // `modelsService.find`.
       const registryRows = await this.modelsService.prisma.model.findMany({
-        select: { endpoint: true, key: true, provider: true },
+        select: {
+          endpoint: true,
+          id: true,
+          isActive: true,
+          key: true,
+          provider: true,
+          reviewedProviderContractVersion: true,
+        },
         where: { isDeleted: false },
       });
-      const existingEndpoints = new Set(
+      const existingFalModels = new Map(
         registryRows
           .filter((row) => row.provider === ModelProvider.FAL)
-          .map((row) => row.endpoint || row.key)
-          .filter(
-            (endpoint): endpoint is string => typeof endpoint === 'string',
-          ),
+          .map((row) => [row.endpoint || row.key, row] as const),
       );
 
       this.logger.log(
-        `${url} loaded ${existingEndpoints.size} existing fal endpoints`,
+        `${url} loaded ${existingFalModels.size} existing fal endpoints`,
       );
 
-      // Step 2: Poll the fal model search API
-      const falModels = await this.pollFalModels();
+      // Step 2: Poll authenticated, OpenAPI-expanded Fal model search.
+      const falModels = await this.falPlatformClient.fetchModels();
       summary.totalPolled = falModels.length;
 
       this.logger.log(`${url} polled ${falModels.length} models from fal`);
@@ -117,9 +123,25 @@ export class CronFalModelWatcherService {
 
       this.logger.log(`${url} ${routableModels.length} routable fal endpoints`);
 
-      // Step 4: Diff against the registry
+      // Step 4: Fetch account-specific pricing for the exact endpoint set.
+      const pricing = await this.falPlatformClient.fetchPricing(
+        routableModels.map((model) => model.endpoint_id),
+      );
+      const pricingByEndpoint = new Map<
+        string,
+        Array<Record<string, unknown>>
+      >();
+      for (const price of pricing) {
+        const endpoint = price.endpoint_id;
+        if (typeof endpoint !== 'string') continue;
+        const endpointPrices = pricingByEndpoint.get(endpoint) ?? [];
+        endpointPrices.push(price);
+        pricingByEndpoint.set(endpoint, endpointPrices);
+      }
+
+      // Step 5: Diff against the registry.
       const newModels = routableModels.filter(
-        (model) => !existingEndpoints.has(model.endpoint_id),
+        (model) => !existingFalModels.has(model.endpoint_id),
       );
 
       summary.newModelsFound = newModels.length;
@@ -135,141 +157,82 @@ export class CronFalModelWatcherService {
         },
       );
 
-      // Step 5: Create draft entries for new fal models
-      for (const model of newModels) {
+      // Step 6: Create missing drafts, then persist a versioned contract for
+      // every endpoint. Candidate writes never replace reviewed runtime fields.
+      for (const model of routableModels) {
+        let registryModel = existingFalModels.get(model.endpoint_id);
         try {
-          const draft = await this.modelDiscoveryService.createDraftModel(
-            this.buildDiscoveryInput(model),
-          );
+          if (!registryModel) {
+            const draft = await this.modelDiscoveryService.createDraftModel(
+              this.buildDiscoveryInput(model),
+            );
 
-          if (draft) {
+            if (!draft) continue;
             summary.draftsCreated++;
+            registryModel = draft as unknown as FalSyncModelRecord;
             await this.sendDiscoveryNotification(
               model.endpoint_id,
               this.detectModelCategory(model),
               draft.cost ?? 0,
             );
           }
+
+          const syncResult = await this.falContractSyncService.synchronizeModel(
+            registryModel as FalSyncModelRecord,
+            model,
+            pricingByEndpoint.get(model.endpoint_id) ?? [],
+            summary.timestamp,
+          );
+          summary.providerContractsSynchronized =
+            (summary.providerContractsSynchronized ?? 0) + 1;
+          if (syncResult.drifted) {
+            summary.providerContractsDrifted =
+              (summary.providerContractsDrifted ?? 0) + 1;
+          }
+          if (syncResult.quarantined) {
+            summary.providerContractsQuarantined =
+              (summary.providerContractsQuarantined ?? 0) + 1;
+          }
         } catch (error: unknown) {
           summary.errors++;
+          if (registryModel?.id) {
+            await this.falContractSyncService.recordFailure(
+              'contract_sync_failed',
+              summary.timestamp,
+              registryModel.id,
+            );
+          }
           this.logger.error(
             `${url} failed to process model ${model.endpoint_id}`,
-            { error },
+            { reason: error instanceof Error ? error.name : 'unknown' },
           );
         }
       }
 
-      // Step 6: Touch lastSyncedAt for fal models seen in this run.
-      const syncedEndpoints = routableModels
-        .map((model) => model.endpoint_id)
-        .filter((endpoint) => existingEndpoints.has(endpoint));
-      await this.modelDiscoveryService.touchLastSyncedAt(
-        ModelProvider.FAL,
-        syncedEndpoints,
-      );
-
-      // Step 7: Log summary
+      // Step 7: Log low-cardinality observability only. Raw schemas, pricing,
+      // account metadata, and credentials never enter logs.
       this.logger.log(`${url} completed`, {
         draftsCreated: summary.draftsCreated,
         errors: summary.errors,
         newModelsFound: summary.newModelsFound,
+        providerContractsDrifted: summary.providerContractsDrifted,
+        providerContractsQuarantined: summary.providerContractsQuarantined,
+        providerContractsSynchronized: summary.providerContractsSynchronized,
         totalPolled: summary.totalPolled,
       });
 
       return summary;
     } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
+      summary.errors++;
+      await this.falContractSyncService.recordFailure(
+        'fal_sync_failed',
+        summary.timestamp,
+      );
+      this.logger.error(`${url} failed`, {
+        reason: error instanceof Error ? error.name : 'unknown',
+      });
       return summary;
     }
-  }
-
-  /**
-   * Poll the fal model search API, following `next_cursor` until it runs out.
-   * Limits to MAX_PAGES to prevent infinite loops from API issues.
-   *
-   * Soft-fails when FAL_API_KEY is absent: self-hosted installs without fal
-   * credentials skip discovery instead of erroring the worker.
-   */
-  private async pollFalModels(): Promise<IFalModel[]> {
-    const context = `${this.constructorName} pollFalModels`;
-    const token = this.configService.get('FAL_API_KEY');
-
-    if (!token) {
-      this.logger.warn(`${context} FAL_API_KEY not configured, skipping poll`);
-      return [];
-    }
-
-    const allModels: IFalModel[] = [];
-    let cursor: string | null = null;
-    let pageCount = 0;
-
-    while (pageCount < MAX_PAGES) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-        const requestUrl = new URL(FAL_MODELS_URL);
-        requestUrl.searchParams.set('limit', String(PAGE_LIMIT));
-        requestUrl.searchParams.set('status', FAL_MODEL_STATUS_ACTIVE);
-        if (cursor) {
-          requestUrl.searchParams.set('cursor', cursor);
-        }
-
-        const response = await fetch(requestUrl.toString(), {
-          headers: {
-            Authorization: `Key ${token}`,
-            'Content-Type': 'application/json',
-          },
-          method: 'GET',
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          this.logger.error(
-            `${context} fal API returned ${response.status} on page ${pageCount + 1}`,
-          );
-          break;
-        }
-
-        const data = (await response.json()) as IFalModelsResponse;
-
-        if (data.models && data.models.length > 0) {
-          allModels.push(...data.models);
-        }
-
-        pageCount++;
-
-        this.logger.log(
-          `${context} fetched page ${pageCount}, ${data.models?.length || 0} models (total: ${allModels.length})`,
-        );
-
-        if (!data.has_more || !data.next_cursor) {
-          return allModels;
-        }
-
-        cursor = data.next_cursor;
-      } catch (error: unknown) {
-        if ((error as Error)?.name === 'AbortError') {
-          this.logger.error(
-            `${context} request timed out on page ${pageCount + 1}`,
-          );
-        } else {
-          this.logger.error(`${context} error fetching page ${pageCount + 1}`, {
-            error,
-          });
-        }
-        break;
-      }
-    }
-
-    if (pageCount >= MAX_PAGES) {
-      this.logger.warn(
-        `${context} reached max page limit (${MAX_PAGES}), some models may not have been fetched`,
-      );
-    }
-
-    return allModels;
   }
 
   /**
@@ -342,8 +305,7 @@ export class CronFalModelWatcherService {
         estimatedCost,
         modelKey,
         provider: ModelProvider.FAL,
-        // fal's model search API publishes no per-run price; the draft is
-        // priced from category/creator patterns and reviewed before activation.
+        // Commercial pricing remains in the private provider-contract table.
         providerCostUsd: 0,
       });
     } catch (error: unknown) {

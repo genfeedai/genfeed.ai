@@ -51,6 +51,7 @@ export interface IReplicateVersionDetail {
  */
 export interface IFalModel {
   endpoint_id: string;
+  openapi?: Record<string, unknown>;
   metadata?: {
     category?: string;
     description?: string;
@@ -114,6 +115,12 @@ export interface IModelDiscoveryRunSummary {
   providerCostsDrifted?: number;
   /** Replicate watcher only: drifted models whose providerCostUsd was refreshed */
   providerCostsUpdated?: number;
+  /** Fal watcher only: synchronized candidates that differ from a reviewed contract */
+  providerContractsDrifted?: number;
+  /** Fal watcher only: candidates blocked by unsupported schema/pricing semantics */
+  providerContractsQuarantined?: number;
+  /** Fal watcher only: endpoint contracts observed in this run */
+  providerContractsSynchronized?: number;
 }
 
 /**

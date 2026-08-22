@@ -126,6 +126,17 @@ export { ApiKeyHelperService } from './services/api-key/api-key-helper.service';
 export { FilesClientService } from './services/files-microservice/client/files-client.service';
 export { ElevenLabsService } from './services/integrations/elevenlabs/services/elevenlabs.service';
 export { FalService } from './services/integrations/fal/services/fal.service';
+export {
+  adaptFalImageRequest,
+  adaptFalVideoRequest,
+  classifyFalSchemaFamily,
+  extractFalEndpointSchemas,
+  type FalEndpointSchemas,
+  type FalImageAdapterInput,
+  type FalJsonSchema,
+  FalSchemaFamily,
+  type FalVideoAdapterInput,
+} from './services/integrations/fal/services/fal-contract';
 export { KlingAIService } from './services/integrations/klingai/services/klingai.service';
 export { LeonardoAIService } from './services/integrations/leonardoai/services/leonardoai.service';
 export type {

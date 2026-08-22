@@ -20,6 +20,20 @@ function fixture(name: string): Record<string, unknown> {
   >;
 }
 
+function withoutProperty(
+  schema: ReturnType<typeof extractFalEndpointSchemas>['input'],
+  property: string,
+) {
+  return {
+    ...schema,
+    properties: Object.fromEntries(
+      Object.entries(schema.properties ?? {}).filter(
+        ([key]) => key !== property,
+      ),
+    ),
+  };
+}
+
 describe('reviewed Fal execution contracts', () => {
   it('extracts referenced input/output schemas and classifies modern image edit', () => {
     const schemas = extractFalEndpointSchemas(fixture('image-openapi.json'));
@@ -63,6 +77,50 @@ describe('reviewed Fal execution contracts', () => {
     ).toThrow('Fal input is missing required field: image_urls');
   });
 
+  it('adapts reviewed single-reference and text-only image families', () => {
+    const { input, output } = extractFalEndpointSchemas(
+      fixture('image-openapi.json'),
+    );
+    const singleInput = {
+      ...withoutProperty(input, 'image_urls'),
+      properties: {
+        ...withoutProperty(input, 'image_urls').properties,
+        image_url: { type: 'string' },
+      },
+      required: ['prompt', 'image_url'],
+    };
+    const textInput = {
+      ...withoutProperty(input, 'image_urls'),
+      required: ['prompt'],
+    };
+
+    expect(classifyFalSchemaFamily('image-to-image', singleInput, output)).toBe(
+      FalSchemaFamily.IMAGE_EDIT_SINGLE,
+    );
+    expect(
+      adaptFalImageRequest(FalSchemaFamily.IMAGE_EDIT_SINGLE, singleInput, {
+        height: 768,
+        prompt: 'edit this',
+        referenceImageUrls: ['https://cdn.test/a.png'],
+        width: 1024,
+      }),
+    ).toMatchObject({
+      image_url: 'https://cdn.test/a.png',
+      prompt: 'edit this',
+    });
+    expect(classifyFalSchemaFamily('text-to-image', textInput, output)).toBe(
+      FalSchemaFamily.IMAGE_TEXT,
+    );
+    expect(
+      adaptFalImageRequest(FalSchemaFamily.IMAGE_TEXT, textInput, {
+        height: 768,
+        prompt: 'create this',
+        referenceImageUrls: [],
+        width: 1024,
+      }),
+    ).toMatchObject({ prompt: 'create this' });
+  });
+
   it('classifies image-to-video and coerces duration to the reviewed string contract', () => {
     const schemas = extractFalEndpointSchemas(fixture('video-openapi.json'));
     const family = classifyFalSchemaFamily(
@@ -82,6 +140,31 @@ describe('reviewed Fal execution contracts', () => {
     ).toEqual({
       duration: '5',
       image_url: 'https://cdn.test/start.png',
+      prompt: 'slow camera push',
+      resolution: '1080p',
+    });
+  });
+
+  it('adapts a reviewed text-to-video family without inventing an image input', () => {
+    const { input, output } = extractFalEndpointSchemas(
+      fixture('video-openapi.json'),
+    );
+    const textInput = {
+      ...withoutProperty(input, 'image_url'),
+      required: ['prompt'],
+    };
+
+    expect(classifyFalSchemaFamily('text-to-video', textInput, output)).toBe(
+      FalSchemaFamily.VIDEO_TEXT,
+    );
+    expect(
+      adaptFalVideoRequest(FalSchemaFamily.VIDEO_TEXT, textInput, {
+        duration: 5,
+        prompt: 'slow camera push',
+        promptParams: { resolution: '1080p' },
+      }),
+    ).toEqual({
+      duration: '5',
       prompt: 'slow camera push',
       resolution: '1080p',
     });

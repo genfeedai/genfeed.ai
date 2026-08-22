@@ -29,7 +29,7 @@ function harness() {
     fetcher,
     logger,
     sleep,
-    client: new FalPlatformClient(logger, config, fetcher, sleep),
+    client: new FalPlatformClient(logger, config, { fetcher, sleep }),
   };
 }
 

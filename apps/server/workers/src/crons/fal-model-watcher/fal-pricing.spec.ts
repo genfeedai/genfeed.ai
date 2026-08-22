@@ -32,6 +32,19 @@ describe('Fal pricing contracts', () => {
     });
   });
 
+  it('preserves provider currency casing while mapping USD case-insensitively', () => {
+    const normalized = normalizeFalPrice({
+      currency: 'usd',
+      endpoint_id: 'fal-ai/lowercase-currency',
+      unit: 'image',
+      unit_price: '0.0100',
+    });
+
+    expect(normalized.currency).toBe('usd');
+    expect(normalized.unitPrice).toBe('0.0100');
+    expect(mapFalPricing(normalized)).toMatchObject({ supported: true });
+  });
+
   it.each([
     ['fal-ai/flat-request', PricingType.PER_REQUEST],
     ['fal-ai/per-image', PricingType.FLAT],
