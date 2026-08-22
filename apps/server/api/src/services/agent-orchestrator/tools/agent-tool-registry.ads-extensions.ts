@@ -57,7 +57,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional ads platform filter.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -108,7 +108,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -168,7 +168,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -228,7 +228,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -302,7 +302,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {

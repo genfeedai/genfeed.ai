@@ -776,6 +776,9 @@ export class AdsResearchService {
     if (value === 'tiktok_ads' || value === 'tiktok') {
       return 'tiktok';
     }
+    if (value === 'x_ads' || value === 'x' || value === 'twitter') {
+      return 'x';
+    }
     return platform as AdsResearchPlatform;
   }
 
@@ -786,6 +789,9 @@ export class AdsResearchService {
     if (platform === 'tiktok') {
       return 'tiktok';
     }
+    if (platform === 'x') {
+      return 'x_ads';
+    }
     return 'google_ads';
   }
 
@@ -795,6 +801,9 @@ export class AdsResearchService {
     }
     if (platform === 'tiktok') {
       return 'TikTok Ads';
+    }
+    if (platform === 'x') {
+      return 'X Ads';
     }
     return 'Google Ads';
   }

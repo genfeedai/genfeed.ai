@@ -28,7 +28,10 @@ export function readAdsPlatform(
   value: unknown,
 ): AdsResearchPlatform | undefined {
   // Ads research uses product-channel names, not CredentialPlatform values.
-  return value === 'meta' || value === 'google' || value === 'tiktok'
+  return value === 'meta' ||
+    value === 'google' ||
+    value === 'tiktok' ||
+    value === 'x'
     ? value
     : undefined;
 }

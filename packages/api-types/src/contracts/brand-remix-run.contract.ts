@@ -27,7 +27,12 @@ const shortTextSchema = z.string().trim().min(1).max(1_000);
 const longTextSchema = z.string().trim().min(1).max(10_000);
 const aspectRatioSchema = z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/);
 
-export const brandRemixAdPlatformValues = ['meta', 'google', 'tiktok'] as const;
+export const brandRemixAdPlatformValues = [
+  'meta',
+  'google',
+  'tiktok',
+  'x',
+] as const;
 export const brandRemixOrganicPlatformValues = [
   'tiktok',
   'instagram',

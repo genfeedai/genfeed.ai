@@ -523,7 +523,9 @@ export function useAdsResearchPageClient(
             ? 'Meta'
             : selectedAd.platform === 'tiktok'
               ? 'TikTok'
-              : 'Google'
+              : selectedAd.platform === 'x'
+                ? 'X'
+                : 'Google'
         } Campaign`,
         createWorkflow: true,
         dailyBudget: 50,

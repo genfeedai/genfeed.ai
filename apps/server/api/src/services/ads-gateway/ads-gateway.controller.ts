@@ -28,7 +28,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
-const VALID_PLATFORMS: AdsPlatform[] = ['meta', 'google', 'tiktok'];
+const VALID_PLATFORMS: AdsPlatform[] = ['meta', 'google', 'tiktok', 'x'];
 
 @AutoSwagger()
 @Controller('ads')

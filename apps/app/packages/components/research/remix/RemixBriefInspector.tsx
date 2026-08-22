@@ -613,7 +613,7 @@ export default function RemixBriefInspector(): ReactElement {
                 </SelectTrigger>
                 <SelectContent>
                   {(run.draft.target.kind === 'paid'
-                    ? ['meta', 'google', 'tiktok']
+                    ? ['meta', 'google', 'tiktok', 'x']
                     : ['tiktok', 'instagram', 'youtube']
                   ).map((platform) => (
                     <SelectItem key={platform} value={platform}>

@@ -100,7 +100,9 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
               ? 'Meta Ads'
               : adPack.campaignRecipe.platform === 'tiktok'
                 ? 'TikTok Ads'
-                : 'Google Ads'}{' '}
+                : adPack.campaignRecipe.platform === 'x'
+                  ? 'X Ads'
+                  : 'Google Ads'}{' '}
             / {adPack.campaignRecipe.channel}
           </p>
         </div>
@@ -284,7 +286,9 @@ export function DetailSidebar({
                       ? 'Meta Ads'
                       : detail.platform === 'tiktok'
                         ? 'TikTok Ads'
-                        : 'Google Ads'}
+                        : detail.platform === 'x'
+                          ? 'X Ads'
+                          : 'Google Ads'}
                   </Badge>
                   {detail.channel !== 'all' && (
                     <Badge variant="ghost">{detail.channel}</Badge>
