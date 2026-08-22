@@ -1261,6 +1261,16 @@ describe('BrandRemixRunsService', () => {
         }),
       }),
     );
+    const orphanLookup = (
+      prisma.ingredient.findMany as ReturnType<typeof vi.fn>
+    ).mock.calls.find(
+      ([query]) =>
+        query &&
+        typeof query === 'object' &&
+        'where' in query &&
+        (query.where as Record<string, unknown>).groupId === 'run-1',
+    )?.[0] as Record<string, unknown> | undefined;
+    expect(orphanLookup).not.toHaveProperty('take');
     expect(prisma.ingredient.updateMany).toHaveBeenCalledWith({
       data: { status: IngredientStatus.FAILED },
       where: expect.objectContaining({

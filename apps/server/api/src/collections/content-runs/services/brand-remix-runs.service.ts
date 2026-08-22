@@ -2345,7 +2345,6 @@ export class BrandRemixRunsService {
         templateVersion: config.revision,
       }),
       orderBy: { groupIndex: 'asc' },
-      take: Math.max(params.variants.length * 4, 16),
     });
     const resumableVariantIds = new Set(
       params.variants.map((variant) => variant.id),
