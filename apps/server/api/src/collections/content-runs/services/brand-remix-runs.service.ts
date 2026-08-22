@@ -97,6 +97,7 @@ const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const REVIEW_CLAIM_LEASE_MS = 5 * 60 * 1000;
 const GENERATION_CLAIM_LEASE_MS = 5 * 60 * 1000;
 const PAID_DRAFT_CLAIM_LEASE_MS = 5 * 60 * 1000;
+const AVATAR_REMIX_CREDIT_COST = 1;
 
 const RUN_SELECT = {
   brandId: true,
@@ -348,6 +349,14 @@ export class BrandRemixRunsService {
       brandId,
       config.sourceSnapshot.selector,
     );
+    if (
+      config.draft.output.kind === 'avatar' &&
+      !(request as RemixCreditsRequest).creditsConfig
+    ) {
+      throw new ConflictException(
+        'Avatar remix generation requires a deferred credit reservation.',
+      );
+    }
 
     let activeConfig = config;
     if (!activeConfig.execution) {
@@ -491,7 +500,7 @@ export class BrandRemixRunsService {
     }
 
     for (const variant of variants) {
-      activeConfig = await this.patchGeneratingVariant({
+      await this.patchGeneratingVariant({
         organizationId,
         patch: { status: 'processing' },
         recipeRevision: config.revision,
@@ -540,17 +549,22 @@ export class BrandRemixRunsService {
           ) as RemixCreditsRequest;
           const originalCredits = (request as RemixCreditsRequest)
             .creditsConfig;
-          variantRequest.creditsConfig = originalCredits
-            ? { ...originalCredits, deferred: true }
-            : undefined;
-          if (
-            activeConfig.draft.output.kind === 'avatar' &&
-            variantRequest.creditsConfig
-          ) {
+          if (activeConfig.draft.output.kind === 'avatar') {
+            const requestedAmount = originalCredits?.amount;
             variantRequest.creditsConfig = {
-              ...variantRequest.creditsConfig,
-              amount: 1,
+              ...originalCredits,
+              amount:
+                typeof requestedAmount === 'number' &&
+                Number.isFinite(requestedAmount) &&
+                requestedAmount > 0
+                  ? requestedAmount
+                  : AVATAR_REMIX_CREDIT_COST,
+              deferred: true,
             };
+          } else {
+            variantRequest.creditsConfig = originalCredits
+              ? { ...originalCredits, deferred: true }
+              : undefined;
           }
           const assetId = await this.dispatchVariant({
             brandId,

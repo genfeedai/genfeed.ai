@@ -54,6 +54,14 @@ const makeRun = (config: Record<string, unknown>) => ({
   updatedAt,
 });
 
+type TestCreditsRequest = Request & {
+  creditsConfig: {
+    amount: number;
+    deferred: boolean;
+    description: string;
+  };
+};
+
 describe('BrandRemixRunsService', () => {
   const contentRun = {
     create: vi.fn(),
@@ -95,7 +103,14 @@ describe('BrandRemixRunsService', () => {
     now: () => new Date('2026-08-20T10:00:00.000Z'),
     randomId: vi.fn(),
   };
-  const request = { context: { organizationId: 'org-1' } } as Request;
+  const request = {
+    context: { organizationId: 'org-1' },
+    creditsConfig: {
+      amount: 0,
+      deferred: true,
+      description: 'Brand remix generation',
+    },
+  } as unknown as TestCreditsRequest;
   const user = {
     brandId: 'brand-1',
     id: 'user-1',
@@ -106,6 +121,11 @@ describe('BrandRemixRunsService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    request.creditsConfig = {
+      amount: 0,
+      deferred: true,
+      description: 'Brand remix generation',
+    };
     (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
       (
         operation: (transaction: { contentRun: typeof contentRun }) => unknown,
@@ -1480,6 +1500,176 @@ describe('BrandRemixRunsService', () => {
       deferred: false,
     });
   });
+
+  it('preserves an explicit positive Avatar credit amount', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '9:16', count: 1, kind: 'avatar' },
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        await onCreated?.('avatar-explicit-credit-1');
+        await onCredits?.();
+        return {
+          externalId: 'heygen-explicit-credit-1',
+          ingredientId: 'avatar-explicit-credit-1',
+          status: 'processing',
+        };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 5,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    await service.start('org-1', 'run-1', user, creditRequest as never, {
+      expectedRevision: 1,
+    });
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith('org-1', 5);
+    expect(creditRequest.creditsConfig).toMatchObject({
+      amount: 5,
+      deferred: false,
+    });
+  });
+
+  it('stops Avatar provider consumption when aggregate credit reservation fails', async () => {
+    const created = await createPersistedRun();
+    let stored = created;
+    let providerConsumptions = 0;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+      false,
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        const ingredientId = `avatar-credit-blocked-${providerConsumptions + 1}`;
+        await onCreated?.(ingredientId);
+        await onCredits?.();
+        providerConsumptions += 1;
+        return {
+          externalId: `heygen-credit-blocked-${providerConsumptions}`,
+          ingredientId,
+          status: 'processing',
+        };
+      },
+    );
+    const creditRequest = {
+      ...request,
+      creditsConfig: {
+        amount: 0,
+        deferred: true,
+        description: 'Brand remix generation',
+      },
+    };
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      creditRequest as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(providerConsumptions).toBe(0);
+    expect(result.phase).toBe('failed');
+    expect(result.execution?.variants).toEqual(
+      expect.arrayContaining([expect.objectContaining({ status: 'failed' })]),
+    );
+    expect(creditRequest.creditsConfig).toMatchObject({
+      amount: 0,
+      deferred: false,
+    });
+  });
+
+  it('rejects Avatar generation without a deferred credit contract before claiming the run', async () => {
+    const created = await createPersistedRun();
+    contentRun.findFirst.mockResolvedValue(created);
+    const noCreditsRequest = {
+      context: { organizationId: 'org-1' },
+    } as Request;
+
+    await expect(
+      service.start('org-1', 'run-1', user, noCreditsRequest, {
+        expectedRevision: 1,
+      }),
+    ).rejects.toThrow('requires a deferred credit reservation');
+
+    expect(contentRun.updateMany).not.toHaveBeenCalled();
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each(['image', 'video'] as const)(
+    'preserves explicit %s remix credit settlement',
+    async (kind) => {
+      const created = await createPersistedRun({
+        draft: {
+          output: { aspectRatio: '1:1', count: 1, kind },
+        },
+      });
+      let stored = created;
+      contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+      contentRun.updateMany.mockImplementation(({ data }) => {
+        stored = makeRun(data.config as Record<string, unknown>);
+        stored.status = (data.status ?? stored.status) as ContentRunStatus;
+        return Promise.resolve({ count: 1 });
+      });
+      const generator =
+        kind === 'image'
+          ? imageGenerationService.generateImage
+          : videoGenerationService.generateVideo;
+      generator.mockImplementation(
+        async (_user, _dto, _request, onCreated, _scope, onCredits) => {
+          const ingredientId = `${kind}-explicit-credit-1`;
+          await onCreated?.(ingredientId);
+          await onCredits?.();
+          return { data: { id: ingredientId, type: 'ingredient' } };
+        },
+      );
+      const creditRequest = {
+        ...request,
+        creditsConfig: {
+          amount: 4,
+          deferred: true,
+          description: 'Brand remix generation',
+        },
+      };
+
+      await service.start('org-1', 'run-1', user, creditRequest as never, {
+        expectedRevision: 1,
+      });
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith('org-1', 4);
+      expect(creditRequest.creditsConfig).toMatchObject({
+        amount: 4,
+        deferred: false,
+      });
+    },
+  );
 
   it('passes an operator-authored Avatar script verbatim after trimming', async () => {
     const exactScript = '  Here is the exact line our avatar should say.  ';
