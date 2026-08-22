@@ -173,7 +173,7 @@ export class PausedMetaCampaignDraftService {
         const campaigns = await this.metaAdsService.listCampaigns(
           accessToken,
           resolvedAdAccountId,
-          { limit: 200 },
+          { allPages: true, limit: 200 },
         );
         const existingCampaign = campaigns.find(
           (campaign) => campaign.name === campaignName,
@@ -196,6 +196,7 @@ export class PausedMetaCampaignDraftService {
           accessToken,
           resolvedAdAccountId,
           campaignId,
+          { allPages: true },
         );
         const existingAdSet = adSets.find((adSet) => adSet.name === adSetName);
         const adSetId =
@@ -216,6 +217,7 @@ export class PausedMetaCampaignDraftService {
           accessToken,
           resolvedAdAccountId,
           adSetId,
+          { allPages: true },
         );
         const existingAd = ads.find((ad) => ad.name === adName);
         let adId = existingAd?.id;

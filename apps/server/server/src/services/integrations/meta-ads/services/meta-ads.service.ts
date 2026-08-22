@@ -26,6 +26,14 @@ import type {
 } from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { firstValueFrom } from 'rxjs';
 
+interface MetaGraphPage<T> {
+  data: T[];
+  paging?: {
+    cursors?: { after?: string };
+    next?: string;
+  };
+}
+
 @Injectable()
 export class MetaAdsService {
   private readonly API_VERSION = 'v24.0';
@@ -136,6 +144,41 @@ export class MetaAdsService {
     });
   }
 
+  private async listGraphPages<T>(
+    accessToken: string,
+    path: string,
+    params: Record<string, unknown>,
+    allPages: boolean,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    const seenCursors = new Set<string>();
+    let after: string | undefined;
+    let shouldContinue = true;
+
+    while (shouldContinue) {
+      const response = await this.makeRequest<MetaGraphPage<T>>(
+        accessToken,
+        path,
+        { ...params, ...(after ? { after } : {}) },
+      );
+      items.push(...response.data);
+      const nextCursor = response.paging?.cursors?.after;
+      if (
+        !allPages ||
+        typeof response.paging?.next !== 'string' ||
+        !nextCursor ||
+        seenCursors.has(nextCursor)
+      ) {
+        shouldContinue = false;
+        continue;
+      }
+      seenCursors.add(nextCursor);
+      after = nextCursor;
+    }
+
+    return items;
+  }
+
   async getAdAccounts(accessToken: string): Promise<MetaAdAccount[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -171,38 +214,41 @@ export class MetaAdsService {
   async listCampaigns(
     accessToken: string,
     adAccountId: string,
-    params?: { status?: string; limit?: number },
+    params?: { allPages?: boolean; status?: string; limit?: number },
   ): Promise<MetaCampaign[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.makeRequest<{
-        data: Array<{
-          id: string;
-          name: string;
-          objective: string;
-          status: string;
-          daily_budget?: string;
-          lifetime_budget?: string;
-          start_time?: string;
-          stop_time?: string;
-        }>;
-      }>(accessToken, `${adAccountId}/campaigns`, {
-        fields:
-          'id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time',
-        limit: params?.limit || 50,
-        ...(params?.status && {
-          filtering: JSON.stringify([
-            {
-              field: 'effective_status',
-              operator: 'IN',
-              value: [params.status],
-            },
-          ]),
-        }),
-      });
+      const campaigns = await this.listGraphPages<{
+        id: string;
+        name: string;
+        objective: string;
+        status: string;
+        daily_budget?: string;
+        lifetime_budget?: string;
+        start_time?: string;
+        stop_time?: string;
+      }>(
+        accessToken,
+        `${adAccountId}/campaigns`,
+        {
+          fields:
+            'id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time',
+          limit: params?.limit || 50,
+          ...(params?.status && {
+            filtering: JSON.stringify([
+              {
+                field: 'effective_status',
+                operator: 'IN',
+                value: [params.status],
+              },
+            ]),
+          }),
+        },
+        Boolean(params?.allPages),
+      );
 
-      return response.data.map((campaign) => ({
+      return campaigns.map((campaign) => ({
         dailyBudget: campaign.daily_budget
           ? Number(campaign.daily_budget) / 100
           : undefined,
@@ -226,19 +272,23 @@ export class MetaAdsService {
     accessToken: string,
     adAccountId: string,
     campaignId?: string,
+    options?: { allPages?: boolean },
   ): Promise<MetaNamedAdObject[]> {
-    const response = await this.makeRequest<{
-      data: Array<{
-        campaign_id?: string;
-        id: string;
-        name: string;
-        status: string;
-      }>;
-    }>(accessToken, `${adAccountId}/adsets`, {
-      fields: 'id,name,status,campaign_id',
-      limit: 200,
-    });
-    return response.data
+    const items = await this.listGraphPages<{
+      campaign_id?: string;
+      id: string;
+      name: string;
+      status: string;
+    }>(
+      accessToken,
+      campaignId ? `${campaignId}/adsets` : `${adAccountId}/adsets`,
+      {
+        fields: 'id,name,status,campaign_id',
+        limit: 200,
+      },
+      Boolean(options?.allPages),
+    );
+    return items
       .filter((item) => !campaignId || item.campaign_id === campaignId)
       .map(({ id, name, status }) => ({ id, name, status }));
   }
@@ -247,19 +297,23 @@ export class MetaAdsService {
     accessToken: string,
     adAccountId: string,
     adSetId?: string,
+    options?: { allPages?: boolean },
   ): Promise<MetaNamedAdObject[]> {
-    const response = await this.makeRequest<{
-      data: Array<{
-        adset_id?: string;
-        id: string;
-        name: string;
-        status: string;
-      }>;
-    }>(accessToken, `${adAccountId}/ads`, {
-      fields: 'id,name,status,adset_id',
-      limit: 200,
-    });
-    return response.data
+    const items = await this.listGraphPages<{
+      adset_id?: string;
+      id: string;
+      name: string;
+      status: string;
+    }>(
+      accessToken,
+      adSetId ? `${adSetId}/ads` : `${adAccountId}/ads`,
+      {
+        fields: 'id,name,status,adset_id',
+        limit: 200,
+      },
+      Boolean(options?.allPages),
+    );
+    return items
       .filter((item) => !adSetId || item.adset_id === adSetId)
       .map(({ id, name, status }) => ({ id, name, status }));
   }

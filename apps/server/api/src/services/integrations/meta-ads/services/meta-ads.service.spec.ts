@@ -314,6 +314,67 @@ describe('MetaAdsService', () => {
       expect(params.limit).toBe(10);
     });
 
+    it('should follow every Graph cursor when recovery requests all pages', async () => {
+      httpService.get
+        .mockReturnValueOnce(
+          of({
+            config: {} as never,
+            data: {
+              data: [
+                {
+                  id: 'campaign-old',
+                  name: 'Older campaign',
+                  objective: 'OUTCOME_TRAFFIC',
+                  status: 'PAUSED',
+                },
+              ],
+              paging: {
+                cursors: { after: 'cursor-2' },
+                next: 'https://graph.facebook.com/v24.0/act_123/campaigns?after=cursor-2',
+              },
+            },
+            headers: {},
+            status: 200,
+            statusText: 'OK',
+          }),
+        )
+        .mockReturnValueOnce(
+          of({
+            config: {} as never,
+            data: {
+              data: [
+                {
+                  id: 'campaign-remix',
+                  name: 'Genfeed Remix run-1-2-variant-1',
+                  objective: 'OUTCOME_TRAFFIC',
+                  status: 'PAUSED',
+                },
+              ],
+            },
+            headers: {},
+            status: 200,
+            statusText: 'OK',
+          }),
+        );
+
+      const result = await service.listCampaigns(mockAccessToken, 'act_123', {
+        allPages: true,
+        limit: 200,
+      });
+
+      expect(result.map((campaign) => campaign.id)).toEqual([
+        'campaign-old',
+        'campaign-remix',
+      ]);
+      expect(httpService.get).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining('graph.facebook.com/v24.0/act_123/campaigns'),
+        expect.objectContaining({
+          params: expect.objectContaining({ after: 'cursor-2' }),
+        }),
+      );
+    });
+
     it('should throw and log error on API failure', async () => {
       httpService.get.mockReturnValue(
         throwError(() => new Error('Campaign fetch failed')),
