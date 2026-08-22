@@ -162,7 +162,6 @@
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/usage/content.tsx": 21,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/webhooks/content.tsx": 14,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-conversation-page.tsx": 3,
-    "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-profile-page.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-checklist-card.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-overview-card.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-rewards-card.tsx": 3,

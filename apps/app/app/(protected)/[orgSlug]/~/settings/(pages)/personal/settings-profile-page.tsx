@@ -3,6 +3,7 @@
 // biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
 import { useCallback, useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
+import { useTranslations } from 'next-intl';
 import {
   type AppLocale,
   DEFAULT_LOCALE,
@@ -54,6 +55,7 @@ const THEME_LABELS: Record<ThemePreference, string> = {
 };
 
 export default function SettingsProfilePage() {
+  const translate = useTranslations('common');
   const { user, isLoaded } = useAuthUser();
   const { currentUser, mutateUser } = useCurrentUser();
   const { setTheme, theme } = useTheme();
@@ -168,12 +170,14 @@ export default function SettingsProfilePage() {
       } catch (error: unknown) {
         logger.error('Failed to update workflow email preference', error);
         setIsWorkflowNotificationsEmail(previousValue);
-        notifications.error('Failed to save your workflow email preference.');
+        notifications.error(
+          translate('settings.profile.workflowEmail.saveError'),
+        );
       } finally {
         setIsSaving(false);
       }
     },
-    [getUsersService, isWorkflowNotificationsEmail, notifications],
+    [getUsersService, isWorkflowNotificationsEmail, notifications, translate],
   );
 
   if (!isLoaded) {
@@ -207,13 +211,20 @@ export default function SettingsProfilePage() {
       <Card label="Profile Information" bodyClassName="gap-3 p-4">
         <div className="space-y-3">
           <div>
-            <p className="text-sm text-muted-foreground">Name</p>
-            <p className="font-medium">{user?.fullName || 'Not set'}</p>
+            <p className="text-sm text-muted-foreground">
+              {translate('settings.profile.fields.name')}
+            </p>
+            <p className="font-medium">
+              {user?.fullName || translate('settings.profile.fields.notSet')}
+            </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Email</p>
+            <p className="text-sm text-muted-foreground">
+              {translate('settings.profile.fields.email')}
+            </p>
             <p className="font-medium">
-              {user?.primaryEmailAddress?.emailAddress || 'Not set'}
+              {user?.primaryEmailAddress?.emailAddress ||
+                translate('settings.profile.fields.notSet')}
             </p>
           </div>
         </div>
@@ -290,11 +301,16 @@ export default function SettingsProfilePage() {
         />
       </Card>
 
-      <Card label="Email Notifications" bodyClassName="gap-3 p-4">
+      <Card
+        label={translate('settings.profile.workflowEmail.cardTitle')}
+        bodyClassName="gap-3 p-4"
+      >
         <div className="space-y-3">
           <Switch
-            label="Workflow Emails"
-            description="Send an email when a workflow completes or fails."
+            label={translate('settings.profile.workflowEmail.label')}
+            description={translate(
+              'settings.profile.workflowEmail.description',
+            )}
             isChecked={isWorkflowNotificationsEmail}
             isDisabled={isSaving || workflowPreferenceLoadState !== 'ready'}
             onChange={(e) =>
@@ -304,9 +320,11 @@ export default function SettingsProfilePage() {
           {workflowPreferenceLoadState === 'error' ? (
             <Alert type={AlertCategory.WARNING}>
               <div className="flex items-center justify-between gap-3">
-                <span>Workflow email preference could not be loaded.</span>
+                <span>
+                  {translate('settings.profile.workflowEmail.loadError')}
+                </span>
                 <Button
-                  label="Retry"
+                  label={translate('actions.retry')}
                   onClick={() => {
                     setWorkflowPreferenceLoadRequest((request) => request + 1);
                   }}

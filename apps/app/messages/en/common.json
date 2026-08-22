@@ -106,6 +106,20 @@
     }
   },
   "settings": {
+    "profile": {
+      "fields": {
+        "email": "Email",
+        "name": "Name",
+        "notSet": "Not set"
+      },
+      "workflowEmail": {
+        "cardTitle": "Email Notifications",
+        "description": "Send an email when a workflow completes or fails.",
+        "label": "Workflow Emails",
+        "loadError": "Workflow email preference could not be loaded.",
+        "saveError": "Failed to save your workflow email preference."
+      }
+    },
     "skills": {
       "actions": {
         "customize": "Customize",
