@@ -7,7 +7,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('FacebookService', () => {
   let service: FacebookService;
-  let configService: ConfigService;
 
   const mockConfigService = {
     get: vi.fn((key: string) => {
@@ -63,7 +62,6 @@ describe('FacebookService', () => {
     }).compile();
 
     service = module.get<FacebookService>(FacebookService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   afterEach(() => {
@@ -163,6 +161,31 @@ describe('FacebookService', () => {
       expect(profile.id).toBe('123');
       expect(profile.name).toBe('Test User');
       expect(profile.email).toBe('test@fb.com');
+    });
+  });
+
+  describe('getGrantedPermissions', () => {
+    it('captures only permissions Meta reports as granted', async () => {
+      const { of } = await import('rxjs');
+      mockHttpService.get.mockReturnValue(
+        of({
+          data: {
+            data: [
+              { permission: 'ads_read', status: 'granted' },
+              { permission: 'ads_management', status: 'granted' },
+              { permission: 'pages_manage_posts', status: 'declined' },
+            ],
+          },
+        }),
+      );
+
+      const result = await service.getGrantedPermissions('valid-token');
+
+      expect(result).toEqual(['ads_management', 'ads_read']);
+      expect(mockHttpService.get).toHaveBeenCalledWith(
+        'https://graph.facebook.com/v18.0/me/permissions',
+        { params: { access_token: 'valid-token' } },
+      );
     });
   });
 });

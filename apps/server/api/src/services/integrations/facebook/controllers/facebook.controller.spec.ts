@@ -26,6 +26,7 @@ describe('FacebookController', () => {
     exchangeAuthCodeForAccessToken: vi.fn(),
     generateAuthUrl: vi.fn(),
     getPostAnalytics: vi.fn(),
+    getGrantedPermissions: vi.fn(),
     getUserPages: vi.fn(),
     getUserProfile: vi.fn(),
     schedulePost: vi.fn(),
@@ -126,6 +127,10 @@ describe('FacebookController', () => {
         name: 'Person',
         picture: { data: { url: 'https://facebook.example/avatar.jpg' } },
       });
+      mockFacebookService.getGrantedPermissions.mockResolvedValue([
+        'ads_management',
+        'ads_read',
+      ]);
 
       const result = await controller.verify({} as never, {
         code: 'auth-code',
@@ -135,7 +140,13 @@ describe('FacebookController', () => {
       expect(
         mockCredentialsService.findPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.FACEBOOK);
-      expect(mockCredentialsService.patch).toHaveBeenCalled();
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        'test-object-id',
+        expect.objectContaining({
+          grantedScopes: ['ads_management', 'ads_read'],
+          grantedScopesCapturedAt: expect.any(Date),
+        }),
+      );
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
         'cred-1',
         'test-object-id',

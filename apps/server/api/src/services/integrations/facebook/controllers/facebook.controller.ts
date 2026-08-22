@@ -135,6 +135,10 @@ export class FacebookController {
       }
 
       const profile = await this.facebookService.getUserProfile(accessToken);
+      const grantedScopes =
+        scope === undefined || scope === null
+          ? await this.facebookService.getGrantedPermissions(accessToken)
+          : scope;
 
       let updatedCredential = await this.credentialsService.patch(
         credential.id,
@@ -146,7 +150,7 @@ export class FacebookController {
           isConnected: true,
           isDeleted: false,
           oauthState: null,
-          ...buildGrantedScopesCredentialPatch(scope),
+          ...buildGrantedScopesCredentialPatch(grantedScopes),
         },
       );
 
