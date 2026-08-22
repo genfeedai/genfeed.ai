@@ -1,0 +1,77 @@
+{
+  "openapi": "3.0.4",
+  "paths": {
+    "/fal-ai/modern-image/edit": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModernImageEditInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModernImageOutput"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ModernImageEditInput": {
+        "type": "object",
+        "required": ["prompt", "image_urls"],
+        "properties": {
+          "prompt": { "type": "string" },
+          "image_urls": {
+            "type": "array",
+            "items": { "type": "string", "format": "uri" }
+          },
+          "image_size": {
+            "oneOf": [
+              { "type": "string", "enum": ["square_hd", "landscape_16_9"] },
+              {
+                "type": "object",
+                "required": ["width", "height"],
+                "properties": {
+                  "width": { "type": "integer" },
+                  "height": { "type": "integer" }
+                }
+              }
+            ]
+          },
+          "seed": { "type": "integer" }
+        }
+      },
+      "ModernImageOutput": {
+        "type": "object",
+        "required": ["images"],
+        "properties": {
+          "images": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ImageAsset" }
+          }
+        }
+      },
+      "ImageAsset": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

@@ -23,7 +23,7 @@ describe('ModelSerializer', () => {
     expect(result.data.attributes).toHaveProperty('isDefault', false);
   });
 
-  it('serializes dynamic registry metadata', () => {
+  it('keeps raw provider commercial metadata private', () => {
     const now = new Date();
     const result = ModelSerializer.serialize({
       id: '1',
@@ -48,11 +48,12 @@ describe('ModelSerializer', () => {
     expect(result.data.attributes).toMatchObject({
       isDiscovered: true,
       isPublic: true,
-      margin: 0.2,
       organizationId: 'org-1',
       parentModelId: 'base-model',
-      providerConfig: { source: 'provider-sync' },
       trainingId: 'training-1',
     });
+    expect(result.data.attributes).not.toHaveProperty('margin');
+    expect(result.data.attributes).not.toHaveProperty('providerConfig');
+    expect(result.data.attributes).not.toHaveProperty('providerCostUsd');
   });
 });

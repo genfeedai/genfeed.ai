@@ -1,0 +1,52 @@
+{
+  "prices": [
+    {
+      "endpoint_id": "fal-ai/flat-request",
+      "unit_price": 0.01,
+      "unit": "request",
+      "currency": "USD"
+    },
+    {
+      "endpoint_id": "fal-ai/per-image",
+      "unit_price": 0.025,
+      "unit": "image",
+      "currency": "USD"
+    },
+    {
+      "endpoint_id": "fal-ai/per-second",
+      "unit_price": 0.075,
+      "unit": "second",
+      "currency": "USD"
+    },
+    {
+      "endpoint_id": "fal-ai/per-megapixel",
+      "unit_price": 0.0045,
+      "unit": "megapixel",
+      "currency": "USD"
+    },
+    {
+      "endpoint_id": "fal-ai/per-token",
+      "unit_price": 0.0000025,
+      "unit": "token",
+      "currency": "USD"
+    },
+    {
+      "endpoint_id": "fal-ai/gpu-priced",
+      "unit_price": 0.0004,
+      "unit": "gpu_second",
+      "currency": "USD"
+    },
+    {
+      "endpoint_id": "fal-ai/conditional-image",
+      "unit_price": 0.15,
+      "unit": "image",
+      "currency": "USD",
+      "conditions": {
+        "resolution": "4K",
+        "with_audio": false
+      }
+    }
+  ],
+  "next_cursor": null,
+  "has_more": false
+}
