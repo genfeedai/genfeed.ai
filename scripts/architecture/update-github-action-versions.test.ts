@@ -166,6 +166,15 @@ describe('GitHub Action version updater', () => {
           '.github/workflows/ci.yml',
         ],
       },
+      {
+        action: 'actions/setup-node',
+        from: ['v7'],
+        to: {
+          sha: '820762786026740c76f36085b0efc47a31fe5020',
+          tag: 'v7',
+        },
+        files: ['.github/workflows/ci.yml'],
+      },
     ]);
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining(
