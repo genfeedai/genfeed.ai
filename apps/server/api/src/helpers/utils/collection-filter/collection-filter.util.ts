@@ -27,6 +27,34 @@ import { ForbiddenException } from '@nestjs/common';
  */
 export class CollectionFilterUtil {
   /**
+   * Build a brand filter without allowing a member to override the active
+   * brand carried by the authenticated request context.
+   *
+   * Platform superadmins retain explicit cross-brand filtering. Ordinary
+   * members must switch their active brand first, which makes the request
+   * context the single authorization source instead of trusting a query param.
+   */
+  static buildAuthorizedBrandFilter(
+    brand: unknown,
+    user: { brandId?: string },
+    isSuperAdmin: boolean,
+    defaultTo: 'user' | 'exists' | 'none' = 'user',
+  ): string | Record<string, unknown> {
+    if (
+      isEntityId(brand) &&
+      !isSuperAdmin &&
+      String(brand) !== user.brandId?.toString()
+    ) {
+      throw new ForbiddenException({
+        detail: 'Access denied to this brand',
+        title: 'Forbidden',
+      });
+    }
+
+    return CollectionFilterUtil.buildBrandFilter(brand, user, defaultTo);
+  }
+
+  /**
    * Authorize list-query brand/org filters for non-superadmins.
    *
    * Members may only pass `organizationId` equal to their session org. An explicit

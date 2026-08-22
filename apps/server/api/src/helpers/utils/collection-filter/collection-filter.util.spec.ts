@@ -102,6 +102,41 @@ describe('CollectionFilterUtil', () => {
     });
   });
 
+  describe('buildAuthorizedBrandFilter', () => {
+    const activeBrandId = '550e8400-e29b-41d4-a716-446655440003';
+    const foreignBrandId = '550e8400-e29b-41d4-a716-446655440004';
+
+    it('allows a member to query the active authenticated brand', () => {
+      expect(
+        CollectionFilterUtil.buildAuthorizedBrandFilter(
+          activeBrandId,
+          { brandId: activeBrandId },
+          false,
+        ),
+      ).toBe(activeBrandId);
+    });
+
+    it('rejects a member query override to another brand', () => {
+      expect(() =>
+        CollectionFilterUtil.buildAuthorizedBrandFilter(
+          foreignBrandId,
+          { brandId: activeBrandId },
+          false,
+        ),
+      ).toThrow(ForbiddenException);
+    });
+
+    it('allows a superadmin to query another brand', () => {
+      expect(
+        CollectionFilterUtil.buildAuthorizedBrandFilter(
+          foreignBrandId,
+          { brandId: activeBrandId },
+          true,
+        ),
+      ).toBe(foreignBrandId);
+    });
+  });
+
   describe('buildScopeFilter', () => {
     it('returns provided scope value', () => {
       const result = CollectionFilterUtil.buildScopeFilter(AssetScope.PUBLIC);

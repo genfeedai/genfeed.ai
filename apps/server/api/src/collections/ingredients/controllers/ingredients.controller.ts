@@ -10,6 +10,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -22,7 +23,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type {
   ILibrarySummary,
@@ -88,10 +88,10 @@ export class IngredientsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const brandId = CollectionFilterUtil.buildBrandFilter(
+    const brandId = CollectionFilterUtil.buildAuthorizedBrandFilter(
       query.brandId,
       user,
-      'user',
+      getIsSuperAdmin(user, request),
     );
 
     // `categories` is the multi-select Library type axis; `category` stays for
@@ -156,16 +156,19 @@ export class IngredientsController {
   @ApiOperation({ summary: 'Library summary counters for the sidebar' })
   @ApiResponse({ description: 'Library summary returned', status: 200 })
   async getSummary(
+    @Req() request: Request,
     @Query() query: IngredientsQueryDto,
     @CurrentUser() user: User,
   ): Promise<ILibrarySummary> {
     // Counters follow the same brand scope as the list: an explicit brand when
     // asked for, otherwise the caller's brand, otherwise any branded asset.
-    const brandFilter: Prisma.IngredientWhereInput = isEntityId(query.brandId)
-      ? { brandId: String(query.brandId) }
-      : user.brandId
-        ? { brandId: user.brandId }
-        : { brandId: { not: null } };
+    const brandFilter: Prisma.IngredientWhereInput = {
+      brandId: CollectionFilterUtil.buildAuthorizedBrandFilter(
+        query.brandId,
+        user,
+        getIsSuperAdmin(user, request),
+      ),
+    };
 
     return this.ingredientsService.getLibrarySummary(
       user.organizationId,

@@ -111,6 +111,32 @@ describe('IngredientsController — Library axes', () => {
       expect(andBranches(aggregate)).toContainEqual({ organizationId });
     });
 
+    it('rejects a member brand override outside the active context', async () => {
+      await expect(
+        controller.findAll(
+          mockRequest,
+          { brandId: testId('brand', 2) } as IngredientsQueryDto,
+          mockUser,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('allows a superadmin brand override inside the tenant query', async () => {
+      const otherBrandId = testId('brand', 2);
+
+      await controller.findAll(
+        mockRequest,
+        { brandId: otherBrandId } as IngredientsQueryDto,
+        { ...mockUser, isSuperAdmin: true },
+      );
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0];
+      expect(andBranches(aggregate)).toContainEqual({ brandId: otherBrandId });
+      expect(andBranches(aggregate)).toContainEqual({ organizationId });
+    });
+
     it('filters the type axis on the multi-select `categories` field', async () => {
       await controller.findAll(
         mockRequest,
@@ -225,7 +251,11 @@ describe('IngredientsController — Library axes', () => {
 
   describe('getSummary', () => {
     it("delegates with the caller's organization and brand scope", async () => {
-      await controller.getSummary({} as IngredientsQueryDto, mockUser);
+      await controller.getSummary(
+        mockRequest,
+        {} as IngredientsQueryDto,
+        mockUser,
+      );
 
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
         organizationId,
@@ -233,12 +263,27 @@ describe('IngredientsController — Library axes', () => {
       );
     });
 
-    it('honours an explicit brand override', async () => {
+    it('rejects an explicit foreign-brand override for a member', async () => {
+      const otherBrandId = testId('brand', 2);
+
+      await expect(
+        controller.getSummary(
+          mockRequest,
+          { brandId: otherBrandId } as IngredientsQueryDto,
+          mockUser,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(ingredientsService.getLibrarySummary).not.toHaveBeenCalled();
+    });
+
+    it('allows a superadmin explicit brand override', async () => {
       const otherBrandId = testId('brand', 2);
 
       await controller.getSummary(
+        mockRequest,
         { brandId: otherBrandId } as IngredientsQueryDto,
-        mockUser,
+        { ...mockUser, isSuperAdmin: true },
       );
 
       expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
