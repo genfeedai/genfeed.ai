@@ -1831,15 +1831,13 @@ describe('BrandRemixRunsService', () => {
       service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', body),
     ).rejects.toThrow('Meta ad creation failed');
     expect(stored.config).toMatchObject({
-      paidDraftOperation: {
-        adAccountId: 'act-1',
-        credentialId: 'credential-1',
-        variantId: 'variant-1',
-      },
-      phase: 'paid_draft_creating',
+      phase: 'approved',
     });
     expect(
       (stored.config as Record<string, unknown>).paidDraft,
+    ).toBeUndefined();
+    expect(
+      (stored.config as Record<string, unknown>).paidDraftOperation,
     ).toBeUndefined();
 
     const recovered = await service.preparePausedMetaDraft(
@@ -2048,6 +2046,142 @@ describe('BrandRemixRunsService', () => {
     expect(result.phase).toBe('paid_draft_ready');
     expect(result.paidDraft).toMatchObject({ status: 'PAUSED' });
   });
+
+  it('blocks same-destination retries while the Meta claim lease is active', async () => {
+    const approved = await createApprovedMetaRun();
+    let stored = makeRun({
+      ...(approved.config as Record<string, unknown>),
+      paidDraftOperation: {
+        adAccountId: 'act-1',
+        claimedAt: '2026-08-20T10:00:00.000Z',
+        credentialId: 'credential-1',
+        id: 'run-1:meta:1:variant-1',
+        linkUrl: 'https://tiktok.example/@creator/video/1',
+        variantId: 'variant-1',
+      },
+      phase: 'paid_draft_creating',
+    });
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(result.phase).toBe('paid_draft_creating');
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+  });
+
+  it('does not call Meta when the paid-draft claim loses its exact-config CAS', async () => {
+    const created = await createApprovedMetaRun();
+    created.status = ContentRunStatus.COMPLETED;
+    contentRun.findFirst.mockResolvedValue(created);
+    contentRun.updateMany.mockResolvedValue({ count: 0 });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads_management'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('concurrent Meta draft action');
+
+    expect(contentRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          config: { equals: expect.any(Object) },
+        }),
+      }),
+    );
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+  });
+
+  async function createApprovedMetaRun() {
+    return createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'meta' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original Meta visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'review-workflow-execution-1',
+        workflowId: 'review-workflow-1',
+      },
+    });
+  }
 
   async function createPersistedRun(
     overrides: {

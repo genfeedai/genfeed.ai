@@ -8,7 +8,10 @@ import {
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
 import { GenerationReservationBarrier } from '@api/collections/content-runs/services/generation-reservation-barrier';
-import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
+import {
+  type PausedMetaCampaignDraftResult,
+  PausedMetaCampaignDraftService,
+} from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
@@ -1040,16 +1043,20 @@ export class BrandRemixRunsService {
           'A concurrent Meta draft action won the claim.',
         );
       }
-    } else if (
-      config.paidDraftOperation.credentialId !==
-        input.destination.credentialId ||
-      config.paidDraftOperation.adAccountId !== input.destination.adAccountId ||
-      config.paidDraftOperation.variantId !== selectedVariant.id
-    ) {
+    } else {
+      const matchesClaim =
+        config.paidDraftOperation.credentialId ===
+          input.destination.credentialId &&
+        config.paidDraftOperation.adAccountId ===
+          input.destination.adAccountId &&
+        config.paidDraftOperation.variantId === selectedVariant.id;
       const claimAge =
         this.runtime.now().getTime() -
         new Date(config.paidDraftOperation.claimedAt).getTime();
       if (claimAge < PAID_DRAFT_CLAIM_LEASE_MS) {
+        if (matchesClaim) {
+          return this.project(run, brandContext, config);
+        }
         throw new ConflictException(
           'Resume the existing Meta draft destination and variant until its recovery lease expires.',
         );
@@ -1072,17 +1079,34 @@ export class BrandRemixRunsService {
         );
       }
     }
-    const paidDraft = await this.pausedMetaCampaignDraftService.prepare({
-      adAccountId: input.destination.adAccountId,
-      brandId,
-      config: claimedConfig,
-      credentialId: input.destination.credentialId,
-      linkUrl: operation.linkUrl,
-      organizationId,
-      runId,
-      userId: _userId,
-      variant: selectedVariant,
-    });
+    let paidDraft: PausedMetaCampaignDraftResult;
+    try {
+      paidDraft = await this.pausedMetaCampaignDraftService.prepare({
+        adAccountId: input.destination.adAccountId,
+        brandId,
+        config: claimedConfig,
+        credentialId: input.destination.credentialId,
+        linkUrl: operation.linkUrl,
+        organizationId,
+        runId,
+        userId: _userId,
+        variant: selectedVariant,
+      });
+    } catch (error: unknown) {
+      const releasedConfig = brandRemixRunConfigSchema.parse({
+        ...claimedConfig,
+        paidDraftOperation: undefined,
+        phase: 'approved',
+      });
+      await this.compareAndSwapExactConfig({
+        expectedConfig: claimedConfig,
+        nextConfig: releasedConfig,
+        organizationId,
+        runId,
+        status: ContentRunStatus.COMPLETED,
+      });
+      throw error;
+    }
     const nextConfig = brandRemixRunConfigSchema.parse({
       ...claimedConfig,
       paidDraft,
