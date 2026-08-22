@@ -1,6 +1,26 @@
 import { WorkflowNotificationOutboxService } from './workflow-notification-outbox.service';
 
 describe('WorkflowNotificationOutboxService', () => {
+  it('leaves the durable row for recovery when queue publishing fails', async () => {
+    const logger = { error: vi.fn() };
+    const service = new WorkflowNotificationOutboxService(
+      {
+        enqueue: vi.fn().mockRejectedValue(new Error('Redis unavailable')),
+      } as never,
+      logger as never,
+    );
+
+    await expect(
+      service.enqueueAfterCommit('delivery-1'),
+    ).resolves.toBeUndefined();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'Durable notification queue publish failed',
+      expect.objectContaining({ message: 'Redis unavailable' }),
+      expect.objectContaining({ deliveryId: 'delivery-1' }),
+    );
+  });
+
   it('deduplicates by execution outcome and targets the workflow owner', async () => {
     const transaction = {
       notificationDelivery: {
