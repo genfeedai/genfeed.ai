@@ -221,6 +221,16 @@ export class VideoGenerationExecutionService {
   private async dispatch(
     context: VideoGenerationContext,
   ): Promise<string | null> {
+    const externalProvider = this.providerDispatchService.providerFor(
+      context.model,
+      context.modelProvider,
+    );
+    if (externalProvider) {
+      await this.metadataService.patch(
+        context.metadataData.id,
+        new MetadataEntity({ externalProvider }),
+      );
+    }
     const result = await this.providerDispatchService.dispatch({
       duration: context.createVideoDto.duration,
       height: context.height,

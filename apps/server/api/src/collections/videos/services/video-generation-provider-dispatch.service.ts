@@ -31,4 +31,13 @@ export class VideoGenerationProviderDispatchService {
     }
     return adapter.generate(params);
   }
+
+  providerFor(
+    model: string,
+    provider?: string,
+  ): VideoGenerationProviderAdapter['provider'] | undefined {
+    return this.adapters.find((candidate) =>
+      candidate.supports(model, provider),
+    )?.provider;
+  }
 }

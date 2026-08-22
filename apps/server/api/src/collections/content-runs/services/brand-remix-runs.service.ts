@@ -2308,19 +2308,32 @@ export class BrandRemixRunsService {
         templateVersion: config.revision,
       }),
       orderBy: { groupIndex: 'asc' },
-      take: params.variants.length,
+      take: Math.max(params.variants.length * 4, 16),
     });
+    const resumableVariantIds = new Set(
+      params.variants.map((variant) => variant.id),
+    );
+    const adoptedVariantIds = new Set<string>();
     for (const orphan of orphans) {
-      const variant =
-        (orphan.groupIndex == null
+      const indexedVariant =
+        orphan.groupIndex == null
           ? undefined
-          : execution.variants[orphan.groupIndex]) ??
-        execution.variants.find(
-          (candidate) =>
-            params.variants.some((variant) => variant.id === candidate.id) &&
-            candidate.assetIds.length === 0,
-        );
-      if (!variant) break;
+          : execution.variants[orphan.groupIndex];
+      const variant =
+        indexedVariant &&
+        resumableVariantIds.has(indexedVariant.id) &&
+        indexedVariant.assetIds.length === 0 &&
+        !adoptedVariantIds.has(indexedVariant.id)
+          ? indexedVariant
+          : orphan.groupIndex == null
+            ? execution.variants.find(
+                (candidate) =>
+                  resumableVariantIds.has(candidate.id) &&
+                  candidate.assetIds.length === 0 &&
+                  !adoptedVariantIds.has(candidate.id),
+              )
+            : undefined;
+      if (!variant) continue;
       config = await this.patchGeneratingVariant({
         organizationId: params.organizationId,
         patch: { assetIds: [orphan.id.toString()], status: 'processing' },
@@ -2329,6 +2342,7 @@ export class BrandRemixRunsService {
         status: ContentRunStatus.RUNNING,
         variantId: variant.id,
       });
+      adoptedVariantIds.add(variant.id);
     }
     return config;
   }
@@ -2478,7 +2492,7 @@ export class BrandRemixRunsService {
     const ingredients = await this.prisma.ingredient.findMany({
       select: {
         id: true,
-        metadata: { select: { externalId: true } },
+        metadata: { select: { externalId: true, externalProvider: true } },
         status: true,
       },
       where: scopedWhere(params.organizationId, {
@@ -2500,7 +2514,8 @@ export class BrandRemixRunsService {
         reservations.every(
           (ingredient) =>
             ingredient.status === IngredientStatus.PROCESSING &&
-            !ingredient.metadata?.externalId,
+            !ingredient.metadata?.externalId &&
+            !ingredient.metadata?.externalProvider,
         );
       if (!undispatched) continue;
       await this.prisma.ingredient.updateMany({

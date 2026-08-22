@@ -1106,6 +1106,68 @@ describe('BrandRemixRunsService', () => {
     );
   });
 
+  it('does not redispatch a provider-marked reservation after its lease expires', async () => {
+    const created = await createPersistedRun({
+      execution: {
+        actualCount: 0,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Introduce Acme with a concise result-led script.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'video',
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [{ assetId: 'brand-reference-1', role: 'product' }],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['avatar-in-flight'],
+            id: 'variant-in-flight',
+            recipeRevision: 1,
+            status: 'processing',
+          },
+        ],
+      },
+      generationClaim: {
+        claimedAt: '2026-08-20T09:50:00.000Z',
+        id: 'run-1:generate:1',
+        variantIds: ['variant-in-flight'],
+      },
+      phase: 'generating',
+    });
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'avatar-in-flight',
+        metadata: { externalId: null, externalProvider: 'heygen' },
+        status: IngredientStatus.PROCESSING,
+      },
+    ]);
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      request as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+    expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+    expect(result.execution?.variants[0]).toMatchObject({
+      assetIds: ['avatar-in-flight'],
+      status: 'processing',
+    });
+  });
+
   it('adopts an orphaned placeholder after a crash instead of paying for the variant twice', async () => {
     const created = await createPersistedRun({
       draft: {
@@ -1157,7 +1219,10 @@ describe('BrandRemixRunsService', () => {
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
       ({ where }: { where?: Record<string, unknown> } = {}) => {
         if (where && 'groupId' in where) {
-          return Promise.resolve([{ groupIndex: 1, id: 'image-orphan-1' }]);
+          return Promise.resolve([
+            { groupIndex: 1, id: 'image-orphan-1' },
+            { groupIndex: 1, id: 'image-orphan-duplicate' },
+          ]);
         }
         return Promise.resolve([
           { id: 'image-orphan-1', status: IngredientStatus.PROCESSING },
@@ -1182,6 +1247,9 @@ describe('BrandRemixRunsService', () => {
     );
 
     expect(imageGenerationService.generateImage).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(result.execution?.variants)).not.toContain(
+      'image-orphan-duplicate',
+    );
     expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({

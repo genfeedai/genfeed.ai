@@ -176,6 +176,10 @@ export class AvatarVideoGenerationService {
         resolvedIdentity.photoIngredientId,
         resolvedIdentity.photoUrl,
       );
+      await this.metadataService.patch(
+        metadataData.id,
+        new MetadataEntity({ externalProvider: ByokProvider.HEYGEN }),
+      );
       const materializedIdentity = await this.materializeSavedVoice(
         resolvedIdentity,
         params.text,

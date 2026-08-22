@@ -480,6 +480,19 @@ describe('VideoGenerationService', () => {
     });
   });
 
+  it('persists the selected provider before the external generation call', async () => {
+    const { service, klingAIService, metadataService } = createService();
+    klingAIService.queueGenerateTextToVideo.mockImplementation(async () => {
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-1',
+        expect.objectContaining({ externalProvider: 'klingai' }),
+      );
+      return 'kling-job';
+    });
+
+    await service.generateVideo(buildUser(), baseDto(), buildRequest());
+  });
+
   // Finding 5 — every batch placeholder gets its own indexed external id.
   it('patches an indexed external id onto every batch placeholder (finding 5)', async () => {
     const { service, replicateService, metadataService } = createService();
