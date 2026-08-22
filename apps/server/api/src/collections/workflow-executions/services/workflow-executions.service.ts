@@ -499,9 +499,9 @@ export class WorkflowExecutionsService extends BaseService<
       });
     }
 
-    const { deliveryId, result } = await this.prisma.$transaction(
+    const terminalTransition = await this.prisma.$transaction(
       async (transaction) => {
-        const updatedExecution = await transaction.workflowExecution.update({
+        const transition = await transaction.workflowExecution.updateMany({
           data: {
             completedAt,
             ...(completion?.creditsUsed !== undefined
@@ -520,8 +520,34 @@ export class WorkflowExecutionsService extends BaseService<
               ? PrismaWorkflowExecutionStatus.FAILED
               : PrismaWorkflowExecutionStatus.COMPLETED,
           },
-          where: scopedWhere(execution.organizationId, { id: executionId }),
+          where: scopedWhere(execution.organizationId, {
+            id: executionId,
+            status: {
+              in: [
+                PrismaWorkflowExecutionStatus.PENDING,
+                PrismaWorkflowExecutionStatus.RUNNING,
+              ],
+            },
+          }),
         });
+
+        if (transition.count !== 1) {
+          return null;
+        }
+
+        // tenant-scope-ignore: this primary-key read follows a successful organization-scoped update in the same transaction
+        const updatedExecution = await transaction.workflowExecution.findUnique(
+          {
+            where: { id: executionId },
+          },
+        );
+
+        if (!updatedExecution) {
+          throw new Error(
+            `Workflow execution ${executionId} disappeared after its terminal transition`,
+          );
+        }
+
         const durableDeliveryId =
           await this.workflowNotificationOutboxService.recordWorkflowOutcome(
             transaction,
@@ -543,6 +569,11 @@ export class WorkflowExecutionsService extends BaseService<
       },
     );
 
+    if (!terminalTransition) {
+      return null;
+    }
+
+    const { deliveryId, result } = terminalTransition;
     await this.workflowNotificationOutboxService.enqueueAfterCommit(deliveryId);
 
     const document = this.normalizeDocument(result);

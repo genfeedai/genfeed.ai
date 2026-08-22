@@ -29,6 +29,7 @@ describe('WorkflowExecutionsService', () => {
       }),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
 
     const prisma = {
@@ -94,16 +95,16 @@ describe('WorkflowExecutionsService', () => {
         }),
       }),
     );
-    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(
-      2,
+    expect(prisma.workflowExecution.updateMany).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         data: expect.objectContaining({
           status: PrismaWorkflowExecutionStatus.COMPLETED,
         }),
       }),
     );
-    expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(
-      3,
+    expect(prisma.workflowExecution.updateMany).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({
         data: expect.objectContaining({
           status: PrismaWorkflowExecutionStatus.FAILED,
@@ -111,7 +112,7 @@ describe('WorkflowExecutionsService', () => {
       }),
     );
     expect(prisma.workflowExecution.update).toHaveBeenNthCalledWith(
-      4,
+      2,
       expect.objectContaining({
         data: expect.objectContaining({
           status: PrismaWorkflowExecutionStatus.CANCELLED,
@@ -273,7 +274,7 @@ describe('WorkflowExecutionsService', () => {
       },
       where: { id: 'execution-1' },
     });
-    expect(prisma.workflowExecution.update).toHaveBeenCalledWith(
+    expect(prisma.workflowExecution.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           etaCurrentPhase: 'Completed',
@@ -285,12 +286,53 @@ describe('WorkflowExecutionsService', () => {
           id: 'execution-1',
           isDeleted: false,
           organizationId: 'org-1',
+          status: {
+            in: [
+              PrismaWorkflowExecutionStatus.PENDING,
+              PrismaWorkflowExecutionStatus.RUNNING,
+            ],
+          },
         },
       }),
     );
     expect(
-      prisma.workflowExecution.update.mock.calls[0]?.[0]?.data,
+      prisma.workflowExecution.updateMany.mock.calls[0]?.[0]?.data,
     ).not.toHaveProperty('result');
+  });
+
+  it('creates one terminal outcome when concurrent completion attempts race', async () => {
+    const {
+      prisma,
+      service,
+      workflowEventWebhookService,
+      workflowNotificationOutboxService,
+    } = makeService();
+    prisma.workflowExecution.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+
+    await expect(service.completeExecution('execution-1')).resolves.not.toBe(
+      null,
+    );
+    await expect(
+      service.completeExecution('execution-1', 'Provider timed out'),
+    ).resolves.toBeNull();
+
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      workflowNotificationOutboxService.enqueueAfterCommit,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      workflowEventWebhookService.emitExecutionOutcome,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ status: 'completed' }),
+    );
   });
 
   it('emits a terminal workflow execution webhook for both outcomes', async () => {
@@ -306,12 +348,6 @@ describe('WorkflowExecutionsService', () => {
       workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
       workflowId: 'workflow-1',
     });
-    prisma.workflowExecution.update.mockResolvedValue({
-      creditsUsed: 12,
-      failedNodeId: 'node-3',
-      id: 'execution-1',
-    });
-
     await service.completeExecution('execution-1');
     await service.completeExecution('execution-1', 'Provider timed out');
 
@@ -536,23 +572,23 @@ describe('WorkflowExecutionsService', () => {
 
   it('preserves concurrent creditsUsed and failedNodeId under terminal completion', async () => {
     const { prisma, service, workflowEventWebhookService } = makeService();
-    prisma.workflowExecution.findUnique.mockResolvedValue({
-      creditsUsed: 0,
-      failedNodeId: null,
-      organizationId: 'org-1',
-      result: {},
-      startedAt: new Date('2026-06-29T00:00:00.000Z'),
-      trigger: 'manual',
-      userId: 'actor-user-1',
-      workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
-      workflowId: 'workflow-1',
-    });
-    prisma.workflowExecution.update.mockResolvedValue({
-      creditsUsed: 17,
-      failedNodeId: 'node-1',
-      id: 'execution-1',
-    });
-
+    prisma.workflowExecution.findUnique
+      .mockResolvedValueOnce({
+        creditsUsed: 0,
+        failedNodeId: null,
+        organizationId: 'org-1',
+        result: {},
+        startedAt: new Date('2026-06-29T00:00:00.000Z'),
+        trigger: 'manual',
+        userId: 'actor-user-1',
+        workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
+        workflowId: 'workflow-1',
+      })
+      .mockResolvedValueOnce({
+        creditsUsed: 17,
+        failedNodeId: 'node-1',
+        id: 'execution-1',
+      });
     await Promise.all([
       service.setCreditsUsed('execution-1', 17),
       service.setFailedNodeId('execution-1', 'node-1'),
@@ -562,7 +598,7 @@ describe('WorkflowExecutionsService', () => {
       }),
     ]);
 
-    const completionWrite = prisma.workflowExecution.update.mock.calls.find(
+    const completionWrite = prisma.workflowExecution.updateMany.mock.calls.find(
       (call) => call[0]?.data?.status === PrismaWorkflowExecutionStatus.FAILED,
     )?.[0];
 
