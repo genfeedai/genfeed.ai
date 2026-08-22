@@ -3,6 +3,7 @@ import { BrandRemixRunsService } from '@api/collections/content-runs/services/br
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentRunStatus,
+  IngredientCategory,
   IngredientStatus,
   PersistedReviewDecision,
 } from '@genfeedai/enums';
@@ -1158,6 +1159,127 @@ describe('BrandRemixRunsService', () => {
         }),
         expect.objectContaining({
           assetIds: ['image-orphan-1'],
+          id: 'variant-crashed-before-link',
+        }),
+      ]),
+    );
+  });
+
+  it('adopts an orphaned Avatar placeholder after a crash without redispatching it', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '9:16', count: 2, kind: 'avatar' },
+      },
+      execution: {
+        actualCount: 0,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Introduce Acme with a concise result-led script.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'video',
+          output: { aspectRatio: '9:16' },
+          provenance: [],
+          references: [{ assetId: 'brand-reference-1', role: 'product' }],
+          version: 1,
+        },
+        requestedCount: 2,
+        variants: [
+          {
+            assetIds: [],
+            id: 'variant-queued',
+            recipeRevision: 1,
+            status: 'queued',
+          },
+          {
+            assetIds: [],
+            id: 'variant-crashed-before-link',
+            recipeRevision: 1,
+            status: 'processing',
+          },
+        ],
+      },
+      phase: 'generating',
+    });
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ where }: { where?: Record<string, unknown> } = {}) => {
+        if (where && 'groupId' in where) {
+          return Promise.resolve([{ groupIndex: 1, id: 'avatar-orphan-1' }]);
+        }
+        const requestedIds = (where?.id as { in?: string[] } | undefined)?.in;
+        if (requestedIds?.includes('avatar-1')) {
+          return Promise.resolve([
+            {
+              brandId: 'brand-1',
+              category: 'AVATAR',
+              id: 'avatar-1',
+              status: IngredientStatus.GENERATED,
+            },
+            {
+              brandId: 'brand-1',
+              category: 'VOICE',
+              externalVoiceId: 'voice-external-1',
+              id: 'voice-1',
+              isCloned: true,
+              status: IngredientStatus.GENERATED,
+            },
+          ]);
+        }
+        return Promise.resolve([
+          { id: 'avatar-orphan-1', status: IngredientStatus.PROCESSING },
+          { id: 'avatar-resumed-1', status: IngredientStatus.PROCESSING },
+        ]);
+      },
+    );
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        await onCreated?.('avatar-resumed-1');
+        await onCredits?.();
+        return {
+          externalId: 'heygen-resumed-1',
+          ingredientId: 'avatar-resumed-1',
+          status: 'processing',
+        };
+      },
+    );
+
+    const result = await service.start(
+      'org-1',
+      'run-1',
+      user,
+      request as never,
+      { expectedRevision: 1 },
+    );
+
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).toHaveBeenCalledTimes(1);
+    expect(prisma.ingredient.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          category: IngredientCategory.AVATAR,
+          groupId: 'run-1',
+        }),
+      }),
+    );
+    expect(result.execution?.variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          assetIds: ['avatar-resumed-1'],
+          id: 'variant-queued',
+        }),
+        expect.objectContaining({
+          assetIds: ['avatar-orphan-1'],
           id: 'variant-crashed-before-link',
         }),
       ]),

@@ -2163,6 +2163,7 @@ export class BrandRemixRunsService {
   }): Promise<BrandRemixRunConfig> {
     let config = params.config;
     if (!config.execution) return config;
+    if (config.draft.output.kind === 'copy') return config;
     const execution = config.execution;
     const linkedAssetIds = execution.variants.flatMap(
       (variant) => variant.assetIds,
@@ -2170,7 +2171,9 @@ export class BrandRemixRunsService {
     const category =
       config.draft.output.kind === 'image'
         ? IngredientCategory.IMAGE
-        : IngredientCategory.VIDEO;
+        : config.draft.output.kind === 'avatar'
+          ? IngredientCategory.AVATAR
+          : IngredientCategory.VIDEO;
     const orphans = await this.prisma.ingredient.findMany({
       select: { groupIndex: true, id: true },
       where: scopedWhere(params.organizationId, {
