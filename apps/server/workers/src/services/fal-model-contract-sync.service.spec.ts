@@ -3,11 +3,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import { ModelProvider } from '@genfeedai/enums';
+import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 import {
   FalModelContractSyncService,
   hashFalContract,
-} from '@workers/crons/fal-model-watcher/fal-model-contract-sync.service';
-import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
+} from '@workers/services/fal-model-contract-sync.service';
 
 const fixtureDir = fileURLToPath(
   new URL('../../../test/fixtures/fal/', import.meta.url),

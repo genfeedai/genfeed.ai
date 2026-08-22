@@ -6,16 +6,16 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
-import {
-  FalModelContractSyncService,
-  type FalSyncModelRecord,
-} from '@workers/crons/fal-model-watcher/fal-model-contract-sync.service';
 import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type {
   IFalModel,
   IModelDiscoveryInput,
   IModelDiscoveryRunSummary,
 } from '@workers/interfaces/model-discovery.interface';
+import {
+  FalModelContractSyncService,
+  type FalSyncModelRecord,
+} from '@workers/services/fal-model-contract-sync.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 
 /** Lifecycle status fal reports for endpoints that still accept requests */

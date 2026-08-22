@@ -6,9 +6,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
-import { FalModelContractSyncService } from '@workers/crons/fal-model-watcher/fal-model-contract-sync.service';
 import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
+import { FalModelContractSyncService } from '@workers/services/fal-model-contract-sync.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 
 describe('CronFalModelWatcherService', () => {
