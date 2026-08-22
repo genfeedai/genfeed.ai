@@ -185,6 +185,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   });
   const {
     error: remixError,
+    preparePausedDraft,
     run: remixRun,
     start: startRemixRun,
     status: remixStatus,
@@ -206,6 +207,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
     const output = remixRun.draft.output;
     setPrompt(remixRun.draft.intent.objective);
+    if (output.kind === 'copy') {
+      updateSettings({ outputs: output.count });
+      return;
+    }
     applyTypeSettings(output.kind, {
       aspectRatio: output.aspectRatio,
       ...('durationSeconds' in output
@@ -213,7 +218,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         : { duration: undefined }),
       outputs: output.count,
     });
-  }, [applyTypeSettings, isHydrated, remixRun]);
+  }, [applyTypeSettings, isHydrated, remixRun, updateSettings]);
   const assetActions = useStudioGenerateAssetActions({
     onAttachReference: handleAttachGeneratedReference,
     onDeleted: removeJob,
@@ -244,9 +249,20 @@ export default function StudioGenerateWorkspace(): ReactElement {
       return;
     }
     if (remixRun) {
-      if (type === 'image' || type === 'video' || type === 'avatar') {
+      if (
+        remixRun.draft.output.kind === 'copy' ||
+        type === 'image' ||
+        type === 'video' ||
+        type === 'avatar'
+      ) {
         void startRemixRun(
-          buildStudioRemixRunEdits(remixRun, prompt, settings, type),
+          buildStudioRemixRunEdits(
+            remixRun,
+            prompt,
+            settings,
+            type,
+            contentReferences.map((reference) => reference.id),
+          ),
         );
       }
       return;
@@ -257,6 +273,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     isTranscribing,
     isUploading,
     prompt,
+    contentReferences,
     referenceUrls,
     remixRun,
     settings,
@@ -361,6 +378,21 @@ export default function StudioGenerateWorkspace(): ReactElement {
               isWorking={remixStatus === 'working'}
               onReview={(variantIds) => {
                 void submitForReview(variantIds);
+              }}
+              onPreparePaidDraft={() => {
+                const selector = remixRun.sourceSnapshot.selector;
+                if (
+                  selector.kind !== 'connected_ad' ||
+                  selector.platform !== 'meta'
+                ) {
+                  return;
+                }
+                void preparePausedDraft({
+                  destination: {
+                    adAccountId: selector.adAccountId,
+                    credentialId: selector.credentialId,
+                  },
+                });
               }}
               onVary={() => {
                 void vary();

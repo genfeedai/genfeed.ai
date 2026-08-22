@@ -262,6 +262,32 @@ describe('RemixBriefInspector', () => {
     );
   });
 
+  it('edits the platform and grouped copy recommendation while preserving manual Review', () => {
+    render(<RemixBriefInspector />);
+
+    expect(screen.getByText(/Organic · manual Review required/i)).toBeVisible();
+    expect(
+      screen.getByText(/Every output enters manual Review/i),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Target platform' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Instagram' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Output type' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Copy' }));
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Number of variations' }),
+    );
+    fireEvent.click(screen.getByRole('option', { name: '4 variations' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+
+    expect(mocks.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        output: { count: 4, kind: 'copy' },
+        target: { kind: 'organic', platform: 'instagram' },
+      }),
+    );
+  });
+
   it('keeps a server-blocked brief editable and revalidatable', () => {
     mocks.run.value = {
       ...run,
@@ -304,6 +330,7 @@ describe('RemixBriefInspector', () => {
           outputKind: 'image',
           references: [],
           speechVoiceId: '',
+          targetPlatform: 'tiktok',
           visualDirection: '',
         },
         {
@@ -352,6 +379,7 @@ describe('RemixBriefInspector', () => {
             },
           ],
           speechVoiceId: '',
+          targetPlatform: 'tiktok',
           visualDirection: '',
         },
         run,
@@ -457,6 +485,7 @@ describe('RemixBriefInspector', () => {
           outputKind: 'avatar',
           references: [],
           speechVoiceId: 'voice-row-1',
+          targetPlatform: 'tiktok',
           visualDirection: '',
         },
         run,

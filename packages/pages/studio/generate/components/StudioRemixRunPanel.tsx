@@ -8,7 +8,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
-import { Copy, GitBranch, Send, Sparkles } from 'lucide-react';
+import { Copy, GitBranch, Megaphone, Send, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -16,6 +16,7 @@ import type { ReactElement } from 'react';
 export interface StudioRemixRunPanelProps {
   readonly error: string | null;
   readonly isWorking: boolean;
+  readonly onPreparePaidDraft?: () => void;
   readonly onReview: (variantIds: string[]) => void;
   readonly onVary: () => void;
   readonly run: BrandRemixRunView;
@@ -30,6 +31,7 @@ function formatLabel(value: string): string {
 export default function StudioRemixRunPanel({
   error,
   isWorking,
+  onPreparePaidDraft,
   onReview,
   onVary,
   run,
@@ -46,19 +48,25 @@ export default function StudioRemixRunPanel({
   const isPaidMeta =
     run.draft.target.kind === 'paid' && run.draft.target.platform === 'meta';
   const hasCanonicalIdentity = 'avatarAssetId' in run.draft.identity;
-  const isMetaHandoffUnavailable =
+  const canPrepareMetaDraft =
     isPaidMeta &&
     run.phase === 'approved' &&
     Boolean(run.review?.approvedPostIds.length) &&
-    !run.paidDraft;
+    !run.paidDraft &&
+    run.sourceSnapshot.selector.kind === 'connected_ad' &&
+    Boolean(onPreparePaidDraft);
   const hasApprovedOrganicDrafts =
     run.draft.target.kind === 'organic' &&
     run.phase === 'approved' &&
     Boolean(run.review?.approvedPostIds.length);
   const clipboardService = ClipboardService.getInstance();
-  const copyVariantGroup = (variantId: string, assetIds: string[]): void => {
+  const copyVariantGroup = (
+    variantId: string,
+    content: string | undefined,
+    assetIds: string[],
+  ): void => {
     const group = [
-      run.draft.intent.objective,
+      content ?? run.draft.intent.objective,
       '',
       ...assetIds.map((assetId) => `• ${assetId}`),
     ].join('\n');
@@ -103,7 +111,7 @@ export default function StudioRemixRunPanel({
               variant={ButtonVariant.SECONDARY}
             />
           ) : null}
-          {readyVariantIds.length && !run.review ? (
+          {readyVariantIds.length > 0 && !run.review ? (
             <Button
               icon={<Send className="size-4" />}
               isDisabled={isWorking}
@@ -180,38 +188,61 @@ export default function StudioRemixRunPanel({
       </div>
 
       {run.execution?.variants.length ? (
-        <div className="divide-y divide-border border-y border-border">
-          {run.execution.variants.map((variant) => (
-            <div
-              className="flex items-center justify-between gap-3 py-2 text-xs"
-              key={variant.id}
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-foreground">{variant.id}</p>
-                <p className="truncate text-muted-foreground">
-                  {variant.assetIds.length
-                    ? variant.assetIds.join(', ')
-                    : 'Waiting for durable asset ids'}
-                </p>
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {translate('remixRun.outputCount', {
+              actual: run.execution.actualCount,
+              requested: run.execution.requestedCount,
+            })}
+          </p>
+          {run.execution.partialReason ? (
+            <Alert type={AlertCategory.WARNING}>
+              {run.execution.partialReason}
+            </Alert>
+          ) : null}
+          <div className="divide-y divide-border border-y border-border">
+            {run.execution.variants.map((variant) => (
+              <div
+                className="flex items-center justify-between gap-3 py-2 text-xs"
+                key={variant.id}
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground">{variant.id}</p>
+                  <p className="truncate text-muted-foreground">
+                    {variant.assetIds.length
+                      ? variant.assetIds.join(', ')
+                      : 'Waiting for durable asset ids'}
+                  </p>
+                  {variant.content ? (
+                    <p className="mt-1 whitespace-pre-wrap text-foreground">
+                      {variant.content}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Badge variant="ghost">{formatLabel(variant.status)}</Badge>
+                  {variant.status === 'ready' &&
+                  (variant.content || variant.assetIds.length > 0) ? (
+                    <Button
+                      ariaLabel={translate('remixRun.copyGroup')}
+                      icon={<Copy className="size-3.5" />}
+                      isDisabled={isWorking}
+                      label={translate('remixRun.copyGroup')}
+                      onClick={() =>
+                        copyVariantGroup(
+                          variant.id,
+                          variant.content,
+                          variant.assetIds,
+                        )
+                      }
+                      size={ButtonSize.XS}
+                      variant={ButtonVariant.GHOST}
+                    />
+                  ) : null}
+                </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Badge variant="ghost">{formatLabel(variant.status)}</Badge>
-                {variant.status === 'ready' && variant.assetIds.length ? (
-                  <Button
-                    ariaLabel={translate('remixRun.copyGroup')}
-                    icon={<Copy className="size-3.5" />}
-                    isDisabled={isWorking}
-                    label={translate('remixRun.copyGroup')}
-                    onClick={() =>
-                      copyVariantGroup(variant.id, variant.assetIds)
-                    }
-                    size={ButtonSize.XS}
-                    variant={ButtonVariant.GHOST}
-                  />
-                ) : null}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : null}
 
@@ -249,10 +280,15 @@ export default function StudioRemixRunPanel({
         </div>
       ) : null}
 
-      {isMetaHandoffUnavailable ? (
-        <Alert type={AlertCategory.INFO}>
-          {translate('remixRun.metaHandoffUnavailable')}
-        </Alert>
+      {canPrepareMetaDraft ? (
+        <Button
+          icon={<Megaphone className="size-4" />}
+          isDisabled={isWorking}
+          label={translate('remixRun.preparePaidDraft')}
+          onClick={onPreparePaidDraft}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.DEFAULT}
+        />
       ) : null}
 
       {run.paidDraft ? (

@@ -26,6 +26,36 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
       <h3 className="text-sm font-medium text-foreground">Lineage</h3>
       <DefinitionList className="text-sm">
         <div className="flex items-start justify-between gap-4">
+          <DefinitionTerm>Run</DefinitionTerm>
+          <DefinitionDetail variant="value">
+            {item.contentRunId ?? 'Not recorded'}
+          </DefinitionDetail>
+        </div>
+        <div className="flex items-start justify-between gap-4">
+          <DefinitionTerm>Recipe</DefinitionTerm>
+          <DefinitionDetail variant="value">
+            {item.creativeVersion ?? 'Not recorded'}
+          </DefinitionDetail>
+        </div>
+        <div className="flex items-start justify-between gap-4">
+          <DefinitionTerm>Variant</DefinitionTerm>
+          <DefinitionDetail variant="value">
+            {item.variantId ?? 'Not recorded'}
+          </DefinitionDetail>
+        </div>
+        <div className="flex items-start justify-between gap-4">
+          <DefinitionTerm>Ingredient</DefinitionTerm>
+          <DefinitionDetail variant="value">
+            {item.ingredientId ?? 'Copy-only output'}
+          </DefinitionDetail>
+        </div>
+        <div className="flex items-start justify-between gap-4">
+          <DefinitionTerm>Post</DefinitionTerm>
+          <DefinitionDetail variant="value">
+            {item.postId ?? 'Not recorded'}
+          </DefinitionDetail>
+        </div>
+        <div className="flex items-start justify-between gap-4">
           <DefinitionTerm>Topic</DefinitionTerm>
           <DefinitionDetail variant="value">
             {item.opportunityTopic ?? 'Not recorded'}
@@ -44,6 +74,12 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
           </DefinitionDetail>
         </div>
         <div className="flex items-start justify-between gap-4">
+          <DefinitionTerm>Workflow run</DefinitionTerm>
+          <DefinitionDetail variant="value">
+            {item.workflowExecutionId ?? 'Not recorded'}
+          </DefinitionDetail>
+        </div>
+        <div className="flex items-start justify-between gap-4">
           <DefinitionTerm>Action</DefinitionTerm>
           <DefinitionDetail variant="value">
             {item.sourceActionId ?? 'Not recorded'}
@@ -51,7 +87,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
         </div>
       </DefinitionList>
 
-      {item.sourceWorkflowId ? (
+      {item.workflowExecutionId ? (
         <Button
           asChild
           className="h-8 px-0 text-xs"
@@ -60,12 +96,10 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
         >
           <NextLink
             href={href(
-              `${APP_ROUTES.AUTOMATE.AGENTS}/${item.sourceWorkflowId}${
-                item.sourceActionId ? `?opportunity=${item.sourceActionId}` : ''
-              }`,
+              `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${item.workflowExecutionId}`,
             )}
           >
-            Open strategy
+            Open workflow run
           </NextLink>
         </Button>
       ) : null}

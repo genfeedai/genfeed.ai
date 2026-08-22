@@ -91,6 +91,12 @@
     "generationRemoved": "Generation removed",
     "generating": "Generating…",
     "loadingModels": "Loading models…",
+    "outputTypes": {
+      "avatar": "Avatar",
+      "copy": "Copy",
+      "image": "Image",
+      "video": "Video"
+    },
     "movedToTrash": "Moved to Trash",
     "previewUnavailable": "Preview unavailable",
     "remove": "Remove",
@@ -101,6 +107,29 @@
     "removePersistedMessage": "Move this failed generation to Trash? You can restore it later.",
     "reprompt": "Reprompt",
     "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
+    "remixOutput": {
+      "description": "These settings are saved to this remix run before generation.",
+      "title": "Output"
+    },
+    "remixRun": {
+      "copyGroup": "Copy outputs",
+      "identity": {
+        "avatar": "Avatar · {id}",
+        "voice": "Voice · {id}"
+      },
+      "outputCount": "{actual} of {requested} outputs ready",
+      "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
+      "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
+      "preparePaidDraft": "Prepare paused Meta draft",
+      "readinessTitle": "{state} run",
+      "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+      "review": {
+        "open": "Open Review",
+        "openPublishDrafts": "Open Publish drafts",
+        "summaryMany": "Review batch {batchId} · {count} drafts",
+        "summaryOne": "Review batch {batchId} · {count} draft"
+      }
+    },
     "title": "Generate"
   },
   "warmupAccounts": {
@@ -275,6 +304,7 @@
       "title": "Output",
       "types": {
         "avatar": "Avatar",
+        "copy": "Copy",
         "image": "Image",
         "video": "Video"
       },
@@ -285,6 +315,7 @@
       "readyDescription": "Ready to continue into Studio."
     },
     "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+    "reviewPolicy": "Every output enters manual Review. Nothing publishes or spends automatically.",
     "references": {
       "empty": "No Library references yet.",
       "help": "Attach Library assets the remix should follow.",

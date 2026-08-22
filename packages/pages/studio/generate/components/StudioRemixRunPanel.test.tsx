@@ -172,10 +172,22 @@ describe('StudioRemixRunPanel', () => {
         target: { kind: 'paid' as const, platform: 'meta' as const },
       },
       phase: 'in_review' as const,
+      sourceSnapshot: {
+        ...run.sourceSnapshot,
+        selector: {
+          adAccountId: 'act-1',
+          adId: 'ad-1',
+          credentialId: 'credential-1',
+          kind: 'connected_ad' as const,
+          platform: 'meta' as const,
+        },
+      },
       review: {
         approvedPostIds: [],
         batchId: 'batch-1',
         postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
       },
     };
     const { rerender } = render(
@@ -232,6 +244,8 @@ describe('StudioRemixRunPanel', () => {
             approvedPostIds: ['post-1'],
             batchId: 'batch-1',
             postIds: ['post-1'],
+            workflowExecutionId: 'workflow-execution-1',
+            workflowId: 'workflow-1',
           },
         }}
       />,

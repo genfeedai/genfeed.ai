@@ -56,6 +56,7 @@ export type RemixEditorState = {
   outputKind: BrandRemixRunView['draft']['output']['kind'];
   references: BrandRemixReference[];
   speechVoiceId: string;
+  targetPlatform: BrandRemixRunView['draft']['target']['platform'];
   visualDirection: string;
 };
 
@@ -70,6 +71,7 @@ const EMPTY_EDITOR: RemixEditorState = {
   outputKind: 'video',
   references: [],
   speechVoiceId: '',
+  targetPlatform: 'tiktok',
   visualDirection: '',
 };
 
@@ -86,7 +88,8 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
   const identity =
     'avatarAssetId' in run.draft.identity ? run.draft.identity : null;
   return {
-    aspectRatio: run.draft.output.aspectRatio,
+    aspectRatio:
+      'aspectRatio' in run.draft.output ? run.draft.output.aspectRatio : '9:16',
     avatarAssetId: identity?.avatarAssetId ?? '',
     callToAction: run.draft.intent.callToAction ?? '',
     count: run.draft.output.count,
@@ -96,6 +99,7 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
     outputKind: run.draft.output.kind,
     references: [...run.draft.references],
     speechVoiceId: identity?.speechVoiceId ?? '',
+    targetPlatform: run.draft.target.platform,
     visualDirection: run.draft.intent.visualDirection ?? '',
   };
 }
@@ -133,17 +137,20 @@ export function buildRemixDraftEdits(
         ? { visualDirection: editor.visualDirection.trim() }
         : {}),
     },
-    output: {
-      aspectRatio: editor.aspectRatio,
-      count: editor.count,
-      kind: editor.outputKind,
-      ...(editor.outputKind === 'image'
-        ? { durationSeconds: null }
-        : 'durationSeconds' in run.draft.output &&
-            run.draft.output.durationSeconds
-          ? { durationSeconds: run.draft.output.durationSeconds }
-          : {}),
-    },
+    output:
+      editor.outputKind === 'copy'
+        ? { count: editor.count, kind: 'copy' }
+        : {
+            aspectRatio: editor.aspectRatio,
+            count: editor.count,
+            kind: editor.outputKind,
+            ...(editor.outputKind === 'image'
+              ? { durationSeconds: null }
+              : 'durationSeconds' in run.draft.output &&
+                  run.draft.output.durationSeconds
+                ? { durationSeconds: run.draft.output.durationSeconds }
+                : {}),
+          },
     references: editor.references
       .filter((reference) => reference.source === 'explicit')
       .map((reference) => ({
@@ -153,7 +160,19 @@ export function buildRemixDraftEdits(
           : {}),
         role: reference.role,
       })),
-    target: run.draft.target,
+    target:
+      run.draft.target.kind === 'paid'
+        ? {
+            ...run.draft.target,
+            platform: editor.targetPlatform as 'google' | 'meta' | 'tiktok',
+          }
+        : {
+            ...run.draft.target,
+            platform: editor.targetPlatform as
+              | 'instagram'
+              | 'tiktok'
+              | 'youtube',
+          },
   };
 }
 
@@ -564,15 +583,43 @@ export default function RemixBriefInspector(): ReactElement {
                   {translate('output.title')}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatLabel(run.draft.target.kind)} ·{' '}
-                  {formatLabel(run.draft.target.platform)}
+                  {formatLabel(run.draft.target.kind)} · manual Review required
                 </p>
               </div>
               <Badge variant="ghost">
-                {editor.count} × {editor.aspectRatio}
+                {editor.count}
+                {editor.outputKind === 'copy'
+                  ? null
+                  : ` × ${editor.aspectRatio}`}
               </Badge>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <p className="text-xs text-muted-foreground">
+              {translate('reviewPolicy')}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-4">
+              <Select
+                onValueChange={(value) =>
+                  setEditor((current) => ({
+                    ...current,
+                    targetPlatform: value as RemixEditorState['targetPlatform'],
+                  }))
+                }
+                value={editor.targetPlatform}
+              >
+                <SelectTrigger aria-label="Target platform">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(run.draft.target.kind === 'paid'
+                    ? ['meta', 'google', 'tiktok']
+                    : ['tiktok', 'instagram', 'youtube']
+                  ).map((platform) => (
+                    <SelectItem key={platform} value={platform}>
+                      {formatLabel(platform)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select
                 onValueChange={(value) =>
                   setEditor((current) => ({
@@ -586,6 +633,9 @@ export default function RemixBriefInspector(): ReactElement {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="copy">
+                    {translate('output.types.copy')}
+                  </SelectItem>
                   <SelectItem value="image">
                     {translate('output.types.image')}
                   </SelectItem>
@@ -597,16 +647,28 @@ export default function RemixBriefInspector(): ReactElement {
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <Input
-                aria-label="Aspect ratio"
-                onChange={(event) =>
-                  setEditor((current) => ({
-                    ...current,
-                    aspectRatio: event.target.value,
-                  }))
-                }
-                value={editor.aspectRatio}
-              />
+              {editor.outputKind === 'copy' ? null : (
+                <Select
+                  onValueChange={(value) =>
+                    setEditor((current) => ({
+                      ...current,
+                      aspectRatio: value,
+                    }))
+                  }
+                  value={editor.aspectRatio}
+                >
+                  <SelectTrigger aria-label="Aspect ratio">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['1:1', '4:5', '9:16', '16:9'].map((ratio) => (
+                      <SelectItem key={ratio} value={ratio}>
+                        {ratio}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Select
                 onValueChange={(value) =>
                   setEditor((current) => ({

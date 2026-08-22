@@ -146,4 +146,39 @@ describe('buildStudioRemixRunEdits', () => {
       ).identity,
     ).toEqual({ avatarAssetId: null, speechVoiceId: null });
   });
+
+  it('carries newly selected Library identities into the canonical recipe', () => {
+    const edits = buildStudioRemixRunEdits(
+      run,
+      'Use the selected customer proof image.',
+      getDefaultStudioGenerateSettings('video'),
+      'video',
+      ['library-proof-1', 'explicit-reference-1', 'brand-reference-1'],
+    );
+
+    expect(edits.references).toEqual([
+      { assetId: 'explicit-reference-1', role: 'style' },
+      { assetId: 'library-proof-1', role: 'style' },
+      { assetId: 'brand-reference-1', role: 'style' },
+    ]);
+  });
+
+  it('preserves copy output instead of translating it into a media type', () => {
+    const copyRun = {
+      ...run,
+      draft: {
+        ...run.draft,
+        output: { count: 4, kind: 'copy' as const },
+      },
+    };
+
+    expect(
+      buildStudioRemixRunEdits(
+        copyRun,
+        'Write four proof-led posts.',
+        { ...getDefaultStudioGenerateSettings('image'), outputs: 4 },
+        'image',
+      ).output,
+    ).toEqual({ count: 4, kind: 'copy' });
+  });
 });
