@@ -16,6 +16,11 @@ on:
         description: "Optional failed Release run ID whose unpublished draft and proved-green gates must be recovered at the original SHA"
         required: false
         type: string
+      repair_published_release:
+        description: "Repair this incomplete latest release from current master: redraft it, replace its tag only after every gate is green, and republish the same version"
+        required: false
+        type: boolean
+        default: false
       saas_lane:
         description: "Where hosted SaaS deploy compute runs. monorepo = public-repo jobs (default). operations = paid private console dispatch."
         required: false
@@ -49,6 +54,7 @@ jobs:
       draft_title: ${{ steps.release.outputs.draft_title }}
       image_tag: ${{ steps.release.outputs.image_tag }}
       major_minor_tag: ${{ steps.release.outputs.major_minor_tag }}
+      repair_mode: ${{ steps.release.outputs.repair_mode }}
       recovery_mode: ${{ steps.release.outputs.recovery_mode }}
       recovery_run_id: ${{ steps.release.outputs.recovery_run_id }}
       recovery_saas_verified: ${{ steps.release.outputs.recovery_saas_verified }}
@@ -84,10 +90,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+          REPAIR_PUBLISHED_RELEASE: ${{ inputs.repair_published_release }}
           REQUESTED_SAAS_LANE: ${{ inputs.saas_lane }}
           REQUESTED_TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
+
+          if [ -n "${RECOVERY_RUN_ID}" ] && [ "${REPAIR_PUBLISHED_RELEASE}" = 'true' ]; then
+            echo "::error::Historical run recovery and published-release repair are mutually exclusive."
+            exit 1
+          fi
 
           if [ -z "${RECOVERY_RUN_ID}" ]; then
             {
@@ -98,6 +110,7 @@ jobs:
               echo "draft_body_sha256="
               echo "draft_id="
               echo "draft_title="
+              echo "repair_mode=${REPAIR_PUBLISHED_RELEASE}"
               echo "recovery_mode=false"
               echo "recovery_run_id="
               echo "recovery_saas_verified=false"
@@ -108,6 +121,7 @@ jobs:
           fi
 
           node scripts/ci/release-recovery-evidence.mjs
+          echo "repair_mode=false" >>"${GITHUB_OUTPUT}"
           if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${REQUESTED_TAG}" >/dev/null 2>&1; then
             echo "::error::Recovery refuses ${REQUESTED_TAG} because its Git tag already exists."
             exit 1
@@ -179,6 +193,7 @@ jobs:
           RECOVERY_RUN_ID: ${{ steps.source.outputs.recovery_run_id }}
           RECOVERY_SAAS_VERIFIED: ${{ steps.source.outputs.recovery_saas_verified }}
           RECOVERY_SUITE_VERIFIED: ${{ steps.source.outputs.recovery_suite_verified }}
+          REPAIR_MODE: ${{ steps.source.outputs.repair_mode }}
           REQUESTED_TAG: ${{ inputs.tag }}
           SOURCE_SHA: ${{ steps.source.outputs.release_sha }}
         run: |
@@ -194,29 +209,75 @@ jobs:
           image_tag="${release_tag#v}"
           major_minor_tag="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
 
-          latest_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
-          if [ -n "${latest_tag}" ]; then
-            highest="$(printf '%s\n%s\n' "${latest_tag#v}" "${image_tag}" | sort -V | tail -n 1)"
-            if [ "${highest}" != "${image_tag}" ] || [ "${latest_tag#v}" = "${image_tag}" ]; then
-              echo "::error::Release ${release_tag} must be newer than latest published release ${latest_tag}."
-              exit 1
-            fi
-          fi
-
           release_json="$(
             gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
               jq --arg tag "${release_tag}" '[.[][] | select(.tag_name == $tag)] | first // empty'
           )"
-          if [ -n "${release_json}" ]; then
-            if [ "$(jq -r '.draft' <<<"${release_json}")" != "true" ]; then
-              echo "::error::Release ${release_tag} is already published."
+          latest_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+          if [ -n "${latest_tag}" ]; then
+            highest="$(printf '%s\n%s\n' "${latest_tag#v}" "${image_tag}" | sort -V | tail -n 1)"
+            if [ "${REPAIR_MODE}" = 'true' ]; then
+              if [ -z "${release_json}" ] || [ "${highest}" != "${image_tag}" ]; then
+                echo "::error::Published-release repair requires an existing release that is not older than ${latest_tag}."
+                exit 1
+              fi
+            elif [ "${highest}" != "${image_tag}" ] || [ "${latest_tag#v}" = "${image_tag}" ]; then
+              echo "::error::Release ${release_tag} must be newer than latest published release ${latest_tag}."
               exit 1
             fi
+          elif [ "${REPAIR_MODE}" = 'true' ] && [ -z "${release_json}" ]; then
+            echo "::error::Published-release repair requires an existing release for ${release_tag}."
+            exit 1
+          fi
 
-            draft_target="$(jq -r '.target_commitish' <<<"${release_json}")"
-            if [ "${draft_target}" != "${release_sha}" ]; then
-              echo "::error::Draft ${release_tag} targets ${draft_target}, not pinned master SHA ${release_sha}."
-              exit 1
+          if [ -n "${release_json}" ]; then
+            if [ "${REPAIR_MODE}" = 'true' ]; then
+              if [ "$(jq -r '.draft' <<<"${release_json}")" != 'true' ]; then
+                install_asset_count="$(jq '[.assets[] | select(
+                  .name == "genfeed-selfhosted.tar.gz"
+                  or .name == "genfeed-selfhosted.tar.gz.sha256"
+                )] | length' <<<"${release_json}")"
+                if [ "${install_asset_count}" -eq 2 ]; then
+                  echo "::error::Release ${release_tag} already has the complete public install contract; refusing destructive repair."
+                  exit 1
+                fi
+              fi
+
+              # Hide the broken public release while rebuilding it. The tag is
+              # removed only after the release is safely a draft; final publish
+              # recreates it at the fully verified current master SHA.
+              gh release edit "${release_tag}" \
+                --draft \
+                --notes-file release-notes.md \
+                --target "${release_sha}" \
+                --title "${release_tag}"
+              if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${release_tag}" >/dev/null 2>&1; then
+                gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${release_tag}"
+              fi
+
+              release_json="$(
+                gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --slurp |
+                  jq --arg tag "${release_tag}" '[.[][] | select(.tag_name == $tag)] | first // empty'
+              )"
+              if [ -z "${release_json}" ] || \
+                 [ "$(jq -r '.draft' <<<"${release_json}")" != 'true' ] || \
+                 [ "$(jq -r '.published_at // ""' <<<"${release_json}")" != '' ] || \
+                 [ "$(jq -r '.target_commitish // ""' <<<"${release_json}")" != "${release_sha}" ]; then
+                echo "::error::Release ${release_tag} did not become an unpublished draft at ${release_sha}."
+                exit 1
+              fi
+              echo "Repairing published release ${release_tag} from current master SHA ${release_sha}."
+            else
+              if [ "$(jq -r '.draft' <<<"${release_json}")" != "true" ]; then
+                echo "::error::Release ${release_tag} is already published."
+                exit 1
+              fi
+
+              draft_target="$(jq -r '.target_commitish' <<<"${release_json}")"
+              if [ "${draft_target}" != "${release_sha}" ]; then
+                echo "::error::Draft ${release_tag} targets ${draft_target}, not pinned master SHA ${release_sha}."
+                exit 1
+              fi
             fi
             if [ "${RECOVERY_MODE}" = 'true' ]; then
               draft_id="$(jq -r '.id' <<<"${release_json}")"
@@ -253,13 +314,13 @@ jobs:
                 exit 1
               fi
               echo "Reusing draft release ${release_tag} at ${release_sha}. Preserving its existing title and release notes."
-            else
+            elif [ "${REPAIR_MODE}" != 'true' ]; then
               gh release edit "${release_tag}" --notes-file release-notes.md
               echo "Reusing draft release ${release_tag} at ${release_sha}; refreshed release notes."
             fi
           else
-            if [ "${RECOVERY_MODE}" = 'true' ]; then
-              echo "::error::Recovery draft ${release_tag} disappeared after historical evidence validation."
+            if [ "${RECOVERY_MODE}" = 'true' ] || [ "${REPAIR_MODE}" = 'true' ]; then
+              echo "::error::Expected repair/recovery release ${release_tag} disappeared after validation."
               exit 1
             fi
             if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
@@ -374,6 +435,7 @@ jobs:
             echo "draft_title=${draft_title}"
             echo "image_tag=${image_tag}"
             echo "major_minor_tag=${major_minor_tag}"
+            echo "repair_mode=${REPAIR_MODE}"
             echo "recovery_mode=${RECOVERY_MODE}"
             echo "recovery_run_id=${RECOVERY_RUN_ID}"
             echo "recovery_saas_verified=${RECOVERY_SAAS_VERIFIED}"
@@ -759,6 +821,67 @@ jobs:
             "${EXPECTED_CHECKSUM_ASSET_DIGEST}"
 
           gh release edit "${RELEASE_TAG}" --draft=false --latest
+
+          resolve_published_tag_sha() {
+            local ref_json=""
+            local object_sha=""
+            local object_type=""
+            local tag_json=""
+
+            # Publishing a draft can recreate a missing lightweight tag. Poll
+            # the ref because the release edit and Git-data APIs are only
+            # eventually consistent, then peel annotated tags if GitHub ever
+            # returns one for this release name.
+            for _attempt in 1 2 3 4 5 6 7 8; do
+              if ref_json="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" 2>/dev/null)"; then
+                break
+              fi
+              sleep 2
+            done
+            if [ -z "${ref_json}" ]; then
+              echo "::error::Published release ${RELEASE_TAG} did not recreate its Git tag." >&2
+              return 1
+            fi
+
+            object_sha="$(jq -r '.object.sha // ""' <<<"${ref_json}")"
+            object_type="$(jq -r '.object.type // ""' <<<"${ref_json}")"
+            for _depth in 1 2 3 4; do
+              if [ "${object_type}" = 'commit' ]; then
+                printf '%s\n' "${object_sha}"
+                return 0
+              fi
+              if [ "${object_type}" != 'tag' ] || [ -z "${object_sha}" ]; then
+                echo "::error::Git tag ${RELEASE_TAG} resolved to unsupported object type ${object_type:-missing}." >&2
+                return 1
+              fi
+
+              tag_json="$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}")"
+              object_sha="$(jq -r '.object.sha // ""' <<<"${tag_json}")"
+              object_type="$(jq -r '.object.type // ""' <<<"${tag_json}")"
+            done
+
+            echo "::error::Git tag ${RELEASE_TAG} exceeded the annotated-tag peel limit." >&2
+            return 1
+          }
+
+          rollback_published_release() {
+            # Keep every failed publication repairable: return the release to
+            # draft before removing the tag that this publish attempt created.
+            gh release edit "${RELEASE_TAG}" --draft
+            if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" >/dev/null 2>&1; then
+              gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}"
+            fi
+          }
+
+          if ! published_tag_sha="$(resolve_published_tag_sha)"; then
+            rollback_published_release
+            exit 1
+          fi
+          if [ "${published_tag_sha}" != "${RELEASE_SHA}" ]; then
+            echo "::error::Published Git tag ${RELEASE_TAG} resolves to ${published_tag_sha}, not ${RELEASE_SHA}."
+            rollback_published_release
+            exit 1
+          fi
           {
             echo "## Release published"
             echo ""

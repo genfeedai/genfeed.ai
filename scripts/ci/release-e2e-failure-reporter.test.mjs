@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   AREA_INFRA,
@@ -148,28 +150,47 @@ test('reportReleaseE2eFailure creates tracker and triages project fields', async
   assert.ok(optionIds.includes(BLAST_RADIUS_INFRA));
 });
 
-test('reportReleaseE2eFailure still succeeds when project GraphQL is denied', async () => {
+test('reportReleaseE2eFailure files the issue but fails when project GraphQL is denied', async () => {
   const { github, created } = createGithubMock({ openIssues: [] });
   github.graphql = async () => {
     throw new Error('Resource not accessible by integration');
   };
   const warnings = [];
 
-  const result = await reportReleaseE2eFailure({
-    github,
-    owner: 'genfeedai',
-    repo: 'genfeed.ai',
-    body: 'first failure',
-    date: '2026-07-26',
-    core: {
-      info: () => {},
-      warning: (m) => warnings.push(m),
-    },
-  });
+  await assert.rejects(
+    reportReleaseE2eFailure({
+      github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'first failure',
+      date: '2026-07-26',
+      core: {
+        info: () => {},
+        warning: (m) => warnings.push(m),
+      },
+    }),
+    /Resource not accessible by integration/,
+  );
 
-  assert.equal(result.action, 'created');
   assert.equal(created.length, 1);
   assert.ok(warnings.some((w) => w.includes('Could not triage')));
+});
+
+const RELEASE_E2E_WORKFLOW = readFileSync(
+  fileURLToPath(
+    new URL(
+      '../../.github/workflows/e2e-selfhosted-release.yml',
+      import.meta.url,
+    ),
+  ),
+  'utf8',
+);
+
+test('release failure triage uses the existing PAT for organization Project writes', () => {
+  assert.match(
+    RELEASE_E2E_WORKFLOW,
+    /Open or update tracking issue \(Priority P0\)[\s\S]*?github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
+  );
 });
 
 test('resolveReleaseE2eFailure closes all open trackers', async () => {

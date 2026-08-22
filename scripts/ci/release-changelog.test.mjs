@@ -491,6 +491,76 @@ test('failed stable releases recover only from exact historical run evidence', (
   );
 });
 
+test('an incomplete published latest release can be rebuilt from current master under the same version', () => {
+  const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
+  const verifySuite = jobBlock(releaseWorkflow, 'verify-suite', 'release.yml');
+  const deploySaas = jobBlock(releaseWorkflow, 'deploy-saas', 'release.yml');
+  const publish = jobBlock(releaseWorkflow, 'publish-release', 'release.yml');
+
+  assert.match(releaseWorkflow, /^ {6}repair_published_release:\n/m);
+  assert.match(
+    releaseWorkflow,
+    /repair_published_release:[\s\S]*?type: boolean[\s\S]*?default: false/,
+  );
+  assert.match(
+    validate,
+    /Historical run recovery and published-release repair are mutually exclusive/,
+  );
+  assert.match(
+    validate,
+    /already has the complete public install contract; refusing destructive repair/,
+  );
+  assert.match(
+    validate,
+    /gh release edit "\$\{release_tag\}" \\\n\s+--draft \\\n\s+--notes-file release-notes\.md \\\n\s+--target "\$\{release_sha\}"/,
+  );
+  assert.match(
+    validate,
+    /gh api --method DELETE "repos\/\$\{GITHUB_REPOSITORY\}\/git\/refs\/tags\/\$\{release_tag\}"/,
+    'the stale tag is removed only after the broken release is converted to a draft',
+  );
+  assert.match(
+    validate,
+    /Release \$\{release_tag\} did not become an unpublished draft at \$\{release_sha\}/,
+  );
+  assert.match(
+    verifySuite,
+    /inputs\.recovery_run_id == ''/,
+    'published repair must rerun the complete suite from current master',
+  );
+  assert.match(
+    deploySaas,
+    /inputs\.recovery_run_id == ''/,
+    'published repair must redeploy hosted SaaS from the same current master SHA',
+  );
+  assert.match(
+    publish,
+    /Git tag \$\{RELEASE_TAG\} appeared before the verified draft was published/,
+  );
+  assert.match(
+    publish,
+    /gh release edit "\$\{RELEASE_TAG\}" --draft=false --latest/,
+    'the same version becomes public only after assets, SaaS, npm, and promotion are green',
+  );
+  assert.match(
+    publish,
+    /resolve_published_tag_sha/,
+    'publishing must resolve the recreated Git tag instead of trusting release target metadata',
+  );
+  assert.match(publish, /git\/ref\/tags\/\$\{RELEASE_TAG\}/);
+  assert.match(publish, /git\/tags\/\$\{object_sha\}/);
+  assert.match(
+    publish,
+    /published_tag_sha.*RELEASE_SHA/,
+    'publishing must prove the recreated tag resolves to the pinned release SHA',
+  );
+  assert.match(
+    publish,
+    /rollback_published_release/,
+    'a failed post-publish integrity check must return the release to a repairable draft',
+  );
+});
+
 test('recovery skips proved-green gates and reuses the exact immutable image', () => {
   const verifySuite = jobBlock(releaseWorkflow, 'verify-suite', 'release.yml');
   const publishCommunity = jobBlock(

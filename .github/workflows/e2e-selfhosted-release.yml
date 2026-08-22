@@ -118,7 +118,7 @@ jobs:
               break
             fi
             if (( SECONDS >= deadline )); then
-              echo "::error::Release ${RELEASE_TAG} is missing the public install bundle after 10m (genfeed-selfhosted.tar.gz + .sha256). Public users cannot install this release. Recover with Publish Self-Hosted (manual recovery) only when the tag points at current master and assets are still absent; otherwise re-cut via the canonical Release workflow."
+              echo "::error::Release ${RELEASE_TAG} is missing the public install bundle after 10m (genfeed-selfhosted.tar.gz + .sha256). Public users cannot install this release. Dispatch the canonical Release workflow from final master with the same tag and repair_published_release=true."
               echo "failure_class=missing-install-assets" >> "${GITHUB_OUTPUT}"
               exit 1
             fi
@@ -291,6 +291,9 @@ jobs:
           RELEASE_TAG: ${{ needs.release-e2e.outputs.release_tag }}
           FAILURE_CLASS: ${{ needs.release-e2e.outputs.failure_class }}
         with:
+          # Reuse the existing maintainer PAT. Unlike the repository-scoped
+          # GITHUB_TOKEN, it can be granted organization Projects write access.
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
