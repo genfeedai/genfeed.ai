@@ -290,7 +290,7 @@ test('keeps the workflow wired to exact changed selection and dynamic shards', (
   );
   assert.match(
     workflow,
-    /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@v7/,
+    /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@[0-9a-f]{40} # v7\.\d+\.\d+/,
   );
 
   // The instrumented coverage runs shard off their own matrix rather than
