@@ -17,7 +17,7 @@ import {
   SoundSerializer,
   StyleSerializer,
 } from '@genfeedai/serializers';
-import { Controller, Get, Req, SetMetadata, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -30,7 +30,6 @@ export class ElementsController {
   constructor(private readonly elementsService: ElementsService) {}
 
   @Get()
-  @SetMetadata('skipRoles', true)
   @Cache({
     keyGenerator: (req) =>
       `elements:list:${(req.user?.organizationId as string | undefined) ?? 'global'}`,

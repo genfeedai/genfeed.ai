@@ -992,6 +992,12 @@ describe('AppProtectedLayout', () => {
         topbarComponent: undefined,
       }),
     );
+    expect(protectedProvidersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeElementsProvider: false,
+        includePromptBarProvider: false,
+      }),
+    );
   });
 
   it('keeps the topbar frame on a canvas route while the shell body is still booting', () => {

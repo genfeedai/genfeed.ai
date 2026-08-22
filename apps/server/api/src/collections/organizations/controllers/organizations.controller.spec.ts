@@ -34,6 +34,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { SubscriptionTier } from '@genfeedai/enums';
 import type { OrganizationOption } from '@genfeedai/interfaces';
@@ -169,6 +170,15 @@ describe('OrganizationsController', () => {
     controller = module.get<OrganizationsController>(OrganizationsController);
   });
 
+  it('lets membership discovery run before active-organization membership validation', () => {
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OrganizationsController.prototype.findAll,
+      ),
+    ).toBe(true);
+  });
+
   describe('findMine', () => {
     it('resolves organizations from Prisma-shaped membership rows (organizationId scalar)', async () => {
       mockMembersService.findActiveForUserAccess.mockResolvedValue([
@@ -277,33 +287,16 @@ describe('OrganizationsController', () => {
       ]);
     });
 
-    it('falls back to the session metadata organization when the user has no membership rows', async () => {
+    it('does not trust a stale session organization when the user has no active memberships', async () => {
       mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_active',
-        label: 'Active Org',
-        slug: 'active-org',
-        userId: 'user_1',
-      });
-      mockBrandsService.findOne.mockResolvedValue(null);
 
       const result = (await controller.findMine(
         currentUser,
       )) as OrganizationOption[];
 
-      expect(result).toEqual([
-        {
-          brand: null,
-          id: 'org_active',
-          isActive: true,
-          isOwner: true,
-          label: 'Active Org',
-          slug: 'active-org',
-        },
-      ]);
-      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        id: 'org_active',
-      });
+      expect(result).toEqual([]);
+      expect(mockOrganizationsService.findOne).not.toHaveBeenCalled();
+      expect(mockBrandsService.findOne).not.toHaveBeenCalled();
     });
 
     it('returns an empty list when neither memberships nor session metadata resolve an organization', async () => {
@@ -320,7 +313,9 @@ describe('OrganizationsController', () => {
     });
 
     it('returns the mine collection as the documented raw option array', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
+        { id: 'member_1', isActive: true, organizationId: 'org_active' },
+      ]);
       mockOrganizationsService.findOne.mockResolvedValue({
         id: 'org_active',
         label: 'Active Org',
