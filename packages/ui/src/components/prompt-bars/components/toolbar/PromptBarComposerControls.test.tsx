@@ -12,7 +12,7 @@ vi.mock('next-intl', async () => {
 });
 
 describe('PromptBar composer controls', () => {
-  it('groups file upload and Library references under one context menu', () => {
+  it('groups file upload and Library references under one context menu', async () => {
     const onAddFiles = vi.fn();
     const onOpenLibrary = vi.fn();
     const file = new File(['image'], 'reference.png', { type: 'image/png' });
@@ -30,10 +30,10 @@ describe('PromptBar composer controls', () => {
     expect(
       screen.queryByRole('button', { name: 'Reference library content' }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add context' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
 
     expect(
-      screen.getByRole('menuitem', { name: 'Attach files' }),
+      await screen.findByRole('menuitem', { name: 'Attach files' }),
     ).toBeVisible();
     expect(
       screen.getByRole('menuitem', { name: 'Reference library content' }),
@@ -44,9 +44,11 @@ describe('PromptBar composer controls', () => {
       target: { files: [file] },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add context' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Add context' }));
     fireEvent.click(
-      screen.getByRole('menuitem', { name: 'Reference library content' }),
+      await screen.findByRole('menuitem', {
+        name: 'Reference library content',
+      }),
     );
 
     expect(onAddFiles).toHaveBeenCalledWith([file]);
