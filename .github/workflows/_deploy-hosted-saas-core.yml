@@ -345,10 +345,10 @@ jobs:
           TF_VAR_image_tag: ${{ steps.image.outputs.sha }}
           TF_VAR_enable_dns_cutover: "true"
         run: |
-          # Exclude Redis until every task definition injects REDIS_PASSWORD.
-          # AUTH + required TLS would otherwise reject the still-running tasks.
+          # OpenTofu 1.12 forbids mixing -target and -exclude. These targets
+          # already omit Redis, so AUTH/TLS stay off until the later Redis
+          # apply after services roll with REDIS_PASSWORD.
           tofu apply -input=false -auto-approve \
-            -exclude=aws_elasticache_replication_group.redis \
             -target=aws_cloudwatch_log_group.migrate \
             -target=aws_ecs_task_definition.migrate \
             -target=aws_cloudwatch_log_group.workflow_backfill \
