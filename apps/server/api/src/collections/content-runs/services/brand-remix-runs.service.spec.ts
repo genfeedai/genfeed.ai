@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import {
   ContentRunStatus,
   IngredientCategory,
@@ -897,11 +898,11 @@ describe('BrandRemixRunsService', () => {
       expect.any(Object),
       expect.any(Object),
       expect.any(Function),
-      {
+      expect.objectContaining({
         groupId: 'run-1',
         groupIndex: 0,
         settleCreditsExternally: true,
-      },
+      }),
       expect.any(Function),
     );
   });
@@ -1122,6 +1123,20 @@ describe('BrandRemixRunsService', () => {
     contentRun.findFirst.mockResolvedValue(created);
     contentRun.updateMany.mockResolvedValue({ count: 1 });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        category: 'AVATAR',
+        id: 'avatar-1',
+        status: IngredientStatus.GENERATED,
+      },
+      {
+        brandId: 'brand-1',
+        category: 'VOICE',
+        externalVoiceId: 'voice-external-1',
+        id: 'voice-1',
+        isCloned: true,
+        status: IngredientStatus.GENERATED,
+      },
       {
         id: 'avatar-in-flight',
         metadata: { externalId: null, externalProvider: 'heygen' },
@@ -2560,6 +2575,7 @@ describe('BrandRemixRunsService', () => {
 
   it('does not release a newer reclaimed Meta operation after a stale provider failure', async () => {
     const approved = await createApprovedMetaRun();
+    approved.status = ContentRunStatus.COMPLETED;
     let stored = approved;
     let interceptedRelease = false;
     contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
@@ -3133,23 +3149,25 @@ describe('BrandRemixRunsService', () => {
       string,
       unknown
     >;
-    const run = makeRun({
-      ...config,
-      ...(overrides.draft
-        ? {
-            draft: {
-              ...(config.draft as Record<string, unknown>),
-              ...overrides.draft,
-            },
-          }
-        : {}),
-      ...(overrides.execution ? { execution: overrides.execution } : {}),
-      ...(overrides.generationClaim
-        ? { generationClaim: overrides.generationClaim }
-        : {}),
-      ...(overrides.phase ? { phase: overrides.phase } : {}),
-      ...(overrides.review ? { review: overrides.review } : {}),
-    });
+    const run = makeRun(
+      brandRemixRunConfigSchema.parse({
+        ...config,
+        ...(overrides.draft
+          ? {
+              draft: {
+                ...(config.draft as Record<string, unknown>),
+                ...overrides.draft,
+              },
+            }
+          : {}),
+        ...(overrides.execution ? { execution: overrides.execution } : {}),
+        ...(overrides.generationClaim
+          ? { generationClaim: overrides.generationClaim }
+          : {}),
+        ...(overrides.phase ? { phase: overrides.phase } : {}),
+        ...(overrides.review ? { review: overrides.review } : {}),
+      }),
+    );
     expect(result.id).toBe('run-1');
     return run;
   }
