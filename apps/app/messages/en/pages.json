@@ -1,4 +1,18 @@
 {
+  "adsResearch": {
+    "actions": {
+      "filters": "Filters",
+      "manageConnections": "Manage ad connections"
+    },
+    "connection": {
+      "description": "Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.",
+      "title": "Connect accounts for your campaigns"
+    },
+    "errors": {
+      "title": "Ads hub needs attention"
+    },
+    "reviewPolicy": "Launch plans require review. No external campaign objects are created from Ads Research."
+  },
   "platforms": {
     "home": {
       "accountsLabel": "Connected accounts",

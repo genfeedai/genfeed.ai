@@ -4,6 +4,16 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsProfilePage from './settings-profile-page';
 import '@testing-library/jest-dom/vitest';
 
+// Resolve against the real catalog so these assertions stay on the copy a user
+// reads without requiring a NextIntlClientProvider in this focused unit suite.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({
   currentTheme: 'dark',
   errorNotification: vi.fn(),
