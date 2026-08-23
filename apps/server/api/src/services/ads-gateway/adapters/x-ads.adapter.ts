@@ -139,9 +139,12 @@ export class XAdsAdapter implements IAdsAdapter {
     ctx: AdsAdapterContext,
     input: CreateCampaignInput,
   ): Promise<UnifiedCampaign> {
-    if (!ctx.fundingInstrumentId) {
+    const fundingInstrumentId =
+      ctx.fundingInstrumentId ?? (await this.resolveFundingInstrumentId(ctx));
+
+    if (!fundingInstrumentId) {
       throw new BadRequestException(
-        'X Ads requires a funding instrument id (AdsAdapterContext.fundingInstrumentId) to create a campaign.',
+        'X Ads account has no funding instrument available for campaign creation.',
       );
     }
 
@@ -160,7 +163,7 @@ export class XAdsAdapter implements IAdsAdapter {
           ? Math.round(input.dailyBudget * 1_000_000)
           : undefined,
         entityStatus: 'PAUSED',
-        fundingInstrumentId: ctx.fundingInstrumentId,
+        fundingInstrumentId,
         name: input.name,
         totalBudgetAmountLocalMicro: input.lifetimeBudget
           ? Math.round(input.lifetimeBudget * 1_000_000)
@@ -229,7 +232,7 @@ export class XAdsAdapter implements IAdsAdapter {
       ctx.accessToken,
       ctx.adAccountId,
       {
-        bidAmountLocalMicro: input.dailyBudget
+        dailyBudgetAmountLocalMicro: input.dailyBudget
           ? Math.round(input.dailyBudget * 1_000_000)
           : undefined,
         campaignId: input.campaignId,
@@ -237,6 +240,7 @@ export class XAdsAdapter implements IAdsAdapter {
         entityStatus: 'PAUSED',
         name: input.name,
         objective: input.optimizationGoal || 'ENGAGEMENTS',
+        placements: ['ALL_ON_TWITTER'],
         productType: 'PROMOTED_TWEETS',
         startTime: input.startTime,
         targeting: input.targeting,
@@ -293,22 +297,24 @@ export class XAdsAdapter implements IAdsAdapter {
     );
     const metric = params?.metric || 'ctr';
 
-    const campaigns = await this.xAdsService.listCampaigns(
+    const promotedTweets = await this.xAdsService.listPromotedTweets(
       ctx.accessToken,
       ctx.adAccountId,
     );
 
-    if (campaigns.length === 0) {
+    if (promotedTweets.length === 0) {
       return [];
     }
 
-    const rows = await this.xAdsService.getCampaignStats(
+    const rows = await this.xAdsService.getPromotedTweetStats(
       ctx.accessToken,
       ctx.adAccountId,
-      campaigns.map((c) => c.id),
+      promotedTweets.map((tweet) => tweet.id),
       { endDate: dateRange.endDate, startDate: dateRange.startDate },
     );
-    const campaignsById = new Map(campaigns.map((c) => [c.id, c]));
+    const promotedTweetsById = new Map(
+      promotedTweets.map((tweet) => [tweet.id, tweet]),
+    );
 
     return rows
       .map((row) => {
@@ -327,7 +333,7 @@ export class XAdsAdapter implements IAdsAdapter {
           id: row.id,
           insights,
           metric,
-          name: campaignsById.get(row.id)?.name || row.id,
+          name: promotedTweetsById.get(row.id)?.tweetId || row.id,
           value: metricMap[metric] || 0,
         };
       })
@@ -361,8 +367,8 @@ export class XAdsAdapter implements IAdsAdapter {
     return {
       campaignId: lineItem.campaignId,
       dailyBudget:
-        lineItem.bidAmountLocalMicro !== undefined
-          ? lineItem.bidAmountLocalMicro / 1_000_000
+        lineItem.dailyBudgetAmountLocalMicro !== undefined
+          ? lineItem.dailyBudgetAmountLocalMicro / 1_000_000
           : undefined,
       id: lineItem.id,
       name: lineItem.name,
@@ -417,5 +423,19 @@ export class XAdsAdapter implements IAdsAdapter {
           : undefined,
       spend: billedCharge,
     };
+  }
+
+  private async resolveFundingInstrumentId(
+    ctx: AdsAdapterContext,
+  ): Promise<string | undefined> {
+    const instruments = await this.xAdsService.getFundingInstruments(
+      ctx.accessToken,
+      ctx.adAccountId,
+    );
+
+    return (
+      instruments.find((instrument) => instrument.entityStatus === 'ACTIVE') ??
+      instruments[0]
+    )?.id;
   }
 }

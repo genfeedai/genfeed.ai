@@ -12,6 +12,7 @@ describe('XAdsAdapter', () => {
     createLineItem: ReturnType<typeof vi.fn>;
     getAdAccounts: ReturnType<typeof vi.fn>;
     getCampaignStats: ReturnType<typeof vi.fn>;
+    getFundingInstruments: ReturnType<typeof vi.fn>;
     getLineItemStats: ReturnType<typeof vi.fn>;
     getPromotedTweetStats: ReturnType<typeof vi.fn>;
     listCampaigns: ReturnType<typeof vi.fn>;
@@ -39,6 +40,7 @@ describe('XAdsAdapter', () => {
       createLineItem: vi.fn(),
       getAdAccounts: vi.fn(),
       getCampaignStats: vi.fn(),
+      getFundingInstruments: vi.fn(),
       getLineItemStats: vi.fn(),
       getPromotedTweetStats: vi.fn(),
       listCampaigns: vi.fn(),
@@ -257,20 +259,59 @@ describe('XAdsAdapter', () => {
       );
     });
 
-    it('should reject campaign creation without a funding instrument id', async () => {
+    it('should resolve an active funding instrument when the gateway omits one', async () => {
       const ctxWithoutFunding: AdsAdapterContext = {
         ...mockCtx,
         fundingInstrumentId: undefined,
       };
+      xAdsService.getFundingInstruments.mockResolvedValue([
+        {
+          currency: 'USD',
+          entityStatus: 'PAUSED',
+          id: 'fi-paused',
+          type: 'CREDIT_CARD',
+        },
+        {
+          currency: 'USD',
+          entityStatus: 'ACTIVE',
+          id: 'fi-active',
+          type: 'CREDIT_CARD',
+        },
+      ]);
+      xAdsService.createCampaign.mockResolvedValue({
+        createdAt: '2026-01-01T00:00:00Z',
+        entityStatus: 'PAUSED',
+        fundingInstrumentId: 'fi-active',
+        id: 'new-cmp-id',
+        name: 'Resolved Funding',
+        updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      await adapter.createCampaign(ctxWithoutFunding, {
+        name: 'Resolved Funding',
+        objective: 'ENGAGEMENTS',
+      });
+
+      expect(xAdsService.getFundingInstruments).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+      );
+      expect(xAdsService.createCampaign).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        expect.objectContaining({ fundingInstrumentId: 'fi-active' }),
+      );
+    });
+
+    it('should reject campaign creation when the account has no funding instruments', async () => {
+      xAdsService.getFundingInstruments.mockResolvedValue([]);
 
       await expect(
-        adapter.createCampaign(ctxWithoutFunding, {
-          name: 'No Funding',
-          objective: 'ENGAGEMENTS',
-        }),
-      ).rejects.toThrow(
-        'X Ads requires a funding instrument id (AdsAdapterContext.fundingInstrumentId) to create a campaign.',
-      );
+        adapter.createCampaign(
+          { ...mockCtx, fundingInstrumentId: undefined },
+          { name: 'No Funding', objective: 'ENGAGEMENTS' },
+        ),
+      ).rejects.toThrow('X Ads account has no funding instrument');
       expect(xAdsService.createCampaign).not.toHaveBeenCalled();
     });
   });
@@ -279,6 +320,7 @@ describe('XAdsAdapter', () => {
     it('should always create the line item PAUSED', async () => {
       xAdsService.createLineItem.mockResolvedValue({
         campaignId: 'cmp-1',
+        dailyBudgetAmountLocalMicro: 12_500_000,
         entityStatus: 'PAUSED',
         id: 'li-new',
         name: 'New Line Item',
@@ -288,6 +330,7 @@ describe('XAdsAdapter', () => {
 
       const result = await adapter.createAdSet(mockCtx, {
         campaignId: 'cmp-1',
+        dailyBudget: 12.5,
         name: 'New Line Item',
         targeting: {},
       });
@@ -295,13 +338,16 @@ describe('XAdsAdapter', () => {
       expect(result.id).toBe('li-new');
       expect(result.status).toBe('PAUSED');
       expect(result.platform).toBe('x');
+      expect(result.dailyBudget).toBe(12.5);
       expect(xAdsService.createLineItem).toHaveBeenCalledWith(
         'x-token',
         'acct-123',
         expect.objectContaining({
           campaignId: 'cmp-1',
+          dailyBudgetAmountLocalMicro: 12_500_000,
           entityStatus: 'PAUSED',
           name: 'New Line Item',
+          placements: ['ALL_ON_TWITTER'],
         }),
       );
     });
@@ -379,7 +425,9 @@ describe('XAdsAdapter', () => {
     it('should map line items to unified ad sets', async () => {
       xAdsService.listLineItems.mockResolvedValue([
         {
+          bidAmountLocalMicro: 99_000_000,
           campaignId: 'cmp-1',
+          dailyBudgetAmountLocalMicro: 7_500_000,
           entityStatus: 'PAUSED',
           id: 'li-1',
           name: 'Line Item One',
@@ -394,6 +442,7 @@ describe('XAdsAdapter', () => {
       expect(result[0].id).toBe('li-1');
       expect(result[0].campaignId).toBe('cmp-1');
       expect(result[0].platform).toBe('x');
+      expect(result[0].dailyBudget).toBe(7.5);
     });
   });
 
@@ -433,28 +482,30 @@ describe('XAdsAdapter', () => {
   });
 
   describe('getTopPerformers', () => {
-    it('should return campaigns sorted by the requested metric', async () => {
-      xAdsService.listCampaigns.mockResolvedValue([
+    it('should return promoted tweets sorted at the same entity granularity as listAds', async () => {
+      xAdsService.listPromotedTweets.mockResolvedValue([
         {
+          approvalStatus: 'ACCEPTED',
           entityStatus: 'PAUSED',
-          fundingInstrumentId: 'fi-1',
-          id: 'cmp-1',
-          name: 'Campaign One',
+          id: 'pt-1',
+          lineItemId: 'li-1',
+          tweetId: 'tweet-1',
         },
         {
+          approvalStatus: 'ACCEPTED',
           entityStatus: 'PAUSED',
-          fundingInstrumentId: 'fi-1',
-          id: 'cmp-2',
-          name: 'Campaign Two',
+          id: 'pt-2',
+          lineItemId: 'li-2',
+          tweetId: 'tweet-2',
         },
       ]);
-      xAdsService.getCampaignStats.mockResolvedValue([
+      xAdsService.getPromotedTweetStats.mockResolvedValue([
         {
-          id: 'cmp-1',
+          id: 'pt-1',
           metrics: { billedCharge: 10, clicks: 50, impressions: 1000 },
         },
         {
-          id: 'cmp-2',
+          id: 'pt-2',
           metrics: { billedCharge: 20, clicks: 400, impressions: 2000 },
         },
       ]);
@@ -464,18 +515,28 @@ describe('XAdsAdapter', () => {
         metric: 'ctr',
       });
 
-      expect(result[0].id).toBe('cmp-2'); // higher ctr first
+      expect(xAdsService.getPromotedTweetStats).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        ['pt-1', 'pt-2'],
+        expect.objectContaining({
+          endDate: expect.any(String),
+          startDate: expect.any(String),
+        }),
+      );
+      expect(result[0].id).toBe('pt-2');
+      expect(result[0].name).toBe('tweet-2');
       expect(result[0].metric).toBe('ctr');
       expect(result[0].insights.platform).toBe('x');
     });
 
-    it('should return an empty array when there are no campaigns', async () => {
-      xAdsService.listCampaigns.mockResolvedValue([]);
+    it('should return an empty array when there are no promoted tweets', async () => {
+      xAdsService.listPromotedTweets.mockResolvedValue([]);
 
       const result = await adapter.getTopPerformers(mockCtx);
 
       expect(result).toEqual([]);
-      expect(xAdsService.getCampaignStats).not.toHaveBeenCalled();
+      expect(xAdsService.getPromotedTweetStats).not.toHaveBeenCalled();
     });
   });
 });
