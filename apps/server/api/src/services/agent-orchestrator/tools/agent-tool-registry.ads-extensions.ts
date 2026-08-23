@@ -244,7 +244,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
   {
     creditCost: 0,
     description:
-      'Prepare a paused Meta or Google campaign launch draft for review from a selected ad. This never publishes live.',
+      'Prepare a paused Meta, Google, or X campaign launch draft for review from a selected ad. This never publishes live.',
     name: AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
     parameters: {
       properties: {
