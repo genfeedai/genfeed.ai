@@ -65,6 +65,50 @@ describe('CollectionFilterUtil', () => {
     });
   });
 
+  describe('applyAuthorizedTenantMatch', () => {
+    const orgA = '550e8400-e29b-41d4-a716-446655440001';
+    const orgB = '550e8400-e29b-41d4-a716-446655440002';
+    const brandA = '550e8400-e29b-41d4-a716-446655440003';
+
+    it('binds members to the session organization even when query asks for another', () => {
+      expect(() =>
+        CollectionFilterUtil.applyAuthorizedTenantMatch(
+          {},
+          { organizationId: orgB },
+          { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
+        ),
+      ).toThrow(ForbiddenException);
+    });
+
+    it('writes session organization and brand onto the match for members', () => {
+      const match: Record<string, unknown> = { isDeleted: false };
+
+      CollectionFilterUtil.applyAuthorizedTenantMatch(
+        match,
+        {},
+        { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
+      );
+
+      expect(match).toEqual({
+        brandId: brandA,
+        isDeleted: false,
+        organizationId: orgA,
+      });
+    });
+
+    it('lets superadmins filter a different organization', () => {
+      const match: Record<string, unknown> = { isDeleted: false };
+
+      CollectionFilterUtil.applyAuthorizedTenantMatch(
+        match,
+        { organizationId: orgB },
+        { brandId: brandA, isSuperAdmin: true, organizationId: orgA },
+      );
+
+      expect(match.organizationId).toBe(orgB);
+    });
+  });
+
   describe('buildBrandFilter', () => {
     it('returns a provided canonical brand ID when valid', () => {
       const brandId = '550e8400-e29b-41d4-a716-446655440003';

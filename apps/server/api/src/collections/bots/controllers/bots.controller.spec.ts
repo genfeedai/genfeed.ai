@@ -87,5 +87,23 @@ describe('BotsController identity gates', () => {
         } as never),
       ).toThrow("Bot listing is missing a resolvable 'organization' id");
     });
+
+    it('rejects a member organization filter outside the session org', () => {
+      expect(() =>
+        controller.buildFindAllQuery(mockUser, {
+          organizationId: 'org-other',
+          scope: 'organization',
+        } as never),
+      ).toThrow('Access denied to this organization');
+    });
+
+    it('rejects a member user filter for a different user', () => {
+      expect(() =>
+        controller.buildFindAllQuery(mockUser, {
+          scope: 'user',
+          userId: 'user-other',
+        } as never),
+      ).toThrow('Access denied to this user');
+    });
   });
 });

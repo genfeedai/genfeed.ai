@@ -9,6 +9,7 @@ import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/serv
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
@@ -91,16 +92,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
       isDeleted: query.isDeleted ?? false,
     };
 
-    const organizationId =
-      query.organizationId || user.organizationId?.toString();
-    if (organizationId) {
-      match.organizationId = organizationId;
-    }
-
-    const brandId = query.brandId || user.brandId?.toString();
-    if (brandId) {
-      match.brandId = brandId;
-    }
+    CollectionFilterUtil.applyAuthorizedTenantMatch(match, query, user);
 
     if (query.platform) {
       match.platform = query.platform;

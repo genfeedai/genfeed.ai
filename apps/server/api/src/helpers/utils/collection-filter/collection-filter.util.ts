@@ -104,6 +104,36 @@ export class CollectionFilterUtil {
   }
 
   /**
+   * Write authorized org/brand filters onto a list `match` object.
+   * Members cannot select another organization; missing brand falls back to
+   * the session brand when present.
+   */
+  static applyAuthorizedTenantMatch(
+    match: Record<string, unknown>,
+    query: { organizationId?: string; brandId?: string },
+    user: {
+      organizationId?: string;
+      brandId?: string;
+      isSuperAdmin?: boolean;
+    },
+  ): void {
+    const tenant = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+      query,
+      user,
+    );
+
+    if (tenant.organizationId) {
+      match.organizationId = tenant.organizationId;
+    }
+
+    if (tenant.brandId) {
+      match.brandId = tenant.brandId;
+    } else if (user.brandId) {
+      match.brandId = String(user.brandId);
+    }
+  }
+
+  /**
    * Build admin filter for superadmin org/brand filtering
    *
    * When a superadmin passes explicit organizationId/brandId query params,

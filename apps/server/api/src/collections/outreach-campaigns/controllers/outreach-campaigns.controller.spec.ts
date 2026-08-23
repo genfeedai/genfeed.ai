@@ -105,6 +105,27 @@ describe('OutreachCampaignsController', () => {
     });
   });
 
+  describe('buildFindAllQuery', () => {
+    it('binds members to the session organization', () => {
+      expect(controller.buildFindAllQuery(mockUser, {} as never)).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId,
+            organizationId,
+          }),
+        }),
+      );
+    });
+
+    it('rejects a member organization filter outside the session org', () => {
+      expect(() =>
+        controller.buildFindAllQuery(mockUser, {
+          organizationId: otherOrganizationId,
+        } as never),
+      ).toThrow('Access denied to this organization');
+    });
+  });
+
   describe('patchCampaign', () => {
     it('preserves status-only transition behavior', async () => {
       mockOutreachCampaignsService.pause.mockResolvedValue({
