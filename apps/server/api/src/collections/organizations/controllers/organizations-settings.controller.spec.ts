@@ -20,6 +20,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
@@ -31,7 +32,6 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 
 describe('OrganizationsSettingsController', () => {
   let controller: OrganizationsSettingsController;
