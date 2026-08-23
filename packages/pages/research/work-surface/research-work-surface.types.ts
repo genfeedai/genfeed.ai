@@ -59,6 +59,10 @@ export function toAdsResearchFinding(
       my_accounts: 'research-ad-connected-tiktok',
       public: 'research-ad-public-tiktok',
     },
+    x: {
+      my_accounts: 'research-ad-connected-x',
+      public: 'research-ad-public-x',
+    },
   } as const satisfies Readonly<
     Record<
       AdsResearchItem['platform'],
@@ -71,7 +75,9 @@ export function toAdsResearchFinding(
       ? 'Meta'
       : item.platform === 'tiktok'
         ? 'TikTok'
-        : 'Google';
+        : item.platform === 'x'
+          ? 'X'
+          : 'Google';
 
   return {
     description:
