@@ -55,4 +55,33 @@ describe('findPendingGenerationAction', () => {
 
     expect(action).toBeNull();
   });
+
+  it('ignores generation cards that belong to another thread', () => {
+    const action = findPendingGenerationAction(
+      [
+        message('message-other', [
+          {
+            generationType: 'image',
+            id: 'generation-other',
+            title: 'Configure image',
+            type: 'generation_action_card',
+          },
+        ]),
+        {
+          ...message('message-current', [
+            {
+              generationType: 'video',
+              id: 'generation-current',
+              title: 'Configure video',
+              type: 'generation_action_card',
+            },
+          ]),
+          threadId: 'thread-2',
+        },
+      ],
+      'thread-2',
+    );
+
+    expect(action?.id).toBe('generation-current');
+  });
 });

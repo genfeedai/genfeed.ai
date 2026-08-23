@@ -35,6 +35,8 @@ export class SocketManager {
   private onConnectErrorHandler?: () => void;
   private onDisconnectHandler?: (reason: string) => void;
   private onReconnectAttemptHandler?: () => void;
+  private manualReconnectAttempt = 0;
+  private manualReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(config: ISocketManagerConfig = {}) {
     this.socketService = SocketService.getInstance(config.token);
@@ -98,6 +100,8 @@ export class SocketManager {
 
   private setupConnectionStateHandlers(): void {
     this.onConnectHandler = () => {
+      this.manualReconnectAttempt = 0;
+      this.clearManualReconnectTimer();
       this.setConnectionState('connected');
     };
     this.onConnectErrorHandler = () => {
@@ -119,7 +123,7 @@ export class SocketManager {
       this.setConnectionState('reconnecting');
 
       if (disposition.recovery === 'manual') {
-        this.socketService.connect();
+        this.scheduleManualReconnect();
       }
     };
     this.onReconnectAttemptHandler = () => {
@@ -140,6 +144,33 @@ export class SocketManager {
     this.connectionStateListeners.forEach((listener) => {
       listener(state);
     });
+  }
+
+  private clearManualReconnectTimer(): void {
+    if (!this.manualReconnectTimer) {
+      return;
+    }
+
+    clearTimeout(this.manualReconnectTimer);
+    this.manualReconnectTimer = null;
+  }
+
+  /**
+   * `io server disconnect` disables Socket.IO auto-reconnect. Immediate
+   * `connect()` turns an auth/JWKS failure into a tight loop. Back off the
+   * same way the manager does for transport loss.
+   */
+  private scheduleManualReconnect(): void {
+    if (this.manualReconnectTimer) {
+      return;
+    }
+
+    const delayMs = Math.min(1_000 * 2 ** this.manualReconnectAttempt, 30_000);
+    this.manualReconnectAttempt += 1;
+    this.manualReconnectTimer = setTimeout(() => {
+      this.manualReconnectTimer = null;
+      this.socketService.connect();
+    }, delayMs);
   }
 
   /**
@@ -221,6 +252,9 @@ export class SocketManager {
    * Clean up all socket listeners
    */
   public cleanup(): void {
+    this.clearManualReconnectTimer();
+    this.manualReconnectAttempt = 0;
+
     // Remove all custom listeners
     this.listeners.forEach(({ event, handler }) => {
       this.socketService.off(event, handler);

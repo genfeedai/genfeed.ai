@@ -69,6 +69,7 @@ describe('SocketManager', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     SocketManager.clearInstance();
     SocketService.clearInstance();
   });
@@ -225,7 +226,8 @@ describe('SocketManager', () => {
       );
     });
 
-    it('manually reconnects a server-disconnected namespace', () => {
+    it('backs off before reconnecting a server-disconnected namespace', () => {
+      vi.useFakeTimers();
       const manager = SocketManager.getInstance({ autoConnect: false });
       const states: string[] = [];
       manager.subscribeConnectionState((state) => states.push(state));
@@ -234,7 +236,14 @@ describe('SocketManager', () => {
       getSocketHandler('disconnect')?.('io server disconnect');
 
       expect(states.at(-1)).toBe('reconnecting');
+      expect(mockSocketConnect).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(999);
+      expect(mockSocketConnect).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(1);
       expect(mockSocketConnect).toHaveBeenCalledOnce();
+      vi.useRealTimers();
     });
 
     it('leaves deliberate client disconnects offline without reconnecting', () => {

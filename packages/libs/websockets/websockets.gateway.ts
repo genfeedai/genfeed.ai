@@ -1,6 +1,7 @@
 import {
   BetterAuthJwksVerifier,
   createBetterAuthJwksVerifierOptions,
+  resolveBetterAuthBaseUrlFromConfig,
 } from '@libs/auth/better-auth-jwks.verifier';
 import type {
   AssetStatusData,
@@ -246,14 +247,18 @@ export class WebSocketGateway
 
   private getBetterAuthVerifier(): BetterAuthJwksVerifier {
     if (!this.betterAuthVerifier) {
-      const configuredUrl = this.configService.get('BETTER_AUTH_URL');
-      if (!configuredUrl) {
+      const betterAuthBaseUrl = resolveBetterAuthBaseUrlFromConfig(
+        this.configService,
+      );
+      if (
+        !this.configService.get('BETTER_AUTH_URL')?.trim() &&
+        !this.configService.get('API_BASE_URL')?.trim()
+      ) {
         this.logger.warn(
-          'BETTER_AUTH_URL is not configured; falling back to http://localhost:3010 for JWKS — set this in production or socket auth will fail',
+          'BETTER_AUTH_URL and API_BASE_URL are unset; verifying socket JWTs against http://localhost:3010/v1/auth/jwks',
           this.context,
         );
       }
-      const betterAuthBaseUrl = configuredUrl || 'http://localhost:3010';
       this.betterAuthVerifier = new BetterAuthJwksVerifier(
         createBetterAuthJwksVerifierOptions(betterAuthBaseUrl),
       );

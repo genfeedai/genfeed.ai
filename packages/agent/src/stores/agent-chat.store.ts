@@ -919,7 +919,21 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       runStartedAt: options?.startedAt ?? null,
     }),
   setActiveRunStatus: (status) => set({ activeRunStatus: status }),
-  setActiveThread: (id) => set({ activeThreadId: id }),
+  setActiveThread: (id) =>
+    set((state) => {
+      // `/agent/new` creates the thread while the store still has `null`, then
+      // the URL catches up. Keep the live stream for that handoff. Switching
+      // from one real thread to another must not keep the previous generation
+      // card in `pendingUiActions`.
+      if (state.activeThreadId === id || !state.activeThreadId) {
+        return { activeThreadId: id };
+      }
+
+      return {
+        activeThreadId: id,
+        stream: { ...DEFAULT_STREAM_STATE },
+      };
+    }),
   setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
   setDraftPlanModeEnabled: (enabled) => set({ draftPlanModeEnabled: enabled }),
   setError: (error) =>
