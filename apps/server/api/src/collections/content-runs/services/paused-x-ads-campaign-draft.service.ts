@@ -2,6 +2,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   BrandRemixExecution,
@@ -17,7 +18,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
-import { XAdsService } from '@server/services/integrations/x-ads/services/x-ads.service';
 
 export interface PausedXAdsCampaignDraftInput {
   adAccountId: string;
