@@ -1,6 +1,7 @@
 import {
   type AdsInsightsDateRange,
   emptyUnifiedInsights,
+  formatAdsInsightsDate,
   resolveAdsInsightsDateRange,
 } from '@api/services/ads-gateway/ads-insights-range.util';
 import type {
@@ -54,6 +55,32 @@ function isXAdsObjective(value: string): value is XAdsObjective {
 }
 
 /**
+ * Gateway date ranges are inclusive, while X reporting ends are exclusive.
+ * Clamp the shared `today` preset's reversed range locally so other adapters
+ * retain their existing date semantics.
+ */
+function resolveXAdsInsightsRanges(dateRange: AdsInsightsDateRange): {
+  inclusive: AdsInsightsDateRange;
+  reporting: AdsInsightsDateRange;
+} {
+  const inclusiveEndDate =
+    Date.parse(dateRange.endDate) < Date.parse(dateRange.startDate)
+      ? dateRange.startDate
+      : dateRange.endDate;
+  const exclusiveEnd = new Date(inclusiveEndDate);
+  exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+  const inclusive = { ...dateRange, endDate: inclusiveEndDate };
+
+  return {
+    inclusive,
+    reporting: {
+      ...inclusive,
+      endDate: formatAdsInsightsDate(exclusiveEnd),
+    },
+  };
+}
+
+/**
  * X Ads maps its `campaign` / `line_item` / `promoted_tweet` hierarchy onto
  * the unified `campaign` / `ad set` / `ad` hierarchy: a line item is the
  * unified ad set, a promoted tweet is the unified ad.
@@ -98,18 +125,20 @@ export class XAdsAdapter implements IAdsAdapter {
     campaignId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = resolveAdsInsightsDateRange(params, {
-      defaultPreset: 'last_30d',
-    });
+    const dateRanges = resolveXAdsInsightsRanges(
+      resolveAdsInsightsDateRange(params, {
+        defaultPreset: 'last_30d',
+      }),
+    );
 
     const rows = await this.xAdsService.getCampaignStats(
       ctx.accessToken,
       ctx.adAccountId,
       [campaignId],
-      { endDate: dateRange.endDate, startDate: dateRange.startDate },
+      dateRanges.reporting,
     );
 
-    return this.toUnifiedInsights(rows[0], dateRange);
+    return this.toUnifiedInsights(rows[0], dateRanges.inclusive);
   }
 
   async getAdSetInsights(
@@ -117,18 +146,20 @@ export class XAdsAdapter implements IAdsAdapter {
     adSetId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = resolveAdsInsightsDateRange(params, {
-      defaultPreset: 'last_30d',
-    });
+    const dateRanges = resolveXAdsInsightsRanges(
+      resolveAdsInsightsDateRange(params, {
+        defaultPreset: 'last_30d',
+      }),
+    );
 
     const rows = await this.xAdsService.getLineItemStats(
       ctx.accessToken,
       ctx.adAccountId,
       [adSetId],
-      { endDate: dateRange.endDate, startDate: dateRange.startDate },
+      dateRanges.reporting,
     );
 
-    return this.toUnifiedInsights(rows[0], dateRange);
+    return this.toUnifiedInsights(rows[0], dateRanges.inclusive);
   }
 
   async getAdInsights(
@@ -136,18 +167,20 @@ export class XAdsAdapter implements IAdsAdapter {
     adId: string,
     params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
-    const dateRange = resolveAdsInsightsDateRange(params, {
-      defaultPreset: 'last_30d',
-    });
+    const dateRanges = resolveXAdsInsightsRanges(
+      resolveAdsInsightsDateRange(params, {
+        defaultPreset: 'last_30d',
+      }),
+    );
 
     const rows = await this.xAdsService.getPromotedTweetStats(
       ctx.accessToken,
       ctx.adAccountId,
       [adId],
-      { endDate: dateRange.endDate, startDate: dateRange.startDate },
+      dateRanges.reporting,
     );
 
-    return this.toUnifiedInsights(rows[0], dateRange);
+    return this.toUnifiedInsights(rows[0], dateRanges.inclusive);
   }
 
   async createCampaign(
@@ -325,9 +358,11 @@ export class XAdsAdapter implements IAdsAdapter {
       insights: UnifiedInsights;
     }>
   > {
-    const dateRange = resolveAdsInsightsDateRange(
-      { datePreset: params?.datePreset },
-      { defaultPreset: 'last_30d' },
+    const dateRanges = resolveXAdsInsightsRanges(
+      resolveAdsInsightsDateRange(
+        { datePreset: params?.datePreset },
+        { defaultPreset: 'last_30d' },
+      ),
     );
     const metric = params?.metric || 'ctr';
 
@@ -344,7 +379,7 @@ export class XAdsAdapter implements IAdsAdapter {
       ctx.accessToken,
       ctx.adAccountId,
       promotedTweets.map((tweet) => tweet.id),
-      { endDate: dateRange.endDate, startDate: dateRange.startDate },
+      dateRanges.reporting,
     );
     const promotedTweetsById = new Map(
       promotedTweets.map((tweet) => [tweet.id, tweet]),
@@ -352,7 +387,7 @@ export class XAdsAdapter implements IAdsAdapter {
 
     return rows
       .map((row) => {
-        const insights = this.toUnifiedInsights(row, dateRange);
+        const insights = this.toUnifiedInsights(row, dateRanges.inclusive);
         const metricMap: Record<string, number> = {
           clicks: insights.clicks,
           conversions: insights.conversions || 0,

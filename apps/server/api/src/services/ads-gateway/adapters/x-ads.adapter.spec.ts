@@ -126,6 +126,134 @@ describe('XAdsAdapter', () => {
   });
 
   describe('getCampaignInsights', () => {
+    it('normalizes today to one inclusive gateway day and an exclusive X end boundary', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-08-19T12:00:00.000Z'));
+      xAdsService.getCampaignStats.mockResolvedValue([
+        {
+          endTime: '2026-08-20T00:00:00Z',
+          id: 'cmp-1',
+          metrics: { billedCharge: 0, clicks: 0, impressions: 0 },
+          startTime: '2026-08-19T00:00:00Z',
+        },
+      ]);
+
+      try {
+        const result = await adapter.getCampaignInsights(mockCtx, 'cmp-1', {
+          datePreset: 'today',
+        });
+
+        expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
+          'x-token',
+          'acct-123',
+          ['cmp-1'],
+          { endDate: '2026-08-20', startDate: '2026-08-19' },
+        );
+        expect(result).toMatchObject({
+          dateStart: '2026-08-19',
+          dateStop: '2026-08-19',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('maps yesterday to one day with an exclusive X end boundary', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-08-19T12:00:00.000Z'));
+      xAdsService.getCampaignStats.mockResolvedValue([
+        {
+          endTime: '2026-08-19T00:00:00Z',
+          id: 'cmp-1',
+          metrics: { billedCharge: 0, clicks: 0, impressions: 0 },
+          startTime: '2026-08-18T00:00:00Z',
+        },
+      ]);
+
+      try {
+        const result = await adapter.getCampaignInsights(mockCtx, 'cmp-1', {
+          datePreset: 'yesterday',
+        });
+
+        expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
+          'x-token',
+          'acct-123',
+          ['cmp-1'],
+          { endDate: '2026-08-19', startDate: '2026-08-18' },
+        );
+        expect(result).toMatchObject({
+          dateStart: '2026-08-18',
+          dateStop: '2026-08-18',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('maps an explicit same-day range to an exclusive next-day X boundary', async () => {
+      xAdsService.getCampaignStats.mockResolvedValue([
+        {
+          endTime: '2026-03-08T00:00:00Z',
+          id: 'cmp-1',
+          metrics: { billedCharge: 0, clicks: 0, impressions: 0 },
+          startTime: '2026-03-07T00:00:00Z',
+        },
+      ]);
+
+      const result = await adapter.getCampaignInsights(mockCtx, 'cmp-1', {
+        timeRange: { since: '2026-03-07', until: '2026-03-07' },
+      });
+
+      expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        ['cmp-1'],
+        { endDate: '2026-03-08', startDate: '2026-03-07' },
+      );
+      expect(result).toMatchObject({
+        dateStart: '2026-03-07',
+        dateStop: '2026-03-07',
+      });
+    });
+
+    it('keeps last_7d at seven inclusive gateway days for X reporting', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-08-19T12:00:00.000Z'));
+      xAdsService.getCampaignStats.mockResolvedValue([
+        {
+          endTime: '2026-08-19T00:00:00Z',
+          id: 'cmp-1',
+          metrics: { billedCharge: 0, clicks: 0, impressions: 0 },
+          startTime: '2026-08-12T00:00:00Z',
+        },
+      ]);
+
+      try {
+        const result = await adapter.getCampaignInsights(mockCtx, 'cmp-1', {
+          datePreset: 'last_7d',
+        });
+
+        expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
+          'x-token',
+          'acct-123',
+          ['cmp-1'],
+          { endDate: '2026-08-19', startDate: '2026-08-12' },
+        );
+        const reportingRange = xAdsService.getCampaignStats.mock.calls[0]?.[3];
+        expect(
+          (Date.parse(reportingRange.endDate) -
+            Date.parse(reportingRange.startDate)) /
+            (24 * 60 * 60 * 1000),
+        ).toBe(7);
+        expect(result).toMatchObject({
+          dateStart: '2026-08-12',
+          dateStop: '2026-08-18',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should derive ratio metrics from the single TOTAL-granularity row', async () => {
       xAdsService.getCampaignStats.mockResolvedValue([
         {
@@ -150,7 +278,7 @@ describe('XAdsAdapter', () => {
         'x-token',
         'acct-123',
         ['cmp-1'],
-        { endDate: '2026-03-07', startDate: '2026-03-01' },
+        { endDate: '2026-03-08', startDate: '2026-03-01' },
       );
       expect(result).toMatchObject({
         clicks: 200,
