@@ -1,6 +1,7 @@
 import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.adapter';
 import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
 import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.adapter';
+import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import type {
   AdsAdapterContext,
   AdsPlatform,
@@ -19,12 +20,14 @@ export class AdsGatewayService {
     private readonly metaAdapter: MetaAdsAdapter,
     private readonly googleAdapter: GoogleAdsAdapter,
     private readonly tiktokAdapter: TikTokAdsAdapter,
+    private readonly xAdsAdapter: XAdsAdapter,
     private readonly logger: LoggerService,
   ) {
     this.adapters = new Map<AdsPlatform, IAdsAdapter>([
       ['meta', metaAdapter],
       ['google', googleAdapter],
       ['tiktok', tiktokAdapter],
+      ['x', xAdsAdapter],
     ]);
   }
 

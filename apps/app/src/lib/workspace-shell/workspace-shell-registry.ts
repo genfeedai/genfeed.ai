@@ -228,9 +228,11 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/discover/ads/google': 'Ads',
   '/:orgSlug/:brandSlug/discover/ads/meta': 'Ads',
   '/:orgSlug/:brandSlug/discover/ads/tiktok': 'Ads',
+  '/:orgSlug/:brandSlug/discover/ads/x': 'Ads',
   '/:orgSlug/~/discover/ads/google': 'Ads',
   '/:orgSlug/~/discover/ads/meta': 'Ads',
   '/:orgSlug/~/discover/ads/tiktok': 'Ads',
+  '/:orgSlug/~/discover/ads/x': 'Ads',
   // Content desk lives under Posts, not Overview.
   '/:orgSlug/:brandSlug/publish/posts/:id': 'Posts',
   '/:orgSlug/:brandSlug/automate/agents/:agentId': 'Team',
@@ -490,6 +492,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/discover/ads/google',
       '/:orgSlug/~/discover/ads/meta',
       '/:orgSlug/~/discover/ads/tiktok',
+      '/:orgSlug/~/discover/ads/x',
       '/:orgSlug/~/discover/:platform',
     ],
     {
@@ -704,6 +707,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/discover/ads/google',
       '/:orgSlug/:brandSlug/discover/ads/meta',
       '/:orgSlug/:brandSlug/discover/ads/tiktok',
+      '/:orgSlug/:brandSlug/discover/ads/x',
       '/:orgSlug/:brandSlug/discover/:platform',
     ],
     {

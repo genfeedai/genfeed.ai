@@ -1,11 +1,14 @@
 /**
- * Real-Postgres proof for the durable brand-remix -> paused Meta handoff.
- * Only the outbound Meta workflow is mocked; claim/replay/recovery state is
- * written and compared through Prisma against the real jsonb column.
+ * Real-Postgres proof for durable brand-remix -> paused paid-platform handoffs.
+ * Provider HTTP and final provider-draft creation are mocked; research,
+ * adapter mapping, claim/replay/recovery state, and jsonb persistence stay real.
  */
 
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { PausedMetaCampaignDraftResult } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
+import type { PausedXAdsCampaignDraftResult } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
+import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
@@ -45,7 +48,7 @@ interface RemixFixture {
   userId: string;
 }
 
-describeWithDatabase('Brand remix paid Meta draft integration', () => {
+describeWithDatabase('Brand remix paid draft integration', () => {
   let dbHelper: TestDatabaseHelper;
   let moduleRef: TestingModule;
   let prisma: PrismaService;
@@ -225,6 +228,187 @@ describeWithDatabase('Brand remix paid Meta draft integration', () => {
     });
   });
 
+  it('carries a connected X promoted Tweet through research, remix, and the durable paused-draft handoff', async () => {
+    const fixture = await seedConnectedXFixture();
+    const xProvider = {
+      getPromotedTweetStats: vi.fn().mockResolvedValue([
+        {
+          endTime: '2026-08-20',
+          id: 'promoted-tweet-1',
+          metrics: {
+            billedCharge: 12,
+            clicks: 120,
+            impressions: 2_400,
+          },
+          startTime: '2026-07-22',
+        },
+      ]),
+      listPromotedTweets: vi.fn().mockResolvedValue([
+        {
+          approvalStatus: 'ACCEPTED',
+          entityStatus: 'PAUSED',
+          id: 'promoted-tweet-1',
+          lineItemId: 'line-item-1',
+          tweetId: 'tweet-owned-1',
+        },
+      ]),
+    };
+    const adapter = new XAdsAdapter(
+      xProvider as never,
+      { warn: vi.fn() } as never,
+    );
+    const adsResearchService = new AdsResearchService(
+      {} as never,
+      { findAll: vi.fn().mockResolvedValue([]) } as never,
+      {
+        findOne: vi.fn().mockResolvedValue({ accessToken: 'x-access-token' }),
+      } as never,
+      { getAdapter: vi.fn().mockReturnValue(adapter) } as never,
+      {} as never,
+    );
+    const prepareX = vi
+      .fn<() => Promise<PausedXAdsCampaignDraftResult>>()
+      .mockResolvedValue(xPaidDraftResult(fixture));
+    const service = createService(fixture, vi.fn(), {
+      adsResearchService,
+      prepareX,
+    });
+
+    const created = await service.create(
+      fixture.organizationId,
+      fixture.brandId,
+      {
+        source: {
+          adAccountId: 'x-account-1',
+          adId: 'promoted-tweet-1',
+          credentialId: fixture.credentialId,
+          kind: 'connected_ad',
+          platform: 'x',
+        },
+      },
+    );
+
+    expect(created.sourceSnapshot).toMatchObject({
+      metrics: {
+        clicks: 120,
+        impressions: 2_400,
+        spend: 12,
+      },
+      platform: 'x',
+      selector: {
+        adAccountId: 'x-account-1',
+        adId: 'promoted-tweet-1',
+        credentialId: fixture.credentialId,
+        kind: 'connected_ad',
+        platform: 'x',
+      },
+      sourceId: 'promoted-tweet-1',
+      title: 'tweet-owned-1',
+    });
+    expect(xProvider.getPromotedTweetStats).toHaveBeenCalledWith(
+      'x-access-token',
+      'x-account-1',
+      ['promoted-tweet-1'],
+      expect.objectContaining({
+        endDate: expect.any(String),
+        startDate: expect.any(String),
+      }),
+    );
+
+    const persistedPrefill = await prisma.contentRun.findUniqueOrThrow({
+      where: { id: created.id },
+    });
+    const prefilledConfig = brandRemixRunConfigSchema.parse(
+      persistedPrefill.config,
+    );
+    const approvedXConfig = brandRemixRunConfigSchema.parse({
+      ...prefilledConfig,
+      execution: approvedExecution(fixture, 'Create an original X visual.'),
+      phase: 'approved',
+      readiness: { issues: [], state: 'ready' },
+      review: {
+        approvedPostIds: [fixture.postId],
+        batchId: 'batch-x-1',
+        postIds: [fixture.postId],
+        workflowExecutionId: 'review-x-execution-1',
+        workflowId: 'review-x-workflow-1',
+      },
+    });
+    await prisma.post.create({
+      data: createTestPost({
+        brandId: fixture.brandId,
+        contentRunId: created.id,
+        externalId: 'tweet-owned-1',
+        id: fixture.postId,
+        organizationId: fixture.organizationId,
+        platform: 'twitter',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+        status: 'public',
+        userId: fixture.userId,
+        variantId: 'variant-1',
+      }),
+    });
+    await prisma.contentRun.update({
+      data: {
+        config: approvedXConfig as Prisma.InputJsonValue,
+        status: ContentRunStatus.COMPLETED,
+      },
+      where: { id: created.id },
+    });
+
+    const completed = await service.preparePausedMetaDraft(
+      fixture.organizationId,
+      created.id,
+      fixture.userId,
+      {
+        destination: {
+          adAccountId: 'x-account-1',
+          credentialId: fixture.credentialId,
+        },
+        sourceTweetId: 'tweet-owned-1',
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(prepareX).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adAccountId: 'x-account-1',
+        brandId: fixture.brandId,
+        credentialId: fixture.credentialId,
+        organizationId: fixture.organizationId,
+        runId: created.id,
+        sourceTweetId: 'tweet-owned-1',
+        variant: expect.objectContaining({ id: 'variant-1' }),
+      }),
+    );
+    expect(completed).toMatchObject({
+      paidDraft: {
+        adId: 'promoted-tweet-1',
+        postId: fixture.postId,
+        status: 'PAUSED',
+      },
+      phase: 'paid_draft_ready',
+      sourceSnapshot: {
+        selector: { kind: 'connected_ad', platform: 'x' },
+      },
+    });
+
+    const persistedCompleted = await prisma.contentRun.findUniqueOrThrow({
+      where: { id: created.id },
+    });
+    expect(persistedCompleted.config).toMatchObject({
+      paidDraft: {
+        adId: 'promoted-tweet-1',
+        ingredientId: fixture.ingredientId,
+        status: 'PAUSED',
+      },
+      phase: 'paid_draft_ready',
+    });
+    expect(
+      (persistedCompleted.config as Record<string, unknown>).paidDraftOperation,
+    ).toBeUndefined();
+  });
+
   const seedApprovedRun = async (): Promise<RemixFixture> => {
     const fixture: RemixFixture = {
       brandId: generateIdString(),
@@ -295,9 +479,62 @@ describeWithDatabase('Brand remix paid Meta draft integration', () => {
     return fixture;
   };
 
+  const seedConnectedXFixture = async (): Promise<RemixFixture> => {
+    const fixture: RemixFixture = {
+      brandId: generateIdString(),
+      credentialId: generateIdString(),
+      ingredientId: generateIdString(),
+      organizationId: generateIdString(),
+      postId: generateIdString(),
+      runId: generateIdString(),
+      userId: generateIdString(),
+    };
+    await dbHelper.seedCollection('organizations', [
+      createTestOrganization({
+        id: fixture.organizationId,
+        userId: fixture.userId,
+      }),
+    ]);
+    await dbHelper.seedCollection('brands', [
+      createTestBrand({
+        id: fixture.brandId,
+        label: 'Acme X',
+        organizationId: fixture.organizationId,
+        userId: fixture.userId,
+      }),
+    ]);
+    await prisma.ingredient.create({
+      data: createTestIngredient({
+        brandId: fixture.brandId,
+        category: IngredientCategory.IMAGE,
+        cdnUrl: 'https://cdn.example.test/x-remix.png',
+        id: fixture.ingredientId,
+        organizationId: fixture.organizationId,
+        status: IngredientStatus.GENERATED,
+        userId: fixture.userId,
+      }),
+    });
+    await prisma.credential.create({
+      data: createTestCredential({
+        brandId: fixture.brandId,
+        grantedScopes: ['ads.read', 'ads.write', 'offline.access'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: fixture.credentialId,
+        organizationId: fixture.organizationId,
+        platform: CredentialPlatform.X_ADS,
+        userId: fixture.userId,
+      }),
+    });
+    return fixture;
+  };
+
   const createService = (
     fixture: RemixFixture,
     prepare: ReturnType<typeof vi.fn>,
+    options?: {
+      adsResearchService?: AdsResearchService;
+      prepareX?: ReturnType<typeof vi.fn>;
+    },
   ): BrandRemixRunsService =>
     new BrandRemixRunsService(
       prisma,
@@ -314,7 +551,7 @@ describeWithDatabase('Brand remix paid Meta draft integration', () => {
         resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
       } as never,
       { findOne: vi.fn().mockResolvedValue(null) } as never,
-      {} as never,
+      (options?.adsResearchService ?? {}) as never,
       {} as never,
       {} as never,
       {} as never,
@@ -322,6 +559,7 @@ describeWithDatabase('Brand remix paid Meta draft integration', () => {
       {} as never,
       {} as never,
       { prepare } as never,
+      (options?.prepareX ? { prepare: options.prepareX } : {}) as never,
       {} as never,
       {} as never,
       {
@@ -330,6 +568,34 @@ describeWithDatabase('Brand remix paid Meta draft integration', () => {
       } as never,
       { now: () => NOW, randomId: () => 'unused-random-id' },
     );
+});
+
+const approvedExecution = (fixture: RemixFixture, objective: string) => ({
+  actualCount: 1,
+  generationBrief: {
+    constraints: [],
+    fidelityMode: 'guided' as const,
+    intent: {
+      objective,
+      requestedText: [],
+      subjects: ['Acme'],
+      visualDirection: 'Use an original product-led composition.',
+    },
+    mediaKind: 'image' as const,
+    output: { aspectRatio: '1:1' },
+    provenance: [],
+    references: [],
+    version: 1 as const,
+  },
+  requestedCount: 1,
+  variants: [
+    {
+      assetIds: [fixture.ingredientId],
+      id: 'variant-1',
+      recipeRevision: 1,
+      status: 'ready' as const,
+    },
+  ],
 });
 
 const approvedConfig = (fixture: RemixFixture) =>
@@ -347,33 +613,7 @@ const approvedConfig = (fixture: RemixFixture) =>
       reviewRequired: true,
       target: { kind: 'paid', platform: 'meta' },
     },
-    execution: {
-      actualCount: 1,
-      generationBrief: {
-        constraints: [],
-        fidelityMode: 'guided',
-        intent: {
-          objective: 'Create an original Meta visual.',
-          requestedText: [],
-          subjects: ['Acme'],
-          visualDirection: 'Use an original product-led composition.',
-        },
-        mediaKind: 'image',
-        output: { aspectRatio: '1:1' },
-        provenance: [],
-        references: [],
-        version: 1,
-      },
-      requestedCount: 1,
-      variants: [
-        {
-          assetIds: [fixture.ingredientId],
-          id: 'variant-1',
-          recipeRevision: 1,
-          status: 'ready',
-        },
-      ],
-    },
+    execution: approvedExecution(fixture, 'Create an original Meta visual.'),
     phase: 'approved',
     readiness: { issues: [], state: 'ready' },
     recipeVersion: BRAND_REMIX_RUN_VERSION,
@@ -427,4 +667,23 @@ const paidDraftResult = (
   variantId: 'variant-1',
   workflowExecutionId: 'meta-workflow-execution-1',
   workflowId: 'meta-workflow-1',
+});
+
+const xPaidDraftResult = (
+  fixture: RemixFixture,
+): PausedXAdsCampaignDraftResult => ({
+  adAccountId: 'x-account-1',
+  adId: 'promoted-tweet-1',
+  adSetId: 'line-item-1',
+  campaignId: 'campaign-1',
+  credentialId: fixture.credentialId,
+  ingredientId: fixture.ingredientId,
+  postId: fixture.postId,
+  recipeRevision: 1,
+  recipeVersion: BRAND_REMIX_RUN_VERSION,
+  replayed: false,
+  status: 'PAUSED',
+  variantId: 'variant-1',
+  workflowExecutionId: 'x-workflow-execution-1',
+  workflowId: 'x-workflow-1',
 });

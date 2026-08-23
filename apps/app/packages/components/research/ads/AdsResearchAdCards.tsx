@@ -20,6 +20,7 @@ import {
   formatMetric,
   getMetricLabel,
   getMetricValue,
+  getPlatformLabel,
 } from './ads-metric.helpers';
 
 type AdGridCardProps = {
@@ -64,13 +65,7 @@ export function AdGridCard({
               <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
                 {item.source === 'public' ? 'Public' : 'Connected'}
               </Badge>
-              <Badge variant="ghost">
-                {item.platform === 'meta'
-                  ? 'Meta'
-                  : item.platform === 'tiktok'
-                    ? 'TikTok'
-                    : 'Google'}
-              </Badge>
+              <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
               {item.channel !== 'all' && (
                 <Badge variant="ghost">{item.channel}</Badge>
               )}
@@ -154,13 +149,7 @@ export function AdTableRow({
       tabIndex={0}
     >
       <TableCell className="px-4 py-3">
-        <Badge variant="ghost">
-          {item.platform === 'meta'
-            ? 'Meta'
-            : item.platform === 'tiktok'
-              ? 'TikTok'
-              : 'Google'}
-        </Badge>
+        <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
       </TableCell>
       <TableCell className="max-w-[300px] px-4 py-3">
         <span className="line-clamp-1 text-sm font-medium text-foreground">

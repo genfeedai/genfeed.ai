@@ -1,4 +1,4 @@
-export type AdsPlatform = 'meta' | 'google' | 'tiktok';
+export type AdsPlatform = 'meta' | 'google' | 'tiktok' | 'x';
 
 export interface UnifiedAdAccount {
   id: string;

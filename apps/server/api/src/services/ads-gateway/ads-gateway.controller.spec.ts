@@ -18,6 +18,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { CredentialPlatform } from '@genfeedai/enums';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -110,6 +111,7 @@ describe('AdsGatewayController', () => {
       await expect(
         controller.getAdAccounts(mockUser, 'snapchat', validCredentialId),
       ).rejects.toThrow(BadRequestException);
+      expect(credentialsService.findOne).not.toHaveBeenCalled();
     });
 
     it('should accept "meta" as a valid platform', async () => {
@@ -140,6 +142,28 @@ describe('AdsGatewayController', () => {
   // ─── resolveAccessToken ───────────────────────────────────────────────────
 
   describe('credential resolution', () => {
+    it.each([
+      ['meta', CredentialPlatform.FACEBOOK],
+      ['google', CredentialPlatform.GOOGLE_ADS],
+      ['tiktok', CredentialPlatform.TIKTOK],
+      ['x', CredentialPlatform.X_ADS],
+    ] as const)(
+      'scopes a %s credential to an active connected provider row',
+      async (platform, credentialPlatform) => {
+        mockAdapter.getAdAccounts.mockResolvedValue([]);
+
+        await controller.getAdAccounts(mockUser, platform, validCredentialId);
+
+        expect(credentialsService.findOne).toHaveBeenCalledWith({
+          id: validCredentialId,
+          isConnected: true,
+          isDeleted: false,
+          organizationId: 'corg000000000000000000001',
+          platform: credentialPlatform,
+        });
+      },
+    );
+
     it('should throw UnauthorizedException when credential not found', async () => {
       credentialsService.findOne.mockResolvedValue(null);
 
@@ -415,6 +439,20 @@ describe('AdsGatewayController', () => {
         ]),
         'last_30d',
       );
+      expect(credentialsService.findOne).toHaveBeenNthCalledWith(1, {
+        id: validCredentialId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId: 'corg000000000000000000001',
+        platform: CredentialPlatform.FACEBOOK,
+      });
+      expect(credentialsService.findOne).toHaveBeenNthCalledWith(2, {
+        id: credId2,
+        isConnected: true,
+        isDeleted: false,
+        organizationId: 'corg000000000000000000001',
+        platform: CredentialPlatform.GOOGLE_ADS,
+      });
     });
   });
 });

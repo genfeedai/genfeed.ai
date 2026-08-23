@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
  * the `AdsResearchPlatform` union.
  */
 describe('readAdsPlatform', () => {
-  it.each(['meta', 'google', 'tiktok'])('accepts %s', (platform) => {
+  it.each(['meta', 'google', 'tiktok', 'x'])('accepts %s', (platform) => {
     expect(readAdsPlatform(platform)).toBe(platform);
   });
 

@@ -16,6 +16,7 @@ import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.
 import { RedditModule } from '@api/services/integrations/reddit/reddit.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
+import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { Module } from '@nestjs/common';
@@ -37,6 +38,7 @@ import { Module } from '@nestjs/common';
     RedditModule,
     TiktokModule,
     TwitterModule,
+    XAdsModule,
     YoutubeModule,
   ],
 })

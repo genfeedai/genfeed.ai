@@ -110,6 +110,17 @@ export const twitterSchema = {
 };
 
 /**
+ * X (Twitter) Ads API (optional everywhere — the integration is not provisioned
+ * in cloud production; XAdsOAuthService degrades gracefully when credentials
+ * are absent, mirroring googleAdsSchema).
+ */
+export const xAdsSchema = {
+  X_ADS_CLIENT_ID: Joi.string().optional().allow(''),
+  X_ADS_CLIENT_SECRET: Joi.string().optional().allow(''),
+  X_ADS_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+};
+
+/**
  * Pinterest API (optional integration)
  */
 export const pinterestSchema = {
@@ -238,6 +249,7 @@ export const allSocialSchema = {
   ...googleAdsSchema,
   ...googleSearchConsoleSchema,
   ...twitterSchema,
+  ...xAdsSchema,
   ...pinterestSchema,
   ...redditSchema,
   ...linkedinSchema,

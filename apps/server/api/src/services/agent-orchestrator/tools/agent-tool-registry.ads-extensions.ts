@@ -57,7 +57,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional ads platform filter.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -108,7 +108,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -168,7 +168,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -228,7 +228,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {
@@ -244,7 +244,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
   {
     creditCost: 0,
     description:
-      'Prepare a paused Meta or Google campaign launch draft for review from a selected ad. This never publishes live.',
+      'Prepare a paused Meta, Google, or X campaign launch draft for review from a selected ad. This never publishes live.',
     name: AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
     parameters: {
       properties: {
@@ -302,7 +302,7 @@ export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
         },
         platform: {
           description: 'Optional platform hint for connected ads.',
-          enum: ['meta', 'google', 'tiktok'],
+          enum: ['meta', 'google', 'tiktok', 'x'],
           type: 'string',
         },
         source: {

@@ -10,6 +10,7 @@ import {
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
+import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -25,6 +26,7 @@ import { BatchGenerationModule } from '@api/services/batch-generation/batch-gene
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
+import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -50,6 +52,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
     VideoGenerationModule,
     VideosModule,
+    XAdsModule,
   ],
   providers: [
     BrandRemixRunsService,
@@ -58,6 +61,7 @@ import { Module } from '@nestjs/common';
     CreditsGuard,
     CreditsInterceptor,
     PausedMetaCampaignDraftService,
+    PausedXAdsCampaignDraftService,
     SystemWorkflowProvenanceService,
     { provide: BRAND_REMIX_RUNTIME, useValue: systemBrandRemixRuntime },
   ],

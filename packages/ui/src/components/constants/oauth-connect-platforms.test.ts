@@ -65,6 +65,26 @@ describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
   });
 });
 
+describe('OAUTH_CONNECT_PLATFORMS X Ads tile', () => {
+  it('exposes X Ads via its own PKCE credential, distinct from organic Twitter', () => {
+    const xAds = OAUTH_CONNECT_PLATFORMS.find(
+      (p) => p.platform === CredentialPlatform.X_ADS,
+    );
+    const twitter = OAUTH_CONNECT_PLATFORMS.find(
+      (p) => p.platform === CredentialPlatform.TWITTER,
+    );
+
+    expect(xAds).toBeDefined();
+    expect(xAds?.label).toBe('X Ads');
+    expect(xAds?.category).toBe('ads');
+    expect(xAds?.servicePath).toBe('x-ads');
+    expect(resolveOAuthServicePath(xAds!.platform, xAds?.servicePath)).toBe(
+      'x-ads',
+    );
+    expect(xAds?.platform).not.toBe(twitter?.platform);
+  });
+});
+
 describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
   it('omits Fanvue, which has no OAuth connect route', () => {
     expect(

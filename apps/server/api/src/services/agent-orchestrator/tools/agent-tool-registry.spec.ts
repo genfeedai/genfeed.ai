@@ -81,6 +81,10 @@ describe('agent-tool-registry', () => {
         type: 'object',
       },
     });
+    expect(
+      getToolDefinitionByName(AgentToolName.PREPARE_AD_LAUNCH_REVIEW)
+        ?.description,
+    ).toContain('X');
   });
 
   it('should ship the previously uncataloged cloud tools from the catalog', () => {

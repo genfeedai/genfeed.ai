@@ -33,6 +33,7 @@ const PLATFORM_OPTIONS: Array<{
   { label: 'Meta Ads', value: 'meta' },
   { label: 'Google / YouTube Ads', value: 'google' },
   { label: 'TikTok Ads', value: 'tiktok' },
+  { label: 'X Ads', value: 'x' },
 ];
 
 const GOOGLE_CHANNEL_OPTIONS: Array<{ label: string; value: AdsChannel }> = [

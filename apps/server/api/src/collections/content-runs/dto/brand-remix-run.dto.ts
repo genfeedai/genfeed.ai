@@ -73,6 +73,15 @@ export class PreparePausedMetaCampaignDraftDto {
   @Type(() => PausedMetaCampaignDestinationDto)
   destination!: PausedMetaCampaignDestinationDto;
 
+  @ApiProperty({
+    description:
+      'X Ads only: id of an existing tweet to promote. Required when the run targets X.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  sourceTweetId?: string;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()

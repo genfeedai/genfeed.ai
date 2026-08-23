@@ -221,6 +221,11 @@ export interface IEnvConfig {
   TWITTER_CLIENT_SECRET?: string;
   TWITTER_REDIRECT_URI?: string;
 
+  // === X Ads ===
+  X_ADS_CLIENT_ID?: string;
+  X_ADS_CLIENT_SECRET?: string;
+  X_ADS_REDIRECT_URI?: string;
+
   // === Pinterest ===
   PINTEREST_CLIENT_ID?: string;
   PINTEREST_CLIENT_SECRET?: string;

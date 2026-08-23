@@ -164,7 +164,11 @@ export function buildRemixDraftEdits(
       run.draft.target.kind === 'paid'
         ? {
             ...run.draft.target,
-            platform: editor.targetPlatform as 'google' | 'meta' | 'tiktok',
+            platform: editor.targetPlatform as
+              | 'google'
+              | 'meta'
+              | 'tiktok'
+              | 'x',
           }
         : {
             ...run.draft.target,
@@ -613,7 +617,7 @@ export default function RemixBriefInspector(): ReactElement {
                 </SelectTrigger>
                 <SelectContent>
                   {(run.draft.target.kind === 'paid'
-                    ? ['meta', 'google', 'tiktok']
+                    ? ['meta', 'google', 'tiktok', 'x']
                     : ['tiktok', 'instagram', 'youtube']
                   ).map((platform) => (
                     <SelectItem key={platform} value={platform}>

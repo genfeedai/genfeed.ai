@@ -27,7 +27,12 @@ const shortTextSchema = z.string().trim().min(1).max(1_000);
 const longTextSchema = z.string().trim().min(1).max(10_000);
 const aspectRatioSchema = z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/);
 
-export const brandRemixAdPlatformValues = ['meta', 'google', 'tiktok'] as const;
+export const brandRemixAdPlatformValues = [
+  'meta',
+  'google',
+  'tiktok',
+  'x',
+] as const;
 export const brandRemixOrganicPlatformValues = [
   'tiktok',
   'instagram',
@@ -236,6 +241,7 @@ export const brandRemixReadinessIssueCodeValues = [
   'organization_defaults',
   'missing_avatar',
   'missing_ads_management',
+  'missing_ads_write',
   'missing_voice',
   'missing_required_reference',
   'source_media_unavailable',
@@ -356,7 +362,10 @@ export const pausedMetaCampaignDraftOperationSchema = z
     claimedAt: z.string().datetime(),
     credentialId: opaqueIdSchema,
     id: opaqueIdSchema,
-    linkUrl: z.string().url().max(2_048),
+    /** Meta only: the campaign destination URL. */
+    linkUrl: z.string().url().max(2_048).optional(),
+    /** X Ads only: id of an existing tweet to promote. */
+    sourceTweetId: opaqueIdSchema.optional(),
     variantId: opaqueIdSchema,
   })
   .strict();
@@ -483,6 +492,13 @@ export const preparePausedMetaCampaignDraftSchema = z
         credentialId: opaqueIdSchema,
       })
       .strict(),
+    /**
+     * X Ads only: the id of an existing tweet to promote. X's Ads API
+     * promotes existing tweets rather than creating new creative from
+     * uploaded media, so this is required when the run's paid target
+     * platform is `x` and ignored otherwise.
+     */
+    sourceTweetId: opaqueIdSchema.optional(),
     variantId: opaqueIdSchema.optional(),
   })
   .strict();
