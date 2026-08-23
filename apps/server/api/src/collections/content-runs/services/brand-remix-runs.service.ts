@@ -1400,7 +1400,7 @@ export class BrandRemixRunsService {
       case 'trend_reference':
         return this.resolveTrendReference(organizationId, brandId, selector);
       case 'public_ad':
-        return this.resolvePublicAd(organizationId, selector);
+        return this.resolvePublicAd(organizationId, brandId, selector);
       case 'connected_ad':
         return this.resolveConnectedAd(organizationId, brandId, selector);
     }
@@ -1581,9 +1581,11 @@ export class BrandRemixRunsService {
 
   private async resolvePublicAd(
     organizationId: string,
+    brandId: string,
     selector: Extract<BrandRemixSourceSelector, { kind: 'public_ad' }>,
   ): Promise<ResolvedSource> {
     const detail = await this.adsResearchService.getAdDetail(organizationId, {
+      brandId,
       id: selector.adPerformanceId,
       source: 'public',
     });
@@ -1603,6 +1605,7 @@ export class BrandRemixRunsService {
     );
     const detail = await this.adsResearchService.getAdDetail(organizationId, {
       adAccountId: selector.adAccountId,
+      brandId,
       channel: selector.channel,
       credentialId: selector.credentialId,
       id: selector.adId,
@@ -1620,6 +1623,12 @@ export class BrandRemixRunsService {
     >,
     detail: AdsResearchDetail,
   ): ResolvedSource {
+    if (detail.usagePolicy === 'disclosure_only') {
+      throw new BadRequestException(
+        'Disclosure-only ads cannot be used as Brand Remix generation sources',
+      );
+    }
+
     const platform = this.sourcePlatform(detail.platform);
     const title = this.truncate(
       this.text(detail.title) ?? `Performance ${platform} ad`,

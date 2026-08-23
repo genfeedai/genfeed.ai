@@ -472,6 +472,52 @@ describe('BrandRemixRunsService', () => {
     });
   });
 
+  it('rejects disclosure-only repository ads before raw creative can be persisted or generated', async () => {
+    const rawCreative = 'VERBATIM REPOSITORY CREATIVE';
+    adsResearchService.getAdDetail.mockResolvedValue({
+      body: rawCreative,
+      channel: 'all',
+      creative: {
+        body: rawCreative,
+        headline: rawCreative,
+        imageUrls: ['https://repository.example/raw.jpg'],
+        videoUrls: [],
+      },
+      id: 'public:x:ad-1',
+      metrics: {},
+      platform: 'x',
+      source: 'public',
+      sourceId: 'ad-1',
+      title: rawCreative,
+      usagePolicy: 'disclosure_only',
+    });
+    contentRun.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeRun(data.config as Record<string, unknown>)),
+    );
+
+    await expect(
+      service.create('org-1', 'brand-1', {
+        source: { adPerformanceId: 'performance-1', kind: 'public_ad' },
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(adsResearchService.getAdDetail).toHaveBeenCalledWith('org-1', {
+      brandId: 'brand-1',
+      id: 'performance-1',
+      source: 'public',
+    });
+    expect(contentRun.create).not.toHaveBeenCalled();
+    expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
+    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+    expect(videoGenerationService.generateVideo).not.toHaveBeenCalled();
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+    expect(JSON.stringify(contentRun.create.mock.calls)).not.toContain(
+      rawCreative,
+    );
+  });
+
   it('uses an atomic revision compare-and-swap and rejects stale editors', async () => {
     const created = await createPersistedRun();
     contentRun.findFirst.mockResolvedValue(created);

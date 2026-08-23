@@ -50,6 +50,7 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
+import { XAdsInspirationWorkflowService } from '@api/collections/workflows/services/x-ads-inspiration-workflow.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -63,6 +64,7 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
+import { XAdsRepositoryModule } from '@api/services/x-ads-repository/x-ads-repository.module';
 import { SharedModule } from '@api/shared/shared.module';
 import {
   BATCH_WORKFLOW_QUEUE,
@@ -137,6 +139,7 @@ import { Module } from '@nestjs/common';
     WhisperModule,
     WorkflowExecutionsModule,
     WorkflowExecutorModule,
+    XAdsRepositoryModule,
 
     BullModule.registerQueue({
       defaultJobOptions: {
@@ -180,6 +183,7 @@ import { Module } from '@nestjs/common';
     SystemWorkflowCatalogService,
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
+    XAdsInspirationWorkflowService,
   ],
 })
 export class WorkflowsModule {}

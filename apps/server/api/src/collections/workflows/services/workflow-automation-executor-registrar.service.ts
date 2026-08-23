@@ -8,6 +8,7 @@ import { LivestreamBotWorkflowService } from '@api/collections/workflows/service
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { XAdsInspirationWorkflowService } from '@api/collections/workflows/services/x-ads-inspiration-workflow.service';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import type {
   ExecutionContext,
@@ -26,6 +27,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
+    private readonly xAdsInspirationWorkflowService?: XAdsInspirationWorkflowService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -38,6 +40,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerTrendNotificationExecutors(engine);
     this.registerLivestreamBotExecutors(engine);
     this.registerWinnerPromotionExecutors(engine);
+    this.registerXAdsInspirationExecutors(engine);
   }
 
   private registerAdAutomationExecutors(engine: WorkflowEngine): void {
@@ -278,6 +281,21 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
   }
 
+  private registerXAdsInspirationExecutors(engine: WorkflowEngine): void {
+    engine.registerExecutor(
+      'xAdsInspirationIngestion',
+      (_node, _inputs, context) =>
+        this.xAdsInspirationWorkflowService
+          ? this.xAdsInspirationWorkflowService.runXAdsInspirationIngestion(
+              context.organizationId,
+            )
+          : this.xAdsInspirationUnavailable(
+              'xAdsInspirationIngestion',
+              context,
+            ),
+    );
+  }
+
   private async winnerPromotionUnavailable(
     action: string,
     context: ExecutionContext,
@@ -290,6 +308,22 @@ export class WorkflowAutomationExecutorRegistrarService {
       organizationId: context.organizationId,
       promoted: 0,
       reason: 'winner_promotion_service_unavailable',
+      status: 'skipped',
+    };
+  }
+
+  private async xAdsInspirationUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ) {
+    return {
+      action,
+      advertisersChecked: 0,
+      errors: 0,
+      organizationId: context.organizationId,
+      reason: 'x_ads_inspiration_service_unavailable',
+      recordsIngested: 0,
+      skipped: 1,
       status: 'skipped',
     };
   }

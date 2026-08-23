@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import type {
   ApifyTrendItem,
@@ -7,6 +8,7 @@ import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dto';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -17,6 +19,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class TrendFetchService {
   private readonly GLOBAL_TRENDS_TTL_SECONDS = 1800; // 30 minutes
+  private readonly PERSONALIZED_TWITTER_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes, matches the inspiration-spec ephemeral cache pattern
   private readonly CACHE_PREFIX = 'trends';
   private readonly GLOBAL_TREND_DOCUMENT_TTL_MINUTES = 48 * 60;
   private readonly PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES = 10;
@@ -33,6 +36,7 @@ export class TrendFetchService {
     private readonly apifyService: ApifyService,
     private readonly linkedinService: LinkedInService,
     private readonly xaiService: XaiService,
+    private readonly twitterService: TwitterService,
   ) {}
 
   /**
@@ -56,9 +60,66 @@ export class TrendFetchService {
   }
 
   /**
-   * Fetch Twitter trends with Grok fallback to Apify
+   * Fetch Twitter/X trends: official X API first (cached org/brand-keyed),
+   * falling back to Grok with Apify fallback when the X API has no signal.
    */
-  async fetchTwitterTrends(): Promise<TrendData[]> {
+  async fetchTwitterTrends(
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    const cacheKey = this.buildPersonalizedTwitterTrendsCacheKey(
+      organizationId,
+      brandId,
+    );
+
+    if (cacheKey) {
+      const cached = await this.cacheService.get<TrendData[]>(cacheKey);
+      if (cached) {
+        this.loggerService.debug('Cache hit for personalized X trends', {
+          brandId,
+          organizationId,
+        });
+        return cached;
+      }
+    }
+
+    const trends = await this.resolveTwitterTrends(organizationId, brandId);
+
+    if (cacheKey && trends.length > 0) {
+      await this.cacheService.set(cacheKey, trends, {
+        tags: this.buildPersonalizedTwitterTrendsCacheTags(
+          organizationId,
+          brandId,
+        ),
+        ttl: this.PERSONALIZED_TWITTER_TRENDS_TTL_SECONDS,
+      });
+    }
+
+    return trends;
+  }
+
+  private async resolveTwitterTrends(
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    const officialTrends = await this.twitterService.getTrends(
+      organizationId,
+      brandId,
+    );
+
+    if (officialTrends.length > 0) {
+      return officialTrends.map((trend) => ({
+        growthRate: trend.growthRate,
+        mentions: trend.mentions,
+        metadata: {
+          source: 'x-api',
+          url: trend.url,
+        },
+        platform: 'twitter',
+        topic: trend.topic,
+      }));
+    }
+
     try {
       const grokTrends = await this.xaiService.getTrends({
         limit: 10,
@@ -106,6 +167,42 @@ export class TrendFetchService {
       limit: 20,
     });
     return this.toTrendDataArray(apifyTrends);
+  }
+
+  private buildPersonalizedTwitterTrendsCacheKey(
+    organizationId?: string,
+    brandId?: string,
+  ): string | null {
+    if (!organizationId && !brandId) {
+      return null;
+    }
+
+    const fingerprint = createHash('sha256')
+      .update([organizationId ?? '', brandId ?? ''].join('|'))
+      .digest('hex');
+
+    return this.cacheService.generateKey(
+      'trends',
+      'twitter-personalized',
+      fingerprint,
+    );
+  }
+
+  private buildPersonalizedTwitterTrendsCacheTags(
+    organizationId?: string,
+    brandId?: string,
+  ): string[] {
+    const tags = ['trends', 'trends:twitter'];
+
+    if (organizationId) {
+      tags.push(`trends:twitter:${organizationId}`);
+    }
+
+    if (brandId) {
+      tags.push(`trends:twitter:${brandId}`);
+    }
+
+    return tags;
   }
 
   private getRejectedGrokTrendReason(
@@ -214,7 +311,7 @@ export class TrendFetchService {
           this.toTrendDataArray(
             await this.apifyService.getTikTokTrends({ limit: 20 }),
           ),
-        twitter: () => this.fetchTwitterTrends(),
+        twitter: () => this.fetchTwitterTrends(organizationId, brandId),
         youtube: async () =>
           this.toTrendDataArray(
             await this.apifyService.getYouTubeTrends({ limit: 20 }),

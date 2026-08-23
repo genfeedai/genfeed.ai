@@ -74,6 +74,62 @@ describe('ad-performance identity mapping', () => {
     });
   });
 
+  it('namespaces repository identities by source, brand, and stable watch key', () => {
+    const brandOne = buildAdPerformanceIdentityKeyFromData({
+      adPlatform: 'x',
+      brandId: 'brand-1',
+      externalAccountId: 'advertiser-1',
+      externalAdId: 'ad-1',
+      granularity: 'ad',
+      researchSnapshotKey: 'watch-1',
+      researchSource: 'x_ads_repository',
+    });
+    const brandTwo = buildAdPerformanceIdentityKeyFromData({
+      adPlatform: 'x',
+      brandId: 'brand-2',
+      externalAccountId: 'advertiser-1',
+      externalAdId: 'ad-1',
+      granularity: 'ad',
+      researchSnapshotKey: 'watch-2',
+      researchSource: 'x_ads_repository',
+    });
+    const connected = buildAdPerformanceIdentityKeyFromData({
+      adPlatform: 'x',
+      externalAccountId: 'advertiser-1',
+      externalAdId: 'ad-1',
+      granularity: 'ad',
+    });
+
+    expect(brandOne).toBe(
+      'v1|research|x_ads_repository|brand-1|watch-1|x||ad|advertiser-1|||ad-1',
+    );
+    expect(brandTwo).not.toBe(brandOne);
+    expect(connected).not.toBe(brandOne);
+  });
+
+  it('keeps repository identity stable across replacement snapshot ids', () => {
+    const base = {
+      adPlatform: 'x',
+      brandId: 'brand-1',
+      externalAdId: 'ad-1',
+      granularity: 'ad',
+      researchSnapshotKey: 'watch-1',
+      researchSource: 'x_ads_repository',
+    };
+
+    expect(
+      buildAdPerformanceIdentityKeyFromData({
+        ...base,
+        researchSnapshotId: 'snapshot-old',
+      }),
+    ).toBe(
+      buildAdPerformanceIdentityKeyFromData({
+        ...base,
+        researchSnapshotId: 'snapshot-new',
+      }),
+    );
+  });
+
   it('prefers externalAdSetId over the ad-group alias', () => {
     expect(
       resolveAdPerformanceIdentityFields({

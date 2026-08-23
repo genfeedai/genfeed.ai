@@ -429,7 +429,10 @@ describe('AdPerformanceService', () => {
       await service.findTopPerformers({});
 
       expect(findMany).toHaveBeenCalledWith({
-        orderBy: [{ performanceScore: 'desc' }, { updatedAt: 'desc' }],
+        orderBy: [
+          { performanceScore: { nulls: 'last', sort: 'desc' } },
+          { updatedAt: 'desc' },
+        ],
         take: 10,
         where: expect.objectContaining({
           isDeleted: false,
@@ -505,7 +508,10 @@ describe('AdPerformanceService', () => {
 
       expect(findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: [{ performanceScore: 'desc' }, { updatedAt: 'desc' }],
+          orderBy: [
+            { performanceScore: { nulls: 'last', sort: 'desc' } },
+            { updatedAt: 'desc' },
+          ],
           take: 500,
         }),
       );

@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,8 +18,11 @@ describe('AdsResearchController', () => {
 
   const organizationId = testId('org');
   const userId = testId('user');
+  const brandId = testId('brand');
+  const foreignBrandId = testId('foreignbrand');
 
   const mockUser = {
+    brandId,
     organizationId,
     userId,
   } as unknown as User;
@@ -62,12 +66,12 @@ describe('AdsResearchController', () => {
 
   describe('listAds', () => {
     it('should list ads with organization scope', async () => {
-      await controller.listAds(mockUser, 'brand-1', 'Nike', 'fashion');
+      await controller.listAds(mockUser, brandId, 'Nike', 'fashion');
 
       expect(service.listAds).toHaveBeenCalledWith(
         organizationId,
         expect.objectContaining({
-          brandId: 'brand-1',
+          brandId,
           brandName: 'Nike',
           industry: 'fashion',
         }),
@@ -102,6 +106,14 @@ describe('AdsResearchController', () => {
         expect.objectContaining({ limit: undefined }),
       );
     });
+
+    it('rejects a foreign requested brand before reading ads', async () => {
+      await expect(
+        controller.listAds(mockUser, foreignBrandId),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(service.listAds).not.toHaveBeenCalled();
+    });
   });
 
   describe('getAdDetail', () => {
@@ -117,6 +129,7 @@ describe('AdsResearchController', () => {
       expect(service.getAdDetail).toHaveBeenCalledWith(
         organizationId,
         expect.objectContaining({
+          brandId,
           channel: 'feed',
           id: 'ad-1',
           platform: 'facebook',
@@ -134,7 +147,7 @@ describe('AdsResearchController', () => {
 
       expect(service.generateAdPack).toHaveBeenCalledWith(
         organizationId,
-        expect.objectContaining({ adId: 'ad-1', source: 'meta_ads' }),
+        expect.objectContaining({ adId: 'ad-1', brandId, source: 'meta_ads' }),
       );
       expect(result).toEqual({ adPack: { headlines: [] } });
     });
@@ -148,11 +161,24 @@ describe('AdsResearchController', () => {
       expect(service.createRemixWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
           adId: 'ad-1',
+          brandId,
           organizationId,
           source: 'meta_ads',
           userId,
         }),
       );
+    });
+
+    it('rejects a foreign-brand remix before calling the service', async () => {
+      await expect(
+        controller.createRemixWorkflow(mockUser, {
+          adId: 'ad-1',
+          brandId: foreignBrandId,
+          source: 'public',
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(service.createRemixWorkflow).not.toHaveBeenCalled();
     });
   });
 
@@ -170,6 +196,7 @@ describe('AdsResearchController', () => {
       expect(service.prepareCampaignForReview).toHaveBeenCalledWith(
         expect.objectContaining({
           adId: 'ad-1',
+          brandId,
           campaignName: 'Spring Campaign',
           dailyBudget: 50,
           organizationId,

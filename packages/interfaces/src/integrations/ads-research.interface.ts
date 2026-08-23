@@ -79,6 +79,7 @@ export interface AdsResearchItem {
     performanceScore?: number;
   };
   patternSummary?: AdsResearchPatternSummary[];
+  usagePolicy?: 'remix_allowed' | 'disclosure_only';
 }
 
 export interface AdsResearchDetail extends AdsResearchItem {

@@ -12,6 +12,7 @@ describe('TrendFetchService', () => {
     warn: vi.fn(),
   };
   const mockCacheService = {
+    generateKey: vi.fn(),
     get: vi.fn(),
     set: vi.fn(),
   };
@@ -29,15 +30,22 @@ describe('TrendFetchService', () => {
   const mockXaiService = {
     getTrends: vi.fn(),
   };
+  const mockTwitterService = {
+    getTrends: vi.fn(),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     mockCacheService.get.mockResolvedValue(null);
     mockCacheService.set.mockResolvedValue(undefined);
+    mockCacheService.generateKey.mockImplementation((...parts: string[]) =>
+      parts.join(':'),
+    );
     mockApifyService.getTwitterTrends.mockResolvedValue([]);
     mockXaiService.getTrends.mockResolvedValue([]);
     mockLinkedInService.getTrends.mockResolvedValue([]);
+    mockTwitterService.getTrends.mockResolvedValue([]);
 
     service = new TrendFetchService(
       mockPrisma as never,
@@ -46,6 +54,7 @@ describe('TrendFetchService', () => {
       mockApifyService as never,
       mockLinkedInService as never,
       mockXaiService as never,
+      mockTwitterService as never,
     );
   });
 
@@ -122,6 +131,117 @@ describe('TrendFetchService', () => {
     ]);
 
     vi.useRealTimers();
+  });
+
+  it('prefers official X API trends over Grok and Apify when present', async () => {
+    mockTwitterService.getTrends.mockResolvedValue([
+      {
+        growthRate: 55,
+        mentions: 9000,
+        topic: '#XTrend',
+        url: 'https://twitter.com/i/trends/1',
+      },
+    ]);
+
+    const result = await service.fetchTwitterTrends();
+
+    expect(mockTwitterService.getTrends).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+    );
+    expect(mockXaiService.getTrends).not.toHaveBeenCalled();
+    expect(mockApifyService.getTwitterTrends).not.toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        growthRate: 55,
+        mentions: 9000,
+        metadata: {
+          source: 'x-api',
+          url: 'https://twitter.com/i/trends/1',
+        },
+        platform: 'twitter',
+        topic: '#XTrend',
+      },
+    ]);
+  });
+
+  it('falls back to the Grok/Apify chain when the X API returns no trends', async () => {
+    mockTwitterService.getTrends.mockResolvedValue([]);
+    mockApifyService.getTwitterTrends.mockResolvedValue([
+      {
+        growthRate: 44,
+        mentions: 12000,
+        metadata: {},
+        platform: 'twitter',
+        topic: '#AIAgents',
+      },
+    ]);
+
+    const result = await service.fetchTwitterTrends();
+
+    expect(mockXaiService.getTrends).toHaveBeenCalled();
+    expect(result).toEqual([
+      {
+        growthRate: 44,
+        mentions: 12000,
+        metadata: {},
+        platform: 'twitter',
+        topic: '#AIAgents',
+      },
+    ]);
+  });
+
+  it('caches personalized X trends per organization/brand and skips a refetch on a hit', async () => {
+    mockTwitterService.getTrends.mockResolvedValue([
+      {
+        growthRate: 55,
+        mentions: 9000,
+        topic: '#XTrend',
+        url: 'https://twitter.com/i/trends/1',
+      },
+    ]);
+
+    const first = await service.fetchTwitterTrends('org-1', 'brand-1');
+
+    expect(mockCacheService.set).toHaveBeenCalledWith(
+      expect.any(String),
+      first,
+      expect.objectContaining({
+        tags: expect.arrayContaining([
+          'trends',
+          'trends:twitter',
+          'trends:twitter:org-1',
+          'trends:twitter:brand-1',
+        ]),
+        ttl: 15 * 60,
+      }),
+    );
+
+    const cacheKey = mockCacheService.set.mock.calls[0]?.[0];
+    mockCacheService.get.mockImplementation((key: string) =>
+      Promise.resolve(key === cacheKey ? first : null),
+    );
+    mockTwitterService.getTrends.mockClear();
+
+    const second = await service.fetchTwitterTrends('org-1', 'brand-1');
+
+    expect(mockTwitterService.getTrends).not.toHaveBeenCalled();
+    expect(second).toEqual(first);
+  });
+
+  it('does not cache global (no org/brand) X trends inside fetchTwitterTrends', async () => {
+    mockTwitterService.getTrends.mockResolvedValue([
+      {
+        growthRate: 55,
+        mentions: 9000,
+        topic: '#XTrend',
+        url: 'https://twitter.com/i/trends/1',
+      },
+    ]);
+
+    await service.fetchTwitterTrends();
+
+    expect(mockCacheService.set).not.toHaveBeenCalled();
   });
 
   it('maps LinkedIn live trend topics into TrendData', async () => {

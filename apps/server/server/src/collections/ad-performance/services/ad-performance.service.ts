@@ -10,7 +10,8 @@ import {
 } from '@server/collections/ad-performance/utils/ad-performance-benchmark.util';
 import {
   type AdPerformanceIdentityFields,
-  buildAdPerformanceIdentityKey,
+  buildAdPerformanceIdentityKeyFromData,
+  readAdPerformanceDate,
   resolveAdPerformanceIdentityFields,
 } from '@server/collections/ad-performance/utils/ad-performance-identity.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
@@ -30,6 +31,13 @@ const AD_PERFORMANCE_IDENTITY_KEYS = [
   'organization',
   'organizationId',
 ] as const;
+const AD_PERFORMANCE_RESEARCH_KEYS = [
+  'researchFreshnessState',
+  'researchObservedAt',
+  'researchSnapshotId',
+  'researchSnapshotKey',
+  'researchSource',
+] as const;
 
 const SCALAR_TOP_PERFORMER_METRICS = [
   'performanceScore',
@@ -46,7 +54,9 @@ type ScalarTopPerformerMetric = (typeof SCALAR_TOP_PERFORMER_METRICS)[number];
 
 type TopPerformerParams = {
   adPlatform?: string;
+  brandId?: string;
   industry?: string;
+  organizationId?: string;
   scope?: string;
   metric?: string;
   limit?: number;
@@ -56,7 +66,10 @@ type TopPerformerParams = {
 export class AdPerformanceService {
   constructor(
     @Inject(SERVER_TOKENS.prisma)
-    private readonly prisma: Pick<ServerPrisma, 'adPerformance'>,
+    private readonly prisma: Pick<
+      ServerPrisma,
+      '$transaction' | 'adPerformance' | 'xAdWatchedAdvertiser'
+    >,
   ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
@@ -112,17 +125,80 @@ export class AdPerformanceService {
       where.industry = industry;
     }
 
-    if (scope) {
+    if (scope === 'public' && params.organizationId) {
+      where.OR = this.buildResearchVisibilityWhere(
+        params.organizationId,
+        params.brandId,
+      );
+    } else if (scope) {
       where.scope = scope;
     }
 
     return where;
   }
 
+  private buildResearchVisibilityWhere(
+    organizationId: string,
+    brandId?: string,
+  ): Prisma.AdPerformanceWhereInput[] {
+    return [
+      this.buildGlobalPublicVisibilityWhere(),
+      {
+        ...(brandId
+          ? { OR: [{ brandId }, { brandId: null }] }
+          : { brandId: null }),
+        organizationId,
+        researchFreshnessState: 'fresh',
+        researchSource: 'x_ads_repository',
+        scope: 'organization',
+      },
+    ];
+  }
+
+  private buildGlobalPublicVisibilityWhere(): Prisma.AdPerformanceWhereInput {
+    return {
+      OR: [
+        { researchSource: null },
+        { researchSource: { not: 'x_ads_repository' } },
+      ],
+      scope: 'public',
+    };
+  }
+
   private buildScalarMetricWhere(
     where: Prisma.AdPerformanceWhereInput,
     metric: ScalarTopPerformerMetric,
+    params: TopPerformerParams,
   ): Prisma.AdPerformanceWhereInput {
+    if (
+      metric === 'performanceScore' &&
+      params.organizationId &&
+      params.scope === 'public'
+    ) {
+      return {
+        ...where,
+        AND: [
+          {
+            OR: [
+              { performanceScore: { not: null } },
+              {
+                ...(params.brandId
+                  ? {
+                      OR: [{ brandId: params.brandId }, { brandId: null }],
+                    }
+                  : { brandId: null }),
+                organizationId: params.organizationId,
+                performanceScore: null,
+                researchFreshnessState: 'fresh',
+                researchSource: 'x_ads_repository',
+                scope: 'organization',
+              },
+            ],
+          },
+        ],
+      };
+    }
+
     return {
       ...where,
       [metric]: { not: null },
@@ -132,6 +208,13 @@ export class AdPerformanceService {
   private buildMetricOrderBy(
     metric: ScalarTopPerformerMetric,
   ): Prisma.AdPerformanceOrderByWithRelationInput[] {
+    if (metric === 'performanceScore') {
+      return [
+        { performanceScore: { nulls: 'last', sort: 'desc' } },
+        { updatedAt: 'desc' },
+      ];
+    }
+
     return [
       { [metric]: 'desc' },
       { updatedAt: 'desc' },
@@ -142,6 +225,9 @@ export class AdPerformanceService {
     const data = { ...this.readObjectRecord(record.data) };
 
     for (const key of AD_PERFORMANCE_IDENTITY_KEYS) {
+      delete data[key];
+    }
+    for (const key of AD_PERFORMANCE_RESEARCH_KEYS) {
       delete data[key];
     }
 
@@ -160,6 +246,11 @@ export class AdPerformanceService {
     identity: AdPerformanceIdentityFields;
     identityKey: string;
     organizationId: string;
+    researchFreshnessState: string | null;
+    researchObservedAt: Date | null;
+    researchSnapshotId: string | null;
+    researchSnapshotKey: string | null;
+    researchSource: string | null;
   } {
     const normalizedData = JSON.parse(JSON.stringify(data)) as Record<
       string,
@@ -169,12 +260,26 @@ export class AdPerformanceService {
     const credentialId = this.readString(normalizedData.credentialId) ?? null;
     const organizationId = this.readString(normalizedData.organizationId);
     const identity = resolveAdPerformanceIdentityFields(data);
+    const researchFreshnessState =
+      this.readString(normalizedData.researchFreshnessState) ?? null;
+    const researchObservedAt = readAdPerformanceDate(
+      normalizedData.researchObservedAt,
+    );
+    const researchSnapshotId =
+      this.readString(normalizedData.researchSnapshotId) ?? null;
+    const researchSnapshotKey =
+      this.readString(normalizedData.researchSnapshotKey) ?? null;
+    const researchSource =
+      this.readString(normalizedData.researchSource) ?? null;
 
     if (!organizationId) {
       throw new Error('AdPerformance organizationId is required');
     }
 
     for (const key of AD_PERFORMANCE_IDENTITY_KEYS) {
+      delete normalizedData[key];
+    }
+    for (const key of AD_PERFORMANCE_RESEARCH_KEYS) {
       delete normalizedData[key];
     }
 
@@ -184,8 +289,13 @@ export class AdPerformanceService {
       credentialId,
       data: normalizedData,
       identity,
-      identityKey: buildAdPerformanceIdentityKey(identity),
+      identityKey: buildAdPerformanceIdentityKeyFromData(data),
       organizationId,
+      researchFreshnessState,
+      researchObservedAt,
+      researchSnapshotId,
+      researchSnapshotKey,
+      researchSource,
     };
   }
 
@@ -197,6 +307,11 @@ export class AdPerformanceService {
     identity: AdPerformanceIdentityFields;
     identityKey: string;
     organizationId: string;
+    researchFreshnessState: string | null;
+    researchObservedAt: Date | null;
+    researchSnapshotId: string | null;
+    researchSnapshotKey: string | null;
+    researchSource: string | null;
   }) {
     return {
       ...payload.benchmarkFields,
@@ -212,14 +327,26 @@ export class AdPerformanceService {
       identityKey: payload.identityKey,
       isDeleted: false,
       organizationId: payload.organizationId,
+      researchFreshnessState: payload.researchFreshnessState,
+      researchObservedAt: payload.researchObservedAt,
+      researchSnapshotId: payload.researchSnapshotId,
+      researchSnapshotKey: payload.researchSnapshotKey,
+      researchSource: payload.researchSource,
     };
   }
 
   async upsert(data: Record<string, unknown>): Promise<AdPerformanceDocument> {
+    return this.upsertWithDelegate(data, this.prisma.adPerformance);
+  }
+
+  private async upsertWithDelegate(
+    data: Record<string, unknown>,
+    delegate: Prisma.TransactionClient['adPerformance'],
+  ): Promise<AdPerformanceDocument> {
     const payload = this.toPersistencePayload(data);
     const writeData = this.toWriteData(payload);
     // tenant-scope-ignore: organizationId is pinned; isDeleted is omitted so unique upsert restores tombstones
-    const record = await this.prisma.adPerformance.upsert({
+    const record = await delegate.upsert({
       create: writeData,
       update: writeData,
       // Unique selector must omit isDeleted so a tombstone can match and restore.
@@ -236,6 +363,13 @@ export class AdPerformanceService {
   }
 
   async upsertBatch(records: Record<string, unknown>[]): Promise<number> {
+    return this.upsertBatchWithDelegate(records, this.prisma.adPerformance);
+  }
+
+  private async upsertBatchWithDelegate(
+    records: Record<string, unknown>[],
+    delegate: Prisma.TransactionClient['adPerformance'],
+  ): Promise<number> {
     let count = 0;
     for (
       let index = 0;
@@ -243,7 +377,9 @@ export class AdPerformanceService {
       index += UPSERT_BATCH_CHUNK_SIZE
     ) {
       const chunk = records.slice(index, index + UPSERT_BATCH_CHUNK_SIZE);
-      await Promise.all(chunk.map((data) => this.upsert(data)));
+      await Promise.all(
+        chunk.map((data) => this.upsertWithDelegate(data, delegate)),
+      );
       count += chunk.length;
     }
     return count;
@@ -302,7 +438,7 @@ export class AdPerformanceService {
       const records = await this.prisma.adPerformance.findMany({
         orderBy: this.buildMetricOrderBy(metric),
         take: limit,
-        where: this.buildScalarMetricWhere(where, metric),
+        where: this.buildScalarMetricWhere(where, metric, params),
       });
 
       return records.map((record) => this.normalizeRecord(record));
@@ -341,12 +477,194 @@ export class AdPerformanceService {
     return record ? this.normalizeRecord(record) : null;
   }
 
-  async findPublicById(id: string): Promise<AdPerformanceDocument | null> {
+  async findPublicById(
+    id: string,
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<AdPerformanceDocument | null> {
     const record = await this.prisma.adPerformance.findFirst({
-      where: { id, isDeleted: false, scope: 'public' },
+      where: {
+        id,
+        isDeleted: false,
+        ...(organizationId
+          ? { OR: this.buildResearchVisibilityWhere(organizationId, brandId) }
+          : this.buildGlobalPublicVisibilityWhere()),
+      },
     });
 
     return record ? this.normalizeRecord(record) : null;
+  }
+
+  /**
+   * Replaces one tenant-owned research snapshot and retires rows that were not
+   * observed in the replacement. An empty successful snapshot therefore
+   * clears the prior result instead of presenting it as current.
+   */
+  async replaceResearchSnapshot(params: {
+    expectedBrandId: string | null;
+    observedAt: Date;
+    organizationId: string;
+    records: Record<string, unknown>[];
+    researchSource: string;
+    snapshotId: string;
+    snapshotKey: string;
+  }): Promise<{ applied: boolean; recordCount: number }> {
+    if (Number.isNaN(params.observedAt.getTime())) {
+      throw new Error('Research snapshot observedAt must be a valid date');
+    }
+
+    const identityKeys = params.records.map((record) => {
+      const recordObservedAt = readAdPerformanceDate(record.researchObservedAt);
+      if (
+        record.organizationId !== params.organizationId ||
+        record.researchSnapshotId !== params.snapshotId ||
+        record.researchSnapshotKey !== params.snapshotKey ||
+        record.researchSource !== params.researchSource ||
+        recordObservedAt?.getTime() !== params.observedAt.getTime()
+      ) {
+        throw new Error(
+          'Research snapshot records must match the requested tenant and snapshot key',
+        );
+      }
+
+      return this.toPersistencePayload(record).identityKey;
+    });
+
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const watchedAdvertiser =
+          await transaction.xAdWatchedAdvertiser.findFirst({
+            select: {
+              brandId: true,
+              id: true,
+              lastSnapshotId: true,
+              lastSuccessfulAt: true,
+            },
+            where: {
+              id: params.snapshotKey,
+              isDeleted: false,
+              organizationId: params.organizationId,
+            },
+          });
+        if (!watchedAdvertiser) {
+          throw new Error('Research snapshot watch scope was not found');
+        }
+
+        if (watchedAdvertiser.brandId !== params.expectedBrandId) {
+          throw new Error(
+            'Research snapshot expected brand does not match the watched advertiser',
+          );
+        }
+
+        if (
+          params.records.some(
+            (record) => (record.brandId ?? null) !== params.expectedBrandId,
+          )
+        ) {
+          throw new Error(
+            'Research snapshot records must match the watched advertiser brand',
+          );
+        }
+
+        if (
+          watchedAdvertiser.lastSuccessfulAt &&
+          watchedAdvertiser.lastSuccessfulAt.getTime() >=
+            params.observedAt.getTime()
+        ) {
+          return { applied: false, recordCount: 0 };
+        }
+
+        await this.upsertBatchWithDelegate(
+          params.records,
+          transaction.adPerformance,
+        );
+        await this.retireMissingResearchSnapshotRows(
+          transaction.adPerformance,
+          params.organizationId,
+          params.snapshotKey,
+          params.researchSource,
+          params.expectedBrandId,
+          params.observedAt,
+          identityKeys,
+        );
+
+        const watchTransition =
+          await transaction.xAdWatchedAdvertiser.updateMany({
+            data: {
+              freshnessState: params.records.length === 0 ? 'empty' : 'fresh',
+              lastAttemptedAt: params.observedAt,
+              lastIngestionErrorCode: null,
+              lastIngestionStatus: 'success',
+              lastSnapshotId: params.snapshotId,
+              lastSnapshotRecordCount: params.records.length,
+              lastSuccessfulAt: params.observedAt,
+            },
+            where: {
+              OR: [
+                { lastSuccessfulAt: null },
+                { lastSuccessfulAt: { lt: params.observedAt } },
+              ],
+              id: params.snapshotKey,
+              isDeleted: false,
+              organizationId: params.organizationId,
+              brandId: params.expectedBrandId,
+            },
+          });
+        if (watchTransition.count !== 1) {
+          throw new Error('Research snapshot was superseded concurrently');
+        }
+
+        return { applied: true, recordCount: params.records.length };
+      },
+      { isolationLevel: 'Serializable' },
+    );
+  }
+
+  private async retireMissingResearchSnapshotRows(
+    delegate: Prisma.TransactionClient['adPerformance'],
+    organizationId: string,
+    snapshotKey: string,
+    researchSource: string,
+    brandId: string | null,
+    observedAt: Date,
+    retainedIdentityKeys: string[] = [],
+  ): Promise<number> {
+    const result = await delegate.updateMany({
+      data: { isDeleted: true },
+      where: scopedWhere(organizationId, {
+        OR: [
+          { researchObservedAt: { lte: observedAt } },
+          { researchObservedAt: null },
+        ],
+        brandId,
+        researchSnapshotKey: snapshotKey,
+        researchSource,
+        ...(retainedIdentityKeys.length > 0
+          ? { identityKey: { notIn: retainedIdentityKeys } }
+          : {}),
+      }),
+    });
+
+    return result.count;
+  }
+
+  /**
+   * Preserve last-known rows after a failed/unavailable refresh, but mark them
+   * stale so organization-scoped research reads exclude them.
+   */
+  async markResearchSnapshotStale(
+    organizationId: string,
+    snapshotKey: string,
+  ): Promise<number> {
+    const result = await this.prisma.adPerformance.updateMany({
+      data: { researchFreshnessState: 'stale' },
+      where: scopedWhere(organizationId, {
+        researchSnapshotKey: snapshotKey,
+        researchSource: 'x_ads_repository',
+      }),
+    });
+
+    return result.count;
   }
 
   async findLatestSyncDateForCredential(
