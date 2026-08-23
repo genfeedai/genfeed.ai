@@ -10,11 +10,20 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { isCloudDeployment } from '@genfeedai/config';
+import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+function makePrismaError(code: string): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError('test database failure', {
+    clientVersion: 'test',
+    code,
+  });
+}
 
 function makeService(
   nodeEnv = 'test',
@@ -270,7 +279,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     ]);
     const create = vi
       .spyOn(service, 'create')
-      .mockRejectedValue({ code: 'P2002' });
+      .mockRejectedValue(makePrismaError('P2002'));
     vi.spyOn(service, 'ensureEnabledModelIds').mockResolvedValue(
       raced as never,
     );
@@ -299,9 +308,40 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     expect(findOne).toHaveBeenCalledOnce();
   });
 
+  it('rethrows null failures without masking the original rejection', async () => {
+    const service = makeService();
+    vi.spyOn(service, 'findOne').mockResolvedValue(null);
+    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue([
+      'model_low_cost_1',
+    ]);
+    vi.spyOn(service, 'create').mockRejectedValue(null);
+
+    await expect(service.ensureForOrganization('org_1')).rejects.toBeNull();
+  });
+
+  it('maps a missing organization relation to the canonical 404', async () => {
+    const service = makeService();
+    vi.spyOn(service, 'findOne').mockResolvedValue(null);
+    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue([
+      'model_low_cost_1',
+    ]);
+    vi.spyOn(service, 'create').mockRejectedValue(makePrismaError('P2003'));
+
+    const failure = await service
+      .ensureForOrganization('org_missing')
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(NotFoundException);
+    expect((failure as NotFoundException).getStatus()).toBe(404);
+    expect(failure).toHaveProperty(
+      'message',
+      "Organization with identifier 'org_missing' not found",
+    );
+  });
+
   it('rethrows P2002 when the winning row is still unavailable', async () => {
     const service = makeService();
-    const conflict = { code: 'P2002' };
+    const conflict = makePrismaError('P2002');
     const findOne = vi.spyOn(service, 'findOne').mockResolvedValue(null);
     vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue([
       'model_low_cost_1',

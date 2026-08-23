@@ -5,6 +5,7 @@ import { CreateOrganizationSettingDto } from '@api/collections/organization-sett
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -15,7 +16,7 @@ import {
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSION_ORDER,
@@ -170,9 +171,18 @@ export class OrganizationSettingsService extends BaseService<
       });
       return created;
     } catch (error: unknown) {
-      if ((error as { code?: string }).code !== 'P2002') {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
         throw error;
       }
+
+      if (error.code === 'P2003') {
+        throw new NotFoundException('Organization', organizationId);
+      }
+
+      if (error.code !== 'P2002') {
+        throw error;
+      }
+
       const raced = await this.findOne({ organizationId });
       if (!raced) {
         throw error;
