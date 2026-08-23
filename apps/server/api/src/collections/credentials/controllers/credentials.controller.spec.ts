@@ -14,6 +14,7 @@ import { PinterestService } from '@api/services/integrations/pinterest/services/
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -164,6 +165,7 @@ describe('CredentialsController', () => {
       createMockPlatformService() as unknown as RedditService,
       createMockPlatformService() as unknown as TiktokService,
       createMockPlatformService() as unknown as TwitterService,
+      createMockPlatformService() as unknown as XAdsService,
       createMockPlatformService() as unknown as YoutubeService,
     );
   });
@@ -459,6 +461,7 @@ describe('CredentialsController', () => {
         createMockPlatformService() as unknown as RedditService,
         createMockPlatformService() as unknown as TiktokService,
         failingTwitter as unknown as TwitterService,
+        createMockPlatformService() as unknown as XAdsService,
         createMockPlatformService() as unknown as YoutubeService,
       );
 
