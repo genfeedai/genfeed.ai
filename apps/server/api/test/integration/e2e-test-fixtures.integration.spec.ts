@@ -64,7 +64,7 @@ describe('E2E fixture contracts', () => {
       ORGANIZATION_SETTINGS_E2E_MOCK.ensureForOrganization('org-e2e'),
     ).resolves.toMatchObject({
       enabledModelIds: [],
-      isGenerateArticlesEnabled: true,
+      isGenerateArticlesEnabled: false,
       isGenerateImagesEnabled: true,
       isGenerateMusicEnabled: true,
       isGenerateVideosEnabled: true,

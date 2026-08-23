@@ -304,7 +304,7 @@ export const ORGANIZATION_SETTINGS_E2E_MOCK = {
     Promise.resolve({
       enabledModelIds: [],
       id: 'e2e-organization-settings',
-      isGenerateArticlesEnabled: true,
+      isGenerateArticlesEnabled: false,
       isGenerateImagesEnabled: true,
       isGenerateMusicEnabled: true,
       isGenerateVideosEnabled: true,
