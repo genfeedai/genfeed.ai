@@ -4,6 +4,7 @@ import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
+  resolveAuthorizedOrganizationId,
   resolveRequiredBrandRequestContext,
 } from '@api/helpers/utils/auth/auth.util';
 
@@ -46,6 +47,83 @@ describe('extractRequestContext', () => {
     expect(ctx.brandId).toBe('3');
     expect(ctx.organizationId).toBe('2');
     expect(ctx.userId).toBe('1');
+  });
+
+  it('ignores a foreign organizationId in the query for non-superadmin users', () => {
+    const user = makeUser({ isSuperAdmin: false, organizationId: 'org-own' });
+
+    const ctx = extractRequestContext(user, {
+      organizationId: 'org-foreign',
+    });
+
+    expect(ctx.organizationId).toBe('org-own');
+  });
+
+  it('honors a query organizationId override for superadmin users', () => {
+    const user = makeUser({ isSuperAdmin: true, organizationId: 'org-own' });
+
+    const ctx = extractRequestContext(user, {
+      organizationId: 'org-foreign',
+    });
+
+    expect(ctx.organizationId).toBe('org-foreign');
+  });
+
+  it('falls back to the user organization when the query omits organizationId', () => {
+    const user = makeUser({ organizationId: 'org-own' });
+
+    expect(extractRequestContext(user, {}).organizationId).toBe('org-own');
+    expect(extractRequestContext(user).organizationId).toBe('org-own');
+  });
+
+  it('does not gate brandId/userId narrowing behind superadmin', () => {
+    const user = makeUser({
+      brandId: 'brand-own',
+      isSuperAdmin: false,
+      userId: 'user-own',
+    });
+
+    const ctx = extractRequestContext(user, {
+      brandId: 'brand-other',
+      userId: 'user-other',
+    });
+
+    expect(ctx.brandId).toBe('brand-other');
+    expect(ctx.userId).toBe('user-other');
+  });
+});
+
+describe('resolveAuthorizedOrganizationId', () => {
+  it('returns the user organization when no query id is supplied', () => {
+    const user = makeUser({ organizationId: 'org-own' });
+    expect(resolveAuthorizedOrganizationId(user)).toBe('org-own');
+    expect(resolveAuthorizedOrganizationId(user, undefined)).toBe('org-own');
+    expect(resolveAuthorizedOrganizationId(user, '')).toBe('org-own');
+  });
+
+  it('ignores a foreign query id for non-superadmin users', () => {
+    const user = makeUser({ isSuperAdmin: false, organizationId: 'org-own' });
+    expect(resolveAuthorizedOrganizationId(user, 'org-foreign')).toBe(
+      'org-own',
+    );
+  });
+
+  it('honors a foreign query id for superadmin users', () => {
+    const user = makeUser({ isSuperAdmin: true, organizationId: 'org-own' });
+    expect(resolveAuthorizedOrganizationId(user, 'org-foreign')).toBe(
+      'org-foreign',
+    );
+  });
+
+  it('falls back to the user organization when superadmin supplies no query id', () => {
+    const user = makeUser({ isSuperAdmin: true, organizationId: 'org-own' });
+    expect(resolveAuthorizedOrganizationId(user, undefined)).toBe('org-own');
+    expect(resolveAuthorizedOrganizationId(user, '')).toBe('org-own');
+  });
+
+  it('returns empty string when neither the user nor the query has an organization', () => {
+    const user = makeUser({ organizationId: undefined as unknown as string });
+    expect(resolveAuthorizedOrganizationId(user)).toBe('');
   });
 });
 

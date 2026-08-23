@@ -73,9 +73,41 @@ export interface ContextQueryDto {
 }
 
 /**
+ * Resolve the organizationId to use for a tenant-scoped query.
+ *
+ * This is the single enforcement point for organization-scope resolution:
+ * a query-supplied organizationId only ever widens scope for a platform
+ * superadmin. Every other caller resolves to their own session organization
+ * regardless of what the query asks for. Callers that need the same
+ * resolution for a query-driven filter (list endpoints, request context)
+ * should call through here instead of re-implementing the fallback.
+ *
+ * @param user - authenticated user object
+ * @param queryOrganizationId - optional organizationId supplied by the caller
+ * @returns the authorized organizationId, or '' when none is resolvable
+ */
+export function resolveAuthorizedOrganizationId(
+  user: AuthenticatedUser,
+  queryOrganizationId?: string,
+): string {
+  const canOverrideScope = getIsSuperAdmin(user);
+
+  if (canOverrideScope && queryOrganizationId) {
+    return queryOrganizationId;
+  }
+
+  return user.organizationId || '';
+}
+
+/**
  * Extract request context (organizationId, brandId, userId) from the
  * authenticated user and query params.
- * Query params take precedence over user identity, allowing for admin override scenarios.
+ *
+ * organizationId is superadmin-gated via `resolveAuthorizedOrganizationId` —
+ * a non-superadmin's query override can never widen the tenant scope.
+ * brandId/userId narrowing stays query-first: they only ever narrow the
+ * result set within the caller's own organization, they cannot select a
+ * different tenant's data on their own.
  *
  * @param user - authenticated user object
  * @param query - Optional query DTO with organization, brand, user overrides
@@ -92,7 +124,10 @@ export function extractRequestContext(
   user: AuthenticatedUser,
   query?: ContextQueryDto,
 ): RequestContext {
-  const organizationId = query?.organizationId || user.organizationId || '';
+  const organizationId = resolveAuthorizedOrganizationId(
+    user,
+    query?.organizationId,
+  );
   const brandId = query?.brandId || user.brandId || '';
   const userId = query?.userId || user.userId || user.id || '';
 
@@ -109,10 +144,10 @@ export function resolveRequiredBrandRequestContext(
 ): Pick<RequestContext, 'brandId' | 'organizationId' | 'userId'> {
   const requestContext = extractRequestContext(user);
   const canOverrideScope = getIsSuperAdmin(user);
-  const organizationId =
-    canOverrideScope && query.organizationId
-      ? query.organizationId
-      : requestContext.organizationId;
+  const organizationId = resolveAuthorizedOrganizationId(
+    user,
+    query.organizationId,
+  );
   const brandId =
     canOverrideScope && query.brandId ? query.brandId : requestContext.brandId;
   const userId = requestContext.userId || user.id;
