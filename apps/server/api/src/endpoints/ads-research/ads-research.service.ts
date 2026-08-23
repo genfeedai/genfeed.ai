@@ -3,6 +3,7 @@ import type { CreativePatternDocument } from '@api/collections/creative-patterns
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { Platform, WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
@@ -844,7 +845,10 @@ export class AdsResearchService {
 
     const credential = await this.credentialsService.findOne({
       id: params.credentialId,
-      organizationId: organizationId,
+      isConnected: true,
+      isDeleted: false,
+      organizationId,
+      platform: mapAdsCredentialPlatform(params.platform),
     });
 
     if (!credential?.accessToken) {

@@ -3,6 +3,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
+import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import type {
   AdsAdapterContext,
@@ -56,7 +57,7 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started`);
 
     const reqCtx = extractRequestContext(user);
-    const platforms = platformsStr.split(',') as AdsPlatform[];
+    const platforms = platformsStr.split(',');
     const credentialIds = credentialIdsStr.split(',');
     const adAccountIds = adAccountIdsStr.split(',');
     const loginCustomerIds = loginCustomerIdsStr?.split(',');
@@ -70,17 +71,21 @@ export class AdsGatewayController {
       );
     }
 
-    for (const p of platforms) {
-      this.validatePlatform(p);
-    }
+    const validPlatforms = platforms.map((platform) =>
+      this.validatePlatform(platform),
+    );
 
     const accessTokens = await Promise.all(
-      credentialIds.map((id) =>
-        this.resolveAccessToken(id, reqCtx.organizationId),
+      validPlatforms.map((platform, index) =>
+        this.resolveAccessToken(
+          credentialIds[index],
+          reqCtx.organizationId,
+          platform,
+        ),
       ),
     );
 
-    const contexts = platforms.map((platform, i) => ({
+    const contexts = validPlatforms.map((platform, i) => ({
       ctx: this.buildContext({
         accessToken: accessTokens[i],
         adAccountId: adAccountIds[i],
@@ -105,11 +110,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -134,11 +140,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -167,11 +174,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -204,11 +212,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -241,11 +250,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -277,11 +287,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -311,11 +322,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -341,11 +353,12 @@ export class AdsGatewayController {
     this.logger.log(`${caller} started for ${platform}`);
 
     const reqCtx = extractRequestContext(user);
+    const validPlatform = this.validatePlatform(platform);
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
-    const validPlatform = this.validatePlatform(platform);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const ctx = this.buildContext({
       accessToken,
@@ -381,6 +394,7 @@ export class AdsGatewayController {
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
     const ctx = this.buildContext({
       accessToken,
@@ -415,6 +429,7 @@ export class AdsGatewayController {
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
     const ctx = this.buildContext({
       accessToken,
@@ -448,6 +463,7 @@ export class AdsGatewayController {
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
     const ctx = this.buildContext({
       accessToken,
@@ -481,6 +497,7 @@ export class AdsGatewayController {
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
+      validPlatform,
     );
     const ctx = this.buildContext({
       accessToken,
@@ -498,10 +515,14 @@ export class AdsGatewayController {
   private async resolveAccessToken(
     credentialId: string,
     organizationId: string,
+    platform: AdsPlatform,
   ): Promise<string> {
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      organizationId: organizationId,
+      isConnected: true,
+      isDeleted: false,
+      organizationId,
+      platform: mapAdsCredentialPlatform(platform),
     });
 
     if (!credential?.accessToken) {

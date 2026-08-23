@@ -1,4 +1,5 @@
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -168,6 +169,13 @@ describe('AdsResearchService', () => {
     });
 
     expect(adsGatewayService.getAdapter).toHaveBeenCalledWith('tiktok');
+    expect(credentialsService.findOne).toHaveBeenCalledWith({
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TIKTOK,
+    });
     expect(result.summary.selectedPlatform).toBe('tiktok');
     expect(result.connectedAds).toHaveLength(1);
     expect(result.connectedAds[0]).toMatchObject({
