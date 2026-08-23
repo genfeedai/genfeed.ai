@@ -8,8 +8,8 @@ import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
 } from '@api-types/contracts/brand-remix-run.contract';
-import { IngredientStatus } from '@genfeedai/enums';
-import { CredentialPlatform } from '@genfeedai/prisma';
+import { CredentialPlatform, IngredientStatus } from '@genfeedai/enums';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
@@ -81,7 +81,7 @@ export class PausedXAdsCampaignDraftService {
         isConnected: true,
         isDeleted: false,
         organizationId: input.organizationId,
-        platform: CredentialPlatform.X_ADS,
+        platform: PrismaCredentialPlatform.X_ADS,
       },
     });
     if (!credential?.accessToken) {
@@ -124,16 +124,27 @@ export class PausedXAdsCampaignDraftService {
     }
 
     const post = await this.prisma.post.findFirst({
-      select: { id: true },
+      select: { externalId: true, id: true, platform: true },
       where: scopedWhere(input.organizationId, {
         brandId: input.brandId,
         contentRunId: input.runId,
+        externalId: input.sourceTweetId,
         id: { in: input.config.review?.approvedPostIds ?? [] },
+        platform: CredentialPlatform.TWITTER,
         variantId: input.variant.id,
       }),
     });
     const ingredientId = input.variant.assetIds[0];
-    if (!post || !ingredientId) {
+    if (
+      !post ||
+      post.externalId !== input.sourceTweetId ||
+      post.platform !== CredentialPlatform.TWITTER
+    ) {
+      throw new ConflictException(
+        'The approved Review draft is not the supplied published X post.',
+      );
+    }
+    if (!ingredientId) {
       throw new ConflictException(
         'The approved Review draft is not linked to a generated media output.',
       );
@@ -154,6 +165,17 @@ export class PausedXAdsCampaignDraftService {
       ].includes(ingredient.status as IngredientStatus)
     ) {
       throw new ConflictException('The approved media output is not ready.');
+    }
+
+    const publishedTweets = await this.xAdsService.listPublishedTweets(
+      accessToken,
+      resolvedAdAccountId,
+      [input.sourceTweetId],
+    );
+    if (!publishedTweets.some((tweet) => tweet.id === input.sourceTweetId)) {
+      throw new BadRequestException(
+        'The published Tweet is unavailable to the selected X Ads account promotable user.',
+      );
     }
 
     const suffix = `${input.runId}-${input.config.revision}-${input.variant.id}`;

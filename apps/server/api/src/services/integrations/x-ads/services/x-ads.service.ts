@@ -13,6 +13,7 @@ import type {
   XAdsLineItem,
   XAdsPromotedTweet,
   XAdsReportingParams,
+  XAdsTweet,
 } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -43,7 +44,7 @@ export class XAdsService {
   private static readonly API_VERSION = '12';
   private static readonly BASE_URL = 'https://ads-api.x.com';
   private static readonly RATE_LIMIT_DELAY_MS = 250;
-  private static readonly STATS_ENTITY_ID_LIMIT = 200;
+  private static readonly ENTITY_ID_LIMIT = 200;
 
   private readonly constructorName: string = String(this.constructor.name);
   private lastRequestTime = 0;
@@ -345,6 +346,46 @@ export class XAdsService {
     }
   }
 
+  /**
+   * Resolves published Tweets through the selected Ads account. X scopes this
+   * endpoint to the account's promotable user, so a missing id is not eligible
+   * for promotion through that account.
+   */
+  async listPublishedTweets(
+    accessToken: string,
+    accountId: string,
+    tweetIds: string[],
+  ): Promise<XAdsTweet[]> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const tweets: XAdsTweet[] = [];
+      for (
+        let index = 0;
+        index < tweetIds.length;
+        index += XAdsService.ENTITY_ID_LIMIT
+      ) {
+        const ids = tweetIds.slice(index, index + XAdsService.ENTITY_ID_LIMIT);
+        const response = await this.makePaginatedRequest<{ id_str: string }>(
+          accessToken,
+          `/accounts/${accountId}/tweets`,
+          {
+            timeline_type: 'ALL',
+            trim_user: true,
+            tweet_ids: ids,
+            tweet_type: 'PUBLISHED',
+          },
+        );
+        tweets.push(...response.map((tweet) => ({ id: tweet.id_str })));
+      }
+
+      return tweets;
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
   async getCampaignStats(
     accessToken: string,
     accountId: string,
@@ -408,12 +449,9 @@ export class XAdsService {
       for (
         let index = 0;
         index < entityIds.length;
-        index += XAdsService.STATS_ENTITY_ID_LIMIT
+        index += XAdsService.ENTITY_ID_LIMIT
       ) {
-        const ids = entityIds.slice(
-          index,
-          index + XAdsService.STATS_ENTITY_ID_LIMIT,
-        );
+        const ids = entityIds.slice(index, index + XAdsService.ENTITY_ID_LIMIT);
         const response = await this.makeRequest<XAdsStatsWireShape[]>(
           accessToken,
           `/stats/accounts/${accountId}`,

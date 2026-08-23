@@ -59,6 +59,10 @@ export interface XAdsPromotedTweet {
   approvalStatus: string;
 }
 
+export interface XAdsTweet {
+  id: string;
+}
+
 export interface XAdsInsightsMetrics {
   impressions: number;
   clicks: number;

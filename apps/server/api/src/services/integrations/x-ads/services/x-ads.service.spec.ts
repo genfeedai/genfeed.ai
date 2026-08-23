@@ -270,6 +270,43 @@ describe('XAdsService', () => {
         }),
       );
     });
+
+    it('collects published Tweets for the account promotable user', async () => {
+      httpService.get
+        .mockReturnValueOnce(
+          axiosResponse({
+            data: [{ id_str: 'tweet-1' }],
+            next_cursor: 'tweet-cursor',
+          }),
+        )
+        .mockReturnValueOnce(
+          axiosResponse({
+            data: [{ id_str: 'tweet-2' }],
+            next_cursor: null,
+          }),
+        );
+
+      const result = await service.listPublishedTweets(
+        'access-token',
+        'account-1',
+        ['tweet-1', 'tweet-2'],
+      );
+
+      expect(result).toEqual([{ id: 'tweet-1' }, { id: 'tweet-2' }]);
+      expect(httpService.get).toHaveBeenNthCalledWith(
+        2,
+        'https://ads-api.x.com/12/accounts/account-1/tweets',
+        expect.objectContaining({
+          params: {
+            cursor: 'tweet-cursor',
+            timeline_type: 'ALL',
+            trim_user: true,
+            tweet_ids: 'tweet-1,tweet-2',
+            tweet_type: 'PUBLISHED',
+          },
+        }),
+      );
+    });
   });
 
   describe('write wire contracts', () => {

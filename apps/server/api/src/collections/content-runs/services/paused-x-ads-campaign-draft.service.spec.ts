@@ -14,6 +14,7 @@ describe('PausedXAdsCampaignDraftService', () => {
     createPromotedTweet: vi.fn(),
     getAdAccounts: vi.fn(),
     getFundingInstruments: vi.fn(),
+    listPublishedTweets: vi.fn(),
     listCampaigns: vi.fn(),
     listLineItems: vi.fn(),
     listPromotedTweets: vi.fn(),
@@ -90,7 +91,11 @@ describe('PausedXAdsCampaignDraftService', () => {
       grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
       id: 'credential-1',
     });
-    prisma.post.findFirst.mockResolvedValue({ id: 'post-1' });
+    prisma.post.findFirst.mockResolvedValue({
+      externalId: 'tweet-1',
+      id: 'post-1',
+      platform: 'twitter',
+    });
     prisma.ingredient.findFirst.mockResolvedValue({
       id: 'image-1',
       status: IngredientStatus.GENERATED,
@@ -106,6 +111,7 @@ describe('PausedXAdsCampaignDraftService', () => {
         type: 'CREDIT_CARD',
       },
     ]);
+    xAdsService.listPublishedTweets.mockResolvedValue([{ id: 'tweet-1' }]);
     xAdsService.listCampaigns.mockResolvedValue([]);
     xAdsService.listLineItems.mockResolvedValue([]);
     xAdsService.listPromotedTweets.mockResolvedValue([]);
@@ -143,6 +149,20 @@ describe('PausedXAdsCampaignDraftService', () => {
       expect.objectContaining({
         entityStatus: 'PAUSED',
         fundingInstrumentId: 'funding-1',
+      }),
+    );
+    expect(xAdsService.listPublishedTweets).toHaveBeenCalledWith(
+      'legacy-plaintext-token',
+      'act-123',
+      ['tweet-1'],
+    );
+    expect(prisma.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { externalId: true, id: true, platform: true },
+        where: expect.objectContaining({
+          externalId: 'tweet-1',
+          platform: 'twitter',
+        }),
       }),
     );
     expect(xAdsService.createLineItem).toHaveBeenCalledWith(
@@ -227,5 +247,34 @@ describe('PausedXAdsCampaignDraftService', () => {
     );
 
     expect(xAdsService.createCampaign).not.toHaveBeenCalled();
+  });
+
+  it('rejects a Tweet id that is not the approved remix post external id', async () => {
+    prisma.post.findFirst.mockResolvedValue({
+      externalId: 'different-tweet',
+      id: 'post-1',
+      platform: 'twitter',
+    });
+
+    await expect(service.prepare(input)).rejects.toThrow(
+      'approved Review draft is not the supplied published X post',
+    );
+
+    expect(xAdsService.listPublishedTweets).not.toHaveBeenCalled();
+    expect(workflowProvenanceService.runAction).not.toHaveBeenCalled();
+    expect(xAdsService.createCampaign).not.toHaveBeenCalled();
+  });
+
+  it('rejects a Tweet that is not owned by the selected Ads account promotable user', async () => {
+    xAdsService.listPublishedTweets.mockResolvedValue([]);
+
+    await expect(service.prepare(input)).rejects.toThrow(
+      'published Tweet is unavailable to the selected X Ads account',
+    );
+
+    expect(workflowProvenanceService.runAction).not.toHaveBeenCalled();
+    expect(xAdsService.createCampaign).not.toHaveBeenCalled();
+    expect(xAdsService.createLineItem).not.toHaveBeenCalled();
+    expect(xAdsService.createPromotedTweet).not.toHaveBeenCalled();
   });
 });
