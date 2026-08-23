@@ -118,5 +118,87 @@ describe('BotsController identity gates', () => {
         }),
       );
     });
+
+    it('always carries the caller organization id when narrowed by brand', () => {
+      expect(
+        controller.buildFindAllQuery(mockUser, {
+          brandId: 'brand-from-another-org',
+          scope: 'brand',
+        } as never),
+      ).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: 'brand-from-another-org',
+            organizationId,
+          }),
+        }),
+      );
+    });
+
+    it('always carries the caller organization id when narrowed by user', () => {
+      expect(
+        controller.buildFindAllQuery(mockUser, {
+          scope: 'user',
+          userId: 'user-from-another-org',
+        } as never),
+      ).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId,
+            userId: 'user-from-another-org',
+          }),
+        }),
+      );
+    });
+
+    it('fails closed when brand scope has no resolvable organization id', () => {
+      const emptyUser = {
+        organizationId: '',
+        userId: userId,
+      } as unknown as User;
+
+      expect(() =>
+        controller.buildFindAllQuery(emptyUser, {
+          brandId: 'brand-1',
+          scope: 'brand',
+        } as never),
+      ).toThrow("Bot listing is missing a resolvable 'organization' id");
+    });
+
+    it('fails closed when user scope has no resolvable organization id', () => {
+      const emptyUser = {
+        organizationId: '',
+        userId: userId,
+      } as unknown as User;
+
+      expect(() =>
+        controller.buildFindAllQuery(emptyUser, {
+          scope: 'user',
+          userId: 'user-1',
+        } as never),
+      ).toThrow("Bot listing is missing a resolvable 'organization' id");
+    });
+
+    it('honors a query organizationId override for superadmin users narrowed by brand', () => {
+      const superAdmin = {
+        ...mockUser,
+        isSuperAdmin: true,
+      } as unknown as User;
+
+      expect(
+        controller.buildFindAllQuery(superAdmin, {
+          brandId: 'brand-1',
+          organizationId: 'org-foreign',
+          scope: 'brand',
+        } as never),
+      ).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            organizationId: 'org-foreign',
+          }),
+        }),
+      );
+    });
   });
 });

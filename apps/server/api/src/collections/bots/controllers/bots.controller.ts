@@ -51,8 +51,19 @@ export class BotsController extends BaseCRUDController<
   }
 
   public buildFindAllQuery(user: User, query: BotsQueryDto) {
+    // organizationId is the tenant boundary and must be present no matter
+    // which scope branch below fires — brand/user only narrow within it,
+    // they never substitute for it. See scopedWhere() in @genfeedai/server
+    // for the equivalent service-layer convention.
+    const organizationId = requireRelationId(
+      resolveAuthorizedOrganizationId(user, query.organizationId),
+      'organization',
+      'Bot listing',
+    );
+
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
+      organizationId,
     };
 
     const scope =
@@ -62,14 +73,6 @@ export class BotsController extends BaseCRUDController<
         : query.organizationId
           ? 'organization'
           : 'user');
-
-    if (scope === 'organization') {
-      match.organizationId = requireRelationId(
-        resolveAuthorizedOrganizationId(user, query.organizationId),
-        'organization',
-        'Bot listing',
-      );
-    }
 
     if (scope === 'brand') {
       match.brandId = requireRelationId(
