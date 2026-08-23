@@ -56,7 +56,11 @@ import type {
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 export type {
   BrandRelocationMovingResource,
@@ -389,6 +393,78 @@ export class BrandsService extends BaseService<
     return brand;
   }
 
+  /**
+   * Applies a Brand Kit draft through one tenant-scoped statement.
+   *
+   * A draft that includes agent configuration is built from a full JSON
+   * snapshot. Comparing that exact snapshot on the write prevents the draft
+   * from replacing sibling keys saved by another request after the draft was
+   * assembled. Scalar-only drafts do not need the JSON predicate.
+   */
+  private async writeBrandKitDraft(
+    brandId: string,
+    organizationId: string,
+    updateBrandDto: Partial<UpdateBrandDto>,
+    expectedAgentConfig: BrandDocument['agentConfig'],
+  ): Promise<BrandDocument> {
+    const data = omitUndefinedFields(updateBrandDto as Record<string, unknown>);
+    const writesAgentConfig = data.agentConfig !== undefined;
+    const where: Prisma.BrandWhereInput = scopedWhere(organizationId, {
+      ...(writesAgentConfig
+        ? {
+            agentConfig: {
+              equals:
+                expectedAgentConfig === null
+                  ? Prisma.JsonNull
+                  : (expectedAgentConfig as Prisma.InputJsonValue),
+            },
+          }
+        : {}),
+      id: brandId,
+    });
+
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false, the unique brand id bounds the write to one row, and the optional agentConfig equality narrows the CAS further.
+    const result = await this.delegate.updateMany({ data, where });
+
+    if (result.count !== 1) {
+      if (writesAgentConfig) {
+        throw new ConflictException(
+          'Brand kit changed while this draft was being applied. Reload the draft and retry.',
+        );
+      }
+
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    const updatedBrand = (await this.delegate.findFirst({
+      where: scopedWhere(organizationId, { id: brandId }),
+    })) as BrandDocument | null;
+
+    if (!updatedBrand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    await this.invalidateBrandContextCaches(brandId, organizationId);
+
+    return updatedBrand;
+  }
+
+  private async invalidateBrandContextCaches(
+    brandId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.cacheInvalidationService.invalidate(
+      CACHE_PATTERNS.BRANDS_SINGLE(brandId),
+    );
+    await this.cacheInvalidationService.invalidateByTags([
+      CACHE_TAGS.BRANDS,
+      SCOPED_CACHE_TAGS.BRAND_CONTEXT(organizationId),
+    ]);
+    await this.accessBootstrapCacheService.invalidateForOrganization(
+      organizationId,
+    );
+  }
+
   async updateIdentityForOrganization(
     brandId: string,
     organizationId: string,
@@ -626,14 +702,7 @@ export class BrandsService extends BaseService<
     // caches this write invalidates. `agentConfig` is embedded in the
     // assembled agent brand context (`brand-ctx:{orgId}`), so a stale entry
     // keeps the agent running the previous voice/schedule after the save.
-    await this.cacheInvalidationService.invalidate(
-      CACHE_PATTERNS.BRANDS_SINGLE(brandId),
-    );
-    await this.cacheInvalidationService.invalidateByTags([
-      CACHE_TAGS.BRANDS,
-      SCOPED_CACHE_TAGS.BRAND_CONTEXT(orgId),
-    ]);
-    await this.accessBootstrapCacheService.invalidateForOrganization(orgId);
+    await this.invalidateBrandContextCaches(brandId, orgId);
 
     if (hasScheduleUpdate) {
       // The config is already persisted. A scheduler outage must not surface
@@ -714,7 +783,8 @@ export class BrandsService extends BaseService<
         this.delegate.findFirst({
           where: criteria,
         }) as Promise<BrandDocument | null>,
-      (id, updates) => this.patchBrandRow(id, updates),
+      (id, orgId, updates, expectedAgentConfig) =>
+        this.writeBrandKitDraft(id, orgId, updates, expectedAgentConfig),
     );
   }
 

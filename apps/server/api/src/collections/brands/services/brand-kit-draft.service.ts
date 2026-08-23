@@ -76,9 +76,11 @@ const SUPPORTED_FONT_FAMILIES = new Set<string>(Object.values(FontFamily));
 type BrandKitDraftBrandFinder = (
   criteria: Record<string, unknown>,
 ) => Promise<BrandDocument | null>;
-type BrandKitBrandPatch = (
+type BrandKitBrandWriter = (
   brandId: string,
+  organizationId: string,
   updates: Partial<UpdateBrandDto>,
+  expectedAgentConfig: BrandDocument['agentConfig'],
 ) => Promise<BrandDocument>;
 
 @Injectable()
@@ -162,7 +164,7 @@ export class BrandKitDraftService {
     organizationId: string,
     dto: ApplyBrandKitDto,
     findBrand: BrandKitDraftBrandFinder,
-    patchBrand: BrandKitBrandPatch,
+    writeBrand: BrandKitBrandWriter,
   ): Promise<IBrandKitApplyResult> {
     const brand = await findBrand(scopedWhere(organizationId, { id: brandId }));
 
@@ -259,7 +261,12 @@ export class BrandKitDraftService {
     }
 
     if (Object.keys(updateData).length > 0) {
-      await patchBrand(brandId, updateData as Partial<UpdateBrandDto>);
+      await writeBrand(
+        brandId,
+        organizationId,
+        updateData as Partial<UpdateBrandDto>,
+        brand.agentConfig,
+      );
     }
 
     const hasBlockingDiagnostic = diagnostics.some(
