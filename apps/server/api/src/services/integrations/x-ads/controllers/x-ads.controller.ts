@@ -22,6 +22,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
+  BadGatewayException,
   Body,
   Controller,
   HttpException,
@@ -32,6 +33,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+
+function safeOAuthErrorMetadata(error: unknown): {
+  name: string;
+  status?: number;
+} {
+  if (error instanceof HttpException) {
+    return { name: error.name, status: error.getStatus() };
+  }
+  if (error instanceof Error) {
+    return { name: error.name };
+  }
+  return { name: 'UnknownError' };
+}
 
 /**
  * X Ads connect/verify — role-gated like `GoogleAdsController`, but the
@@ -132,41 +146,55 @@ export class XAdsController {
       );
     }
 
-    const credential = await this.credentialsService.findPendingOAuthCredential(
-      body.state,
-      CredentialPlatform.X_ADS,
-      {
-        organizationId: user.organizationId,
-        userId: user.userId ?? user.id,
-      },
-    );
-
-    if (!credential) {
-      throw new HttpException(
-        { detail: 'X Ads credential not found', title: 'OAuth Error' },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    const codeVerifier = credential.oauthTokenSecret
-      ? EncryptionUtil.decrypt(credential.oauthTokenSecret)
-      : null;
-
-    if (!codeVerifier) {
-      throw new HttpException(
-        { detail: 'Missing PKCE code verifier', title: 'OAuth Error' },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     try {
+      const credential =
+        await this.credentialsService.findPendingOAuthCredential(
+          body.state,
+          CredentialPlatform.X_ADS,
+          {
+            organizationId: user.organizationId,
+            userId: user.userId ?? user.id,
+          },
+        );
+
+      if (!credential) {
+        throw new HttpException(
+          { detail: 'X Ads credential not found', title: 'OAuth Error' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const codeVerifier = credential.oauthTokenSecret
+        ? EncryptionUtil.decrypt(credential.oauthTokenSecret)
+        : null;
+
+      if (!codeVerifier) {
+        throw new HttpException(
+          { detail: 'Missing PKCE code verifier', title: 'OAuth Error' },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const tokens = await this.xAdsOAuthService.exchangeAuthCodeForAccessToken(
         body.code,
         codeVerifier,
       );
 
       const accounts = await this.xAdsService.getAdAccounts(tokens.accessToken);
-      const primaryAccount = accounts[0];
+      // The OAuth token can cover multiple accounts, while the credential has
+      // one display identity and every Ads operation still requires an
+      // explicitly validated adAccountId. Provider order is not contractual,
+      // so choose the stable lowest account id for credential metadata only.
+      const primaryAccount = [...accounts].sort((left, right) =>
+        left.id.localeCompare(right.id),
+      )[0];
+      if (!primaryAccount) {
+        throw new BadGatewayException({
+          detail:
+            'X authorized successfully but did not return an accessible Ads account.',
+          title: 'X Ads account unavailable',
+        });
+      }
 
       const updatedCredential = await this.credentialsService.patch(
         credential.id,
@@ -175,9 +203,9 @@ export class XAdsController {
           accessTokenExpiry: tokens.expiresIn
             ? new Date(Date.now() + tokens.expiresIn * 1000)
             : undefined,
-          externalHandle: primaryAccount?.name || 'X Ads',
-          externalId: primaryAccount?.id,
-          externalName: primaryAccount?.name || 'X Ads',
+          externalHandle: primaryAccount.name || 'X Ads',
+          externalId: primaryAccount.id,
+          externalName: primaryAccount.name || 'X Ads',
           isConnected: true,
           isDeleted: false,
           oauthState: null,
@@ -190,8 +218,17 @@ export class XAdsController {
 
       return serializeSingle(request, CredentialSerializer, updatedCredential);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
+      this.loggerService.error(
+        `${caller} failed`,
+        safeOAuthErrorMetadata(error),
+      );
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadGatewayException({
+        detail: 'Failed to verify the X Ads connection. Please try again.',
+        title: 'Connection Error',
+      });
     }
   }
 }

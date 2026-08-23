@@ -14,12 +14,42 @@ import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.ser
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   HttpException,
   HttpStatus,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+
+const recordedAccountFixtures = {
+  multiple: [
+    {
+      approvalStatus: 'ACCEPTED',
+      currency: 'USD',
+      id: 'account-z',
+      name: 'Last by id',
+      timezone: 'UTC',
+    },
+    {
+      approvalStatus: 'ACCEPTED',
+      currency: 'EUR',
+      id: 'account-a',
+      name: 'First by id',
+      timezone: 'Europe/Malta',
+    },
+  ],
+  one: [
+    {
+      approvalStatus: 'ACCEPTED',
+      currency: 'USD',
+      id: 'account-1',
+      name: 'Primary X Ads account',
+      timezone: 'UTC',
+    },
+  ],
+  zero: [],
+} as const;
 
 describe('XAdsController', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
@@ -42,6 +72,9 @@ describe('XAdsController', () => {
   } as never;
 
   beforeEach(async () => {
+    vi.mocked(EncryptionUtil.decrypt).mockImplementation(
+      (value: string) => value,
+    );
     brandsService = {
       findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }),
     };
@@ -69,11 +102,7 @@ describe('XAdsController', () => {
       }),
     };
     xAdsService = {
-      getAdAccounts: vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'account-1', name: 'Primary X Ads account' },
-        ]),
+      getAdAccounts: vi.fn().mockResolvedValue(recordedAccountFixtures.one),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -168,5 +197,92 @@ describe('XAdsController', () => {
         isDeleted: false,
       }),
     );
+  });
+
+  it('fails verification without connecting when X returns no ad account', async () => {
+    xAdsService.getAdAccounts.mockResolvedValue(recordedAccountFixtures.zero);
+
+    const failure = await controller
+      .verify({} as never, user, {
+        code: 'authorization-code',
+        state: 'opaque-state',
+      })
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
+
+    expect(failure).toBeInstanceOf(HttpException);
+    expect((failure as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect(credentialsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('selects multiple X Ads accounts deterministically by account id', async () => {
+    xAdsService.getAdAccounts.mockResolvedValue(
+      recordedAccountFixtures.multiple,
+    );
+
+    await controller.verify({} as never, user, {
+      code: 'authorization-code',
+      state: 'opaque-state',
+    });
+
+    expect(credentialsService.patch).toHaveBeenCalledWith(
+      'credential-1',
+      expect.objectContaining({
+        externalHandle: 'First by id',
+        externalId: 'account-a',
+        externalName: 'First by id',
+        isConnected: true,
+      }),
+    );
+  });
+
+  it('maps PKCE decryption failure without leaking ciphertext details', async () => {
+    vi.mocked(EncryptionUtil.decrypt).mockImplementationOnce(() => {
+      throw new Error('ciphertext payload details');
+    });
+
+    const failure = await controller
+      .verify({} as never, user, {
+        code: 'authorization-code',
+        state: 'opaque-state',
+      })
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
+
+    expect(failure).toBeInstanceOf(HttpException);
+    expect((failure as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect(
+      JSON.stringify((failure as HttpException).getResponse()),
+    ).not.toContain('ciphertext payload details');
+    expect(
+      xAdsOAuthService.exchangeAuthCodeForAccessToken,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('maps raw provider verification errors to a stable client response', async () => {
+    xAdsOAuthService.exchangeAuthCodeForAccessToken.mockRejectedValue(
+      new Error('provider request headers and token details'),
+    );
+
+    const failure = await controller
+      .verify({} as never, user, {
+        code: 'authorization-code',
+        state: 'opaque-state',
+      })
+      .then(
+        () => null,
+        (error: unknown) => error,
+      );
+
+    expect(failure).toBeInstanceOf(HttpException);
+    expect((failure as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+    expect(
+      JSON.stringify((failure as HttpException).getResponse()),
+    ).not.toContain('provider request headers and token details');
+    expect(credentialsService.patch).not.toHaveBeenCalled();
   });
 });
