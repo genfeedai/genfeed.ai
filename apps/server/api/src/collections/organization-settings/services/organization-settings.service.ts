@@ -133,10 +133,7 @@ export class OrganizationSettingsService extends BaseService<
   async ensureForOrganization(
     organizationId: string,
   ): Promise<OrganizationSettingDocument> {
-    const existing = await this.findOne({
-      isDeleted: false,
-      organizationId,
-    });
+    const existing = await this.findOne({ organizationId });
     if (existing) {
       return this.ensureEnabledModelIds(existing);
     }
@@ -170,10 +167,7 @@ export class OrganizationSettingsService extends BaseService<
       if ((error as { code?: string }).code !== 'P2002') {
         throw error;
       }
-      const raced = await this.findOne({
-        isDeleted: false,
-        organizationId,
-      });
+      const raced = await this.findOne({ organizationId });
       if (!raced) {
         throw error;
       }

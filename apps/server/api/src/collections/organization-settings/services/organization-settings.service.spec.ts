@@ -164,10 +164,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     const result = await service.ensureForOrganization('org_1');
 
     expect(result).toBe(existing);
-    expect(findOne).toHaveBeenCalledWith({
-      isDeleted: false,
-      organizationId: 'org_1',
-    });
+    expect(findOne).toHaveBeenCalledWith({ organizationId: 'org_1' });
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -193,10 +190,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
 
     const result = await service.ensureForOrganization('org_1');
 
-    expect(findOne).toHaveBeenCalledWith({
-      isDeleted: false,
-      organizationId: 'org_1',
-    });
+    expect(findOne).toHaveBeenCalledWith({ organizationId: 'org_1' });
     expect(service.create).toHaveBeenCalledWith(
       expect.objectContaining({
         enabledModelIds: [],
@@ -265,13 +259,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     const result = await service.ensureForOrganization('org_1');
 
     expect(result).toBe(raced);
-    expect(findOne).toHaveBeenNthCalledWith(1, {
-      isDeleted: false,
-      organizationId: 'org_1',
-    });
-    expect(findOne).toHaveBeenNthCalledWith(2, {
-      isDeleted: false,
-      organizationId: 'org_1',
-    });
+    expect(findOne).toHaveBeenNthCalledWith(1, { organizationId: 'org_1' });
+    expect(findOne).toHaveBeenNthCalledWith(2, { organizationId: 'org_1' });
   });
 });
