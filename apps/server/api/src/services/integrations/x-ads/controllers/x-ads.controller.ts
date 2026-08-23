@@ -28,6 +28,7 @@ import {
   HttpStatus,
   Post,
   Req,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -65,6 +66,7 @@ export class XAdsController {
 
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
+      isDeleted: false,
       organizationId: user.organizationId,
     });
 
@@ -97,6 +99,9 @@ export class XAdsController {
       return serializeSingle(request, CredentialOAuthSerializer, { url });
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
+      if (error instanceof ServiceUnavailableException) {
+        throw error;
+      }
       throw new HttpException(
         {
           detail: 'Failed to initiate X Ads OAuth',

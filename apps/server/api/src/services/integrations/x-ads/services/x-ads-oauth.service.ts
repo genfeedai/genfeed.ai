@@ -2,10 +2,16 @@ import type { XAdsOAuthTokens } from '@api/services/integrations/x-ads/interface
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
-import { TwitterApi, type TwitterApiOAuth2Init } from 'twitter-api-v2';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { TwitterApi } from 'twitter-api-v2';
 
 const X_ADS_OAUTH_SCOPES = ['ads.read', 'ads.write', 'offline.access'];
+
+interface XAdsOAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}
 
 /**
  * X Ads OAuth 2.0 (PKCE) via the `twitter-api-v2` SDK — the same OAuth
@@ -24,13 +30,16 @@ export class XAdsOAuthService {
   ) {}
 
   generateAuthLink(state: string): { url: string; codeVerifier: string } {
-    const client = this.buildClient();
-    const redirectUri = this.getRedirectUri();
+    const config = this.getConfig();
+    const client = this.buildClient(config);
 
-    const { url, codeVerifier } = client.generateOAuth2AuthLink(redirectUri, {
-      scope: X_ADS_OAUTH_SCOPES,
-      state,
-    });
+    const { url, codeVerifier } = client.generateOAuth2AuthLink(
+      config.redirectUri,
+      {
+        scope: X_ADS_OAUTH_SCOPES,
+        state,
+      },
+    );
 
     return { codeVerifier, url };
   }
@@ -42,14 +51,14 @@ export class XAdsOAuthService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const client = this.buildClient();
-      const redirectUri = this.getRedirectUri();
+      const config = this.getConfig();
+      const client = this.buildClient(config);
 
       const { accessToken, refreshToken, expiresIn, scope } =
         await client.loginWithOAuth2({
           code,
           codeVerifier,
-          redirectUri,
+          redirectUri: config.redirectUri,
         });
 
       return {
@@ -68,7 +77,7 @@ export class XAdsOAuthService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const client = this.buildClient();
+      const client = this.buildClient(this.getConfig());
 
       const {
         accessToken,
@@ -89,14 +98,24 @@ export class XAdsOAuthService {
     }
   }
 
-  private buildClient(): TwitterApi {
+  private buildClient(config: XAdsOAuthConfig): TwitterApi {
     return new TwitterApi({
-      clientId: this.configService.get('X_ADS_CLIENT_ID'),
-      clientSecret: this.configService.get('X_ADS_CLIENT_SECRET'),
-    } as TwitterApiOAuth2Init);
+      clientId: config.clientId,
+      clientSecret: config.clientSecret,
+    });
   }
 
-  private getRedirectUri(): string {
-    return this.configService.get('X_ADS_REDIRECT_URI') as string;
+  private getConfig(): XAdsOAuthConfig {
+    const clientId = this.configService.get('X_ADS_CLIENT_ID');
+    const clientSecret = this.configService.get('X_ADS_CLIENT_SECRET');
+    const redirectUri = this.configService.get('X_ADS_REDIRECT_URI');
+
+    if (!clientId || !clientSecret || !redirectUri) {
+      throw new ServiceUnavailableException(
+        'X Ads OAuth is not configured for this deployment.',
+      );
+    }
+
+    return { clientId, clientSecret, redirectUri };
   }
 }
