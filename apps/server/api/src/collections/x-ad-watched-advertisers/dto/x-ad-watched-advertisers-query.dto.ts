@@ -1,6 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { OmitType } from '@nestjs/mapped-types';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 
 export class XAdWatchedAdvertisersQueryDto extends OmitType(BaseQueryDto, [

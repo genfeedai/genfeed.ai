@@ -7,6 +7,7 @@ import { XAdWatchedAdvertisersService } from '@api/collections/x-ad-watched-adve
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -66,7 +67,7 @@ export class XAdWatchedAdvertisersController extends BaseCRUDController<
       match.brandId = CollectionFilterUtil.buildAuthorizedBrandFilter(
         query.brandId,
         user,
-        user.isSuperAdmin === true,
+        getIsSuperAdmin(user),
       );
     }
 
@@ -98,7 +99,7 @@ export class XAdWatchedAdvertisersController extends BaseCRUDController<
       ? CollectionFilterUtil.buildAuthorizedBrandFilter(
           requestedBrandId,
           user,
-          user.isSuperAdmin === true,
+          getIsSuperAdmin(user),
         )
       : undefined;
 
@@ -192,7 +193,7 @@ export class XAdWatchedAdvertisersController extends BaseCRUDController<
       return true;
     }
 
-    return Boolean(user?.isSuperAdmin);
+    return getIsSuperAdmin(user);
   }
 
   override canUserReadEntity(

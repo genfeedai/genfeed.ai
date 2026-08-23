@@ -551,7 +551,15 @@ describe('AdPerformanceService', () => {
       await service.findPublicById('perf-1');
 
       expect(findFirst).toHaveBeenCalledWith({
-        where: { id: 'perf-1', isDeleted: false, scope: 'public' },
+        where: {
+          id: 'perf-1',
+          isDeleted: false,
+          OR: [
+            { researchSource: null },
+            { researchSource: { not: 'x_ads_repository' } },
+          ],
+          scope: 'public',
+        },
       });
     });
 

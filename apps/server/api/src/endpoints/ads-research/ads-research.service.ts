@@ -6,7 +6,12 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { Platform, WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
+import {
+  Platform,
+  toPrismaCredentialPlatform,
+  WorkflowStatus,
+  WorkflowTrigger,
+} from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
   AdsPlatform,
@@ -914,7 +919,9 @@ export class AdsResearchService {
       isConnected: true,
       isDeleted: false,
       organizationId,
-      platform: mapAdsCredentialPlatform(params.platform),
+      platform: toPrismaCredentialPlatform(
+        mapAdsCredentialPlatform(params.platform),
+      ),
     });
 
     if (!credential?.accessToken) {

@@ -3,6 +3,7 @@ import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.ser
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
@@ -185,7 +186,7 @@ export class AdsResearchController {
     const authorized = CollectionFilterUtil.buildAuthorizedBrandFilter(
       candidate,
       user,
-      user.isSuperAdmin === true,
+      getIsSuperAdmin(user),
     );
     if (typeof authorized !== 'string') {
       throw new ForbiddenException('An authenticated brand is required');

@@ -435,10 +435,22 @@ export class AdPerformanceService {
     const where = this.buildTopPerformerWhere(params);
 
     if (this.isScalarTopPerformerMetric(metric)) {
+      const metricWhere = this.buildScalarMetricWhere(where, metric, params);
+      if (params.organizationId) {
+        const records = await this.prisma.adPerformance.findMany({
+          orderBy: this.buildMetricOrderBy(metric),
+          take: limit,
+          where: scopedWhere(params.organizationId, metricWhere),
+        });
+
+        return records.map((record) => this.normalizeRecord(record));
+      }
+
+      // tenant-scope-ignore: public benchmark ranking has no session org
       const records = await this.prisma.adPerformance.findMany({
         orderBy: this.buildMetricOrderBy(metric),
         take: limit,
-        where: this.buildScalarMetricWhere(where, metric, params),
+        where: metricWhere,
       });
 
       return records.map((record) => this.normalizeRecord(record));
@@ -447,16 +459,27 @@ export class AdPerformanceService {
     // JSON-backed metrics, such as conversions, cannot be ordered by Prisma
     // without a new scalar column. Keep this fallback bounded so it never reads
     // the whole benchmark corpus for a normal top-performer request.
-    const records = await this.prisma.adPerformance.findMany({
-      orderBy: this.buildMetricOrderBy('performanceScore'),
-      take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),
-      where: {
-        ...where,
-        performanceScore: { not: null },
-      },
-    });
+    const jsonWhere = {
+      ...where,
+      performanceScore: { not: null },
+    };
+    let jsonRecords: AdPerformance[];
+    if (params.organizationId) {
+      jsonRecords = await this.prisma.adPerformance.findMany({
+        orderBy: this.buildMetricOrderBy('performanceScore'),
+        take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),
+        where: scopedWhere(params.organizationId, jsonWhere),
+      });
+    } else {
+      // tenant-scope-ignore: public JSON-metric ranking has no session org
+      jsonRecords = await this.prisma.adPerformance.findMany({
+        orderBy: this.buildMetricOrderBy('performanceScore'),
+        take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),
+        where: jsonWhere,
+      });
+    }
 
-    return records
+    return jsonRecords
       .map((record) => this.normalizeRecord(record))
       .sort((a, b) => {
         const aMetric = this.readNumber(a[metric]) ?? 0;
@@ -482,13 +505,23 @@ export class AdPerformanceService {
     organizationId?: string,
     brandId?: string,
   ): Promise<AdPerformanceDocument | null> {
+    if (organizationId) {
+      const record = await this.prisma.adPerformance.findFirst({
+        where: scopedWhere(organizationId, {
+          id,
+          OR: this.buildResearchVisibilityWhere(organizationId, brandId),
+        }),
+      });
+
+      return record ? this.normalizeRecord(record) : null;
+    }
+
+    // tenant-scope-ignore: public Discover lookup is unscoped until a session org is supplied
     const record = await this.prisma.adPerformance.findFirst({
       where: {
         id,
         isDeleted: false,
-        ...(organizationId
-          ? { OR: this.buildResearchVisibilityWhere(organizationId, brandId) }
-          : this.buildGlobalPublicVisibilityWhere()),
+        ...this.buildGlobalPublicVisibilityWhere(),
       },
     });
 
