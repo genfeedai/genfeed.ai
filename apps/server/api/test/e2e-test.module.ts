@@ -326,6 +326,8 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
     provide: OrganizationSettingsService,
     useValue: {
       create: () => Promise.resolve(null),
+      ensureForOrganization: (organizationId: string) =>
+        Promise.resolve({ id: 'e2e-organization-settings', organizationId }),
       findOne: () => Promise.resolve(null),
       getLatestMajorVersionModelIds: () => Promise.resolve([]),
     },
