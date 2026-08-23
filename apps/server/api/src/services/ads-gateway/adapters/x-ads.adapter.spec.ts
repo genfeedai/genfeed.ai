@@ -30,7 +30,6 @@ describe('XAdsAdapter', () => {
     accessToken: 'x-token',
     adAccountId: 'acct-123',
     credentialId: 'cred-1',
-    fundingInstrumentId: 'fi-1',
     organizationId: 'org-1',
   };
 
@@ -49,6 +48,14 @@ describe('XAdsAdapter', () => {
       updateCampaign: vi.fn(),
     };
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    xAdsService.getFundingInstruments.mockResolvedValue([
+      {
+        currency: 'USD',
+        entityStatus: 'ACTIVE',
+        id: 'fi-1',
+        type: 'CREDIT_CARD',
+      },
+    ]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -257,13 +264,13 @@ describe('XAdsAdapter', () => {
           name: 'New Campaign',
         }),
       );
+      expect(xAdsService.getFundingInstruments).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+      );
     });
 
-    it('should resolve an active funding instrument when the gateway omits one', async () => {
-      const ctxWithoutFunding: AdsAdapterContext = {
-        ...mockCtx,
-        fundingInstrumentId: undefined,
-      };
+    it('should prefer an active provider funding instrument', async () => {
       xAdsService.getFundingInstruments.mockResolvedValue([
         {
           currency: 'USD',
@@ -287,7 +294,7 @@ describe('XAdsAdapter', () => {
         updatedAt: '2026-01-01T00:00:00Z',
       });
 
-      await adapter.createCampaign(ctxWithoutFunding, {
+      await adapter.createCampaign(mockCtx, {
         name: 'Resolved Funding',
         objective: 'ENGAGEMENTS',
       });
@@ -307,12 +314,39 @@ describe('XAdsAdapter', () => {
       xAdsService.getFundingInstruments.mockResolvedValue([]);
 
       await expect(
-        adapter.createCampaign(
-          { ...mockCtx, fundingInstrumentId: undefined },
-          { name: 'No Funding', objective: 'ENGAGEMENTS' },
-        ),
+        adapter.createCampaign(mockCtx, {
+          name: 'No Funding',
+          objective: 'ENGAGEMENTS',
+        }),
       ).rejects.toThrow('X Ads account has no funding instrument');
       expect(xAdsService.createCampaign).not.toHaveBeenCalled();
+    });
+
+    it('should preserve explicit zero campaign budgets', async () => {
+      xAdsService.createCampaign.mockResolvedValue({
+        createdAt: '2026-01-01T00:00:00Z',
+        entityStatus: 'PAUSED',
+        fundingInstrumentId: 'fi-1',
+        id: 'zero-budget-campaign',
+        name: 'Zero budget',
+        updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      await adapter.createCampaign(mockCtx, {
+        dailyBudget: 0,
+        lifetimeBudget: 0,
+        name: 'Zero budget',
+        objective: 'ENGAGEMENTS',
+      });
+
+      expect(xAdsService.createCampaign).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        expect.objectContaining({
+          dailyBudgetAmountLocalMicro: 0,
+          totalBudgetAmountLocalMicro: 0,
+        }),
+      );
     });
   });
 
@@ -324,7 +358,7 @@ describe('XAdsAdapter', () => {
         entityStatus: 'PAUSED',
         id: 'li-new',
         name: 'New Line Item',
-        objective: 'ENGAGEMENTS',
+        objective: 'WEBSITE_CLICKS',
         productType: 'PROMOTED_TWEETS',
       });
 
@@ -332,6 +366,7 @@ describe('XAdsAdapter', () => {
         campaignId: 'cmp-1',
         dailyBudget: 12.5,
         name: 'New Line Item',
+        optimizationGoal: 'WEBSITE_CLICKS',
         targeting: {},
       });
 
@@ -347,8 +382,60 @@ describe('XAdsAdapter', () => {
           dailyBudgetAmountLocalMicro: 12_500_000,
           entityStatus: 'PAUSED',
           name: 'New Line Item',
+          objective: 'WEBSITE_CLICKS',
           placements: ['ALL_ON_TWITTER'],
         }),
+      );
+      expect(xAdsService.createLineItem.mock.calls[0]?.[2]?.targeting).toBe(
+        undefined,
+      );
+    });
+
+    it('should reject targeting the X line-item endpoint cannot encode', async () => {
+      await expect(
+        adapter.createAdSet(mockCtx, {
+          campaignId: 'cmp-1',
+          name: 'Targeted Line Item',
+          targeting: { countries: ['US'] },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(xAdsService.createLineItem).not.toHaveBeenCalled();
+    });
+
+    it('should reject unsupported X optimization goals', async () => {
+      await expect(
+        adapter.createAdSet(mockCtx, {
+          campaignId: 'cmp-1',
+          name: 'Unsupported goal',
+          optimizationGoal: 'LEAD_GENERATION',
+          targeting: {},
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(xAdsService.createLineItem).not.toHaveBeenCalled();
+    });
+
+    it('should preserve an explicit zero line-item daily budget', async () => {
+      xAdsService.createLineItem.mockResolvedValue({
+        campaignId: 'cmp-1',
+        dailyBudgetAmountLocalMicro: 0,
+        entityStatus: 'PAUSED',
+        id: 'li-zero',
+        name: 'Zero budget line item',
+        objective: 'ENGAGEMENTS',
+        productType: 'PROMOTED_TWEETS',
+      });
+
+      await adapter.createAdSet(mockCtx, {
+        campaignId: 'cmp-1',
+        dailyBudget: 0,
+        name: 'Zero budget line item',
+        targeting: {},
+      });
+
+      expect(xAdsService.createLineItem).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        expect.objectContaining({ dailyBudgetAmountLocalMicro: 0 }),
       );
     });
   });
@@ -416,6 +503,32 @@ describe('XAdsAdapter', () => {
         expect.objectContaining({
           entityStatus: undefined,
           name: 'Renamed Campaign',
+        }),
+      );
+    });
+
+    it('should preserve explicit zero budgets on campaign updates', async () => {
+      xAdsService.updateCampaign.mockResolvedValue({
+        createdAt: '2026-01-01T00:00:00Z',
+        entityStatus: 'PAUSED',
+        fundingInstrumentId: 'fi-1',
+        id: 'cmp-1',
+        name: 'Zeroed campaign',
+        updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      await adapter.updateCampaign(mockCtx, 'cmp-1', {
+        dailyBudget: 0,
+        lifetimeBudget: 0,
+      });
+
+      expect(xAdsService.updateCampaign).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        'cmp-1',
+        expect.objectContaining({
+          dailyBudgetAmountLocalMicro: 0,
+          totalBudgetAmountLocalMicro: 0,
         }),
       );
     });

@@ -33,9 +33,24 @@ const X_ADS_ENTITY_STATUSES: readonly XAdsEntityStatus[] = [
   'PAUSED',
   'DRAFT',
 ];
+const X_ADS_OBJECTIVES = [
+  'APP_ENGAGEMENTS',
+  'APP_INSTALLS',
+  'REACH',
+  'FOLLOWERS',
+  'ENGAGEMENTS',
+  'VIDEO_VIEWS',
+  'PREROLL_VIEWS',
+  'WEBSITE_CLICKS',
+] as const;
+type XAdsObjective = (typeof X_ADS_OBJECTIVES)[number];
 
 function isXAdsEntityStatus(value: string): value is XAdsEntityStatus {
   return (X_ADS_ENTITY_STATUSES as readonly string[]).includes(value);
+}
+
+function isXAdsObjective(value: string): value is XAdsObjective {
+  return (X_ADS_OBJECTIVES as readonly string[]).includes(value);
 }
 
 /**
@@ -139,8 +154,7 @@ export class XAdsAdapter implements IAdsAdapter {
     ctx: AdsAdapterContext,
     input: CreateCampaignInput,
   ): Promise<UnifiedCampaign> {
-    const fundingInstrumentId =
-      ctx.fundingInstrumentId ?? (await this.resolveFundingInstrumentId(ctx));
+    const fundingInstrumentId = await this.resolveFundingInstrumentId(ctx);
 
     if (!fundingInstrumentId) {
       throw new BadRequestException(
@@ -159,15 +173,17 @@ export class XAdsAdapter implements IAdsAdapter {
       ctx.accessToken,
       ctx.adAccountId,
       {
-        dailyBudgetAmountLocalMicro: input.dailyBudget
-          ? Math.round(input.dailyBudget * 1_000_000)
-          : undefined,
+        dailyBudgetAmountLocalMicro:
+          input.dailyBudget !== undefined
+            ? Math.round(input.dailyBudget * 1_000_000)
+            : undefined,
         entityStatus: 'PAUSED',
         fundingInstrumentId,
         name: input.name,
-        totalBudgetAmountLocalMicro: input.lifetimeBudget
-          ? Math.round(input.lifetimeBudget * 1_000_000)
-          : undefined,
+        totalBudgetAmountLocalMicro:
+          input.lifetimeBudget !== undefined
+            ? Math.round(input.lifetimeBudget * 1_000_000)
+            : undefined,
       },
     );
 
@@ -192,17 +208,19 @@ export class XAdsAdapter implements IAdsAdapter {
       ctx.adAccountId,
       campaignId,
       {
-        dailyBudgetAmountLocalMicro: input.dailyBudget
-          ? Math.round(input.dailyBudget * 1_000_000)
-          : undefined,
+        dailyBudgetAmountLocalMicro:
+          input.dailyBudget !== undefined
+            ? Math.round(input.dailyBudget * 1_000_000)
+            : undefined,
         entityStatus:
           input.status && isXAdsEntityStatus(input.status)
             ? input.status
             : undefined,
         name: input.name,
-        totalBudgetAmountLocalMicro: input.lifetimeBudget
-          ? Math.round(input.lifetimeBudget * 1_000_000)
-          : undefined,
+        totalBudgetAmountLocalMicro:
+          input.lifetimeBudget !== undefined
+            ? Math.round(input.lifetimeBudget * 1_000_000)
+            : undefined,
       },
     );
 
@@ -226,24 +244,40 @@ export class XAdsAdapter implements IAdsAdapter {
     ctx: AdsAdapterContext,
     input: CreateAdSetInput,
   ): Promise<UnifiedAdSet> {
+    if (Object.keys(input.targeting ?? {}).length > 0) {
+      throw new BadRequestException({
+        detail:
+          'The unified targeting shape cannot be encoded by the X Ads line-item endpoint.',
+        title: 'Unsupported X Ads targeting',
+      });
+    }
+
+    const objective = input.optimizationGoal ?? 'ENGAGEMENTS';
+    if (!isXAdsObjective(objective)) {
+      throw new BadRequestException({
+        detail: `Unsupported X Ads optimization goal: ${objective}`,
+        title: 'Unsupported X Ads optimization goal',
+      });
+    }
+
     // Line items are the X Ads equivalent of ad sets. They always launch
     // PAUSED — CreateAdSetInput has no caller-supplied status to override.
     const lineItem = await this.xAdsService.createLineItem(
       ctx.accessToken,
       ctx.adAccountId,
       {
-        dailyBudgetAmountLocalMicro: input.dailyBudget
-          ? Math.round(input.dailyBudget * 1_000_000)
-          : undefined,
+        dailyBudgetAmountLocalMicro:
+          input.dailyBudget !== undefined
+            ? Math.round(input.dailyBudget * 1_000_000)
+            : undefined,
         campaignId: input.campaignId,
         endTime: input.endTime,
         entityStatus: 'PAUSED',
         name: input.name,
-        objective: input.optimizationGoal || 'ENGAGEMENTS',
+        objective,
         placements: ['ALL_ON_TWITTER'],
         productType: 'PROMOTED_TWEETS',
         startTime: input.startTime,
-        targeting: input.targeting,
       },
     );
 
