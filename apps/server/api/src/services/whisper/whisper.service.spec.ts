@@ -72,6 +72,7 @@ describe('WhisperService', () => {
           provide: ConfigService,
           useValue: {
             get: vi.fn().mockReturnValue('test-endpoint'),
+            cdnUrl: 'https://cdn.genfeed.ai',
             ingredientsEndpoint: 'https://api.test.com',
           },
         },
@@ -213,6 +214,17 @@ describe('WhisperService', () => {
 
       await expect(service.generateCaptions('ingredient-123')).rejects.toThrow(
         'Unable to download video',
+      );
+    });
+
+    it('downloads the resolved storage URL instead of the reconstructed path', async () => {
+      await service.generateCaptions('ingredient-123', {
+        s3Key: 'ingredients/videos/ingredient-123.mp4',
+      });
+
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://cdn.genfeed.ai/ingredients/videos/ingredient-123.mp4',
+        { responseType: 'arraybuffer' },
       );
     });
   });

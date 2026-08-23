@@ -1,39 +1,25 @@
 import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { CaptionFormat } from '@genfeedai/enums';
-import { validate } from 'class-validator';
+import { testId } from '@helpers/testing/test-id.helper';
+import { describe, expect, it } from 'vitest';
 
 describe('CreateCaptionDto', () => {
-  it('should be defined', () => {
-    expect(CreateCaptionDto).toBeDefined();
-  });
+  it('maps the client ingredient field onto ingredientId before validation', async () => {
+    const pipe = new ValidationPipe();
+    const ingredientId = testId('ingredient');
 
-  describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new CreateCaptionDto();
-      expect(dto).toBeInstanceOf(CreateCaptionDto);
-    });
-
-    it('accepts the canonical ingredientId field', async () => {
-      const dto = Object.assign(new CreateCaptionDto(), {
+    const result = (await pipe.transform(
+      {
         format: CaptionFormat.SRT,
-        ingredientId: 'ckz1234567890abcdefghi',
+        ingredient: ingredientId,
         language: 'en',
-      });
+      },
+      { metatype: CreateCaptionDto, type: 'body' },
+    )) as CreateCaptionDto;
 
-      expect(await validate(dto)).toHaveLength(0);
-    });
-
-    it('rejects the removed ingredient alias', async () => {
-      const dto = Object.assign(new CreateCaptionDto(), {
-        format: CaptionFormat.SRT,
-        ingredient: 'ckz1234567890abcdefghi',
-        language: 'en',
-      });
-
-      const errors = await validate(dto);
-      expect(errors.some((error) => error.property === 'ingredientId')).toBe(
-        true,
-      );
-    });
+    expect(result.ingredientId).toBe(ingredientId);
+    expect(result.format).toBe(CaptionFormat.SRT);
+    expect(result.language).toBe('en');
   });
 });
