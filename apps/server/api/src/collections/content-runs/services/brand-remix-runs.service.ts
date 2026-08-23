@@ -999,6 +999,7 @@ export class BrandRemixRunsService {
       });
     }
     const targetPlatform = config.draft.target.platform;
+    const targetPlatformLabel = targetPlatform === 'x' ? 'X Ads' : 'Meta';
     if (targetPlatform === 'x' && !input.sourceTweetId) {
       throw new BadRequestException({
         detail:
@@ -1171,7 +1172,7 @@ export class BrandRemixRunsService {
       });
       if (!claimed) {
         throw new ConflictException(
-          'A concurrent Meta draft action won the claim.',
+          `A concurrent ${targetPlatformLabel} draft action won the claim.`,
         );
       }
     } else {
@@ -1189,7 +1190,7 @@ export class BrandRemixRunsService {
           return this.project(run, brandContext, config);
         }
         throw new ConflictException(
-          'Resume the existing Meta draft destination and variant until its recovery lease expires.',
+          `Resume the existing ${targetPlatformLabel} draft destination and variant until its recovery lease expires.`,
         );
       }
       claimedConfig = brandRemixRunConfigSchema.parse({
@@ -1206,7 +1207,7 @@ export class BrandRemixRunsService {
       });
       if (!reclaimed) {
         throw new ConflictException(
-          'A concurrent Meta draft recovery won the claim.',
+          `A concurrent ${targetPlatformLabel} draft recovery won the claim.`,
         );
       }
     }

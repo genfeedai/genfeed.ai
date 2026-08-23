@@ -2882,7 +2882,7 @@ describe('BrandRemixRunsService', () => {
   });
 
   it('does not release a newer reclaimed Meta operation after a stale provider failure', async () => {
-    const approved = await createApprovedMetaRun();
+    const approved = await createApprovedPaidRun();
     approved.status = ContentRunStatus.COMPLETED;
     let stored = approved;
     let interceptedRelease = false;
@@ -3148,7 +3148,7 @@ describe('BrandRemixRunsService', () => {
   });
 
   it('blocks same-destination retries while the Meta claim lease is active', async () => {
-    const approved = await createApprovedMetaRun();
+    const approved = await createApprovedPaidRun();
     let stored = makeRun({
       ...(approved.config as Record<string, unknown>),
       paidDraftOperation: {
@@ -3202,7 +3202,7 @@ describe('BrandRemixRunsService', () => {
   });
 
   it('does not call Meta when the paid-draft claim loses its exact-config CAS', async () => {
-    const created = await createApprovedMetaRun();
+    const created = await createApprovedPaidRun();
     created.status = ContentRunStatus.COMPLETED;
     contentRun.findFirst.mockResolvedValue(created);
     contentRun.updateMany.mockResolvedValue({ count: 0 });
@@ -3243,8 +3243,52 @@ describe('BrandRemixRunsService', () => {
     expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
   });
 
+  it('does not call X Ads when the paid-draft claim loses its exact-config CAS', async () => {
+    const created = await createApprovedPaidRun('x');
+    created.status = ContentRunStatus.COMPLETED;
+    contentRun.findFirst.mockResolvedValue(created);
+    contentRun.updateMany.mockResolvedValue({ count: 0 });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads.read', 'ads.write'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:59:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        sourceTweetId: 'tweet-1',
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('concurrent X Ads draft action');
+
+    expect(contentRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          config: { equals: created.config },
+        }),
+      }),
+    );
+    expect(pausedXAdsCampaignDraftService.prepare).not.toHaveBeenCalled();
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+  });
+
   it('rejects an explicit unknown paid-draft variant instead of falling back', async () => {
-    const created = await createApprovedMetaRun();
+    const created = await createApprovedPaidRun();
     created.status = ContentRunStatus.COMPLETED;
     contentRun.findFirst.mockResolvedValue(created);
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -3279,7 +3323,7 @@ describe('BrandRemixRunsService', () => {
   });
 
   it('recovers a successful Meta result after a concurrent config write wins the first result CAS', async () => {
-    const created = await createApprovedMetaRun();
+    const created = await createApprovedPaidRun();
     created.status = ContentRunStatus.COMPLETED;
     let stored = created;
     let interruptedResultWrite = false;
@@ -3377,16 +3421,16 @@ describe('BrandRemixRunsService', () => {
     ).toBeUndefined();
   });
 
-  async function createApprovedMetaRun() {
+  async function createApprovedPaidRun(platform: 'meta' | 'x' = 'meta') {
     return createPersistedRun({
-      draft: { target: { kind: 'paid', platform: 'meta' } },
+      draft: { target: { kind: 'paid', platform } },
       execution: {
         actualCount: 1,
         generationBrief: {
           constraints: [],
           fidelityMode: 'guided',
           intent: {
-            objective: 'Create an original Meta visual.',
+            objective: `Create an original ${platform === 'x' ? 'X' : 'Meta'} visual.`,
             requestedText: [],
             subjects: ['Acme'],
           },
