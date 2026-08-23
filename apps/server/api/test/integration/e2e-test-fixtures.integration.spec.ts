@@ -35,6 +35,7 @@ import {
   BRAND_SERVICE_E2E_MOCK_PROVIDERS,
   COLLECTION_E2E_MOCK_PROVIDERS,
   E2ETestModule,
+  ORGANIZATION_SETTINGS_E2E_MOCK,
   TASK_E2E_MOCK_PROVIDERS,
 } from '@api-test/e2e-test.module';
 import { describe, expect, it } from 'vitest';
@@ -56,6 +57,19 @@ function resolveProviderToken(provider: unknown): unknown {
 describe('E2E fixture contracts', () => {
   it('creates users with canonical Prisma fields', () => {
     expect(createTestUser()).not.toHaveProperty('isActive');
+  });
+
+  it('provides consumable organization settings defaults', async () => {
+    await expect(
+      ORGANIZATION_SETTINGS_E2E_MOCK.ensureForOrganization('org-e2e'),
+    ).resolves.toMatchObject({
+      enabledModelIds: [],
+      isGenerateArticlesEnabled: true,
+      isGenerateImagesEnabled: true,
+      isGenerateMusicEnabled: true,
+      isGenerateVideosEnabled: true,
+      organizationId: 'org-e2e',
+    });
   });
 
   it('provides every optional BrandsService collaborator to CRUD E2E modules', async () => {
