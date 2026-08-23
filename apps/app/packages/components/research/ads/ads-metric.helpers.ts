@@ -1,4 +1,8 @@
-import type { AdsResearchItem, AdsResearchMetric } from '@genfeedai/interfaces';
+import type {
+  AdsResearchItem,
+  AdsResearchMetric,
+  AdsResearchPlatform,
+} from '@genfeedai/interfaces';
 
 export function formatMetric(value?: number): string {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -40,5 +44,18 @@ export function getMetricLabel(metric: AdsResearchMetric): string {
       return 'Efficiency';
     default:
       return 'Score';
+  }
+}
+
+export function getPlatformLabel(platform: AdsResearchPlatform): string {
+  switch (platform) {
+    case 'meta':
+      return 'Meta';
+    case 'tiktok':
+      return 'TikTok';
+    case 'x':
+      return 'X';
+    default:
+      return 'Google';
   }
 }

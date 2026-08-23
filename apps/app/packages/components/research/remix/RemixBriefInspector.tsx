@@ -164,7 +164,11 @@ export function buildRemixDraftEdits(
       run.draft.target.kind === 'paid'
         ? {
             ...run.draft.target,
-            platform: editor.targetPlatform as 'google' | 'meta' | 'tiktok',
+            platform: editor.targetPlatform as
+              | 'google'
+              | 'meta'
+              | 'tiktok'
+              | 'x',
           }
         : {
             ...run.draft.target,

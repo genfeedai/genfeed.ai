@@ -66,7 +66,7 @@ type CredentialOption = {
 type AdSortKey = 'score' | 'ctr' | 'roas';
 
 const SOURCE_VALUES = ['all', 'my_accounts', 'public'] as const;
-const PLATFORM_VALUES = ['all', 'google', 'meta', 'tiktok'] as const;
+const PLATFORM_VALUES = ['all', 'google', 'meta', 'tiktok', 'x'] as const;
 const CHANNEL_VALUES = ['all', 'display', 'search', 'youtube'] as const;
 const METRIC_VALUES = [
   'performanceScore',
@@ -228,13 +228,22 @@ export function useAdsResearchPageClient(
           return options;
         }
 
+        if (effectivePlatform === 'x') {
+          if (value === 'x' || value === 'x_ads') {
+            options.push(credential as CredentialOption);
+          }
+          return options;
+        }
+
         if (
           value === 'facebook' ||
           value === 'meta' ||
           value === 'google_ads' ||
           value === 'google' ||
           value === 'tiktok' ||
-          value === 'tiktok_ads'
+          value === 'tiktok_ads' ||
+          value === 'x' ||
+          value === 'x_ads'
         ) {
           options.push(credential as CredentialOption);
         }

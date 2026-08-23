@@ -187,6 +187,15 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     platform: CredentialPlatform.GOOGLE_ADS,
     servicePath: 'google-ads',
   },
+  {
+    category: 'ads',
+    Icon: XTwitterIcon,
+    iconClassName: 'text-foreground',
+    label: 'X Ads',
+    // X Ads has its own PKCE credential, distinct from organic TWITTER.
+    platform: CredentialPlatform.X_ADS,
+    servicePath: 'x-ads',
+  },
 ];
 
 export type OAuthConnectPlatformGroup = OAuthConnectPlatformCategory & {
