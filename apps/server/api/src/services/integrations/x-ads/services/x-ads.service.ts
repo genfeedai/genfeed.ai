@@ -7,6 +7,7 @@ import type {
   XAdsCreateLineItemParams,
   XAdsCreatePromotedTweetParams,
   XAdsEntityStatus,
+  XAdsFundingInstrument,
   XAdsInsightsRow,
   XAdsLineItem,
   XAdsPromotedTweet,
@@ -111,6 +112,34 @@ export class XAdsService {
         id: account.id,
         name: account.name,
         timezone: account.timezone,
+      }));
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  async getFundingInstruments(
+    accessToken: string,
+    accountId: string,
+  ): Promise<XAdsFundingInstrument[]> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const response = await this.makeRequest<
+        Array<{
+          id: string;
+          type: string;
+          entity_status: XAdsEntityStatus;
+          currency: string;
+        }>
+      >(accessToken, `/accounts/${accountId}/funding_instruments`);
+
+      return response.map((instrument) => ({
+        currency: instrument.currency,
+        entityStatus: instrument.entity_status,
+        id: instrument.id,
+        type: instrument.type,
       }));
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);

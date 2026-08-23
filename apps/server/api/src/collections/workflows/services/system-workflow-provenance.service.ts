@@ -26,6 +26,7 @@ import { Injectable } from '@nestjs/common';
 
 export const SYSTEM_WORKFLOW_ACTION_IDS = {
   BRAND_REMIX_PAUSED_META_DRAFT: 'brand-remix-paused-meta-draft',
+  BRAND_REMIX_PAUSED_X_ADS_DRAFT: 'brand-remix-paused-x-ads-draft',
   BRAND_REMIX_REVIEW_HANDOFF: 'brand-remix-review-handoff',
   CAMPAIGN_DM_AUTOMATION: 'campaign-dm-automation',
   CAMPAIGN_REPLY_AUTOMATION: 'campaign-reply-automation',
@@ -60,6 +61,13 @@ export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDe
       description:
         'Creates or replays a reviewed brand remix campaign, ad set, and ad while forcing every object to remain paused.',
       label: 'Brand Remix Paused Meta Draft',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_X_ADS_DRAFT,
+      changeSummary: 'Initial paused-only X Ads draft workflow.',
+      description:
+        'Creates or replays a reviewed brand remix campaign, line item, and promoted tweet while forcing every object to remain paused.',
+      label: 'Brand Remix Paused X Ads Draft',
     },
     {
       canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_REVIEW_HANDOFF,

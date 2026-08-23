@@ -15,6 +15,13 @@ export interface XAdsAccount {
   approvalStatus: string;
 }
 
+export interface XAdsFundingInstrument {
+  id: string;
+  type: string;
+  entityStatus: XAdsEntityStatus;
+  currency: string;
+}
+
 export interface XAdsCampaign {
   id: string;
   name: string;

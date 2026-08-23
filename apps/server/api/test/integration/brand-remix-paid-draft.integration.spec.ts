@@ -324,6 +324,7 @@ describeWithDatabase('Brand remix paid Meta draft integration', () => {
       { prepare } as never,
       {} as never,
       {} as never,
+      {} as never,
       {
         isByokActiveForProvider: vi.fn().mockResolvedValue(false),
         isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),

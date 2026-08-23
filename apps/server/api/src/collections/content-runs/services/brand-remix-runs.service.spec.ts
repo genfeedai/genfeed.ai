@@ -97,6 +97,7 @@ describe('BrandRemixRunsService', () => {
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
   const contentGeneratorService = { generateContent: vi.fn() };
   const pausedMetaCampaignDraftService = { prepare: vi.fn() };
+  const pausedXAdsCampaignDraftService = { prepare: vi.fn() };
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
@@ -211,6 +212,7 @@ describe('BrandRemixRunsService', () => {
       trendReferenceCorpusService as never,
       contentGeneratorService as never,
       pausedMetaCampaignDraftService as never,
+      pausedXAdsCampaignDraftService as never,
       creditsUtilsService as never,
       systemWorkflowProvenanceService as never,
       byokService as never,
@@ -2342,6 +2344,280 @@ describe('BrandRemixRunsService', () => {
       }),
     ).rejects.toThrow('already exists for another destination');
     expect(pausedMetaCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
+  });
+
+  it('claims and persists an idempotent paused X Ads campaign result', async () => {
+    const created = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'x' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original X visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+      },
+    });
+    contentRun.findFirst.mockResolvedValue(created);
+    contentRun.updateMany.mockResolvedValue({ count: 1 });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads.read', 'ads.write'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+    pausedXAdsCampaignDraftService.prepare.mockResolvedValue({
+      adAccountId: 'act-1',
+      adId: 'ad-1',
+      adSetId: 'ad-set-1',
+      campaignId: 'campaign-1',
+      credentialId: 'credential-1',
+      ingredientId: 'image-1',
+      postId: 'post-1',
+      recipeRevision: 1,
+      recipeVersion: 1,
+      replayed: false,
+      status: 'PAUSED',
+      variantId: 'variant-1',
+      workflowExecutionId: 'workflow-execution-1',
+      workflowId: 'workflow-1',
+    });
+    let stored = created;
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      contentRun.findFirst.mockResolvedValue(stored);
+      return Promise.resolve({ count: 1 });
+    });
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        sourceTweetId: 'tweet-1',
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(result).toMatchObject({
+      paidDraft: {
+        adId: 'ad-1',
+        adSetId: 'ad-set-1',
+        campaignId: 'campaign-1',
+        status: 'PAUSED',
+      },
+      phase: 'paid_draft_ready',
+    });
+    expect(pausedXAdsCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
+    expect(pausedXAdsCampaignDraftService.prepare).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceTweetId: 'tweet-1' }),
+    );
+    expect(pausedMetaCampaignDraftService.prepare).not.toHaveBeenCalled();
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-other',
+          credentialId: 'credential-1',
+        },
+        sourceTweetId: 'tweet-1',
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('already exists for another destination');
+    expect(pausedXAdsCampaignDraftService.prepare).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a paused X Ads draft that is missing a source tweet id', async () => {
+    const created = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'x' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original X visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+      },
+    });
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+
+    await expect(
+      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        variantId: 'variant-1',
+      }),
+    ).rejects.toThrow('existing tweet id is required');
+    expect(pausedXAdsCampaignDraftService.prepare).not.toHaveBeenCalled();
+    expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('keeps an X Ads draft blocked before provider calls when ads.write is missing', async () => {
+    const created = await createPersistedRun({
+      draft: { target: { kind: 'paid', platform: 'x' } },
+      execution: {
+        actualCount: 1,
+        generationBrief: {
+          constraints: [],
+          fidelityMode: 'guided',
+          intent: {
+            objective: 'Create an original X visual.',
+            requestedText: [],
+            subjects: ['Acme'],
+          },
+          mediaKind: 'image',
+          output: { aspectRatio: '1:1' },
+          provenance: [],
+          references: [],
+          version: 1,
+        },
+        requestedCount: 1,
+        variants: [
+          {
+            assetIds: ['image-1'],
+            id: 'variant-1',
+            recipeRevision: 1,
+            status: 'ready',
+          },
+        ],
+      },
+      phase: 'approved',
+      review: {
+        approvedPostIds: ['post-1'],
+        batchId: 'batch-1',
+        postIds: ['post-1'],
+        workflowExecutionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+      },
+    });
+    let stored = created;
+    contentRun.findFirst.mockResolvedValue(stored);
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      contentRun.findFirst.mockResolvedValue(stored);
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'image-1', status: IngredientStatus.GENERATED },
+    ]);
+    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'post-1',
+        reviewDecision: PersistedReviewDecision.APPROVED,
+      },
+    ]);
+    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        grantedScopes: ['ads.read'],
+        grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+        id: 'credential-1',
+      },
+    );
+
+    const result = await service.preparePausedMetaDraft(
+      'org-1',
+      'run-1',
+      'user-1',
+      {
+        destination: {
+          adAccountId: 'act-1',
+          credentialId: 'credential-1',
+        },
+        sourceTweetId: 'tweet-1',
+        variantId: 'variant-1',
+      },
+    );
+
+    expect(result).toMatchObject({
+      phase: 'approved',
+      readiness: {
+        issues: [
+          expect.objectContaining({
+            code: 'missing_ads_write',
+            field: 'target',
+            severity: 'blocked',
+          }),
+        ],
+        state: 'blocked',
+      },
+    });
+    expect(pausedXAdsCampaignDraftService.prepare).not.toHaveBeenCalled();
   });
 
   it('keeps a Meta draft blocked before provider calls when ads_management is missing', async () => {

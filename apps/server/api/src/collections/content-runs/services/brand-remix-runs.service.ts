@@ -12,6 +12,10 @@ import {
   type PausedMetaCampaignDraftResult,
   PausedMetaCampaignDraftService,
 } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
+import {
+  type PausedXAdsCampaignDraftResult,
+  PausedXAdsCampaignDraftService,
+} from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
@@ -166,6 +170,7 @@ export class BrandRemixRunsService {
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
     private readonly contentGeneratorService: ContentGeneratorService,
     private readonly pausedMetaCampaignDraftService: PausedMetaCampaignDraftService,
+    private readonly pausedXAdsCampaignDraftService: PausedXAdsCampaignDraftService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly byokService: ByokService,
@@ -984,12 +989,21 @@ export class BrandRemixRunsService {
 
     if (
       config.draft.target.kind !== 'paid' ||
-      config.draft.target.platform !== 'meta'
+      (config.draft.target.platform !== 'meta' &&
+        config.draft.target.platform !== 'x')
     ) {
       throw new BadRequestException({
         detail:
-          'Paused campaign draft handoff currently requires a paid Meta target.',
+          'Paused campaign draft handoff currently requires a paid Meta or X target.',
         title: 'Unsupported campaign target',
+      });
+    }
+    const targetPlatform = config.draft.target.platform;
+    if (targetPlatform === 'x' && !input.sourceTweetId) {
+      throw new BadRequestException({
+        detail:
+          'An existing tweet id is required to prepare a paused X Ads draft.',
+        title: 'Missing source tweet',
       });
     }
     if (config.paidDraft) {
@@ -1000,7 +1014,7 @@ export class BrandRemixRunsService {
           config.paidDraft.variantId !== input.variantId)
       ) {
         throw new ConflictException(
-          'A paused Meta draft already exists for another destination or variant.',
+          `A paused ${targetPlatform === 'x' ? 'X Ads' : 'Meta'} draft already exists for another destination or variant.`,
         );
       }
       return this.project(run, brandContext, {
@@ -1022,20 +1036,27 @@ export class BrandRemixRunsService {
       organizationId,
       brandId,
       input.destination.credentialId,
-      'meta',
+      targetPlatform,
     );
-    const hasMetaAdsCapability = Boolean(
+    const requiredScope =
+      targetPlatform === 'x' ? 'ads.write' : 'ads_management';
+    const hasAdsCapability = Boolean(
       credential.grantedScopesCapturedAt &&
-        credential.grantedScopes.includes('ads_management'),
+        credential.grantedScopes.includes(requiredScope),
     );
     const capabilityIssue = {
-      code: 'missing_ads_management' as const,
+      code:
+        targetPlatform === 'x'
+          ? ('missing_ads_write' as const)
+          : ('missing_ads_management' as const),
       field: 'target' as const,
       message:
-        'Reconnect Meta and grant ads_management before preparing a paused campaign draft.',
+        targetPlatform === 'x'
+          ? 'Reconnect X Ads and grant ads.write before preparing a paused campaign draft.'
+          : 'Reconnect Meta and grant ads_management before preparing a paused campaign draft.',
       severity: 'blocked' as const,
     };
-    if (!hasMetaAdsCapability) {
+    if (!hasAdsCapability) {
       const blockedConfig = brandRemixRunConfigSchema.parse({
         ...config,
         readiness: {
@@ -1057,7 +1078,7 @@ export class BrandRemixRunsService {
       });
       if (!updated) {
         throw new ConflictException(
-          'The Meta capability readiness changed concurrently.',
+          `The ${targetPlatform === 'x' ? 'X Ads' : 'Meta'} capability readiness changed concurrently.`,
         );
       }
       return this.project(updated, brandContext, blockedConfig);
@@ -1090,7 +1111,7 @@ export class BrandRemixRunsService {
       });
       if (!updated) {
         throw new ConflictException(
-          'The Meta capability readiness changed concurrently.',
+          `The ${targetPlatform === 'x' ? 'X Ads' : 'Meta'} capability readiness changed concurrently.`,
         );
       }
       config = readyConfig;
@@ -1108,22 +1129,30 @@ export class BrandRemixRunsService {
       config.execution?.variants.find((variant) => variant.status === 'ready');
     if (selectedVariant?.status !== 'ready') {
       throw new ConflictException(
-        'Select a ready approved remix variant for the Meta draft.',
+        `Select a ready approved remix variant for the ${targetPlatform === 'x' ? 'X Ads' : 'Meta'} draft.`,
       );
     }
     const operation = {
       adAccountId: input.destination.adAccountId,
       claimedAt: this.runtime.now().toISOString(),
       credentialId: input.destination.credentialId,
-      id: `${run.id}:meta:${config.revision}:${selectedVariant.id}`,
+      id: `${run.id}:${targetPlatform}:${config.revision}:${selectedVariant.id}`,
       linkUrl:
-        config.sourceSnapshot.destinationUrl ??
-        config.sourceSnapshot.canonicalUrl,
+        targetPlatform === 'meta'
+          ? (config.sourceSnapshot.destinationUrl ??
+            config.sourceSnapshot.canonicalUrl)
+          : undefined,
+      sourceTweetId: targetPlatform === 'x' ? input.sourceTweetId : undefined,
       variantId: selectedVariant.id,
     };
-    if (!operation.linkUrl) {
+    if (targetPlatform === 'meta' && !operation.linkUrl) {
       throw new ConflictException(
         'The authorized source has no HTTPS campaign destination.',
+      );
+    }
+    if (targetPlatform === 'x' && !operation.sourceTweetId) {
+      throw new ConflictException(
+        'An existing tweet id is required to prepare a paused X Ads draft.',
       );
     }
     let claimedConfig = config;
@@ -1181,19 +1210,34 @@ export class BrandRemixRunsService {
         );
       }
     }
-    let paidDraft: PausedMetaCampaignDraftResult;
+    let paidDraft:
+      | PausedMetaCampaignDraftResult
+      | PausedXAdsCampaignDraftResult;
     try {
-      paidDraft = await this.pausedMetaCampaignDraftService.prepare({
-        adAccountId: input.destination.adAccountId,
-        brandId,
-        config: claimedConfig,
-        credentialId: input.destination.credentialId,
-        linkUrl: operation.linkUrl,
-        organizationId,
-        runId,
-        userId: _userId,
-        variant: selectedVariant,
-      });
+      paidDraft =
+        targetPlatform === 'x'
+          ? await this.pausedXAdsCampaignDraftService.prepare({
+              adAccountId: input.destination.adAccountId,
+              brandId,
+              config: claimedConfig,
+              credentialId: input.destination.credentialId,
+              organizationId,
+              runId,
+              sourceTweetId: operation.sourceTweetId as string,
+              userId: _userId,
+              variant: selectedVariant,
+            })
+          : await this.pausedMetaCampaignDraftService.prepare({
+              adAccountId: input.destination.adAccountId,
+              brandId,
+              config: claimedConfig,
+              credentialId: input.destination.credentialId,
+              linkUrl: operation.linkUrl as string,
+              organizationId,
+              runId,
+              userId: _userId,
+              variant: selectedVariant,
+            });
     } catch (error: unknown) {
       await this.releasePaidDraftOperationAfterFailure({
         claimedConfig,
@@ -1262,7 +1306,9 @@ export class BrandRemixRunsService {
       }
     }
 
-    throw new ConflictException('The Meta draft result changed concurrently.');
+    throw new ConflictException(
+      `The ${targetPlatform === 'x' ? 'X Ads' : 'Meta'} draft result changed concurrently.`,
+    );
   }
 
   private async releasePaidDraftOperationAfterFailure(params: {
@@ -1639,7 +1685,7 @@ export class BrandRemixRunsService {
     organizationId: string,
     brandId: string,
     credentialId: string,
-    platform: 'google' | 'meta' | 'tiktok',
+    platform: 'google' | 'meta' | 'tiktok' | 'x',
   ) {
     const credential = await this.prisma.credential.findFirst({
       select: {
@@ -3095,13 +3141,15 @@ export class BrandRemixRunsService {
       normalized === 'instagram' ||
       normalized === 'youtube' ||
       normalized === 'meta' ||
-      normalized === 'google'
+      normalized === 'google' ||
+      normalized === 'x'
     ) {
       return normalized;
     }
     if (normalized === 'facebook' || normalized === 'facebook_ads')
       return 'meta';
     if (normalized === 'google_ads') return 'google';
+    if (normalized === 'twitter' || normalized === 'x_ads') return 'x';
     throw new BadRequestException({
       detail: `Source platform ${normalized ?? 'unknown'} is not supported for a brand remix.`,
       title: 'Unsupported remix source platform',
@@ -3125,10 +3173,11 @@ export class BrandRemixRunsService {
   }
 
   private credentialPlatform(
-    platform: 'google' | 'meta' | 'tiktok',
+    platform: 'google' | 'meta' | 'tiktok' | 'x',
   ): CredentialPlatform {
     if (platform === 'meta') return CredentialPlatform.FACEBOOK;
     if (platform === 'google') return CredentialPlatform.GOOGLE_ADS;
+    if (platform === 'x') return CredentialPlatform.X_ADS;
     return CredentialPlatform.TIKTOK;
   }
 
