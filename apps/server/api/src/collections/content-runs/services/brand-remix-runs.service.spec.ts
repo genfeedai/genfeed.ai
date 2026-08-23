@@ -2506,8 +2506,28 @@ describe('BrandRemixRunsService', () => {
     });
     let stored = created;
     contentRun.findFirst.mockResolvedValue(stored);
-    contentRun.updateMany.mockImplementation(({ data }) => {
-      stored = makeRun(data.config as Record<string, unknown>);
+    contentRun.updateMany.mockImplementation(({ data, where }) => {
+      const predicate = where as {
+        config?: { equals?: unknown };
+        id?: string;
+        isDeleted?: boolean;
+        organizationId?: string;
+      };
+      if (
+        predicate.id !== stored.id ||
+        predicate.organizationId !== stored.organizationId ||
+        predicate.isDeleted !== stored.isDeleted ||
+        JSON.stringify(predicate.config?.equals) !==
+          JSON.stringify(stored.config)
+      ) {
+        return Promise.resolve({ count: 0 });
+      }
+      stored = {
+        ...stored,
+        config:
+          (data.config as Record<string, unknown> | undefined) ?? stored.config,
+        status: (data.status ?? stored.status) as ContentRunStatus,
+      };
       contentRun.findFirst.mockResolvedValue(stored);
       return Promise.resolve({ count: 1 });
     });
