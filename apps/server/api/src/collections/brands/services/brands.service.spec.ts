@@ -32,7 +32,7 @@ import type { FastlaneFormat } from '@genfeedai/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('BrandsService', () => {
@@ -899,19 +899,82 @@ describe('BrandsService', () => {
     const organizationId = 'org_1';
     const brandId = 'brand_1';
 
-    it('applies selected scalar, voice, and strategy fields to the brand', async () => {
-      delegate.findFirst.mockResolvedValue({
-        agentConfig: {
-          strategy: { frequency: 'weekly' },
-          voice: { style: 'direct' },
-        },
+    it('applies scalar fields through one active organization-scoped write without a JSON predicate', async () => {
+      delegate.findFirst.mockResolvedValueOnce({
+        agentConfig: { persona: 'Existing' },
         id: brandId,
         isDeleted: false,
         organizationId,
       });
-      delegate.update.mockResolvedValue({
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+      delegate.findFirst.mockResolvedValueOnce({
+        agentConfig: { persona: 'Existing' },
         description: 'Imported description',
         id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      const result = await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'Imported description',
+          },
+        },
+      });
+
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        data: { description: 'Imported description' },
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(delegate.findFirst).toHaveBeenLastCalledWith({
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+        CACHE_PATTERNS.BRANDS_SINGLE(brandId),
+      );
+      expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+        CACHE_TAGS.BRANDS,
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(organizationId),
+      ]);
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith(organizationId);
+      expect(result).toEqual({
+        appliedFields: ['description'],
+        brandId,
+        diagnostics: [],
+        id: brandId,
+        preservedFields: [],
+        status: 'accepted',
+      });
+    });
+
+    it('atomically applies scalar, voice, and strategy fields against the initial agent-config snapshot', async () => {
+      const initialAgentConfig = {
+        strategy: { frequency: 'weekly' },
+        voice: { style: 'direct' },
+      };
+      delegate.findFirst.mockResolvedValueOnce({
+        agentConfig: initialAgentConfig,
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+      delegate.findFirst.mockResolvedValueOnce({
+        agentConfig: {
+          strategy: {
+            frequency: 'weekly',
+            platforms: ['linkedin', 'youtube'],
+          },
+          voice: { style: 'direct', tone: 'Confident' },
+        },
+        description: 'Imported description',
+        id: brandId,
+        isDeleted: false,
         organizationId,
       });
 
@@ -935,7 +998,8 @@ describe('BrandsService', () => {
       expect(delegate.findFirst).toHaveBeenCalledWith({
         where: { id: brandId, isDeleted: false, organizationId },
       });
-      expect(delegate.update).toHaveBeenCalledWith({
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).toHaveBeenCalledWith({
         data: {
           agentConfig: {
             strategy: {
@@ -949,7 +1013,12 @@ describe('BrandsService', () => {
           },
           description: 'Imported description',
         },
-        where: { id: brandId },
+        where: {
+          agentConfig: { equals: initialAgentConfig },
+          id: brandId,
+          isDeleted: false,
+          organizationId,
+        },
       });
       expect(result).toEqual({
         appliedFields: ['description', 'strategyPlatforms', 'voiceTone'],
@@ -959,6 +1028,105 @@ describe('BrandsService', () => {
         preservedFields: [],
         status: 'accepted',
       });
+    });
+
+    it.each(['relocated', 'soft-deleted'])(
+      'does not reread or invalidate when the brand is %s after the scoped read',
+      async () => {
+        delegate.findFirst.mockResolvedValueOnce({
+          agentConfig: {},
+          id: brandId,
+          isDeleted: false,
+          organizationId,
+        });
+        delegate.updateMany.mockResolvedValue({ count: 0 });
+
+        await expect(
+          service.applyBrandKitDraft(brandId, organizationId, {
+            fields: {
+              description: {
+                action: 'accept',
+                value: 'Imported description',
+              },
+            },
+          }),
+        ).rejects.toBeInstanceOf(NotFoundException);
+
+        expect(delegate.findFirst).toHaveBeenCalledTimes(1);
+        expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+        expect(
+          cacheInvalidationService.invalidateByTags,
+        ).not.toHaveBeenCalled();
+        expect(
+          accessBootstrapCacheService.invalidateForOrganization,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it('returns a conflict without overwriting a concurrent unrelated agent-config field', async () => {
+      const initialAgentConfig = { voice: { tone: 'formal' } };
+      let persistedAgentConfig: Record<string, unknown> = {
+        enabledSkills: ['research'],
+        voice: { tone: 'formal' },
+      };
+      delegate.findFirst.mockResolvedValueOnce({
+        agentConfig: initialAgentConfig,
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      delegate.updateMany.mockImplementation(async (args: unknown) => {
+        const update = args as {
+          data: { agentConfig: Record<string, unknown> };
+          where: { agentConfig?: { equals?: unknown } };
+        };
+
+        if (
+          JSON.stringify(update.where.agentConfig?.equals) !==
+          JSON.stringify(persistedAgentConfig)
+        ) {
+          return { count: 0 };
+        }
+
+        persistedAgentConfig = update.data.agentConfig;
+        return { count: 1 };
+      });
+
+      await expect(
+        service.applyBrandKitDraft(brandId, organizationId, {
+          fields: {
+            voiceStyle: {
+              action: 'accept',
+              value: 'direct',
+            },
+          },
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        data: {
+          agentConfig: {
+            voice: { style: 'direct', tone: 'formal' },
+          },
+        },
+        where: {
+          agentConfig: { equals: initialAgentConfig },
+          id: brandId,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+      expect(persistedAgentConfig).toEqual({
+        enabledSkills: ['research'],
+        voice: { tone: 'formal' },
+      });
+      expect(delegate.findFirst).toHaveBeenCalledTimes(1);
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidateByTags).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
     });
 
     it('preserves links and assets until the safe asset import child ships', async () => {
@@ -987,6 +1155,7 @@ describe('BrandsService', () => {
       });
 
       expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
       expect(result.appliedFields).toEqual([]);
       expect(result.preservedFields).toEqual(['logo', 'socialLinks']);
       expect(result.status).toBe('partial');
@@ -1024,6 +1193,7 @@ describe('BrandsService', () => {
       });
 
       expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
       expect(result.status).toBe('blocked');
       expect(result.diagnostics).toEqual(
         expect.arrayContaining([
