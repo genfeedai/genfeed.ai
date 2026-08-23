@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import type { IEnvConfig } from '@config/interfaces/env-config.interface';
 import dotenv from 'dotenv';
 import type Joi from 'joi';
+import { isUnconfiguredSecret } from '../helpers';
 
 export interface ConfigServiceOptions {
   /**
@@ -36,7 +37,11 @@ export abstract class BaseConfigService<
    * Get a config value by key
    */
   public get<K extends keyof T>(key: K): T[K] {
-    return this.envConfig[key];
+    const value = this.envConfig[key];
+    if (isUnconfiguredSecret(value)) {
+      return undefined as T[K];
+    }
+    return value;
   }
 
   /**

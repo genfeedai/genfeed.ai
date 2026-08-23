@@ -66,6 +66,18 @@ describe('PublishingProviderSetupService', () => {
     expect(signals.diagnostics[0]).not.toHaveProperty('correctiveAction');
   });
 
+  it('treats PLACEHOLDER_NOT_CONFIGURED as not configured', () => {
+    env.TWITTER_CLIENT_ID = 'PLACEHOLDER_NOT_CONFIGURED';
+    env.TWITTER_CLIENT_SECRET = 'PLACEHOLDER_NOT_CONFIGURED';
+
+    const signals = build().resolveProviderSignals('twitter', CHECKED_AT);
+
+    expect(signals.appReviewStatus).toBe('fail');
+    expect(signals.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      'provider_not_configured',
+    ]);
+  });
+
   it('fails app review when there is no configured app to review', () => {
     env.TWITTER_CLIENT_ID = '';
     env.TWITTER_CLIENT_SECRET = '   ';

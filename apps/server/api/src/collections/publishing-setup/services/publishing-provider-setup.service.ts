@@ -6,7 +6,7 @@ import {
   resolveOAuthAppUrl,
   resolveOAuthIssuerUrl,
 } from '@api/oauth/oauth-metadata.util';
-import { isCloudDeployment } from '@genfeedai/config';
+import { isCloudDeployment, isUnconfiguredSecret } from '@genfeedai/config';
 import type {
   IPublishingProviderSetupSignals,
   IPublishingSetupCheck,
@@ -319,7 +319,11 @@ export class PublishingProviderSetupService {
     }
 
     const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
+    if (!trimmed.length || isUnconfiguredSecret(trimmed)) {
+      return null;
+    }
+
+    return trimmed;
   }
 
   private hasAnyConfigured(keys: readonly string[]): boolean {

@@ -93,6 +93,12 @@ describe('BaseConfigService', () => {
       const service = new ConcreteConfigService();
       expect(service.get('NODE_ENV' as never)).toBe('development');
     });
+
+    it('treats PLACEHOLDER_NOT_CONFIGURED as unset', () => {
+      process.env.SOME_OPTIONAL_VAR = 'PLACEHOLDER_NOT_CONFIGURED';
+      const service = new ConcreteConfigService();
+      expect(service.get('SOME_OPTIONAL_VAR')).toBeUndefined();
+    });
   });
 
   describe('environment detection', () => {

@@ -28,12 +28,17 @@ import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twit
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('TwitterController', () => {
   let controller: TwitterController;
+  const mockConfigGet = vi.fn(() => 'test-val');
 
   const mockBrandsService = {
     findOne: vi.fn(),
@@ -92,7 +97,7 @@ describe('TwitterController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TwitterController],
       providers: [
-        { provide: ConfigService, useValue: { get: vi.fn(() => 'test-val') } },
+        { provide: ConfigService, useValue: { get: mockConfigGet } },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
@@ -151,6 +156,27 @@ describe('TwitterController', () => {
       expect(mockCredentialsService.patch).toHaveBeenCalledWith('cred', {
         oauthTokenSecret: 'test-code-verifier',
       });
+    });
+
+    it('refuses to start OAuth when the Twitter client id is a placeholder', async () => {
+      mockBrandsService.findOne.mockResolvedValue({
+        id: brandId,
+        organizationId: orgId,
+        userId: 'test-object-id',
+      });
+      mockConfigGet.mockImplementation((key: string) =>
+        key === 'TWITTER_CLIENT_ID' ? 'PLACEHOLDER_NOT_CONFIGURED' : 'test-val',
+      );
+
+      await expect(
+        controller.connect(
+          mockRequest,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          { brandId },
+        ),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(mockGenerateOAuth2AuthLink).not.toHaveBeenCalled();
+      expect(mockCredentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
     });
 
     it('should throw FORBIDDEN when brand not found', async () => {
