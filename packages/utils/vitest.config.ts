@@ -20,6 +20,14 @@ export default defineConfig({
         replacement: ENUMS_SRC,
       },
       {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(__dirname, '../interfaces/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+      },
+      {
         find: '@genfeedai/props',
         replacement: path.resolve(__dirname, '../props'),
       },

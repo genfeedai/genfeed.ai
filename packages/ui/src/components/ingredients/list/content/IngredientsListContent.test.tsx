@@ -5,6 +5,12 @@ import IngredientsListContent from '@ui/ingredients/list/content/IngredientsList
 import type { ComponentProps } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/image', () => ({
+  default: ({ alt, src }: { alt: string; src: string }) => (
+    <img alt={alt} src={src} />
+  ),
+}));
+
 vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="status-dropdown" />,
 }));
@@ -101,11 +107,61 @@ function renderContent(
   return { onOpenIngredientModal, onOpenLightbox };
 }
 
+const videoIngredient = {
+  category: IngredientCategory.VIDEO,
+  createdAt: new Date().toISOString(),
+  id: 'video-1',
+  ingredientFormat: 'landscape',
+  ingredientUrl: 'https://cdn.genfeed.ai/mock/clip.mp4',
+  metadataLabel: 'A red apple on a table',
+  status: 'GENERATED',
+  thumbnailUrl: 'https://cdn.genfeed.ai/mock/clip-poster.jpg',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
 describe('IngredientsListContent', () => {
   it('renders avatar rows in the table view', () => {
     renderContent();
 
     expect(screen.getByText('Avatar Source')).toBeInTheDocument();
+  });
+
+  it('renders a video poster instead of the mp4 and a muted Video pill', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByRole('img', { name: 'A red apple on a table' }),
+    ).toHaveAttribute('src', 'https://cdn.genfeed.ai/mock/clip-poster.jpg');
+    expect(screen.queryByAltText('Ingredient URL')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Video').closest('[class*="bg-purple-500/20"]'),
+    ).not.toBeNull();
+    expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Landscape').closest('[class*="bg-slate-500/15"]'),
+    ).not.toBeNull();
+  });
+
+  it('falls back to a video placeholder when there is no poster', () => {
+    renderContent({
+      filteredIngredients: [
+        {
+          ...videoIngredient,
+          thumbnailUrl: undefined,
+        },
+      ],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+    });
+
+    expect(
+      screen.getByTestId('ingredient-preview-fallback'),
+    ).toBeInTheDocument();
+    expect(document.querySelector('img')).toBeNull();
   });
 
   it('opens the ingredient modal for avatar rows in organization scope', () => {

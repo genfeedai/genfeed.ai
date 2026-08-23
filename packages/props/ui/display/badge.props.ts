@@ -34,7 +34,10 @@ export interface BadgeProps {
     // Content type badges
     | 'image'
     | 'video'
+    | 'gif'
+    | 'avatar'
     | 'audio'
+    | 'voice'
     | 'text'
     | 'multimodal'
     // Status badges

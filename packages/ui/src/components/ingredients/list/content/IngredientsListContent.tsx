@@ -3,6 +3,7 @@
 import { EMPTY_STATES } from '@genfeedai/constants';
 import {
   ButtonVariant,
+  ComponentSize,
   formatEnumLabel,
   IngredientCategory,
   type IngredientFormat,
@@ -11,8 +12,12 @@ import {
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { getIngredientDisplayLabel } from '@genfeedai/utils/media/ingredient-type.util';
+import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
+import {
+  getIngredientDisplayLabel,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
+import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
@@ -23,12 +28,55 @@ import {
   getIsInspectorDocked,
   subscribeInspectorDocked,
 } from '@ui/ingredients/inspector/inspector-viewport.util';
+import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
-import { Eye } from 'lucide-react';
+import { Eye, Film, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
+
+function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
+  const previewUrl = getIngredientPreviewUrl(ingredient);
+  const label = getIngredientDisplayLabel(ingredient) || 'Asset preview';
+  const isVideo = isVideoIngredient(ingredient);
+  const assetType = getLibraryAssetType(ingredient.category);
+
+  if (!previewUrl) {
+    return (
+      <div
+        aria-label={label}
+        className="flex size-10 items-center justify-center rounded-md bg-foreground/6 text-foreground/45"
+        data-testid="ingredient-preview-fallback"
+        role="img"
+      >
+        {isVideo || assetType?.id === 'video' ? (
+          <Film className="size-4" />
+        ) : (
+          <ImageIcon className="size-4" />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative size-10 overflow-hidden rounded-md bg-foreground/5">
+      <Image
+        alt={label}
+        className="size-10 object-cover"
+        height={40}
+        sizes="40px"
+        src={previewUrl}
+        width={40}
+      />
+      {isVideo || assetType?.id === 'video' ? (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
+          <Film className="size-3.5 text-white" />
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 export default function IngredientsListContent({
   type,
@@ -80,16 +128,7 @@ export default function IngredientsListContent({
         header: '',
         key: 'ingredientUrl',
         render: (ingredient: IIngredient) => (
-          <Image
-            src={
-              ingredient.ingredientUrl ||
-              `${EnvironmentService.assetsEndpoint}/placeholders/portrait.jpg`
-            }
-            alt="Ingredient URL"
-            width={20}
-            height={20}
-            sizes="20px"
-          />
+          <IngredientTablePreview ingredient={ingredient} />
         ),
       },
       {
@@ -102,12 +141,28 @@ export default function IngredientsListContent({
         header: 'Category',
         key: 'category',
         render: (ingredient: IIngredient) => (
-          <Badge variant="outline" className="uppercase">
-            {formatEnumLabel(ingredient.category)}
-          </Badge>
+          <LibraryAssetTypeBadge category={ingredient.category} />
         ),
       },
-      { header: 'Format', key: 'ingredientFormat' },
+      {
+        header: 'Format',
+        key: 'ingredientFormat',
+        render: (ingredient: IIngredient) => {
+          const format =
+            ingredient.ingredientFormat || ingredient.format || undefined;
+          const label = formatEnumLabel(format);
+
+          if (!label) {
+            return null;
+          }
+
+          return (
+            <Badge className="border" size={ComponentSize.SM} variant="slate">
+              {label}
+            </Badge>
+          );
+        },
+      },
       {
         className: 'w-40',
         header: 'Status',

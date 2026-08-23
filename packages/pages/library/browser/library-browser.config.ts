@@ -5,38 +5,19 @@ import {
   LibraryShelf,
 } from '@genfeedai/enums';
 import type { LibraryBrowserSortOption } from '@props/pages/library-browser.props';
-
-export interface LibraryTypeChip {
-  label: string;
-  /**
-   * A chip covers every category that reads as the same *thing* to an operator.
-   * An edited image is still an image; a generated voice line is still audio.
-   */
-  categories: readonly IngredientCategory[];
-}
+import {
+  LIBRARY_ASSET_TYPES,
+  type LibraryAssetType,
+} from '@utils/media/library-asset-type.util';
 
 /**
- * The type axis. Chips are multi-select and additive — picking Images and
- * Videos means "either", never "both at once".
+ * The type axis. One option covers every category that reads as the same
+ * *thing* to an operator. Labels are singular so the dropdown and the table
+ * pill stay in lockstep.
  */
-export const LIBRARY_TYPE_CHIPS: readonly LibraryTypeChip[] = [
-  {
-    categories: [IngredientCategory.IMAGE, IngredientCategory.IMAGE_EDIT],
-    label: 'Images',
-  },
-  {
-    categories: [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT],
-    label: 'Videos',
-  },
-  { categories: [IngredientCategory.GIF], label: 'GIFs' },
-  { categories: [IngredientCategory.AVATAR], label: 'Avatars' },
-  {
-    categories: [IngredientCategory.MUSIC, IngredientCategory.AUDIO],
-    label: 'Audio',
-  },
-  { categories: [IngredientCategory.VOICE], label: 'Voices' },
-  { categories: [IngredientCategory.TEXT], label: 'Text' },
-] as const;
+export type LibraryTypeChip = LibraryAssetType;
+export const LIBRARY_TYPE_CHIPS: readonly LibraryTypeChip[] =
+  LIBRARY_ASSET_TYPES;
 
 export interface LibraryTypePreset {
   label: string;

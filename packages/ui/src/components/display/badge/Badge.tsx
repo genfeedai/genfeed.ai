@@ -12,11 +12,13 @@ const PRIMITIVE_VARIANT_MAP = {
   accent: 'default',
   amber: 'warning',
   audio: 'warning',
+  avatar: 'info',
   blue: 'info',
   default: 'default',
   destructive: 'destructive',
   error: 'destructive',
   ghost: 'secondary',
+  gif: 'info',
   image: 'info',
   info: 'info',
   multimodal: 'default',
@@ -30,6 +32,7 @@ const PRIMITIVE_VARIANT_MAP = {
   text: 'success',
   validated: 'success',
   video: 'default',
+  voice: 'warning',
   warning: 'warning',
 } as const;
 
@@ -110,19 +113,37 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
 
     // Content type badges
     case 'image':
+    case 'image_edit':
       return {
         label: 'Image',
         variant: 'image',
       };
     case 'video':
+    case 'video_edit':
       return {
         label: 'Video',
         variant: 'video',
       };
+    case 'gif':
+      return {
+        label: 'GIF',
+        variant: 'gif',
+      };
+    case 'avatar':
+      return {
+        label: 'Avatar',
+        variant: 'avatar',
+      };
     case 'audio':
+    case 'music':
       return {
         label: 'Audio',
         variant: 'audio',
+      };
+    case 'voice':
+      return {
+        label: 'Voice',
+        variant: 'voice',
       };
     case 'text':
       return {

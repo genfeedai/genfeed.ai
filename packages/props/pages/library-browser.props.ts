@@ -48,7 +48,7 @@ export interface LibraryBrowserToolbarProps {
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;
   isRefreshing: boolean;
-  onToggleCategories: (categories: readonly IngredientCategory[]) => void;
+  onCategoriesChange: (categories: IngredientCategory[]) => void;
   onClearCategories: () => void;
   onSearchChange: (search: string) => void;
   onSortChange: (sort: string) => void;

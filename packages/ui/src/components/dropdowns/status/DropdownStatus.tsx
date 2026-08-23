@@ -21,9 +21,11 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import { GIFsService } from '@genfeedai/services/ingredients/gifs.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import { badgeVariants } from '@ui/display/badge/badge.variants';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { getStatusMeta } from '@ui-constants/status.constant';
+import type { VariantProps } from 'class-variance-authority';
 import { Archive, Check, Clock, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -91,6 +93,29 @@ function getVariantColorClass(variant: string): string {
     normalizedVariant.includes(key),
   );
   return matchedKey ? VARIANT_COLORS[matchedKey] : DEFAULT_VARIANT_COLOR;
+}
+
+const STATUS_BADGE_VARIANTS = new Set([
+  'destructive',
+  'error',
+  'ghost',
+  'info',
+  'success',
+  'warning',
+  'secondary',
+  'outline',
+]);
+
+function getStatusBadgeVariant(
+  variant: string,
+): VariantProps<typeof badgeVariants>['variant'] {
+  const normalizedVariant = variant.toLowerCase();
+
+  if (STATUS_BADGE_VARIANTS.has(normalizedVariant)) {
+    return normalizedVariant as VariantProps<typeof badgeVariants>['variant'];
+  }
+
+  return 'slate';
 }
 
 /**
@@ -292,9 +317,11 @@ export default function DropdownStatus({
       <div className={className}>
         <div
           className={cn(
-            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-            currentMeta.variant,
-            'opacity-75 cursor-not-allowed',
+            'inline-flex items-center border opacity-75 cursor-not-allowed',
+            badgeVariants({
+              size: 'sm',
+              variant: getStatusBadgeVariant(currentMeta.variant),
+            }),
           )}
         >
           {currentMeta.label}
@@ -323,10 +350,11 @@ export default function DropdownStatus({
             isIconOnly
               ? cn(className)
               : cn(
-                  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium uppercase',
-                  'hover:opacity-80 transition-opacity cursor-pointer',
-                  'border hover:border-current/20',
-                  currentMeta.variant,
+                  'inline-flex items-center border cursor-pointer transition-opacity hover:opacity-80',
+                  badgeVariants({
+                    size: 'sm',
+                    variant: getStatusBadgeVariant(currentMeta.variant),
+                  }),
                 )
           }
         >

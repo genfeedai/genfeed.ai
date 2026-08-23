@@ -93,21 +93,21 @@ describe('useLibraryBrowser', () => {
     expect(pushed.get('sort')).toBe('label: 1');
   });
 
-  it('toggles a chip as one group', () => {
+  it('replaces the type axis from the dropdown selection', () => {
     state.search = '?categories=IMAGE&categories=IMAGE_EDIT';
 
     const { result } = renderHook(() => useLibraryBrowser({}));
 
     act(() => {
-      result.current.handleToggleCategories([
-        IngredientCategory.IMAGE,
-        IngredientCategory.IMAGE_EDIT,
+      result.current.handleCategoriesChange([
+        IngredientCategory.VIDEO,
+        IngredientCategory.VIDEO_EDIT,
       ]);
     });
 
     expect(
       new URLSearchParams(lastPushedSearch()).getAll('categories'),
-    ).toEqual([]);
+    ).toEqual(['VIDEO', 'VIDEO_EDIT']);
   });
 
   it('leaves the default sort out of the URL', () => {

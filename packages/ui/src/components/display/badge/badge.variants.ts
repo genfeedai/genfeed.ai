@@ -29,12 +29,14 @@ export const badgeVariants = cva(
         amber: 'bg-warning/10 text-warning border-warning/30',
         // Content type badges (categorical — distinguishing media kinds)
         audio: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+        avatar: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
         blue: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
         default: 'bg-primary/15 text-primary border-primary/30',
         destructive: 'bg-destructive/10 text-destructive border-destructive/30',
         // Semantic aliases routed through the canonical destructive token
         error: 'bg-destructive/10 text-destructive border-destructive/30',
         ghost: 'bg-white/5 text-muted-foreground border-white/[0.08]',
+        gif: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
         // Content type badges (categorical — distinguishing media kinds)
         image: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
         info: 'bg-info/10 text-info border-info/30',
@@ -51,6 +53,7 @@ export const badgeVariants = cva(
         // Status badges routed through canonical semantic tokens
         validated: 'bg-success/10 text-success border-success/30',
         video: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        voice: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
         warning: 'bg-warning/10 text-warning border-warning/30',
       },
     },
