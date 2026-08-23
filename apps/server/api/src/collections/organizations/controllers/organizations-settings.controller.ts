@@ -133,10 +133,6 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
-    const organizationSettings =
-      await this.organizationSettingsService.ensureForOrganization(
-        resolvedOrganizationId,
-      );
 
     if (
       Array.isArray(settingsDto.enabledModelIds) &&
@@ -151,6 +147,11 @@ export class OrganizationsSettingsController {
       resolvedOrganizationId,
       settingsDto.defaultAvatarIngredientId?.toString(),
     );
+
+    const organizationSettings =
+      await this.organizationSettingsService.ensureForOrganization(
+        resolvedOrganizationId,
+      );
 
     const data = await this.organizationSettingsService.patch(
       organizationSettings.id,

@@ -65,9 +65,7 @@ describe('OrganizationsSettingsController', () => {
   };
 
   const mockOrganizationSettingsService = {
-    ensureEnabledModelIds: vi.fn((settings) => Promise.resolve(settings)),
     ensureForOrganization: vi.fn(),
-    findOne: vi.fn(),
     patch: vi.fn(),
   };
 
@@ -189,7 +187,7 @@ describe('OrganizationsSettingsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('creates settings when the row is missing so model toggles can persist', async () => {
+    it('serializes the setting returned by the canonical get-or-create policy', async () => {
       mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
@@ -226,12 +224,15 @@ describe('OrganizationsSettingsController', () => {
 
       expect(
         organizationSettingsService.ensureForOrganization,
-      ).toHaveBeenCalled();
-      expect(organizationSettingsService.patch).toHaveBeenCalled();
+      ).toHaveBeenCalledWith(organizationId);
+      expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+        mockOrganizationSettings.id,
+        updateDto,
+      );
       expect(result).toBeDefined();
     });
 
-    it('creates settings before patching when the row is missing', async () => {
+    it('patches the setting returned by the canonical get-or-create policy', async () => {
       mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
@@ -249,13 +250,14 @@ describe('OrganizationsSettingsController', () => {
       expect(
         organizationSettingsService.ensureForOrganization,
       ).toHaveBeenCalledWith(organizationId);
+      expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+        mockOrganizationSettings.id,
+        updateDto,
+      );
       expect(result).toBeDefined();
     });
 
-    it('should reject invalid avatar ingredient defaults', async () => {
-      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
-        mockOrganizationSettings,
-      );
+    it('rejects invalid avatar defaults before creating missing settings', async () => {
       mockIngredientsService.findAvatarImageById.mockResolvedValue(null);
 
       await expect(
@@ -265,6 +267,31 @@ describe('OrganizationsSettingsController', () => {
       ).rejects.toThrow(
         'Default avatar must reference an avatar image ingredient in this organization',
       );
+
+      expect(mockIngredientsService.findAvatarImageById).toHaveBeenCalledWith(
+        'invalid-avatar-id',
+        organizationId,
+      );
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).not.toHaveBeenCalled();
+      expect(organizationSettingsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty model allowlist before creating missing settings', async () => {
+      await expect(
+        controller.updateSettings(mockReq, organizationId, {
+          enabledModelIds: [],
+        }),
+      ).rejects.toThrow(
+        'At least one model must remain enabled for the organization',
+      );
+
+      expect(mockIngredientsService.findAvatarImageById).not.toHaveBeenCalled();
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).not.toHaveBeenCalled();
+      expect(organizationSettingsService.patch).not.toHaveBeenCalled();
     });
   });
 
