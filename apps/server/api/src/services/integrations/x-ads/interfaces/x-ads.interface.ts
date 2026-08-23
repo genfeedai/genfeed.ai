@@ -82,7 +82,7 @@ export interface XAdsInsightsRow {
 export interface XAdsReportingParams {
   startDate: string;
   endDate: string;
-  granularity?: 'DAY' | 'TOTAL';
+  granularity?: 'DAY' | 'HOUR' | 'TOTAL';
   entity?: 'CAMPAIGN' | 'LINE_ITEM' | 'PROMOTED_TWEET';
 }
 

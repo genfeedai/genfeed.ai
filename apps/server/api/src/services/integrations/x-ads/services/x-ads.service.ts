@@ -30,6 +30,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 type XAdsReportingEntity = 'CAMPAIGN' | 'LINE_ITEM' | 'PROMOTED_TWEET';
+const X_ADS_STATS_MAX_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * X Ads API v12 client (REST) plus token refresh. Mirrors the internals of
@@ -44,7 +45,17 @@ export class XAdsService {
   private static readonly API_VERSION = '12';
   private static readonly BASE_URL = 'https://ads-api.x.com';
   private static readonly RATE_LIMIT_DELAY_MS = 250;
-  private static readonly ENTITY_ID_LIMIT = 200;
+  private static readonly PUBLISHED_TWEET_ID_LIMIT = 200;
+  private static readonly STATS_ENTITY_ID_LIMIT = 20;
+  private static readonly STATS_METRIC_GROUPS = [
+    ['ENGAGEMENT', 'BILLING'],
+    ['WEB_CONVERSION'],
+  ] as const;
+  private static readonly STATS_PLACEMENTS = [
+    'ALL_ON_TWITTER',
+    'SPOTLIGHT',
+    'TREND',
+  ] as const;
 
   private readonly constructorName: string = String(this.constructor.name);
   private lastRequestTime = 0;
@@ -363,9 +374,12 @@ export class XAdsService {
       for (
         let index = 0;
         index < tweetIds.length;
-        index += XAdsService.ENTITY_ID_LIMIT
+        index += XAdsService.PUBLISHED_TWEET_ID_LIMIT
       ) {
-        const ids = tweetIds.slice(index, index + XAdsService.ENTITY_ID_LIMIT);
+        const ids = tweetIds.slice(
+          index,
+          index + XAdsService.PUBLISHED_TWEET_ID_LIMIT,
+        );
         const response = await this.makePaginatedRequest<{ id_str: string }>(
           accessToken,
           `/accounts/${accountId}/tweets`,
@@ -445,47 +459,87 @@ export class XAdsService {
         return [];
       }
 
-      const rows: XAdsStatsWireShape[] = [];
+      const startTime = normalizeReportingBoundary(
+        params.startDate,
+        'startDate',
+      );
+      const endTime = normalizeReportingBoundary(params.endDate, 'endDate');
+      const reportingWindows = buildReportingWindows(startTime, endTime);
+      const totalsById = new Map<string, XAdsStatsAccumulator>();
+
       for (
         let index = 0;
         index < entityIds.length;
-        index += XAdsService.ENTITY_ID_LIMIT
+        index += XAdsService.STATS_ENTITY_ID_LIMIT
       ) {
-        const ids = entityIds.slice(index, index + XAdsService.ENTITY_ID_LIMIT);
-        const response = await this.makeRequest<XAdsStatsWireShape[]>(
-          accessToken,
-          `/stats/accounts/${accountId}`,
-          {
-            end_time: params.endDate,
-            entity,
-            entity_ids: ids,
-            granularity: params.granularity ?? 'TOTAL',
-            placement: 'ALL_ON_TWITTER',
-            start_time: params.startDate,
-          },
+        const ids = entityIds.slice(
+          index,
+          index + XAdsService.STATS_ENTITY_ID_LIMIT,
         );
-        rows.push(...response);
+
+        for (const window of reportingWindows) {
+          for (const placement of XAdsService.STATS_PLACEMENTS) {
+            for (const metricGroups of XAdsService.STATS_METRIC_GROUPS) {
+              const response = await this.makeRequest<XAdsStatsWireShape[]>(
+                accessToken,
+                `/stats/accounts/${accountId}`,
+                {
+                  end_time: window.endTime,
+                  entity,
+                  entity_ids: ids,
+                  granularity: params.granularity ?? 'TOTAL',
+                  metric_groups: metricGroups,
+                  placement,
+                  start_time: window.startTime,
+                },
+              );
+              const isConversionRequest = metricGroups[0] === 'WEB_CONVERSION';
+
+              for (const row of response) {
+                const totals =
+                  totalsById.get(row.id) ?? createEmptyStatsAccumulator();
+                for (const idData of row.id_data) {
+                  if (isConversionRequest) {
+                    totals.conversions += sumPurchaseConversions(
+                      idData.metrics.conversion_purchases,
+                    );
+                    totals.conversionValueMicro += sumPurchaseSaleAmount(
+                      idData.metrics.conversion_purchases,
+                    );
+                    continue;
+                  }
+
+                  totals.billedChargeMicro += sumNumericMetric(
+                    idData.metrics.billed_charge_local_micro,
+                  );
+                  totals.billedEngagements += sumNumericMetric(
+                    idData.metrics.billed_engagements,
+                  );
+                  totals.clicks += sumNumericMetric(idData.metrics.clicks);
+                  totals.impressions += sumNumericMetric(
+                    idData.metrics.impressions,
+                  );
+                }
+                totalsById.set(row.id, totals);
+              }
+            }
+          }
+        }
       }
 
-      return rows.map((row) => {
-        const metrics = row.id_data[0]?.metrics ?? {};
-        const sum = (values: number[] | null | undefined) =>
-          (values ?? []).reduce((total, value) => total + (value ?? 0), 0);
-
-        return {
-          endTime: params.endDate,
-          id: row.id,
-          metrics: {
-            billedCharge: sum(metrics.billed_charge_local_micro) / 1_000_000,
-            billedEngagements: sum(metrics.billed_engagements),
-            clicks: sum(metrics.clicks),
-            conversionValue: sum(metrics.conversion_purchases_value),
-            conversions: sum(metrics.conversion_purchases),
-            impressions: sum(metrics.impressions),
-          },
-          startTime: params.startDate,
-        };
-      });
+      return Array.from(totalsById, ([id, totals]) => ({
+        endTime,
+        id,
+        metrics: {
+          billedCharge: totals.billedChargeMicro / 1_000_000,
+          billedEngagements: totals.billedEngagements,
+          clicks: totals.clicks,
+          conversionValue: totals.conversionValueMicro / 1_000_000,
+          conversions: totals.conversions,
+          impressions: totals.impressions,
+        },
+        startTime,
+      }));
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;
@@ -641,12 +695,140 @@ export class XAdsService {
   }
 }
 
+type XAdsNumericMetric = number | Array<number | null> | null;
+
+interface XAdsConversionMetricWireShape {
+  assisted?: XAdsNumericMetric;
+  order_quantity?: XAdsNumericMetric;
+  post_engagement?: XAdsNumericMetric;
+  post_view?: XAdsNumericMetric;
+  sale_amount?: XAdsNumericMetric;
+}
+
+interface XAdsStatsMetricsWireShape {
+  billed_charge_local_micro?: XAdsNumericMetric;
+  billed_engagements?: XAdsNumericMetric;
+  clicks?: XAdsNumericMetric;
+  conversion_purchases?: XAdsConversionMetricWireShape | XAdsNumericMetric;
+  impressions?: XAdsNumericMetric;
+}
+
 interface XAdsStatsWireShape {
   id: string;
   id_data: Array<{
     segment?: unknown;
-    metrics: Record<string, number[] | null>;
+    metrics: XAdsStatsMetricsWireShape;
   }>;
+}
+
+interface XAdsStatsAccumulator {
+  billedChargeMicro: number;
+  billedEngagements: number;
+  clicks: number;
+  conversions: number;
+  conversionValueMicro: number;
+  impressions: number;
+}
+
+function createEmptyStatsAccumulator(): XAdsStatsAccumulator {
+  return {
+    billedChargeMicro: 0,
+    billedEngagements: 0,
+    clicks: 0,
+    conversions: 0,
+    conversionValueMicro: 0,
+    impressions: 0,
+  };
+}
+
+function isConversionMetric(
+  value: XAdsConversionMetricWireShape | XAdsNumericMetric | undefined,
+): value is XAdsConversionMetricWireShape {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeReportingBoundary(value: string, field: string): string {
+  const candidate = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? `${value}T00:00:00Z`
+    : value;
+  const parsed = new Date(candidate);
+
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getUTCMinutes() !== 0 ||
+    parsed.getUTCSeconds() !== 0 ||
+    parsed.getUTCMilliseconds() !== 0
+  ) {
+    throw new BadRequestException(
+      `X Ads reporting ${field} must be a valid ISO 8601 whole-hour boundary`,
+    );
+  }
+
+  return parsed.toISOString().replace('.000Z', 'Z');
+}
+
+function buildReportingWindows(
+  startTime: string,
+  endTime: string,
+): Array<{ endTime: string; startTime: string }> {
+  const startMs = new Date(startTime).getTime();
+  const endMs = new Date(endTime).getTime();
+  if (endMs <= startMs) {
+    throw new BadRequestException(
+      'X Ads reporting endDate must be after startDate',
+    );
+  }
+
+  const windows: Array<{ endTime: string; startTime: string }> = [];
+  for (
+    let windowStartMs = startMs;
+    windowStartMs < endMs;
+    windowStartMs += X_ADS_STATS_MAX_WINDOW_MS
+  ) {
+    const windowEndMs = Math.min(
+      windowStartMs + X_ADS_STATS_MAX_WINDOW_MS,
+      endMs,
+    );
+    windows.push({
+      endTime: new Date(windowEndMs).toISOString().replace('.000Z', 'Z'),
+      startTime: new Date(windowStartMs).toISOString().replace('.000Z', 'Z'),
+    });
+  }
+
+  return windows;
+}
+
+function sumNumericMetric(value: XAdsNumericMetric | undefined): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (!Array.isArray(value)) {
+    return 0;
+  }
+
+  return value.reduce<number>(
+    (total, entry) =>
+      total + (typeof entry === 'number' && Number.isFinite(entry) ? entry : 0),
+    0,
+  );
+}
+
+function sumPurchaseConversions(
+  value: XAdsConversionMetricWireShape | XAdsNumericMetric | undefined,
+): number {
+  if (!isConversionMetric(value)) {
+    return sumNumericMetric(value);
+  }
+
+  return (
+    sumNumericMetric(value.post_view) + sumNumericMetric(value.post_engagement)
+  );
+}
+
+function sumPurchaseSaleAmount(
+  value: XAdsConversionMetricWireShape | XAdsNumericMetric | undefined,
+): number {
+  return isConversionMetric(value) ? sumNumericMetric(value.sale_amount) : 0;
 }
 
 interface XAdsCampaignWireShape {

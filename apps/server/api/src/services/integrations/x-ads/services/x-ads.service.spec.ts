@@ -47,6 +47,30 @@ const promotedTweetWire = (id: string) => ({
   tweet_id: `tweet-${id}`,
 });
 
+/**
+ * Recorded from the public X Ads v12 analytics contract. Standard metrics are
+ * time-series arrays, while web conversions are nested attribution objects.
+ * Keeping the literal wire keys here protects the provider boundary without
+ * requiring credentials or a network call.
+ */
+const recordedStatsMetrics = {
+  billingAndEngagement: {
+    billed_charge_local_micro: [2_000_000, null],
+    billed_engagements: 3,
+    clicks: [8, 2],
+    impressions: [80, 20],
+  },
+  webConversion: {
+    conversion_purchases: {
+      assisted: [99],
+      order_quantity: [4],
+      post_engagement: 1,
+      post_view: [2],
+      sale_amount: [4_500_000],
+    },
+  },
+} as const;
+
 describe('XAdsService', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
@@ -447,51 +471,152 @@ describe('XAdsService', () => {
   });
 
   describe('reporting', () => {
-    it('chunks stats entity IDs at 200 and combines every response', async () => {
-      const entityIds = Array.from(
-        { length: 201 },
-        (_, index) => `pt-${index}`,
-      );
-      httpService.get
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [
-              {
-                id: 'pt-0',
-                id_data: [{ metrics: { clicks: [2], impressions: [20] } }],
-              },
-            ],
-          }),
-        )
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [
-              {
-                id: 'pt-200',
-                id_data: [{ metrics: { clicks: [4], impressions: [40] } }],
-              },
-            ],
-          }),
-        );
+    it('chunks at 20 IDs and requests every current placement and required metric group', async () => {
+      const entityIds = Array.from({ length: 21 }, (_, index) => `pt-${index}`);
+      httpService.get.mockImplementation((_url, options) => {
+        const requestParams = options.params as Record<string, string>;
+        const requestedIds = requestParams.entity_ids.split(',');
+        const shouldReturnRows =
+          requestParams.metric_groups === 'ENGAGEMENT,BILLING' &&
+          requestParams.placement === 'ALL_ON_TWITTER';
+
+        return axiosResponse({
+          data: shouldReturnRows
+            ? [
+                {
+                  id: requestedIds[0],
+                  id_data: [{ metrics: { clicks: [2], impressions: [20] } }],
+                },
+              ]
+            : [],
+        });
+      });
 
       const result = await service.getPromotedTweetStats(
         'access-token',
         'account-1',
         entityIds,
-        { endDate: '2026-08-23', startDate: '2026-08-01' },
+        { endDate: '2026-08-23', startDate: '2026-08-16' },
       );
 
-      expect(result.map(({ id }) => id)).toEqual(['pt-0', 'pt-200']);
-      const firstParams = httpService.get.mock.calls[0]?.[1]?.params as Record<
-        string,
-        string
-      >;
-      const secondParams = httpService.get.mock.calls[1]?.[1]?.params as Record<
-        string,
-        string
-      >;
-      expect(firstParams.entity_ids.split(',')).toHaveLength(200);
-      expect(secondParams.entity_ids).toBe('pt-200');
+      expect(result.map(({ id }) => id)).toEqual(['pt-0', 'pt-20']);
+      expect(httpService.get).toHaveBeenCalledTimes(12);
+
+      const requests = httpService.get.mock.calls.map(
+        (call) => call[1]?.params as Record<string, string>,
+      );
+      expect(
+        requests.every(({ entity_ids: ids }) => ids.split(',').length <= 20),
+      ).toBe(true);
+      expect(new Set(requests.map(({ placement }) => placement))).toEqual(
+        new Set(['ALL_ON_TWITTER', 'SPOTLIGHT', 'TREND']),
+      );
+      expect(
+        new Set(requests.map(({ metric_groups: groups }) => groups)),
+      ).toEqual(new Set(['ENGAGEMENT,BILLING', 'WEB_CONVERSION']));
+      expect(
+        requests.every(
+          ({ end_time: endTime, start_time: startTime }) =>
+            endTime === '2026-08-23T00:00:00Z' &&
+            startTime === '2026-08-16T00:00:00Z',
+        ),
+      ).toBe(true);
+    });
+
+    it('maps the recorded conversion object and sums all three placement responses', async () => {
+      httpService.get.mockImplementation((_url, options) => {
+        const requestParams = options.params as Record<string, string>;
+        const isConversion = requestParams.metric_groups === 'WEB_CONVERSION';
+        const isAllOnX = requestParams.placement === 'ALL_ON_TWITTER';
+        const isTrend = requestParams.placement === 'TREND';
+        const metrics = isConversion
+          ? isAllOnX
+            ? recordedStatsMetrics.webConversion
+            : isTrend
+              ? {
+                  conversion_purchases: {
+                    post_engagement: [1],
+                    post_view: null,
+                    sale_amount: 500_000,
+                  },
+                }
+              : { conversion_purchases: null }
+          : isAllOnX
+            ? recordedStatsMetrics.billingAndEngagement
+            : isTrend
+              ? {
+                  billed_charge_local_micro: 500_000,
+                  billed_engagements: null,
+                  clicks: null,
+                  impressions: 20,
+                }
+              : {};
+
+        return axiosResponse({
+          data: [{ id: 'pt-1', id_data: [{ metrics }] }],
+        });
+      });
+
+      const result = await service.getPromotedTweetStats(
+        'access-token',
+        'account-1',
+        ['pt-1'],
+        { endDate: '2026-08-23', startDate: '2026-08-16' },
+      );
+
+      expect(result).toEqual([
+        {
+          endTime: '2026-08-23T00:00:00Z',
+          id: 'pt-1',
+          metrics: {
+            billedCharge: 2.5,
+            billedEngagements: 3,
+            clicks: 10,
+            conversionValue: 5,
+            conversions: 4,
+            impressions: 120,
+          },
+          startTime: '2026-08-16T00:00:00Z',
+        },
+      ]);
+    });
+
+    it('splits the default 30-day range into contiguous end-exclusive windows', async () => {
+      httpService.get.mockReturnValue(axiosResponse({ data: [] }));
+
+      await service.getCampaignStats(
+        'access-token',
+        'account-1',
+        ['campaign-1'],
+        { endDate: '2026-08-31', startDate: '2026-08-01' },
+      );
+
+      expect(httpService.get).toHaveBeenCalledTimes(30);
+      const windows = new Set(
+        httpService.get.mock.calls.map((call) => {
+          const requestParams = call[1]?.params as Record<string, string>;
+          return `${requestParams.start_time}/${requestParams.end_time}`;
+        }),
+      );
+      expect(windows).toEqual(
+        new Set([
+          '2026-08-01T00:00:00Z/2026-08-08T00:00:00Z',
+          '2026-08-08T00:00:00Z/2026-08-15T00:00:00Z',
+          '2026-08-15T00:00:00Z/2026-08-22T00:00:00Z',
+          '2026-08-22T00:00:00Z/2026-08-29T00:00:00Z',
+          '2026-08-29T00:00:00Z/2026-08-31T00:00:00Z',
+        ]),
+      );
+    });
+
+    it('rejects reporting boundaries that are not whole hours', async () => {
+      await expect(
+        service.getCampaignStats('access-token', 'account-1', ['campaign-1'], {
+          endDate: '2026-08-23T00:30:00Z',
+          startDate: '2026-08-01T00:00:00Z',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(httpService.get).not.toHaveBeenCalled();
     });
 
     it('does not call X when there are no entity IDs', async () => {
