@@ -154,19 +154,6 @@ describe('OrganizationsSettingsController', () => {
   describe('getSettings', () => {
     const organizationId = testId('org');
 
-    it('should return organization settings', async () => {
-      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
-        mockOrganizationSettings,
-      );
-
-      const result = await controller.getSettings(mockReq, organizationId);
-
-      expect(
-        organizationSettingsService.ensureForOrganization,
-      ).toHaveBeenCalledWith(organizationId);
-      expect(result).toBeDefined();
-    });
-
     it('prefers the repaired request context organization id when the path is stale', async () => {
       mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
@@ -207,31 +194,6 @@ describe('OrganizationsSettingsController', () => {
       isWhitelabelEnabled: true,
     };
 
-    it('should update settings when settings exist', async () => {
-      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
-        mockOrganizationSettings,
-      );
-      mockOrganizationSettingsService.patch.mockResolvedValue({
-        ...mockOrganizationSettings,
-        ...updateDto,
-      });
-
-      const result = await controller.updateSettings(
-        mockReq,
-        organizationId,
-        updateDto,
-      );
-
-      expect(
-        organizationSettingsService.ensureForOrganization,
-      ).toHaveBeenCalledWith(organizationId);
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith(
-        mockOrganizationSettings.id,
-        updateDto,
-      );
-      expect(result).toBeDefined();
-    });
-
     it('patches the setting returned by the canonical get-or-create policy', async () => {
       mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
@@ -254,7 +216,10 @@ describe('OrganizationsSettingsController', () => {
         mockOrganizationSettings.id,
         updateDto,
       );
-      expect(result).toBeDefined();
+      expect(result).toEqual({
+        ...mockOrganizationSettings,
+        ...updateDto,
+      });
     });
 
     it('rejects invalid avatar defaults before creating missing settings', async () => {

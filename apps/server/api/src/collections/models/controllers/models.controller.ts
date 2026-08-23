@@ -243,14 +243,7 @@ export class ModelsController extends BaseCRUDController<
       const organizationSettingsService = this.getOrganizationSettingsService();
       const seededSettings =
         await organizationSettingsService.ensureForOrganization(requestedOrgId);
-
-      const rawEnabledModelIds = (seededSettings as Record<string, unknown>)
-        .enabledModelIds;
-      const enabledModelIds = Array.isArray(rawEnabledModelIds)
-        ? rawEnabledModelIds.filter(
-            (id): id is string => typeof id === 'string',
-          )
-        : [];
+      const enabledModelIds = seededSettings.enabledModelIds;
 
       if (enabledModelIds.length > 0) {
         where.AND = [
