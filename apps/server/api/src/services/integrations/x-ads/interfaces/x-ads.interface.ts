@@ -43,6 +43,8 @@ export interface XAdsLineItem {
   productType: string;
   objective: string;
   bidAmountLocalMicro?: number;
+  dailyBudgetAmountLocalMicro?: number;
+  totalBudgetAmountLocalMicro?: number;
   targeting?: Record<string, unknown>;
   placements?: string[];
   startTime?: string;
@@ -117,6 +119,8 @@ export interface XAdsCreateLineItemParams {
   productType: string;
   objective: string;
   bidAmountLocalMicro?: number;
+  dailyBudgetAmountLocalMicro?: number;
+  totalBudgetAmountLocalMicro?: number;
   targeting?: Record<string, unknown>;
   placements?: string[];
   startTime?: string;

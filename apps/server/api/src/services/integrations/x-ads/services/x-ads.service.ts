@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   XAdsAccount,
   XAdsApiResponse,
@@ -20,7 +21,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 type XAdsReportingEntity = 'CAMPAIGN' | 'LINE_ITEM' | 'PROMOTED_TWEET';
@@ -35,12 +40,14 @@ type XAdsReportingEntity = 'CAMPAIGN' | 'LINE_ITEM' | 'PROMOTED_TWEET';
  */
 @Injectable()
 export class XAdsService {
-  private static readonly API_VERSION = 'v12';
+  private static readonly API_VERSION = '12';
   private static readonly BASE_URL = 'https://ads-api.x.com';
   private static readonly RATE_LIMIT_DELAY_MS = 250;
+  private static readonly STATS_ENTITY_ID_LIMIT = 200;
 
   private readonly constructorName: string = String(this.constructor.name);
   private lastRequestTime = 0;
+  private rateLimitQueue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly credentialsService: CredentialsService,
@@ -57,12 +64,19 @@ export class XAdsService {
 
     const credential = await this.credentialsService.findOne({
       brandId,
+      isDeleted: false,
       organizationId,
       platform: CredentialPlatform.X_ADS,
     });
 
-    if (!credential?.refreshToken) {
-      throw new Error('X Ads credential not found');
+    if (!credential) {
+      throw new NotFoundException('X Ads credential');
+    }
+
+    if (!credential.refreshToken) {
+      throw new BadRequestException(
+        'X Ads credential does not include a refresh token',
+      );
     }
 
     try {
@@ -96,15 +110,13 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.makeRequest<
-        Array<{
-          id: string;
-          name: string;
-          timezone: string;
-          currency: string;
-          approval_status: string;
-        }>
-      >(accessToken, '/accounts');
+      const response = await this.makePaginatedRequest<{
+        id: string;
+        name: string;
+        timezone: string;
+        currency: string;
+        approval_status: string;
+      }>(accessToken, '/accounts');
 
       return response.map((account) => ({
         approvalStatus: account.approval_status,
@@ -126,14 +138,12 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.makeRequest<
-        Array<{
-          id: string;
-          type: string;
-          entity_status: XAdsEntityStatus;
-          currency: string;
-        }>
-      >(accessToken, `/accounts/${accountId}/funding_instruments`);
+      const response = await this.makePaginatedRequest<{
+        id: string;
+        type: string;
+        entity_status: XAdsEntityStatus;
+        currency: string;
+      }>(accessToken, `/accounts/${accountId}/funding_instruments`);
 
       return response.map((instrument) => ({
         currency: instrument.currency,
@@ -154,7 +164,7 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const response = await this.makeRequest<Array<XAdsCampaignWireShape>>(
+      const response = await this.makePaginatedRequest<XAdsCampaignWireShape>(
         accessToken,
         `/accounts/${accountId}/campaigns`,
       );
@@ -232,10 +242,10 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const query = campaignId ? `?campaign_ids=${campaignId}` : '';
-      const response = await this.makeRequest<Array<XAdsLineItemWireShape>>(
+      const response = await this.makePaginatedRequest<XAdsLineItemWireShape>(
         accessToken,
-        `/accounts/${accountId}/line_items${query}`,
+        `/accounts/${accountId}/line_items`,
+        { campaign_ids: campaignId },
       );
 
       return response.map(mapWireLineItem);
@@ -253,12 +263,19 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      if (params.targeting && Object.keys(params.targeting).length > 0) {
+        throw new BadRequestException(
+          'X Ads targeting criteria require the dedicated targeting-criteria flow, which is not supported by this operation',
+        );
+      }
+
       const wireLineItem = await this.makePostRequest<XAdsLineItemWireShape>(
         accessToken,
         `/accounts/${accountId}/line_items`,
         {
           bid_amount_local_micro: params.bidAmountLocalMicro,
           campaign_id: params.campaignId,
+          daily_budget_amount_local_micro: params.dailyBudgetAmountLocalMicro,
           end_time: params.endTime,
           entity_status: params.entityStatus,
           name: params.name,
@@ -266,7 +283,7 @@ export class XAdsService {
           placements: params.placements,
           product_type: params.productType,
           start_time: params.startTime,
-          targeting_criteria: params.targeting,
+          total_budget_amount_local_micro: params.totalBudgetAmountLocalMicro,
         },
       );
 
@@ -285,10 +302,12 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const query = lineItemId ? `?line_item_ids=${lineItemId}` : '';
-      const response = await this.makeRequest<
-        Array<XAdsPromotedTweetWireShape>
-      >(accessToken, `/accounts/${accountId}/promoted_tweets${query}`);
+      const response =
+        await this.makePaginatedRequest<XAdsPromotedTweetWireShape>(
+          accessToken,
+          `/accounts/${accountId}/promoted_tweets`,
+          { line_item_ids: lineItemId },
+        );
 
       return response.map(mapWirePromotedTweet);
     } catch (error: unknown) {
@@ -305,15 +324,19 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const wirePromotedTweet =
-        await this.makePostRequest<XAdsPromotedTweetWireShape>(
-          accessToken,
-          `/accounts/${accountId}/promoted_tweets`,
-          {
-            line_item_id: params.lineItemId,
-            tweet_ids: [params.tweetId],
-          },
+      const wirePromotedTweets = await this.makePostRequest<
+        XAdsPromotedTweetWireShape[]
+      >(accessToken, `/accounts/${accountId}/promoted_tweets`, {
+        line_item_id: params.lineItemId,
+        tweet_ids: [params.tweetId],
+      });
+
+      const wirePromotedTweet = wirePromotedTweets[0];
+      if (!wirePromotedTweet) {
+        throw new BadGatewayException(
+          'X Ads API returned an empty promoted-tweet batch',
         );
+      }
 
       return mapWirePromotedTweet(wirePromotedTweet);
     } catch (error: unknown) {
@@ -377,26 +400,36 @@ export class XAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const query = new URLSearchParams({
-        end_time: params.endDate,
-        entity,
-        entity_ids: entityIds.join(','),
-        granularity: params.granularity ?? 'TOTAL',
-        placement: 'ALL_ON_TWITTER',
-        start_time: params.startDate,
-      });
+      if (entityIds.length === 0) {
+        return [];
+      }
 
-      const response = await this.makeRequest<
-        Array<{
-          id: string;
-          id_data: Array<{
-            segment?: unknown;
-            metrics: Record<string, number[] | null>;
-          }>;
-        }>
-      >(accessToken, `/stats/accounts/${accountId}?${query.toString()}`);
+      const rows: XAdsStatsWireShape[] = [];
+      for (
+        let index = 0;
+        index < entityIds.length;
+        index += XAdsService.STATS_ENTITY_ID_LIMIT
+      ) {
+        const ids = entityIds.slice(
+          index,
+          index + XAdsService.STATS_ENTITY_ID_LIMIT,
+        );
+        const response = await this.makeRequest<XAdsStatsWireShape[]>(
+          accessToken,
+          `/stats/accounts/${accountId}`,
+          {
+            end_time: params.endDate,
+            entity,
+            entity_ids: ids,
+            granularity: params.granularity ?? 'TOTAL',
+            placement: 'ALL_ON_TWITTER',
+            start_time: params.startDate,
+          },
+        );
+        rows.push(...response);
+      }
 
-      return response.map((row) => {
+      return rows.map((row) => {
         const metrics = row.id_data[0]?.metrics ?? {};
         const sum = (values: number[] | null | undefined) =>
           (values ?? []).reduce((total, value) => total + (value ?? 0), 0);
@@ -424,45 +457,102 @@ export class XAdsService {
   private getHeaders(accessToken: string): Record<string, string> {
     return {
       Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
     };
   }
 
   private async rateLimit(): Promise<void> {
-    const elapsed = Date.now() - this.lastRequestTime;
-    if (elapsed < XAdsService.RATE_LIMIT_DELAY_MS) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, XAdsService.RATE_LIMIT_DELAY_MS - elapsed),
-      );
-    }
-    this.lastRequestTime = Date.now();
+    const reservation = this.rateLimitQueue.then(async () => {
+      const elapsed = Date.now() - this.lastRequestTime;
+      if (elapsed < XAdsService.RATE_LIMIT_DELAY_MS) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, XAdsService.RATE_LIMIT_DELAY_MS - elapsed),
+        );
+      }
+      this.lastRequestTime = Date.now();
+    });
+
+    this.rateLimitQueue = reservation.catch(() => undefined);
+    await reservation;
   }
 
-  private async makeRequest<T>(accessToken: string, path: string): Promise<T> {
+  private async makeRequest<T>(
+    accessToken: string,
+    path: string,
+    params?: Record<string, unknown>,
+  ): Promise<T> {
+    const envelope = await this.makeRequestEnvelope<T>(
+      accessToken,
+      path,
+      params,
+    );
+    return this.validateResponse(envelope);
+  }
+
+  private async makePaginatedRequest<T>(
+    accessToken: string,
+    path: string,
+    params: Record<string, unknown> = {},
+  ): Promise<T[]> {
+    const rows: T[] = [];
+    let cursor: string | undefined;
+
+    do {
+      const envelope = await this.makeRequestEnvelope<T[]>(
+        accessToken,
+        path,
+        cursor ? { ...params, cursor } : params,
+      );
+      rows.push(...this.validateResponse(envelope));
+
+      const nextCursor = envelope.next_cursor || undefined;
+      if (nextCursor && nextCursor === cursor) {
+        throw new BadGatewayException(
+          'X Ads API returned a repeated pagination cursor',
+        );
+      }
+      cursor = nextCursor;
+    } while (cursor);
+
+    return rows;
+  }
+
+  private async makeRequestEnvelope<T>(
+    accessToken: string,
+    path: string,
+    params?: Record<string, unknown>,
+  ): Promise<XAdsApiResponse<T>> {
     await this.rateLimit();
 
     const response = await firstValueFrom(
       this.httpService.get<XAdsApiResponse<T>>(
         `${XAdsService.BASE_URL}/${XAdsService.API_VERSION}${path}`,
-        { headers: this.getHeaders(accessToken), timeout: 15000 },
+        {
+          headers: this.getHeaders(accessToken),
+          params: this.toQueryParams(params),
+          timeout: 15000,
+        },
       ),
     );
 
-    return this.validateResponse(response.data);
+    return response.data;
   }
 
   private async makePostRequest<T>(
     accessToken: string,
     path: string,
-    body: Record<string, unknown>,
+    params: Record<string, unknown>,
   ): Promise<T> {
     await this.rateLimit();
 
     const response = await firstValueFrom(
       this.httpService.post<XAdsApiResponse<T>>(
         `${XAdsService.BASE_URL}/${XAdsService.API_VERSION}${path}`,
-        body,
-        { headers: this.getHeaders(accessToken), timeout: 15000 },
+        undefined,
+        {
+          headers: this.getHeaders(accessToken),
+          params: this.toQueryParams(params),
+          timeout: 15000,
+        },
       ),
     );
 
@@ -472,15 +562,19 @@ export class XAdsService {
   private async makePutRequest<T>(
     accessToken: string,
     path: string,
-    body: Record<string, unknown>,
+    params: Record<string, unknown>,
   ): Promise<T> {
     await this.rateLimit();
 
     const response = await firstValueFrom(
       this.httpService.put<XAdsApiResponse<T>>(
         `${XAdsService.BASE_URL}/${XAdsService.API_VERSION}${path}`,
-        body,
-        { headers: this.getHeaders(accessToken), timeout: 15000 },
+        undefined,
+        {
+          headers: this.getHeaders(accessToken),
+          params: this.toQueryParams(params),
+          timeout: 15000,
+        },
       ),
     );
 
@@ -489,10 +583,32 @@ export class XAdsService {
 
   private validateResponse<T>(envelope: XAdsApiResponse<T>): T {
     if (envelope?.data === undefined) {
-      throw new Error('X Ads API returned an empty response');
+      throw new BadGatewayException('X Ads API returned an empty response');
     }
     return envelope.data;
   }
+
+  private toQueryParams(
+    params: Record<string, unknown> | undefined,
+  ): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(params ?? {}).flatMap(([key, value]) => {
+        if (value === undefined) {
+          return [];
+        }
+
+        return [[key, Array.isArray(value) ? value.join(',') : value]];
+      }),
+    );
+  }
+}
+
+interface XAdsStatsWireShape {
+  id: string;
+  id_data: Array<{
+    segment?: unknown;
+    metrics: Record<string, number[] | null>;
+  }>;
 }
 
 interface XAdsCampaignWireShape {
@@ -531,6 +647,8 @@ interface XAdsLineItemWireShape {
   product_type: string;
   objective: string;
   bid_amount_local_micro?: number;
+  daily_budget_amount_local_micro?: number;
+  total_budget_amount_local_micro?: number;
   targeting_criteria?: Record<string, unknown>;
   placements?: string[];
   start_time?: string;
@@ -541,6 +659,7 @@ function mapWireLineItem(wire: XAdsLineItemWireShape): XAdsLineItem {
   return {
     bidAmountLocalMicro: wire.bid_amount_local_micro,
     campaignId: wire.campaign_id,
+    dailyBudgetAmountLocalMicro: wire.daily_budget_amount_local_micro,
     endTime: wire.end_time,
     entityStatus: wire.entity_status,
     id: wire.id,
@@ -550,6 +669,7 @@ function mapWireLineItem(wire: XAdsLineItemWireShape): XAdsLineItem {
     productType: wire.product_type,
     startTime: wire.start_time,
     targeting: wire.targeting_criteria,
+    totalBudgetAmountLocalMicro: wire.total_budget_amount_local_micro,
   };
 }
 
