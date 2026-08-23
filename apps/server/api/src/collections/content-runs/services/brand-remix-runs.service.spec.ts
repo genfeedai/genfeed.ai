@@ -2504,7 +2504,13 @@ describe('BrandRemixRunsService', () => {
         workflowId: 'workflow-1',
       },
     });
-    contentRun.findFirst.mockResolvedValue(created);
+    let stored = created;
+    contentRun.findFirst.mockResolvedValue(stored);
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      contentRun.findFirst.mockResolvedValue(stored);
+      return Promise.resolve({ count: 1 });
+    });
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: 'image-1', status: IngredientStatus.GENERATED },
     ]);

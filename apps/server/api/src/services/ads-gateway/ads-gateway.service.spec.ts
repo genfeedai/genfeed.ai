@@ -1,6 +1,7 @@
 import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.adapter';
 import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
 import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.adapter';
+import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -48,12 +49,14 @@ describe('AdsGatewayService', () => {
   let metaAdapter: ReturnType<typeof makeAdapter>;
   let googleAdapter: ReturnType<typeof makeAdapter>;
   let tiktokAdapter: ReturnType<typeof makeAdapter>;
+  let xAdsAdapter: ReturnType<typeof makeAdapter>;
   let loggerService: vi.Mocked<LoggerService>;
 
   beforeEach(async () => {
     metaAdapter = makeAdapter();
     googleAdapter = makeAdapter();
     tiktokAdapter = makeAdapter();
+    xAdsAdapter = makeAdapter();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -61,6 +64,7 @@ describe('AdsGatewayService', () => {
         { provide: MetaAdsAdapter, useValue: metaAdapter },
         { provide: GoogleAdsAdapter, useValue: googleAdapter },
         { provide: TikTokAdsAdapter, useValue: tiktokAdapter },
+        { provide: XAdsAdapter, useValue: xAdsAdapter },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
