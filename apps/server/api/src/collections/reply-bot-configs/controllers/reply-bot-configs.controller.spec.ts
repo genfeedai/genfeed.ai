@@ -173,4 +173,32 @@ describe('ReplyBotConfigsController', () => {
       expect(result).toEqual(mockStatus);
     });
   });
+
+  describe('buildFindAllQuery', () => {
+    it('ignores a foreign organizationId in the query for non-superadmin users', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        organizationId: 'org-foreign',
+      } as never);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId: 'org-123' }),
+        }),
+      );
+    });
+
+    it('honors a query organizationId override for superadmin users', () => {
+      const superAdmin = { ...mockUser, isSuperAdmin: true } as never;
+
+      const result = controller.buildFindAllQuery(superAdmin, {
+        organizationId: 'org-foreign',
+      } as never);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId: 'org-foreign' }),
+        }),
+      );
+    });
+  });
 });
