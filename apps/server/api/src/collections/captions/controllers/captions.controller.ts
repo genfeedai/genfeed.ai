@@ -118,9 +118,14 @@ export class CaptionsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const ingredient: IngredientDocument | null =
-      await this.ingredientsService.findOne({
-        id: createCaptionDto.ingredientId,
-      });
+      await this.ingredientsService.findOne(
+        {
+          id: createCaptionDto.ingredientId,
+          isDeleted: false,
+          organizationId: user.organizationId,
+        },
+        [{ path: 'metadata' }],
+      );
 
     if (!ingredient) {
       return returnNotFound(
@@ -165,6 +170,11 @@ export class CaptionsController {
 
     const captionContent = await this.whisperService.generateCaptions(
       ingredient.id.toString(),
+      {
+        cdnUrl: ingredient.cdnUrl,
+        metadata: ingredient.metadata,
+        s3Key: ingredient.s3Key,
+      },
     );
 
     const captionInput = {

@@ -24,6 +24,7 @@ function createMocks() {
     },
     evaluationsOperationsService: {
       evaluatePost: vi.fn(),
+      evaluateVideo: vi.fn(),
     },
     logger: {
       debug: vi.fn(),
@@ -84,6 +85,46 @@ describe('EvaluationsService review and comparison workflow', () => {
       expect(mocks.videosService.findOne).toHaveBeenCalledWith(
         { id: 'video-1', isDeleted: false, organizationId },
         expect.any(Array),
+      );
+    });
+
+    it('evaluates a generated video that has s3Key but no metadata.result', async () => {
+      mocks.videosService.findOne.mockResolvedValue({
+        brand: { name: 'FUD News' },
+        id: 'video-1',
+        metadata: {},
+        prompt: { original: 'A red apple on a table' },
+        s3Key: 'ingredients/videos/video-1.mp4',
+      });
+      mocks.evaluationsOperationsService.evaluateVideo.mockResolvedValue({
+        analysis: { summary: 'ok' },
+        flags: {},
+        overallScore: 82,
+        scores: {},
+      });
+      mocks.creditsUtilsService.deductCreditsFromOrganization.mockResolvedValue(
+        undefined,
+      );
+      mocks.prisma.evaluation.create.mockResolvedValue({
+        id: 'eval-video-1',
+      });
+
+      const evaluation = await service.evaluateVideo(
+        'video-1',
+        'pre_publication' as never,
+        organizationId,
+        reviewerId,
+        'brand-1',
+      );
+
+      expect(evaluation.id).toBe('eval-video-1');
+      expect(
+        mocks.evaluationsOperationsService.evaluateVideo,
+      ).toHaveBeenCalledWith(
+        'https://cdn.genfeed.ai/ingredients/videos/video-1.mp4',
+        expect.any(Object),
+        organizationId,
+        expect.any(Function),
       );
     });
   });

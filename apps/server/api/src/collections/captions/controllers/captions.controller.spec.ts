@@ -194,6 +194,8 @@ describe('CaptionsController', () => {
       deps.ingredientsService.findOne.mockResolvedValue({
         id: ingredientId,
         category: IngredientCategory.VIDEO,
+        cdnUrl: 'https://cdn.genfeed.ai/ingredients/videos/clip.mp4',
+        s3Key: 'ingredients/videos/clip.mp4',
         status: IngredientStatus.GENERATED,
       });
       deps.whisperService.generateCaptions.mockResolvedValue(captionContent);
@@ -218,8 +220,21 @@ describe('CaptionsController', () => {
       );
 
       expect(result).toBeDefined();
+      expect(deps.ingredientsService.findOne).toHaveBeenCalledWith(
+        {
+          id: ingredientId,
+          isDeleted: false,
+          organizationId,
+        },
+        [{ path: 'metadata' }],
+      );
       expect(deps.whisperService.generateCaptions).toHaveBeenCalledWith(
         ingredientId.toString(),
+        {
+          cdnUrl: 'https://cdn.genfeed.ai/ingredients/videos/clip.mp4',
+          metadata: undefined,
+          s3Key: 'ingredients/videos/clip.mp4',
+        },
       );
       expect(deps.captionsService.create).toHaveBeenCalledWith(
         expect.objectContaining({

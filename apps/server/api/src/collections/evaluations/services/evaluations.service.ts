@@ -19,6 +19,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -35,6 +36,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -68,8 +70,20 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     @Optional() private readonly videosService?: VideosService,
     @Optional() private readonly articlesService?: ArticlesService,
     @Optional() private readonly postsService?: PostsService,
+    @Optional() private readonly configService?: ConfigService,
   ) {
     super(prisma, 'evaluation', logger);
+  }
+
+  private resolveMediaUrl(ingredient: {
+    cdnUrl?: string | null;
+    s3Key?: string | null;
+    metadata?: { result?: string | null } | string | null;
+  }): string | undefined {
+    return resolveIngredientMediaUrl(
+      ingredient,
+      this.configService?.cdnUrl ?? 'https://cdn.genfeed.ai',
+    );
   }
 
   /**
@@ -93,7 +107,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           [{ path: 'metadata' }],
         );
         if (!video) throw new NotFoundException('Video', contentId);
-        if (!(video.metadata as { result?: string })?.result) {
+        if (!this.resolveMediaUrl(video)) {
           throw new NotFoundException(`Video ${contentId} has no result URL`);
         }
         break;
@@ -105,7 +119,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           [{ path: 'metadata' }],
         );
         if (!image) throw new NotFoundException('Image', contentId);
-        if (!(image.metadata as { result?: string })?.result) {
+        if (!this.resolveMediaUrl(image)) {
           throw new NotFoundException(`Image ${contentId} has no result URL`);
         }
         break;
@@ -215,8 +229,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     if (!video) throw new NotFoundException('Video', videoId);
 
-    const metadata = video.metadata as { result?: string };
-    const videoUrl = metadata?.result;
+    const videoUrl = this.resolveMediaUrl(video);
     if (!videoUrl)
       throw new NotFoundException(`Video ${videoId} has no result URL`);
 
@@ -286,8 +299,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     if (!image) throw new NotFoundException('Image', imageId);
 
-    const metadata = image.metadata as { result?: string };
-    const imageUrl = metadata?.result;
+    const imageUrl = this.resolveMediaUrl(image);
     if (!imageUrl)
       throw new NotFoundException(`Image ${imageId} has no result URL`);
 

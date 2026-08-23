@@ -1,5 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  type IngredientMediaSource,
+  resolveIngredientMediaUrl,
+} from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { FileInputType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -104,8 +108,9 @@ export class WhisperService {
     }
   }
 
-  private async downloadVideo(id: string): Promise<Buffer> {
-    const url = `${this.configService.ingredientsEndpoint}/videos/${id}`;
+  private async downloadVideo(id: string, videoUrl?: string): Promise<Buffer> {
+    const url =
+      videoUrl ?? `${this.configService.ingredientsEndpoint}/videos/${id}`;
     this.loggerService.log(`Attempting to download video from: ${url}`);
 
     try {
@@ -150,15 +155,22 @@ export class WhisperService {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(millis).padStart(3, '0')}`;
   }
 
-  public async generateCaptions(id: string): Promise<string> {
+  public async generateCaptions(
+    id: string,
+    source?: IngredientMediaSource,
+  ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(
       `${url} Starting caption generation for ingredient: ${id}`,
     );
 
+    const videoUrl = source
+      ? resolveIngredientMediaUrl(source, this.configService.cdnUrl)
+      : undefined;
+
     let videoBuffer: Buffer;
     try {
-      videoBuffer = await this.downloadVideo(id);
+      videoBuffer = await this.downloadVideo(id, videoUrl);
     } catch (error: unknown) {
       this.loggerService.error(`${url} Failed to download video`, error);
 
