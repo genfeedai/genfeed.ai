@@ -20,6 +20,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
@@ -31,7 +32,6 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 
 describe('OrganizationsSettingsController', () => {
   let controller: OrganizationsSettingsController;
@@ -65,8 +65,7 @@ describe('OrganizationsSettingsController', () => {
   };
 
   const mockOrganizationSettingsService = {
-    ensureEnabledModelIds: vi.fn((settings) => Promise.resolve(settings)),
-    findOne: vi.fn(),
+    ensureForOrganization: vi.fn(),
     patch: vi.fn(),
   };
 
@@ -155,21 +154,8 @@ describe('OrganizationsSettingsController', () => {
   describe('getSettings', () => {
     const organizationId = testId('org');
 
-    it('should return organization settings', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
-        mockOrganizationSettings,
-      );
-
-      const result = await controller.getSettings(mockReq, organizationId);
-
-      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organizationId,
-      });
-      expect(result).toBeDefined();
-    });
-
     it('prefers the repaired request context organization id when the path is stale', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
 
@@ -182,18 +168,23 @@ describe('OrganizationsSettingsController', () => {
         'org_legacy',
       );
 
-      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organizationId: 'org_current',
-      });
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith('org_current');
       expect(result).toBeDefined();
     });
 
-    it('should return not found when settings do not exist', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+    it('serializes the setting returned by the canonical get-or-create policy', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
 
       const result = await controller.getSettings(mockReq, organizationId);
 
-      expect(result).toHaveProperty('statusCode', 404);
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(organizationId);
+      expect(result).toEqual(mockOrganizationSettings);
     });
   });
 
@@ -203,8 +194,8 @@ describe('OrganizationsSettingsController', () => {
       isWhitelabelEnabled: true,
     };
 
-    it('should update settings when settings exist', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
+    it('patches the setting returned by the canonical get-or-create policy', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
         mockOrganizationSettings,
       );
       mockOrganizationSettingsService.patch.mockResolvedValue({
@@ -218,27 +209,20 @@ describe('OrganizationsSettingsController', () => {
         updateDto,
       );
 
-      expect(organizationSettingsService.findOne).toHaveBeenCalled();
-      expect(organizationSettingsService.patch).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
-    it('should return not found when settings do not exist', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
-
-      const result = await controller.updateSettings(
-        mockReq,
-        organizationId,
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(organizationId);
+      expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+        mockOrganizationSettings.id,
         updateDto,
       );
-
-      expect(result).toHaveProperty('statusCode', 404);
+      expect(result).toEqual({
+        ...mockOrganizationSettings,
+        ...updateDto,
+      });
     });
 
-    it('should reject invalid avatar ingredient defaults', async () => {
-      mockOrganizationSettingsService.findOne.mockResolvedValue(
-        mockOrganizationSettings,
-      );
+    it('rejects invalid avatar defaults before creating missing settings', async () => {
       mockIngredientsService.findAvatarImageById.mockResolvedValue(null);
 
       await expect(
@@ -248,6 +232,31 @@ describe('OrganizationsSettingsController', () => {
       ).rejects.toThrow(
         'Default avatar must reference an avatar image ingredient in this organization',
       );
+
+      expect(mockIngredientsService.findAvatarImageById).toHaveBeenCalledWith(
+        'invalid-avatar-id',
+        organizationId,
+      );
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).not.toHaveBeenCalled();
+      expect(organizationSettingsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects an empty model allowlist before creating missing settings', async () => {
+      await expect(
+        controller.updateSettings(mockReq, organizationId, {
+          enabledModelIds: [],
+        }),
+      ).rejects.toThrow(
+        'At least one model must remain enabled for the organization',
+      );
+
+      expect(mockIngredientsService.findAvatarImageById).not.toHaveBeenCalled();
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).not.toHaveBeenCalled();
+      expect(organizationSettingsService.patch).not.toHaveBeenCalled();
     });
   });
 

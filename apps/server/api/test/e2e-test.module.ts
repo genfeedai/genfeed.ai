@@ -298,6 +298,22 @@ export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
  * Individual E2E modules can override any token by providing it after these
  * defaults, while CRUD suites remain hermetic as constructor graphs evolve.
  */
+export const ORGANIZATION_SETTINGS_E2E_MOCK = {
+  create: () => Promise.resolve(null),
+  ensureForOrganization: (organizationId: string) =>
+    Promise.resolve({
+      enabledModelIds: [],
+      id: 'e2e-organization-settings',
+      isGenerateArticlesEnabled: false,
+      isGenerateImagesEnabled: true,
+      isGenerateMusicEnabled: true,
+      isGenerateVideosEnabled: true,
+      organizationId,
+    }),
+  findOne: () => Promise.resolve(null),
+  getLatestMajorVersionModelIds: () => Promise.resolve([]),
+};
+
 export const COLLECTION_E2E_MOCK_PROVIDERS = [
   {
     provide: CredentialCryptoService,
@@ -324,11 +340,7 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
   },
   {
     provide: OrganizationSettingsService,
-    useValue: {
-      create: () => Promise.resolve(null),
-      findOne: () => Promise.resolve(null),
-      getLatestMajorVersionModelIds: () => Promise.resolve([]),
-    },
+    useValue: ORGANIZATION_SETTINGS_E2E_MOCK,
   },
   ...[
     RequestContextCacheService,

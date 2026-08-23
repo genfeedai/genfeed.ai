@@ -398,12 +398,7 @@ describe('ModelsController', () => {
         organizationId: foreignOrgId,
       };
       const settingsService = {
-        ensureEnabledModelIds: vi
-          .fn()
-          .mockImplementation((settings: typeof organizationSettings) =>
-            Promise.resolve(settings),
-          ),
-        findOne: vi.fn().mockResolvedValue(organizationSettings),
+        ensureForOrganization: vi.fn().mockResolvedValue(organizationSettings),
       };
 
       moduleRefGet.mockReturnValue(settingsService);
@@ -419,8 +414,7 @@ describe('ModelsController', () => {
       const queryArg = modelsService.findAll.mock.calls[0][0];
 
       expect(moduleRefGet).not.toHaveBeenCalled();
-      expect(settingsService.ensureEnabledModelIds).not.toHaveBeenCalled();
-      expect(settingsService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.ensureForOrganization).not.toHaveBeenCalled();
       expect(queryArg).toMatchObject({
         where: {
           OR: [
@@ -434,19 +428,15 @@ describe('ModelsController', () => {
       ).toBeUndefined();
     });
 
-    it('seeds an empty allowlist before filtering by organizationId', async () => {
+    it('self-heals missing settings through the canonical policy before filtering', async () => {
       const seededModelId = testId('model', 3);
-      const emptySettings = {
-        enabledModelIds: [],
+      const seededSettings = {
+        enabledModelIds: [seededModelId],
         id: testId('setting'),
         organizationId: mockOrgId,
       };
       const settingsService = {
-        ensureEnabledModelIds: vi.fn().mockResolvedValue({
-          ...emptySettings,
-          enabledModelIds: [seededModelId],
-        }),
-        findOne: vi.fn().mockResolvedValue(emptySettings),
+        ensureForOrganization: vi.fn().mockResolvedValue(seededSettings),
       };
 
       moduleRefGet.mockReturnValue(settingsService);
@@ -457,8 +447,8 @@ describe('ModelsController', () => {
         organizationId: mockOrgId,
       } as ModelsQueryDto);
 
-      expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
-        emptySettings,
+      expect(settingsService.ensureForOrganization).toHaveBeenCalledWith(
+        mockOrgId,
       );
       expect(moduleRefGet).toHaveBeenCalledWith(OrganizationSettingsService, {
         strict: false,
@@ -484,8 +474,7 @@ describe('ModelsController', () => {
         organizationId: mockOrgId,
       };
       const settingsService = {
-        ensureEnabledModelIds: vi.fn().mockResolvedValue(emptySettings),
-        findOne: vi.fn().mockResolvedValue(emptySettings),
+        ensureForOrganization: vi.fn().mockResolvedValue(emptySettings),
       };
 
       moduleRefGet.mockReturnValue(settingsService);
@@ -496,8 +485,8 @@ describe('ModelsController', () => {
         organizationId: mockOrgId,
       } as ModelsQueryDto);
 
-      expect(settingsService.ensureEnabledModelIds).toHaveBeenCalledWith(
-        emptySettings,
+      expect(settingsService.ensureForOrganization).toHaveBeenCalledWith(
+        mockOrgId,
       );
       expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
         where: {
@@ -506,11 +495,73 @@ describe('ModelsController', () => {
       });
     });
 
+    it('reads a foreign organization allowlist without mutating it for a superadmin', async () => {
+      const foreignOrgId = testId('org', 4);
+      const enabledModelId = testId('model', 4);
+      const settingsService = {
+        ensureForOrganization: vi.fn(),
+        findOne: vi.fn().mockResolvedValue({
+          enabledModelIds: [enabledModelId],
+          id: testId('setting', 4),
+          organizationId: foreignOrgId,
+        }),
+      };
+
+      moduleRefGet.mockReturnValue(settingsService);
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
+
+      await controller.findAll(mockSuperAdminRequest, mockSuperAdminUser, {
+        organizationId: foreignOrgId,
+      } as ModelsQueryDto);
+
+      expect(settingsService.findOne).toHaveBeenCalledWith({
+        organizationId: foreignOrgId,
+      });
+      expect(settingsService.ensureForOrganization).not.toHaveBeenCalled();
+      expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
+        where: {
+          AND: [
+            {
+              OR: [
+                { id: { in: [enabledModelId] } },
+                { key: { in: [enabledModelId] } },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    it('returns an empty foreign organization view without creating settings for a superadmin', async () => {
+      const foreignOrgId = testId('org', 6);
+      const settingsService = {
+        ensureForOrganization: vi.fn(),
+        findOne: vi.fn().mockResolvedValue(null),
+      };
+
+      moduleRefGet.mockReturnValue(settingsService);
+      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
+
+      const result = await controller.findAll(
+        mockSuperAdminRequest,
+        mockSuperAdminUser,
+        { organizationId: foreignOrgId } as ModelsQueryDto,
+      );
+
+      expect(result).toBeDefined();
+      expect(settingsService.findOne).toHaveBeenCalledWith({
+        organizationId: foreignOrgId,
+      });
+      expect(settingsService.ensureForOrganization).not.toHaveBeenCalled();
+      expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
+        where: { id: { in: [] } },
+      });
+    });
+
     it('does not seed a foreign organizationId from a non-admin caller', async () => {
       const foreignOrgId = testId('org', 5);
       const settingsService = {
-        ensureEnabledModelIds: vi.fn(),
-        findOne: vi.fn(),
+        ensureForOrganization: vi.fn(),
       };
 
       moduleRefGet.mockReturnValue(settingsService);
@@ -522,8 +573,7 @@ describe('ModelsController', () => {
       } as ModelsQueryDto);
 
       expect(moduleRefGet).not.toHaveBeenCalled();
-      expect(settingsService.findOne).not.toHaveBeenCalled();
-      expect(settingsService.ensureEnabledModelIds).not.toHaveBeenCalled();
+      expect(settingsService.ensureForOrganization).not.toHaveBeenCalled();
     });
   });
 

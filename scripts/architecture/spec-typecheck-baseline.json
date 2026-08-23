@@ -1097,14 +1097,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 11,
-      "file": "apps/server/api/src/collections/organizations/controllers/organizations-settings.controller.spec.ts",
-      "fingerprint": "b3d14fc0d14865acf5d4",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
       "code": 2769,
       "count": 1,
       "file": "apps/server/api/src/collections/organizations/controllers/organizations.controller.spec.ts",

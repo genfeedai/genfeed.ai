@@ -4,6 +4,8 @@ import { allowlistHasLiveModel } from '@api/collections/models/utils/enabled-mod
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
@@ -14,7 +16,7 @@ import {
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSION_ORDER,
@@ -54,6 +56,15 @@ export class OrganizationSettingsService extends BaseService<
 
     this.modelsService = modelsService;
     return modelsService;
+  }
+
+  private async resolveDefaultEnabledModelIds(): Promise<string[]> {
+    return shouldUseLowestCostModelDefaults({
+      isCloud: isCloudDeployment(),
+      nodeEnv: this.configService.get('NODE_ENV'),
+    })
+      ? this.getLowestCostModelIds()
+      : this.getLatestMajorVersionModelIds();
   }
 
   /**
@@ -109,12 +120,7 @@ export class OrganizationSettingsService extends BaseService<
       }
     }
 
-    const enabledModelIds = shouldUseLowestCostModelDefaults({
-      isCloud: isCloudDeployment(),
-      nodeEnv: this.configService.get('NODE_ENV'),
-    })
-      ? await this.getLowestCostModelIds()
-      : await this.getLatestMajorVersionModelIds();
+    const enabledModelIds = await this.resolveDefaultEnabledModelIds();
     if (enabledModelIds.length === 0) {
       return setting;
     }
@@ -122,6 +128,75 @@ export class OrganizationSettingsService extends BaseService<
     return this.patch(setting.id, {
       enabledModelIds,
     });
+  }
+
+  /**
+   * Settings reads (including the org models allowlist) must not 404 when the
+   * row is missing. Demo/cloud orgs created before settings were required, or
+   * rows lost in a migration, still have to toggle models.
+   */
+  async ensureForOrganization(
+    organizationId: string,
+  ): Promise<OrganizationSettingDocument> {
+    const activeOrganization = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: { id: organizationId, isDeleted: false },
+    });
+    if (!activeOrganization) {
+      throw new NotFoundException('Organization', organizationId);
+    }
+
+    const existing = await this.findOne({ organizationId });
+    if (existing) {
+      return this.ensureEnabledModelIds(existing);
+    }
+
+    const enabledModelIds = await this.resolveDefaultEnabledModelIds();
+
+    try {
+      const created = await this.create({
+        brandsLimit: 0,
+        enabledModelIds,
+        isAutoEvaluateEnabled: false,
+        isFastlaneEnabled: false,
+        isGenerateArticlesEnabled: false,
+        isGenerateImagesEnabled: true,
+        isGenerateMusicEnabled: true,
+        isGenerateVideosEnabled: true,
+        isNotificationsDiscordEnabled: false,
+        isNotificationsTelegramEnabled: false,
+        isNotificationsEmailEnabled: true,
+        isVerifyIngredientEnabled: true,
+        isVerifyScriptEnabled: true,
+        isVerifyVideoEnabled: true,
+        isVoiceControlEnabled: false,
+        isWatermarkEnabled: true,
+        isWebhookEnabled: false,
+        isWhitelabelEnabled: false,
+        organizationId,
+        seatsLimit: DEFAULT_FREE_SEATS,
+        timezone: 'UTC',
+      });
+      return created;
+    } catch (error: unknown) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+        throw error;
+      }
+
+      if (error.code === 'P2003') {
+        throw new NotFoundException('Organization', organizationId);
+      }
+
+      if (error.code !== 'P2002') {
+        throw error;
+      }
+
+      const raced = await this.findOne({ organizationId });
+      if (!raced) {
+        throw error;
+      }
+      return this.ensureEnabledModelIds(raced);
+    }
   }
 
   private readJourneyState(

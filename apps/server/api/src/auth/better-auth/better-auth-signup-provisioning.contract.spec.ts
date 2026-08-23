@@ -86,6 +86,10 @@ function createSignupProvisioningHarness() {
       id: 'org_settings_signup',
       organizationId: ORGANIZATION_ID,
     }),
+    ensureForOrganization: vi.fn().mockResolvedValue({
+      id: 'org_settings_signup',
+      organizationId: ORGANIZATION_ID,
+    }),
     findOne: vi.fn().mockResolvedValue(null),
     getLatestMajorVersionModelIds: vi.fn().mockResolvedValue(['model1']),
   };
