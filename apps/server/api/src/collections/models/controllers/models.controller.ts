@@ -241,18 +241,11 @@ export class ModelsController extends BaseCRUDController<
     // to a full latest-model allowlist.
     if (canSeedRequestedOrg && requestedOrgId) {
       const organizationSettingsService = this.getOrganizationSettingsService();
-      const organizationSettings = await organizationSettingsService.findOne({
-        organizationId: requestedOrgId,
-      });
-      const seededSettings = organizationSettings
-        ? await organizationSettingsService.ensureEnabledModelIds(
-            organizationSettings,
-          )
-        : organizationSettings;
+      const seededSettings =
+        await organizationSettingsService.ensureForOrganization(requestedOrgId);
 
-      const rawEnabledModelIds = (
-        seededSettings as Record<string, unknown> | undefined
-      )?.enabledModelIds;
+      const rawEnabledModelIds = (seededSettings as Record<string, unknown>)
+        .enabledModelIds;
       const enabledModelIds = Array.isArray(rawEnabledModelIds)
         ? rawEnabledModelIds.filter(
             (id): id is string => typeof id === 'string',

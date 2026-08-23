@@ -111,11 +111,12 @@ export class ArticlesOperationsController {
     const isXArticle = generationType === ArticleGenerationType.X_ARTICLE;
 
     // Check if article generation is enabled for this organization
-    const orgSettings = await this.organizationSettingsService.findOne({
-      organizationId: user.organizationId,
-    });
+    const orgSettings =
+      await this.organizationSettingsService.ensureForOrganization(
+        user.organizationId,
+      );
 
-    if (orgSettings && !orgSettings.isGenerateArticlesEnabled) {
+    if (!orgSettings.isGenerateArticlesEnabled) {
       throw new ForbiddenException(
         'Article generation is not enabled for this organization',
       );

@@ -80,7 +80,7 @@ describe('ArticlesOperationsController', () => {
   };
 
   const mockOrganizationSettingsService = {
-    findOne: vi.fn(),
+    ensureForOrganization: vi.fn(),
   };
 
   const mockModelsService = {
@@ -91,6 +91,10 @@ describe('ArticlesOperationsController', () => {
     vi.clearAllMocks();
     mockArticlesService.findAll.mockResolvedValue({ docs: [mockArticle] });
     mockModelsService.findOne.mockResolvedValue(null);
+    mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue({
+      isGenerateArticlesEnabled: true,
+      organizationId: mockPublicMetadata.organization,
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesOperationsController],
@@ -168,7 +172,6 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
         id: activityId,
       });
@@ -205,7 +208,6 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
         id: activityId,
       });
@@ -249,7 +251,6 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
         id: activityId,
       });
@@ -279,7 +280,6 @@ describe('ArticlesOperationsController', () => {
       };
 
       mockModelsService.findOne.mockResolvedValue(null);
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
 
       await expect(
         controller.generateArticles(mockRequest, dto, mockUser),
@@ -300,7 +300,6 @@ describe('ArticlesOperationsController', () => {
       };
 
       mockModelsService.findOne.mockResolvedValue(null);
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
 
       await expect(
         controller.generateArticles(mockRequest, dto, mockUser),
@@ -326,7 +325,6 @@ describe('ArticlesOperationsController', () => {
         category: ModelCategory.IMAGE,
         key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
       });
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
 
       await expect(
         controller.generateArticles(mockRequest, dto, mockUser),
@@ -346,7 +344,6 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
       mockActivitiesService.create.mockResolvedValue({
         id: activityId,
       });
@@ -360,6 +357,31 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.organization,
         undefined,
       );
+    });
+
+    it('fails closed when ensured organization settings keep article generation disabled', async () => {
+      const dto: GenerateArticlesDto = {
+        prompt: 'AI Technology',
+      };
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue({
+        isGenerateArticlesEnabled: false,
+        organizationId: mockPublicMetadata.organization,
+      });
+
+      await expect(
+        controller.generateArticles(mockRequest, dto, mockUser),
+      ).rejects.toMatchObject({
+        message: 'Article generation is not enabled for this organization',
+        status: HttpStatus.FORBIDDEN,
+      });
+
+      expect(
+        mockOrganizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(mockPublicMetadata.organization);
+      expect(mockModelsService.findOne).not.toHaveBeenCalled();
+      expect(service.resolveArticleCycleModelConfig).not.toHaveBeenCalled();
+      expect(service.generateArticles).not.toHaveBeenCalled();
+      expect(mockActivitiesService.create).not.toHaveBeenCalled();
     });
   });
 
