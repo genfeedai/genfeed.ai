@@ -468,6 +468,26 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
       headline: 'Snapchat warm-up is not available',
     },
   }),
+  [CredentialPlatform.X_ADS]: notSupported({
+    accountType:
+      'X Ads account via Ads API, distinct from the organic TWITTER credential.',
+    connectionScopes: ['ads_read', 'ads_write'],
+    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against XAdsService (X Ads API, promoted-tweet campaigns) and the missing organic scheduler capability.`,
+    nativeOnlyActions: ['Use the X Ads Manager in the native ads product'],
+    platform: CredentialPlatform.X_ADS,
+    policyConstraints:
+      'Promoted-tweet campaigns are not social-account warm-up. No automated engagement and no organic timeline path.',
+    profilePostSignals:
+      'No organic profile, timeline, or engagement signals. Ads campaigns operate on an existing tweet id, not organic posting.',
+    publishingCapabilities:
+      'Paused promoted-tweet campaign creation against an ad account. No organic social publisher or scheduler catalog entry.',
+    rationale:
+      'The executable path is the X Ads API, not organic social-account warm-up. Same class as Google Ads and Snapchat Ads until an X Ads creator connection exists.',
+    ui: {
+      body: 'This X Ads connection is an ads account. Social-account warm-up does not apply.',
+      headline: 'X Ads warm-up is not available',
+    },
+  }),
   [CredentialPlatform.WORDPRESS]: outOfSocialWarmupCatalog(
     CredentialPlatform.WORDPRESS,
     'Self-hosted or WordPress.com publishing destination.',
