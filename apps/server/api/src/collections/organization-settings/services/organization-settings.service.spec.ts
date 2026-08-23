@@ -1,10 +1,20 @@
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    isCloudDeployment: vi.fn(() => false),
+  };
+});
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function makeService(
   nodeEnv = 'test',
@@ -28,6 +38,10 @@ function makeService(
     { get: resolvedConfigGet } as unknown as ConfigService,
   );
 }
+
+afterEach(() => {
+  vi.mocked(isCloudDeployment).mockReturnValue(false);
+});
 
 describe('OrganizationSettingsService system workflow bootstrap', () => {
   it('no longer clones system workflows on organization settings create (#2176)', () => {
@@ -157,7 +171,7 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('creates an empty allowlist and applies environment-aware defaults', async () => {
+  it('creates an empty allowlist and applies lowest-cost defaults outside cloud production', async () => {
     const service = makeService();
     const created = { enabledModelIds: [], id: 'set_new' };
     const ensured = {
@@ -194,6 +208,44 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     expect(latestMajor).not.toHaveBeenCalled();
     expect(patch).toHaveBeenCalledWith('set_new', {
       enabledModelIds: ['model_low_cost_1'],
+    });
+    expect(result).toBe(ensured);
+  });
+
+  it('creates an empty allowlist and applies cloud production defaults', async () => {
+    vi.mocked(isCloudDeployment).mockReturnValue(true);
+    const service = makeService('production');
+    const created = { enabledModelIds: [], id: 'set_new' };
+    const ensured = {
+      enabledModelIds: ['model_quality_1'],
+      id: 'set_new',
+    };
+    vi.spyOn(service, 'findOne').mockResolvedValue(null);
+    const lowestCost = vi
+      .spyOn(service, 'getLowestCostModelIds')
+      .mockResolvedValue(['model_low_cost_1']);
+    const latestMajor = vi
+      .spyOn(service, 'getLatestMajorVersionModelIds')
+      .mockResolvedValue(['model_quality_1']);
+    vi.spyOn(service, 'create').mockResolvedValue(created as never);
+    const ensureEnabledModelIds = vi.spyOn(service, 'ensureEnabledModelIds');
+    const patch = vi
+      .spyOn(service, 'patch')
+      .mockResolvedValue(ensured as never);
+
+    const result = await service.ensureForOrganization('org_1');
+
+    expect(service.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabledModelIds: [],
+        organizationId: 'org_1',
+      }),
+    );
+    expect(ensureEnabledModelIds).toHaveBeenCalledWith(created);
+    expect(latestMajor).toHaveBeenCalledOnce();
+    expect(lowestCost).not.toHaveBeenCalled();
+    expect(patch).toHaveBeenCalledWith('set_new', {
+      enabledModelIds: ['model_quality_1'],
     });
     expect(result).toBe(ensured);
   });
