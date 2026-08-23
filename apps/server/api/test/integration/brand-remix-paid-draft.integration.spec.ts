@@ -289,6 +289,11 @@ describeWithDatabase('Brand remix paid draft integration', () => {
     );
 
     expect(created.sourceSnapshot).toMatchObject({
+      metrics: {
+        clicks: 120,
+        impressions: 2_400,
+        spend: 12,
+      },
       platform: 'x',
       selector: {
         adAccountId: 'x-account-1',
