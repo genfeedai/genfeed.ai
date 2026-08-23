@@ -692,8 +692,14 @@ describe('GenerationActionCard', () => {
   });
 
   it('hydrates Auto priority from the preferred store even when the action pinned a model', async () => {
-    writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE);
-    writePreferredGenerationPriority(RouterPriority.COST);
+    writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE, {
+      generationType: 'image',
+      threadId: 'thread-1',
+    });
+    writePreferredGenerationPriority(RouterPriority.COST, {
+      generationType: 'image',
+      threadId: 'thread-1',
+    });
 
     render(
       <GenerationActionCard
@@ -786,8 +792,15 @@ describe('GenerationActionCard', () => {
   it('hydrates a stored generation model over the action pin', async () => {
     writePreferredGenerationModel(
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+      {
+        generationType: 'image',
+        threadId: 'thread-1',
+      },
     );
-    writePreferredGenerationOutputs(3);
+    writePreferredGenerationOutputs(3, {
+      generationType: 'image',
+      threadId: 'thread-1',
+    });
 
     render(
       <GenerationActionCard

@@ -9,6 +9,7 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
+import { adoptNewThreadGenerationPrefs } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
@@ -926,6 +927,9 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       // from one real thread to another must not keep the previous generation
       // card in `pendingUiActions`.
       if (state.activeThreadId === id || !state.activeThreadId) {
+        if (!state.activeThreadId && id) {
+          adoptNewThreadGenerationPrefs(id);
+        }
         return { activeThreadId: id };
       }
 

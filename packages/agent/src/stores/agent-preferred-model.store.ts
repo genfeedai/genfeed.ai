@@ -15,18 +15,37 @@ const GENERATION_MODEL_KEY = 'genfeed:agent-preferred-generation-model:v1';
 const GENERATION_PRIORITY_KEY =
   'genfeed:agent-preferred-generation-priority:v1';
 const GENERATION_OUTPUTS_KEY = 'genfeed:agent-preferred-generation-outputs:v1';
+const GENERATION_BY_SCOPE_KEY =
+  'genfeed:agent-preferred-generation-by-scope:v1';
+const NEW_THREAD_SCOPE = '__new__';
+
+export type GenerationPrefKind = 'image' | 'video';
+
+export type GenerationPrefScope = {
+  generationType?: GenerationPrefKind;
+  threadId?: string | null;
+};
+
+type GenerationScopePrefs = {
+  model: string | null;
+  outputs: number | null;
+  priority: RouterPriority | null;
+};
+
+type GenerationScopeMap = Record<string, GenerationScopePrefs>;
 
 type AgentPreferredModelState = {
   chatModel: string | null;
   chatPriority: RouterPriority | null;
-  generationModel: string | null;
-  generationOutputs: number | null;
-  generationPriority: RouterPriority | null;
+  generationByScope: GenerationScopeMap;
   setChatModel: (modelKey: string) => void;
   setChatPriority: (priority: RouterPriority) => void;
-  setGenerationModel: (modelKey: string) => void;
-  setGenerationOutputs: (outputs: number) => void;
-  setGenerationPriority: (priority: RouterPriority) => void;
+  setGenerationModel: (modelKey: string, scope?: GenerationPrefScope) => void;
+  setGenerationOutputs: (outputs: number, scope?: GenerationPrefScope) => void;
+  setGenerationPriority: (
+    priority: RouterPriority,
+    scope?: GenerationPrefScope,
+  ) => void;
 };
 
 function getStorage(): Storage | null {
@@ -99,13 +118,127 @@ function readStoredOutputs(): number | null {
   return Math.min(8, Math.round(parsed));
 }
 
+function resolveGenerationScopeKey(scope?: GenerationPrefScope): string {
+  const thread = scope?.threadId?.trim() || NEW_THREAD_SCOPE;
+  const generationType = scope?.generationType ?? 'image';
+  return `${thread}:${generationType}`;
+}
+
+function emptyGenerationPrefs(): GenerationScopePrefs {
+  return {
+    model: null,
+    outputs: null,
+    priority: null,
+  };
+}
+
+function readGenerationScopeMap(): GenerationScopeMap {
+  const storage = getStorage();
+  if (!storage) {
+    return {};
+  }
+
+  try {
+    const raw = storage.getItem(GENERATION_BY_SCOPE_KEY)?.trim();
+    if (!raw) {
+      return {};
+    }
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+
+    const next: GenerationScopeMap = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        continue;
+      }
+
+      const record = value as Record<string, unknown>;
+      const outputs =
+        typeof record.outputs === 'number' &&
+        Number.isFinite(record.outputs) &&
+        record.outputs >= 1
+          ? Math.min(8, Math.round(record.outputs))
+          : null;
+      next[key] = {
+        model:
+          typeof record.model === 'string' && record.model.trim()
+            ? record.model.trim()
+            : null,
+        outputs,
+        priority: toRouterPriority(record.priority) ?? null,
+      };
+    }
+
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+function writeGenerationScopeMap(map: GenerationScopeMap): void {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(GENERATION_BY_SCOPE_KEY, JSON.stringify(map));
+  } catch {
+    // Quota / private mode — preference is best-effort.
+  }
+}
+
+function readLegacyUnthreadedImagePrefs(): GenerationScopePrefs {
+  return {
+    model: readStoredString(GENERATION_MODEL_KEY),
+    outputs: readStoredOutputs(),
+    priority: readStoredPriority(GENERATION_PRIORITY_KEY),
+  };
+}
+
+function readScopePrefs(scope?: GenerationPrefScope): GenerationScopePrefs {
+  const key = resolveGenerationScopeKey(scope);
+  const scoped = useAgentPreferredModelStore.getState().generationByScope[key];
+  if (scoped) {
+    return scoped;
+  }
+
+  if (key === `${NEW_THREAD_SCOPE}:image`) {
+    return readLegacyUnthreadedImagePrefs();
+  }
+
+  return emptyGenerationPrefs();
+}
+
+function patchScopePrefs(
+  scope: GenerationPrefScope | undefined,
+  patch: Partial<GenerationScopePrefs>,
+): GenerationScopeMap {
+  const key = resolveGenerationScopeKey(scope);
+  const current = {
+    ...emptyGenerationPrefs(),
+    ...useAgentPreferredModelStore.getState().generationByScope[key],
+  };
+  const nextPrefs: GenerationScopePrefs = {
+    ...current,
+    ...patch,
+  };
+  const nextMap = {
+    ...useAgentPreferredModelStore.getState().generationByScope,
+    [key]: nextPrefs,
+  };
+  writeGenerationScopeMap(nextMap);
+  return nextMap;
+}
+
 export const useAgentPreferredModelStore = create<AgentPreferredModelState>(
   (set) => ({
     chatModel: readStoredString(CHAT_MODEL_KEY),
     chatPriority: readStoredPriority(CHAT_PRIORITY_KEY),
-    generationModel: readStoredString(GENERATION_MODEL_KEY),
-    generationOutputs: readStoredOutputs(),
-    generationPriority: readStoredPriority(GENERATION_PRIORITY_KEY),
+    generationByScope: readGenerationScopeMap(),
     setChatModel: (modelKey) => {
       const trimmed = modelKey.trim();
       if (!trimmed) {
@@ -118,25 +251,22 @@ export const useAgentPreferredModelStore = create<AgentPreferredModelState>(
       writeStoredString(CHAT_PRIORITY_KEY, priority);
       set({ chatPriority: priority });
     },
-    setGenerationModel: (modelKey) => {
+    setGenerationModel: (modelKey, scope) => {
       const trimmed = modelKey.trim();
       if (!trimmed) {
         return;
       }
-      writeStoredString(GENERATION_MODEL_KEY, trimmed);
-      set({ generationModel: trimmed });
+      set({ generationByScope: patchScopePrefs(scope, { model: trimmed }) });
     },
-    setGenerationOutputs: (outputs) => {
+    setGenerationOutputs: (outputs, scope) => {
       const next =
         Number.isFinite(outputs) && outputs >= 1
           ? Math.min(8, Math.round(outputs))
           : 1;
-      writeStoredString(GENERATION_OUTPUTS_KEY, String(next));
-      set({ generationOutputs: next });
+      set({ generationByScope: patchScopePrefs(scope, { outputs: next }) });
     },
-    setGenerationPriority: (priority) => {
-      writeStoredString(GENERATION_PRIORITY_KEY, priority);
-      set({ generationPriority: priority });
+    setGenerationPriority: (priority, scope) => {
+      set({ generationByScope: patchScopePrefs(scope, { priority }) });
     },
   }),
 );
@@ -159,30 +289,76 @@ export function writePreferredAgentChatPriority(
   useAgentPreferredModelStore.getState().setChatPriority(priority);
 }
 
-export function readPreferredGenerationModel(): string | null {
-  return useAgentPreferredModelStore.getState().generationModel;
+export function readPreferredGenerationModel(
+  scope?: GenerationPrefScope,
+): string | null {
+  return readScopePrefs(scope).model;
 }
 
-export function writePreferredGenerationModel(modelKey: string): void {
-  useAgentPreferredModelStore.getState().setGenerationModel(modelKey);
+export function writePreferredGenerationModel(
+  modelKey: string,
+  scope?: GenerationPrefScope,
+): void {
+  useAgentPreferredModelStore.getState().setGenerationModel(modelKey, scope);
 }
 
-export function readPreferredGenerationPriority(): RouterPriority | null {
-  return useAgentPreferredModelStore.getState().generationPriority;
+export function readPreferredGenerationPriority(
+  scope?: GenerationPrefScope,
+): RouterPriority | null {
+  return readScopePrefs(scope).priority;
 }
 
 export function writePreferredGenerationPriority(
   priority: RouterPriority,
+  scope?: GenerationPrefScope,
 ): void {
-  useAgentPreferredModelStore.getState().setGenerationPriority(priority);
+  useAgentPreferredModelStore.getState().setGenerationPriority(priority, scope);
 }
 
-export function readPreferredGenerationOutputs(): number | null {
-  return useAgentPreferredModelStore.getState().generationOutputs;
+export function readPreferredGenerationOutputs(
+  scope?: GenerationPrefScope,
+): number | null {
+  return readScopePrefs(scope).outputs;
 }
 
-export function writePreferredGenerationOutputs(outputs: number): void {
-  useAgentPreferredModelStore.getState().setGenerationOutputs(outputs);
+export function writePreferredGenerationOutputs(
+  outputs: number,
+  scope?: GenerationPrefScope,
+): void {
+  useAgentPreferredModelStore.getState().setGenerationOutputs(outputs, scope);
+}
+
+/**
+ * `/agent/new` writes prefs under `__new__`. When the URL catches up to the
+ * created thread, copy those same-type prefs once so the first pick survives.
+ */
+export function adoptNewThreadGenerationPrefs(threadId: string): void {
+  const trimmed = threadId.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  const map = {
+    ...useAgentPreferredModelStore.getState().generationByScope,
+  };
+  let didChange = false;
+
+  for (const generationType of ['image', 'video'] as const) {
+    const source = map[`${NEW_THREAD_SCOPE}:${generationType}`];
+    const destinationKey = `${trimmed}:${generationType}`;
+    if (!source || map[destinationKey]) {
+      continue;
+    }
+    map[destinationKey] = { ...source };
+    didChange = true;
+  }
+
+  if (!didChange) {
+    return;
+  }
+
+  writeGenerationScopeMap(map);
+  useAgentPreferredModelStore.setState({ generationByScope: map });
 }
 
 export function clearPreferredAgentChatModel(): void {
@@ -198,9 +374,8 @@ export function clearPreferredGenerationPrefs(): void {
   removeStored(GENERATION_MODEL_KEY);
   removeStored(GENERATION_PRIORITY_KEY);
   removeStored(GENERATION_OUTPUTS_KEY);
+  removeStored(GENERATION_BY_SCOPE_KEY);
   useAgentPreferredModelStore.setState({
-    generationModel: null,
-    generationOutputs: null,
-    generationPriority: null,
+    generationByScope: {},
   });
 }
