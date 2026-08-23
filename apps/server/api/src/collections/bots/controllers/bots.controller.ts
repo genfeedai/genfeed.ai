@@ -13,6 +13,7 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -105,7 +106,7 @@ export class BotsController extends BaseCRUDController<
         requestedUserId &&
         callerUserId &&
         String(requestedUserId) !== String(callerUserId) &&
-        user.isSuperAdmin !== true
+        !getIsSuperAdmin(user)
       ) {
         throw new ForbiddenException({
           detail: 'Access denied to this user',
@@ -113,7 +114,7 @@ export class BotsController extends BaseCRUDController<
         });
       }
       match.userId = requireRelationId(
-        user.isSuperAdmin === true && requestedUserId
+        getIsSuperAdmin(user) && requestedUserId
           ? requestedUserId
           : callerUserId,
         'user',
