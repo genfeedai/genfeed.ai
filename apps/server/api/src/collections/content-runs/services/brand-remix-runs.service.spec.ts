@@ -2521,15 +2521,21 @@ describe('BrandRemixRunsService', () => {
       },
     ]);
 
-    await expect(
-      service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
+    try {
+      await service.preparePausedMetaDraft('org-1', 'run-1', 'user-1', {
         destination: {
           adAccountId: 'act-1',
           credentialId: 'credential-1',
         },
         variantId: 'variant-1',
-      }),
-    ).rejects.toThrow('existing tweet id is required');
+      });
+      expect.unreachable('preparePausedMetaDraft should have thrown');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        detail: expect.stringContaining('existing tweet id is required'),
+      });
+    }
     expect(pausedXAdsCampaignDraftService.prepare).not.toHaveBeenCalled();
     expect(prisma.credential.findFirst).not.toHaveBeenCalled();
   });
