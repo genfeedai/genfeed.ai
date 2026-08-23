@@ -173,8 +173,11 @@ describe('CampaignExecutorService', () => {
   });
 
   describe('executeTarget', () => {
-    it('should skip when campaign is paused', async () => {
-      const campaign = makeCampaign({ status: CampaignStatus.PAUSED });
+    it('should skip a paused campaign before resolving tenant scope', async () => {
+      const campaign = makeCampaign({
+        organizationId: undefined,
+        status: CampaignStatus.PAUSED,
+      } as Partial<OutreachCampaignDocument>);
       const target = makeTarget();
 
       const result = await service.executeTarget(campaign, target);
@@ -188,9 +191,13 @@ describe('CampaignExecutorService', () => {
       expect(
         mockOutreachCampaignsService.incrementSkippedCounter,
       ).toHaveBeenCalledWith(campaignId.toString());
+      expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.markAsProcessing,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should skip when rate limited', async () => {
+    it('should scope authorization and stop before provider effects when replying is rejected', async () => {
       const campaign = makeCampaign();
       const target = makeTarget();
       mockOutreachCampaignsService.canReply.mockResolvedValue(false);
@@ -199,6 +206,19 @@ describe('CampaignExecutorService', () => {
 
       expect(result.success).toBe(false);
       expect(result.skipReason).toBe(CampaignSkipReason.RATE_LIMITED);
+      expect(mockOutreachCampaignsService.canReply).toHaveBeenCalledWith(
+        campaignId,
+        orgId,
+      );
+      expect(
+        mockCampaignTargetsService.markAsProcessing,
+      ).not.toHaveBeenCalled();
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+      expect(
+        mockSystemWorkflowProvenanceService.runAction,
+      ).not.toHaveBeenCalled();
+      expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
     });
 
     it('should fail when credential is not found', async () => {
@@ -373,6 +393,15 @@ describe('CampaignExecutorService', () => {
 
       expect(result.success).toBe(false);
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.markAsProcessing,
+      ).not.toHaveBeenCalled();
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+      expect(
+        mockSystemWorkflowProvenanceService.runAction,
+      ).not.toHaveBeenCalled();
+      expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalled();
     });
 

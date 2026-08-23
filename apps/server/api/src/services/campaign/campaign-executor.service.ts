@@ -93,10 +93,12 @@ export class CampaignExecutorService {
         };
       }
 
+      const scope = resolveCampaignScope(campaign);
+
       // Check rate limits
-      // @ts-expect-error TS2554
       const canReply = await this.campaignsService.canReply(
         campaign.id.toString(),
+        scope.organizationId,
       );
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
@@ -115,8 +117,6 @@ export class CampaignExecutorService {
 
       // Mark target as processing
       await this.campaignTargetsService.markAsProcessing(target.id.toString());
-
-      const scope = resolveCampaignScope(campaign);
 
       // Get credential
       const credential = await this.findCampaignCredential(scope);
