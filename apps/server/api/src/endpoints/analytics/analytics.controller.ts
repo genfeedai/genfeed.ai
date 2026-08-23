@@ -700,17 +700,19 @@ export class AnalyticsController {
     ttl: 300, // Cache for 5 minutes
   })
   async getViralHooks(
+    @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: ViralHooksQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const organizationId = this.getScopedOrganizationId(user);
     this.loggerService.log(url, { query });
 
     const data = await this.analyticsService.getViralHooks(
       query.startDate,
       query.endDate,
       query.brandId,
-      query.organizationId,
+      organizationId,
     );
     return serializeSingle(req, AnalyticsHooksSerializer, data);
   }
