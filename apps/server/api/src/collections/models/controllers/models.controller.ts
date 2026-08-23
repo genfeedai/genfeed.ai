@@ -232,18 +232,24 @@ export class ModelsController extends BaseCRUDController<
       : null;
     const isSuperAdmin = getIsSuperAdmin(user, request);
     const requestedOrgId = query.organizationId;
-    const canSeedRequestedOrg =
+    const canReadRequestedOrg =
       Boolean(requestedOrgId) &&
       (isSuperAdmin || requestedOrgId === authenticatedOrgId);
 
-    // Seed only an org the caller is allowed to mutate. A query
-    // organizationId alone used to PATCH another tenant from enable-none
-    // to a full latest-model allowlist.
-    if (canSeedRequestedOrg && requestedOrgId) {
+    // Self-heal only the caller's current organization. A superadmin may read
+    // another organization's allowlist, but a list request must not create or
+    // patch that tenant's settings as a side effect.
+    if (canReadRequestedOrg && requestedOrgId) {
       const organizationSettingsService = this.getOrganizationSettingsService();
-      const seededSettings =
-        await organizationSettingsService.ensureForOrganization(requestedOrgId);
-      const enabledModelIds = seededSettings.enabledModelIds;
+      const organizationSettings =
+        requestedOrgId === authenticatedOrgId
+          ? await organizationSettingsService.ensureForOrganization(
+              requestedOrgId,
+            )
+          : await organizationSettingsService.findOne({
+              organizationId: requestedOrgId,
+            });
+      const enabledModelIds = organizationSettings?.enabledModelIds ?? [];
 
       if (enabledModelIds.length > 0) {
         where.AND = [
