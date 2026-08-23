@@ -112,7 +112,7 @@ export default function WorkflowExecutionsPage() {
             limit: EXECUTIONS_PER_PAGE,
             offset: pageOffset,
           }),
-          service.list().catch((error: unknown) => {
+          service.list({ limit: 100 }).catch((error: unknown) => {
             logger.error('Failed to load workflow labels for executions', {
               error,
             });
@@ -238,6 +238,9 @@ export default function WorkflowExecutionsPage() {
                       Workflow
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                      Trigger
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
                       Status
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
@@ -279,9 +282,11 @@ export default function WorkflowExecutionsPage() {
                           >
                             {getWorkflowLabel(execution, workflowLabels)}
                           </Link>
-                          <div className="text-xs text-muted-foreground">
-                            {execution.id.slice(0, 8)}...
-                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm text-muted-foreground">
+                          {execution.trigger
+                            ? formatEnumLabel(execution.trigger)
+                            : '—'}
                         </TableCell>
                         <TableCell className="px-4 py-3">
                           <span

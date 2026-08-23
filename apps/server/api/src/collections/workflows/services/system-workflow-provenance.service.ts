@@ -1,5 +1,6 @@
 import {
   buildSystemWorkflowMetadata,
+  getSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
@@ -43,6 +44,23 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
 
 export type SystemWorkflowActionId =
   (typeof SYSTEM_WORKFLOW_ACTION_IDS)[keyof typeof SYSTEM_WORKFLOW_ACTION_IDS];
+
+const SWEEP_DRIVEN_SYSTEM_WORKFLOW_IDS = new Set<string>(
+  Object.values(SYSTEM_WORKFLOW_ACTION_IDS),
+);
+
+/**
+ * Provenance / platform-sweep actions are not tenant-cron jobs. Catalog
+ * system workflows with executable graphs (content-loop-autopilot, daily
+ * trends, …) still belong on the workflow scheduler.
+ */
+export function isSweepDrivenSystemWorkflow(metadata: unknown): boolean {
+  const canonicalId = getSystemWorkflowMetadata(metadata)?.canonicalId;
+  return (
+    typeof canonicalId === 'string' &&
+    SWEEP_DRIVEN_SYSTEM_WORKFLOW_IDS.has(canonicalId)
+  );
+}
 
 export type SystemWorkflowActionDefinition = {
   canonicalId: SystemWorkflowActionId;

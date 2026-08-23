@@ -307,10 +307,7 @@ describe('WorkflowCrudController', () => {
         timezone: 'UTC',
       };
 
-      mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue(
-        mockWorkflow,
-      );
-      mockWorkflowsService.findOwnedOrThrow.mockResolvedValue({
+      mockWorkflowsService.findVisibleOrThrow.mockResolvedValue({
         ...mockWorkflow,
         ...updateDto,
       });
@@ -322,6 +319,13 @@ describe('WorkflowCrudController', () => {
         mockUser,
       );
 
+      expect(mockWorkflowsService.findVisibleOrThrow).toHaveBeenCalledWith(id, {
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
+      });
+      expect(
+        mockWorkflowsService.findMutableOwnedOrThrow,
+      ).not.toHaveBeenCalled();
       expect(mockWorkflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
         id,
         '0 9 * * *',
@@ -329,11 +333,37 @@ describe('WorkflowCrudController', () => {
         true,
       );
       expect(mockWorkflowsService.patch).not.toHaveBeenCalled();
-      expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(id, {
+      expect(result).toBeDefined();
+    });
+
+    it('uses the visible-row guard for schedule-only patches so system workflows can be paused', async () => {
+      const id = workflowId;
+      const updateDto: UpdateWorkflowDto = {
+        isScheduleEnabled: false,
+        schedule: '0 8 * * *',
+      };
+
+      mockWorkflowsService.findVisibleOrThrow.mockResolvedValue({
+        ...mockWorkflow,
+        isScheduleEnabled: true,
+        schedule: '0 8 * * *',
+      });
+
+      await controller.update(mockRequest, id, updateDto, mockUser);
+
+      expect(
+        mockWorkflowsService.findMutableOwnedOrThrow,
+      ).not.toHaveBeenCalled();
+      expect(mockWorkflowsService.findVisibleOrThrow).toHaveBeenCalledWith(id, {
         organizationId: mockUser.organizationId,
         userId: mockUser.userId,
       });
-      expect(result).toBeDefined();
+      expect(mockWorkflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
+        id,
+        '0 8 * * *',
+        'UTC',
+        false,
+      );
     });
 
     it('should call publishToMarketplace when isPublic and isTemplate are both true', async () => {

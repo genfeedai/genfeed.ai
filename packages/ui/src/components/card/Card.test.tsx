@@ -22,6 +22,9 @@ describe('Card', () => {
       screen.getByRole('heading', { name: 'Operating Summary' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Compact system status')).toBeInTheDocument();
+    expect(screen.getByText('Compact system status')).toHaveClass(
+      'line-clamp-3',
+    );
   });
 
   it('preserves content and actions slots', () => {

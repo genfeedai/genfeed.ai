@@ -14,6 +14,8 @@ import {
 import { useCloudSession } from '@/hooks/useCloudSession';
 
 const SEARCH_DEBOUNCE_MS = 300;
+/** HTTP lists cap at 100; the library has no pager yet so request the max. */
+export const WORKFLOW_LIBRARY_PAGE_SIZE = 100;
 
 export function useWorkflowLibraryPage() {
   const { href } = useOrgUrl();
@@ -25,6 +27,7 @@ export function useWorkflowLibraryPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -52,7 +55,9 @@ export function useWorkflowLibraryPage() {
         const service = await getService();
         if (signal.aborted) return;
 
-        const params: Record<string, unknown> = {};
+        const params: Record<string, unknown> = {
+          limit: WORKFLOW_LIBRARY_PAGE_SIZE,
+        };
         if (debouncedSearch) params.search = debouncedSearch;
 
         const data = await service.list(params);
@@ -121,7 +126,7 @@ export function useWorkflowLibraryPage() {
   const handleToggleSchedule = useCallback(
     async (id: string, enabled: boolean) => {
       const previous = workflows.find((w) => w.id === id);
-      if (!previous?.schedule || isCanonicalSystemWorkflow(previous)) return;
+      if (!previous?.schedule) return;
 
       // Optimistic update
       setWorkflows((prev) =>
@@ -164,6 +169,33 @@ export function useWorkflowLibraryPage() {
     },
     [getService, notificationsService, workflows],
   );
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleDisableSelected = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      const workflow = workflows.find((item) => item.id === id);
+      if (workflow?.schedule && workflow.isScheduleEnabled) {
+        await handleToggleSchedule(id, false);
+      }
+    }
+    setSelectedIds(new Set());
+  }, [handleToggleSchedule, selectedIds, workflows]);
 
   /** Merge a schedule mutation result back into the loaded summaries. */
   const applyScheduleUpdate = useCallback(
@@ -214,7 +246,11 @@ export function useWorkflowLibraryPage() {
     handleDuplicate,
     handleDelete,
     handleToggleSchedule,
+    handleDisableSelected,
     applyScheduleUpdate,
     filteredWorkflows,
+    selectedIds,
+    toggleSelected,
+    clearSelection,
   };
 }

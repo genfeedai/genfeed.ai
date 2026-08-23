@@ -105,6 +105,13 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     });
   });
 
+  it('requests the maximum page of workflows so schedules are not hidden', async () => {
+    renderHook(() => useWorkflowLibraryPage());
+
+    await waitFor(() => expect(mocks.serviceList).toHaveBeenCalled());
+    expect(mocks.serviceList).toHaveBeenCalledWith({ limit: 100 });
+  });
+
   it('calls updateSchedule with isScheduleEnabled=true when toggling on a workflow that has a schedule', async () => {
     const { result } = renderHook(() => useWorkflowLibraryPage());
 
@@ -191,21 +198,28 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
   });
 
-  it('does not toggle schedules on canonical system workflows', async () => {
+  it('pauses schedules on canonical system workflows', async () => {
     mocks.serviceList.mockResolvedValueOnce([
       makeWorkflow({
         id: 'system-wf',
         isScheduleEnabled: true,
         metadata: {
           systemWorkflow: buildSystemWorkflowMetadata({
-            canonicalId: 'daily-trends-digest',
+            canonicalId: 'content-loop-autopilot',
           }),
         },
-        label: 'Daily Trends Digest',
-        schedule: '0 7 * * *',
+        label: 'Content Loop Autopilot',
+        schedule: '0 8 * * *',
         timezone: 'UTC',
       }),
     ]);
+    mocks.serviceUpdateSchedule.mockResolvedValueOnce({
+      id: 'system-wf',
+      isScheduleEnabled: false,
+      nextRunAt: null,
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    });
 
     const { result } = renderHook(() => useWorkflowLibraryPage());
     await waitFor(() => expect(result.current.workflows).toHaveLength(1));
@@ -214,8 +228,46 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       await result.current.handleToggleSchedule('system-wf', false);
     });
 
-    expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
-    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(true);
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledWith('system-wf', {
+      isScheduleEnabled: false,
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    });
+    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(false);
+  });
+
+  it('disables schedules for every selected workflow that has a cadence', async () => {
+    mocks.serviceList.mockResolvedValueOnce([
+      makeWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        label: 'Daily newsletter for FUD News',
+        schedule: '0 8 * * *',
+        timezone: 'UTC',
+      }),
+      makeWorkflow({
+        id: 'wf-2',
+        isScheduleEnabled: true,
+        label: 'Daily posts for FUD News',
+        schedule: '0 8 * * *',
+        timezone: 'UTC',
+      }),
+    ]);
+
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    act(() => {
+      result.current.toggleSelected('wf-1');
+      result.current.toggleSelected('wf-2');
+    });
+
+    await act(async () => {
+      await result.current.handleDisableSelected();
+    });
+
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledTimes(2);
+    expect(result.current.selectedIds.size).toBe(0);
   });
 
   it('merges a schedule dialog result into the loaded summaries', async () => {

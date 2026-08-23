@@ -5,10 +5,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkflowLibraryPage from './WorkflowLibraryPage';
 
 const mocks = vi.hoisted(() => ({
+  clearSelection: vi.fn(),
   handleDelete: vi.fn(),
+  handleDisableSelected: vi.fn(),
   handleDuplicate: vi.fn(),
   handleToggleSchedule: vi.fn(),
   isSystemWorkflow: false,
+  selectedIds: new Set<string>(),
+  toggleSelected: vi.fn(),
 }));
 
 vi.mock('next-intl', () => ({
@@ -27,7 +31,11 @@ vi.mock('next-intl', () => ({
       'library.nextRun': 'Next run',
       'library.paused': 'Paused',
       'library.platformManaged': 'Platform-managed',
+      'library.clearSelection': 'Clear',
+      'library.disableSelected': 'Disable schedules',
       'library.searchPlaceholder': 'Search workflows...',
+      'library.selectWorkflow': 'Select workflow',
+      'library.selectedCount': 'selected',
       'library.synced': 'synced',
       'library.system': 'System',
       'library.templates': 'Templates',
@@ -114,6 +122,30 @@ vi.mock('@ui/primitives/input', () => ({
   ),
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@ui/primitives/checkbox', () => ({
+  Checkbox: ({
+    'aria-label': ariaLabel,
+    checked,
+    onCheckedChange,
+  }: {
+    'aria-label': string;
+    checked?: boolean;
+    onCheckedChange?: () => void;
+  }) => (
+    <button
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      role="checkbox"
+      type="button"
+      onClick={() => onCheckedChange?.()}
+    />
+  ),
+}));
+
 vi.mock('@ui/primitives/switch', () => ({
   Switch: ({
     'aria-label': ariaLabel,
@@ -195,9 +227,13 @@ vi.mock('./useWorkflowLibraryPage', () => ({
       },
     ],
     handleDelete: mocks.handleDelete,
+    handleDisableSelected: mocks.handleDisableSelected,
     handleDuplicate: mocks.handleDuplicate,
     handleToggleSchedule: mocks.handleToggleSchedule,
     href: (path: string) => `/acme/brand${path}`,
+    selectedIds: mocks.selectedIds,
+    toggleSelected: mocks.toggleSelected,
+    clearSelection: mocks.clearSelection,
     isCapable: true,
     isConnected: true,
     isLoading: false,
@@ -212,6 +248,7 @@ describe('WorkflowLibraryPage card semantics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isSystemWorkflow = false;
+    mocks.selectedIds = new Set();
   });
 
   it('keeps card navigation separate from schedule and menu actions', () => {
@@ -288,11 +325,15 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeVisible();
   });
 
-  it('explains why system workflows cannot be paused', () => {
+  it('lets operators pause system workflow schedules', () => {
     mocks.isSystemWorkflow = true;
     render(<WorkflowLibraryPage />);
 
-    expect(screen.getByText('Platform-managed')).toBeVisible();
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('switch', {
+        name: 'Disable schedule for Scheduled workflow',
+      }),
+    ).toBeVisible();
+    expect(screen.queryByText('Platform-managed')).not.toBeInTheDocument();
   });
 });

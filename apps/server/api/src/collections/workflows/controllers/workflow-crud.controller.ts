@@ -259,28 +259,32 @@ export class WorkflowCrudController {
       }, 'Failed to publish workflow to marketplace');
     }
 
-    const workflow = await this.workflowsService.findMutableOwnedOrThrow(
-      workflowId,
-      {
-        organizationId: user.organizationId,
-        userId: user.userId ?? user.id,
-      },
-    );
-
-    // Schedule change: register/unregister the BullMQ cron via the scheduler,
-    // not just a plain column write. Any non-schedule fields in the same body
-    // are still patched.
+    // Schedule-only patches are allowed on organization-visible system
+    // workflows (pause / cadence). Graph and other field writes still require
+    // a mutable owned row — canonical system graphs stay immutable.
     const touchesSchedule =
       Object.hasOwn(updateWorkflowDto, 'schedule') ||
       Object.hasOwn(updateWorkflowDto, 'timezone') ||
       Object.hasOwn(updateWorkflowDto, 'isScheduleEnabled');
+    const { schedule, timezone, isScheduleEnabled, ...rest } =
+      updateWorkflowDto;
+    const hasNonScheduleFields = Object.keys(rest).length > 0;
+    const scope = {
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
+    };
+
+    const workflow =
+      touchesSchedule && !hasNonScheduleFields
+        ? await this.workflowsService.findVisibleOrThrow(workflowId, scope)
+        : await this.workflowsService.findMutableOwnedOrThrow(
+            workflowId,
+            scope,
+          );
 
     if (touchesSchedule) {
       return wrapError(async () => {
-        const { schedule, timezone, isScheduleEnabled, ...rest } =
-          updateWorkflowDto;
-
-        if (Object.keys(rest).length > 0) {
+        if (hasNonScheduleFields) {
           await this.workflowsService.patch(workflowId, rest);
         }
 
@@ -304,12 +308,9 @@ export class WorkflowCrudController {
           nextEnabled,
         );
 
-        const updated = await this.workflowsService.findOwnedOrThrow(
+        const updated = await this.workflowsService.findVisibleOrThrow(
           workflowId,
-          {
-            organizationId: user.organizationId,
-            userId: user.userId ?? user.id,
-          },
+          scope,
         );
 
         return serializeSingle(

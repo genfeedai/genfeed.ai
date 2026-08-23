@@ -67,6 +67,8 @@ describe('WorkflowExecutionsPage', () => {
         progress: 100,
         startedAt: '2026-08-19T09:00:00.000Z',
         status: 'completed',
+        trigger: 'schedule',
+        workflow: { id: 'wf-1', label: 'Daily newsletter for FUD News' },
         workflowId: 'wf-1',
       },
     ]);
@@ -91,10 +93,28 @@ describe('WorkflowExecutionsPage', () => {
     render(<WorkflowExecutionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Daily digest')).toBeInTheDocument();
+      expect(
+        screen.getByText('Daily newsletter for FUD News'),
+      ).toBeInTheDocument();
     });
     expect(screen.queryByText('No executions yet')).toBeNull();
+    expect(screen.queryByText(/exec-1/)).toBeNull();
+    expect(screen.getByText('Schedule')).toBeInTheDocument();
     expect(mocks.listExecutions).toHaveBeenCalledTimes(1);
+    expect(mocks.list).toHaveBeenCalledWith({ limit: 100 });
+  });
+
+  it('uses the included workflow label when the catalog list is empty', async () => {
+    mocks.list.mockResolvedValue([]);
+
+    render(<WorkflowExecutionsPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Daily newsletter for FUD News'),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Untitled workflow')).toBeNull();
   });
 
   it('clears the first-load skeleton when the auth token is not ready', async () => {
