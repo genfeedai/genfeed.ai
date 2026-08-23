@@ -620,7 +620,7 @@ export class XAdsService {
   }
 
   private validateResponse<T>(envelope: XAdsApiResponse<T>): T {
-    if (envelope?.data === undefined) {
+    if (envelope?.data === undefined || envelope.data === null) {
       throw new BadGatewayException('X Ads API returned an empty response');
     }
     return envelope.data;

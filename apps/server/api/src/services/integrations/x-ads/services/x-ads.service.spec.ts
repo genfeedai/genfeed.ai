@@ -561,13 +561,16 @@ describe('XAdsService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('uses BadGatewayException for malformed provider envelopes', async () => {
-      httpService.get.mockReturnValue(axiosResponse({ request: {} }));
+    it.each([{ data: null }, { request: {} }])(
+      'uses BadGatewayException for malformed provider envelopes',
+      async (envelope) => {
+        httpService.get.mockReturnValue(axiosResponse(envelope));
 
-      await expect(
-        service.listCampaigns('access-token', 'account-1'),
-      ).rejects.toBeInstanceOf(BadGatewayException);
-    });
+        await expect(
+          service.listCampaigns('access-token', 'account-1'),
+        ).rejects.toBeInstanceOf(BadGatewayException);
+      },
+    );
   });
 
   it('serializes concurrent rate-limit reservations', async () => {
