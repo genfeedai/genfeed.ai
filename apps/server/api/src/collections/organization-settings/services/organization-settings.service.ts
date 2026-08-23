@@ -57,6 +57,15 @@ export class OrganizationSettingsService extends BaseService<
     return modelsService;
   }
 
+  private async resolveDefaultEnabledModelIds(): Promise<string[]> {
+    return shouldUseLowestCostModelDefaults({
+      isCloud: isCloudDeployment(),
+      nodeEnv: this.configService.get('NODE_ENV'),
+    })
+      ? this.getLowestCostModelIds()
+      : this.getLatestMajorVersionModelIds();
+  }
+
   /**
    * Org-bootstrap chokepoint: all organization-creation paths funnel through
    * settings creation. System workflows are **not** cloned here (#2176) —
@@ -110,12 +119,7 @@ export class OrganizationSettingsService extends BaseService<
       }
     }
 
-    const enabledModelIds = shouldUseLowestCostModelDefaults({
-      isCloud: isCloudDeployment(),
-      nodeEnv: this.configService.get('NODE_ENV'),
-    })
-      ? await this.getLowestCostModelIds()
-      : await this.getLatestMajorVersionModelIds();
+    const enabledModelIds = await this.resolveDefaultEnabledModelIds();
     if (enabledModelIds.length === 0) {
       return setting;
     }
@@ -138,10 +142,12 @@ export class OrganizationSettingsService extends BaseService<
       return this.ensureEnabledModelIds(existing);
     }
 
+    const enabledModelIds = await this.resolveDefaultEnabledModelIds();
+
     try {
       const created = await this.create({
         brandsLimit: 0,
-        enabledModelIds: [],
+        enabledModelIds,
         isAutoEvaluateEnabled: false,
         isFastlaneEnabled: false,
         isGenerateArticlesEnabled: false,
@@ -162,7 +168,7 @@ export class OrganizationSettingsService extends BaseService<
         seatsLimit: DEFAULT_FREE_SEATS,
         timezone: 'UTC',
       });
-      return this.ensureEnabledModelIds(created);
+      return created;
     } catch (error: unknown) {
       if ((error as { code?: string }).code !== 'P2002') {
         throw error;
