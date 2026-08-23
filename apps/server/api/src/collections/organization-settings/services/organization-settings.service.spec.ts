@@ -139,7 +139,9 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
   it('returns existing settings without creating a row', async () => {
     const service = makeService();
     const existing = { enabledModelIds: ['model_1'], id: 'set_1' };
-    vi.spyOn(service, 'findOne').mockResolvedValue(existing as never);
+    const findOne = vi
+      .spyOn(service, 'findOne')
+      .mockResolvedValue(existing as never);
     vi.spyOn(service, 'ensureEnabledModelIds').mockResolvedValue(
       existing as never,
     );
@@ -148,41 +150,61 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     const result = await service.ensureForOrganization('org_1');
 
     expect(result).toBe(existing);
+    expect(findOne).toHaveBeenCalledWith({
+      isDeleted: false,
+      organizationId: 'org_1',
+    });
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('creates settings when the organization has no row', async () => {
+  it('creates an empty allowlist and applies environment-aware defaults', async () => {
     const service = makeService();
-    const created = { enabledModelIds: ['model_1'], id: 'set_new' };
-    vi.spyOn(service, 'findOne').mockResolvedValue(null);
-    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
-      'model_1',
-    ]);
+    const created = { enabledModelIds: [], id: 'set_new' };
+    const ensured = {
+      enabledModelIds: ['model_low_cost_1'],
+      id: 'set_new',
+    };
+    const findOne = vi.spyOn(service, 'findOne').mockResolvedValue(null);
+    const lowestCost = vi
+      .spyOn(service, 'getLowestCostModelIds')
+      .mockResolvedValue(['model_low_cost_1']);
+    const latestMajor = vi
+      .spyOn(service, 'getLatestMajorVersionModelIds')
+      .mockResolvedValue(['model_quality_1']);
     vi.spyOn(service, 'create').mockResolvedValue(created as never);
-    vi.spyOn(service, 'ensureEnabledModelIds').mockResolvedValue(
-      created as never,
-    );
+    const ensureEnabledModelIds = vi.spyOn(service, 'ensureEnabledModelIds');
+    const patch = vi
+      .spyOn(service, 'patch')
+      .mockResolvedValue(ensured as never);
 
     const result = await service.ensureForOrganization('org_1');
 
+    expect(findOne).toHaveBeenCalledWith({
+      isDeleted: false,
+      organizationId: 'org_1',
+    });
     expect(service.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        enabledModelIds: ['model_1'],
+        enabledModelIds: [],
         organizationId: 'org_1',
       }),
     );
-    expect(result).toBe(created);
+    expect(ensureEnabledModelIds).toHaveBeenCalledWith(created);
+    expect(lowestCost).toHaveBeenCalledOnce();
+    expect(latestMajor).not.toHaveBeenCalled();
+    expect(patch).toHaveBeenCalledWith('set_new', {
+      enabledModelIds: ['model_low_cost_1'],
+    });
+    expect(result).toBe(ensured);
   });
 
   it('re-reads after a unique constraint race', async () => {
     const service = makeService();
     const raced = { enabledModelIds: ['model_1'], id: 'set_raced' };
-    vi.spyOn(service, 'findOne')
+    const findOne = vi
+      .spyOn(service, 'findOne')
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(raced as never);
-    vi.spyOn(service, 'getLatestMajorVersionModelIds').mockResolvedValue([
-      'model_1',
-    ]);
     vi.spyOn(service, 'create').mockRejectedValue({ code: 'P2002' });
     vi.spyOn(service, 'ensureEnabledModelIds').mockResolvedValue(
       raced as never,
@@ -191,5 +213,13 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     const result = await service.ensureForOrganization('org_1');
 
     expect(result).toBe(raced);
+    expect(findOne).toHaveBeenNthCalledWith(1, {
+      isDeleted: false,
+      organizationId: 'org_1',
+    });
+    expect(findOne).toHaveBeenNthCalledWith(2, {
+      isDeleted: false,
+      organizationId: 'org_1',
+    });
   });
 });
