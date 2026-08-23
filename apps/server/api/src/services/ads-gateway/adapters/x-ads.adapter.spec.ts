@@ -2,6 +2,7 @@ import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('XAdsAdapter', () => {
@@ -301,6 +302,74 @@ describe('XAdsAdapter', () => {
           campaignId: 'cmp-1',
           entityStatus: 'PAUSED',
           name: 'New Line Item',
+        }),
+      );
+    });
+  });
+
+  describe('updateCampaign', () => {
+    it('should reject a status update that would activate the campaign, without calling the provider', async () => {
+      try {
+        await adapter.updateCampaign(mockCtx, 'cmp-1', { status: 'ACTIVE' });
+        expect.unreachable('updateCampaign should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect((error as BadRequestException).getResponse()).toMatchObject({
+          detail: expect.stringContaining('paused'),
+        });
+      }
+      expect(xAdsService.updateCampaign).not.toHaveBeenCalled();
+    });
+
+    it('should pass a PAUSED status update through to the provider', async () => {
+      xAdsService.updateCampaign.mockResolvedValue({
+        createdAt: '2026-01-01T00:00:00Z',
+        entityStatus: 'PAUSED',
+        fundingInstrumentId: 'fi-1',
+        id: 'cmp-1',
+        name: 'Updated Campaign',
+        updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      const result = await adapter.updateCampaign(mockCtx, 'cmp-1', {
+        name: 'Updated Campaign',
+        status: 'PAUSED',
+      });
+
+      expect(result.id).toBe('cmp-1');
+      expect(xAdsService.updateCampaign).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        'cmp-1',
+        expect.objectContaining({
+          entityStatus: 'PAUSED',
+          name: 'Updated Campaign',
+        }),
+      );
+    });
+
+    it('should pass an update with no status through to the provider unchanged', async () => {
+      xAdsService.updateCampaign.mockResolvedValue({
+        createdAt: '2026-01-01T00:00:00Z',
+        entityStatus: 'PAUSED',
+        fundingInstrumentId: 'fi-1',
+        id: 'cmp-1',
+        name: 'Renamed Campaign',
+        updatedAt: '2026-01-01T00:00:00Z',
+      });
+
+      const result = await adapter.updateCampaign(mockCtx, 'cmp-1', {
+        name: 'Renamed Campaign',
+      });
+
+      expect(result.id).toBe('cmp-1');
+      expect(xAdsService.updateCampaign).toHaveBeenCalledWith(
+        'x-token',
+        'acct-123',
+        'cmp-1',
+        expect.objectContaining({
+          entityStatus: undefined,
+          name: 'Renamed Campaign',
         }),
       );
     });

@@ -176,6 +176,14 @@ export class XAdsAdapter implements IAdsAdapter {
     campaignId: string,
     input: UpdateCampaignInput,
   ): Promise<UnifiedCampaign> {
+    if (input.status && input.status !== 'PAUSED') {
+      throw new BadRequestException({
+        detail:
+          'X Ads campaigns can only be kept paused through this integration — activating a real campaign is not supported.',
+        title: 'Unsupported campaign status',
+      });
+    }
+
     const campaign = await this.xAdsService.updateCampaign(
       ctx.accessToken,
       ctx.adAccountId,
