@@ -4,7 +4,10 @@ import type { XAdWatchedAdvertiserDocument } from '@api/collections/x-ad-watched
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -257,7 +260,7 @@ export class XAdWatchedAdvertisersService extends BaseService<
     const credential = await this.prisma.credential.findFirst({
       where: scopedWhere(organizationId, {
         id: credentialId,
-        platform: CredentialPlatform.X_ADS,
+        platform: toPrismaCredentialPlatform(CredentialPlatform.X_ADS),
       }),
     });
     if (
