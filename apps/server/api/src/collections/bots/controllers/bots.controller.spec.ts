@@ -87,5 +87,36 @@ describe('BotsController identity gates', () => {
         } as never),
       ).toThrow("Bot listing is missing a resolvable 'organization' id");
     });
+
+    it('ignores a foreign organizationId in the query for non-superadmin users', () => {
+      expect(
+        controller.buildFindAllQuery(mockUser, {
+          organizationId: 'org-foreign',
+          scope: 'organization',
+        } as never),
+      ).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId }),
+        }),
+      );
+    });
+
+    it('honors a query organizationId override for superadmin users', () => {
+      const superAdmin = {
+        ...mockUser,
+        isSuperAdmin: true,
+      } as unknown as User;
+
+      expect(
+        controller.buildFindAllQuery(superAdmin, {
+          organizationId: 'org-foreign',
+          scope: 'organization',
+        } as never),
+      ).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId: 'org-foreign' }),
+        }),
+      );
+    });
   });
 });

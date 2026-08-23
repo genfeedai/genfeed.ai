@@ -13,6 +13,7 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { resolveAuthorizedOrganizationId } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -64,7 +65,7 @@ export class BotsController extends BaseCRUDController<
 
     if (scope === 'organization') {
       match.organizationId = requireRelationId(
-        query.organizationId || user.organizationId,
+        resolveAuthorizedOrganizationId(user, query.organizationId),
         'organization',
         'Bot listing',
       );
