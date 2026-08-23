@@ -18,7 +18,6 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
@@ -302,51 +301,9 @@ export class UserSetupService {
   private async getOrCreateOrganizationSettings(
     organizationId: string,
   ): Promise<OrganizationSettingDocument> {
-    const existing = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
-
-    if (existing) {
-      this.logger.warn(
-        `Organization settings already exist for organization ${organizationId}`,
-        this.context,
-      );
-      return existing;
-    }
-
-    const enabledModelIds =
-      await this.organizationSettingsService.getLatestMajorVersionModelIds();
-
-    const orgSettings = await this.organizationSettingsService.create({
-      brandsLimit: 0,
-      enabledModelIds,
-      isAutoEvaluateEnabled: false,
-      isFastlaneEnabled: false,
-      isGenerateArticlesEnabled: false,
-      isGenerateImagesEnabled: true,
-      isGenerateMusicEnabled: true,
-      isGenerateVideosEnabled: true,
-      isNotificationsDiscordEnabled: false,
-      isNotificationsTelegramEnabled: false,
-      isNotificationsEmailEnabled: true,
-      isVerifyIngredientEnabled: true,
-      isVerifyScriptEnabled: true,
-      isVerifyVideoEnabled: true,
-      isVoiceControlEnabled: false,
-      isWatermarkEnabled: true,
-      isWebhookEnabled: false,
-      isWhitelabelEnabled: false,
+    return this.organizationSettingsService.ensureForOrganization(
       organizationId,
-      seatsLimit: DEFAULT_FREE_SEATS,
-      timezone: 'UTC',
-    });
-
-    this.logger.log(
-      `Created organization settings ${orgSettings.id} with ${enabledModelIds.length} enabled models`,
-      this.context,
     );
-
-    return orgSettings;
   }
 
   private async getOrCreateUserSettings(

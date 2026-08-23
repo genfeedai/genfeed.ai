@@ -84,9 +84,8 @@ describe('OrganizationsController', () => {
   };
 
   const mockOrganizationSettingsService = {
-    create: vi.fn(),
+    ensureForOrganization: vi.fn(),
     findOne: vi.fn(),
-    getLatestMajorVersionModelIds: vi.fn(),
   };
 
   const mockDefaultRecurringContentService = {
@@ -114,9 +113,10 @@ describe('OrganizationsController', () => {
     mockOrganizationSettingsService.findOne.mockResolvedValue({
       subscriptionTier: SubscriptionTier.FREE,
     });
-    mockOrganizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
-      [],
-    );
+    mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue({
+      id: 'organization_settings_new',
+      organizationId: 'org_new',
+    });
     mockOrganizationsService.count.mockResolvedValue(0);
     mockOrganizationsService.create.mockResolvedValue({
       id: 'org_new',
@@ -432,6 +432,16 @@ describe('OrganizationsController', () => {
             userId: 'user_1',
           }),
         );
+        expect(
+          mockOrganizationSettingsService.ensureForOrganization,
+        ).toHaveBeenCalledOnce();
+        expect(
+          mockOrganizationSettingsService.ensureForOrganization,
+        ).toHaveBeenCalledWith('org_new');
+        expect(
+          mockOrganizationSettingsService.ensureForOrganization.mock
+            .invocationCallOrder[0],
+        ).toBeLessThan(mockBrandsService.create.mock.invocationCallOrder[0]);
         expect(mockMembersService.create).toHaveBeenCalledWith(
           expect.objectContaining({
             organizationId: 'org_new',

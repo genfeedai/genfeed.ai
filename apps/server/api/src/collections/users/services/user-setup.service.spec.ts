@@ -38,9 +38,7 @@ describe('UserSetupService', () => {
   };
 
   const mockOrganizationSettingsService = {
-    create: vi.fn(),
-    findOne: vi.fn(),
-    getLatestMajorVersionModelIds: vi.fn(),
+    ensureForOrganization: vi.fn(),
   };
 
   const mockBrandsService = {
@@ -116,11 +114,9 @@ describe('UserSetupService', () => {
       );
       mockOrganizationsService.create.mockResolvedValue(mockOrg);
 
-      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
-      mockOrganizationSettingsService.getLatestMajorVersionModelIds.mockResolvedValue(
-        ['model1', 'model2'],
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrgSettings,
       );
-      mockOrganizationSettingsService.create.mockResolvedValue(mockOrgSettings);
 
       mockSettingsService.findOne.mockResolvedValue(null);
       mockSettingsService.create.mockResolvedValue(mockUserSettings);
@@ -241,20 +237,15 @@ describe('UserSetupService', () => {
       );
     });
 
-    it('should call organizationSettingsService.create once for org settings', async () => {
-      await service.initializeUserResources(userId);
-
-      expect(mockOrganizationSettingsService.create).toHaveBeenCalledTimes(1);
-    });
-
-    it('should fetch enabled models before creating org settings', async () => {
+    it('delegates organization settings get-or-create to the canonical policy', async () => {
       await service.initializeUserResources(userId);
 
       expect(
-        mockOrganizationSettingsService.getLatestMajorVersionModelIds,
-      ).toHaveBeenCalledTimes(1);
-      // create is called AFTER getLatestMajorVersionModelIds (order enforced by await chain)
-      expect(mockOrganizationSettingsService.create).toHaveBeenCalledTimes(1);
+        mockOrganizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledOnce();
+      expect(
+        mockOrganizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(orgId);
     });
 
     it('should call membersService.create once for the member', async () => {
@@ -366,7 +357,9 @@ describe('UserSetupService', () => {
 
     it('should rethrow errors from downstream services', async () => {
       const err = new Error('DB exploded');
-      mockOrganizationSettingsService.create.mockRejectedValue(err);
+      mockOrganizationSettingsService.ensureForOrganization.mockRejectedValue(
+        err,
+      );
 
       await expect(service.initializeUserResources(userId)).rejects.toThrow(
         'DB exploded',
@@ -431,18 +424,17 @@ describe('UserSetupService', () => {
         );
       });
 
-      it('should return existing org settings without creating new ones', async () => {
-        mockOrganizationSettingsService.findOne.mockResolvedValue(
+      it('returns organization settings resolved by the canonical policy', async () => {
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
           mockOrgSettings,
         );
 
-        await service.initializeUserResources(userId);
+        const result = await service.initializeUserResources(userId);
 
-        expect(mockOrganizationSettingsService.create).not.toHaveBeenCalled();
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('Organization settings already exist'),
-          expect.any(String),
-        );
+        expect(result.organizationSettings).toBe(mockOrgSettings);
+        expect(
+          mockOrganizationSettingsService.ensureForOrganization,
+        ).toHaveBeenCalledWith(orgId);
       });
 
       it('should return existing user settings without creating new ones', async () => {

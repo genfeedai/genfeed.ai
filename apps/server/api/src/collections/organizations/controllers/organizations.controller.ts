@@ -3,7 +3,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
 import type { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
@@ -431,31 +430,8 @@ export class OrganizationsController extends BaseCRUDController<
 
     const orgId = org.id;
 
-    // Step 2: Create org settings
-    const enabledModelIds =
-      await this.organizationSettingsService.getLatestMajorVersionModelIds();
-    await this.organizationSettingsService.create({
-      brandsLimit: 0,
-      enabledModelIds,
-      isAutoEvaluateEnabled: false,
-      isGenerateArticlesEnabled: false,
-      isGenerateImagesEnabled: true,
-      isGenerateMusicEnabled: true,
-      isGenerateVideosEnabled: true,
-      isNotificationsDiscordEnabled: false,
-      isNotificationsTelegramEnabled: false,
-      isNotificationsEmailEnabled: true,
-      isVerifyIngredientEnabled: true,
-      isVerifyScriptEnabled: true,
-      isVerifyVideoEnabled: true,
-      isVoiceControlEnabled: false,
-      isWatermarkEnabled: true,
-      isWebhookEnabled: false,
-      isWhitelabelEnabled: false,
-      organizationId: orgId,
-      seatsLimit: DEFAULT_FREE_SEATS,
-      timezone: 'UTC',
-    });
+    // Step 2: Create org settings through the canonical policy
+    await this.organizationSettingsService.ensureForOrganization(orgId);
 
     // Step 3: Create default brand
     const brand = await this.brandsService.create({
