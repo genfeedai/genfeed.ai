@@ -9,6 +9,7 @@ import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/serv
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { resolveAuthorizedOrganizationId } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
@@ -91,8 +92,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
       isDeleted: query.isDeleted ?? false,
     };
 
-    const organizationId =
-      query.organizationId || user.organizationId?.toString();
+    const organizationId = resolveAuthorizedOrganizationId(
+      user,
+      query.organizationId,
+    );
     if (organizationId) {
       match.organizationId = organizationId;
     }

@@ -139,4 +139,34 @@ describe('OutreachCampaignsController', () => {
       expect(mockOutreachCampaignsService.patch).not.toHaveBeenCalled();
     });
   });
+
+  describe('buildFindAllQuery', () => {
+    it('ignores a foreign organizationId in the query for non-superadmin users', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        organizationId: otherOrganizationId,
+      } as never);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId }),
+        }),
+      );
+    });
+
+    it('honors a query organizationId override for superadmin users', () => {
+      const superAdmin = { ...mockUser, isSuperAdmin: true } as never;
+
+      const result = controller.buildFindAllQuery(superAdmin, {
+        organizationId: otherOrganizationId,
+      } as never);
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: otherOrganizationId,
+          }),
+        }),
+      );
+    });
+  });
 });
