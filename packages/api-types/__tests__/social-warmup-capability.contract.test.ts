@@ -99,6 +99,13 @@ describe('social warm-up capability matrix', () => {
     }
   });
 
+  test('reports the canonical X Ads OAuth scopes', () => {
+    expect(
+      SOCIAL_WARMUP_CAPABILITY_MATRIX[CredentialPlatform.X_ADS]
+        .connectionScopes,
+    ).toEqual(['ads.read', 'ads.write', 'offline.access']);
+  });
+
   test('classifies YouTube and LinkedIn as readiness_only until a catalog blueprint exists', () => {
     expect(getSocialWarmupSupportClass(CredentialPlatform.YOUTUBE)).toBe(
       'readiness_only',

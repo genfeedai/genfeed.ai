@@ -471,7 +471,7 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
   [CredentialPlatform.X_ADS]: notSupported({
     accountType:
       'X Ads account via Ads API, distinct from the organic TWITTER credential.',
-    connectionScopes: ['ads_read', 'ads_write'],
+    connectionScopes: ['ads.read', 'ads.write', 'offline.access'],
     evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against XAdsService (X Ads API, promoted-tweet campaigns) and the missing organic scheduler capability.`,
     nativeOnlyActions: ['Use the X Ads Manager in the native ads product'],
     platform: CredentialPlatform.X_ADS,
