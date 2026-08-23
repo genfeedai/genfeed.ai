@@ -1,9 +1,10 @@
 import { GoogleAdsOAuthTokens } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -20,15 +21,18 @@ export class GoogleAdsOAuthService {
     private readonly loggerService: LoggerService,
   ) {}
 
+  requireConfigured(): void {
+    this.getOAuthConfig();
+  }
+
   generateAuthUrl(state: string): string {
-    const clientId = this.configService.get('GOOGLE_ADS_CLIENT_ID');
-    const redirectUri = this.configService.get('GOOGLE_ADS_REDIRECT_URI');
+    const { clientId, redirectUri } = this.getOAuthConfig();
 
     const params = new URLSearchParams({
       access_type: 'offline',
-      client_id: clientId || '',
+      client_id: clientId,
       prompt: 'consent',
-      redirect_uri: redirectUri || '',
+      redirect_uri: redirectUri,
       response_type: 'code',
       scope: this.SCOPE,
       state,
@@ -43,9 +47,7 @@ export class GoogleAdsOAuthService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const clientId = this.configService.get('GOOGLE_ADS_CLIENT_ID');
-      const clientSecret = this.configService.get('GOOGLE_ADS_CLIENT_SECRET');
-      const redirectUri = this.configService.get('GOOGLE_ADS_REDIRECT_URI');
+      const { clientId, clientSecret, redirectUri } = this.getOAuthConfig();
 
       const response = await firstValueFrom(
         this.httpService.post<{
@@ -80,8 +82,7 @@ export class GoogleAdsOAuthService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const clientId = this.configService.get('GOOGLE_ADS_CLIENT_ID');
-      const clientSecret = this.configService.get('GOOGLE_ADS_CLIENT_SECRET');
+      const { clientId, clientSecret } = this.getOAuthConfig();
 
       const response = await firstValueFrom(
         this.httpService.post<{
@@ -106,5 +107,26 @@ export class GoogleAdsOAuthService {
       this.loggerService.error(`${caller} failed`, error);
       throw error;
     }
+  }
+
+  private getOAuthConfig() {
+    const clientId = this.configService.get('GOOGLE_ADS_CLIENT_ID');
+    const clientSecret = this.configService.get('GOOGLE_ADS_CLIENT_SECRET');
+    const redirectUri = this.configService.get('GOOGLE_ADS_REDIRECT_URI');
+
+    if (
+      !clientId ||
+      !clientSecret ||
+      !redirectUri ||
+      isUnconfiguredSecret(clientId) ||
+      isUnconfiguredSecret(clientSecret) ||
+      isUnconfiguredSecret(redirectUri)
+    ) {
+      throw new ServiceUnavailableException(
+        'Google Ads OAuth is not configured for this deployment.',
+      );
+    }
+
+    return { clientId, clientSecret, redirectUri };
   }
 }

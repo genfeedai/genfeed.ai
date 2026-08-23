@@ -57,7 +57,7 @@ describe('GoogleAdsController', () => {
   let googleAdsOAuthService: vi.Mocked<
     Pick<
       GoogleAdsOAuthService,
-      'generateAuthUrl' | 'exchangeAuthCodeForAccessToken'
+      'generateAuthUrl' | 'exchangeAuthCodeForAccessToken' | 'requireConfigured'
     >
   >;
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'error' | 'warn'>>;
@@ -101,6 +101,7 @@ describe('GoogleAdsController', () => {
       generateAuthUrl: vi
         .fn()
         .mockReturnValue('https://accounts.google.com/oauth'),
+      requireConfigured: vi.fn(),
     };
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 

@@ -15,6 +15,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
@@ -25,7 +26,15 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
@@ -107,6 +116,20 @@ export class InstagramController {
       });
     }
 
+    const appId = this.configService.get('INSTAGRAM_APP_ID');
+    const redirectUri =
+      this.configService.get('INSTAGRAM_REDIRECT_URI') ?? this.redirectUri;
+    if (
+      !appId ||
+      !redirectUri ||
+      isUnconfiguredSecret(appId) ||
+      isUnconfiguredSecret(redirectUri)
+    ) {
+      throw new ServiceUnavailableException(
+        'Instagram OAuth is not configured for this deployment.',
+      );
+    }
+
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
       user.userId ?? user.id,
@@ -119,17 +142,15 @@ export class InstagramController {
       },
     );
 
-    const appId = this.configService.get('INSTAGRAM_APP_ID');
-
     this.loggerService.log(`${url} - Generating OAuth URL`, {
-      appId: appId ? 'configured' : 'missing',
-      redirectUri: this.redirectUri,
+      appId: 'configured',
+      redirectUri,
     });
 
     // Facebook/Instagram OAuth endpoint
     const authUrl =
       `https://www.facebook.com/${this.apiVersion}/dialog/oauth?client_id=${appId}` +
-      `&redirect_uri=${encodeURIComponent(this.redirectUri)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&scope=${encodeURIComponent(this.scope.join(','))}` +
       `&response_type=code&state=${encodeURIComponent(state)}`;
 

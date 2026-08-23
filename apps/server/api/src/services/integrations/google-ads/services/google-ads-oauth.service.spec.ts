@@ -2,6 +2,7 @@ import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/ser
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
@@ -75,13 +76,24 @@ describe('GoogleAdsOAuthService', () => {
       );
     });
 
-    it('should handle missing config gracefully', () => {
+    it('refuses to start OAuth when client id is a placeholder', () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GOOGLE_ADS_CLIENT_ID'
+          ? 'PLACEHOLDER_NOT_CONFIGURED'
+          : CONFIG_VALUES[key],
+      );
+
+      expect(() => service.generateAuthUrl('state')).toThrow(
+        ServiceUnavailableException,
+      );
+    });
+
+    it('refuses to start OAuth when client credentials are missing', () => {
       configService.get.mockReturnValue(undefined as never);
 
-      const url = service.generateAuthUrl('state');
-
-      expect(url).toContain('https://accounts.google.com/o/oauth2/v2/auth');
-      // Should not throw — just empty params
+      expect(() => service.generateAuthUrl('state')).toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 
