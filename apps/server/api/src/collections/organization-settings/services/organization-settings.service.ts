@@ -138,6 +138,14 @@ export class OrganizationSettingsService extends BaseService<
   async ensureForOrganization(
     organizationId: string,
   ): Promise<OrganizationSettingDocument> {
+    const activeOrganization = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: { id: organizationId, isDeleted: false },
+    });
+    if (!activeOrganization) {
+      throw new NotFoundException('Organization', organizationId);
+    }
+
     const existing = await this.findOne({ organizationId });
     if (existing) {
       return this.ensureEnabledModelIds(existing);

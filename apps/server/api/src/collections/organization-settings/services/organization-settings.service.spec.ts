@@ -31,12 +31,18 @@ function makeService(
   modelsService: { findAllActive: ReturnType<typeof vi.fn> } = {
     findAllActive: vi.fn().mockResolvedValue([]),
   },
+  organizationFindFirst: ReturnType<typeof vi.fn> = vi
+    .fn()
+    .mockResolvedValue({ id: 'org_1' }),
 ): OrganizationSettingsService {
   const resolvedConfigGet =
     configGet ??
     vi.fn((key: string) => (key === 'NODE_ENV' ? nodeEnv : undefined));
   return new OrganizationSettingsService(
-    { organizationSetting: {} } as never,
+    {
+      organization: { findFirst: organizationFindFirst },
+      organizationSetting: {},
+    } as never,
     {
       debug: () => undefined,
       error: () => undefined,
@@ -159,6 +165,32 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
 });
 
 describe('OrganizationSettingsService.ensureForOrganization', () => {
+  it('rejects a missing or soft-deleted organization before reading or creating settings', async () => {
+    const findActiveOrganization = vi.fn().mockResolvedValue(null);
+    const service = makeService(
+      'test',
+      undefined,
+      undefined,
+      findActiveOrganization,
+    );
+    const findOne = vi.spyOn(service, 'findOne');
+    const create = vi.spyOn(service, 'create');
+    const lowestCost = vi.spyOn(service, 'getLowestCostModelIds');
+
+    const failure = await service
+      .ensureForOrganization('org_deleted')
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(NotFoundException);
+    expect(findActiveOrganization).toHaveBeenCalledWith({
+      select: { id: true },
+      where: { id: 'org_deleted', isDeleted: false },
+    });
+    expect(findOne).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+    expect(lowestCost).not.toHaveBeenCalled();
+  });
+
   it('returns existing settings without creating a row', async () => {
     const service = makeService();
     const existing = { enabledModelIds: ['model_1'], id: 'set_1' };
