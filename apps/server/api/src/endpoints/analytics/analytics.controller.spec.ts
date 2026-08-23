@@ -627,7 +627,7 @@ describe('AnalyticsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should return viral hooks', async () => {
+    it('should return viral hooks for a superadmin without scoping by the requested org', async () => {
       analyticsService.getViralHooks.mockResolvedValueOnce({
         analysis: {
           hookEffectiveness: [],
@@ -645,15 +645,52 @@ describe('AnalyticsController', () => {
         startDate: '2025-01-01',
       } as unknown as ViralHooksQueryDto;
 
-      const result = await controller.getViralHooks(mockRequest, query);
+      const result = await controller.getViralHooks(
+        mockRequest.user as never,
+        mockRequest,
+        query,
+      );
 
       expect(analyticsService.getViralHooks).toHaveBeenCalledWith(
         '2025-01-01',
         '2025-01-31',
         'brand_1',
-        'org_1',
+        undefined,
       );
       expect(result).toBeDefined();
+    });
+
+    it('ignores a foreign organizationId in the query for non-superadmin users', async () => {
+      analyticsService.getViralHooks.mockResolvedValueOnce({
+        analysis: {
+          hookEffectiveness: [],
+          topHooks: [],
+          topPlatforms: [],
+          totalVideos: 0,
+        },
+        videos: [],
+      } as never);
+
+      const nonSuperAdmin = {
+        id: 'user_456',
+        isSuperAdmin: false,
+        organizationId: 'org-own',
+      } as never;
+      const query = {
+        brandId: 'brand_1',
+        endDate: '2025-01-31',
+        organizationId: 'org-foreign',
+        startDate: '2025-01-01',
+      } as unknown as ViralHooksQueryDto;
+
+      await controller.getViralHooks(nonSuperAdmin, mockRequest, query);
+
+      expect(analyticsService.getViralHooks).toHaveBeenCalledWith(
+        '2025-01-01',
+        '2025-01-31',
+        'brand_1',
+        'org-own',
+      );
     });
   });
 });
