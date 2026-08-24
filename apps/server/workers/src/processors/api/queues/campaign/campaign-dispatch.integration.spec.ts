@@ -109,7 +109,7 @@ describe('outreach campaign dispatch integration', () => {
     });
     expect(mockCampaignQueue.add).toHaveBeenCalledWith(
       'process',
-      { campaignId, organizationId },
+      { campaignId, organizationId, scheduleVersion: 1 },
       expect.objectContaining({ jobId: `campaign-${campaignId}` }),
     );
 
@@ -118,6 +118,11 @@ describe('outreach campaign dispatch integration', () => {
       CampaignProcessingJobData,
       { jobId: string },
     ];
+    expect(queued[1]).toEqual({
+      campaignId,
+      organizationId,
+      scheduleVersion: 1,
+    });
     const job = {
       data: queued[1],
       id: queued[2].jobId,
@@ -141,5 +146,42 @@ describe('outreach campaign dispatch integration', () => {
       processed: 1,
       successful: 1,
     });
+  });
+
+  it('takes a due Scheduled Blast from dispatch through the worker to one executor call', async () => {
+    const scheduledCampaign = {
+      ...campaign,
+      campaignType: CampaignType.SCHEDULED_BLAST,
+      schedule: {
+        dueAt: '2026-08-24T12:00:00.000Z',
+        version: 1,
+      },
+    };
+    mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+      scheduledCampaign,
+    ]);
+    mockOutreachCampaignsService.findOneById.mockResolvedValue(
+      scheduledCampaign,
+    );
+
+    const dispatch = await queueService.dispatchActiveCampaigns(organizationId);
+
+    expect(dispatch.enqueued).toBe(1);
+    expect(mockCampaignQueue.add).toHaveBeenCalledWith(
+      'process',
+      { campaignId, organizationId, scheduleVersion: 1 },
+      expect.objectContaining({ jobId: `campaign-${campaignId}` }),
+    );
+
+    const result = await processor.process({
+      data: { campaignId, organizationId, scheduleVersion: 1 },
+      id: `campaign-${campaignId}`,
+      updateProgress: vi.fn(),
+    } as unknown as Job<CampaignProcessingJobData>);
+
+    expect(
+      mockCampaignExecutorService.processPendingTargets,
+    ).toHaveBeenCalledWith(scheduledCampaign, 10);
+    expect(result.successful).toBe(1);
   });
 });

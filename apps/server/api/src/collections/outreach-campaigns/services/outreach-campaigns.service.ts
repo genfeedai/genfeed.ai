@@ -5,6 +5,16 @@ import type {
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import {
+  DEFAULT_CAMPAIGN_SCHEDULE_VERSION,
+  isScheduledBlastDueForDispatch,
+  type PersistedCampaignSchedule,
+  persistScheduledBlastSchedule,
+  readCampaignScheduleDueAt,
+  readCampaignScheduleVersion,
+  requireScheduledBlastSchedule,
+  toOutreachScheduleException,
+} from '@api/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
+import {
   evaluateReplySlotReservation,
   mergeReservedRateLimits,
 } from '@api/collections/outreach-campaigns/services/outreach-reply-slot.util';
@@ -16,7 +26,12 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { CampaignStatus, toPrismaCredentialPlatform } from '@genfeedai/enums';
+import {
+  CampaignStatus,
+  CampaignTargetStatus,
+  CampaignType,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -181,6 +196,57 @@ export class OutreachCampaignsService {
     return campaign;
   }
 
+  private resolvePatchedSchedule(
+    existing: OutreachCampaignDocument,
+    nextCampaignType: string | undefined,
+    schedule: UpdateOutreachCampaignDto['schedule'],
+  ): PersistedCampaignSchedule | Record<string, unknown> | null | undefined {
+    if (nextCampaignType !== CampaignType.SCHEDULED_BLAST) {
+      return schedule === undefined
+        ? undefined
+        : ((schedule as Record<string, unknown> | null) ?? null);
+    }
+
+    if (schedule === undefined) {
+      if (!readCampaignScheduleDueAt(existing.schedule)) {
+        throw toOutreachScheduleException('missing_schedule');
+      }
+      return undefined;
+    }
+
+    const dueTime = requireScheduledBlastSchedule(schedule);
+    const existingDueAt = readCampaignScheduleDueAt(existing.schedule);
+    const version = existingDueAt
+      ? readCampaignScheduleVersion(existing.schedule) + 1
+      : readCampaignScheduleVersion(existing.schedule);
+
+    return persistScheduledBlastSchedule(dueTime, version);
+  }
+
+  private async applyOpenTargetSchedule(
+    campaignId: string,
+    organizationId: string,
+    schedule: { scheduledAt: Date; scheduleVersion: number },
+  ): Promise<void> {
+    await this.prisma.campaignTarget.updateMany({
+      data: {
+        scheduledAt: schedule.scheduledAt,
+        scheduleVersion: schedule.scheduleVersion,
+        status: CampaignTargetStatus.SCHEDULED,
+      },
+      where: scopedWhere(organizationId, {
+        campaignId,
+        campaign: {
+          isDeleted: false,
+          organizationId,
+        },
+        status: {
+          in: [CampaignTargetStatus.PENDING, CampaignTargetStatus.SCHEDULED],
+        },
+      }),
+    });
+  }
+
   // -------------------------------------------------------------------------
   // CRUD
   // -------------------------------------------------------------------------
@@ -286,6 +352,14 @@ export class OutreachCampaignsService {
 
     requireExecutableOutreachPair({ campaignType, platform });
 
+    const persistedSchedule =
+      campaignType === CampaignType.SCHEDULED_BLAST
+        ? persistScheduledBlastSchedule(
+            requireScheduledBlastSchedule(schedule),
+            DEFAULT_CAMPAIGN_SCHEDULE_VERSION,
+          )
+        : (schedule ?? null);
+
     const brandId = await this.assertBrandAccess(
       requestedBrandId,
       organizationId,
@@ -305,7 +379,7 @@ export class OutreachCampaignsService {
       dmConfig: dmConfig ?? null,
       label: label ?? null,
       rateLimits,
-      schedule: schedule ?? null,
+      schedule: persistedSchedule,
       totalReplies: 0,
       totalSuccessful: 0,
     };
@@ -345,6 +419,7 @@ export class OutreachCampaignsService {
       credentialId: requestedCredentialId,
       isActive,
       platform,
+      schedule,
       status,
       ...configUpdates
     } = updateDto;
@@ -379,16 +454,44 @@ export class OutreachCampaignsService {
       );
     }
 
-    const updatedConfig = { ...existingConfig, ...configUpdates };
+    const nextSchedule = this.resolvePatchedSchedule(
+      existing,
+      nextCampaignType,
+      schedule,
+    );
+    const updatedConfig = {
+      ...existingConfig,
+      ...configUpdates,
+      ...(nextSchedule !== undefined ? { schedule: nextSchedule } : {}),
+    };
 
-    return this.applyScopedCampaignUpdate(id, organizationId, brandId, {
-      ...(campaignType !== undefined ? { campaignType } : {}),
-      ...(credentialId !== undefined ? { credentialId } : {}),
-      ...(isActive !== undefined ? { isActive } : {}),
-      ...(platform !== undefined ? { platform } : {}),
-      ...(status ? { status } : {}),
-      config: updatedConfig as Prisma.InputJsonValue,
-    });
+    const updated = await this.applyScopedCampaignUpdate(
+      id,
+      organizationId,
+      brandId,
+      {
+        ...(campaignType !== undefined ? { campaignType } : {}),
+        ...(credentialId !== undefined ? { credentialId } : {}),
+        ...(isActive !== undefined ? { isActive } : {}),
+        ...(platform !== undefined ? { platform } : {}),
+        ...(status ? { status } : {}),
+        config: updatedConfig as Prisma.InputJsonValue,
+      },
+    );
+
+    if (
+      nextSchedule &&
+      typeof nextSchedule === 'object' &&
+      typeof nextSchedule.dueAt === 'string' &&
+      typeof nextSchedule.version === 'number'
+    ) {
+      await this.applyOpenTargetSchedule(id, organizationId, {
+        scheduledAt: new Date(nextSchedule.dueAt),
+        scheduleVersion: nextSchedule.version,
+      });
+    }
+
+    return updated;
   }
 
   // -------------------------------------------------------------------------
@@ -473,6 +576,18 @@ export class OutreachCampaignsService {
       campaignType: campaign.campaignType,
       platform: campaign.platform,
     });
+
+    if (campaign.campaignType === CampaignType.SCHEDULED_BLAST) {
+      const dueAt = readCampaignScheduleDueAt(campaign.schedule);
+      if (!dueAt) {
+        throw toOutreachScheduleException('missing_schedule');
+      }
+
+      await this.applyOpenTargetSchedule(id, organizationId, {
+        scheduledAt: dueAt,
+        scheduleVersion: readCampaignScheduleVersion(campaign.schedule),
+      });
+    }
 
     if (campaign.status === CampaignStatus.ACTIVE) {
       return campaign;
@@ -764,8 +879,12 @@ export class OutreachCampaignsService {
    */
   async findActiveForDispatch(
     organizationId: string,
+    now: Date = new Date(),
   ): Promise<OutreachCampaignDocument[]> {
-    return this.findActive(organizationId);
+    const campaigns = await this.findActive(organizationId);
+    return campaigns.filter((campaign) =>
+      isScheduledBlastDueForDispatch(campaign, now),
+    );
   }
 
   /**

@@ -5,6 +5,7 @@
  * owned by the outreach-campaign-dispatch system workflow, not a static @Cron.
  */
 
+import { readCampaignScheduleVersion } from '@api/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import {
   CAMPAIGN_PROCESSING_QUEUE,
@@ -123,6 +124,7 @@ export class CampaignQueueService implements OnModuleInit {
           const outcome = await this.enqueueCampaignProcessing(
             campaignId,
             organizationId,
+            readCampaignScheduleVersion(campaign.schedule),
           );
           if (outcome === 'already_queued') {
             alreadyQueued += 1;
@@ -197,9 +199,13 @@ export class CampaignQueueService implements OnModuleInit {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      const campaign = this.campaignsService
+        ? await this.campaignsService.findOneById(campaignId, organizationId)
+        : null;
       const outcome = await this.enqueueCampaignProcessing(
         campaignId,
         organizationId,
+        readCampaignScheduleVersion(campaign?.schedule),
       );
       const jobId = buildCampaignProcessingJobId(campaignId);
 
@@ -228,6 +234,7 @@ export class CampaignQueueService implements OnModuleInit {
   private async enqueueCampaignProcessing(
     campaignId: string,
     organizationId: string,
+    scheduleVersion: number,
   ): Promise<'already_queued' | 'enqueued'> {
     if (!this.campaignQueue) {
       throw new Error('campaign_queue_unavailable');
@@ -250,6 +257,7 @@ export class CampaignQueueService implements OnModuleInit {
       {
         campaignId,
         organizationId,
+        scheduleVersion,
       },
       {
         jobId,

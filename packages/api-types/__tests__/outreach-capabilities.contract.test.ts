@@ -23,6 +23,7 @@ const EXPECTED_MATRIX: ReadonlyArray<{
   reason:
     | 'verified_x_public_reply'
     | 'verified_x_dm'
+    | 'verified_x_scheduled_blast'
     | 'scheduled_blast_unavailable'
     | 'platform_unavailable';
   result: 'executable' | 'unavailable';
@@ -48,8 +49,8 @@ const EXPECTED_MATRIX: ReadonlyArray<{
   {
     campaignType: CampaignType.SCHEDULED_BLAST,
     platform: CampaignPlatform.TWITTER,
-    reason: 'scheduled_blast_unavailable',
-    result: 'unavailable',
+    reason: 'verified_x_scheduled_blast',
+    result: 'executable',
   },
   {
     campaignType: CampaignType.MANUAL,
@@ -134,7 +135,7 @@ describe('outreach capability matrix', () => {
     }
   });
 
-  test('enables only verified X public-reply and X DM pairs', () => {
+  test('enables verified X public-reply, X DM, and X Scheduled Blast pairs', () => {
     expect(listExecutableOutreachPairs()).toEqual([
       {
         campaignType: CampaignType.MANUAL,
@@ -142,6 +143,10 @@ describe('outreach capability matrix', () => {
       },
       {
         campaignType: CampaignType.DISCOVERY,
+        platform: CampaignPlatform.TWITTER,
+      },
+      {
+        campaignType: CampaignType.SCHEDULED_BLAST,
         platform: CampaignPlatform.TWITTER,
       },
       {
@@ -155,20 +160,21 @@ describe('outreach capability matrix', () => {
     expect(listExecutableOutreachCampaignTypes()).toEqual([
       CampaignType.MANUAL,
       CampaignType.DISCOVERY,
+      CampaignType.SCHEDULED_BLAST,
       CampaignType.DM_OUTREACH,
     ]);
   });
 
-  test('keeps Scheduled Blast, Reddit, and Instagram unavailable', () => {
+  test('keeps Reddit and Instagram unavailable and marks X Scheduled Blast executable', () => {
     expect(
       evaluateOutreachCapability({
         campaignType: CampaignType.SCHEDULED_BLAST,
         platform: CampaignPlatform.TWITTER,
       }),
     ).toMatchObject({
-      executable: false,
-      reason: 'scheduled_blast_unavailable',
-      result: 'unavailable',
+      executable: true,
+      reason: 'verified_x_scheduled_blast',
+      result: 'executable',
     });
     expect(
       evaluateOutreachCapability({
@@ -217,14 +223,20 @@ describe('outreach capability matrix', () => {
         platform: CampaignPlatform.TWITTER,
       }),
     ).toBeUndefined();
+    expect(
+      getOutreachCapabilityRefusal({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        platform: CampaignPlatform.TWITTER,
+      }),
+    ).toBeUndefined();
 
     const reddit = getOutreachCapabilityRefusal({
       campaignType: CampaignType.MANUAL,
       platform: CampaignPlatform.REDDIT,
     });
-    const scheduled = getOutreachCapabilityRefusal({
+    const scheduledOnReddit = getOutreachCapabilityRefusal({
       campaignType: CampaignType.SCHEDULED_BLAST,
-      platform: CampaignPlatform.TWITTER,
+      platform: CampaignPlatform.REDDIT,
     });
     const unknown = getOutreachCapabilityRefusal({
       campaignType: 'reply',
@@ -236,7 +248,7 @@ describe('outreach capability matrix', () => {
       message: OUTREACH_CAPABILITY_UNAVAILABLE_ERROR.message,
       reason: 'platform_unavailable',
     });
-    expect(scheduled?.message).toBe(reddit?.message);
+    expect(scheduledOnReddit?.message).toBe(reddit?.message);
     expect(unknown?.message).toBe(reddit?.message);
     expect(unknown?.reason).toBe('unknown_pair');
   });

@@ -21,6 +21,7 @@ import {
   CampaignSkipReason,
   CampaignStatus,
   CampaignTargetStatus,
+  CampaignType,
 } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -30,9 +31,37 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 const SCOPED_METHOD_ERROR =
   'Campaign targets require organization-scoped methods';
 
+const DEFAULT_SCHEDULE_VERSION = 1;
+
 type CampaignTargetRow = {
   data?: unknown;
 } & Record<string, unknown>;
+
+type DueTargetClaimOptions = {
+  now?: Date;
+  scheduleVersion?: number;
+};
+
+function dueTargetWhere(now: Date): Prisma.CampaignTargetWhereInput {
+  return {
+    AND: [
+      {
+        status: {
+          in: [CampaignTargetStatus.PENDING, CampaignTargetStatus.SCHEDULED],
+        },
+      },
+      {
+        OR: [
+          {
+            scheduledAt: null,
+            status: CampaignTargetStatus.PENDING,
+          },
+          { scheduledAt: { lte: now } },
+        ],
+      },
+    ],
+  };
+}
 
 @Injectable()
 export class CampaignTargetsService extends BaseService<
@@ -60,12 +89,18 @@ export class CampaignTargetsService extends BaseService<
     target: CreateCampaignTargetDto,
     organizationId: string,
     campaignId: string,
+    inheritedSchedule?: {
+      scheduledAt: Date | null;
+      scheduleVersion: number;
+      status: CampaignTargetStatus;
+    },
   ): Prisma.CampaignTargetCreateManyInput {
     const {
       campaignId: _campaignId,
       externalId,
       organizationId: _organizationId,
       scheduledAt,
+      scheduleVersion,
       status,
       ...descriptive
     } = target;
@@ -76,9 +111,54 @@ export class CampaignTargetsService extends BaseService<
         descriptive as unknown as Record<string, unknown>,
       ),
       organizationId,
-      status: status ?? CampaignTargetStatus.PENDING,
+      scheduleVersion:
+        scheduleVersion ??
+        inheritedSchedule?.scheduleVersion ??
+        DEFAULT_SCHEDULE_VERSION,
+      status:
+        status ?? inheritedSchedule?.status ?? CampaignTargetStatus.PENDING,
       ...(externalId === undefined ? {} : { externalId }),
-      ...(scheduledAt === undefined ? {} : { scheduledAt }),
+      ...(scheduledAt === undefined
+        ? inheritedSchedule?.scheduledAt
+          ? { scheduledAt: inheritedSchedule.scheduledAt }
+          : {}
+        : { scheduledAt }),
+    };
+  }
+
+  private inheritedScheduleFromCampaign(campaign: {
+    campaignType?: string | null;
+    config?: unknown;
+  }):
+    | {
+        scheduledAt: Date | null;
+        scheduleVersion: number;
+        status: CampaignTargetStatus;
+      }
+    | undefined {
+    if (campaign.campaignType !== CampaignType.SCHEDULED_BLAST) {
+      return undefined;
+    }
+
+    const config = parseJsonObject(campaign.config);
+    const schedule =
+      config.schedule &&
+      typeof config.schedule === 'object' &&
+      !Array.isArray(config.schedule)
+        ? (config.schedule as Record<string, unknown>)
+        : {};
+    const dueAt =
+      typeof schedule.dueAt === 'string' ? new Date(schedule.dueAt) : null;
+    const hasDueAt = Boolean(dueAt && !Number.isNaN(dueAt.getTime()));
+    const version =
+      typeof schedule.version === 'number' && Number.isInteger(schedule.version)
+        ? schedule.version
+        : DEFAULT_SCHEDULE_VERSION;
+
+    return {
+      scheduledAt: hasDueAt ? dueAt : null,
+      scheduleVersion: version,
+      status: CampaignTargetStatus.SCHEDULED,
     };
   }
 
@@ -158,9 +238,15 @@ export class CampaignTargetsService extends BaseService<
       }
 
       const ownerOrganizationId = campaign.organizationId;
+      const inheritedSchedule = this.inheritedScheduleFromCampaign(campaign);
       const result = await tx.campaignTarget.createMany({
         data: targets.map((target) =>
-          this.toCreateManyInput(target, ownerOrganizationId, campaign.id),
+          this.toCreateManyInput(
+            target,
+            ownerOrganizationId,
+            campaign.id,
+            inheritedSchedule,
+          ),
         ),
       });
 
@@ -267,13 +353,18 @@ export class CampaignTargetsService extends BaseService<
   async getNextPending(
     campaignId: string,
     organizationId: string,
+    options: DueTargetClaimOptions = {},
   ): Promise<CampaignTargetDocument | null> {
+    const now = options.now ?? new Date();
     const target = await this.prisma.campaignTarget.findFirst({
       orderBy: [{ createdAt: 'asc' }, { scheduledAt: 'asc' }],
       where: scopedWhere(organizationId, {
         campaignId,
         campaign: this.parentWhere(organizationId, true),
-        status: CampaignTargetStatus.PENDING,
+        ...dueTargetWhere(now),
+        ...(options.scheduleVersion === undefined
+          ? {}
+          : { scheduleVersion: options.scheduleVersion }),
       }),
     });
 
@@ -284,8 +375,9 @@ export class CampaignTargetsService extends BaseService<
     campaignId: string,
     organizationId: string,
     limit: number = 10,
+    options: DueTargetClaimOptions = {},
   ): Promise<CampaignTargetDocument[]> {
-    const now = new Date();
+    const now = options.now ?? new Date();
 
     const targets = await this.prisma.campaignTarget.findMany({
       orderBy: [{ createdAt: 'asc' }, { scheduledAt: 'asc' }],
@@ -293,8 +385,10 @@ export class CampaignTargetsService extends BaseService<
       where: scopedWhere(organizationId, {
         campaignId,
         campaign: this.parentWhere(organizationId, true),
-        OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }],
-        status: CampaignTargetStatus.PENDING,
+        ...dueTargetWhere(now),
+        ...(options.scheduleVersion === undefined
+          ? {}
+          : { scheduleVersion: options.scheduleVersion }),
       }),
     });
 
@@ -303,20 +397,24 @@ export class CampaignTargetsService extends BaseService<
 
   /**
    * Atomic scoped claim: at most one worker can move an eligible pending
-   * target into PROCESSING under an ACTIVE, non-deleted parent.
+   * or due scheduled target into PROCESSING under an ACTIVE, non-deleted
+   * parent. Stale schedule versions and not-yet-due rows match zero rows.
    */
   async claimForProcessing(
     id: string,
     organizationId: string,
+    options: DueTargetClaimOptions = {},
   ): Promise<CampaignTargetDocument | null> {
-    const now = new Date();
+    const now = options.now ?? new Date();
     const claimed = await this.prisma.campaignTarget.updateMany({
       data: { status: CampaignTargetStatus.PROCESSING },
       where: scopedWhere(organizationId, {
         campaign: this.parentWhere(organizationId, true),
         id,
-        OR: [{ scheduledAt: null }, { scheduledAt: { lte: now } }],
-        status: CampaignTargetStatus.PENDING,
+        ...dueTargetWhere(now),
+        ...(options.scheduleVersion === undefined
+          ? {}
+          : { scheduleVersion: options.scheduleVersion }),
       }),
     });
 
@@ -404,20 +502,93 @@ export class CampaignTargetsService extends BaseService<
     );
   }
 
-  scheduleTarget(
+  async scheduleTarget(
     id: string,
     organizationId: string,
     scheduledAt: Date,
+    options: DueTargetClaimOptions = {},
   ): Promise<CampaignTargetDocument | null> {
+    const now = options.now ?? new Date();
+    if (scheduledAt.getTime() <= now.getTime()) {
+      throw new BadRequestException('Delivery time must be in the future.');
+    }
+
+    const existing = await this.findById(id, organizationId);
+    if (!existing) {
+      return null;
+    }
+
+    if (
+      existing.status !== CampaignTargetStatus.PENDING &&
+      existing.status !== CampaignTargetStatus.SCHEDULED
+    ) {
+      return null;
+    }
+
+    const nextVersion =
+      (typeof existing.scheduleVersion === 'number'
+        ? existing.scheduleVersion
+        : DEFAULT_SCHEDULE_VERSION) + 1;
+
     return this.transitionTarget(
       id,
       organizationId,
-      CampaignTargetStatus.PENDING,
+      existing.status as CampaignTargetStatus,
       {
         scheduledAt,
+        scheduleVersion: nextVersion,
         status: CampaignTargetStatus.SCHEDULED,
       },
       { requireActiveParent: true },
+    );
+  }
+
+  async applyScheduleToOpenTargets(
+    campaignId: string,
+    organizationId: string,
+    schedule: { scheduledAt: Date; scheduleVersion: number },
+  ): Promise<number> {
+    const result = await this.prisma.campaignTarget.updateMany({
+      data: {
+        scheduledAt: schedule.scheduledAt,
+        scheduleVersion: schedule.scheduleVersion,
+        status: CampaignTargetStatus.SCHEDULED,
+      },
+      where: scopedWhere(organizationId, {
+        campaignId,
+        campaign: this.parentWhere(organizationId, false),
+        status: {
+          in: [CampaignTargetStatus.PENDING, CampaignTargetStatus.SCHEDULED],
+        },
+      }),
+    });
+
+    return result.count;
+  }
+
+  async cancelTarget(
+    id: string,
+    organizationId: string,
+  ): Promise<CampaignTargetDocument | null> {
+    const existing = await this.findById(id, organizationId);
+    if (
+      !existing ||
+      (existing.status !== CampaignTargetStatus.PENDING &&
+        existing.status !== CampaignTargetStatus.SCHEDULED)
+    ) {
+      return null;
+    }
+
+    return this.transitionTarget(
+      id,
+      organizationId,
+      existing.status as CampaignTargetStatus,
+      {
+        processedAt: new Date(),
+        skipReason: CampaignSkipReason.MANUAL_SKIP,
+        status: CampaignTargetStatus.SKIPPED,
+      },
+      { requireActiveParent: false },
     );
   }
 

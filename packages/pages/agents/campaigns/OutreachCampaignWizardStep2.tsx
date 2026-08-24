@@ -1,6 +1,12 @@
 'use client';
 
 import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
+import {
+  fromDateTimeLocalInput,
+  TIMEZONES,
+  toDateTimeLocalInput,
+} from '@helpers/formatting/timezone/timezone.helper';
+import DateTimePicker from '@ui/primitives/date-time-picker';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import {
@@ -34,7 +40,11 @@ interface OutreachCampaignWizardStep2Props {
   onHashtagsChange: (value: string) => void;
   onKeywordsChange: (value: string) => void;
   onLabelChange: (value: string) => void;
+  onScheduledLocalDateTimeChange: (value: string) => void;
   onSubredditsChange: (value: string) => void;
+  onTimezoneChange: (value: string) => void;
+  scheduledLocalDateTime: string;
+  timezone: string;
 }
 
 export default function OutreachCampaignWizardStep2({
@@ -52,9 +62,16 @@ export default function OutreachCampaignWizardStep2({
   onHashtagsChange,
   onKeywordsChange,
   onLabelChange,
+  onScheduledLocalDateTimeChange,
   onSubredditsChange,
+  onTimezoneChange,
+  scheduledLocalDateTime,
+  timezone,
 }: OutreachCampaignWizardStep2Props) {
   const translate = useTranslations('common.outreachCampaign');
+  const timezoneOptions = TIMEZONES.some((zone) => zone.value === timezone)
+    ? TIMEZONES
+    : [{ label: timezone, offset: 0, value: timezone }, ...TIMEZONES];
 
   return (
     <div className="space-y-6">
@@ -110,6 +127,50 @@ export default function OutreachCampaignWizardStep2({
           </SelectContent>
         </Select>
       </div>
+
+      {campaignType === CampaignType.SCHEDULED_BLAST && (
+        <>
+          <div className="space-y-1.5">
+            <DateTimePicker
+              helpText={translate('scheduleHelp')}
+              isRequired
+              label={translate('deliveryTime')}
+              minDate={new Date()}
+              timezone={timezone}
+              value={
+                fromDateTimeLocalInput(scheduledLocalDateTime, timezone) ??
+                undefined
+              }
+              onChange={(date) =>
+                onScheduledLocalDateTimeChange(
+                  date ? toDateTimeLocalInput(date, timezone) : '',
+                )
+              }
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label
+              className="text-sm font-medium text-foreground"
+              htmlFor="campaign-wizard-timezone"
+            >
+              {translate('timezone')}
+            </Label>
+            <Select required value={timezone} onValueChange={onTimezoneChange}>
+              <SelectTrigger id="campaign-wizard-timezone">
+                <SelectValue placeholder={translate('timezone')} />
+              </SelectTrigger>
+              <SelectContent>
+                {timezoneOptions.map((zone) => (
+                  <SelectItem key={zone.value} value={zone.value}>
+                    {zone.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      )}
 
       {campaignType === CampaignType.DISCOVERY && (
         <>

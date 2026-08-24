@@ -1181,6 +1181,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'replyText',
       'replyUrl',
       'retryCount',
+      'scheduleVersion',
       'scheduledAt',
       'skipReason',
       'status',

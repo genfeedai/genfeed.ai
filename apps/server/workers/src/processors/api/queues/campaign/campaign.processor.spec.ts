@@ -82,7 +82,7 @@ describe('CampaignProcessor', () => {
       });
 
       const result = await processor.process(
-        createJob({ campaignId, organizationId }),
+        createJob({ campaignId, organizationId, scheduleVersion: 1 }),
       );
 
       expect(campaignsService.findOneById).toHaveBeenCalledWith(
@@ -110,7 +110,7 @@ describe('CampaignProcessor', () => {
       });
 
       const result = await processor.process(
-        createJob({ campaignId, organizationId }, 'job-2'),
+        createJob({ campaignId, organizationId, scheduleVersion: 1 }, 'job-2'),
       );
 
       expect(result).toEqual({
@@ -134,7 +134,7 @@ describe('CampaignProcessor', () => {
       campaignsService.findOneById.mockResolvedValue(null);
 
       const result = await processor.process(
-        createJob({ campaignId, organizationId }, 'job-3'),
+        createJob({ campaignId, organizationId, scheduleVersion: 1 }, 'job-3'),
       );
 
       expect(campaignsService.findOneById).toHaveBeenCalledWith(
@@ -160,7 +160,10 @@ describe('CampaignProcessor', () => {
       });
 
       const result = await processor.process(
-        createJob({ campaignId, organizationId }, 'job-unavailable'),
+        createJob(
+          { campaignId, organizationId, scheduleVersion: 1 },
+          'job-unavailable',
+        ),
       );
 
       expect(result).toEqual({
@@ -189,7 +192,7 @@ describe('CampaignProcessor', () => {
       });
 
       const result = await processor.process(
-        createJob({ campaignId, organizationId }, 'job-4'),
+        createJob({ campaignId, organizationId, scheduleVersion: 1 }, 'job-4'),
       );
 
       expect(result.skipped).toBe(1);
@@ -201,6 +204,64 @@ describe('CampaignProcessor', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('skips a stale schedule version before generation or provider calls', async () => {
+      const campaignId = testId('campaign');
+      const organizationId = testId('organization');
+      campaignsService.findOneById.mockResolvedValue({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
+        platform: CampaignPlatform.TWITTER,
+        schedule: {
+          dueAt: '2026-08-24T12:00:00.000Z',
+          version: 2,
+        },
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const result = await processor.process(
+        createJob(
+          { campaignId, organizationId, scheduleVersion: 1 },
+          'job-stale',
+        ),
+      );
+
+      expect(result.skipped).toBe(1);
+      expect(
+        campaignExecutorService.processPendingTargets,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('skips a Scheduled Blast that is not yet due', async () => {
+      const campaignId = testId('campaign');
+      const organizationId = testId('organization');
+      campaignsService.findOneById.mockResolvedValue({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
+        platform: CampaignPlatform.TWITTER,
+        schedule: {
+          dueAt: '2099-01-01T00:00:00.000Z',
+          version: 1,
+        },
+        status: CampaignStatus.ACTIVE,
+      });
+
+      const result = await processor.process(
+        createJob(
+          { campaignId, organizationId, scheduleVersion: 1 },
+          'job-early',
+        ),
+      );
+
+      expect(result.skipped).toBe(1);
+      expect(
+        campaignExecutorService.processPendingTargets,
+      ).not.toHaveBeenCalled();
+    });
+
     it('rethrows transient failures so retries preserve target-level claims', async () => {
       const campaignId = testId('campaign');
       const organizationId = testId('organization');
@@ -209,7 +270,12 @@ describe('CampaignProcessor', () => {
       );
 
       await expect(
-        processor.process(createJob({ campaignId, organizationId }, 'job-5')),
+        processor.process(
+          createJob(
+            { campaignId, organizationId, scheduleVersion: 1 },
+            'job-5',
+          ),
+        ),
       ).rejects.toThrow('Service unavailable');
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
