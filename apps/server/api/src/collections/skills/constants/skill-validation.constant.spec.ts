@@ -1,4 +1,5 @@
 import { loadFirstPartySkillDefinitions } from '@api/collections/skills/catalog/first-party-skill-loader';
+import { BUILT_IN_SKILL_ID_PREFIX } from '@api/collections/skills/constants/skill-catalog-identity';
 import {
   BUILT_IN_SKILL_CATALOG,
   EXECUTABLE_BUILT_IN_SKILL_CATALOG,
@@ -19,7 +20,7 @@ describe('built-in skill catalog trust root', () => {
     );
     expect(
       isExecutableBuiltInSkillIdentity(
-        'cskillbuiltincontentwrite',
+        `${BUILT_IN_SKILL_ID_PREFIX}contentwrite`,
         'content-writing',
       ),
     ).toBe(true);

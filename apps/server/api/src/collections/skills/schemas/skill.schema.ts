@@ -45,6 +45,8 @@ export interface SkillDocument extends Skill {
   requiredProviders?: string[];
   reviewDefaults?: Record<string, unknown>;
   slug?: string;
+  sourceListingId?: string;
+  version?: string;
   workflowStage?: string;
   [key: string]: unknown;
 }

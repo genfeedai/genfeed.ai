@@ -6,12 +6,13 @@ import { describe, expect, it } from 'vitest';
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
 const repoRoot = join(prismaDir, '../../..');
 const skillsDir = join(repoRoot, 'skills');
+const builtInSkillIdPrefix = 'cskillbuiltin';
 const originalFiveIds = [
-  'cskillbuiltincontentgeo',
-  'cskillbuiltincontentwrite',
-  'cskillbuiltinimagegenerate',
-  'cskillbuiltintrenddiscover',
-  'cskillbuiltintrendremix',
+  `${builtInSkillIdPrefix}contentgeo`,
+  `${builtInSkillIdPrefix}contentwrite`,
+  `${builtInSkillIdPrefix}imagegenerate`,
+  `${builtInSkillIdPrefix}trenddiscover`,
+  `${builtInSkillIdPrefix}trendremix`,
 ];
 const originalMigration = readFileSync(
   join(
