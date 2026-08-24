@@ -319,7 +319,9 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
     defaultData: {
       label: 'Prompt Constructor',
       outputText: null,
+      promptFormat: 'text',
       status: 'idle',
+      structuredPrompt: null,
       template: '',
       unresolvedVars: [],
     },

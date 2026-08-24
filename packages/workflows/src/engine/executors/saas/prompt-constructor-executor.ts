@@ -1,9 +1,18 @@
+import type { PromptFormat, PromptJsonValue } from '@genfeedai/types';
+import type { PromptConstructorPayload } from '../../../contracts/prompt-constructor';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
 } from '../base-executor';
+import {
+  isPromptJsonValue,
+  PROMPT_FORMAT_JSON,
+  parsePromptJson,
+  readPromptFormat,
+  serializeStructuredPrompt,
+} from './prompt-json';
 
 // =============================================================================
 // TYPES
@@ -14,6 +23,14 @@ export interface PromptConstructorConfig {
   template: string;
   /** Key-value pairs to substitute into the template */
   variables: Record<string, string>;
+  promptFormat: PromptFormat;
+  structuredPrompt?: PromptJsonValue | null;
+  /**
+   * When false, JSON mode emits only deterministic text. Defaults to true so
+   * structured payloads are forwarded losslessly. Model capability gating is
+   * #1650 — this flag is a generic fallback, not a model-id switch.
+   */
+  acceptsStructuredPrompt: boolean;
 }
 
 export interface PromptConstructorResult {
@@ -23,14 +40,21 @@ export interface PromptConstructorResult {
   resolvedVariables: string[];
   /** Placeholders that had no matching variable */
   unresolvedPlaceholders: string[];
+  promptFormat?: PromptFormat;
+  structuredPrompt?: PromptJsonValue;
 }
 
 const HOOKS_INPUT_HANDLE = 'hooks';
 const AVOID_INPUT_HANDLE = 'avoid';
 const TEMPLATE_RESERVED_CONFIG_KEYS = new Set([
+  'acceptsStructuredPrompt',
   'inputVariableKeys',
   'label',
+  'outputText',
+  'promptFormat',
+  'structuredPrompt',
   'template',
+  'unresolvedVars',
   'variables',
   HOOKS_INPUT_HANDLE,
   AVOID_INPUT_HANDLE,
@@ -137,13 +161,32 @@ export class PromptConstructorExecutor extends BaseExecutor {
     const result = resolveTemplate(config.template, config.variables);
     const hooks = readPromptGuidanceList(inputs.get(HOOKS_INPUT_HANDLE));
     const avoid = readPromptGuidanceList(inputs.get(AVOID_INPUT_HANDLE));
-    const prompt = foldPromptGuidance(result.prompt, hooks, avoid);
+
+    if (config.promptFormat !== PROMPT_FORMAT_JSON) {
+      const prompt = foldPromptGuidance(result.prompt, hooks, avoid);
+      return {
+        data: prompt,
+        metadata: {
+          avoidCount: avoid.length,
+          hooksCount: hooks.length,
+          promptFormat: config.promptFormat,
+          resolvedCount: result.resolvedVariables.length,
+          unresolvedCount: result.unresolvedPlaceholders.length,
+        },
+      };
+    }
+
+    const { data, isStructuredPromptValid, isStructuredPromptSerialized } =
+      this.buildJsonPayload(config, result.prompt, hooks, avoid);
 
     return {
-      data: prompt,
+      data,
       metadata: {
         avoidCount: avoid.length,
         hooksCount: hooks.length,
+        isStructuredPromptSerialized,
+        isStructuredPromptValid,
+        promptFormat: PROMPT_FORMAT_JSON,
         resolvedCount: result.resolvedVariables.length,
         unresolvedCount: result.unresolvedPlaceholders.length,
       },
@@ -214,8 +257,93 @@ export class PromptConstructorExecutor extends BaseExecutor {
     }
 
     return {
+      acceptsStructuredPrompt: node.config.acceptsStructuredPrompt !== false,
+      promptFormat: readPromptFormat(node.config.promptFormat),
+      structuredPrompt: this.readStoredStructuredPrompt(
+        node.config.structuredPrompt,
+      ),
       template: (node.config.template as string) ?? '',
       variables,
     };
+  }
+
+  private readStoredStructuredPrompt(
+    value: unknown,
+  ): PromptJsonValue | null | undefined {
+    if (value === undefined || value === null) {
+      return value;
+    }
+
+    return isPromptJsonValue(value) ? value : undefined;
+  }
+
+  private buildJsonPayload(
+    config: PromptConstructorConfig,
+    resolvedTemplate: string,
+    hooks: string[],
+    avoid: string[],
+  ): {
+    data: PromptConstructorPayload;
+    isStructuredPromptSerialized: boolean;
+    isStructuredPromptValid: boolean;
+  } {
+    const structuredPrompt = this.resolveStructuredPrompt(
+      config,
+      resolvedTemplate,
+    );
+    const isStructuredPromptValid = structuredPrompt !== undefined;
+    const prompt = foldPromptGuidance(
+      isStructuredPromptValid
+        ? serializeStructuredPrompt(structuredPrompt)
+        : resolvedTemplate,
+      hooks,
+      avoid,
+    );
+
+    if (!config.acceptsStructuredPrompt && isStructuredPromptValid) {
+      return {
+        data: prompt,
+        isStructuredPromptSerialized: true,
+        isStructuredPromptValid,
+      };
+    }
+
+    return {
+      data: {
+        prompt,
+        promptFormat: PROMPT_FORMAT_JSON,
+        ...(isStructuredPromptValid ? { structuredPrompt } : {}),
+      },
+      isStructuredPromptSerialized: false,
+      isStructuredPromptValid,
+    };
+  }
+
+  private resolveStructuredPrompt(
+    config: PromptConstructorConfig,
+    resolvedTemplate: string,
+  ): PromptJsonValue | undefined {
+    const parsed = parsePromptJson(resolvedTemplate);
+    if (parsed.isValid) {
+      if (
+        config.structuredPrompt !== undefined &&
+        config.structuredPrompt !== null &&
+        serializeStructuredPrompt(parsed.value) ===
+          serializeStructuredPrompt(config.structuredPrompt)
+      ) {
+        return config.structuredPrompt;
+      }
+
+      return parsed.value;
+    }
+
+    if (
+      config.structuredPrompt !== undefined &&
+      config.structuredPrompt !== null
+    ) {
+      return config.structuredPrompt;
+    }
+
+    return undefined;
   }
 }

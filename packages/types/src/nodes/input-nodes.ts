@@ -40,8 +40,25 @@ export interface AvailableVariable {
   nodeId: string;
 }
 
+export type PromptFormat = 'text' | 'json';
+
+export type PromptJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | PromptJsonValue[]
+  | { [key: string]: PromptJsonValue };
+
 export interface PromptConstructorNodeData extends BaseNodeData {
   template: string;
   outputText: string | null;
   unresolvedVars: string[];
+  /** Authoring/output mode. Defaults to text when omitted. */
+  promptFormat?: PromptFormat;
+  /**
+   * Parsed JSON object when `promptFormat` is json and the template is valid.
+   * Invalid JSON is kept as draft `template` text with this field cleared.
+   */
+  structuredPrompt?: PromptJsonValue | null;
 }
