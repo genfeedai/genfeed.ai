@@ -143,6 +143,21 @@ describe('FFmpegCoreService', () => {
     });
   });
 
+  describe('executeFFmpegCapture', () => {
+    it('returns stderr even when ffmpeg exits non-zero', async () => {
+      (spawn as ReturnType<typeof vi.fn>).mockReturnValue(
+        makeMockProcess(1, '', 'black_start:1.0 black_end:2.0'),
+      );
+      await expect(
+        service.executeFFmpegCapture(['-i', 'in.mp4']),
+      ).resolves.toEqual({
+        code: 1,
+        stderr: 'black_start:1.0 black_end:2.0',
+        stdout: '',
+      });
+    });
+  });
+
   describe('getTempPath', () => {
     it('returns a path containing the type', () => {
       const result = service.getTempPath('video');

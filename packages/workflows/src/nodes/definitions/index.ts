@@ -20,3 +20,4 @@ export * from './trend-shared';
 export * from './trend-sound-inspiration';
 export * from './trend-trigger';
 export * from './trend-video-inspiration';
+export * from './video-qa';

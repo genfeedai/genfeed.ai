@@ -74,6 +74,7 @@ import {
   createTrendVideoInspirationExecutor,
   TrendVideoInspirationExecutor,
 } from './trend-video-inspiration-executor';
+import { createVideoQaExecutor, VideoQaExecutor } from './video-qa-executor';
 
 interface FactoryCase {
   name: string;
@@ -169,6 +170,11 @@ const cases: FactoryCase[] = [
     create: () => createSoundOverlayExecutor(),
     expected: SoundOverlayExecutor,
     name: 'sound overlay',
+  },
+  {
+    create: () => createVideoQaExecutor(),
+    expected: VideoQaExecutor,
+    name: 'video qa',
   },
   {
     create: () => createTrendHashtagInspirationExecutor(),

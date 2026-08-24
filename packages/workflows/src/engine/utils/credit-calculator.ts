@@ -81,6 +81,7 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   lipSync: 8, // [ESTIMATED] AI video synthesis; comparable to generateMusic
   reframe: 3, // [ESTIMATED] AI reframe; heavier than colorGrade, cheaper than full gen
   soundOverlay: 1, // [ESTIMATED] simple FFmpeg audio mux
+  videoQa: 1, // FFmpeg-pass tier: ffprobe + blackdetect/freezedetect/ebur128
   videoStitch: 1, // FFmpeg concat pass
   upscale: 2,
   // Pilot runs reuse this videoGen cost at min duration — there is no
@@ -284,6 +285,7 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   reframe: 'processing',
   resize: 'processing',
   soundOverlay: 'processing',
+  videoQa: 'processing',
   transform: 'processing',
   upscale: 'processing',
 };

@@ -8,5 +8,6 @@ export { ResizeNode } from './ResizeNode';
 export { SubtitleNode } from './SubtitleNode';
 export { UpscaleNode } from './UpscaleNode';
 export { VideoFrameExtractNode } from './VideoFrameExtractNode';
+export { VideoQaNode } from './VideoQaNode';
 export { VideoStitchNode } from './VideoStitchNode';
 export { VideoTrimNode } from './VideoTrimNode';

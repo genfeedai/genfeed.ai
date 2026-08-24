@@ -56,7 +56,8 @@ describe('workflow enums', () => {
     expect(ProcessingNodeType.SUBTITLE).toBe('subtitle');
     expect(ProcessingNodeType.VIDEO_STITCH).toBe('videoStitch');
     expect(ProcessingNodeType.WORKFLOW_REF).toBe('workflowRef');
-    expect(Object.values(ProcessingNodeType)).toHaveLength(14);
+    expect(ProcessingNodeType.VIDEO_QA).toBe('videoQa');
+    expect(Object.values(ProcessingNodeType)).toHaveLength(15);
   });
 
   it('preserves EdgeStyleEnum values', () => {

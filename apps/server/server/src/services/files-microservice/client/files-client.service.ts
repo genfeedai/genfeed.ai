@@ -197,6 +197,36 @@ export class FilesClientService {
   }
 
   /**
+   * Run deterministic video QA (ffprobe + blackdetect/freezedetect/ebur128).
+   * Matches POST /v1/files/processing/video-qa.
+   */
+  async inspectVideoQa(params: {
+    videoUrl: string;
+    isContactSheetEnabled: boolean;
+    blackDurationSeconds: number;
+    freezeDurationSeconds: number;
+  }): Promise<{
+    probeJson: string;
+    detectLog: string;
+    loudnessLog: string | null;
+    decodeOk: boolean;
+    contactSheetUrl: string | null;
+  }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/processing/video-qa`,
+          params,
+        ),
+      );
+      return response.data;
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to inspect video QA', error);
+      throw error;
+    }
+  }
+
+  /**
    * PUT a stream or buffer at a presigned object URL.
    */
   async putStreamToUrl(

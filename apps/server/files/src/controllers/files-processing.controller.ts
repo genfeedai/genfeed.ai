@@ -407,4 +407,127 @@ export class FilesProcessingController {
       );
     }
   }
+
+  /**
+   * Deterministic video QA: ffprobe + blackdetect/freezedetect/ebur128.
+   * Optional contact sheet is a review artifact, not a vision score.
+   */
+  @Post('processing/video-qa')
+  async inspectVideoQa(
+    @Body()
+    body: {
+      videoUrl: string;
+      isContactSheetEnabled?: boolean;
+      blackDurationSeconds?: number;
+      freezeDurationSeconds?: number;
+    },
+  ) {
+    let videoTempPath: string | undefined;
+    let contactSheetPath: string | undefined;
+
+    try {
+      const { videoUrl, isContactSheetEnabled = false } = body;
+      const blackDurationSeconds =
+        typeof body.blackDurationSeconds === 'number' &&
+        body.blackDurationSeconds > 0
+          ? body.blackDurationSeconds
+          : 0.5;
+      const freezeDurationSeconds =
+        typeof body.freezeDurationSeconds === 'number' &&
+        body.freezeDurationSeconds > 0
+          ? body.freezeDurationSeconds
+          : 2;
+
+      if (!videoUrl) {
+        throw new HttpException('videoUrl is required', HttpStatus.BAD_REQUEST);
+      }
+
+      const tmpDir = this.ffmpegService.getTempPath('video-qa');
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(7);
+
+      this.logger.log(`Downloading video for QA from: ${videoUrl}`);
+      const videoResponse = await firstValueFrom(
+        this.httpService.get(videoUrl, {
+          maxContentLength: 500 * 1024 * 1024,
+          responseType: 'arraybuffer',
+          timeout: 120000,
+        }),
+      );
+      videoTempPath = path.resolve(
+        tmpDir,
+        `video_${timestamp}_${randomSuffix}.mp4`,
+      );
+      fs.writeFileSync(videoTempPath, Buffer.from(videoResponse.data));
+
+      if (isContactSheetEnabled) {
+        contactSheetPath = path.resolve(
+          tmpDir,
+          `sheet_${timestamp}_${randomSuffix}.png`,
+        );
+      }
+
+      const inspection = await this.ffmpegService.inspectVideoQa(
+        videoTempPath,
+        {
+          blackDurationSeconds,
+          contactSheetPath,
+          freezeDurationSeconds,
+        },
+      );
+
+      let contactSheetUrl: string | null = null;
+      if (
+        contactSheetPath &&
+        fs.existsSync(contactSheetPath) &&
+        fs.statSync(contactSheetPath).size > 0
+      ) {
+        const sheetKey = `video-qa/${timestamp}_${randomSuffix}_contact.png`;
+        const uploaded = await this.uploadService.uploadToS3(
+          sheetKey,
+          'images',
+          {
+            path: contactSheetPath,
+            type: 'file',
+          },
+        );
+        contactSheetUrl = uploaded.publicUrl;
+      }
+
+      return {
+        contactSheetUrl,
+        decodeOk: inspection.decodeOk,
+        detectLog: inspection.detectLog,
+        loudnessLog: inspection.loudnessLog,
+        probeJson: inspection.probeJson,
+      };
+    } catch (error: unknown) {
+      this.logger.error('Failed to inspect video QA:', error);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        (error as Error)?.message || 'Failed to inspect video QA',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } finally {
+      const filesToClean = [videoTempPath, contactSheetPath].filter(
+        (file): file is string => !!file && fs.existsSync(file),
+      );
+      for (const file of filesToClean) {
+        try {
+          fs.unlinkSync(file);
+        } catch (cleanupError) {
+          this.logger.warn(
+            `Failed to cleanup temp file: ${file}`,
+            cleanupError instanceof Error
+              ? cleanupError.message
+              : String(cleanupError),
+          );
+        }
+      }
+    }
+  }
 }
