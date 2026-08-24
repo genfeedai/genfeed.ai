@@ -1,4 +1,3 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   BotCategory,
   BotLivestreamMessageType,
@@ -8,6 +7,7 @@ import {
   Platform,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { Bot, BotLivestreamSettings } from '@models/automation/bot.model';
 import type { LivestreamSession } from '@models/automation/livestream-session.model';
 import { BotsService } from '@services/automation/bots.service';
@@ -218,7 +218,7 @@ export type RestreamCredentialOption = {
 export function useLivestreamChatBotPage(
   defaultPlatform: LivestreamPagePlatform,
 ) {
-  const { brandId, organizationId } = useBrand();
+  const { brandId, organizationId } = useCollectionScope();
   const getBotsService = useAuthedService((token: string) =>
     BotsService.getInstance(token),
   );

@@ -89,6 +89,7 @@
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
     "loadingBrand": "Loading the selected brand…",
+    "selectBrand": "Select a brand to continue.",
     "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
     "status": {
@@ -373,6 +374,7 @@
       "description": "Start from a proven role or configure a custom agent for the selected brand.",
       "library": "Agent library",
       "loadingBrand": "Loading the selected brand…",
+      "selectBrand": "Select a brand to continue.",
       "modeLabel": "Agent creation mode",
       "title": "Add agent"
     },
@@ -406,12 +408,21 @@
       "title": "Edit Autopilot Policy",
       "topics": "Topics"
     },
+    "contentRuns": {
+      "allStatuses": "All statuses",
+      "emptyDescription": "Save a brief from Discover to start a content run. It will appear here with its variants, publish events, and analytics.",
+      "emptyTitle": "No content runs yet",
+      "goToDiscover": "Go to Discover",
+      "loadError": "Content runs could not be loaded.",
+      "selectBrand": "Select a brand to view content runs."
+    },
     "replies": {
       "actions": {
         "draft": "Draft",
         "refresh": "Refresh inbox",
         "send": "Send reply"
       },
+      "selectBrand": "Select a brand to view replies.",
       "description": "Choose how to respond — warm thanks, clear answers, or a light touch on trolls. Skip spam. Recent comments only.",
       "platform": {
         "label": "Platform",
@@ -465,8 +476,10 @@
       "actions": {
         "archive": "Archive",
         "delete": "Delete",
+        "disableSchedule": "Disable schedule",
         "duplicate": "Duplicate",
         "menu": "Workflow actions",
+        "open": "Open",
         "publish": "Publish",
         "retry": "Retry",
         "run": "Run",
@@ -476,6 +489,24 @@
       },
       "detail": {
         "loadingEditor": "Loading editor…"
+      },
+      "executions": {
+        "actions": "Actions",
+        "duration": "Duration",
+        "emptyAction": "Go to Automations",
+        "emptyDescription": "Run a workflow to see execution history here",
+        "emptyTitle": "No executions yet",
+        "next": "Next",
+        "previous": "Previous",
+        "progress": "Progress",
+        "retry": "Retry",
+        "showing": "Showing {from}–{to}",
+        "started": "Started",
+        "status": "Status",
+        "title": "Execution History",
+        "trigger": "Trigger",
+        "viewDetails": "View Details",
+        "workflow": "Workflow"
       },
       "library": {
         "autopilot": "Autopilot",
@@ -488,6 +519,10 @@
         "nextRun": "Next run",
         "paused": "Paused",
         "platformManaged": "Platform-managed",
+        "clearSelection": "Clear",
+        "disableSelected": "Disable schedules",
+        "selectWorkflow": "Select {name}",
+        "selectedCount": "{count} selected",
         "emptyActionCreate": "Create Workflow",
         "emptyActionTemplates": "Browse Templates",
         "emptyDescription": "Create your first workflow for a fixed, repeatable automation pipeline.",
@@ -498,7 +533,10 @@
         "system": "System",
         "templates": "Templates",
         "title": "Workflows",
-        "updated": "Updated"
+        "updated": "Updated",
+        "next": "Next",
+        "pageStatus": "Page {page} of {pages}",
+        "previous": "Previous"
       },
       "schedule": {
         "actions": {

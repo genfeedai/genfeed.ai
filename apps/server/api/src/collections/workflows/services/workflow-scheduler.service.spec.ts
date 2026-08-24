@@ -87,7 +87,7 @@ afterEach(() => {
 });
 
 describe('WorkflowSchedulerService — job scheduler registration', () => {
-  it('never registers job schedulers for system workflows (their actions fire from the workers sweep scheduler)', async () => {
+  it('never registers job schedulers for sweep-driven system workflows (their actions fire from the workers sweep scheduler)', async () => {
     const { queueService, service } = createService({});
 
     await service.scheduleWorkflow({
@@ -105,6 +105,29 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
       'wf-system',
     );
+  });
+
+  it('registers job schedulers for catalog system workflows with executable graphs', async () => {
+    const { queueService, service } = createService({});
+
+    await service.scheduleWorkflow({
+      id: 'wf-loop',
+      isScheduleEnabled: true,
+      metadata: {
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'content-loop-autopilot',
+        }),
+      },
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    } as unknown as WorkflowDocument);
+
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledWith({
+      cronExpression: '0 8 * * *',
+      timezone: 'UTC',
+      workflowId: 'wf-loop',
+    });
+    expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
   });
 
   it('upserts a BullMQ job scheduler when a schedule is set and enabled', async () => {
@@ -206,7 +229,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
   });
 
-  it('rejects schedule mutations on system workflows with an explanation', async () => {
+  it('rejects schedule mutations on sweep-driven system workflows with an explanation', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({
       id: 'wf-system',
@@ -221,10 +244,43 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     await expect(
       service.updateSchedule('wf-system', '0 7 * * *', 'UTC', true),
     ).rejects.toMatchObject({
-      message: expect.stringContaining('System workflow'),
+      message: expect.stringContaining('platform sweep scheduler'),
       status: 400,
     });
     expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('allows schedule pause on catalog system workflows', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-loop',
+      metadata: {
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'content-loop-autopilot',
+        }),
+      },
+    });
+    prisma.workflow.update.mockResolvedValue({
+      id: 'wf-loop',
+      isScheduleEnabled: false,
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    });
+    const { queueService, service } = createService({ prisma });
+
+    const updated = await service.updateSchedule(
+      'wf-loop',
+      '0 8 * * *',
+      'UTC',
+      false,
+    );
+
+    expect(updated).not.toBeNull();
+    expect(prisma.workflow.update).toHaveBeenCalled();
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-loop',
+    );
     expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
   });
 

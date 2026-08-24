@@ -3,12 +3,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-type BackfillBrand = {
-  id: string;
-  organizationId: string;
-  userId: string | null;
-};
-
 type BackfillOrganization = {
   id: string;
   userId: string | null;
@@ -94,66 +88,9 @@ export class WorkflowDeploymentBackfillService {
       },
     );
 
-    const brands = (await this.prisma.brand.findMany({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true, organizationId: true, userId: true },
-      where: { isDeleted: false },
-    })) as BackfillBrand[];
-    let brandsProcessed = 0;
-    let brandFailures = 0;
-    const eligibleBrands = brands.filter(
-      (brand) => brand.userId ?? orgOwnerById.get(brand.organizationId),
-    );
-
-    await this.processWithConcurrency(
-      eligibleBrands,
-      concurrency,
-      async (brand) => {
-        const userId = brand.userId ?? orgOwnerById.get(brand.organizationId);
-        if (!userId) {
-          return;
-        }
-
-        try {
-          const { DefaultRecurringContentService } = await import(
-            '@api/collections/brands/services/default-recurring-content.service'
-          );
-          const defaultRecurringContentService = this.moduleRef.get(
-            DefaultRecurringContentService,
-            { strict: false },
-          );
-          await defaultRecurringContentService.ensureDefaultBundle({
-            brandId: brand.id,
-            includeStatus: false,
-            organizationId: brand.organizationId,
-            origin: 'system',
-            userId,
-          });
-        } catch (error: unknown) {
-          brandFailures += 1;
-          this.logger.error(
-            'Failed to backfill default recurring workflows',
-            error,
-            {
-              brandId: brand.id,
-              organizationId: brand.organizationId,
-            },
-          );
-        } finally {
-          brandsProcessed += 1;
-          this.logProgressCheckpoint(
-            'Brand workflow backfill progress',
-            brandsProcessed,
-            eligibleBrands.length,
-            brandFailures,
-          );
-        }
-      },
-    );
-
     const report: WorkflowDeploymentBackfillReport = {
-      brandFailures,
-      brandsProcessed,
+      brandFailures: 0,
+      brandsProcessed: 0,
       orgFailures,
       organizationsProcessed,
     };

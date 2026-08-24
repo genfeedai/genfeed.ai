@@ -1,9 +1,9 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ModalEnum, PageScope, TrainingStatus } from '@genfeedai/enums';
 import type { ITraining } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Training } from '@models/ai/training.model';
 import type { ContentProps } from '@props/layout/content.props';
@@ -39,7 +39,7 @@ export function useTrainingsList({
     () => new URLSearchParams(searchParamsString),
     [searchParamsString],
   );
-  const { brandId } = useBrand();
+  const { brandId } = useCollectionScope();
   const notificationsService = NotificationsService.getInstance();
   const { openConfirm } = useConfirmModal();
   const { subscribe } = useSocketManager();
@@ -125,7 +125,7 @@ export function useTrainingsList({
 
       const query: Record<string, unknown> = {};
 
-      if (scope === PageScope.BRAND) {
+      if (scope === PageScope.BRAND && brandId) {
         query.brand = brandId;
       }
 

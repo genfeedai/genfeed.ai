@@ -1,4 +1,3 @@
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { Platform, Timeframe } from '@genfeedai/enums';
 import type {
@@ -16,6 +15,10 @@ import type { Video } from '@genfeedai/models/ingredients/video.model';
 import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isBrandResourceReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import { logger } from '@services/core/logger.service';
 import { VideosService } from '@services/ingredients/videos.service';
@@ -73,7 +76,9 @@ export function normalizeAnalyticsVideo(video: Video): ITrendVideo {
 }
 
 export function useAnalyticsTrends() {
-  const brandId = useBrandId();
+  const collectionScope = useCollectionScope();
+  const { brandId } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
   const analyticsContext = useOptionalAnalyticsContext();
   const surfaceFilters = analyticsContext?.filters;
   const setSurfaceFilter = analyticsContext?.setFilter;
@@ -135,7 +140,7 @@ export function useAnalyticsTrends() {
   const { data: analyticsVideos = [], isLoading: isLoadingVideos } = useQuery<
     ITrendVideo[]
   >({
-    enabled: Boolean(brandId),
+    enabled: isBrandReady,
     queryKey: ['analytics-trends-videos', brandId],
     queryFn: async ({ signal }) => {
       const service = await getVideosService();

@@ -1,12 +1,15 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
 import {
   AuthenticationTokenUnavailableError,
   useAuthedService,
 } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
@@ -19,6 +22,7 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionResult } from '@/features/workflows/services/workflow-api';
@@ -90,7 +94,8 @@ const EXECUTIONS_PER_PAGE = 20;
  */
 export default function WorkflowExecutionsPage() {
   const { href } = useOrgUrl();
-  const { isReady, organizationId } = useBrand();
+  const translate = useTranslations('common.automation.workflows.executions');
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const [state, dispatch] = useReducer(executionsReducer, initialState);
   const { executions, workflowLabels, isLoading, error, offset, hasMore } =
     state;
@@ -107,17 +112,21 @@ export default function WorkflowExecutionsPage() {
 
         dispatch({ type: 'FETCH_START' });
 
+        const brandParams = toBrandListParams({ brandId });
         const [data, workflows] = await Promise.all([
           service.listExecutions({
+            ...brandParams,
             limit: EXECUTIONS_PER_PAGE,
             offset: pageOffset,
           }),
-          service.list().catch((error: unknown) => {
-            logger.error('Failed to load workflow labels for executions', {
-              error,
-            });
-            return [];
-          }),
+          service
+            .list({ ...brandParams, limit: 100 })
+            .catch((error: unknown) => {
+              logger.error('Failed to load workflow labels for executions', {
+                error,
+              });
+              return [];
+            }),
         ]);
         if (signal.aborted) {
           return;
@@ -146,18 +155,21 @@ export default function WorkflowExecutionsPage() {
         dispatch({ type: 'FETCH_ERROR', error: message });
       }
     },
-    [getService],
+    [brandId, getService],
   );
 
   useEffect(() => {
     if (!isReady || !organizationId) {
       return;
     }
+    if (pageScope === 'brand' && !brandId) {
+      return;
+    }
 
     const controller = new AbortController();
     loadExecutions(controller.signal, offset);
     return () => controller.abort();
-  }, [isReady, loadExecutions, offset, organizationId]);
+  }, [brandId, isReady, loadExecutions, offset, organizationId, pageScope]);
 
   if (isLoading && executions.length === 0) {
     return (
@@ -202,7 +214,7 @@ export default function WorkflowExecutionsPage() {
             loadExecutions(controller.signal, offset);
           }}
         >
-          Retry
+          {translate('retry')}
         </Button>
       </div>
     );
@@ -210,22 +222,24 @@ export default function WorkflowExecutionsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <h1 className="sr-only">Execution History</h1>
+      <h1 className="sr-only">{translate('title')}</h1>
 
       {/* Content */}
       <main className="mx-auto max-w-7xl px-6 py-8">
         {executions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 text-6xl">📊</div>
-            <h2 className="mb-2 text-xl font-semibold">No executions yet</h2>
+            <h2 className="mb-2 text-xl font-semibold">
+              {translate('emptyTitle')}
+            </h2>
             <p className="mb-6 text-muted-foreground">
-              Run a workflow to see execution history here
+              {translate('emptyDescription')}
             </p>
             <Link
               href={href(APP_ROUTES.AUTOMATE.WORKFLOWS)}
               className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
             >
-              Go to Automations
+              {translate('emptyAction')}
             </Link>
           </div>
         ) : (
@@ -235,22 +249,25 @@ export default function WorkflowExecutionsPage() {
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Workflow
+                      {translate('workflow')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Status
+                      {translate('trigger')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Progress
+                      {translate('status')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Started
+                      {translate('progress')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Duration
+                      {translate('started')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Actions
+                      {translate('duration')}
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
+                      {translate('actions')}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -279,9 +296,11 @@ export default function WorkflowExecutionsPage() {
                           >
                             {getWorkflowLabel(execution, workflowLabels)}
                           </Link>
-                          <div className="text-xs text-muted-foreground">
-                            {execution.id.slice(0, 8)}...
-                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm text-muted-foreground">
+                          {execution.trigger
+                            ? formatEnumLabel(execution.trigger)
+                            : '—'}
                         </TableCell>
                         <TableCell className="px-4 py-3">
                           <span
@@ -334,7 +353,7 @@ export default function WorkflowExecutionsPage() {
                             )}
                             className="text-sm text-primary hover:underline"
                           >
-                            View Details
+                            {translate('viewDetails')}
                           </Link>
                         </TableCell>
                       </TableRow>
@@ -356,10 +375,13 @@ export default function WorkflowExecutionsPage() {
                   })
                 }
               >
-                Previous
+                {translate('previous')}
               </Button>
               <span className="text-sm text-muted-foreground">
-                Showing {offset + 1}–{offset + executions.length}
+                {translate('showing', {
+                  from: offset + 1,
+                  to: offset + executions.length,
+                })}
               </span>
               <Button
                 variant={ButtonVariant.SECONDARY}
@@ -371,7 +393,7 @@ export default function WorkflowExecutionsPage() {
                   })
                 }
               >
-                Next
+                {translate('next')}
               </Button>
             </div>
           </>

@@ -1,8 +1,10 @@
 import {
+  isSweepDrivenSystemWorkflow,
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import {
+  buildSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
@@ -234,5 +236,27 @@ describe('SystemWorkflowProvenanceService', () => {
         }),
       }),
     );
+  });
+});
+
+describe('isSweepDrivenSystemWorkflow', () => {
+  it('identifies provenance action ids as sweep-driven', () => {
+    expect(
+      isSweepDrivenSystemWorkflow({
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+        }),
+      }),
+    ).toBe(true);
+  });
+
+  it('leaves catalog system workflows tenant-schedulable', () => {
+    expect(
+      isSweepDrivenSystemWorkflow({
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'content-loop-autopilot',
+        }),
+      }),
+    ).toBe(false);
   });
 });

@@ -89,7 +89,7 @@ const Card = memo(function Card({
                     </h3>
                   )}
                   {description && (
-                    <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                    <p className="mt-0.5 line-clamp-3 text-xs leading-snug text-muted-foreground">
                       {description}
                     </p>
                   )}

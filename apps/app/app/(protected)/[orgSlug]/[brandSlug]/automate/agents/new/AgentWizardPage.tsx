@@ -10,6 +10,10 @@ import {
 } from '@genfeedai/enums';
 import type { IAgentWizardFormData, IBrand } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isBrandResourceReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { preferredWorkflowTemplateIdForAgentType } from '@pages/agents/content-team/content-team-presets';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
@@ -130,11 +134,14 @@ export default function AgentWizardPage({
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const { brandId, isReady: isBrandReady, selectedBrand } = useBrand();
+  const collectionScope = useCollectionScope();
+  const { brandId, pageScope } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
+  const { selectedBrand } = useBrand();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<IAgentWizardFormData>(() =>
     buildInitialForm(
-      isBrandReady ? brandId : '',
+      isBrandReady && brandId ? brandId : '',
       isBrandReady ? selectedBrand : undefined,
     ),
   );
@@ -233,7 +240,9 @@ export default function AgentWizardPage({
   const handleSubmit = useCallback(async () => {
     if (!isBrandReady || !brandId) {
       notificationsService.error(
-        'Wait for the selected brand to finish loading.',
+        pageScope === 'org'
+          ? 'Select a brand to create an agent.'
+          : 'Wait for the selected brand to finish loading.',
       );
       return;
     }
@@ -290,6 +299,7 @@ export default function AgentWizardPage({
     isBrandReady,
     notificationsService,
     onCreated,
+    pageScope,
     push,
   ]);
 
@@ -331,7 +341,7 @@ export default function AgentWizardPage({
   const content =
     !isBrandReady || !brandId ? (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        {translate('loadingBrand')}
+        {translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
       </p>
     ) : (
       wizard

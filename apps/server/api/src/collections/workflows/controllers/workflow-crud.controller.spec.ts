@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
@@ -139,8 +140,15 @@ describe('WorkflowCrudController', () => {
       expect(aggregateArg.where).toMatchObject({
         isDeleted: false,
         organizationId: mockUser.organizationId,
+        NOT: {
+          metadata: {
+            equals: 'system-workflow',
+            path: ['systemWorkflow', 'kind'],
+          },
+        },
       });
       expect(aggregateArg.where.OR).toBeUndefined();
+      expect(aggregateArg.where.userId).toBeUndefined();
     });
 
     it('should return all workflows for user', async () => {
@@ -159,6 +167,31 @@ describe('WorkflowCrudController', () => {
         mockWorkflowsService.findAll.mock.calls[
           mockWorkflowsService.findAll.mock.calls.length - 1
         ];
+      expect(aggregateArg.where.userId).toBe(mockUser.userId);
+      expect(aggregateArg.where.OR).toBeUndefined();
+      expect(aggregateArg.where.NOT).toEqual({
+        metadata: {
+          equals: 'system-workflow',
+          path: ['systemWorkflow', 'kind'],
+        },
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('includes organization-visible system workflows when includeSystem is set', async () => {
+      mockWorkflowsService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      });
+
+      await controller.findAll(mockRequest, mockUser, {
+        includeSystem: true,
+      } as WorkflowQueryDto);
+
+      const [aggregateArg] =
+        mockWorkflowsService.findAll.mock.calls[
+          mockWorkflowsService.findAll.mock.calls.length - 1
+        ];
       expect(aggregateArg.where.OR).toEqual([
         { userId: mockUser.userId },
         {
@@ -168,7 +201,7 @@ describe('WorkflowCrudController', () => {
           },
         },
       ]);
-      expect(result).toBeDefined();
+      expect(aggregateArg.where.NOT).toBeUndefined();
     });
 
     it('should restrict the visible list to the requested brand', async () => {
@@ -307,10 +340,7 @@ describe('WorkflowCrudController', () => {
         timezone: 'UTC',
       };
 
-      mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue(
-        mockWorkflow,
-      );
-      mockWorkflowsService.findOwnedOrThrow.mockResolvedValue({
+      mockWorkflowsService.findVisibleOrThrow.mockResolvedValue({
         ...mockWorkflow,
         ...updateDto,
       });
@@ -322,6 +352,13 @@ describe('WorkflowCrudController', () => {
         mockUser,
       );
 
+      expect(mockWorkflowsService.findVisibleOrThrow).toHaveBeenCalledWith(id, {
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
+      });
+      expect(
+        mockWorkflowsService.findMutableOwnedOrThrow,
+      ).not.toHaveBeenCalled();
       expect(mockWorkflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
         id,
         '0 9 * * *',
@@ -329,11 +366,37 @@ describe('WorkflowCrudController', () => {
         true,
       );
       expect(mockWorkflowsService.patch).not.toHaveBeenCalled();
-      expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(id, {
+      expect(result).toBeDefined();
+    });
+
+    it('uses the visible-row guard for schedule-only patches so system workflows can be paused', async () => {
+      const id = workflowId;
+      const updateDto: UpdateWorkflowDto = {
+        isScheduleEnabled: false,
+        schedule: '0 8 * * *',
+      };
+
+      mockWorkflowsService.findVisibleOrThrow.mockResolvedValue({
+        ...mockWorkflow,
+        isScheduleEnabled: true,
+        schedule: '0 8 * * *',
+      });
+
+      await controller.update(mockRequest, id, updateDto, mockUser);
+
+      expect(
+        mockWorkflowsService.findMutableOwnedOrThrow,
+      ).not.toHaveBeenCalled();
+      expect(mockWorkflowsService.findVisibleOrThrow).toHaveBeenCalledWith(id, {
         organizationId: mockUser.organizationId,
         userId: mockUser.userId,
       });
-      expect(result).toBeDefined();
+      expect(mockWorkflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
+        id,
+        '0 8 * * *',
+        'UTC',
+        false,
+      );
     });
 
     it('should call publishToMarketplace when isPublic and isTemplate are both true', async () => {

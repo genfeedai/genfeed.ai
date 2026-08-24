@@ -66,6 +66,14 @@ export class WorkflowExecutionQueryDto extends BaseQueryDto {
   @ApiProperty({ description: 'Filter by workflow ID', required: false })
   readonly workflowId?: string;
 
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Restrict to executions whose workflow belongs to this brand',
+    required: false,
+  })
+  readonly brandId?: string;
+
   @IsEnum(WorkflowExecutionStatus)
   @IsOptional()
   @ApiProperty({

@@ -78,6 +78,10 @@ export class WorkflowExecutionsController {
       match.workflowId = query.workflowId;
     }
 
+    if (query.brandId) {
+      match.workflow = { brandId: query.brandId, isDeleted: false };
+    }
+
     if (query.status) {
       match.status = query.status;
     }

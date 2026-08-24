@@ -186,7 +186,14 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'workflow',
     'workflowId',
   ],
-  ListExecutionsParams: ['limit', 'offset', 'status', 'trigger', 'workflowId'],
+  ListExecutionsParams: [
+    'brandId',
+    'limit',
+    'offset',
+    'status',
+    'trigger',
+    'workflowId',
+  ],
   ResumeExecutionResult: ['message', 'runId', 'status'],
   SystemWorkflowCatalogEntry: [
     'canonicalId',

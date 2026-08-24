@@ -1,12 +1,12 @@
 'use client';
 
 import OperationalHomeContent from '@app/(protected)/home/content';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { DashboardOpenUIRenderer } from '@genfeedai/agent/components';
 import { hydrateLayout } from '@genfeedai/agent/dashboard';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDashboardLayout } from '@genfeedai/interfaces';
 import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use-dashboard-layout';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
@@ -37,7 +37,7 @@ function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
 }
 
 export default function WorkspaceOverviewContent() {
-  const { brandId, isReady } = useBrand();
+  const { brandId, isReady } = useCollectionScope();
 
   const {
     layout,

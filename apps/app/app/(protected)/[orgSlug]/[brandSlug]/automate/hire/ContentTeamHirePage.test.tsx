@@ -23,6 +23,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
     isReady: true,
+    organizationId: 'org-1',
     selectedBrand: { id: 'brand-1', label: 'Moonrise' },
   }),
 }));

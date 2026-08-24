@@ -647,7 +647,7 @@ export class DefaultRecurringContentService {
         ? configuredCron
         : DEFAULT_RECURRING_SCHEDULE,
       isEnabled:
-        typeof schedule.enabled === 'boolean' ? schedule.enabled : true,
+        typeof schedule.enabled === 'boolean' ? schedule.enabled : false,
       timezone,
     };
   }

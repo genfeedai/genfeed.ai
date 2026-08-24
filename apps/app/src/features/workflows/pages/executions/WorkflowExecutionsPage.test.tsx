@@ -12,21 +12,24 @@ const mocks = vi.hoisted(() => ({
   },
   getService: vi.fn(),
   href: vi.fn((path: string) => `/demo/FUDNEWS${path}`),
-  isReady: true,
+  collectionScope: {
+    brandId: 'brand-fud' as string | undefined,
+    isReady: true,
+    organizationId: 'org-demo' as string,
+    pageScope: 'brand' as 'org' | 'brand',
+  },
   list: vi.fn(),
   listExecutions: vi.fn(),
-  organizationId: 'org-demo' as string,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: mocks.href }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    isReady: mocks.isReady,
-    organizationId: mocks.organizationId,
-  }),
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  toBrandListParams: (scope: { brandId?: string }) =>
+    scope.brandId ? { brandId: scope.brandId } : {},
+  useCollectionScope: () => mocks.collectionScope,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -55,10 +58,25 @@ vi.mock('@/components/ui/client-formatted-date', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      emptyTitle: 'No executions yet',
+      retry: 'Retry',
+      title: 'Execution History',
+    };
+    return messages[key] ?? key;
+  },
+}));
+
 describe('WorkflowExecutionsPage', () => {
   beforeEach(() => {
-    mocks.isReady = true;
-    mocks.organizationId = 'org-demo';
+    mocks.collectionScope = {
+      brandId: 'brand-fud',
+      isReady: true,
+      organizationId: 'org-demo',
+      pageScope: 'brand',
+    };
     mocks.list.mockResolvedValue([{ id: 'wf-1', label: 'Daily digest' }]);
     mocks.listExecutions.mockResolvedValue([
       {
@@ -67,6 +85,8 @@ describe('WorkflowExecutionsPage', () => {
         progress: 100,
         startedAt: '2026-08-19T09:00:00.000Z',
         status: 'completed',
+        trigger: 'schedule',
+        workflow: { id: 'wf-1', label: 'Daily newsletter for FUD News' },
         workflowId: 'wf-1',
       },
     ]);
@@ -77,8 +97,12 @@ describe('WorkflowExecutionsPage', () => {
   });
 
   it('does not fetch or show an empty state before brand scope is ready', async () => {
-    mocks.isReady = false;
-    mocks.organizationId = '';
+    mocks.collectionScope = {
+      brandId: undefined,
+      isReady: false,
+      organizationId: '',
+      pageScope: 'org',
+    };
 
     render(<WorkflowExecutionsPage />);
 
@@ -91,10 +115,36 @@ describe('WorkflowExecutionsPage', () => {
     render(<WorkflowExecutionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Daily digest')).toBeInTheDocument();
+      expect(
+        screen.getByText('Daily newsletter for FUD News'),
+      ).toBeInTheDocument();
     });
     expect(screen.queryByText('No executions yet')).toBeNull();
+    expect(screen.queryByText(/exec-1/)).toBeNull();
+    expect(screen.getByText('Schedule')).toBeInTheDocument();
     expect(mocks.listExecutions).toHaveBeenCalledTimes(1);
+    expect(mocks.listExecutions).toHaveBeenCalledWith({
+      brandId: 'brand-fud',
+      limit: 20,
+      offset: 0,
+    });
+    expect(mocks.list).toHaveBeenCalledWith({
+      brandId: 'brand-fud',
+      limit: 100,
+    });
+  });
+
+  it('uses the included workflow label when the catalog list is empty', async () => {
+    mocks.list.mockResolvedValue([]);
+
+    render(<WorkflowExecutionsPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Daily newsletter for FUD News'),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Untitled workflow')).toBeNull();
   });
 
   it('clears the first-load skeleton when the auth token is not ready', async () => {

@@ -1,7 +1,11 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { preferredWorkflowTemplateIdForAgentType } from '@pages/agents/content-team/content-team-presets';
 import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
@@ -65,13 +69,18 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
 }
 
 export function useAgentStrategiesPage() {
-  const { brandId, isReady: isBrandReady } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { strategies, isLoading, refresh } = useAgentStrategies({
-    brandId,
-    enabled: isBrandReady && Boolean(brandId),
+    ...toBrandListParams({ brandId }),
+    enabled: isCollectionFetchReady({
+      brandId,
+      isReady,
+      organizationId,
+      pageScope,
+    }),
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

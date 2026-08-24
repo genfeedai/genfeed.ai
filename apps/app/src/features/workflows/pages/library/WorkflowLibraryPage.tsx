@@ -1,10 +1,12 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import {
@@ -12,12 +14,14 @@ import {
   Cloud,
   CloudUpload,
   Copy,
+  Pause,
   Plus,
   Search,
   Zap,
 } from 'lucide-react';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -40,6 +44,7 @@ import WorkflowCardPreview from './WorkflowCardPreview';
  */
 export default function WorkflowLibraryPage() {
   const translate = useTranslations('common.automation.workflows');
+  const { push } = useRouter();
   const {
     href,
     isConnected,
@@ -53,9 +58,16 @@ export default function WorkflowLibraryPage() {
     handleDuplicate,
     handleDelete,
     handleToggleSchedule,
+    handleDisableSelected,
     applyScheduleUpdate,
     filteredWorkflows,
+    selectedIds,
+    toggleSelected,
+    clearSelection,
+    pagination,
+    setPage,
   } = useWorkflowLibraryPage();
+  const isDesktopShell = isDesktopClient();
   const [schedulingWorkflowId, setSchedulingWorkflowId] = useState<
     string | null
   >(null);
@@ -165,6 +177,32 @@ export default function WorkflowLibraryPage() {
         {translate('library.infoSuffix')}
       </div>
 
+      {selectedIds.size > 0 ? (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-2">
+          <span className="text-sm text-foreground">
+            {translate('library.selectedCount', { count: selectedIds.size })}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => {
+                void handleDisableSelected();
+              }}
+            >
+              <Pause className="size-4" />
+              {translate('library.disableSelected')}
+            </Button>
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              onClick={clearSelection}
+              className="text-sm text-foreground/70 hover:text-foreground"
+            >
+              {translate('library.clearSelection')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {filteredWorkflows.length === 0 && !searchInput ? (
         <EmptyWorkflowState />
       ) : filteredWorkflows.length === 0 && searchInput ? (
@@ -209,17 +247,27 @@ export default function WorkflowLibraryPage() {
                 }
                 headerAction={
                   <div className="relative z-20 flex shrink-0 items-center gap-2">
+                    <Checkbox
+                      aria-label={translate('library.selectWorkflow', {
+                        name: workflow.label,
+                      })}
+                      checked={selectedIds.has(workflow.id)}
+                      onCheckedChange={() => toggleSelected(workflow.id)}
+                    />
                     {isSystemWorkflow ? (
                       <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs text-info">
                         {translate('library.system')}
                       </span>
                     ) : null}
-                    {isCapable && isConnected && workflow.cloudSync ? (
+                    {isDesktopShell &&
+                    isCapable &&
+                    isConnected &&
+                    workflow.cloudSync ? (
                       <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
                         <Cloud className="size-3" />
                         {translate('library.synced')}
                       </span>
-                    ) : isCapable && isConnected && !workflow.cloudSync ? (
+                    ) : isDesktopShell && isCapable && isConnected ? (
                       <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                         <CloudUpload className="size-3" />
                         {translate('library.local')}
@@ -238,11 +286,19 @@ export default function WorkflowLibraryPage() {
                       canDelete={!isSystemWorkflow}
                       onDuplicate={() => handleDuplicate(workflow.id)}
                       onDelete={() => handleDelete(workflow.id)}
-                      onSchedule={
-                        isSystemWorkflow
-                          ? undefined
-                          : () => setSchedulingWorkflowId(workflow.id)
+                      onOpen={() =>
+                        push(
+                          href(
+                            `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`,
+                          ),
+                        )
                       }
+                      onDisableSchedule={
+                        workflow.schedule && workflow.isScheduleEnabled
+                          ? () => handleToggleSchedule(workflow.id, false)
+                          : undefined
+                      }
+                      onSchedule={() => setSchedulingWorkflowId(workflow.id)}
                     />
                   </div>
                 }
@@ -275,19 +331,13 @@ export default function WorkflowLibraryPage() {
                           ` · ${translate('library.paused')}`
                         )}
                       </span>
-                      {isSystemWorkflow ? (
-                        <span className="shrink-0 text-foreground/40">
-                          {translate('library.platformManaged')}
-                        </span>
-                      ) : (
-                        <Switch
-                          checked={workflow.isScheduleEnabled ?? false}
-                          aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.label}`}
-                          onCheckedChange={(checked) =>
-                            handleToggleSchedule(workflow.id, checked)
-                          }
-                        />
-                      )}
+                      <Switch
+                        checked={workflow.isScheduleEnabled ?? false}
+                        aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.label}`}
+                        onCheckedChange={(checked) =>
+                          handleToggleSchedule(workflow.id, checked)
+                        }
+                      />
                     </div>
                   ) : null}
                   <div className="flex items-center justify-between text-xs text-foreground/50">
@@ -312,6 +362,33 @@ export default function WorkflowLibraryPage() {
           })}
         </div>
       )}
+
+      {pagination.pages > 1 ? (
+        <div className="mt-4 flex items-center justify-between">
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            disabled={pagination.page <= 1}
+            onClick={() => setPage(Math.max(1, pagination.page - 1))}
+          >
+            {translate('library.previous')}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {translate('library.pageStatus', {
+              page: pagination.page,
+              pages: pagination.pages,
+            })}
+          </span>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            disabled={pagination.page >= pagination.pages}
+            onClick={() =>
+              setPage(Math.min(pagination.pages, pagination.page + 1))
+            }
+          >
+            {translate('library.next')}
+          </Button>
+        </div>
+      ) : null}
 
       {schedulingWorkflowId ? (
         <WorkflowScheduleDialog

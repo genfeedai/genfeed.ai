@@ -1,5 +1,10 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
+import type { IPaginationParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -14,10 +19,12 @@ import {
 import { useCloudSession } from '@/hooks/useCloudSession';
 
 const SEARCH_DEBOUNCE_MS = 300;
+export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 
 export function useWorkflowLibraryPage() {
   const { href } = useOrgUrl();
   const { push } = useRouter();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const { isConnected, isCapable } = useCloudSession();
   const notificationsService = NotificationsService.getInstance();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
@@ -25,9 +32,18 @@ export function useWorkflowLibraryPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<IPaginationParams>({
+    limit: WORKFLOW_LIBRARY_PAGE_SIZE,
+    page: 1,
+    pages: 1,
+    total: 0,
+  });
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  const loadedScopeKeyRef = useRef<string | null>(null);
 
   const getService = useAuthedService(createWorkflowApiService);
 
@@ -36,6 +52,7 @@ export function useWorkflowLibraryPage() {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
       setDebouncedSearch(searchInput);
+      setPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -52,13 +69,25 @@ export function useWorkflowLibraryPage() {
         const service = await getService();
         if (signal.aborted) return;
 
-        const params: Record<string, unknown> = {};
+        const scopeKey = `${pageScope}:${brandId ?? ''}`;
+        const requestPage = loadedScopeKeyRef.current === scopeKey ? page : 1;
+        if (loadedScopeKeyRef.current !== scopeKey && page !== 1) {
+          setPage(1);
+        }
+        loadedScopeKeyRef.current = scopeKey;
+
+        const params: Record<string, unknown> = {
+          ...toBrandListParams({ brandId }),
+          limit: WORKFLOW_LIBRARY_PAGE_SIZE,
+          page: requestPage,
+        };
         if (debouncedSearch) params.search = debouncedSearch;
 
-        const data = await service.list(params);
+        const data = await service.listPage(params);
         if (signal.aborted) return;
 
-        setWorkflows(data);
+        setWorkflows(data.items);
+        setPagination(data.pagination);
       } catch (err) {
         if (signal.aborted) return;
         const message =
@@ -71,14 +100,21 @@ export function useWorkflowLibraryPage() {
         }
       }
     },
-    [getService, debouncedSearch],
+    [brandId, pageScope, getService, debouncedSearch, page],
   );
 
   useEffect(() => {
+    if (!isReady || !organizationId) {
+      return;
+    }
+    if (pageScope === 'brand' && !brandId) {
+      return;
+    }
+
     const controller = new AbortController();
     loadWorkflows(controller.signal);
     return () => controller.abort();
-  }, [loadWorkflows]);
+  }, [brandId, isReady, loadWorkflows, organizationId, pageScope]);
 
   // Actions
   const handleDuplicate = useCallback(
@@ -121,7 +157,7 @@ export function useWorkflowLibraryPage() {
   const handleToggleSchedule = useCallback(
     async (id: string, enabled: boolean) => {
       const previous = workflows.find((w) => w.id === id);
-      if (!previous?.schedule || isCanonicalSystemWorkflow(previous)) return;
+      if (!previous?.schedule) return;
 
       // Optimistic update
       setWorkflows((prev) =>
@@ -164,6 +200,33 @@ export function useWorkflowLibraryPage() {
     },
     [getService, notificationsService, workflows],
   );
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleDisableSelected = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      const workflow = workflows.find((item) => item.id === id);
+      if (workflow?.schedule && workflow.isScheduleEnabled) {
+        await handleToggleSchedule(id, false);
+      }
+    }
+    setSelectedIds(new Set());
+  }, [handleToggleSchedule, selectedIds, workflows]);
 
   /** Merge a schedule mutation result back into the loaded summaries. */
   const applyScheduleUpdate = useCallback(
@@ -214,7 +277,14 @@ export function useWorkflowLibraryPage() {
     handleDuplicate,
     handleDelete,
     handleToggleSchedule,
+    handleDisableSelected,
     applyScheduleUpdate,
     filteredWorkflows,
+    selectedIds,
+    toggleSelected,
+    clearSelection,
+    page,
+    pagination,
+    setPage,
   };
 }

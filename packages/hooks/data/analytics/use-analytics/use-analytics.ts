@@ -1,4 +1,3 @@
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { PageScope } from '@genfeedai/enums';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import type { ContentScope } from '@genfeedai/interfaces/common/content-scope.interface';
@@ -15,6 +14,7 @@ import {
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -38,7 +38,7 @@ export function useAnalytics({
   initialCachedAt = null,
   revalidateOnMount,
 }: UseAnalyticsOptions): AnalyticsScopedReturn {
-  const { brandId, organizationId } = useBrand();
+  const { brandId, organizationId } = useCollectionScope();
 
   const actualScopeId = useMemo(() => {
     if (providedScopeId) {

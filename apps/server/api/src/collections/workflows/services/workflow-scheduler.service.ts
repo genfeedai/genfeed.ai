@@ -1,12 +1,12 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { isSweepDrivenSystemWorkflow } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   EXECUTABLE_WORKFLOW_SELECT,
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
-import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
@@ -123,17 +123,17 @@ export class WorkflowSchedulerService implements OnModuleInit {
       return;
     }
 
-    // System workflows carry a schedule for display, but their actions fire
-    // from the workers sweep scheduler — the engine has no executor for
-    // systemWorkflowAction nodes, so firing here would only record failures.
-    // Also drops schedulers for pre-fix rows seeded with isScheduleEnabled: true.
+    // Sweep-driven provenance actions fire from the workers sweep scheduler —
+    // the engine has no executor for systemWorkflowAction nodes. Catalog
+    // system workflows with real nodes (content-loop-autopilot, …) still
+    // register here so tenants can pause or change cadence.
     if (
-      getSystemWorkflowMetadata(
+      isSweepDrivenSystemWorkflow(
         (workflow as unknown as Record<string, unknown>).metadata,
       )
     ) {
       this.logger.log(
-        `Skipping user-workflow scheduling for system workflow ${workflowId}`,
+        `Skipping user-workflow scheduling for sweep-driven system workflow ${workflowId}`,
         'WorkflowSchedulerService',
       );
       await this.unscheduleWorkflow(workflowId);
@@ -349,7 +349,8 @@ export class WorkflowSchedulerService implements OnModuleInit {
    *
    * The single shared schedule-mutation contract (UI PATCH, agent tool, MCP,
    * brand publishing defaults all converge here): the cadence and timezone are
-   * validated before persistence, system workflows are rejected, and scheduler
+   * validated before persistence, sweep-driven system workflows are rejected,
+   * catalog system workflows remain tenant-pausable, and scheduler
    * registration failures surface to the caller instead of logging silently.
    */
   async updateSchedule(
@@ -367,12 +368,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
       return null;
     }
 
-    // System workflows carry a schedule for display only; their actions fire
-    // from the workers sweep scheduler. Accepting the write here would persist
-    // a cadence that never registers — a silent failure.
-    if (getSystemWorkflowMetadata(existing.metadata)) {
+    // Sweep-driven provenance actions still cannot take a tenant cron — that
+    // write would persist a cadence that never registers. Catalog system
+    // workflows with executable graphs are tenant-pausable.
+    if (isSweepDrivenSystemWorkflow(existing.metadata)) {
       throw new BadRequestException(
-        'System workflow schedules are managed by the platform and cannot be edited. Duplicate the workflow to schedule your own copy.',
+        'This system workflow is driven by the platform sweep scheduler and cannot be edited. Duplicate the workflow to schedule your own copy.',
       );
     }
 

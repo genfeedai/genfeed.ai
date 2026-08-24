@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AlertCategory,
@@ -10,6 +9,10 @@ import {
 import type { ContentRunBrief } from '@genfeedai/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isBrandResourceReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
@@ -30,6 +33,7 @@ import {
 } from '@ui/primitives/select';
 import { CirclePlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 const ALL_STATUSES = 'all';
@@ -64,7 +68,10 @@ function getPublishCount(run: ContentRunRecord): number {
 }
 
 export default function ContentRunListPage() {
-  const brandId = useBrandId();
+  const translate = useTranslations('common.automation.contentRuns');
+  const collectionScope = useCollectionScope();
+  const { brandId, pageScope } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
   const { href } = useOrgUrl();
   const [status, setStatus] = useState<string>(ALL_STATUSES);
   const getContentRunsService = useAuthedService((token: string) =>
@@ -77,9 +84,12 @@ export default function ContentRunListPage() {
     isFetching,
     refetch,
   } = useQuery<ContentRunRecord[]>({
-    enabled: Boolean(brandId),
+    enabled: isBrandReady,
     initialData: EMPTY_RUNS,
     queryFn: async () => {
+      if (!brandId) {
+        return EMPTY_RUNS;
+      }
       const service = await getContentRunsService();
       return service.list(brandId, {
         status:
@@ -103,7 +113,9 @@ export default function ContentRunListPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_STATUSES}>All statuses</SelectItem>
+              <SelectItem value={ALL_STATUSES}>
+                {translate('allStatuses')}
+              </SelectItem>
               {STATUS_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -115,11 +127,16 @@ export default function ContentRunListPage() {
       />
 
       <Container>
+        {pageScope === 'org' && !isBrandReady ? (
+          <p className="mt-6 text-sm text-muted-foreground">
+            {translate('selectBrand')}
+          </p>
+        ) : null}
         {isError ? (
           <div className="mt-6">
             <Alert type={AlertCategory.ERROR}>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>Content runs could not be loaded.</span>
+                <span>{translate('loadError')}</span>
                 <Button
                   label="Retry"
                   onClick={() => {
@@ -138,7 +155,7 @@ export default function ContentRunListPage() {
           </div>
         ) : null}
 
-        {!isError && !isInitialFetch ? (
+        {!isError && !isInitialFetch && isBrandReady ? (
           <div className="mt-6">
             {data.length ? (
               <Card bodyClassName="p-0">
@@ -161,21 +178,19 @@ export default function ContentRunListPage() {
                     <Sparkles className="size-5" />
                   </div>
                   <div className="mt-4 text-base font-semibold text-foreground">
-                    No content runs yet
+                    {translate('emptyTitle')}
                   </div>
                   <div className="mt-2 text-sm leading-6 text-foreground/68">
-                    Save a brief from Discover to start a content run. It will
-                    appear here with its variants, publish events, and
-                    analytics.
+                    {translate('emptyDescription')}
                   </div>
                   <Button
                     className="mt-5"
                     asChild
-                    label="Go to Discover"
+                    label={translate('goToDiscover')}
                     variant={ButtonVariant.SECONDARY}
                   >
                     <Link href={href(APP_ROUTES.DISCOVER.ROOT)}>
-                      Go to Discover
+                      {translate('goToDiscover')}
                     </Link>
                   </Button>
                 </div>

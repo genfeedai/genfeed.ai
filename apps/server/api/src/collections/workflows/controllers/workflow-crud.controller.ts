@@ -9,7 +9,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
+import { buildWorkflowListWhere } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -141,29 +141,17 @@ export class WorkflowCrudController {
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    // `referencable=true` widens the list to every workflow in the org (used to
-    // seed workflow-reference pickers). Collapsed from the former
-    // `GET /workflows/referencable` route (#1354).
-    const where = query.referencable
-      ? {
-          ...(query.brandId ? { brandId: query.brandId } : {}),
-          isDeleted,
-          organizationId: user.organizationId,
-        }
-      : {
-          ...(query.brandId ? { brandId: query.brandId } : {}),
-          isDeleted,
-          organizationId: user.organizationId,
-          OR: [
-            { userId: user.userId ?? user.id },
-            {
-              metadata: {
-                equals: 'organization',
-                path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
-              },
-            },
-          ],
-        };
+    // `referencable=true` widens the list to every tenant workflow in the org
+    // (workflow-reference pickers). `includeSystem=true` is the admin list of
+    // persisted system-workflow clones. Customer Automate never sees those.
+    const where = buildWorkflowListWhere({
+      brandId: query.brandId,
+      includeSystem: query.includeSystem === true,
+      isDeleted,
+      organizationId: user.organizationId,
+      referencable: query.referencable === true,
+      userId: user.userId ?? user.id,
+    });
 
     const aggregate = {
       where,
@@ -259,28 +247,32 @@ export class WorkflowCrudController {
       }, 'Failed to publish workflow to marketplace');
     }
 
-    const workflow = await this.workflowsService.findMutableOwnedOrThrow(
-      workflowId,
-      {
-        organizationId: user.organizationId,
-        userId: user.userId ?? user.id,
-      },
-    );
-
-    // Schedule change: register/unregister the BullMQ cron via the scheduler,
-    // not just a plain column write. Any non-schedule fields in the same body
-    // are still patched.
+    // Schedule-only patches are allowed on organization-visible system
+    // workflows (pause / cadence). Graph and other field writes still require
+    // a mutable owned row — canonical system graphs stay immutable.
     const touchesSchedule =
       Object.hasOwn(updateWorkflowDto, 'schedule') ||
       Object.hasOwn(updateWorkflowDto, 'timezone') ||
       Object.hasOwn(updateWorkflowDto, 'isScheduleEnabled');
+    const { schedule, timezone, isScheduleEnabled, ...rest } =
+      updateWorkflowDto;
+    const hasNonScheduleFields = Object.keys(rest).length > 0;
+    const scope = {
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
+    };
+
+    const workflow =
+      touchesSchedule && !hasNonScheduleFields
+        ? await this.workflowsService.findVisibleOrThrow(workflowId, scope)
+        : await this.workflowsService.findMutableOwnedOrThrow(
+            workflowId,
+            scope,
+          );
 
     if (touchesSchedule) {
       return wrapError(async () => {
-        const { schedule, timezone, isScheduleEnabled, ...rest } =
-          updateWorkflowDto;
-
-        if (Object.keys(rest).length > 0) {
+        if (hasNonScheduleFields) {
           await this.workflowsService.patch(workflowId, rest);
         }
 
@@ -304,12 +296,9 @@ export class WorkflowCrudController {
           nextEnabled,
         );
 
-        const updated = await this.workflowsService.findOwnedOrThrow(
+        const updated = await this.workflowsService.findVisibleOrThrow(
           workflowId,
-          {
-            organizationId: user.organizationId,
-            userId: user.userId ?? user.id,
-          },
+          scope,
         );
 
         return serializeSingle(

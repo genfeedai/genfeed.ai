@@ -1,8 +1,11 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isBrandResourceReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   buildRoleStrategyInput,
@@ -44,7 +47,9 @@ export default function ContentTeamHirePage({
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const { brandId, isReady: isBrandReady } = useBrand();
+  const collectionScope = useCollectionScope();
+  const { brandId, pageScope } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<HireFormState>({
     budget: '',
@@ -90,7 +95,9 @@ export default function ContentTeamHirePage({
 
       if (!isBrandReady || !brandId) {
         notificationsService.error(
-          'Wait for the selected brand to finish loading.',
+          pageScope === 'org'
+            ? 'Select a brand to hire an agent.'
+            : 'Wait for the selected brand to finish loading.',
         );
         return;
       }
@@ -144,6 +151,7 @@ export default function ContentTeamHirePage({
       href,
       isBrandReady,
       notificationsService,
+      pageScope,
       onCreated,
       push,
       selectedPreset,
@@ -153,7 +161,7 @@ export default function ContentTeamHirePage({
   const content =
     !isBrandReady || !brandId ? (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        {translate('loadingBrand')}
+        {translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
       </p>
     ) : (
       <div className="mx-auto w-full max-w-3xl">

@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
@@ -74,7 +73,6 @@ export class OrganizationsController extends BaseCRUDController<
     private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
-    private readonly defaultRecurringContentService: DefaultRecurringContentService,
     private readonly usersService: UsersService,
     private readonly rolesService: RolesService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -448,12 +446,6 @@ export class OrganizationsController extends BaseCRUDController<
       userId,
     } as unknown as Parameters<BrandsService['create']>[0]);
 
-    await this.provisionDefaultRecurringWorkflows(
-      orgId.toString(),
-      brand.id.toString(),
-      userId,
-    );
-
     // Step 4: Find admin role and create member
     let adminRole = await this.rolesService.findOne({
       key: 'admin',
@@ -545,30 +537,5 @@ export class OrganizationsController extends BaseCRUDController<
     userId: string,
   ): boolean {
     return organization.userId === userId;
-  }
-
-  private async provisionDefaultRecurringWorkflows(
-    organizationId: string,
-    brandId: string,
-    userId: string,
-  ): Promise<void> {
-    try {
-      await this.defaultRecurringContentService.ensureDefaultBundle({
-        brandId,
-        organizationId,
-        origin: 'brand-create',
-        userId,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        'Failed to provision default recurring workflows',
-        {
-          brandId,
-          error: (error as Error)?.message,
-          organizationId,
-          stack: (error as Error)?.stack,
-        },
-      );
-    }
   }
 }

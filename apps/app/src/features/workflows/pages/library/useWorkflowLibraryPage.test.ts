@@ -14,12 +14,25 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   isConnected: false,
   isCapable: false,
+  collectionScope: {
+    brandId: 'brand-fud' as string | undefined,
+    isReady: true,
+    organizationId: 'org-demo',
+    pageScope: 'brand' as 'org' | 'brand',
+  },
   serviceList: vi.fn(),
+  serviceListPage: vi.fn(),
   serviceDuplicate: vi.fn(),
   serviceRemove: vi.fn(),
   serviceUpdateSchedule: vi.fn(),
   getService: vi.fn(),
   notificationsError: vi.fn(),
+}));
+
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  toBrandListParams: (scope: { brandId?: string }) =>
+    scope.brandId ? { brandId: scope.brandId } : {},
+  useCollectionScope: () => mocks.collectionScope,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -77,6 +90,12 @@ const makeWorkflow = (
 
 describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   beforeEach(() => {
+    mocks.collectionScope = {
+      brandId: 'brand-fud',
+      isReady: true,
+      organizationId: 'org-demo',
+      pageScope: 'brand',
+    };
     mocks.serviceList.mockResolvedValue([
       makeWorkflow({
         id: 'wf-1',
@@ -97,11 +116,57 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       schedule: '0 9 * * 1',
       timezone: 'UTC',
     });
+    mocks.serviceListPage.mockImplementation(async (params?: unknown) => ({
+      items: await mocks.serviceList(params),
+      pagination: { limit: 15, page: 1, pages: 1, total: 2 },
+    }));
     mocks.getService.mockResolvedValue({
       list: mocks.serviceList,
+      listPage: mocks.serviceListPage,
       duplicate: mocks.serviceDuplicate,
       remove: mocks.serviceRemove,
       updateSchedule: mocks.serviceUpdateSchedule,
+    });
+  });
+
+  it('requests a paginated workflow page from the API', async () => {
+    renderHook(() => useWorkflowLibraryPage());
+
+    await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
+    expect(mocks.serviceListPage).toHaveBeenCalledWith({
+      brandId: 'brand-fud',
+      limit: 15,
+      page: 1,
+    });
+  });
+
+  it('does not fetch workflows until collection scope is ready', async () => {
+    mocks.collectionScope = {
+      brandId: undefined,
+      isReady: false,
+      organizationId: '',
+      pageScope: 'org',
+    };
+
+    renderHook(() => useWorkflowLibraryPage());
+
+    expect(mocks.serviceListPage).not.toHaveBeenCalled();
+  });
+
+  it('omits brandId on org-scoped routes', async () => {
+    mocks.collectionScope = {
+      brandId: undefined,
+      isReady: true,
+      organizationId: 'org-demo',
+      pageScope: 'org',
+    };
+
+    renderHook(() => useWorkflowLibraryPage());
+
+    await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
+    expect(mocks.serviceListPage).toHaveBeenCalledWith({
+      limit: 15,
+      page: 1,
     });
   });
 
@@ -191,21 +256,28 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
   });
 
-  it('does not toggle schedules on canonical system workflows', async () => {
+  it('pauses schedules on canonical system workflows', async () => {
     mocks.serviceList.mockResolvedValueOnce([
       makeWorkflow({
         id: 'system-wf',
         isScheduleEnabled: true,
         metadata: {
           systemWorkflow: buildSystemWorkflowMetadata({
-            canonicalId: 'daily-trends-digest',
+            canonicalId: 'content-loop-autopilot',
           }),
         },
-        label: 'Daily Trends Digest',
-        schedule: '0 7 * * *',
+        label: 'Content Loop Autopilot',
+        schedule: '0 8 * * *',
         timezone: 'UTC',
       }),
     ]);
+    mocks.serviceUpdateSchedule.mockResolvedValueOnce({
+      id: 'system-wf',
+      isScheduleEnabled: false,
+      nextRunAt: null,
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    });
 
     const { result } = renderHook(() => useWorkflowLibraryPage());
     await waitFor(() => expect(result.current.workflows).toHaveLength(1));
@@ -214,8 +286,46 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       await result.current.handleToggleSchedule('system-wf', false);
     });
 
-    expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
-    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(true);
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledWith('system-wf', {
+      isScheduleEnabled: false,
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    });
+    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(false);
+  });
+
+  it('disables schedules for every selected workflow that has a cadence', async () => {
+    mocks.serviceList.mockResolvedValueOnce([
+      makeWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        label: 'Daily newsletter for FUD News',
+        schedule: '0 8 * * *',
+        timezone: 'UTC',
+      }),
+      makeWorkflow({
+        id: 'wf-2',
+        isScheduleEnabled: true,
+        label: 'Daily posts for FUD News',
+        schedule: '0 8 * * *',
+        timezone: 'UTC',
+      }),
+    ]);
+
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    act(() => {
+      result.current.toggleSelected('wf-1');
+      result.current.toggleSelected('wf-2');
+    });
+
+    await act(async () => {
+      await result.current.handleDisableSelected();
+    });
+
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledTimes(2);
+    expect(result.current.selectedIds.size).toBe(0);
   });
 
   it('merges a schedule dialog result into the loaded summaries', async () => {
@@ -242,6 +352,12 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
 
 describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
   beforeEach(() => {
+    mocks.collectionScope = {
+      brandId: 'brand-fud',
+      isReady: true,
+      organizationId: 'org-demo',
+      pageScope: 'brand',
+    };
     mocks.serviceList.mockResolvedValue([
       makeWorkflow({
         id: 'wf-1',
@@ -250,8 +366,13 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
     ]);
     mocks.serviceDuplicate.mockResolvedValue({ id: 'wf-copy' });
     mocks.serviceRemove.mockResolvedValue(undefined);
+    mocks.serviceListPage.mockImplementation(async (params?: unknown) => ({
+      items: await mocks.serviceList(params),
+      pagination: { limit: 15, page: 1, pages: 1, total: 1 },
+    }));
     mocks.getService.mockResolvedValue({
       list: mocks.serviceList,
+      listPage: mocks.serviceListPage,
       duplicate: mocks.serviceDuplicate,
       remove: mocks.serviceRemove,
       updateSchedule: mocks.serviceUpdateSchedule,

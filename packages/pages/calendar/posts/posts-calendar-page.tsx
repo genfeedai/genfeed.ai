@@ -1,10 +1,10 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import { CredentialPlatform, PageScope, PostStatus } from '@genfeedai/enums';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
@@ -53,7 +53,7 @@ function isPostDisabled(post: Post): boolean {
 export default function PostsCalendarPage({
   scope = PageScope.BRAND,
 }: Partial<Pick<PostsCalendarPageProps, 'scope'>> = {}): React.JSX.Element {
-  const { brandId } = useBrand();
+  const { brandId } = useCollectionScope();
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),

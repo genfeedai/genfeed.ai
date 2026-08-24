@@ -1,9 +1,12 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, CampaignStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import {
   type OutreachCampaign,
   OutreachCampaignsService,
@@ -22,7 +25,13 @@ import OutreachCampaignsTable from './OutreachCampaignsTable';
 
 export default function OutreachCampaignsList() {
   const router = useRouter();
-  const { brandId, organizationId } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
+  const isFetchReady = isCollectionFetchReady({
+    brandId,
+    isReady,
+    organizationId,
+    pageScope,
+  });
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -36,7 +45,7 @@ export default function OutreachCampaignsList() {
 
   const loadCampaigns = useCallback(
     async (refresh = false) => {
-      if (!organizationId) {
+      if (!isFetchReady) {
         return;
       }
 
@@ -61,14 +70,14 @@ export default function OutreachCampaignsList() {
         setIsRefreshing(false);
       }
     },
-    [brandId, organizationId, getService, notificationsService],
+    [brandId, getService, isFetchReady, notificationsService, organizationId],
   );
 
   useEffect(() => {
-    if (organizationId) {
+    if (isFetchReady) {
       loadCampaigns();
     }
-  }, [organizationId, loadCampaigns]);
+  }, [isFetchReady, loadCampaigns]);
 
   const handleStartCampaign = useCallback(
     async (campaign: OutreachCampaign) => {
