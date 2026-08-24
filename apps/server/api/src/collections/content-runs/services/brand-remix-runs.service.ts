@@ -23,6 +23,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
@@ -2010,6 +2011,7 @@ export class BrandRemixRunsService {
               isCloned: true,
               sampleAudioUrl: true,
               status: true,
+              voiceProvider: true,
             },
             where: scopedWhere(organizationId, {
               id: { in: ingredientIds },
@@ -2065,7 +2067,11 @@ export class BrandRemixRunsService {
       }
       if (
         voice?.category !== IngredientCategory.VOICE ||
-        (!voice.isCloned && !voice.externalVoiceId && !voice.sampleAudioUrl)
+        !isMaterializableSavedVoice({
+          externalVoiceId: voice.externalVoiceId,
+          provider: voice.voiceProvider,
+          sampleAudioUrl: voice.sampleAudioUrl,
+        })
       ) {
         throw new BadRequestException({
           detail: 'The selected voice must be a usable saved brand voice.',

@@ -625,6 +625,151 @@ describe('BrandRemixRunsService', () => {
     expect(contentRun.updateMany).not.toHaveBeenCalled();
   });
 
+  it('rejects an explicit clone-only remix voice before placeholder, credit, or provider work', async () => {
+    const created = await createPersistedRun();
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        category: 'AVATAR',
+        id: 'avatar-1',
+        status: IngredientStatus.GENERATED,
+      },
+      {
+        brandId: 'brand-1',
+        category: 'VOICE',
+        externalVoiceId: null,
+        id: 'voice-1',
+        isCloned: true,
+        sampleAudioUrl: null,
+        status: IngredientStatus.GENERATED,
+      },
+    ]);
+
+    try {
+      await service.start('org-1', 'run-1', user, request as never, {
+        expectedRevision: 1,
+      });
+      expect.unreachable('clone-only explicit remix voices must be rejected');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        detail: 'The selected voice must be a usable saved brand voice.',
+        title: 'Invalid remix voice',
+      });
+      expect(
+        JSON.stringify((error as BadRequestException).getResponse()),
+      ).not.toContain('voice-1');
+    }
+
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(contentRun.updateMany).not.toHaveBeenCalled();
+    expect(byokService.isByokActiveForProvider).not.toHaveBeenCalled();
+  });
+
+  it('fails closed for a foreign remix voice without disclosing existence', async () => {
+    const created = await createPersistedRun();
+    contentRun.findFirst.mockResolvedValue(created);
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        category: 'AVATAR',
+        id: 'avatar-1',
+        status: IngredientStatus.GENERATED,
+      },
+    ]);
+
+    try {
+      await service.start('org-1', 'run-1', user, request as never, {
+        expectedRevision: 1,
+      });
+      expect.unreachable('foreign remix voices must be rejected');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        detail: 'The selected voice must be a usable saved brand voice.',
+        title: 'Invalid remix voice',
+      });
+      expect(
+        JSON.stringify((error as BadRequestException).getResponse()),
+      ).not.toContain('voice-1');
+      expect(
+        JSON.stringify((error as BadRequestException).getResponse()),
+      ).not.toContain('org-2');
+    }
+
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(contentRun.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('admits an explicit sample-backed remix voice into avatar generation', async () => {
+    const created = await createPersistedRun();
+    let stored = created;
+    contentRun.findFirst.mockImplementation(() => Promise.resolve(stored));
+    contentRun.updateMany.mockImplementation(({ data }) => {
+      stored = makeRun(data.config as Record<string, unknown>);
+      stored.status = (data.status ?? stored.status) as ContentRunStatus;
+      return Promise.resolve({ count: 1 });
+    });
+    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        category: 'AVATAR',
+        id: 'avatar-1',
+        status: IngredientStatus.GENERATED,
+      },
+      {
+        brandId: 'brand-1',
+        category: 'VOICE',
+        externalVoiceId: null,
+        id: 'voice-1',
+        isCloned: true,
+        sampleAudioUrl: 'https://cdn.example.com/reference.wav',
+        status: IngredientStatus.GENERATED,
+      },
+    ]);
+    avatarVideoGenerationService.generateAvatarVideo.mockImplementation(
+      async (_params, _context, onCreated, _scope, onCredits) => {
+        await onCreated?.('avatar-sample-1');
+        await onCredits?.();
+        return {
+          externalId: 'heygen-sample-1',
+          ingredientId: 'avatar-sample-1',
+          status: 'processing',
+        };
+      },
+    );
+
+    await service.start('org-1', 'run-1', user, request as never, {
+      expectedRevision: 1,
+    });
+
+    expect(
+      avatarVideoGenerationService.generateAvatarVideo,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clonedVoiceId: 'voice-1',
+        photoIngredientId: 'avatar-1',
+      }),
+      expect.objectContaining({
+        organizationId: 'org-1',
+      }),
+      expect.any(Function),
+      expect.any(Object),
+      expect.any(Function),
+    );
+  });
+
   it('reuses the latest editable run for the same scoped source selector', async () => {
     const created = await createPersistedRun();
     contentRun.findFirst.mockResolvedValue(created);

@@ -8,6 +8,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
+import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
@@ -82,8 +83,10 @@ interface ResolvedIdentity {
 
 type ResolvableVoiceDocument = Pick<
   VoiceDocument,
-  'externalVoiceId' | 'provider' | 'sampleAudioUrl'
->;
+  'externalVoiceId' | 'sampleAudioUrl'
+> & {
+  provider?: VoiceProvider | string | null;
+};
 
 interface ResolvedAudioSource {
   audioDuration: number;
@@ -131,6 +134,7 @@ export class AvatarVideoGenerationService {
         context,
         brand,
       );
+      this.assertUsableVoiceSource(params, resolvedIdentity);
 
       const { ingredientData, metadataData } =
         await this.sharedService.createMediaDocumentsInternal({
@@ -288,24 +292,25 @@ export class AvatarVideoGenerationService {
         params.clonedVoiceId,
         context.organizationId,
       );
-
-      if (savedVoice) {
-        const resolvedSavedVoice = this.resolveVoiceLookup({
-          ...savedVoice,
-          provider:
-            params.voiceProvider != null
-              ? (params.voiceProvider as VoiceProvider)
-              : savedVoice.provider,
-        });
-
-        resolved.audioUrl = resolvedSavedVoice.audioUrl;
-        resolved.elevenlabsVoiceId =
-          resolvedSavedVoice.elevenlabsVoiceId ?? resolved.elevenlabsVoiceId;
-        resolved.heygenVoiceId =
-          resolvedSavedVoice.heygenVoiceId ?? resolved.heygenVoiceId;
-        resolved.savedVoice =
-          resolvedSavedVoice.savedVoice ?? resolved.savedVoice;
+      if (!savedVoice) {
+        throw this.invalidSavedVoiceException();
       }
+
+      const resolvedSavedVoice = this.resolveVoiceLookup({
+        ...savedVoice,
+        provider: params.voiceProvider ?? savedVoice.provider,
+      });
+      if (!this.hasUsableVoiceSource(resolvedSavedVoice)) {
+        throw this.invalidSavedVoiceException();
+      }
+
+      resolved.audioUrl = resolvedSavedVoice.audioUrl;
+      resolved.elevenlabsVoiceId =
+        resolvedSavedVoice.elevenlabsVoiceId ?? resolved.elevenlabsVoiceId;
+      resolved.heygenVoiceId =
+        resolvedSavedVoice.heygenVoiceId ?? resolved.heygenVoiceId;
+      resolved.savedVoice =
+        resolvedSavedVoice.savedVoice ?? resolved.savedVoice;
     }
 
     if (!params.useIdentity) {
@@ -718,7 +723,11 @@ export class AvatarVideoGenerationService {
       return { heygenVoiceId: voiceDoc.externalVoiceId };
     }
 
-    return { savedVoice: voiceDoc };
+    if (isMaterializableSavedVoice(voiceDoc)) {
+      return { savedVoice: voiceDoc };
+    }
+
+    return {};
   }
 
   private async materializeSavedVoice(
@@ -728,12 +737,54 @@ export class AvatarVideoGenerationService {
   ): Promise<ResolvedIdentity> {
     if (!identity.savedVoice) return identity;
     const { savedVoice, ...resolved } = identity;
+    if (!isMaterializableSavedVoice(savedVoice)) {
+      return resolved;
+    }
     const materialized = await this.resolveVoiceDocument(
       savedVoice,
       text,
       organizationId,
     );
     return { ...resolved, ...materialized };
+  }
+
+  private hasUsableVoiceSource(identity: ResolvedIdentity): boolean {
+    return Boolean(
+      identity.audioUrl ||
+        identity.elevenlabsVoiceId ||
+        identity.heygenVoiceId ||
+        isMaterializableSavedVoice(identity.savedVoice),
+    );
+  }
+
+  private assertUsableVoiceSource(
+    params: AvatarVideoGenerationParams,
+    identity: ResolvedIdentity,
+  ): void {
+    if (this.hasUsableVoiceSource(identity)) {
+      return;
+    }
+    if (params.clonedVoiceId) {
+      throw this.invalidSavedVoiceException();
+    }
+    throw new HttpException(
+      {
+        detail:
+          'A voice or audio source is required. Provide audioUrl, clonedVoiceId, elevenlabsVoiceId, heygenVoiceId, or configure saved identity defaults.',
+        title: 'Validation failed',
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  private invalidSavedVoiceException(): HttpException {
+    return new HttpException(
+      {
+        detail: 'The selected voice must be a usable saved brand voice.',
+        title: 'Validation failed',
+      },
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   private async publishInitialStatus(
