@@ -156,6 +156,7 @@ export class ImageGenerationService {
       configService: this.configService,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,
+      organizationId: user.organizationId,
       referenceIds,
     });
 

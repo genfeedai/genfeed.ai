@@ -269,6 +269,23 @@ describe('BatchInterpolationController', () => {
         });
       });
 
+      it('scopes start and end frame resolution to the caller organization', async () => {
+        await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+
+        expect(mockBuildReferenceImageUrls).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organizationId,
+            referenceIds: [startImageId1],
+          }),
+        );
+        expect(mockBuildReferenceImageUrls).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organizationId,
+            referenceIds: [endImageId1],
+          }),
+        );
+      });
+
       it('should generate a fresh group ID for each storyboard batch', async () => {
         mockBuildReferenceImageUrls
           .mockReset()
