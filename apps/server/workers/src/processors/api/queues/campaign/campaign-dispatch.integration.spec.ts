@@ -2,7 +2,11 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
-import { CampaignStatus, CampaignType } from '@genfeedai/enums';
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/enums';
 import type { CampaignProcessingJobData } from '@genfeedai/queue-contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -20,6 +24,7 @@ describe('outreach campaign dispatch integration', () => {
     id: campaignId,
     isDeleted: false,
     organizationId,
+    platform: CampaignPlatform.TWITTER,
     status: CampaignStatus.ACTIVE,
   };
 
@@ -28,8 +33,7 @@ describe('outreach campaign dispatch integration', () => {
     getJob: vi.fn(),
   };
   const mockOutreachCampaignsService = {
-    find: vi.fn(),
-    findOne: vi.fn(),
+    findActiveForDispatch: vi.fn(),
     findOneById: vi.fn(),
   };
   const mockCampaignExecutorService = {
@@ -60,8 +64,10 @@ describe('outreach campaign dispatch integration', () => {
         id: options.jobId,
       }),
     );
-    mockOutreachCampaignsService.find.mockResolvedValue([campaign]);
-    mockOutreachCampaignsService.findOne.mockResolvedValue(campaign);
+    mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+      campaign,
+    ]);
+    mockOutreachCampaignsService.findOneById.mockResolvedValue(campaign);
     mockCampaignExecutorService.processPendingTargets.mockResolvedValue({
       failed: 0,
       processed: 1,
@@ -120,11 +126,10 @@ describe('outreach campaign dispatch integration', () => {
 
     const result = await processor.process(job);
 
-    expect(mockOutreachCampaignsService.findOne).toHaveBeenCalledWith({
-      id: campaignId,
-      isDeleted: false,
+    expect(mockOutreachCampaignsService.findOneById).toHaveBeenCalledWith(
+      campaignId,
       organizationId,
-    });
+    );
     expect(
       mockCampaignExecutorService.processPendingTargets,
     ).toHaveBeenCalledWith(campaign, 10);

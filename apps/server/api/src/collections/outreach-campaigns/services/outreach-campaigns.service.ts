@@ -9,6 +9,10 @@ import {
   mergeReservedRateLimits,
 } from '@api/collections/outreach-campaigns/services/outreach-reply-slot.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import {
+  requireExecutableOutreachPair,
+  requireInactiveOutreachCapabilityChange,
+} from '@api/services/campaign/outreach-capability.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -17,6 +21,9 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const SCOPED_FIND_ERROR =
+  'Use findActiveForDispatch or a scoped campaign finder';
 
 const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const MAX_SERIALIZATION_RETRIES = 3;
@@ -62,6 +69,7 @@ function normalizeDoc(row: Record<string, unknown>): OutreachCampaignDocument {
     ...cfg,
     brandId: row.brandId,
     campaignType: row.campaignType,
+    config: cfg,
     createdAt: row.createdAt,
     credentialId: row.credentialId,
     id: row.id as string,
@@ -113,22 +121,24 @@ export class OutreachCampaignsService {
 
   private async updateCampaignConfig(
     id: string,
+    organizationId: string,
     updater: (doc: OutreachCampaignDocument) => Record<string, unknown>,
-  ): Promise<void> {
-    await this.prisma.$transaction(
+  ): Promise<boolean> {
+    return this.prisma.$transaction(
       async (tx) => {
         const row = await tx.outreachCampaign.findFirst({
-          where: { id, isDeleted: false },
+          where: scopedWhere(organizationId, { id }),
         });
 
-        if (!row) return;
+        if (!row) {
+          return false;
+        }
 
         const doc = normalizeDoc(row as unknown as Record<string, unknown>);
         const cfg = parseConfig(
           (row as unknown as Record<string, unknown>).config,
         );
-
-        await tx.outreachCampaign.update({
+        const updated = await tx.outreachCampaign.updateMany({
           data: {
             config: {
               ...cfg,
@@ -136,11 +146,39 @@ export class OutreachCampaignsService {
             } as Prisma.InputJsonValue,
             updatedAt: new Date(),
           },
-          where: { id },
+          where: scopedWhere(organizationId, { id }),
         });
+
+        return updated.count === 1;
       },
       { isolationLevel: 'Serializable' },
     );
+  }
+
+  private async applyScopedCampaignUpdate(
+    id: string,
+    organizationId: string,
+    brandId: string | undefined,
+    data: Prisma.OutreachCampaignUpdateManyMutationInput,
+  ): Promise<OutreachCampaignDocument> {
+    const updated = await this.prisma.outreachCampaign.updateMany({
+      data,
+      where: scopedWhere(organizationId, {
+        id,
+        ...(brandId ? { brandId } : {}),
+      }),
+    });
+
+    if (updated.count !== 1) {
+      throw new NotFoundException('Campaign', id);
+    }
+
+    const campaign = await this.findOneById(id, organizationId, brandId);
+    if (!campaign) {
+      throw new NotFoundException('Campaign', id);
+    }
+
+    return campaign;
   }
 
   // -------------------------------------------------------------------------
@@ -246,6 +284,8 @@ export class OutreachCampaignsService {
       throw new BadRequestException('Organization context is required');
     }
 
+    requireExecutableOutreachPair({ campaignType, platform });
+
     const brandId = await this.assertBrandAccess(
       requestedBrandId,
       organizationId,
@@ -290,19 +330,16 @@ export class OutreachCampaignsService {
   async patch(
     id: string,
     updateDto: UpdateOutreachCampaignDto,
+    organizationId: string,
+    brandId?: string,
   ): Promise<OutreachCampaignDocument> {
-    const existing = await findOrThrow(
-      this.prisma.outreachCampaign,
-      { where: { id, isDeleted: false } },
-      'Campaign',
-      id,
-    );
+    const existing = await this.findOneById(id, organizationId, brandId);
 
-    const existingConfig = parseConfig(
-      (existing as unknown as Record<string, unknown>).config,
-    );
-    const existingRecord = existing as unknown as Record<string, unknown>;
+    if (!existing) {
+      throw new NotFoundException('Campaign', id);
+    }
 
+    const existingConfig = parseConfig(existing.config);
     const {
       campaignType,
       credentialId: requestedCredentialId,
@@ -312,36 +349,46 @@ export class OutreachCampaignsService {
       ...configUpdates
     } = updateDto;
 
-    const organizationId = String(existingRecord.organizationId);
-    const brandId = existingRecord.brandId as string | null | undefined;
+    const nextPlatform = platform ?? existing.platform;
+    const nextCampaignType = campaignType ?? existing.campaignType;
+    const isCapabilityChange =
+      (platform !== undefined && platform !== existing.platform) ||
+      (campaignType !== undefined && campaignType !== existing.campaignType);
+
+    if (platform !== undefined || campaignType !== undefined) {
+      requireExecutableOutreachPair({
+        campaignType: nextCampaignType,
+        platform: nextPlatform,
+      });
+
+      if (isCapabilityChange && existing.status === CampaignStatus.ACTIVE) {
+        requireInactiveOutreachCapabilityChange();
+      }
+    }
+
     const credentialId =
       typeof requestedCredentialId === 'string'
         ? requestedCredentialId
-        : (existingRecord.credentialId as string | null | undefined);
+        : existing.credentialId;
     if (credentialId) {
       await this.assertCredentialAccess(
         credentialId,
         organizationId,
-        brandId ?? undefined,
-        String(platform ?? existingRecord.platform ?? ''),
+        existing.brandId ?? brandId,
+        String(platform ?? existing.platform ?? ''),
       );
     }
 
     const updatedConfig = { ...existingConfig, ...configUpdates };
 
-    const row = await this.prisma.outreachCampaign.update({
-      data: {
-        ...(campaignType !== undefined ? { campaignType } : {}),
-        ...(credentialId !== undefined ? { credentialId } : {}),
-        ...(isActive !== undefined ? { isActive } : {}),
-        ...(platform !== undefined ? { platform } : {}),
-        ...(status ? { status } : {}),
-        config: updatedConfig as Prisma.InputJsonValue,
-      },
-      where: { id },
+    return this.applyScopedCampaignUpdate(id, organizationId, brandId, {
+      ...(campaignType !== undefined ? { campaignType } : {}),
+      ...(credentialId !== undefined ? { credentialId } : {}),
+      ...(isActive !== undefined ? { isActive } : {}),
+      ...(platform !== undefined ? { platform } : {}),
+      ...(status ? { status } : {}),
+      config: updatedConfig as Prisma.InputJsonValue,
     });
-
-    return normalizeDoc(row as unknown as Record<string, unknown>);
   }
 
   // -------------------------------------------------------------------------
@@ -422,30 +469,24 @@ export class OutreachCampaignsService {
       throw new NotFoundException(`Campaign ${id} not found`);
     }
 
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
+
     if (campaign.status === CampaignStatus.ACTIVE) {
       return campaign;
     }
 
-    // Store startedAt inside config; update status as a scalar column.
-    const existingRow = await this.prisma.outreachCampaign.findFirst({
-      where: { id },
-    });
-    const cfg = parseConfig(
-      (existingRow as unknown as Record<string, unknown>)?.config,
-    );
+    const cfg = parseConfig(campaign.config);
 
-    const row = await this.prisma.outreachCampaign.update({
-      data: {
-        config: {
-          ...cfg,
-          startedAt: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
-        status: CampaignStatus.ACTIVE,
-      },
-      where: { id },
+    return this.applyScopedCampaignUpdate(id, organizationId, brandId, {
+      config: {
+        ...cfg,
+        startedAt: new Date().toISOString(),
+      } as Prisma.InputJsonValue,
+      status: CampaignStatus.ACTIVE,
     });
-
-    return normalizeDoc(row as unknown as Record<string, unknown>);
   }
 
   /**
@@ -466,12 +507,9 @@ export class OutreachCampaignsService {
       return campaign;
     }
 
-    const row = await this.prisma.outreachCampaign.update({
-      data: { status: CampaignStatus.PAUSED },
-      where: { id },
+    return this.applyScopedCampaignUpdate(id, organizationId, brandId, {
+      status: CampaignStatus.PAUSED,
     });
-
-    return normalizeDoc(row as unknown as Record<string, unknown>);
   }
 
   /**
@@ -488,25 +526,15 @@ export class OutreachCampaignsService {
       throw new NotFoundException(`Campaign ${id} not found`);
     }
 
-    const existingRow = await this.prisma.outreachCampaign.findFirst({
-      where: { id },
-    });
-    const cfg = parseConfig(
-      (existingRow as unknown as Record<string, unknown>)?.config,
-    );
+    const cfg = parseConfig(campaign.config);
 
-    const row = await this.prisma.outreachCampaign.update({
-      data: {
-        config: {
-          ...cfg,
-          completedAt: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
-        status: CampaignStatus.COMPLETED,
-      },
-      where: { id },
+    return this.applyScopedCampaignUpdate(id, organizationId, brandId, {
+      config: {
+        ...cfg,
+        completedAt: new Date().toISOString(),
+      } as Prisma.InputJsonValue,
+      status: CampaignStatus.COMPLETED,
     });
-
-    return normalizeDoc(row as unknown as Record<string, unknown>);
   }
 
   /**
@@ -622,8 +650,11 @@ export class OutreachCampaignsService {
    * Rate-limit counters are owned by `reserveReplySlot` so a later increment
    * cannot double-count the same attempt or reclaim a consumed slot.
    */
-  async incrementReplyCounters(id: string): Promise<void> {
-    await this.updateCampaignConfig(id, (doc) => ({
+  async incrementReplyCounters(
+    id: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    return this.updateCampaignConfig(id, organizationId, (doc) => ({
       totalReplies: (doc.totalReplies ?? 0) + 1,
       totalSuccessful: (doc.totalSuccessful ?? 0) + 1,
     }));
@@ -632,8 +663,11 @@ export class OutreachCampaignsService {
   /**
    * Increment failed counter
    */
-  async incrementFailedCounter(id: string): Promise<void> {
-    await this.updateCampaignConfig(id, (doc) => ({
+  async incrementFailedCounter(
+    id: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    return this.updateCampaignConfig(id, organizationId, (doc) => ({
       totalFailed: Number(doc.totalFailed ?? 0) + 1,
     }));
   }
@@ -641,8 +675,11 @@ export class OutreachCampaignsService {
   /**
    * Increment DM sent counter
    */
-  async incrementDmCounter(id: string): Promise<void> {
-    await this.updateCampaignConfig(id, (doc) => {
+  async incrementDmCounter(
+    id: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    return this.updateCampaignConfig(id, organizationId, (doc) => {
       const rateLimits = this.normalizeRateLimits(doc.rateLimits);
       const now = new Date();
       const nextHour = new Date(now.getTime() + 3600 * 1000);
@@ -663,8 +700,11 @@ export class OutreachCampaignsService {
   /**
    * Increment skipped counter — does not count toward rate limits.
    */
-  async incrementSkippedCounter(id: string): Promise<void> {
-    await this.updateCampaignConfig(id, (doc) => ({
+  async incrementSkippedCounter(
+    id: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    return this.updateCampaignConfig(id, organizationId, (doc) => ({
       totalSkipped: ((doc.totalSkipped as number) ?? 0) + 1,
     }));
   }
@@ -672,8 +712,12 @@ export class OutreachCampaignsService {
   /**
    * Increment total targets count
    */
-  async incrementTargetsCount(id: string, _count: number = 1): Promise<void> {
-    await this.updateCampaignConfig(id, (doc) => ({
+  async incrementTargetsCount(
+    id: string,
+    organizationId: string,
+    _count: number = 1,
+  ): Promise<boolean> {
+    return this.updateCampaignConfig(id, organizationId, (doc) => ({
       totalTargets: ((doc.totalTargets as number) ?? 0) + _count,
     }));
   }
@@ -715,31 +759,31 @@ export class OutreachCampaignsService {
   }
 
   /**
-   * Find documents by Prisma-compatible where clause.
-   * Only accepts `organizationId`, `status`, `isDeleted` as valid top-level filters.
+   * System-only inventory of active, non-deleted campaigns for one tenant.
+   * Generic unscoped `find` is blocked so dispatch cannot widen past the job org.
+   */
+  async findActiveForDispatch(
+    organizationId: string,
+  ): Promise<OutreachCampaignDocument[]> {
+    return this.findActive(organizationId);
+  }
+
+  /**
+   * @deprecated Use `findActiveForDispatch` or a scoped campaign finder.
    */
   async find(
-    query: Record<string, unknown>,
+    _query: Record<string, unknown>,
   ): Promise<OutreachCampaignDocument[]> {
-    const where: Record<string, unknown> = {};
-    if (query.organizationId !== undefined) {
-      where.organizationId = query.organizationId;
-    }
-    if (query.status !== undefined) where.status = query.status;
-    if (query.isDeleted !== undefined) where.isDeleted = query.isDeleted;
-    if (query.brandId !== undefined) where.brandId = query.brandId;
-
-    const rows = await this.prisma.outreachCampaign.findMany({
-      where,
-    });
-    return normalizeDocs(rows);
+    throw new BadRequestException(SCOPED_FIND_ERROR);
   }
 
   async findOne(
     query: Record<string, unknown>,
   ): Promise<OutreachCampaignDocument | null> {
-    const where = this.toPrismaWhere(query);
-    const row = await this.prisma.outreachCampaign.findFirst({ where });
+    const organizationId = this.requireOrganizationId(query.organizationId);
+    const row = await this.prisma.outreachCampaign.findFirst({
+      where: scopedWhere(organizationId, this.toOptionalCampaignFilters(query)),
+    });
     return row ? normalizeDoc(row as unknown as Record<string, unknown>) : null;
   }
 
@@ -759,7 +803,9 @@ export class OutreachCampaignsService {
     totalDocs: number;
     totalPages: number;
   }> {
-    const where = this.toPrismaWhere(query.where ?? {});
+    const input = query.where ?? {};
+    const organizationId = this.requireOrganizationId(input.organizationId);
+    const filters = this.toOptionalCampaignFilters(input);
     const limit = options.limit ?? 10;
     const page = options.page ?? 1;
     const skip = options.pagination === false ? undefined : (page - 1) * limit;
@@ -771,9 +817,11 @@ export class OutreachCampaignsService {
           query.orderBy as Prisma.OutreachCampaignOrderByWithRelationInput,
         skip,
         take,
-        where,
+        where: scopedWhere(organizationId, filters),
       }),
-      this.prisma.outreachCampaign.count({ where }),
+      this.prisma.outreachCampaign.count({
+        where: scopedWhere(organizationId, filters),
+      }),
     ]);
 
     const totalPages = limit > 0 ? Math.ceil(totalDocs / limit) : 1;
@@ -789,42 +837,55 @@ export class OutreachCampaignsService {
     };
   }
 
-  async remove(id: string): Promise<OutreachCampaignDocument | null> {
-    const existing = await this.findOne({ id: id });
+  async remove(
+    id: string,
+    organizationId: string,
+    brandId?: string,
+  ): Promise<OutreachCampaignDocument | null> {
+    const existing = await this.findOneById(id, organizationId, brandId);
 
     if (!existing) {
       return null;
     }
 
-    const row = await this.prisma.outreachCampaign.update({
+    const updated = await this.prisma.outreachCampaign.updateMany({
       data: { isDeleted: true },
-      where: { id: existing.id },
+      where: scopedWhere(organizationId, {
+        id: existing.id,
+        ...(brandId ? { brandId } : {}),
+      }),
     });
 
-    return normalizeDoc(row as unknown as Record<string, unknown>);
+    if (updated.count !== 1) {
+      return null;
+    }
+
+    const row = await this.prisma.outreachCampaign.findFirst({
+      where: scopedWhere(organizationId, {
+        id: existing.id,
+        isDeleted: true,
+        ...(brandId ? { brandId } : {}),
+      }),
+    });
+
+    return row ? normalizeDoc(row as unknown as Record<string, unknown>) : null;
   }
 
-  private toPrismaWhere(
+  private requireOrganizationId(value: unknown): string {
+    if (typeof value !== 'string' || !value) {
+      throw new BadRequestException('Organization context is required');
+    }
+
+    return value;
+  }
+
+  private toOptionalCampaignFilters(
     query: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const where: Record<string, unknown> = {};
-    const id = query.id;
-
-    if (typeof id === 'string') {
-      where.id = id;
-    }
-
-    if (query.organizationId !== undefined) {
-      where.organizationId = query.organizationId;
-    }
-
-    if (query.brandId !== undefined) {
-      where.brandId = query.brandId;
-    }
-
-    if (query.status !== undefined) where.status = query.status;
-    if (query.isDeleted !== undefined) where.isDeleted = query.isDeleted;
-
-    return where;
+  ): Prisma.OutreachCampaignWhereInput {
+    return {
+      ...(typeof query.id === 'string' ? { id: query.id } : {}),
+      ...(typeof query.brandId === 'string' ? { brandId: query.brandId } : {}),
+      ...(query.status !== undefined ? { status: query.status as string } : {}),
+    };
   }
 }

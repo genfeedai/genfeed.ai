@@ -21,16 +21,22 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { resolveCampaignScope } from '@api/services/campaign/campaign-scope.util';
+import {
+  isCampaignOutreachPairExecutable,
+  requireExecutableOutreachPair,
+} from '@api/services/campaign/outreach-capability.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import {
   type ReplyGenerationOptions,
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
+import { getOutreachCapabilityRefusal } from '@api-types/contracts/outreach-capabilities.contract';
 import {
   CampaignPlatform,
   CampaignSkipReason,
   CampaignStatus,
+  CampaignTargetStatus,
   ReplyLength,
   ReplyTone,
   WorkflowExecutionTrigger,
@@ -77,15 +83,30 @@ export class CampaignExecutorService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      const refusal = getOutreachCapabilityRefusal({
+        campaignType: campaign.campaignType,
+        platform: campaign.platform,
+      });
+      if (refusal) {
+        return {
+          error: refusal.message,
+          success: false,
+        };
+      }
+
       // Check if campaign is still active
       if (campaign.status !== CampaignStatus.ACTIVE) {
-        await this.campaignTargetsService.markAsSkipped(
-          target.id.toString(),
-          CampaignSkipReason.CAMPAIGN_PAUSED,
-        );
-        await this.campaignsService.incrementSkippedCounter(
-          campaign.id.toString(),
-        );
+        if (campaign.organizationId) {
+          await this.campaignTargetsService.markAsSkipped(
+            target.id.toString(),
+            campaign.organizationId,
+            CampaignSkipReason.CAMPAIGN_PAUSED,
+          );
+          await this.campaignsService.incrementSkippedCounter(
+            campaign.id.toString(),
+            campaign.organizationId,
+          );
+        }
 
         return {
           skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
@@ -103,10 +124,12 @@ export class CampaignExecutorService {
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
           target.id.toString(),
+          scope.organizationId,
           CampaignSkipReason.RATE_LIMITED,
         );
         await this.campaignsService.incrementSkippedCounter(
           campaign.id.toString(),
+          scope.organizationId,
         );
 
         return {
@@ -115,8 +138,16 @@ export class CampaignExecutorService {
         };
       }
 
-      // Mark target as processing
-      await this.campaignTargetsService.markAsProcessing(target.id.toString());
+      const claimed = await this.campaignTargetsService.claimForProcessing(
+        target.id.toString(),
+        scope.organizationId,
+      );
+      if (!claimed) {
+        return {
+          skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
+          success: false,
+        };
+      }
 
       // Get credential
       const credential = await this.findCampaignCredential(scope);
@@ -125,10 +156,12 @@ export class CampaignExecutorService {
         const errorMessage = 'Credential not found';
         await this.campaignTargetsService.markAsFailed(
           target.id.toString(),
+          scope.organizationId,
           errorMessage,
         );
         await this.campaignsService.incrementFailedCounter(
           campaign.id.toString(),
+          scope.organizationId,
         );
 
         return {
@@ -149,10 +182,12 @@ export class CampaignExecutorService {
         const errorMessage = 'Credential is missing an access token';
         await this.campaignTargetsService.markAsFailed(
           target.id.toString(),
+          scope.organizationId,
           errorMessage,
         );
         await this.campaignsService.incrementFailedCounter(
           campaign.id.toString(),
+          scope.organizationId,
         );
 
         return {
@@ -168,10 +203,13 @@ export class CampaignExecutorService {
       if (!reservation.reserved) {
         await this.campaignTargetsService.markAsSkipped(
           target.id.toString(),
+          scope.organizationId,
           CampaignSkipReason.RATE_LIMITED,
+          CampaignTargetStatus.PROCESSING,
         );
         await this.campaignsService.incrementSkippedCounter(
           campaign.id.toString(),
+          scope.organizationId,
         );
 
         this.loggerService.log(`${url} reservation denied`, {
@@ -221,11 +259,13 @@ export class CampaignExecutorService {
       if (!postResult.success) {
         await this.campaignTargetsService.markAsFailed(
           target.id.toString(),
+          scope.organizationId,
           postResult.error || 'Failed to post reply',
           (target.retryCount || 0) + 1,
         );
         await this.campaignsService.incrementFailedCounter(
           campaign.id.toString(),
+          scope.organizationId,
         );
 
         return {
@@ -234,16 +274,19 @@ export class CampaignExecutorService {
         };
       }
 
-      // Mark as replied
-      await this.campaignTargetsService.markAsReplied(target.id.toString(), {
-        replyExternalId: postResult.tweetId || '',
-        replyText,
-        replyUrl: postResult.tweetUrl || '',
-      });
+      await this.campaignTargetsService.markAsReplied(
+        target.id.toString(),
+        scope.organizationId,
+        {
+          replyExternalId: postResult.tweetId || '',
+          replyText,
+          replyUrl: postResult.tweetUrl || '',
+        },
+      );
 
-      // Update campaign counters
       await this.campaignsService.incrementReplyCounters(
         campaign.id.toString(),
+        scope.organizationId,
       );
 
       this.loggerService.log(`${url} success`, {
@@ -267,14 +310,18 @@ export class CampaignExecutorService {
         targetId: target.id,
       });
 
-      await this.campaignTargetsService.markAsFailed(
-        target.id.toString(),
-        errorMessage,
-        (target.retryCount || 0) + 1,
-      );
-      await this.campaignsService.incrementFailedCounter(
-        campaign.id.toString(),
-      );
+      if (campaign.organizationId) {
+        await this.campaignTargetsService.markAsFailed(
+          target.id.toString(),
+          campaign.organizationId,
+          errorMessage,
+          (target.retryCount || 0) + 1,
+        );
+        await this.campaignsService.incrementFailedCounter(
+          campaign.id.toString(),
+          campaign.organizationId,
+        );
+      }
 
       return {
         error: errorMessage,
@@ -447,6 +494,10 @@ export class CampaignExecutorService {
     campaign: OutreachCampaignDocument,
     target: CampaignTargetDocument,
   ): Promise<string> | string {
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
     return this.generateReply(campaign, target, resolveCampaignScope(campaign));
   }
 
@@ -472,9 +523,32 @@ export class CampaignExecutorService {
     };
 
     try {
+      if (
+        !isCampaignOutreachPairExecutable({
+          campaignType: campaign.campaignType,
+          platform: campaign.platform,
+        })
+      ) {
+        this.loggerService.log(`${url} skipped unavailable pair`, {
+          campaignId: campaign.id,
+          campaignType: campaign.campaignType,
+          platform: campaign.platform,
+        });
+        return results;
+      }
+
+      if (!campaign.organizationId) {
+        this.loggerService.error(`${url} failed`, {
+          campaignId: campaign.id,
+          reason: 'organization_id_required',
+        });
+        return results;
+      }
+
       const pendingTargets =
         await this.campaignTargetsService.getPendingTargets(
           campaign.id.toString(),
+          campaign.organizationId,
           limit,
         );
 

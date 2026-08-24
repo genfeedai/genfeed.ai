@@ -1,49 +1,115 @@
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/enums';
 import OutreachCampaignDetail from '@pages/agents/campaigns/OutreachCampaignDetail';
-import { render } from '@testing-library/react';
+import { useOutreachCampaignDetail } from '@pages/agents/campaigns/useOutreachCampaignDetail';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+vi.mock('@pages/agents/campaigns/useOutreachCampaignDetail', () => ({
+  useOutreachCampaignDetail: vi.fn(),
 }));
 
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
-  useParams: vi.fn(() => ({
-    id: 'campaign-123',
-  })),
-  useRouter: vi.fn(() => ({
-    push: vi.fn(),
-  })),
-}));
+const mockUseOutreachCampaignDetail = vi.mocked(useOutreachCampaignDetail);
 
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(() => ({
-    data: null,
+function mockDetail(
+  campaign: {
+    campaignType: CampaignType;
+    description?: string;
+    label: string;
+    platform: CampaignPlatform;
+    status: CampaignStatus;
+  } | null,
+) {
+  mockUseOutreachCampaignDetail.mockReturnValue({
+    campaign,
+    handleAddDmRecipients: vi.fn(),
+    handleAddUrls: vi.fn(),
+    handleBack: vi.fn(),
+    handleCompleteCampaign: vi.fn(),
+    handlePauseCampaign: vi.fn(),
+    handleStartCampaign: vi.fn(),
+    isAddingUrls: false,
     isLoading: false,
-    refetch: vi.fn(),
-  })),
-  useQueryClient: vi.fn(() => ({
-    setQueryData: vi.fn(),
-  })),
-}));
-
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: vi.fn(),
-      success: vi.fn(),
-    })),
-  },
-}));
+    isRefreshing: false,
+    loadCampaign: vi.fn(),
+    setUrlInput: vi.fn(),
+    targetStats: {
+      failed: 0,
+      pending: 0,
+      processing: 0,
+      replied: 0,
+      scheduled: 0,
+      sent: 0,
+      skipped: 0,
+      total: 0,
+    },
+    targets: [],
+    urlInput: '',
+  } as unknown as ReturnType<typeof useOutreachCampaignDetail>);
+}
 
 describe('OutreachCampaignDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(<OutreachCampaignDetail />);
-    expect(container.firstChild).toBeInTheDocument();
+  it('shows a historical unavailable campaign and disables unsafe actions', async () => {
+    const user = userEvent.setup();
+    const handleStartCampaign = vi.fn();
+    const handleAddUrls = vi.fn();
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      description: 'Legacy reddit replies',
+      label: 'Legacy Reddit',
+      platform: CampaignPlatform.REDDIT,
+      status: CampaignStatus.DRAFT,
+    });
+    mockUseOutreachCampaignDetail.mockReturnValue({
+      ...mockUseOutreachCampaignDetail(),
+      handleAddUrls,
+      handleStartCampaign,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    expect(screen.getByText('Legacy Reddit')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /This platform is not available/i,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /Reddit and Instagram outreach are not available yet/i,
+    );
+
+    const start = screen.getByRole('button', { name: /Start/i });
+    expect(start).toHaveAttribute('aria-disabled', 'true');
+    expect(start).not.toBeDisabled();
+    await user.click(start);
+    expect(handleStartCampaign).not.toHaveBeenCalled();
+
+    const addTargets = screen.getByRole('button', { name: /Add Targets/i });
+    expect(addTargets).toHaveAttribute('aria-disabled', 'true');
+    await user.click(addTargets);
+    expect(handleAddUrls).not.toHaveBeenCalled();
+  });
+
+  it('keeps Start available for verified X public-reply campaigns', () => {
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      label: 'X replies',
+      platform: CampaignPlatform.TWITTER,
+      status: CampaignStatus.DRAFT,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Start/i })).not.toHaveAttribute(
+      'aria-disabled',
+    );
   });
 });

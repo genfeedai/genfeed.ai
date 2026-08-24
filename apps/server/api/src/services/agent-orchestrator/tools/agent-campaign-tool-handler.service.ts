@@ -1,10 +1,12 @@
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { requireExecutableOutreachPair } from '@api/services/campaign/outreach-capability.util';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Outreach campaign tools (`create_campaign`, `start_campaign`,
@@ -19,12 +21,19 @@ export class AgentCampaignToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const platform = String(params.platform || 'twitter').toLowerCase();
-    const campaignType = String(params.campaignType || 'manual').toLowerCase();
+    const platform = String(params.platform || '').toLowerCase();
+    const campaignType = String(params.campaignType || '').toLowerCase();
+    const credentialId = readOptionalString(params.credentialId);
+
+    requireExecutableOutreachPair({ campaignType, platform });
+
+    if (!credentialId) {
+      throw new BadRequestException('credentialId is required');
+    }
 
     const createDto: CreateOutreachCampaignDto = {
       campaignType: campaignType as CampaignType,
-      credentialId: String(params.credentialId),
+      credentialId,
       description: (params.description as string) || '',
       isActive: true,
       label: String(params.label || 'Agent Campaign'),

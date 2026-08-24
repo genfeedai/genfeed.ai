@@ -1,3 +1,7 @@
+import {
+  evaluateOutreachCapability,
+  isOutreachPairExecutable,
+} from '@api-types/contracts/outreach-capabilities.contract';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
@@ -98,11 +102,20 @@ export function useOutreachCampaignWizard() {
     [],
   );
 
+  const pairEvaluation = evaluateOutreachCapability({
+    campaignType: formData.campaignType,
+    platform: formData.platform,
+  });
+  const isPairExecutable = isOutreachPairExecutable(pairEvaluation);
+
   const handleNext = useCallback(() => {
+    if (!isPairExecutable) {
+      return;
+    }
     if (currentStep < 5) {
       setCurrentStep((prev) => prev + 1);
     }
-  }, [currentStep]);
+  }, [currentStep, isPairExecutable]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 1) {
@@ -111,6 +124,11 @@ export function useOutreachCampaignWizard() {
   }, [currentStep]);
 
   const handleSubmit = useCallback(async () => {
+    if (!isPairExecutable) {
+      notificationsService.error(pairEvaluation.ui.body);
+      return;
+    }
+
     if (!organizationId || !formData.credential) {
       notificationsService.error('Please select a credential');
       return;
@@ -185,7 +203,15 @@ export function useOutreachCampaignWizard() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [organizationId, formData, getService, notificationsService, router]);
+  }, [
+    formData,
+    getService,
+    isPairExecutable,
+    notificationsService,
+    organizationId,
+    pairEvaluation.ui.body,
+    router,
+  ]);
 
   const filteredCredentials = credentials.filter(
     (c: { platform: string }) => c.platform === formData.platform,
@@ -199,7 +225,9 @@ export function useOutreachCampaignWizard() {
     handleChange,
     handleNext,
     handleSubmit,
+    isPairExecutable,
     isSubmitting,
+    pairEvaluation,
     router,
   };
 }
