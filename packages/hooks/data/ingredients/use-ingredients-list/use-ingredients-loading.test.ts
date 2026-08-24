@@ -222,4 +222,100 @@ describe('useIngredientsLoading', () => {
     expect(mockNotificationError).toHaveBeenCalledWith('Failed to load videos');
     expect(mockLoggerError).toHaveBeenCalled();
   });
+
+  it('normalizes a rejected JSON:API object payload on the unsorted shelf', async () => {
+    ingredientsFindAllMock.mockRejectedValue({
+      errors: [
+        {
+          code: '500',
+          detail: 'Failed for user@example.com with token secret-token',
+          meta: { email: 'user@example.com', token: 'secret-token' },
+          title: 'Ingredient query failed',
+        },
+      ],
+      request: { body: { password: 'super-secret' } },
+    });
+
+    const { result } = renderHook(() =>
+      useIngredientsLoading({
+        ...baseProps,
+        query: { shelf: 'unsorted' },
+        singularType: IngredientCategory.INGREDIENT,
+        type: 'ingredients',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.loadError).toBe('Failed to load ingredients');
+    expect(mockNotificationError).toHaveBeenCalledWith(
+      'Failed to load ingredients',
+    );
+
+    const ingredientsLog = mockLoggerError.mock.calls.find(
+      (call) => call[0] === 'GET /ingredients failed',
+    );
+    expect(ingredientsLog).toEqual([
+      'GET /ingredients failed',
+      expect.objectContaining({
+        error: expect.objectContaining({
+          category: 'Ingredient query failed',
+          message: 'Ingredient query failed',
+          name: 'ServiceOperationError',
+        }),
+        reportToSentry: true,
+        tags: expect.objectContaining({
+          error_category: 'Ingredient query failed',
+          operation: 'GET /ingredients',
+          surface: 'library',
+        }),
+      }),
+    ]);
+
+    expect(JSON.stringify(ingredientsLog?.[1])).not.toContain(
+      'user@example.com',
+    );
+    expect(JSON.stringify(ingredientsLog?.[1])).not.toContain('secret-token');
+    expect(JSON.stringify(ingredientsLog?.[1])).not.toContain('super-secret');
+  });
+
+  it('reports a generic service failure as one normalized Error', async () => {
+    ingredientsFindAllMock.mockRejectedValue(new Error('Network error'));
+
+    const { result } = renderHook(() =>
+      useIngredientsLoading({
+        ...baseProps,
+        query: { shelf: 'unsorted' },
+        singularType: IngredientCategory.INGREDIENT,
+        type: 'ingredients',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const ingredientsLogs = mockLoggerError.mock.calls.filter(
+      (call) => call[0] === 'GET /ingredients failed',
+    );
+    expect(ingredientsLogs.length).toBeGreaterThan(0);
+    for (const call of ingredientsLogs) {
+      expect(call?.[1]).toEqual(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: 'Network error',
+            name: 'ServiceOperationError',
+          }),
+          reportToSentry: true,
+          tags: expect.objectContaining({
+            error_category: 'service_operation',
+            operation: 'GET /ingredients',
+            surface: 'library',
+          }),
+        }),
+      );
+    }
+  });
 });

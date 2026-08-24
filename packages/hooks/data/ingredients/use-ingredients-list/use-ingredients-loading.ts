@@ -21,6 +21,11 @@ import { FoldersService } from '@genfeedai/services/content/folders.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import {
+  isCancelledRequest,
+  isServiceOperationError,
+  normalizeOperationError,
+} from '@genfeedai/services/core/operation-error';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import {
   createCacheKey,
@@ -31,6 +36,38 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
 const INGREDIENTS_CACHE_TTL_MS = 15 * 60 * 1000;
+
+function isIgnoredLibraryFailure(
+  error: unknown,
+  signal?: AbortSignal,
+): boolean {
+  return (
+    signal?.aborted === true ||
+    isCancelledRequest(error) ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
+function reportLibraryOperationFailure(
+  operation: string,
+  error: unknown,
+): Error & { category?: string } {
+  const normalized = isServiceOperationError(error)
+    ? error
+    : normalizeOperationError(operation, error);
+
+  logger.error(`${operation} failed`, {
+    error: normalized,
+    reportToSentry: true,
+    tags: {
+      error_category: normalized.category ?? 'service_operation',
+      operation,
+      surface: 'library',
+    },
+  });
+
+  return normalized;
+}
 
 function sanitizeQueryParams(queryParams: IQueryParams): IQueryParams {
   return Object.entries(queryParams).reduce<IQueryParams>(
@@ -273,7 +310,7 @@ export function useIngredientsLoading({
         setCachedAt(null);
         setLoadError(null);
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (isIgnoredLibraryFailure(error, signal)) {
           return;
         }
         const cached = ingredientsCache?.get(ingredientsCacheKey) ?? [];
@@ -289,7 +326,7 @@ export function useIngredientsLoading({
           setIsUsingCache(false);
           setCachedAt(null);
           setLoadError(`Failed to load ${type}`);
-          logger.error(`${url} failed`, error);
+          reportLibraryOperationFailure(url, error);
           notificationsService.error(`Failed to load ${type}`);
         }
       } finally {
@@ -344,10 +381,10 @@ export function useIngredientsLoading({
         setFolders(data);
         logger.info(`${url} success`, data);
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (isIgnoredLibraryFailure(error, signal)) {
           return;
         }
-        logger.error(`${url} failed`, error);
+        reportLibraryOperationFailure(url, error);
       } finally {
         setIsLoadingFolders(false);
       }

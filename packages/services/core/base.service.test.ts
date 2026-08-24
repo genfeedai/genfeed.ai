@@ -79,17 +79,6 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/utils/error/error-handler.util', () => ({
-  ErrorHandler: {
-    extractErrorDetails: vi.fn((error) => ({
-      code: 'ERR_UNKNOWN',
-      message: error?.message || 'Unknown error',
-      status: 500,
-      validationErrors: [],
-    })),
-  },
-}));
-
 vi.mock('@genfeedai/utils/validation/type-validator.util', () => ({
   TypeValidator: {
     assertType: vi.fn(),
@@ -200,6 +189,7 @@ describe('BaseService', () => {
         expect.objectContaining({
           isTimeout: true,
           message: 'Request timed out',
+          name: 'ServiceOperationError',
         }),
       );
     });
@@ -210,6 +200,68 @@ describe('BaseService', () => {
       ).toThrow(
         expect.objectContaining({
           isTimeout: false,
+          message: 'Service operation failed',
+        }),
+      );
+    });
+
+    it('converts a rejected JSON:API object payload into a ServiceOperationError', () => {
+      const payload = {
+        errors: [
+          {
+            code: '422',
+            detail: 'Unsorted shelf is temporarily unavailable',
+            meta: { email: 'user@example.com', token: 'secret-token' },
+            title: 'Ingredient query failed',
+          },
+        ],
+        request: { body: { password: 'super-secret' } },
+      };
+
+      expect(() =>
+        service.testHandleOperationError('GET /ingredients', payload),
+      ).toThrow(
+        expect.objectContaining({
+          category: 'Ingredient query failed',
+          message: 'Unsorted shelf is temporarily unavailable',
+          name: 'ServiceOperationError',
+          status: 422,
+        }),
+      );
+
+      try {
+        service.testHandleOperationError('GET /ingredients', payload);
+      } catch (thrown) {
+        expect(thrown).toBeInstanceOf(Error);
+        expect(thrown).not.toHaveProperty('originalError');
+        expect(JSON.stringify(thrown)).not.toContain('user@example.com');
+        expect(JSON.stringify(thrown)).not.toContain('secret-token');
+        expect(JSON.stringify(thrown)).not.toContain('super-secret');
+      }
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('GET /ingredients failed'),
+        expect.objectContaining({
+          reportToSentry: false,
+          tags: expect.objectContaining({
+            error_category: 'Ingredient query failed',
+            operation: 'GET /ingredients',
+          }),
+        }),
+      );
+    });
+
+    it('normalizes a generic service Error with operation context', () => {
+      expect(() =>
+        service.testHandleOperationError(
+          'GET /ingredients',
+          new Error('Network error'),
+        ),
+      ).toThrow(
+        expect.objectContaining({
+          message: 'Network error',
+          metadata: { operation: 'GET /ingredients' },
+          name: 'ServiceOperationError',
         }),
       );
     });
@@ -974,7 +1026,29 @@ describe('BaseService', () => {
         .getInstanceForTest()
         .get.mockRejectedValue(new Error('Network error'));
 
-      await expect(service.findAll()).rejects.toThrow();
+      await expect(service.findAll()).rejects.toMatchObject({
+        message: 'Network error',
+        name: 'ServiceOperationError',
+      });
+    });
+
+    it('converts a rejected object payload from findAll into one ServiceOperationError', async () => {
+      service.getInstanceForTest().get.mockRejectedValue({
+        errors: [
+          {
+            code: '500',
+            detail: 'Unsorted shelf is temporarily unavailable',
+            title: 'Ingredient query failed',
+          },
+        ],
+      });
+
+      await expect(service.findAll()).rejects.toMatchObject({
+        category: 'Ingredient query failed',
+        message: 'Unsorted shelf is temporarily unavailable',
+        name: 'ServiceOperationError',
+      });
+      expect(logger.error).toHaveBeenCalledTimes(1);
     });
 
     it('should handle validation errors', async () => {
