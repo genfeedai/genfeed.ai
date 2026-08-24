@@ -17,7 +17,7 @@ export type CameraMovement =
 
 export interface CASTInput {
   presetId: string;
-  cameraMovement: CameraMovement;
+  cameraMovement?: CameraMovement;
   action: string; // "a woman walking through rain"
   subject: string; // "young woman in a red coat, wet streets reflecting neon"
   lighting: string; // "moody neon lighting with rain reflections"
@@ -140,6 +140,10 @@ export const generateCASTPrompt = (input: CASTInput): CASTOutput => {
   }
 
   validateCastSceneFields(input);
+
+  if (!input.cameraMovement) {
+    throw new Error('Camera movement is required');
+  }
 
   // Build CAST prompt structure
   const cameraMovementDesc = CAMERA_MOVEMENT_DESCRIPTIONS[input.cameraMovement];

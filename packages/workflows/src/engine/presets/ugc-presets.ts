@@ -90,7 +90,7 @@ export const UGC_PRESETS: Record<UgcPresetId, UgcPreset> = {
 };
 
 export const isUgcPresetId = (id: string): id is UgcPresetId => {
-  return id in UGC_PRESETS;
+  return Object.hasOwn(UGC_PRESETS, id);
 };
 
 export const getUgcPresetById = (id: string): UgcPreset | null => {
