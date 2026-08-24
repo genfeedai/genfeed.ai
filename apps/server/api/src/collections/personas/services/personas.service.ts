@@ -203,11 +203,16 @@ export class PersonasService extends BaseService<
               OR: [
                 {
                   handle: {
-                    mode: 'insensitive',
+                    mode: 'insensitive' as const,
                     startsWith: prefix.toLowerCase(),
                   },
                 },
-                { label: { mode: 'insensitive', startsWith: prefix } },
+                {
+                  label: {
+                    mode: 'insensitive' as const,
+                    startsWith: prefix,
+                  },
+                },
               ],
             }
           : {}),
