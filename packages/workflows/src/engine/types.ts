@@ -24,6 +24,7 @@ export interface NodeExecutionResult {
   completedAt?: Date;
   retryCount: number;
   creditsUsed: number;
+  videoGenerationLineage?: import('./video-generation-lineage').VideoGenerationLineage;
 }
 
 export interface ExecutionRunResult {

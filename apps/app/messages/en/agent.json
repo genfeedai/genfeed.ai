@@ -29,6 +29,8 @@
     "referenceLibrary": "Reference library content"
   },
   "generationActionCard": {
+    "acceptFullRun": "Accept full run",
+    "acceptFullRunAria": "Accept the pilot and generate the full-length video",
     "durationSeconds": "{seconds}s",
     "generateAria": "Generate image",
     "generateTooltip": "Generate",
@@ -36,12 +38,17 @@
     "loadingModels": "Loading Genfeed models…",
     "noModelsEnabled": "No models enabled",
     "noModelsEnabledTitle": "No models enabled for this workspace",
+    "pilotCeilingReached": "Stopped after {count} rejected paid candidates. No further video generation will run for this clip.",
+    "pilotReady": "Pilot ready",
+    "pilotReviewTitle": "Review this {seconds}s pilot before the full-length run",
     "previewDescription": "Read and edit the full generation prompt",
     "previewEditorAria": "Full prompt",
     "previewTitle": "Prompt",
     "promptLabel": "Prompt",
     "readFull": "Read & edit",
     "readFullAria": "Read and edit the full prompt",
+    "rejectPilot": "Reject",
+    "rejectPilotAria": "Reject this pilot",
     "stop": "Stop",
     "stopAria": "Stop generation"
   },

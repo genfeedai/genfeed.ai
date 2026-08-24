@@ -164,9 +164,14 @@ describe('loadMessages', () => {
     expect(english.agent.composerToolbar.noModelsEnabled).toBe(
       'No models enabled',
     );
+    expect(english.agent.generationActionCard.acceptFullRun).toBe(
+      'Accept full run',
+    );
     expect(english.agent.generationActionCard.durationSeconds).toBe(
       '{seconds}s',
     );
+    expect(english.agent.generationActionCard.pilotReady).toBe('Pilot ready');
+    expect(english.agent.generationActionCard.rejectPilot).toBe('Reject');
     expect(english.agent.generationActionCard.loadingModels).toBe(
       'Loading Genfeed models…',
     );

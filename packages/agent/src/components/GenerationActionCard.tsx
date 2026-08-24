@@ -26,7 +26,7 @@ interface GenerationActionCardProps {
 }
 
 function statusLabelFor(
-  status: 'idle' | 'generating' | 'done' | 'error',
+  status: 'idle' | 'generating' | 'done' | 'error' | 'pilot_review',
 ): string | null {
   switch (status) {
     case 'generating':
@@ -35,6 +35,8 @@ function statusLabelFor(
       return 'Done';
     case 'error':
       return 'Failed';
+    case 'pilot_review':
+      return 'Pilot ready';
     default:
       return null;
   }
@@ -78,7 +80,12 @@ export function GenerationActionCard({
     onRegenerateProp,
     handleRetryVoid,
     handleGenerateVoid,
+    handleAcceptPilotVoid,
+    handleRejectPilot,
     handleStop,
+    isPilotCeilingReached,
+    paidRejectedCount,
+    pilotDurationSeconds,
     handleToggleReference,
     handleUseResultAsReference,
     handleModelChange,
@@ -99,7 +106,7 @@ export function GenerationActionCard({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    if (status === 'error' || status === 'idle') {
+    if (status === 'error' || status === 'idle' || status === 'pilot_review') {
       setIsCollapsed(false);
     }
   }, [status]);
@@ -136,7 +143,7 @@ export function GenerationActionCard({
       />
 
       {isCollapsed ? (
-        status === 'done' ? (
+        status === 'done' || status === 'pilot_review' ? (
           <div className="border-t border-border p-3">
             <GenerationActionCardStatusPanel
               status={status}
@@ -150,6 +157,11 @@ export function GenerationActionCard({
               onRetry={handleRetryVoid}
               onRegenerateProp={onRegenerateProp}
               onUseAsReference={handleUseAsReference}
+              onAcceptPilot={handleAcceptPilotVoid}
+              onRejectPilot={handleRejectPilot}
+              pilotDurationSeconds={pilotDurationSeconds}
+              isPilotCeilingReached={isPilotCeilingReached}
+              paidRejectedCount={paidRejectedCount}
             />
           </div>
         ) : null
@@ -183,7 +195,10 @@ export function GenerationActionCard({
             onDurationChange={handleDurationChange}
             isImage={isImage}
             isPromptEmpty={!prompt.trim()}
-            showGenerate={status === 'idle' || status === 'error'}
+            showGenerate={
+              (status === 'idle' || status === 'error') &&
+              !isPilotCeilingReached
+            }
             showStop={status === 'generating'}
             onGenerate={handleGenerateVoid}
             onStop={handleStop}
@@ -202,6 +217,11 @@ export function GenerationActionCard({
               onRetry={handleRetryVoid}
               onRegenerateProp={onRegenerateProp}
               onUseAsReference={handleUseAsReference}
+              onAcceptPilot={handleAcceptPilotVoid}
+              onRejectPilot={handleRejectPilot}
+              pilotDurationSeconds={pilotDurationSeconds}
+              isPilotCeilingReached={isPilotCeilingReached}
+              paidRejectedCount={paidRejectedCount}
             />
           ) : null}
 
@@ -228,6 +248,11 @@ export function GenerationActionCard({
               onRetry={handleRetryVoid}
               onRegenerateProp={onRegenerateProp}
               onUseAsReference={handleUseAsReference}
+              onAcceptPilot={handleAcceptPilotVoid}
+              onRejectPilot={handleRejectPilot}
+              pilotDurationSeconds={pilotDurationSeconds}
+              isPilotCeilingReached={isPilotCeilingReached}
+              paidRejectedCount={paidRejectedCount}
             />
           ) : null}
         </div>

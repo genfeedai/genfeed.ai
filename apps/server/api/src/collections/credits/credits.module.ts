@@ -8,6 +8,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
+import { VideoGenerationLineageService } from '@api/collections/credits/services/video-generation-lineage.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { CommonModule } from '@api/common/common.module';
 import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
@@ -26,6 +27,7 @@ import { Module } from '@nestjs/common';
     CreditDeductionModule,
     CreditTransactionsService,
     CreditsUtilsService,
+    VideoGenerationLineageService,
   ],
   imports: [
     ByokModule,
@@ -40,6 +42,7 @@ import { Module } from '@nestjs/common';
   providers: [
     CreditBalanceService,
     CreditTransactionsService,
+    VideoGenerationLineageService,
     {
       provide: CreditsUtilsService,
       // SaaS cloud AND self-hosted EE use the real ledger. Community OSS / desktop
