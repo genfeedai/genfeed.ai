@@ -275,7 +275,6 @@
     "apps/app/src/features/workflows/pages/executions/ExecutionDetailPage.tsx": 10,
     "apps/app/src/features/workflows/pages/executions/ExecutionNodeResultItem.tsx": 6,
     "apps/app/src/features/workflows/pages/executions/ExecutionSummaryBar.tsx": 7,
-    "apps/app/src/features/workflows/pages/executions/WorkflowExecutionsPage.tsx": 15,
     "apps/app/src/features/workflows/pages/templates/WorkflowTemplatesPage.tsx": 12,
     "apps/app/src/features/workflows/workspace/WorkflowPickerOverlay.tsx": 8,
     "apps/app/src/features/workflows/workspace/WorkflowSurfaceInspector.tsx": 24,
