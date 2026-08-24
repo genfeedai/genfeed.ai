@@ -884,10 +884,9 @@ describe('proxy', () => {
     );
   });
 
-  // Agent onboarding is org-scoped, so a user whose organization has not been
-  // provisioned yet has no destination to send them to. Root holds them in
-  // place rather than bouncing them to the classic wizard.
-  it('holds signed-in root in place when no workspace slug resolves yet', async () => {
+  // No brand yet: send signed-in root to the shared brand step instead of
+  // holding them on `/` or bouncing them into the providers wizard.
+  it('sends signed-in root to brand setup when no workspace slug resolves yet', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -914,7 +913,9 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/onboarding/brand',
+    );
   });
 
   it('redirects signed-in root using the active brand when multiple brands exist', async () => {

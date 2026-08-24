@@ -142,6 +142,7 @@ describe('app/(onboarding)/layout.tsx', () => {
   it('renders desktop onboarding through the protected auth gate when signed in', () => {
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test_fake';
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    navigationMocks.pathname = '/onboarding/summary';
 
     render(
       <OnboardingSetupLayout>
@@ -157,6 +158,7 @@ describe('app/(onboarding)/layout.tsx', () => {
   it('gates desktop onboarding when signed out', () => {
     isSignedIn = false;
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    navigationMocks.pathname = '/onboarding/summary';
 
     render(
       <OnboardingSetupLayout>
