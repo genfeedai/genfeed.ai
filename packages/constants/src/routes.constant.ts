@@ -347,8 +347,14 @@ export const APP_ROUTES = {
     INTEGRATIONS: '/settings/integrations',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
+    /** Personal chat model and generation-priority defaults. */
+    CHAT: '/settings/chat',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
+    /** Personal email and future in-app notification preferences. */
+    NOTIFICATIONS: '/settings/notifications',
+    /** Creation heatmap, streaks, and setup checklist. */
+    PROGRESS: '/settings/progress',
     MODEL_IMAGE: '/settings/models/image',
     MODELS: '/settings/models',
     MODEL_TRAININGS: '/settings/models/trainings',

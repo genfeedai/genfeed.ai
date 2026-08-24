@@ -102,9 +102,8 @@ describe('SettingsProfilePage', () => {
   it('should render without crashing', () => {
     const { container } = render(<SettingsProfilePage />);
     expect(container.firstChild).toBeInTheDocument();
-    expect(screen.getByText('Email Notifications')).toBeInTheDocument();
-    expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
-    expect(screen.getByText('Video Emails')).toBeInTheDocument();
+    expect(screen.getByText('Language')).toBeInTheDocument();
+    expect(screen.queryByText('Email Notifications')).not.toBeInTheDocument();
   });
 
   it('offers a language picker for the app interface', () => {
@@ -166,63 +165,5 @@ describe('SettingsProfilePage', () => {
         'Failed to save your appearance preference.',
       );
     });
-  });
-
-  it('loads and persists the durable workflow email preference', async () => {
-    const user = userEvent.setup();
-    mocks.findWorkflowEmailPreference.mockResolvedValue({ isEnabled: true });
-    render(<SettingsProfilePage />);
-
-    const toggle = await screen.findByRole('switch', {
-      name: 'Workflow Emails',
-    });
-    await waitFor(() => expect(toggle).toBeChecked());
-    await user.click(toggle);
-
-    await waitFor(() => {
-      expect(mocks.patchWorkflowEmailPreference).toHaveBeenCalledWith(false);
-    });
-    expect(mocks.patchSettings).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        isWorkflowNotificationsEmail: expect.anything(),
-      }),
-    );
-  });
-
-  it('aborts the workflow preference load when the page unmounts', async () => {
-    const { unmount } = render(<SettingsProfilePage />);
-
-    await waitFor(() => {
-      expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledWith(
-        expect.any(AbortSignal),
-      );
-    });
-    const signal = mocks.findWorkflowEmailPreference.mock.calls[0]?.[0];
-    expect(signal?.aborted).toBe(false);
-
-    unmount();
-
-    expect(signal?.aborted).toBe(true);
-  });
-
-  it('keeps an unknown workflow preference disabled and supports retry', async () => {
-    const user = userEvent.setup();
-    mocks.findWorkflowEmailPreference.mockRejectedValueOnce(
-      new Error('load failed'),
-    );
-    render(<SettingsProfilePage />);
-
-    const toggle = await screen.findByRole('switch', {
-      name: 'Workflow Emails',
-    });
-    expect(
-      await screen.findByText('Workflow email preference could not be loaded.'),
-    ).toBeInTheDocument();
-    expect(toggle).toBeDisabled();
-
-    await user.click(screen.getByRole('button', { name: 'Retry' }));
-
-    await waitFor(() => expect(toggle).toBeEnabled());
-    expect(mocks.findWorkflowEmailPreference).toHaveBeenCalledTimes(2);
   });
 });

@@ -10,19 +10,34 @@ describe('buildSettingsMenuItems', () => {
   describe('personal scope', () => {
     const items = buildSettingsMenuItems({ scope: SettingsSurface.PERSONAL });
 
-    it('shows only the personal pages plus Help', () => {
-      expect(items.map((item) => item.label)).toEqual(['Personal', 'Help']);
+    it('shows the split personal pages plus Help', () => {
+      expect(items.map((item) => item.label)).toEqual([
+        'Personal',
+        'Notifications',
+        'Chat',
+        'Progress',
+        'Help',
+      ]);
     });
 
-    it('scopes both entries to the personal context', () => {
+    it('scopes every entry to the personal context', () => {
       expect(items.every((item) => item.hrefScope === 'personal')).toBe(true);
+      expect(items.find((i) => i.label === 'Notifications')?.href).toBe(
+        APP_ROUTES.SETTINGS.NOTIFICATIONS,
+      );
+      expect(items.find((i) => i.label === 'Chat')?.href).toBe(
+        APP_ROUTES.SETTINGS.CHAT,
+      );
+      expect(items.find((i) => i.label === 'Progress')?.href).toBe(
+        APP_ROUTES.SETTINGS.PROGRESS,
+      );
       expect(items.find((i) => i.label === 'Help')?.href).toBe(
-        '/settings/help',
+        APP_ROUTES.SETTINGS.HELP,
       );
     });
 
-    it('keeps Help under Account so the Support header is not a one-item group', () => {
-      expect(items.map((item) => item.group)).toEqual(['Account', 'Account']);
+    it('keeps every personal page under Account', () => {
+      expect(items.every((item) => item.group === 'Account')).toBe(true);
     });
 
     it('marks the Personal root as exact-match so it does not highlight Help', () => {

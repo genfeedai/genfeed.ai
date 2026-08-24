@@ -2,6 +2,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import type { SettingsSurface } from '@genfeedai/enums';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
+  Bell,
   Bot,
   Box,
   Building2,
@@ -9,6 +10,7 @@ import {
   CircleQuestionMark,
   Cpu,
   CreditCard,
+  Flame,
   Key,
   LayoutGrid,
   Link,
@@ -65,7 +67,7 @@ export interface BuildSettingsMenuItemsParams {
  * - Org: Organization (who/what + Agents defaults) · Billing (money) ·
  *   Developer (keys/webhooks)
  * - Brand: Brand (public + identity) · Automation (how content runs)
- * - Personal: Account (Personal + Help). No Support header — one item is not a group.
+ * - Personal: Account (Personal, Notifications, Chat, Progress, Help).
  *
  * Naming / paths (deliberate):
  * - `/settings` is the canonical home for both organization and brand scopes.
@@ -85,6 +87,30 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
       label: 'Personal',
       outline: User,
       solid: User,
+    },
+    {
+      group: 'Account',
+      href: APP_ROUTES.SETTINGS.NOTIFICATIONS,
+      hrefScope: 'personal',
+      label: 'Notifications',
+      outline: Bell,
+      solid: Bell,
+    },
+    {
+      group: 'Account',
+      href: APP_ROUTES.SETTINGS.CHAT,
+      hrefScope: 'personal',
+      label: 'Chat',
+      outline: MessageSquare,
+      solid: MessageSquare,
+    },
+    {
+      group: 'Account',
+      href: APP_ROUTES.SETTINGS.PROGRESS,
+      hrefScope: 'personal',
+      label: 'Progress',
+      outline: Flame,
+      solid: Flame,
     },
     {
       group: 'Account',

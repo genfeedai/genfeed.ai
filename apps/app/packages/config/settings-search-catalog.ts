@@ -42,7 +42,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Workflow and video generation emails',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#email-notifications`,
+    href: APP_ROUTES.SETTINGS.NOTIFICATIONS,
     id: 'personal-section:email-notifications',
     keywords: ['email', 'notifications', 'workflow', 'video'],
     label: 'Email Notifications',
@@ -51,7 +51,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Default chat model and generation priority',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#chat-defaults`,
+    href: APP_ROUTES.SETTINGS.CHAT,
     id: 'personal-section:chat-defaults',
     keywords: [
       'chat',
@@ -67,7 +67,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Review every setup step',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#setup-checklist`,
+    href: APP_ROUTES.SETTINGS.PROGRESS,
     id: 'personal-section:setup-checklist',
     keywords: ['setup', 'checklist', 'onboarding', 'progress'],
     label: 'Setup checklist',

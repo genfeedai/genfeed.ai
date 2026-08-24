@@ -147,7 +147,7 @@ describe('SettingsSearch', () => {
     await user.type(screen.getByLabelText('Search settings'), 'chat defaults');
     await user.click(screen.getByRole('button', { name: /Chat Defaults/ }));
 
-    expect(mocks.push).toHaveBeenCalledWith('/settings#chat-defaults');
+    expect(mocks.push).toHaveBeenCalledWith('/settings/chat');
   });
 
   it('focuses the searchbar on cmd+k', async () => {
