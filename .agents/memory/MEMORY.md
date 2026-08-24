@@ -10,6 +10,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_explicit_immediate_pr_merge](feedback_explicit_immediate_pr_merge.md) — explicit merge-without-checks orders use a per-PR admin bypass; never aggregate first
 - [feedback_deps_update_canonical](feedback_deps_update_canonical.md) — `bun run deps:update` owns package + Action pins; Dependabot is retired
 - [end_to_end_implementation](end_to_end_implementation.md) — wire the full user path, never half-architecture
+- [feedback_finish_diagnosed_surface](feedback_finish_diagnosed_surface.md) — finish every leftover on a diagnosed incident surface in the same pass
 - [ui_primitives](ui_primitives.md) — no raw HTML controls; enforced by `scripts/ui/control-guard.ts`
 - [proxy_middleware](proxy_middleware.md) — Next.js 16 renamed `middleware.ts` → `proxy.ts`
 - [ready_pr_default](ready_pr_default.md) — ready PRs by default; draft only on request

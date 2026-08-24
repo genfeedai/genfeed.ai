@@ -1,6 +1,7 @@
 import { RouterPriority } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  adoptNewThreadGenerationPrefs,
   clearPreferredAgentChatModel,
   clearPreferredGenerationPrefs,
   readPreferredAgentChatModel,
@@ -63,15 +64,81 @@ describe('agent-preferred-model.store', () => {
     expect(
       window.localStorage.getItem('genfeed:agent-preferred-chat-model:v1'),
     ).toBe('openai/gpt-5.6-terra');
-    expect(
+    const scoped = JSON.parse(
       window.localStorage.getItem(
-        'genfeed:agent-preferred-generation-model:v1',
-      ),
+        'genfeed:agent-preferred-generation-by-scope:v1',
+      ) ?? '{}',
+    ) as Record<
+      string,
+      { model?: string; outputs?: number; priority?: string }
+    >;
+    expect(scoped['__new__:image']).toEqual(
+      expect.objectContaining({
+        model: 'black-forest-labs/flux-2-dev',
+        outputs: 3,
+        priority: RouterPriority.SPEED,
+      }),
+    );
+  });
+
+  it('keeps image and video generation prefs isolated across threads', () => {
+    writePreferredGenerationModel('black-forest-labs/flux-2-dev', {
+      generationType: 'image',
+      threadId: 'thread-image',
+    });
+    writePreferredGenerationModel('klingai/kling-v2', {
+      generationType: 'video',
+      threadId: 'thread-video',
+    });
+
+    expect(
+      readPreferredGenerationModel({
+        generationType: 'image',
+        threadId: 'thread-image',
+      }),
     ).toBe('black-forest-labs/flux-2-dev');
     expect(
-      window.localStorage.getItem(
-        'genfeed:agent-preferred-generation-outputs:v1',
-      ),
-    ).toBe('3');
+      readPreferredGenerationModel({
+        generationType: 'video',
+        threadId: 'thread-video',
+      }),
+    ).toBe('klingai/kling-v2');
+    expect(
+      readPreferredGenerationModel({
+        generationType: 'video',
+        threadId: 'thread-image',
+      }),
+    ).toBeNull();
+    expect(
+      readPreferredGenerationModel({
+        generationType: 'image',
+        threadId: 'thread-video',
+      }),
+    ).toBeNull();
+  });
+
+  it('adopts /agent/new generation prefs onto the created thread once', () => {
+    writePreferredGenerationModel('black-forest-labs/flux-2-dev', {
+      generationType: 'image',
+    });
+    adoptNewThreadGenerationPrefs('thread-created');
+
+    expect(
+      readPreferredGenerationModel({
+        generationType: 'image',
+        threadId: 'thread-created',
+      }),
+    ).toBe('black-forest-labs/flux-2-dev');
+
+    writePreferredGenerationModel('klingai/kling-v2', {
+      generationType: 'image',
+    });
+    adoptNewThreadGenerationPrefs('thread-created');
+    expect(
+      readPreferredGenerationModel({
+        generationType: 'image',
+        threadId: 'thread-created',
+      }),
+    ).toBe('black-forest-labs/flux-2-dev');
   });
 });

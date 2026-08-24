@@ -12,13 +12,16 @@ refresh. Composer and the generation card share
 same keys.
 
 - Chat: `genfeed:agent-preferred-chat-model:v1` / `-priority:v1`
-- Generation card: `genfeed:agent-preferred-generation-model:v1` /
-  `-priority:v1` / `-outputs:v1`
+- Generation card: `genfeed:agent-preferred-generation-by-scope:v1`, keyed
+  by `threadId:image|video`. `/agent/new` uses `__new__` and copies onto
+  the created thread once. Image and video conversations do not share a
+  model.
 
 **Why:** Writing an image model into the chat key made the composer
-remount as "Select models…". The card also ignored a stored concrete
-model whenever the action still pinned one.
+remount as "Select models…". A single global generation key made a video
+card's model land on an image conversation.
 
 **How to apply:** Generation card reads/writes `writePreferredGeneration*`
-only. A stored generation model wins over `action.generationParams.model`.
-Do not write image/video picks into the chat helpers.
+with `{ threadId, generationType }`. A stored generation model wins over
+`action.generationParams.model`. Do not write image/video picks into the
+chat helpers. Do not read another thread or type as a fallback.

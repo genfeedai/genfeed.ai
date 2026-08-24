@@ -12,12 +12,39 @@ import {
   BetterAuthJwksVerifier,
   createBetterAuthJwksVerifierOptions,
   normalizeBetterAuthBaseUrl,
+  resolveBetterAuthBaseUrlFromConfig,
   resolveBetterAuthJwksUrl,
 } from './better-auth-jwks.verifier';
 
 describe('BetterAuthJwksVerifier', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('prefers BETTER_AUTH_URL, then API_BASE_URL, then localhost', () => {
+    expect(
+      resolveBetterAuthBaseUrlFromConfig({
+        get: (key) =>
+          key === 'BETTER_AUTH_URL' ? 'https://api.genfeed.ai/' : undefined,
+      }),
+    ).toBe('https://api.genfeed.ai');
+    expect(
+      resolveBetterAuthBaseUrlFromConfig({
+        get: (key) =>
+          key === 'API_BASE_URL' ? 'https://api.genfeed.ai/' : undefined,
+      }),
+    ).toBe('https://api.genfeed.ai');
+    expect(
+      resolveBetterAuthBaseUrlFromConfig({
+        get: () => undefined,
+      }),
+    ).toBe('http://localhost:3010');
+    expect(
+      resolveBetterAuthBaseUrlFromConfig({
+        get: (key) =>
+          key === 'BETTER_AUTH_URL' ? '   ' : 'https://api.genfeed.ai',
+      }),
+    ).toBe('https://api.genfeed.ai');
   });
 
   it('normalizes the base URL used for issuer, audience, and JWKS URL', () => {

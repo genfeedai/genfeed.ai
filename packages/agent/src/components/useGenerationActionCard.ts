@@ -91,9 +91,18 @@ export function useGenerationActionCard({
   const { organizationId, settings, settingsLoading } = useBrand();
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
-  const preferredModel = readPreferredGenerationModel();
-  const preferredPriority = readPreferredGenerationPriority();
-  const preferredOutputs = readPreferredGenerationOutputs();
+  const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
+  const generationPrefScope = useMemo(
+    () => ({
+      generationType,
+      threadId: activeThreadId,
+    }),
+    [activeThreadId, generationType],
+  );
+  const preferredModel = readPreferredGenerationModel(generationPrefScope);
+  const preferredPriority =
+    readPreferredGenerationPriority(generationPrefScope);
+  const preferredOutputs = readPreferredGenerationOutputs(generationPrefScope);
   const actionPriority = toRouterPriority(initParams?.prioritize);
   const shouldStartInAutoMode = preferredModel
     ? isAutoAgentModel(preferredModel)
@@ -131,12 +140,28 @@ export function useGenerationActionCard({
   const [modelsReloadToken, setModelsReloadToken] = useState(0);
   /** Ingredient IDs selected on the generation canvas as model references. */
   const [referenceIds, setReferenceIds] = useState<string[]>([]);
-  const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
   const setComposerError = useAgentChatStore((s) => s.setError);
   const abortRef = useRef<AbortController | null>(null);
   const busyThreadIdRef = useRef<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const nextModel = readPreferredGenerationModel(generationPrefScope);
+    const nextPriority = readPreferredGenerationPriority(generationPrefScope);
+    const nextOutputs = readPreferredGenerationOutputs(generationPrefScope);
+    const nextAuto = nextModel
+      ? isAutoAgentModel(nextModel)
+      : !initParams?.model;
+    setIsAutoMode(nextAuto);
+    setModelKey(nextAuto ? '' : (nextModel ?? initParams?.model ?? ''));
+    if (nextPriority) {
+      setPrioritize(nextPriority);
+    }
+    if (typeof nextOutputs === 'number') {
+      setOutputs(nextOutputs);
+    }
+  }, [generationPrefScope, initParams?.model]);
 
   // Fetch models on mount.
   //
@@ -462,34 +487,46 @@ export function useGenerationActionCard({
     setStatus('idle');
   }, [resultId]);
 
-  const handlePrioritizeChange = useCallback((next: RouterPriority) => {
-    setPrioritize(next);
-    writePreferredGenerationPriority(next);
-    setIsAutoMode(true);
-    setModelKey('');
-    writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE);
-  }, []);
-
-  const handleModelChange = useCallback((_name: string, values: string[]) => {
-    const hasAutoOption = values.includes(AUTO_MODEL_OPTION_VALUE);
-    const manualValues = values.filter(
-      (value) => value !== AUTO_MODEL_OPTION_VALUE,
-    );
-    const nextModelKey = manualValues.at(-1) ?? '';
-
-    if (hasAutoOption && manualValues.length === 0) {
+  const handlePrioritizeChange = useCallback(
+    (next: RouterPriority) => {
+      setPrioritize(next);
+      writePreferredGenerationPriority(next, generationPrefScope);
       setIsAutoMode(true);
       setModelKey('');
-      writePreferredGenerationModel(AUTO_MODEL_OPTION_VALUE);
-      return;
-    }
+      writePreferredGenerationModel(
+        AUTO_MODEL_OPTION_VALUE,
+        generationPrefScope,
+      );
+    },
+    [generationPrefScope],
+  );
 
-    setIsAutoMode(false);
-    setModelKey(nextModelKey);
-    if (nextModelKey) {
-      writePreferredGenerationModel(nextModelKey);
-    }
-  }, []);
+  const handleModelChange = useCallback(
+    (_name: string, values: string[]) => {
+      const hasAutoOption = values.includes(AUTO_MODEL_OPTION_VALUE);
+      const manualValues = values.filter(
+        (value) => value !== AUTO_MODEL_OPTION_VALUE,
+      );
+      const nextModelKey = manualValues.at(-1) ?? '';
+
+      if (hasAutoOption && manualValues.length === 0) {
+        setIsAutoMode(true);
+        setModelKey('');
+        writePreferredGenerationModel(
+          AUTO_MODEL_OPTION_VALUE,
+          generationPrefScope,
+        );
+        return;
+      }
+
+      setIsAutoMode(false);
+      setModelKey(nextModelKey);
+      if (nextModelKey) {
+        writePreferredGenerationModel(nextModelKey, generationPrefScope);
+      }
+    },
+    [generationPrefScope],
+  );
 
   const handleAspectRatioChange = useCallback(
     (_name: string, value: string) => setAspectRatio(value),
@@ -501,10 +538,13 @@ export function useGenerationActionCard({
     [],
   );
 
-  const handleOutputsChange = useCallback((value: number) => {
-    setOutputs(value);
-    writePreferredGenerationOutputs(value);
-  }, []);
+  const handleOutputsChange = useCallback(
+    (value: number) => {
+      setOutputs(value);
+      writePreferredGenerationOutputs(value, generationPrefScope);
+    },
+    [generationPrefScope],
+  );
 
   return {
     generationType,

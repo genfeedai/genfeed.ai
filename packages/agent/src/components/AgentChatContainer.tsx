@@ -393,8 +393,8 @@ export function AgentChatContainer({
       [...container.streamState.pendingUiActions]
         .reverse()
         .find((action) => action.type === 'generation_action_card') ??
-      findPendingGenerationAction(messages),
-    [container.streamState.pendingUiActions, messages],
+      findPendingGenerationAction(messages, activeThreadId),
+    [activeThreadId, container.streamState.pendingUiActions, messages],
   );
 
   // Hold the card across the hand-off gap.
@@ -405,13 +405,14 @@ export function AgentChatContainer({
   // sources are empty. That unmounted the card and silently discarded whatever
   // the user had typed or picked in it — which is why a chosen model appeared
   // to snap back to Auto. Retain the last action for the same thread instead.
+  if (stickyGenerationActionRef.current?.threadId !== activeThreadId) {
+    stickyGenerationActionRef.current = null;
+  }
   if (resolvedGenerationAction) {
     stickyGenerationActionRef.current = {
       action: resolvedGenerationAction,
       threadId: activeThreadId,
     };
-  } else if (stickyGenerationActionRef.current?.threadId !== activeThreadId) {
-    stickyGenerationActionRef.current = null;
   }
 
   const pendingGenerationAction =

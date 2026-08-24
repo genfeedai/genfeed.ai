@@ -14,16 +14,18 @@ import {
 
 const verifyMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@libs/auth/better-auth-jwks.verifier', () => ({
-  BetterAuthJwksVerifier: class {
-    verify = verifyMock;
-  },
-  createBetterAuthJwksVerifierOptions: (baseUrl: string) => ({
-    audience: baseUrl,
-    issuer: baseUrl,
-    jwksUrl: `${baseUrl}/v1/auth/jwks`,
-  }),
-}));
+vi.mock('@libs/auth/better-auth-jwks.verifier', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@libs/auth/better-auth-jwks.verifier')
+    >();
+  return {
+    ...actual,
+    BetterAuthJwksVerifier: class {
+      verify = verifyMock;
+    },
+  };
+});
 
 describe('WebSocketGateway', () => {
   let gateway: WebSocketGateway;
@@ -137,6 +139,43 @@ describe('WebSocketGateway', () => {
     await gateway.handleConnection(socket as Socket);
 
     expect(socket.disconnect).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to API_BASE_URL for JWKS when BETTER_AUTH_URL is unset', async () => {
+    mockConfigService.get.mockImplementation((key: string) => {
+      if (key === 'API_BASE_URL') {
+        return 'https://api.genfeed.ai';
+      }
+      return undefined;
+    });
+    verifyMock.mockResolvedValue({
+      organizationId: 'org-signed',
+      sub: 'aaaaaaaa-0000-0000-0000-000000000001',
+    });
+    const socket = createMockSocket({
+      handshake: {
+        auth: { token: 'header.payload.signature' },
+        headers: {},
+        query: {},
+      } as Socket['handshake'],
+    });
+
+    await gateway.handleConnection(socket as Socket);
+
+    expect(mockConfigService.get).toHaveBeenCalledWith('BETTER_AUTH_URL');
+    expect(mockConfigService.get).toHaveBeenCalledWith('API_BASE_URL');
+    expect(socket.disconnect).not.toHaveBeenCalled();
+    expect(socket.emit).toHaveBeenCalledWith(
+      'connected',
+      expect.objectContaining({
+        organizationId: 'org-signed',
+        userId: 'aaaaaaaa-0000-0000-0000-000000000001',
+      }),
+    );
+    expect(mockLoggerService.warn).not.toHaveBeenCalledWith(
+      expect.stringContaining('localhost:3010'),
+      expect.any(Object),
+    );
   });
 
   it('resolves websocket identity from a verified Better Auth token', async () => {

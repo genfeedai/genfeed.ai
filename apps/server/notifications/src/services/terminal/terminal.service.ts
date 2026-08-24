@@ -7,6 +7,7 @@ import { isCloudDeployment } from '@genfeedai/config';
 import type { IBetterAuthJwksVerifierOptions } from '@genfeedai/interfaces';
 import {
   createBetterAuthJwksVerifierOptions,
+  resolveBetterAuthBaseUrlFromConfig,
   resolveBetterAuthJwksUrl,
   resolveBetterAuthTokenUrl,
 } from '@libs/auth/better-auth-jwks.verifier';
@@ -218,11 +219,9 @@ export class TerminalService {
   }
 
   private getBetterAuthBaseUrl(): string {
-    const baseUrl =
-      this.configService.get('BETTER_AUTH_URL') ||
-      this.configService.get('API_BASE_URL') ||
-      'http://localhost:3010';
-    return baseUrl;
+    return resolveBetterAuthBaseUrlFromConfig({
+      get: (key) => this.configService.get(key),
+    });
   }
 
   /**

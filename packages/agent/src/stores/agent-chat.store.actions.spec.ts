@@ -328,6 +328,40 @@ describe('agent-chat.store run lifecycle', () => {
 });
 
 describe('agent-chat.store simple setters', () => {
+  it('clears live stream state when switching between threads', () => {
+    const store = useAgentChatStore.getState();
+    store.setActiveThread('thread-image');
+    store.addPendingUiActions([
+      {
+        generationType: 'image',
+        id: 'generation-image',
+        title: 'Configure image',
+        type: 'generation_action_card',
+      },
+    ]);
+    store.setActiveThread('thread-video');
+
+    expect(useAgentChatStore.getState().activeThreadId).toBe('thread-video');
+    expect(useAgentChatStore.getState().stream.pendingUiActions).toEqual([]);
+  });
+
+  it('keeps a live stream when the first thread id lands after /agent/new', () => {
+    const store = useAgentChatStore.getState();
+    store.addPendingUiActions([
+      {
+        generationType: 'video',
+        id: 'generation-new',
+        title: 'Configure video',
+        type: 'generation_action_card',
+      },
+    ]);
+    store.setActiveThread('thread-created');
+
+    expect(useAgentChatStore.getState().stream.pendingUiActions).toEqual([
+      expect.objectContaining({ id: 'generation-new' }),
+    ]);
+  });
+
   it('covers scalar setters', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('thread-9');

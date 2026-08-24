@@ -13,9 +13,40 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 export const BETTER_AUTH_JWKS_PATH = '/v1/auth/jwks';
 export const BETTER_AUTH_TOKEN_PATH = '/v1/auth/token';
 
+const LOCAL_BETTER_AUTH_FALLBACK_URL = 'http://localhost:3010';
+
 /** Normalizes the issuer/audience base URL to match the API JWT config. */
 export function normalizeBetterAuthBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, '');
+}
+
+/**
+ * Resolve the Better Auth issuer/JWKS base URL for socket consumers.
+ *
+ * Production notifications historically shipped `API_BASE_URL` without
+ * `BETTER_AUTH_URL`. Falling straight to localhost made every websocket JWT
+ * fail verification, so the gateway disconnected the client immediately.
+ * Match the terminal gateway: BETTER_AUTH_URL, then API_BASE_URL, then local.
+ */
+export function resolveBetterAuthBaseUrlFromConfig(config: {
+  get: (key: 'API_BASE_URL' | 'BETTER_AUTH_URL') => unknown;
+}): string {
+  const read = (key: 'API_BASE_URL' | 'BETTER_AUTH_URL'): string => {
+    const value = config.get(key);
+    return typeof value === 'string' ? value.trim() : '';
+  };
+
+  const betterAuthUrl = read('BETTER_AUTH_URL');
+  if (betterAuthUrl) {
+    return normalizeBetterAuthBaseUrl(betterAuthUrl);
+  }
+
+  const apiBaseUrl = read('API_BASE_URL');
+  if (apiBaseUrl) {
+    return normalizeBetterAuthBaseUrl(apiBaseUrl);
+  }
+
+  return LOCAL_BETTER_AUTH_FALLBACK_URL;
 }
 
 /** Builds the JWKS URL from a Better Auth base URL, tolerating trailing slashes. */

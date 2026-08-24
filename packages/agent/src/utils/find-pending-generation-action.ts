@@ -17,6 +17,7 @@ function readResolvedGenerationActionId(action: AgentUiAction): string | null {
  */
 export function findPendingGenerationAction(
   messages: AgentChatMessage[],
+  threadId?: string | null,
 ): AgentUiAction | null {
   const resolvedActionIds = new Set<string>();
 
@@ -25,7 +26,12 @@ export function findPendingGenerationAction(
     messageIndex >= 0;
     messageIndex -= 1
   ) {
-    const actions = messages[messageIndex]?.metadata?.uiActions ?? [];
+    const candidate = messages[messageIndex];
+    if (threadId && candidate?.threadId !== threadId) {
+      continue;
+    }
+
+    const actions = candidate?.metadata?.uiActions ?? [];
 
     for (
       let actionIndex = actions.length - 1;

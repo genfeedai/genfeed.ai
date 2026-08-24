@@ -9,6 +9,7 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
+import { adoptNewThreadGenerationPrefs } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
@@ -919,7 +920,24 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       runStartedAt: options?.startedAt ?? null,
     }),
   setActiveRunStatus: (status) => set({ activeRunStatus: status }),
-  setActiveThread: (id) => set({ activeThreadId: id }),
+  setActiveThread: (id) =>
+    set((state) => {
+      // `/agent/new` creates the thread while the store still has `null`, then
+      // the URL catches up. Keep the live stream for that handoff. Switching
+      // from one real thread to another must not keep the previous generation
+      // card in `pendingUiActions`.
+      if (state.activeThreadId === id || !state.activeThreadId) {
+        if (!state.activeThreadId && id) {
+          adoptNewThreadGenerationPrefs(id);
+        }
+        return { activeThreadId: id };
+      }
+
+      return {
+        activeThreadId: id,
+        stream: { ...DEFAULT_STREAM_STATE },
+      };
+    }),
   setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
   setDraftPlanModeEnabled: (enabled) => set({ draftPlanModeEnabled: enabled }),
   setError: (error) =>
