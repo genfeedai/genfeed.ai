@@ -1,13 +1,22 @@
 import {
+  completedItemIdsFromEvents,
   hasPartialSocialWarmupScopes,
   reconnectForCredential,
   resolveSocialWarmupAccountAge,
+  socialWarmupEventRecordFromStorage,
   socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
+import { resolveSocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
+import {
+  evaluateSocialWarmupJourney,
+  SOCIAL_WARMUP_TELEMETRY_EVENT,
+  type SocialWarmupJourneyEvaluation,
+  sanitizeSocialWarmupTelemetry,
+} from '@api-types/contracts/social-warmup-journey.contract';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
@@ -26,7 +35,8 @@ import type {
 } from '@genfeedai/interfaces';
 import { type Credential, type Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export interface AssessAccountHealthParams {
   brandId?: string;
@@ -152,7 +162,10 @@ function isOverrideActive(
 
 @Injectable()
 export class AccountHealthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly logger?: LoggerService,
+  ) {}
 
   async listBrandHealth(
     organizationId: string,
@@ -184,12 +197,27 @@ export class AccountHealthService {
       params.request?.thresholds,
       credential.warmupThresholds,
     );
-    const signals = await this.buildSignals(
+    const { enrollment, signals } = await this.buildSignals(
       credential,
       params.organizationId,
       params.request?.signals,
     );
-    const summary = this.createSummary(credential, thresholds, signals);
+    const journey = this.evaluateJourney(credential, enrollment);
+    const summary = this.createSummary(
+      credential,
+      thresholds,
+      signals,
+      journey,
+    );
+    if (credential.warmupState !== summary.state) {
+      this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.readinessTransition, {
+        credentialId: credential.id,
+        from: credential.warmupState,
+        organizationId: params.organizationId,
+        surface: 'account_health',
+        to: summary.state,
+      });
+    }
     const assessedAt = summary.assessedAt
       ? new Date(summary.assessedAt)
       : new Date();
@@ -251,6 +279,14 @@ export class AccountHealthService {
       where: { id: credential.id },
     });
 
+    this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.override, {
+      credentialId: credential.id,
+      expiresAt: expiresAt?.toISOString() ?? null,
+      organizationId: params.organizationId,
+      reason,
+      userId: params.userId,
+    });
+
     return this.assessCredentialHealth({
       credentialId: credential.id,
       organizationId: params.organizationId,
@@ -263,6 +299,14 @@ export class AccountHealthService {
     organizationId: string;
   }): Promise<ScheduledPublishGate> {
     const summary = await this.assessCredentialHealth(params);
+    if (summary.holdPublishing) {
+      this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.publishingHold, {
+        credentialId: params.credentialId,
+        holdReason: summary.holdReason,
+        organizationId: params.organizationId,
+        state: summary.state,
+      });
+    }
 
     return {
       holdPublishing: summary.holdPublishing,
@@ -349,7 +393,28 @@ export class AccountHealthService {
     // resolves the credential inside a known organization, so scope on that.
     organizationId: string,
     overrides: Partial<AccountHealthSignals> | undefined,
-  ): Promise<AccountHealthSignals> {
+  ): Promise<{
+    enrollment: {
+      blueprintId: string;
+      blueprintVersion: number;
+      events?: Array<{
+        action: string;
+        itemId: string;
+        occurredAt: Date | string;
+      }>;
+      isCredentialConnected?: boolean;
+      reconnect?: { reason?: string };
+      signals: Array<{
+        evidence?: unknown;
+        key: string;
+        source: string;
+        status: string;
+      }>;
+      startedAt: Date;
+      state: string;
+    } | null;
+    signals: AccountHealthSignals;
+  }> {
     const since = new Date(Date.now() - 30 * MS_PER_DAY);
     const [publishedPosts, recentFailures, enrollment] = await Promise.all([
       this.prisma.post.count({
@@ -367,6 +432,9 @@ export class AccountHealthService {
       }),
       this.prisma.socialWarmupEnrollment.findFirst({
         include: {
+          events: {
+            where: { isDeleted: false },
+          },
           signals: {
             where: { isDeleted: false },
           },
@@ -393,20 +461,90 @@ export class AccountHealthService {
     ].filter((value) => readString(value)).length;
 
     return {
-      accountAgeDays: accountAge.accountAgeDays,
-      accountAgeSource: accountAge.accountAgeSource,
-      accountAgeStatus: accountAge.accountAgeStatus,
-      connectedDays,
-      profileSignals: readNumber(overrides?.profileSignals, profileSignals),
-      publishedPosts: readNumber(overrides?.publishedPosts, publishedPosts),
-      recentFailures: readNumber(overrides?.recentFailures, recentFailures),
+      enrollment,
+      signals: {
+        accountAgeDays: accountAge.accountAgeDays,
+        accountAgeSource: accountAge.accountAgeSource,
+        accountAgeStatus: accountAge.accountAgeStatus,
+        connectedDays,
+        profileSignals: readNumber(overrides?.profileSignals, profileSignals),
+        publishedPosts: readNumber(overrides?.publishedPosts, publishedPosts),
+        recentFailures: readNumber(overrides?.recentFailures, recentFailures),
+      },
     };
+  }
+
+  private evaluateJourney(
+    credential: Credential,
+    enrollment: {
+      blueprintId: string;
+      blueprintVersion: number;
+      events?: Array<{
+        action: string;
+        itemId: string;
+        occurredAt: Date | string;
+      }>;
+      isCredentialConnected?: boolean;
+      reconnect?: { reason?: string };
+      signals: Array<{
+        evidence?: unknown;
+        key: string;
+        source: string;
+        status: string;
+      }>;
+      startedAt: Date;
+      state: string;
+    } | null,
+  ): SocialWarmupJourneyEvaluation | undefined {
+    if (!enrollment?.blueprintId || !enrollment.blueprintVersion) {
+      return undefined;
+    }
+
+    try {
+      const blueprint = resolveSocialWarmupBlueprint({
+        id: enrollment.blueprintId,
+        version: enrollment.blueprintVersion,
+      });
+      const events = (enrollment.events ?? []).map((event) =>
+        socialWarmupEventRecordFromStorage(event),
+      );
+
+      return evaluateSocialWarmupJourney({
+        blueprint,
+        enrollment: {
+          completedItemIds: completedItemIdsFromEvents(events),
+          hasPartialScopes: hasPartialSocialWarmupScopes(
+            credential.warmupSignals,
+          ),
+          isCredentialConnected: credential.isConnected,
+          reconnect: reconnectForCredential({
+            credentialId: credential.id,
+            hasPartialScopes: hasPartialSocialWarmupScopes(
+              credential.warmupSignals,
+            ),
+            isConnected: credential.isConnected,
+            platform: credential.platform,
+          }),
+          signals: enrollment.signals.map(socialWarmupSignalRecordFromStorage),
+          startedAt: enrollment.startedAt,
+          state: enrollment.state,
+        },
+        platform: requireDomainCredentialPlatform(credential.platform),
+      });
+    } catch {
+      return undefined;
+    }
+  }
+
+  private emitTelemetry(event: string, payload: Record<string, unknown>): void {
+    this.logger?.log(event, sanitizeSocialWarmupTelemetry(payload));
   }
 
   private createSummary(
     credential: Credential,
     thresholds: AccountHealthThresholds,
     signals: AccountHealthSignals,
+    journey?: SocialWarmupJourneyEvaluation,
   ): AccountHealthSummary {
     const now = new Date();
     const platform = requireDomainCredentialPlatform(credential.platform);
@@ -449,12 +587,17 @@ export class AccountHealthService {
     const riskLevel = this.resolveRiskLevel(state, score);
     const override = this.buildOverride(credential, now);
     const reconnect = this.buildReconnect(credential);
+    const scoreHold =
+      state === 'not_started' || state === 'warming' || state === 'risky';
+    const requiredCheckHold = Boolean(journey?.holdReason);
     const holdPublishing =
-      !override.isActive &&
-      (state === 'not_started' || state === 'warming' || state === 'risky');
-    const holdReason = holdPublishing
-      ? this.getHoldReason(platform, state, riskLevel)
-      : undefined;
+      !override.isActive && (requiredCheckHold || scoreHold);
+    const holdReason = override.isActive
+      ? undefined
+      : (journey?.holdReason ??
+        (scoreHold
+          ? this.getHoldReason(platform, state, riskLevel)
+          : undefined));
 
     return {
       assessedAt: now.toISOString(),

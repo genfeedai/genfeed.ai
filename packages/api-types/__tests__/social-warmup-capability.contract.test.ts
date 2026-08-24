@@ -1,11 +1,13 @@
 import { getCurrentSocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
 import {
+  evaluateSocialWarmupExpansionGate,
   getSocialWarmupEnrollmentRefusal,
   getSocialWarmupSupport,
   getSocialWarmupSupportClass,
   getSocialWarmupSupportCopy,
   isSocialWarmupEnrollmentAllowed,
   listSocialWarmupPlatformsBySupport,
+  SOCIAL_WARMUP_AUTHORIZED_SIGNAL_ADAPTERS,
   SOCIAL_WARMUP_CAPABILITY_MATRIX,
   SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON,
   SOCIAL_WARMUP_NAMED_CANDIDATE_PLATFORMS,
@@ -178,6 +180,57 @@ describe('social warm-up capability matrix', () => {
       platform: 'unknown',
       support: 'not_supported',
     });
+  });
+
+  test('defines the expansion gate as a reviewed blueprint plus signal matrix', () => {
+    const enabled = [
+      CredentialPlatform.INSTAGRAM,
+      CredentialPlatform.LINKEDIN,
+      CredentialPlatform.TIKTOK,
+      CredentialPlatform.TWITTER,
+      CredentialPlatform.YOUTUBE,
+    ];
+
+    expect([...SOCIAL_WARMUP_AUTHORIZED_SIGNAL_ADAPTERS].sort()).toEqual(
+      enabled.sort(),
+    );
+    expect(listSocialWarmupPlatformsBySupport('full_blueprint').sort()).toEqual(
+      enabled.sort(),
+    );
+
+    for (const platform of enabled) {
+      const gate = evaluateSocialWarmupExpansionGate(platform);
+      expect(gate.isEnabled).toBe(true);
+      expect(gate.missing).toEqual([]);
+      expect(gate.support).toBe('full_blueprint');
+      expect(gate.signalBoundary.nativeOnly.length).toBeGreaterThan(0);
+      expect(gate.signalBoundary.policyConstraints.toLowerCase()).toMatch(
+        /no automated engagement/,
+      );
+    }
+
+    const tiktok = evaluateSocialWarmupExpansionGate(CredentialPlatform.TIKTOK);
+    expect(tiktok.signalBoundary.authorized.toLowerCase()).toMatch(
+      /for you|watch history|saves|comments made/,
+    );
+    expect(tiktok.signalBoundary.authorized.toLowerCase()).toMatch(
+      /not api-visible/,
+    );
+
+    const facebook = evaluateSocialWarmupExpansionGate(
+      CredentialPlatform.FACEBOOK,
+    );
+    expect(facebook.isEnabled).toBe(false);
+    expect(facebook.missing).toEqual(
+      expect.arrayContaining([
+        'reviewed_catalog_blueprint',
+        'capability_full_blueprint',
+        'authorized_signal_adapter',
+      ]),
+    );
+    expect(
+      getCurrentSocialWarmupBlueprint(CredentialPlatform.FACEBOOK),
+    ).toBeUndefined();
   });
 
   test('keeps native-only actions user-confirmed and forbids automated engagement', () => {
