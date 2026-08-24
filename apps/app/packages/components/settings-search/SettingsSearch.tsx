@@ -24,6 +24,7 @@ import { overlayMenuSurfaceClassName } from '@ui/primitives/field-control';
 import { Kbd } from '@ui/primitives/kbd';
 import { Popover, PopoverAnchor, PopoverContent } from '@ui/primitives/popover';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function groupSettingsSearchItems(
@@ -66,6 +67,7 @@ export default function SettingsSearch({
   scope,
 }: SettingsSearchProps) {
   const router = useRouter();
+  const translate = useTranslations('common.settings.search');
   const { brandSlug, orgSlug } = useOrgUrl();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -148,8 +150,8 @@ export default function SettingsSearch({
                 setIsOpen(true);
               }}
               onFocus={handleOpen}
-              placeholder="Search settings…"
-              aria-label="Search settings"
+              placeholder={translate('placeholder')}
+              aria-label={translate('label')}
               className={cn(
                 'h-8 border border-border bg-background px-2.5 pr-12 text-sm text-foreground',
                 'placeholder:text-muted-foreground',
@@ -161,7 +163,7 @@ export default function SettingsSearch({
               variant="ghost"
               className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-2xs text-foreground/50"
             >
-              ⌘K
+              {translate('hint')}
             </Kbd>
           </div>
         </PopoverAnchor>
@@ -202,7 +204,7 @@ export default function SettingsSearch({
                 ))}
               </CommandGroup>
             ))}
-            <CommandEmpty>No settings found</CommandEmpty>
+            <CommandEmpty>{translate('empty')}</CommandEmpty>
           </CommandList>
         </PopoverContent>
       </Command>

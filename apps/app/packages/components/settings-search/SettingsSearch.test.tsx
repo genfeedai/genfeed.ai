@@ -29,6 +29,18 @@ vi.mock('@genfeedai/config/license', () => ({
   hasOrganizationBillingHint: () => true,
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      empty: 'No settings found',
+      hint: '⌘K',
+      label: 'Search settings',
+      placeholder: 'Search settings…',
+    };
+    return messages[key] ?? key;
+  },
+}));
+
 vi.mock('@ui/primitives/command', () => ({
   Command: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   CommandEmpty: ({ children }: { children: ReactNode }) => (
