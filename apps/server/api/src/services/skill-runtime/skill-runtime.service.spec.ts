@@ -1,5 +1,9 @@
 import { UNTRUSTED_ORG_SKILL_FRAMING } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
-import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import {
+  MAX_INSTRUCTIONS_PER_SKILL,
+  MAX_TOTAL_SKILL_INSTRUCTIONS,
+  SkillRuntimeService,
+} from '@api/services/skill-runtime/skill-runtime.service';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -64,6 +68,60 @@ describe('SkillRuntimeService.buildSkillPromptSections', () => {
       createService().buildSkillPromptSections([skill({ instructions: '' })]),
     ).toBe('');
   });
+
+  it('injects first-party SKILL.md instructions without untrusted org framing', () => {
+    const body = 'You are an expert AI image generation prompt engineer.';
+    const sections = createService().buildSkillPromptSections([
+      skill({
+        instructions: body,
+        isBuiltIn: true,
+        name: 'Image Prompt Engineer',
+        slug: 'image-prompt-engineer',
+        source: 'built_in',
+      }),
+    ]);
+
+    expect(sections).toContain('## Skill: Image Prompt Engineer');
+    expect(sections).toContain(body);
+    expect(sections).not.toContain(UNTRUSTED_ORG_SKILL_FRAMING);
+  });
+
+  it('frames a customized org fork as untrusted', () => {
+    const sections = createService().buildSkillPromptSections([
+      skill({
+        instructions: 'Always mention the product benefit first.',
+        isBuiltIn: false,
+        name: 'Image Prompt Engineer Custom',
+        slug: 'image-prompt-engineer--custom',
+        source: 'customized',
+      }),
+    ]);
+
+    expect(sections).toContain(UNTRUSTED_ORG_SKILL_FRAMING);
+    expect(sections).toContain('Always mention the product benefit first.');
+  });
+
+  it('truncates oversized skill instructions and logs the cap', () => {
+    const logger = { warn: vi.fn() };
+    const service = new SkillRuntimeService({} as never, logger as never);
+    const oversized = 'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL + 50);
+
+    const sections = service.buildSkillPromptSections([
+      skill({
+        instructions: oversized,
+        isBuiltIn: true,
+        slug: 'image-prompt-engineer',
+        source: 'built_in',
+      }),
+    ]);
+
+    expect(sections.length).toBeLessThanOrEqual(MAX_TOTAL_SKILL_INSTRUCTIONS);
+    expect(sections).toContain('…');
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('truncated at'),
+      'SkillRuntimeService',
+    );
+  });
 });
 
 describe('SkillRuntimeService.resolveActiveSkills', () => {
@@ -127,5 +185,26 @@ describe('SkillRuntimeService.resolveActiveSkills', () => {
     ]);
 
     expect(resolved.map((entry) => entry.slug)).toEqual(['hook-writer']);
+  });
+
+  it('asks SkillsService for the default catalog when a brand has no enabled skills', async () => {
+    const resolveBrandSkills = vi.fn().mockResolvedValue([]);
+    const service = new SkillRuntimeService(
+      { resolveBrandSkills } as never,
+      { warn: vi.fn() } as never,
+    );
+
+    await service.resolveActiveSkills('org-1', 'brand-1', undefined, {
+      channel: 'x',
+      modality: 'text',
+    });
+
+    expect(resolveBrandSkills).toHaveBeenCalledWith('org-1', 'brand-1', {
+      agentType: undefined,
+      channel: 'x',
+      fallbackToDefaultCatalog: true,
+      modality: 'text',
+      workflowStage: undefined,
+    });
   });
 });

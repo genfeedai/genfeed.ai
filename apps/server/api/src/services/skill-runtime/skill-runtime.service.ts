@@ -1,4 +1,6 @@
+import { isTrustedProductSkill } from '@api/collections/skills/constants/skill-validation.constant';
 import {
+  type ResolveBrandSkillsOptions,
   type ResolvedBrandSkill,
   SkillsService,
 } from '@api/collections/skills/services/skills.service';
@@ -6,12 +8,16 @@ import {
   sanitizeAgentUntrustedInput,
   UNTRUSTED_ORG_SKILL_FRAMING,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
-import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
+import type {
+  ResolveActiveSkillsContext,
+  ResolvedRuntimeSkill,
+} from '@genfeedai/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-const MAX_INSTRUCTIONS_PER_SKILL = 2000;
-const MAX_TOTAL_SKILL_INSTRUCTIONS = 8000;
+/** Real SKILL.md files (image-prompt-engineer is ~20k) need room to be useful. */
+export const MAX_INSTRUCTIONS_PER_SKILL = 24_000;
+export const MAX_TOTAL_SKILL_INSTRUCTIONS = 48_000;
 
 @Injectable()
 export class SkillRuntimeService {
@@ -28,10 +34,20 @@ export class SkillRuntimeService {
     organizationId: string,
     brandId: string,
     strategySkillSlugs?: string[],
+    context: ResolveActiveSkillsContext = {},
   ): Promise<ResolvedRuntimeSkill[]> {
+    const options: ResolveBrandSkillsOptions = {
+      agentType: context.agentType,
+      channel: context.channel,
+      fallbackToDefaultCatalog: true,
+      modality: context.modality,
+      workflowStage: context.workflowStage,
+    };
+
     const brandSkills = await this.skillsService.resolveBrandSkills(
       organizationId,
       brandId,
+      options,
     );
 
     if (brandSkills.length === 0) {
@@ -45,14 +61,17 @@ export class SkillRuntimeService {
 
   /**
    * Formats skill instructions as system prompt sections.
-   * Enforces per-skill and total character limits.
+   * First-party/built-in skills are trusted product content and are not framed
+   * as untrusted org input. Org-custom / imported / customized forks stay
+   * sanitized and framed. Enforces per-skill and total character limits.
    */
   buildSkillPromptSections(skills: ResolvedRuntimeSkill[]): string {
     if (skills.length === 0) {
       return '';
     }
 
-    const sections: string[] = [];
+    const trustedSections: string[] = [];
+    const untrustedSections: string[] = [];
     let totalLength = 0;
 
     for (const skill of skills) {
@@ -60,37 +79,58 @@ export class SkillRuntimeService {
         continue;
       }
 
-      const sanitizedInstructions = sanitizeAgentUntrustedInput(
-        skill.instructions,
-      );
-      if (!sanitizedInstructions) {
+      const isTrusted = isTrustedProductSkill(skill);
+      const preparedInstructions = isTrusted
+        ? skill.instructions
+        : sanitizeAgentUntrustedInput(skill.instructions);
+      if (!preparedInstructions) {
         continue;
       }
 
-      const truncated =
-        sanitizedInstructions.length > MAX_INSTRUCTIONS_PER_SKILL
-          ? `${sanitizedInstructions.slice(0, MAX_INSTRUCTIONS_PER_SKILL)}…`
-          : sanitizedInstructions;
+      const wasTruncated =
+        preparedInstructions.length > MAX_INSTRUCTIONS_PER_SKILL;
+      const truncated = wasTruncated
+        ? `${preparedInstructions.slice(0, MAX_INSTRUCTIONS_PER_SKILL)}…`
+        : preparedInstructions;
+
+      if (wasTruncated) {
+        this.logger.warn(
+          `Skill ${skill.slug} instructions truncated at ${MAX_INSTRUCTIONS_PER_SKILL} chars`,
+          'SkillRuntimeService',
+        );
+      }
 
       const section = `## Skill: ${skill.name}\n${truncated}`;
 
       if (totalLength + section.length > MAX_TOTAL_SKILL_INSTRUCTIONS) {
         this.logger.warn(
-          `Skill prompt sections truncated at ${sections.length} skills (total limit ${MAX_TOTAL_SKILL_INSTRUCTIONS} chars)`,
+          `Skill prompt sections truncated at ${trustedSections.length + untrustedSections.length} skills (total limit ${MAX_TOTAL_SKILL_INSTRUCTIONS} chars)`,
           'SkillRuntimeService',
         );
         break;
       }
 
-      sections.push(section);
+      if (isTrusted) {
+        trustedSections.push(section);
+      } else {
+        untrustedSections.push(section);
+      }
       totalLength += section.length;
     }
 
-    if (sections.length === 0) {
-      return '';
+    const blocks: string[] = [];
+
+    if (trustedSections.length > 0) {
+      blocks.push(trustedSections.join('\n\n'));
     }
 
-    return `${UNTRUSTED_ORG_SKILL_FRAMING}\n\n${sections.join('\n\n')}`;
+    if (untrustedSections.length > 0) {
+      blocks.push(
+        `${UNTRUSTED_ORG_SKILL_FRAMING}\n\n${untrustedSections.join('\n\n')}`,
+      );
+    }
+
+    return blocks.join('\n\n');
   }
 
   /**
@@ -149,14 +189,23 @@ export class SkillRuntimeService {
     const doc =
       typeof maybeDoc.toObject === 'function' ? maybeDoc.toObject() : skill;
     const slug = this.readString(doc.slug) ?? String(doc.id);
+    const source = this.readString(doc.source);
 
     return {
       instructions:
         this.readString(doc.systemPromptTemplate) ??
         this.readString(doc.defaultInstructions) ??
         '',
+      isBuiltIn: doc.isBuiltIn === true,
       name: this.readString(doc.name) ?? slug,
       slug,
+      source:
+        source === 'built_in' ||
+        source === 'custom' ||
+        source === 'customized' ||
+        source === 'imported'
+          ? source
+          : undefined,
       toolOverrides: (doc.toolOverrides as string[] | undefined) ?? [],
     };
   }

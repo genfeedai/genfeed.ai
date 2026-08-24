@@ -204,11 +204,33 @@ describe('SkillsService', () => {
     expect(prisma.skill.create).not.toHaveBeenCalled();
   });
 
+  it('rejects client-created customized provenance without a fork', async () => {
+    await expect(
+      service.createSkill('org-1', {
+        ...skillPayload,
+        source: 'customized',
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+
+    expect(prisma.skill.create).not.toHaveBeenCalled();
+  });
+
   it('reserves executable built-in slugs from organization-owned creation', async () => {
     await expect(
       service.createSkill('org-1', {
         ...skillPayload,
         slug: 'content-writing',
+      }),
+    ).rejects.toBeInstanceOf(ValidationException);
+
+    expect(prisma.skill.create).not.toHaveBeenCalled();
+  });
+
+  it('reserves first-party SKILL.md slugs from organization-owned creation', async () => {
+    await expect(
+      service.createSkill('org-1', {
+        ...skillPayload,
+        slug: 'image-prompt-engineer',
       }),
     ).rejects.toBeInstanceOf(ValidationException);
 
@@ -315,6 +337,12 @@ describe('SkillsService', () => {
     await expect(
       service.assertAccessibleSkillSlugs('org-1', ['foreign-skill']),
     ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('keeps an empty brand enabledSkills list empty for settings toggles', async () => {
+    await expect(
+      service.getEnabledSkillSlugs('org-1', 'brand-1'),
+    ).resolves.toEqual([]);
   });
 
   it('filters malformed and inaccessible stored enabled-skill slugs', async () => {
@@ -460,6 +488,102 @@ describe('SkillsService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
+
+  it('marks customized forks as customized provenance', async () => {
+    prisma.skill.findFirst.mockResolvedValue(
+      makeSkillRow({
+        config: {
+          defaultInstructions: 'Base',
+          isBuiltIn: true,
+          name: 'Image Prompt Engineer',
+          slug: 'image-prompt-engineer',
+          source: 'built_in',
+        },
+        id: 'cskillbuiltinimagepromptengineer',
+        organizationId: null,
+      }),
+    );
+
+    await service.customizeSkill('org-1', 'image-prompt-engineer', {
+      name: 'Image Prompt Engineer Custom',
+    });
+
+    expect(prisma.skill.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          isBuiltIn: false,
+          source: 'customized',
+        }),
+        organizationId: 'org-1',
+      }),
+    });
+  });
+
+  it('injects the modality default catalog when enabledSkills is empty', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: [] },
+      id: 'brand-1',
+    });
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: {
+          isBuiltIn: true,
+          isEnabled: true,
+          modalities: ['image'],
+          name: 'Image Prompt Engineer',
+          slug: 'image-prompt-engineer',
+          source: 'built_in',
+          status: 'published',
+        },
+        id: 'cskillbuiltinimagepromptengineer',
+        organizationId: null,
+      }),
+      makeSkillRow({
+        config: {
+          isBuiltIn: true,
+          isEnabled: true,
+          modalities: ['image', 'video', 'audio'],
+          name: 'Model Selector',
+          slug: 'model-selector',
+          source: 'built_in',
+          status: 'published',
+        },
+        id: 'cskillbuiltinmodelselector',
+        organizationId: null,
+      }),
+    ]);
+    byokProviderFactoryService.hasProviderAccess.mockResolvedValue(true);
+
+    const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
+      fallbackToDefaultCatalog: true,
+      modality: 'image',
+    });
+
+    expect(resolved.map((entry) => entry.skill.slug)).toEqual([
+      'image-prompt-engineer',
+      'model-selector',
+    ]);
+  });
+
+  it('does not leak a foreign-org skill through catalog fallback', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: [] },
+      id: 'brand-1',
+    });
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: { slug: 'secret-skill', source: 'custom' },
+        id: 'skill-foreign',
+        organizationId: 'org-2',
+      }),
+    ]);
+
+    await expect(
+      service.resolveBrandSkills('org-1', 'brand-1', {
+        fallbackToDefaultCatalog: true,
+      }),
+    ).resolves.toEqual([]);
   });
 
   it('rejects a slug-resolved skill that belongs to another organization', async () => {

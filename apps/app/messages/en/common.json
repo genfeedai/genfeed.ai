@@ -151,7 +151,8 @@
         "empty": "Select a skill from the catalog to inspect its detail.",
         "generalChannels": "general channels",
         "stage": "Stage",
-        "stageDescription": "Designed for the {stage} step of the content workflow."
+        "stageDescription": "Designed for the {stage} step of the content workflow.",
+        "version": "v{version}"
       },
       "errors": {
         "authenticationUnavailable": "Authentication token unavailable",
@@ -181,6 +182,7 @@
           "all": "All",
           "builtIn": "Built-in",
           "custom": "Custom",
+          "customized": "Customized",
           "imported": "Imported",
           "label": "Filter skills by source"
         },

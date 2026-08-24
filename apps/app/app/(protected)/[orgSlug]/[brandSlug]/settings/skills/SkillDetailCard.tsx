@@ -63,6 +63,16 @@ export default function SkillDetailCard({
               >
                 {selectedSkill.slug}
               </Badge>
+              {selectedSkill.version ? (
+                <Badge
+                  className="px-2 py-1 text-2xs uppercase tracking-[0.14em]"
+                  variant="ghost"
+                >
+                  {translate('detail.version', {
+                    version: selectedSkill.version,
+                  })}
+                </Badge>
+              ) : null}
             </div>
             <p className="text-sm text-foreground/60">
               {selectedSkill.description}

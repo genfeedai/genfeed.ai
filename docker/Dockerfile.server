@@ -351,6 +351,9 @@ COPY --from=builder /usr/src/app/apps/server/files/src/remotion ./apps/server/fi
 COPY --from=builder /usr/src/app/apps/server/files/remotion-bundle ./apps/server/files/remotion-bundle
 COPY --from=production-deps /usr/src/app/node_modules ./node_modules
 
+# First-party product skills (`skills/*/SKILL.md`) are the in-app catalog seed.
+COPY skills/ ./skills/
+
 # Every production server entrypoint preloads this module. Keep the assertion in
 # the pruned runtime stage so a missing direct dependency fails image CI before
 # one-off migrations or ECS services attempt to boot.

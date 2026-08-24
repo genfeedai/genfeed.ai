@@ -178,6 +178,9 @@ describe('BrandSettingsSkillsPage', () => {
     expect(
       screen.getByRole('group', { name: /filter skills by source/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^customized$/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Name' })).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Default instructions' }),

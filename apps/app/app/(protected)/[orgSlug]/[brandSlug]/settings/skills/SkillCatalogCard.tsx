@@ -20,6 +20,7 @@ function getSourceBadgeVariant(
 ): 'accent' | 'outline' | 'secondary' {
   switch (source) {
     case 'custom':
+    case 'customized':
       return 'accent';
     case 'imported':
       return 'secondary';

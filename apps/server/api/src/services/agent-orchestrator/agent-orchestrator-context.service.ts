@@ -205,6 +205,11 @@ export class AgentOrchestratorContextService {
             context.organizationId,
             policy.brandId,
             strategy?.skillSlugs,
+            {
+              agentType: request.agentType,
+              channel: policy.platform,
+              modality: this.inferSkillModality(request),
+            },
           )
         : [];
     const skillPromptSuffix = this.skillRuntimeService
@@ -649,6 +654,36 @@ export class AgentOrchestratorContextService {
     }
 
     return 'generic';
+  }
+
+  private inferSkillModality(request: AgentChatRequest): string | undefined {
+    if (request.agentType === AgentType.IMAGE_CREATOR) {
+      return 'image';
+    }
+
+    if (
+      request.agentType === AgentType.VIDEO_CREATOR ||
+      request.agentType === AgentType.AI_AVATAR
+    ) {
+      return 'video';
+    }
+
+    const contentFormat = request.pageContext?.contentFormat?.toLowerCase();
+    if (contentFormat?.includes('image')) {
+      return 'image';
+    }
+    if (contentFormat?.includes('video')) {
+      return 'video';
+    }
+
+    const hasImageAttachment = request.attachments?.some(
+      (attachment) => attachment.kind === 'image',
+    );
+    if (hasImageAttachment) {
+      return 'image';
+    }
+
+    return 'text';
   }
 
   /**
