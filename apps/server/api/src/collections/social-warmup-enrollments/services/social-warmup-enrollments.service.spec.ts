@@ -16,6 +16,7 @@ import {
   TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
   TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
+import { SOCIAL_WARMUP_TELEMETRY_EVENT } from '@api-types/contracts/social-warmup-journey.contract';
 import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
 import { youtubeAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/youtube-authorized-signals.contract';
 import {
@@ -25,6 +26,7 @@ import {
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
 } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
 
 const context = {
   brandId: 'brand-1',
@@ -134,6 +136,28 @@ describe('SocialWarmupEnrollmentsService', () => {
     );
     expect(enrollment.blueprintId).toBe(TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID);
     expect(enrollment.enrolledByUserId).toBe('user-1');
+  });
+
+  it('records enrollment telemetry without tokens or private activity', async () => {
+    const log = vi.fn();
+    const observed = new SocialWarmupEnrollmentsService(
+      prisma as unknown as PrismaService,
+      { log } as unknown as LoggerService,
+    );
+
+    await observed.enrollScoped({ credentialId: 'credential-1' }, context);
+
+    expect(log).toHaveBeenCalledWith(
+      SOCIAL_WARMUP_TELEMETRY_EVENT.enrolled,
+      expect.objectContaining({
+        credentialId: 'credential-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TIKTOK,
+      }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(
+      /token|secret|password|authorization/i,
+    );
   });
 
   it('returns the existing enrollment instead of creating a second row', async () => {

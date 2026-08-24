@@ -385,6 +385,24 @@ describe('SocialWarmupProgram', () => {
     );
   });
 
+  it('shows graduation copy that does not guarantee reach or safety', () => {
+    render(
+      <SocialWarmupProgram
+        connection={{
+          credentialId: 'credential-1',
+          platform: CredentialPlatform.TIKTOK,
+        }}
+        health={health}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    expect(screen.getByText(/does not guarantee reach/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/does not guarantee reach/i).textContent,
+    ).not.toMatch(/guarantee of (reach|safety)/i);
+  });
+
   it('still lists unresolved checks when a manual override is active', () => {
     render(
       <SocialWarmupProgram

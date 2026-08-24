@@ -518,6 +518,9 @@ export default function SocialWarmupProgram({
           })}
           <section className="space-y-2">
             <h4 className="text-sm font-medium">{translate('graduation')}</h4>
+            <p className="text-xs text-muted-foreground">
+              {blueprint.graduation.disclaimer}
+            </p>
             {fullChecks
               .filter((check) => check.kind === 'graduation')
               .map((check) => (

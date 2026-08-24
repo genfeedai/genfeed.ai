@@ -8,6 +8,7 @@
  * `user_confirmed`; no platform may gain automated engagement.
  */
 
+import { getCurrentSocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
 import {
   CredentialPlatform,
   formatPlatformLabel,
@@ -589,6 +590,43 @@ export const SOCIAL_WARMUP_OUT_OF_CATALOG_PLATFORMS = [
   CredentialPlatform.GOOGLE_ADS,
 ] as const;
 
+/**
+ * Platforms that already have a reviewed authorized-signal adapter.
+ * Expansion to another platform requires its own adapter — never inherit
+ * TikTok/X/Instagram/YouTube/LinkedIn evidence keys.
+ */
+export const SOCIAL_WARMUP_AUTHORIZED_SIGNAL_ADAPTERS = [
+  CredentialPlatform.INSTAGRAM,
+  CredentialPlatform.LINKEDIN,
+  CredentialPlatform.TIKTOK,
+  CredentialPlatform.TWITTER,
+  CredentialPlatform.YOUTUBE,
+] as const;
+
+export const SOCIAL_WARMUP_EXPANSION_REQUIREMENTS = [
+  'reviewed_catalog_blueprint',
+  'capability_full_blueprint',
+  'authorized_signal_adapter',
+  'native_only_user_confirmed',
+  'no_automated_engagement',
+  'publishing_gate_consumes_enrollment_signals',
+] as const;
+
+export type SocialWarmupExpansionRequirement =
+  (typeof SOCIAL_WARMUP_EXPANSION_REQUIREMENTS)[number];
+
+export interface SocialWarmupExpansionGate {
+  isEnabled: boolean;
+  missing: SocialWarmupExpansionRequirement[];
+  platform: CredentialPlatform | string;
+  signalBoundary: {
+    authorized: string;
+    nativeOnly: readonly string[];
+    policyConstraints: string;
+  };
+  support: SocialWarmupSupportClass;
+}
+
 const UNKNOWN_PLATFORM_REFUSAL = socialWarmupEnrollmentRefusalSchema.parse({
   body: 'This connection is not supported for social-account warm-up.',
   headline: 'Warm-up is not available',
@@ -676,4 +714,71 @@ export function listSocialWarmupPlatformsBySupport(
   return Object.values(CredentialPlatform).filter(
     (platform) => SOCIAL_WARMUP_CAPABILITY_MATRIX[platform].support === support,
   );
+}
+
+export function hasSocialWarmupAuthorizedSignalAdapter(
+  platform: CredentialPlatform | string,
+): boolean {
+  const parsed = parsePlatform(platform);
+  if (!parsed) {
+    return false;
+  }
+
+  return (
+    SOCIAL_WARMUP_AUTHORIZED_SIGNAL_ADAPTERS as readonly string[]
+  ).includes(parsed);
+}
+
+export function evaluateSocialWarmupExpansionGate(
+  platform: CredentialPlatform | string,
+): SocialWarmupExpansionGate {
+  const parsed = parsePlatform(platform);
+  const capability = parsed ? getSocialWarmupSupport(parsed) : undefined;
+  const blueprint = parsed
+    ? getCurrentSocialWarmupBlueprint(parsed)
+    : undefined;
+  const missing: SocialWarmupExpansionRequirement[] = [];
+
+  if (!blueprint) {
+    missing.push('reviewed_catalog_blueprint');
+  }
+  if (capability?.support !== 'full_blueprint') {
+    missing.push('capability_full_blueprint');
+  }
+  if (!hasSocialWarmupAuthorizedSignalAdapter(platform)) {
+    missing.push('authorized_signal_adapter');
+  }
+  if (!capability?.nativeOnlyActions.length) {
+    missing.push('native_only_user_confirmed');
+  }
+  if (
+    !capability ||
+    !/no automated engagement/i.test(capability.policyConstraints)
+  ) {
+    missing.push('no_automated_engagement');
+  }
+  if (
+    !capability ||
+    !/publishing hold|productized scheduler/i.test(
+      capability.publishingCapabilities,
+    )
+  ) {
+    missing.push('publishing_gate_consumes_enrollment_signals');
+  }
+
+  return {
+    isEnabled: missing.length === 0,
+    missing,
+    platform: parsed ?? platform,
+    signalBoundary: {
+      authorized:
+        capability?.profilePostSignals ??
+        'No reviewed authorized-signal boundary is published for this connection.',
+      nativeOnly: capability?.nativeOnlyActions ?? [],
+      policyConstraints:
+        capability?.policyConstraints ??
+        'No reviewed social warm-up policy is published for this connection.',
+    },
+    support: capability?.support ?? 'not_supported',
+  };
 }
