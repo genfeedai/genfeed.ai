@@ -36,6 +36,7 @@ describe('social warm-up capability matrix', () => {
         CredentialPlatform.INSTAGRAM,
         CredentialPlatform.TIKTOK,
         CredentialPlatform.TWITTER,
+        CredentialPlatform.YOUTUBE,
       ].sort(),
     );
 
@@ -53,7 +54,7 @@ describe('social warm-up capability matrix', () => {
       getCurrentSocialWarmupBlueprint(CredentialPlatform.FACEBOOK),
     ).toBeUndefined();
     expect(
-      getCurrentSocialWarmupBlueprint(CredentialPlatform.YOUTUBE),
+      getCurrentSocialWarmupBlueprint(CredentialPlatform.LINKEDIN),
     ).toBeUndefined();
   });
 
@@ -106,16 +107,16 @@ describe('social warm-up capability matrix', () => {
     ).toEqual(['ads.read', 'ads.write', 'offline.access']);
   });
 
-  test('classifies YouTube and LinkedIn as readiness_only until a catalog blueprint exists', () => {
+  test('classifies LinkedIn as readiness_only until a catalog blueprint exists', () => {
     expect(getSocialWarmupSupportClass(CredentialPlatform.YOUTUBE)).toBe(
-      'readiness_only',
+      'full_blueprint',
     );
     expect(getSocialWarmupSupportClass(CredentialPlatform.LINKEDIN)).toBe(
       'readiness_only',
     );
     expect(
-      getCurrentSocialWarmupBlueprint(CredentialPlatform.YOUTUBE),
-    ).toBeUndefined();
+      getCurrentSocialWarmupBlueprint(CredentialPlatform.YOUTUBE)?.platform,
+    ).toBe(CredentialPlatform.YOUTUBE);
     expect(
       getCurrentSocialWarmupBlueprint(CredentialPlatform.LINKEDIN),
     ).toBeUndefined();

@@ -20,11 +20,13 @@ const FIRST_PUBLISH_KEY = 'first-publish-platform-signal';
 const TIKTOK_AUTHORIZED_STORAGE_KEY = 'tiktokAuthorized';
 const INSTAGRAM_AUTHORIZED_STORAGE_KEY = 'instagramAuthorized';
 const TWITTER_AUTHORIZED_STORAGE_KEY = 'twitterAuthorized';
+const YOUTUBE_AUTHORIZED_STORAGE_KEY = 'youtubeAuthorized';
 
 const AUTHORIZED_SNAPSHOT_STORAGE_KEYS = [
   TIKTOK_AUTHORIZED_STORAGE_KEY,
   INSTAGRAM_AUTHORIZED_STORAGE_KEY,
   TWITTER_AUTHORIZED_STORAGE_KEY,
+  YOUTUBE_AUTHORIZED_STORAGE_KEY,
 ] as const;
 
 const TIKTOK_REQUIRED_WARMUP_SCOPES = [
@@ -35,6 +37,10 @@ const TIKTOK_REQUIRED_WARMUP_SCOPES = [
 
 const INSTAGRAM_REQUIRED_WARMUP_SCOPES = ['instagram_basic'] as const;
 const TWITTER_REQUIRED_WARMUP_SCOPES = ['users.read', 'tweet.read'] as const;
+const YOUTUBE_REQUIRED_WARMUP_SCOPES = [
+  'https://www.googleapis.com/auth/youtube',
+  'https://www.googleapis.com/auth/youtube.upload',
+] as const;
 
 export const ENROLLMENT_UNIQUE_CONSTRAINT =
   'social_warmup_enrollments_org_credential_alive_key';
@@ -220,6 +226,10 @@ export function hasPartialSocialWarmupScopes(warmupSignals: unknown): boolean {
     hasPartialAuthorizedSnapshot(
       readRecord(stored[TWITTER_AUTHORIZED_STORAGE_KEY]),
       TWITTER_REQUIRED_WARMUP_SCOPES,
+    ) ||
+    hasPartialAuthorizedSnapshot(
+      readRecord(stored[YOUTUBE_AUTHORIZED_STORAGE_KEY]),
+      YOUTUBE_REQUIRED_WARMUP_SCOPES,
     )
   );
 }

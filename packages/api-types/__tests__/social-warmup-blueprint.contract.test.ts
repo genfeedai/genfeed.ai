@@ -15,6 +15,9 @@ import {
   TWITTER_SOCIAL_WARMUP_BLUEPRINT,
   TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
   TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  YOUTUBE_SOCIAL_WARMUP_BLUEPRINT,
+  YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
+  YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_VERSION,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { describe, expect, test } from 'vitest';
@@ -177,7 +180,7 @@ describe('social warm-up blueprint contract', () => {
     expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.TIKTOK)).toBe(
       TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
     );
-    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(3);
+    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(4);
   });
 
   test('publishes the canonical X 5–7 day warm-up (#2219)', () => {
@@ -248,6 +251,78 @@ describe('social warm-up blueprint contract', () => {
       'thoughtful-engagement',
       'first-publish-and-cadence',
     ]);
+  });
+
+  test('publishes the canonical YouTube 10–14 day warm-up (#2220)', () => {
+    expect(YOUTUBE_SOCIAL_WARMUP_BLUEPRINT).toMatchObject({
+      id: YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
+      lastReviewedOn: '2026-08-24',
+      platform: CredentialPlatform.YOUTUBE,
+      version: YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+    });
+    expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.YOUTUBE)).toBe(
+      YOUTUBE_SOCIAL_WARMUP_BLUEPRINT,
+    );
+    expect(
+      YOUTUBE_SOCIAL_WARMUP_BLUEPRINT.phases.map((phase) => ({
+        endDay: phase.endDay,
+        id: phase.id,
+        startDay: phase.startDay,
+      })),
+    ).toEqual([
+      { endDay: 3, id: 'search-and-native-viewing', startDay: 1 },
+      { endDay: 7, id: 'channel-setup', startDay: 4 },
+      { endDay: 10, id: 'first-shorts', startDay: 8 },
+      { endDay: 14, id: 'performance-and-longform', startDay: 11 },
+    ]);
+    expect(YOUTUBE_SOCIAL_WARMUP_BLUEPRINT.graduation).toMatchObject({
+      minimumElapsedDays: 10,
+      recommendedElapsedDays: 14,
+    });
+    expect(
+      YOUTUBE_SOCIAL_WARMUP_BLUEPRINT.graduation.disclaimer.toLowerCase(),
+    ).toMatch(/recommendation-system/);
+
+    const steps = YOUTUBE_SOCIAL_WARMUP_BLUEPRINT.phases.flatMap(
+      (phase) => phase.steps,
+    );
+    const byId = new Map(steps.map((step) => [step.id, step]));
+
+    for (const id of [
+      'search-niche-keywords',
+      'watch-niche-videos',
+      'subscribe-and-watch-subscriptions',
+      'like-and-comment-selectively',
+      'check-homepage-relevance',
+    ]) {
+      expect(byId.get(id)).toMatchObject({
+        completion: { type: 'attestation' },
+        provenance: 'user_confirmed',
+      });
+    }
+
+    for (const id of [
+      'refresh-authorized-channel',
+      'snapshot-publishing-capability',
+      'observe-first-upload-platform',
+      'snapshot-owned-uploads',
+      'snapshot-owned-video-analytics',
+    ]) {
+      expect(byId.get(id)).toMatchObject({
+        completion: { type: 'signal' },
+        provenance: 'platform_verified',
+        requirement: 'required_when_available',
+      });
+    }
+
+    expect(byId.get('first-shorts-upload')).toMatchObject({
+      completion: { type: 'event' },
+      provenance: 'genfeed_observed',
+    });
+    expect(byId.get('confirm-shorts-to-longform-path')).toMatchObject({
+      provenance: 'user_confirmed',
+      requirement: 'required',
+    });
   });
 
   test('keeps generic selection free of TikTok-specific branching', () => {

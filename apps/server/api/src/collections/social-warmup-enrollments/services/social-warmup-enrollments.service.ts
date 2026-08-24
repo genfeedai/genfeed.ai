@@ -30,6 +30,7 @@ import {
 import { getSocialWarmupEnrollmentRefusal } from '@api-types/contracts/social-warmup-capability.contract';
 import type { TikTokAuthorizedSignalsSnapshot } from '@api-types/contracts/tiktok-authorized-signals.contract';
 import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
+import type { YoutubeAuthorizedSignalsSnapshot } from '@api-types/contracts/youtube-authorized-signals.contract';
 import {
   parsePlatform,
   SocialWarmupEnrollmentState,
@@ -287,6 +288,15 @@ export class SocialWarmupEnrollmentsService {
     await this.syncAuthorizedSnapshot(params);
   }
 
+  async syncYoutubeAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: YoutubeAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
   private async syncAuthorizedSnapshot(params: {
     brandId: string;
     credentialId: string;
@@ -294,7 +304,8 @@ export class SocialWarmupEnrollmentsService {
     snapshot:
       | TikTokAuthorizedSignalsSnapshot
       | InstagramAuthorizedSignalsSnapshot
-      | TwitterAuthorizedSignalsSnapshot;
+      | TwitterAuthorizedSignalsSnapshot
+      | YoutubeAuthorizedSignalsSnapshot;
   }): Promise<void> {
     await this.syncPlatformSnapshot({
       brandId: params.brandId,

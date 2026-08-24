@@ -403,27 +403,30 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
     accountType: 'YouTube channel via Google OAuth.',
     connectionScopes: [
       'https://www.googleapis.com/auth/youtube',
+      'https://www.googleapis.com/auth/youtube.readonly',
+      'https://www.googleapis.com/auth/youtube.force-ssl',
       'https://www.googleapis.com/auth/youtube.upload',
+      'https://www.googleapis.com/auth/yt-analytics.readonly',
     ],
-    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against YouTube OAuth, productized scheduler capability, and skills/youtube-warmup. No catalog blueprint or authorized-signal adapter.`,
+    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against the published catalog blueprint, YouTube OAuth scopes, and authorized-signals adapter.`,
     nativeOnlyActions: [
       'Watch niche videos to completion in YouTube',
-      'Subscribe and comment from the native app',
-      'Design thumbnails and complete channel setup in YouTube Studio',
+      'Search niche keywords in the native app',
+      'Subscribe and watch from the subscription feed',
+      'Like and comment from the native app',
+      'Check Home feed relevance',
+      'Complete channel setup in YouTube Studio',
     ],
     platform: CredentialPlatform.YOUTUBE,
     policyConstraints: NO_AUTOMATED_ENGAGEMENT,
     profilePostSignals:
-      'Channel identity and upload capability. Studio CTR/AVD and watch history are not ingested as warm-up signals.',
+      'Authorized channel metadata, owned uploads, publishing capability, and owned-video analytics when scopes are granted. Watch history, subscriptions, likes, comments made outside Genfeed, search activity, and homepage ranking stay native-only.',
     publishingCapabilities:
-      'Productized draft, publish-now, and scheduled video/Shorts uploads.',
+      'Productized draft, publish-now, and scheduled video/Shorts uploads. Publishing hold consumes enrollment signals.',
     rationale:
-      'YouTube has a productized publisher and a warmup skill, but no versioned catalog blueprint, signal provenance adapter, or publishing-gate warm-up semantics. Do not invent a 7-day plan here.',
-    support: 'readiness_only',
-    ui: {
-      body: 'Genfeed can confirm the YouTube channel is connected and can upload. A guided catalog warm-up is not published yet. Watch time and comments stay manual.',
-      headline: 'YouTube is connection-only',
-    },
+      'Published catalog blueprint with reviewed YouTube product guidance, structured Shorts-to-long-form steps, signal provenance, publishing-gate semantics, and an executable authorized-signal path.',
+    support: 'full_blueprint',
+    ui: FULL_BLUEPRINT_UI,
   }),
   [CredentialPlatform.LINKEDIN]: capability({
     accountType: 'LinkedIn member via OIDC + w_member_social.',

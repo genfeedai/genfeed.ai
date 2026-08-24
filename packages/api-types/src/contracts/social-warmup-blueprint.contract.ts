@@ -1382,11 +1382,482 @@ export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT =
     version: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_VERSION,
   });
 
+export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID = 'social-warmup.youtube';
+export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_VERSION = 1;
+
+/**
+ * YouTube guided warm-up (#2220).
+ * Channel setup, niche/search research, native viewing/engagement, first
+ * Shorts, owned-video analytics, and a Shorts-to-long-form transition.
+ * No automated watch time, subscriptions, likes, or comments.
+ */
+export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
+  socialWarmupBlueprintSchema.parse({
+    evidenceBasis: [
+      {
+        id: 'yt-product-guidance',
+        kind: 'product_guidance',
+        reference: 'skills/youtube-warmup/SKILL.md',
+        reviewedOn: '2026-08-24',
+        title: 'Genfeed YouTube warm-up long-form guidance',
+      },
+      {
+        id: 'yt-data-api',
+        kind: 'platform_documentation',
+        reference: 'https://developers.google.com/youtube/v3/docs',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Data API overview',
+      },
+      {
+        id: 'yt-channels',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/docs/channels/list',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Channels list',
+      },
+      {
+        id: 'yt-playlist-items',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/docs/playlistItems/list',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube PlaylistItems list',
+      },
+      {
+        id: 'yt-videos',
+        kind: 'platform_documentation',
+        reference: 'https://developers.google.com/youtube/v3/docs/videos/list',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Videos list',
+      },
+      {
+        id: 'yt-analytics',
+        kind: 'platform_documentation',
+        reference: 'https://developers.google.com/youtube/analytics',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Analytics API',
+      },
+      {
+        id: 'yt-upload',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/guides/uploading_a_video',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube video upload',
+      },
+    ],
+    graduation: {
+      disclaimer:
+        'Graduation means the configured channel and video checks have enough evidence to begin a gradual Shorts-to-long-form cadence. It does not promise recommendation-system outcomes, search ranking, or freedom from moderation.',
+      minimumElapsedDays: 10,
+      recommendedElapsedDays: 14,
+      rules: [
+        {
+          completion: {
+            description:
+              'The user has confirmed required native viewing, search, and channel-setup actions.',
+            key: 'manual-foundation-confirmed',
+            type: 'attestation',
+          },
+          description:
+            'Complete native YouTube foundation without representing private watch history, subscriptions, likes, comments, search, or homepage ranking as API telemetry.',
+          evidenceIds: ['yt-product-guidance'],
+          id: 'manual-foundation-complete',
+          provenance: 'user_confirmed',
+          requirement: 'required',
+          title: 'Native viewing and channel foundation confirmed',
+        },
+        {
+          completion: {
+            description:
+              'Authorized channel metadata and owned-upload signals have been refreshed when the connection allows.',
+            key: 'authorized-channel-snapshot',
+            type: 'signal',
+          },
+          description:
+            'Use only fields granted by the YouTube connection; missing analytics or unpublished channel selection stay unavailable.',
+          evidenceIds: ['yt-data-api', 'yt-channels', 'yt-videos'],
+          id: 'authorized-signals-refreshed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'Authorized channel signals refreshed',
+        },
+        {
+          completion: {
+            description:
+              'YouTube exposes an owned upload or Genfeed has recorded a completed Shorts publish when available.',
+            key: 'first-upload-platform-signal',
+            type: 'signal',
+          },
+          description:
+            'Observe the first Short through authorized uploads or Genfeed publish status.',
+          evidenceIds: ['yt-videos', 'yt-upload'],
+          id: 'first-shorts-platform-observed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'First Short observed',
+        },
+        {
+          completion: {
+            description:
+              'Owned-video analytics were refreshed when yt-analytics.readonly is granted.',
+            key: 'owned-video-analytics-snapshot',
+            type: 'signal',
+          },
+          description:
+            'Missing analytics permissions stay permission-limited. Do not invent CTR, average view duration, or traffic-source values.',
+          evidenceIds: ['yt-analytics'],
+          id: 'analytics-refreshed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'Owned-video analytics refreshed',
+        },
+        {
+          completion: {
+            description:
+              'Genfeed has recorded upload, publish, failure, cadence, and clip-lineage outcomes without replacing them with inferred platform behavior.',
+            key: 'genfeed-publish-outcomes-observed',
+            type: 'event',
+          },
+          description:
+            'Review unresolved Genfeed failures and clip lineage before increasing cadence.',
+          evidenceIds: ['yt-product-guidance', 'yt-upload'],
+          id: 'genfeed-outcomes-reviewed',
+          provenance: 'genfeed_observed',
+          requirement: 'required_when_available',
+          title: 'Genfeed outcomes reviewed',
+        },
+        {
+          completion: {
+            description:
+              'The user confirmed a Shorts-first or Shorts-plus-long-form path without treating it as a recommendation guarantee.',
+            key: 'shorts-to-longform-path-confirmed',
+            type: 'attestation',
+          },
+          description:
+            'Choose a gradual Shorts-to-long-form transition from configurable channel/video evidence and user confirmation.',
+          evidenceIds: ['yt-product-guidance'],
+          id: 'shorts-to-longform-path-confirmed',
+          provenance: 'user_confirmed',
+          requirement: 'required',
+          title: 'Shorts-to-long-form path confirmed',
+        },
+      ],
+    },
+    id: YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
+    lastReviewedOn: '2026-08-24',
+    phases: [
+      {
+        description:
+          'Research the niche through YouTube search and watch native recommendations before uploading.',
+        endDay: 3,
+        id: 'search-and-native-viewing',
+        startDay: 1,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms niche keyword searches were performed in YouTube.',
+              key: 'niche-search-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Search niche keywords and watch top organic results. Search activity stays user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'search-niche-keywords',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Search niche keywords manually',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they watched niche videos to completion without automation.',
+              key: 'native-viewing-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Watch niche videos in the native YouTube app. Watch history is not API-visible and stays user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'watch-niche-videos',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Watch niche videos to completion',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they subscribed to relevant channels and watched from the subscription feed.',
+              key: 'subscriptions-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Subscribe to a small set of active niche channels and watch from the subscription feed. Subscriptions stay user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'subscribe-and-watch-subscriptions',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Subscribe and watch from subscriptions',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms likes and comments made outside Genfeed were manual.',
+              key: 'likes-and-comments-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Like and comment selectively in the native app. Likes and comments made outside Genfeed stay user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'like-and-comment-selectively',
+            provenance: 'user_confirmed',
+            requirement: 'optional',
+            title: 'Like and comment selectively (manual)',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms the Home feed is becoming more niche-relevant.',
+              key: 'homepage-tuning-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Check whether Home recommendations match the niche. Homepage ranking stays user_confirmed.',
+            days: [2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'check-homepage-relevance',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Check Home feed relevance',
+          },
+        ],
+        title: 'Niche search and native viewing',
+      },
+      {
+        description:
+          'Complete public channel identity and refresh authorized channel metadata before the first Short.',
+        endDay: 7,
+        id: 'channel-setup',
+        startDay: 4,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms handle, avatar, banner, About copy, and playlists are complete.',
+              key: 'channel-setup-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Finish YouTube channel setup in Studio before the first upload. Native Studio edits stay user_confirmed.',
+            days: [4, 5],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'complete-channel-setup',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Complete channel setup',
+          },
+          {
+            completion: {
+              description:
+                'Authorized channel metadata is readable when YouTube scopes allow.',
+              key: 'channel-fields-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'Refresh channel identity from the authorized connection. Missing channel selection stays recoverable.',
+            days: [4, 5, 6, 7],
+            evidenceIds: ['yt-channels', 'yt-data-api'],
+            id: 'refresh-authorized-channel',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Refresh authorized channel',
+          },
+          {
+            completion: {
+              description:
+                'Authorized upload capability is readable when publish scopes allow.',
+              key: 'publishing-capability-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Confirm the connected channel can upload when youtube.upload or youtube is granted.',
+            days: [5, 6, 7],
+            evidenceIds: ['yt-upload', 'yt-channels'],
+            id: 'snapshot-publishing-capability',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot publishing capability',
+          },
+          {
+            completion: {
+              description:
+                'Genfeed has recorded any draft or clip activity created inside Genfeed.',
+              key: 'genfeed-draft-activity-observed',
+              type: 'event',
+            },
+            description:
+              'When using Genfeed for Shorts drafts or clip lineage, outcomes stay genfeed_observed.',
+            days: [6, 7],
+            evidenceIds: ['yt-product-guidance', 'yt-upload'],
+            id: 'observe-genfeed-drafts',
+            provenance: 'genfeed_observed',
+            requirement: 'optional',
+            title: 'Observe Genfeed draft activity',
+          },
+        ],
+        title: 'Channel setup',
+      },
+      {
+        description:
+          'Publish a first original Short and observe owned uploads without automating watch time.',
+        endDay: 10,
+        id: 'first-shorts',
+        startDay: 8,
+        steps: [
+          {
+            completion: {
+              description:
+                'Genfeed has a first Shorts draft or publish outcome.',
+              key: 'first-shorts-upload',
+              type: 'event',
+            },
+            description:
+              'Upload one original Short with search-intent metadata. Prefer quality over volume.',
+            days: [8, 9],
+            evidenceIds: ['yt-product-guidance', 'yt-upload'],
+            id: 'first-shorts-upload',
+            provenance: 'genfeed_observed',
+            requirement: 'required_when_available',
+            title: 'First Shorts upload',
+          },
+          {
+            completion: {
+              description:
+                'Authorized owned uploads show the first video when permissions allow.',
+              key: 'first-upload-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'When upload listing is available, verify the first Short appeared. Empty channels stay empty, not failed.',
+            days: [8, 9, 10],
+            evidenceIds: ['yt-playlist-items', 'yt-videos', 'yt-upload'],
+            id: 'observe-first-upload-platform',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Observe first upload on YouTube',
+          },
+          {
+            completion: {
+              description:
+                'Authorized owned-upload inventory was refreshed when scopes allow.',
+              key: 'owned-uploads-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Snapshot owned uploads from the uploads playlist. Do not invent videos the API did not return.',
+            days: [9, 10],
+            evidenceIds: ['yt-playlist-items', 'yt-videos'],
+            id: 'snapshot-owned-uploads',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot owned uploads',
+          },
+        ],
+        title: 'First Shorts',
+      },
+      {
+        description:
+          'Review owned-video analytics and choose a gradual Shorts-to-long-form cadence.',
+        endDay: 14,
+        id: 'performance-and-longform',
+        startDay: 11,
+        steps: [
+          {
+            completion: {
+              description:
+                'Owned-video analytics were refreshed when analytics scope allows.',
+              key: 'owned-video-analytics-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Refresh CTR, average view duration, and related owned-video analytics when yt-analytics.readonly is granted. Missing analytics stay permission-limited.',
+            days: [11, 12, 13],
+            evidenceIds: ['yt-analytics'],
+            id: 'snapshot-owned-video-analytics',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot owned-video analytics',
+          },
+          {
+            completion: {
+              description:
+                'The user confirmed they reviewed outcomes before raising volume or adding long-form.',
+              key: 'performance-review-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Assess owned-video evidence and Genfeed failures before increasing cadence. Completing the plan does not guarantee recommendations.',
+            days: [12, 13],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'assess-before-longform',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Assess before long-form',
+          },
+          {
+            completion: {
+              description:
+                'The user confirmed a Shorts-first continuation or a gradual long-form introduction.',
+              key: 'shorts-to-longform-path-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Choose Shorts-first or Shorts plus one long-form video. Do not jump to a high long-form cadence.',
+            days: [13, 14],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'confirm-shorts-to-longform-path',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Confirm Shorts-to-long-form path',
+          },
+          {
+            completion: {
+              description:
+                'Genfeed has recorded cadence, failures, and clip lineage for YouTube publishes.',
+              key: 'genfeed-publish-outcomes-observed',
+              type: 'event',
+            },
+            description:
+              'Review Genfeed upload, failure, cadence, and clip-lineage records before scaling.',
+            days: [14],
+            evidenceIds: ['yt-product-guidance', 'yt-upload'],
+            id: 'observe-genfeed-cadence',
+            provenance: 'genfeed_observed',
+            requirement: 'required_when_available',
+            title: 'Observe Genfeed cadence and clip lineage',
+          },
+        ],
+        title: 'Performance review and gradual long-form',
+      },
+    ],
+    platform: CredentialPlatform.YOUTUBE,
+    summary:
+      'A 10–14 day YouTube progression from channel setup and search-first native viewing, through first Shorts and owned-video analytics, to a gradual Shorts-to-long-form cadence — without automated watch time or engagement farming.',
+    title: 'YouTube 10–14 day channel warm-up',
+    version: YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  });
+
 export const SOCIAL_WARMUP_BLUEPRINT_CATALOG: readonly SocialWarmupBlueprint[] =
   Object.freeze([
     TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
     TWITTER_SOCIAL_WARMUP_BLUEPRINT,
     INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT,
+    YOUTUBE_SOCIAL_WARMUP_BLUEPRINT,
   ]);
 
 export function findSocialWarmupBlueprint(

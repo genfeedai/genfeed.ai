@@ -1,6 +1,7 @@
 import type { SocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
+import { isSocialWarmupEnrollmentAllowed } from '@api-types/contracts/social-warmup-capability.contract';
 import {
-  CredentialPlatform,
+  type CredentialPlatform,
   formatPlatformLabel,
   SocialWarmupSignalStatus,
 } from '@genfeedai/enums';
@@ -42,7 +43,7 @@ export function formatWarmupProvenanceLabel(
 export function canRefreshAuthorizedSignals(
   platform: CredentialPlatform | string,
 ): boolean {
-  return platform === CredentialPlatform.TIKTOK;
+  return isSocialWarmupEnrollmentAllowed(platform);
 }
 
 export function getSocialWarmupElapsedDays(

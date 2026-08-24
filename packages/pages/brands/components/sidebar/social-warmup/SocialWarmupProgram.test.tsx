@@ -1,4 +1,7 @@
-import { TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID } from '@api-types/contracts/social-warmup-blueprint.contract';
+import {
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
+  YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
+} from '@api-types/contracts/social-warmup-blueprint.contract';
 import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
@@ -286,6 +289,36 @@ describe('SocialWarmupProgram', () => {
     await waitFor(() => {
       expect(refreshAuthorizedSignals).toHaveBeenCalledWith('credential-1');
       expect(refresh).toHaveBeenCalled();
+    });
+  });
+
+  it('refreshes YouTube authorized signals from the shared enrollment UI', async () => {
+    hookState.data = createEnrollment({
+      blueprintId: YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
+      currentPhaseId: 'first-shorts',
+    });
+
+    render(
+      <SocialWarmupProgram
+        connection={{
+          credentialId: 'credential-1',
+          platform: CredentialPlatform.YOUTUBE,
+        }}
+        health={{
+          ...health,
+          holdReason:
+            'youtube publishing is held because channel warmup is warming.',
+          platform: CredentialPlatform.YOUTUBE,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Refresh signals' })[0],
+    );
+    await waitFor(() => {
+      expect(refreshAuthorizedSignals).toHaveBeenCalledWith('credential-1');
     });
   });
 

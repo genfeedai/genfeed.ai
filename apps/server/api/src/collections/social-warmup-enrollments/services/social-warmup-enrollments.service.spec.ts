@@ -16,6 +16,7 @@ import {
   TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
 import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
+import { youtubeAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/youtube-authorized-signals.contract';
 import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
@@ -601,6 +602,153 @@ describe('SocialWarmupEnrollmentsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           key: 'publishing-capability-snapshot',
+          status: SocialWarmupSignalStatus.PERMISSION_LIMITED,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'genfeed-publish-outcomes-observed',
+          source: SocialWarmupSignalSource.GENFEED,
+        }),
+      }),
+    );
+  });
+
+  it('upserts YouTube authorized snapshot evidence onto an existing enrollment', async () => {
+    socialWarmupEnrollment.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'enrollment-1',
+      organizationId: 'org-1',
+    });
+    socialWarmupSignal.findFirst.mockResolvedValue(null);
+
+    const snapshot = youtubeAuthorizedSignalsSnapshotSchema.parse({
+      credentialId: 'credential-1',
+      evidence: [
+        {
+          fieldAvailability: { title: 'available' },
+          key: 'channel-fields-platform-signal',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube'],
+          },
+          staleAt: null,
+          status: 'available',
+          value: { title: 'Creator' },
+        },
+        {
+          fieldAvailability: { id: 'available' },
+          key: 'owned-uploads-snapshot',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube'],
+          },
+          staleAt: null,
+          status: 'empty',
+          value: { hasMore: false, videos: [] },
+        },
+        {
+          fieldAvailability: { canPublish: 'available' },
+          key: 'publishing-capability-snapshot',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube.upload'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube.upload'],
+          },
+          staleAt: null,
+          status: 'available',
+          value: { canPublish: true },
+        },
+        {
+          fieldAvailability: { views: 'permission_limited' },
+          key: 'owned-video-analytics-snapshot',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['https://www.googleapis.com/auth/yt-analytics.readonly'],
+            required: ['https://www.googleapis.com/auth/yt-analytics.readonly'],
+          },
+          staleAt: null,
+          status: 'permission_limited',
+        },
+        {
+          fieldAvailability: { id: 'available' },
+          key: 'first-upload-platform-signal',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube'],
+          },
+          staleAt: null,
+          status: 'empty',
+          value: {},
+        },
+        {
+          fieldAvailability: { createdAt: 'available' },
+          key: 'native-account-age',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'platform_verified',
+          scope: {
+            granted: ['https://www.googleapis.com/auth/youtube'],
+            missing: [],
+            required: ['https://www.googleapis.com/auth/youtube'],
+          },
+          staleAt: null,
+          status: 'available',
+          value: { createdAt: '2026-01-01T00:00:00.000Z' },
+        },
+        {
+          fieldAvailability: { outcome: 'available' },
+          key: 'genfeed-publish-outcomes-observed',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'genfeed_observed',
+          scope: { granted: [], missing: [], required: [] },
+          staleAt: null,
+          status: 'empty',
+          value: { attempts: [] },
+        },
+      ],
+      grantedScopes: ['https://www.googleapis.com/auth/youtube'],
+      platform: CredentialPlatform.YOUTUBE,
+      refreshAttemptedAt: '2026-08-24T08:00:00.000Z',
+      state: 'partial',
+    });
+
+    await service.syncYoutubeAuthorizedSnapshot({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+      snapshot,
+    });
+
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'channel-fields-platform-signal',
+          organizationId: 'org-1',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'owned-video-analytics-snapshot',
           status: SocialWarmupSignalStatus.PERMISSION_LIMITED,
         }),
       }),

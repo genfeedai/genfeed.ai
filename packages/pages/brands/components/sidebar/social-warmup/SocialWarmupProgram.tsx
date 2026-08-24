@@ -16,6 +16,7 @@ import type { SocialWarmupProgramProps } from '@props/social/social-warmup-progr
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
+import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Badge } from '@ui/primitives/badge';
@@ -206,7 +207,10 @@ export default function SocialWarmupProgram({
     setSignalsError(null);
     try {
       const token = (await resolveAuthToken(getToken)) ?? '';
-      const service = new ServicesService('tiktok', token);
+      const service = new ServicesService(
+        resolveOAuthServicePath(platform),
+        token,
+      );
       await service.refreshAuthorizedSignals(connection.credentialId);
       await refresh();
     } catch (refreshError) {

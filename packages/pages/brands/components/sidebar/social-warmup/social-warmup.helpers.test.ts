@@ -405,11 +405,15 @@ describe('buildSocialWarmupProgramModel', () => {
 });
 
 describe('canRefreshAuthorizedSignals', () => {
-  it('is only available for TikTok until other adapters ship', () => {
+  it('is available for every full-blueprint platform, including YouTube', () => {
     expect(canRefreshAuthorizedSignals(CredentialPlatform.TIKTOK)).toBe(true);
     expect(canRefreshAuthorizedSignals(CredentialPlatform.INSTAGRAM)).toBe(
+      true,
+    );
+    expect(canRefreshAuthorizedSignals(CredentialPlatform.TWITTER)).toBe(true);
+    expect(canRefreshAuthorizedSignals(CredentialPlatform.YOUTUBE)).toBe(true);
+    expect(canRefreshAuthorizedSignals(CredentialPlatform.LINKEDIN)).toBe(
       false,
     );
-    expect(canRefreshAuthorizedSignals(CredentialPlatform.TWITTER)).toBe(false);
   });
 });
