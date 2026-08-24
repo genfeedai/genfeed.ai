@@ -14,6 +14,7 @@ import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/servi
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
@@ -70,18 +71,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
       isDeleted: query.isDeleted ?? false,
     };
 
-    // Always filter by organization for multi-tenancy
-    const organizationId =
-      query.organizationId || user.organizationId?.toString();
-    if (organizationId) {
-      match.organizationId = organizationId;
-    }
-
-    if (query.brandId) {
-      match.brandId = query.brandId;
-    } else if (user.brandId) {
-      match.brandId = user.brandId;
-    }
+    CollectionFilterUtil.applyAuthorizedTenantMatch(match, query, user);
 
     // Filter by type if provided
     if (query.type) {

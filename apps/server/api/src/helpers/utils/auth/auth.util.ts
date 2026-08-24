@@ -74,11 +74,14 @@ export interface ContextQueryDto {
 
 /**
  * Extract request context (organizationId, brandId, userId) from the
- * authenticated user and query params.
- * Query params take precedence over user identity, allowing for admin override scenarios.
+ * authenticated user.
+ *
+ * Query ids never widen tenant scope for a member. Platform superadmins may
+ * override organization, brand, and user from the query; every other caller
+ * is bound to the session identity regardless of what the query asks for.
  *
  * @param user - authenticated user object
- * @param query - Optional query DTO with organization, brand, user overrides
+ * @param query - Optional query DTO with superadmin scope overrides
  * @returns RequestContext with canonical string IDs
  *
  * @example
@@ -92,9 +95,17 @@ export function extractRequestContext(
   user: AuthenticatedUser,
   query?: ContextQueryDto,
 ): RequestContext {
-  const organizationId = query?.organizationId || user.organizationId || '';
-  const brandId = query?.brandId || user.brandId || '';
-  const userId = query?.userId || user.userId || user.id || '';
+  const canOverrideScope = getIsSuperAdmin(user);
+  const organizationId =
+    (canOverrideScope && query?.organizationId
+      ? query.organizationId
+      : user.organizationId) || '';
+  const brandId =
+    (canOverrideScope && query?.brandId ? query.brandId : user.brandId) || '';
+  const userId =
+    (canOverrideScope && query?.userId
+      ? query.userId
+      : user.userId || user.id) || '';
 
   return {
     brandId,
@@ -107,23 +118,20 @@ export function resolveRequiredBrandRequestContext(
   user: AuthenticatedUser,
   query: Pick<ContextQueryDto, 'brandId' | 'organizationId'> = {},
 ): Pick<RequestContext, 'brandId' | 'organizationId' | 'userId'> {
-  const requestContext = extractRequestContext(user);
-  const canOverrideScope = getIsSuperAdmin(user);
-  const organizationId =
-    canOverrideScope && query.organizationId
-      ? query.organizationId
-      : requestContext.organizationId;
-  const brandId =
-    canOverrideScope && query.brandId ? query.brandId : requestContext.brandId;
+  const requestContext = extractRequestContext(user, query);
   const userId = requestContext.userId || user.id;
 
-  if (!organizationId || !brandId || !userId) {
+  if (!requestContext.organizationId || !requestContext.brandId || !userId) {
     throw new BadRequestException(
       'Organization, brand, and user context are required',
     );
   }
 
-  return { brandId, organizationId, userId };
+  return {
+    brandId: requestContext.brandId,
+    organizationId: requestContext.organizationId,
+    userId,
+  };
 }
 
 /**

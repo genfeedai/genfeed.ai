@@ -47,6 +47,30 @@ describe('extractRequestContext', () => {
     expect(ctx.organizationId).toBe('2');
     expect(ctx.userId).toBe('1');
   });
+
+  it('ignores query scope overrides for members', () => {
+    const ctx = extractRequestContext(makeUser(), {
+      brandId: 'other-brand',
+      organizationId: 'other-org',
+      userId: 'other-user',
+    });
+
+    expect(ctx.brandId).toBe('3');
+    expect(ctx.organizationId).toBe('2');
+    expect(ctx.userId).toBe('1');
+  });
+
+  it('allows superadmin query scope overrides', () => {
+    const ctx = extractRequestContext(makeUser({ isSuperAdmin: true }), {
+      brandId: 'other-brand',
+      organizationId: 'other-org',
+      userId: 'other-user',
+    });
+
+    expect(ctx.brandId).toBe('other-brand');
+    expect(ctx.organizationId).toBe('other-org');
+    expect(ctx.userId).toBe('other-user');
+  });
 });
 
 describe('getIsSuperAdmin', () => {

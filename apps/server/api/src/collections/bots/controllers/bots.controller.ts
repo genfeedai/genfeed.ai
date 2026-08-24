@@ -13,6 +13,7 @@ import { BotsLivestreamService } from '@api/collections/bots/services/bots-lives
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -25,7 +26,16 @@ import {
   LivestreamBotSessionSerializer,
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -63,24 +73,50 @@ export class BotsController extends BaseCRUDController<
           : 'user');
 
     if (scope === 'organization') {
+      const tenant = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+        { organizationId: query.organizationId },
+        user,
+      );
       match.organizationId = requireRelationId(
-        query.organizationId || user.organizationId,
+        tenant.organizationId || user.organizationId,
         'organization',
         'Bot listing',
       );
     }
 
     if (scope === 'brand') {
+      const tenant = CollectionFilterUtil.resolveAuthorizedTenantQuery(
+        { brandId: query.brandId, organizationId: query.organizationId },
+        user,
+      );
+      if (tenant.organizationId) {
+        match.organizationId = tenant.organizationId;
+      }
       match.brandId = requireRelationId(
-        query.brandId || user.brandId,
+        tenant.brandId || user.brandId,
         'brand',
         'Bot listing',
       );
     }
 
     if (scope === 'user') {
+      const callerUserId = user.userId ?? user.id;
+      const requestedUserId = query.userId;
+      if (
+        requestedUserId &&
+        callerUserId &&
+        String(requestedUserId) !== String(callerUserId) &&
+        !getIsSuperAdmin(user)
+      ) {
+        throw new ForbiddenException({
+          detail: 'Access denied to this user',
+          title: 'Forbidden',
+        });
+      }
       match.userId = requireRelationId(
-        query.userId || (user.userId ?? user.id),
+        getIsSuperAdmin(user) && requestedUserId
+          ? requestedUserId
+          : callerUserId,
         'user',
         'Bot listing',
       );
