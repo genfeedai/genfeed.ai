@@ -12,7 +12,11 @@ import {
 } from '@api/services/ads-gateway/ads-campaign-status.util';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { ApiKeyScope, MemberRole, toPrismaCredentialPlatform } from '@genfeedai/enums';
+import {
+  ApiKeyScope,
+  MemberRole,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
   AdsInsightsParams,
