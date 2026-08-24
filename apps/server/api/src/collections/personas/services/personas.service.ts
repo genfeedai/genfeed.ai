@@ -152,6 +152,7 @@ export class PersonasService extends BaseService<
     ],
   ): Promise<PersonaDocument> {
     const nextDto = { ...updateDto };
+    let normalizedHandle: string | null | undefined;
     if (Object.hasOwn(nextDto, 'handle')) {
       const rawHandle = nextDto.handle;
       if (
@@ -165,20 +166,20 @@ export class PersonasService extends BaseService<
           rawHandle,
         );
       }
-      const handle = normalizePersonaHandle(rawHandle);
-      if (handle !== null && !isPersonaHandle(handle)) {
+      normalizedHandle = normalizePersonaHandle(rawHandle);
+      if (normalizedHandle !== null && !isPersonaHandle(normalizedHandle)) {
         throw new ValidationException(
           'Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores',
           'handle',
-          handle,
+          normalizedHandle,
         );
       }
-      nextDto.handle = handle;
+      nextDto.handle = normalizedHandle;
     }
     try {
       return await super.patch(id, nextDto, populate);
     } catch (error: unknown) {
-      rethrowHandleConflict(error, nextDto.handle);
+      rethrowHandleConflict(error, normalizedHandle);
     }
   }
 
