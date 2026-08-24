@@ -135,6 +135,29 @@ describe('WorkflowExecutionsController', () => {
         expect.objectContaining({ limit: 20, offset: 0 }),
       );
     });
+
+    it('scopes nested workflow brand filters to the current organization', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [], total: 0 });
+
+      await controller.findAll(mockRequest, mockUser, {
+        brandId: 'brand-from-another-org',
+      } as never);
+
+      expect(mockService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            isDeleted: false,
+            organizationId,
+            workflow: {
+              brandId: 'brand-from-another-org',
+              isDeleted: false,
+              organizationId,
+            },
+          },
+        }),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('getExecutionStats', () => {

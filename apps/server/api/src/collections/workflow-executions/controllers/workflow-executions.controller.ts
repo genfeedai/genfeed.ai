@@ -79,7 +79,11 @@ export class WorkflowExecutionsController {
     }
 
     if (query.brandId) {
-      match.workflow = { brandId: query.brandId, isDeleted: false };
+      match.workflow = {
+        brandId: query.brandId,
+        isDeleted: false,
+        organizationId,
+      };
     }
 
     if (query.status) {
