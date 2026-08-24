@@ -5,6 +5,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { PrismaUpdate } from '@api/shared/services/base/base-query-normalization.adapter';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   isPersonaHandle,
@@ -144,15 +145,27 @@ export class PersonasService extends BaseService<
 
   async patch(
     id: string,
-    updateDto: Partial<UpdatePersonaDto>,
+    updateDto: Partial<UpdatePersonaDto> | PrismaUpdate,
     populate: PopulateOption[] = [
       PopulatePatterns.userMinimal,
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PersonaDocument> {
     const nextDto = { ...updateDto };
-    if ('handle' in nextDto) {
-      const handle = normalizePersonaHandle(nextDto.handle);
+    if (Object.hasOwn(nextDto, 'handle')) {
+      const rawHandle = nextDto.handle;
+      if (
+        typeof rawHandle !== 'string' &&
+        rawHandle !== null &&
+        rawHandle !== undefined
+      ) {
+        throw new ValidationException(
+          'Handle must be a string',
+          'handle',
+          rawHandle,
+        );
+      }
+      const handle = normalizePersonaHandle(rawHandle);
       if (handle !== null && !isPersonaHandle(handle)) {
         throw new ValidationException(
           'Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores',
