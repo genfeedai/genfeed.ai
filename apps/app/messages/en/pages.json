@@ -356,5 +356,15 @@
       "shelvesGroup": "Shelves",
       "storageLabel": "Storage"
     }
+  },
+  "workflows": {
+    "castPrompt": {
+      "action": "Action",
+      "cameraMovement": "Camera movement",
+      "preset": "Preset",
+      "startFrameReference": "Start-frame reference",
+      "subject": "Subject",
+      "vocabularyLibrary": "Vocabulary library"
+    }
   }
 }

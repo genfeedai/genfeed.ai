@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/types';
 import { Textarea } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useMemo } from 'react';
 import { getAllPresets } from '../../../engine/presets/cinematic-presets';
 import {
@@ -45,6 +46,7 @@ const CAMERA_MOVEMENT_LABELS: Record<CastCameraMovement, string> = {
 };
 
 function CastPromptNodeComponent(props: NodeProps) {
+  const translate = useTranslations('pages.workflows.castPrompt');
   const { id, data } = props;
   const nodeData = data as CastPromptNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
@@ -130,7 +132,7 @@ function CastPromptNodeComponent(props: NodeProps) {
             className="text-xs text-muted-foreground mb-1"
             htmlFor={`cast-preset-${id}`}
           >
-            Preset
+            {translate('preset')}
           </Label>
           <Select value={nodeData.presetId} onValueChange={handlePresetChange}>
             <SelectTrigger
@@ -151,7 +153,9 @@ function CastPromptNodeComponent(props: NodeProps) {
 
         {family === 'ugc' ? (
           <div>
-            <div className="text-xs font-medium mb-2">Vocabulary library</div>
+            <div className="text-xs font-medium mb-2">
+              {translate('vocabularyLibrary')}
+            </div>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {vocabulary.map((entry) => (
                 <div key={entry.kind} className="space-y-1">
@@ -171,7 +175,7 @@ function CastPromptNodeComponent(props: NodeProps) {
               className="text-xs text-muted-foreground mb-1"
               htmlFor={`cast-camera-move-${id}`}
             >
-              Camera movement
+              {translate('cameraMovement')}
             </Label>
             <Select
               value={nodeData.cameraMovement}
@@ -209,7 +213,7 @@ function CastPromptNodeComponent(props: NodeProps) {
             className="text-xs text-muted-foreground"
             htmlFor={`cast-start-frame-${id}`}
           >
-            Start-frame reference
+            {translate('startFrameReference')}
           </Label>
         </div>
 
@@ -218,7 +222,7 @@ function CastPromptNodeComponent(props: NodeProps) {
             className="text-xs text-muted-foreground mb-1"
             htmlFor={`cast-action-${id}`}
           >
-            Action
+            {translate('action')}
           </Label>
           <Textarea
             id={`cast-action-${id}`}
@@ -236,7 +240,7 @@ function CastPromptNodeComponent(props: NodeProps) {
             className="text-xs text-muted-foreground mb-1"
             htmlFor={`cast-subject-${id}`}
           >
-            Subject
+            {translate('subject')}
           </Label>
           <Textarea
             id={`cast-subject-${id}`}

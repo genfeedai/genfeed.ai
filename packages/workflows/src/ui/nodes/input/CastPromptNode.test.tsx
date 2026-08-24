@@ -22,6 +22,20 @@ vi.mock('../../stores/workflow', () => ({
   },
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const copy: Record<string, string> = {
+      action: 'Action',
+      cameraMovement: 'Camera movement',
+      preset: 'Preset',
+      startFrameReference: 'Start-frame reference',
+      subject: 'Subject',
+      vocabularyLibrary: 'Vocabulary library',
+    };
+    return copy[key] ?? key;
+  },
+}));
+
 describe('CastPromptNode', () => {
   const defaultProps = {
     data: {
