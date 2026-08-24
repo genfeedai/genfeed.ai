@@ -17,6 +17,7 @@ export const API_E2E_TIER_MANIFEST: ApiE2eTierManifest = {
     'test/integration/health.e2e-spec.spec.ts',
     'test/integration/launch-path-contracts.integration.spec.ts',
     'test/integration/member-invitation-lifecycle.integration.spec.ts',
+    'test/integration/outreach-reply-reservation.integration.spec.ts',
     'test/integration/payment-processing.integration.spec.ts',
     'test/integration/stripe-webhook-credit-grant.integration.spec.ts',
   ],

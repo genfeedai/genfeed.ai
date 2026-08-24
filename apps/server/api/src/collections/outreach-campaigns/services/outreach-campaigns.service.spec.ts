@@ -1,26 +1,55 @@
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { REPLY_SLOT_HOUR_MS } from '@api/collections/outreach-campaigns/services/outreach-reply-slot.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+
+type OutreachCampaignRow = {
+  config: Record<string, unknown>;
+  id: string;
+  isDeleted: boolean;
+  organizationId: string;
+  status: string;
+};
+
+type PrismaTxCallback = (
+  tx: ReturnType<typeof createPrismaStub>['prisma'],
+) => Promise<unknown>;
+
+function createPrismaStub() {
+  const prisma = {
+    $transaction: vi.fn(),
+    brand: {
+      findFirst: vi.fn(),
+    },
+    credential: {
+      findFirst: vi.fn(),
+    },
+    outreachCampaign: {
+      count: vi.fn(),
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+  };
+
+  prisma.$transaction.mockImplementation((callback: PrismaTxCallback) =>
+    callback(prisma),
+  );
+
+  return { prisma };
+}
 
 describe('OutreachCampaignsService', () => {
   const makeService = () => {
-    const prisma = {
-      brand: {
-        findFirst: vi.fn(),
-      },
-      credential: {
-        findFirst: vi.fn(),
-      },
-      outreachCampaign: {
-        count: vi.fn(),
-        create: vi.fn(),
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-      },
-    };
+    const { prisma } = createPrismaStub();
 
     const logger = {
       debug: vi.fn(),
@@ -36,6 +65,39 @@ describe('OutreachCampaignsService', () => {
         prisma as unknown as PrismaService,
         logger as unknown as LoggerService,
       ),
+    };
+  };
+
+  const now = new Date('2026-08-24T12:00:00.000Z');
+  const campaignId = 'campaign-1';
+  const organizationId = 'org-1';
+
+  const makeRow = (
+    overrides: Partial<OutreachCampaignRow> & {
+      rateLimits?: Record<string, unknown>;
+    } = {},
+  ): OutreachCampaignRow => {
+    const { rateLimits, config, ...rest } = overrides;
+    return {
+      config: {
+        rateLimits: {
+          currentDayCount: 0,
+          currentHourCount: 0,
+          dayResetAt: new Date(now.getTime() + 86400 * 1000).toISOString(),
+          hourResetAt: new Date(
+            now.getTime() + REPLY_SLOT_HOUR_MS,
+          ).toISOString(),
+          maxPerDay: 50,
+          maxPerHour: 10,
+          ...rateLimits,
+        },
+        ...(config ?? {}),
+      },
+      id: campaignId,
+      isDeleted: false,
+      organizationId,
+      status: CampaignStatus.ACTIVE,
+      ...rest,
     };
   };
 
@@ -174,6 +236,269 @@ describe('OutreachCampaignsService', () => {
     expect(prisma.outreachCampaign.update).toHaveBeenCalledWith({
       data: { isDeleted: true },
       where: { id: 'campaign-1' },
+    });
+  });
+
+  describe('reply slot reservation', () => {
+    it('denies canReply on an hourly rollover when the daily cap is exhausted', async () => {
+      const { prisma, service } = makeService();
+      prisma.outreachCampaign.findFirst.mockResolvedValue(
+        makeRow({
+          rateLimits: {
+            currentDayCount: 50,
+            currentHourCount: 10,
+            hourResetAt: new Date(now.getTime() - 1).toISOString(),
+            maxPerDay: 50,
+            maxPerHour: 10,
+          },
+        }),
+      );
+
+      await expect(
+        service.canReply(campaignId, organizationId, now),
+      ).resolves.toBe(false);
+      expect(prisma.outreachCampaign.update).not.toHaveBeenCalled();
+      expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('denies canReply on a daily rollover when the hourly cap is exhausted', async () => {
+      const { prisma, service } = makeService();
+      prisma.outreachCampaign.findFirst.mockResolvedValue(
+        makeRow({
+          rateLimits: {
+            currentDayCount: 50,
+            currentHourCount: 10,
+            dayResetAt: new Date(now.getTime() - 1).toISOString(),
+            maxPerDay: 50,
+            maxPerHour: 10,
+          },
+        }),
+      );
+
+      await expect(
+        service.canReply(campaignId, organizationId, now),
+      ).resolves.toBe(false);
+    });
+
+    it('reserves one slot and increments both normalized counters exactly once', async () => {
+      const { prisma, service } = makeService();
+      const row = makeRow({
+        rateLimits: {
+          currentDayCount: 4,
+          currentHourCount: 2,
+        },
+      });
+      prisma.outreachCampaign.findFirst.mockResolvedValue(row);
+      prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.reserveReplySlot(campaignId, organizationId, now),
+      ).resolves.toEqual({ reserved: true });
+
+      expect(prisma.outreachCampaign.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: campaignId,
+          isDeleted: false,
+          organizationId,
+          status: CampaignStatus.ACTIVE,
+        },
+      });
+      expect(prisma.outreachCampaign.updateMany).toHaveBeenCalledWith({
+        data: {
+          config: expect.objectContaining({
+            rateLimits: expect.objectContaining({
+              currentDayCount: 5,
+              currentHourCount: 3,
+            }),
+          }),
+          updatedAt: now,
+        },
+        where: {
+          id: campaignId,
+          isDeleted: false,
+          organizationId,
+          status: CampaignStatus.ACTIVE,
+        },
+      });
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        isolationLevel: 'Serializable',
+      });
+    });
+
+    it('denies a reservation after the hourly window resets when the daily cap is exhausted', async () => {
+      const { prisma, service } = makeService();
+      prisma.outreachCampaign.findFirst.mockResolvedValue(
+        makeRow({
+          rateLimits: {
+            currentDayCount: 50,
+            currentHourCount: 10,
+            hourResetAt: new Date(now.getTime() - 1).toISOString(),
+            maxPerDay: 50,
+            maxPerHour: 10,
+          },
+        }),
+      );
+
+      await expect(
+        service.reserveReplySlot(campaignId, organizationId, now),
+      ).resolves.toEqual({ reserved: false });
+      expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('denies a reservation after the daily window resets when the hourly cap is exhausted', async () => {
+      const { prisma, service } = makeService();
+      prisma.outreachCampaign.findFirst.mockResolvedValue(
+        makeRow({
+          rateLimits: {
+            currentDayCount: 50,
+            currentHourCount: 10,
+            dayResetAt: new Date(now.getTime() - 1).toISOString(),
+            maxPerDay: 50,
+            maxPerHour: 10,
+          },
+        }),
+      );
+
+      await expect(
+        service.reserveReplySlot(campaignId, organizationId, now),
+      ).resolves.toEqual({ reserved: false });
+      expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('fail-closes for foreign, paused, deleted, and relocated campaigns', async () => {
+      const { prisma, service } = makeService();
+      prisma.outreachCampaign.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.reserveReplySlot(campaignId, 'org-foreign', now),
+      ).resolves.toEqual({ reserved: false });
+      await expect(
+        service.canReply(campaignId, 'org-foreign', now),
+      ).resolves.toBe(false);
+      expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('fail-closes when ownership changes before the reservation write commits', async () => {
+      const { prisma, service } = makeService();
+      prisma.outreachCampaign.findFirst.mockResolvedValue(makeRow());
+      prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.reserveReplySlot(campaignId, organizationId, now),
+      ).resolves.toEqual({ reserved: false });
+    });
+
+    it('retries serialization failures and fail-closes after they are exhausted', async () => {
+      const { prisma, service } = makeService();
+      prisma.$transaction
+        .mockRejectedValueOnce({ code: 'P2034' })
+        .mockRejectedValueOnce({ code: 'P2034' })
+        .mockRejectedValueOnce({ code: 'P2034' });
+
+      await expect(
+        service.reserveReplySlot(campaignId, organizationId, now),
+      ).resolves.toEqual({ reserved: false });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+    });
+
+    it('keeps the reserved counters after a later success increment so retries cannot reclaim the slot', async () => {
+      const { prisma, service } = makeService();
+      const reservedRow = makeRow({
+        rateLimits: {
+          currentDayCount: 1,
+          currentHourCount: 1,
+          maxPerDay: 1,
+          maxPerHour: 1,
+        },
+      });
+      prisma.outreachCampaign.findFirst.mockResolvedValue(reservedRow);
+      prisma.outreachCampaign.update.mockResolvedValue(reservedRow);
+
+      await service.incrementReplyCounters(campaignId);
+
+      const written = prisma.outreachCampaign.update.mock.calls[0]?.[0] as {
+        data: { config: { rateLimits: Record<string, unknown> } };
+      };
+      expect(written.data.config.rateLimits.currentHourCount).toBe(1);
+      expect(written.data.config.rateLimits.currentDayCount).toBe(1);
+      expect(written.data.config).toEqual(
+        expect.objectContaining({
+          totalReplies: 1,
+          totalSuccessful: 1,
+        }),
+      );
+    });
+
+    it('grants at most one reservation when concurrent workers race the final slot', async () => {
+      const row = makeRow({
+        rateLimits: {
+          currentDayCount: 9,
+          currentHourCount: 9,
+          maxPerDay: 10,
+          maxPerHour: 10,
+        },
+      });
+      let current = structuredClone(row);
+      let chain = Promise.resolve();
+      const prisma = {
+        $transaction: vi.fn(),
+        outreachCampaign: {
+          findFirst: vi.fn(async () => structuredClone(current)),
+          updateMany: vi.fn(
+            async (args: {
+              data: { config: Record<string, unknown> };
+              where: { organizationId: string; status: string };
+            }) => {
+              if (
+                current.isDeleted ||
+                current.organizationId !== args.where.organizationId ||
+                current.status !== args.where.status
+              ) {
+                return { count: 0 };
+              }
+              current = {
+                ...current,
+                config: args.data.config,
+              };
+              return { count: 1 };
+            },
+          ),
+        },
+      };
+      prisma.$transaction.mockImplementation(
+        (callback: (tx: typeof prisma) => Promise<unknown>) => {
+          const run = chain.then(() => callback(prisma));
+          chain = run.then(
+            () => undefined,
+            () => undefined,
+          );
+          return run;
+        },
+      );
+      const service = new OutreachCampaignsService(
+        prisma as unknown as PrismaService,
+        {
+          debug: vi.fn(),
+          error: vi.fn(),
+          log: vi.fn(),
+          warn: vi.fn(),
+        } as unknown as LoggerService,
+      );
+
+      const results = await Promise.all(
+        Array.from({ length: 8 }, () =>
+          service.reserveReplySlot(campaignId, organizationId, now),
+        ),
+      );
+
+      expect(results.filter((result) => result.reserved)).toHaveLength(1);
+      expect(results.filter((result) => !result.reserved)).toHaveLength(7);
+      const rateLimits = current.config.rateLimits as {
+        currentDayCount: number;
+        currentHourCount: number;
+      };
+      expect(rateLimits.currentHourCount).toBe(10);
+      expect(rateLimits.currentDayCount).toBe(10);
     });
   });
 });

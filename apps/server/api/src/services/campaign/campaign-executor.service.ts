@@ -161,6 +161,30 @@ export class CampaignExecutorService {
         };
       }
 
+      const reservation = await this.campaignsService.reserveReplySlot(
+        campaign.id.toString(),
+        scope.organizationId,
+      );
+      if (!reservation.reserved) {
+        await this.campaignTargetsService.markAsSkipped(
+          target.id.toString(),
+          CampaignSkipReason.RATE_LIMITED,
+        );
+        await this.campaignsService.incrementSkippedCounter(
+          campaign.id.toString(),
+        );
+
+        this.loggerService.log(`${url} reservation denied`, {
+          campaignId: campaign.id,
+          targetId: target.id,
+        });
+
+        return {
+          skipReason: CampaignSkipReason.RATE_LIMITED,
+          success: false,
+        };
+      }
+
       const { result: postResult } =
         await this.systemWorkflowProvenanceService.runAction(
           {

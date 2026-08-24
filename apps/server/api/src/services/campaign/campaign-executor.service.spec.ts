@@ -38,6 +38,7 @@ describe('CampaignExecutorService', () => {
     incrementReplyCounters: vi.fn(),
     incrementSkippedCounter: vi.fn(),
     patch: vi.fn(),
+    reserveReplySlot: vi.fn(),
   };
 
   const mockCampaignTargetsService = {
@@ -136,6 +137,9 @@ describe('CampaignExecutorService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockOutreachCampaignsService.reserveReplySlot.mockResolvedValue({
+      reserved: true,
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -193,6 +197,9 @@ describe('CampaignExecutorService', () => {
       ).toHaveBeenCalledWith(campaignId.toString());
       expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
       expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).not.toHaveBeenCalled();
+      expect(
         mockCampaignTargetsService.markAsProcessing,
       ).not.toHaveBeenCalled();
     });
@@ -216,6 +223,9 @@ describe('CampaignExecutorService', () => {
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
       expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
       expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).not.toHaveBeenCalled();
+      expect(
         mockSystemWorkflowProvenanceService.runAction,
       ).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
@@ -235,6 +245,9 @@ describe('CampaignExecutorService', () => {
       expect(
         mockOutreachCampaignsService.incrementFailedCounter,
       ).toHaveBeenCalled();
+      expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).not.toHaveBeenCalled();
     });
 
     it('should execute successfully with AI-generated reply', async () => {
@@ -263,6 +276,9 @@ describe('CampaignExecutorService', () => {
         targetId.toString(),
         expect.objectContaining({ replyText: 'Great point!' }),
       );
+      expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).toHaveBeenCalledWith(campaignId, orgId);
       expect(
         mockOutreachCampaignsService.incrementReplyCounters,
       ).toHaveBeenCalled();
@@ -311,6 +327,102 @@ describe('CampaignExecutorService', () => {
         'Rate limited by Twitter',
         1,
       );
+      expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).toHaveBeenCalledWith(campaignId, orgId);
+      expect(
+        mockOutreachCampaignsService.incrementFailedCounter,
+      ).toHaveBeenCalled();
+      expect(
+        mockOutreachCampaignsService.incrementReplyCounters,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('honors a denied reservation after advisory preflight and never calls the provider', async () => {
+      const campaign = makeCampaign();
+      const target = makeTarget();
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+      mockOutreachCampaignsService.reserveReplySlot.mockResolvedValue({
+        reserved: false,
+      });
+      mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
+      mockReplyGenerationService.generateReply.mockResolvedValue(
+        'generated reply',
+      );
+
+      const result = await service.executeTarget(campaign, target);
+
+      expect(result.success).toBe(false);
+      expect(result.skipReason).toBe(CampaignSkipReason.RATE_LIMITED);
+      expect(mockReplyGenerationService.generateReply).toHaveBeenCalled();
+      expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).toHaveBeenCalledWith(campaignId, orgId);
+      expect(
+        mockSystemWorkflowProvenanceService.runAction,
+      ).not.toHaveBeenCalled();
+      expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsReplied).not.toHaveBeenCalled();
+      expect(
+        mockOutreachCampaignsService.incrementReplyCounters,
+      ).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
+        targetId.toString(),
+        CampaignSkipReason.RATE_LIMITED,
+      );
+    });
+
+    it('reserves immediately before the provider after generation', async () => {
+      const campaign = makeCampaign();
+      const target = makeTarget();
+      const order: string[] = [];
+      mockOutreachCampaignsService.canReply.mockImplementation(async () => {
+        order.push('canReply');
+        return true;
+      });
+      mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
+      mockReplyGenerationService.generateReply.mockImplementation(async () => {
+        order.push('generateReply');
+        return 'generated reply';
+      });
+      mockOutreachCampaignsService.reserveReplySlot.mockImplementation(
+        async () => {
+          order.push('reserveReplySlot');
+          return { reserved: true };
+        },
+      );
+      mockSystemWorkflowProvenanceService.runAction.mockImplementation(
+        async (
+          _input: unknown,
+          action: (provenance: {
+            executionId: string;
+            workflowId: string;
+            workflowLabel: string;
+          }) => Promise<unknown>,
+        ) => {
+          order.push('runAction');
+          const provenance = {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: 'Campaign Reply Automation',
+          };
+          return { provenance, result: await action(provenance) };
+        },
+      );
+      mockBotActionExecutorService.postReply.mockResolvedValue({
+        success: true,
+        tweetId: 'reply123',
+        tweetUrl: 'https://x.com/bot/status/reply123',
+      });
+
+      await service.executeTarget(campaign, target);
+
+      expect(order).toEqual([
+        'canReply',
+        'generateReply',
+        'reserveReplySlot',
+        'runAction',
+      ]);
     });
 
     it('should handle unexpected errors gracefully', async () => {
@@ -380,6 +492,9 @@ describe('CampaignExecutorService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Credential not found');
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).not.toHaveBeenCalled();
     });
 
     it('should fail closed without querying credentials when the organization cannot be resolved', async () => {
@@ -394,6 +509,9 @@ describe('CampaignExecutorService', () => {
       expect(result.success).toBe(false);
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
       expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
+      expect(
+        mockOutreachCampaignsService.reserveReplySlot,
+      ).not.toHaveBeenCalled();
       expect(
         mockCampaignTargetsService.markAsProcessing,
       ).not.toHaveBeenCalled();
