@@ -2,12 +2,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import type {
   ImageReferenceField,
   ReplicateModelSchema,
 } from '@api/services/prompt-builder/interfaces/replicate-schema.interface';
 import { IMAGE_REFERENCE_FIELDS } from '@api/services/prompt-builder/interfaces/replicate-schema.interface';
-import { Logger } from '@nestjs/common';
+import { ErrorCode } from '@genfeedai/enums';
+import { HttpStatus, Logger } from '@nestjs/common';
 
 const logger = new Logger('ReplicateSchemaUtil');
 const moduleDir = dirname(fileURLToPath(import.meta.url));
@@ -157,4 +159,69 @@ export function getSchemaDefault(
  */
 export function clearSchemaCache(): void {
   schemaCache.clear();
+}
+
+const HAILUO_23_FAST_SCHEMA = 'hailuo-2.3-fast.schema.json';
+const HAILUO_23_FAST_REQUIRED = ['prompt', 'first_frame_image'] as const;
+const HTTP_URI_PATTERN = /^https?:\/\/\S+$/i;
+
+function isBlankInputValue(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === 'string' && value.trim() === '')
+  );
+}
+
+function isHttpUri(value: string): boolean {
+  return HTTP_URI_PATTERN.test(value.trim());
+}
+
+/**
+ * Enforces a model's generated JSON schema before a Replicate network call.
+ * Missing/invalid required fields map to the repository-standard 4xx
+ * validation exception and never include provider payloads.
+ */
+export function assertRequiredSchemaInput(
+  modelId: string,
+  input: Record<string, unknown>,
+): void {
+  const schema = loadModelSchema(modelId);
+  const isHailuo23Fast =
+    modelIdToSchemaFilename(modelId) === HAILUO_23_FAST_SCHEMA;
+  const required =
+    schema?.required ?? (isHailuo23Fast ? [...HAILUO_23_FAST_REQUIRED] : []);
+  const errors: Array<{ field: string; message: string }> = [];
+
+  for (const field of required) {
+    const value = input[field];
+    if (isBlankInputValue(value)) {
+      errors.push({ field, message: `${field} is required` });
+      continue;
+    }
+    const format = schema?.properties[field]?.format;
+    if (
+      typeof value === 'string' &&
+      (format === 'uri' || field === 'first_frame_image') &&
+      !isHttpUri(value)
+    ) {
+      errors.push({
+        field,
+        message: `${field} must be a valid image URI`,
+      });
+    }
+  }
+
+  const firstError = errors[0];
+  if (!firstError) {
+    return;
+  }
+
+  ErrorResponse.throw({
+    code: ErrorCode.VALIDATION_FAILED,
+    detail: firstError.message,
+    status: HttpStatus.BAD_REQUEST,
+    title: 'Validation failed',
+    validationErrors: errors,
+  });
 }

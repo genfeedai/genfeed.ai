@@ -3,6 +3,11 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
+import {
+  assertRequiredSchemaInput,
+  modelIdToSchemaFilename,
+} from '@api/services/prompt-builder/utils/replicate-schema.util';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -22,6 +27,7 @@ export class ReplicateVideoGenerationProviderAdapter
   async generate(
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult> {
+    this.assertHailuoFirstFrame(params);
     const externalId = await this.replicateService.generateTextToVideo(
       params.modelEndpoint ?? params.model,
       params.promptParams,
@@ -31,5 +37,22 @@ export class ReplicateVideoGenerationProviderAdapter
       externalId,
       provider: this.provider,
     };
+  }
+
+  private assertHailuoFirstFrame(params: DispatchVideoGenerationParams): void {
+    if (
+      !this.isHailuo23Fast(params.model) &&
+      !this.isHailuo23Fast(params.modelEndpoint ?? '')
+    ) {
+      return;
+    }
+    assertRequiredSchemaInput(
+      MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      params.promptParams,
+    );
+  }
+
+  private isHailuo23Fast(modelId: string): boolean {
+    return modelIdToSchemaFilename(modelId) === 'hailuo-2.3-fast.schema.json';
   }
 }

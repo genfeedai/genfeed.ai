@@ -1,4 +1,5 @@
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { ErrorCode } from '@genfeedai/enums';
 import {
   HttpException,
   HttpStatus,
@@ -51,10 +52,51 @@ function readForbiddenDetail(error: string | undefined): string {
     : withoutStatus;
 }
 
+function inferValidationFailure(error: string | undefined): boolean {
+  if (!error) {
+    return false;
+  }
+
+  return /status code 400\b|\bHTTP\s*400\b|(?:failed with status|generation failed:)\s*400\b|:\s*400\s*$/i.test(
+    error,
+  );
+}
+
+const MAX_SAFE_VALIDATION_DETAIL = 240;
+
+function readValidationDetail(error: string | undefined): string {
+  const trimmed = error?.trim() ?? '';
+  const withoutStatus = trimmed
+    .replace(/^Request failed with status code 400:?\s*/i, '')
+    .replace(/^Failed to respond to UI action:\s*400\s*-\s*/i, '')
+    .trim();
+
+  if (
+    !withoutStatus ||
+    /^Request failed with status code 400$/i.test(trimmed) ||
+    withoutStatus.startsWith('{') ||
+    withoutStatus.startsWith('[') ||
+    withoutStatus.length > MAX_SAFE_VALIDATION_DETAIL
+  ) {
+    return 'One or more fields contain invalid values';
+  }
+
+  return withoutStatus;
+}
+
+function throwValidationFailed(detail: string): never {
+  ErrorResponse.throw({
+    code: ErrorCode.VALIDATION_FAILED,
+    detail,
+    status: HttpStatus.BAD_REQUEST,
+    title: 'Validation failed',
+  });
+}
+
 /**
  * Confirmed UI actions used to wrap every tool failure as 500, including
- * swallowed upstream 401/403s. Auth failures stay on the existing
- * ErrorResponse 401/403 path; unexpected failures remain 500.
+ * swallowed upstream 401/403/400s. Auth and validation failures stay on the
+ * existing ErrorResponse 4xx path; unexpected failures remain 500.
  */
 export function throwFailedUiActionResult(
   error: string | undefined,
@@ -67,6 +109,9 @@ export function throwFailedUiActionResult(
   }
   if (status === HttpStatus.FORBIDDEN) {
     ErrorResponse.forbidden(readForbiddenDetail(error));
+  }
+  if (inferValidationFailure(error)) {
+    throwValidationFailed(readValidationDetail(error));
   }
   if (/Cancelled by user/i.test(error ?? '')) {
     ErrorResponse.conflict('generation', 'Cancelled by user');
@@ -95,10 +140,19 @@ export function rethrowUiActionError(error: unknown): never {
       readForbiddenDetail(error instanceof Error ? error.message : undefined),
     );
   }
+  if (status === HttpStatus.BAD_REQUEST) {
+    throwFailedUiActionResult(
+      error instanceof Error ? error.message : undefined,
+      'Request validation failed.',
+    );
+  }
 
   const message = error instanceof Error ? error.message : undefined;
   if (inferAuthFailureStatus(message)) {
     throwFailedUiActionResult(message, 'Thread UI action failed.');
+  }
+  if (inferValidationFailure(message)) {
+    throwFailedUiActionResult(message, 'Request validation failed.');
   }
   throw error;
 }

@@ -417,6 +417,68 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     );
   });
 
+  it('preserves a Hailuo first-frame validation 400 instead of a generic 500', async () => {
+    const { service } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        error:
+          'Request failed with status code 400: first_frame_image is required',
+        success: false,
+      }),
+    });
+
+    const error = await expectHttpStatus(
+      service.handleThreadUiAction(
+        {
+          action: 'confirm_generate_media',
+          payload: {
+            generationType: 'video',
+            model: 'minimax/hailuo-2.3-fast',
+            prompt: 'A cinematic product reveal',
+            sourceActionId: 'generation-card-1',
+          },
+          threadId: THREAD_ID,
+        },
+        { organizationId: ORG_ID, userId: USER_ID },
+        host,
+      ),
+      HttpStatus.BAD_REQUEST,
+    );
+
+    expect(error).not.toBeInstanceOf(InternalServerErrorException);
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        detail: 'first_frame_image is required',
+        status: HttpStatus.BAD_REQUEST,
+        title: 'Validation failed',
+      }),
+    );
+  });
+
+  it('does not leak provider payloads when remapping a 400', async () => {
+    const { service } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        error:
+          'Request failed with status code 400: {"input":{"prompt":"secret-prompt"},"error":"validation"}',
+        success: false,
+      }),
+    });
+
+    const error = await expectHttpStatus(
+      service.handleThreadUiAction(
+        GENERATE_MEDIA_REQUEST,
+        { organizationId: ORG_ID, userId: USER_ID },
+        host,
+      ),
+      HttpStatus.BAD_REQUEST,
+    );
+
+    const serialized = JSON.stringify(error.getResponse());
+    expect(serialized).not.toContain('secret-prompt');
+    expect(serialized).not.toContain('{"input"');
+  });
+
   it('keeps unexpected generate-media failures as 500', async () => {
     const { service } = createService({
       executeTool: vi.fn().mockResolvedValue({

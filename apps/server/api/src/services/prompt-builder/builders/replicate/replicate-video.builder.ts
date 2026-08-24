@@ -31,6 +31,7 @@ import type {
   Wan27T2VInput,
   WanVideoInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
+import { assertRequiredSchemaInput } from '@api/services/prompt-builder/utils/replicate-schema.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   calculateAspectRatio,
@@ -665,18 +666,15 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
     params: PromptBuilderParams,
     promptText: string,
   ): Hailuo23FastInput {
-    const aspectRatio = calculateAspectRatio(params.width, params.height);
-    const normalizedRatio = normalizeAspectRatioForModel(model, aspectRatio);
     const duration = DurationUtil.validateAndNormalize(
       params.duration,
       [6, 10],
       6,
     );
-
+    const firstFrameImage = params.references?.[0]?.trim() ?? '';
     const input: Hailuo23FastInput = {
-      aspect_ratio: normalizedRatio,
-      duration: duration,
-      image: params.references?.[0] ?? '',
+      duration,
+      first_frame_image: firstFrameImage,
       prompt: promptText,
     };
 
@@ -684,10 +682,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       input.resolution = params.resolution;
     }
 
-    if (params.seed !== undefined) {
-      input.seed = params.seed;
-    }
-
+    assertRequiredSchemaInput(model, input);
     return input;
   }
 
