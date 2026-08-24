@@ -39,17 +39,13 @@ import {
 } from '../auth-ui';
 
 /**
- * `getClientSurface()` resolves the desktop shell from a browser-injected
- * runtime global, so it can only answer truthfully after hydration. Rather than
- * blanking the whole form until mount — which stripped the LCP heading out of
- * the server HTML and pushed app.genfeed.ai's LCP past 7s — the surface itself
- * is read through `useSyncExternalStore`. The server snapshot is the web
- * branch, so the full sign-in UI ships in the initial HTML; React swaps the
- * desktop branch in on its post-hydration pass without a mismatch.
+ * Desktop vs web is decided on the server (`isDesktopServerRequest`) so the
+ * first HTML is already the right surface. `useSyncExternalStore` keeps that
+ * snapshot through hydration, then follows `isDesktopClient()` if the runtime
+ * config later disagrees. Web LCP still ships the full sign-in form; desktop
+ * never paints the web chooser first.
  */
 const subscribeToClientSurface = () => () => {};
-const getIsDesktopSnapshot = () => isDesktopClient();
-const getIsDesktopServerSnapshot = () => false;
 const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
 
@@ -98,18 +94,20 @@ function getInvitationNotice(
   }
 }
 
-interface LoginBetterAuthProps {
+export interface LoginBetterAuthProps {
+  isDesktopShell?: boolean;
   mode?: LoginMode;
 }
 
 export default function LoginBetterAuth({
+  isDesktopShell = false,
   mode = 'chooser',
 }: LoginBetterAuthProps) {
   const searchParams = useSearchParams();
   const isDesktop = useSyncExternalStore(
     subscribeToClientSurface,
-    getIsDesktopSnapshot,
-    getIsDesktopServerSnapshot,
+    () => isDesktopClient() || isDesktopShell,
+    () => isDesktopShell,
   );
 
   const [email, setEmail] = useState('');

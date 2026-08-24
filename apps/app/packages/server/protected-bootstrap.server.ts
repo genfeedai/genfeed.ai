@@ -5,12 +5,14 @@ import {
   isDesktopClient,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
-import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { cache } from 'react';
+import { isDesktopServerRequest } from './desktop-request.server';
+
+export { isDesktopServerRequest } from './desktop-request.server';
 
 /**
  * Isolated Playwright builds only. Matches `isPlaywrightBypassRequest` in
@@ -60,15 +62,6 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
 export function hasUsableServerAuthToken(token: string): boolean {
   return Boolean(token) || isSelfHostedDeployment();
 }
-
-export const isDesktopServerRequest = cache(async (): Promise<boolean> => {
-  if (isDesktopClient()) {
-    return true;
-  }
-
-  const requestHeaders = await headers();
-  return Boolean(requestHeaders.get(DESKTOP_HTTP_HEADERS.version)?.trim());
-});
 
 export function shouldSkipCloudBootstrap(
   token: string,

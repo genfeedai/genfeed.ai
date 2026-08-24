@@ -9,9 +9,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './content';
 import LoginBetterAuth from './login-better-auth';
-import MagicLinkLoginPage from './magic-link/page';
-import AppLoginPage from './page';
-import PasswordLoginPage from './password/page';
 
 const authClientMocks = vi.hoisted(() => ({
   email: vi.fn(),
@@ -186,17 +183,34 @@ describe('LoginPage', () => {
     expect(screen.getByRole('link', { name: 'Magic Link' })).toBeVisible();
   });
 
+  it('renders the desktop surface from the server snapshot without a web-form flash', () => {
+    window.history.replaceState({}, '', '/login');
+
+    render(<LoginPage isDesktopShell />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Connect to Genfeed' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Welcome back' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
   it.each([
-    { Page: AppLoginPage, pathname: '/login' },
-    { Page: PasswordLoginPage, pathname: '/login/password' },
-    { Page: MagicLinkLoginPage, pathname: '/login/magic-link' },
+    { ui: <LoginPage />, pathname: '/login' },
+    { ui: <LoginBetterAuth mode="password" />, pathname: '/login/password' },
+    {
+      ui: <LoginBetterAuth mode="magic-link" />,
+      pathname: '/login/magic-link',
+    },
   ])(
     'renders the desktop sign-in surface for $pathname',
-    ({ Page, pathname }) => {
+    ({ ui, pathname }) => {
       vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
       window.history.replaceState({}, '', pathname);
 
-      render(<Page />);
+      render(ui);
 
       expect(
         screen.getByRole('heading', { name: 'Connect to Genfeed' }),
