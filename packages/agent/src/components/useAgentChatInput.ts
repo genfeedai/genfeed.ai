@@ -37,8 +37,6 @@ import {
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
-import { applyComposerPasteText } from '@genfeedai/agent/utils/apply-composer-paste.util';
-import { normalizeComposerPasteText } from '@genfeedai/agent/utils/normalize-composer-paste.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
@@ -51,6 +49,8 @@ import type { Editor, JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { applyPromptEditorPasteText } from '@ui/prompt-editor/apply-prompt-editor-paste';
+import { normalizePromptEditorPasteText } from '@ui/prompt-editor/normalize-prompt-editor-paste';
 import { useTranslations } from 'next-intl';
 import {
   type ClipboardEvent,
@@ -324,14 +324,14 @@ export function useAgentChatInput({
           return false;
         }
 
-        const normalized = normalizeComposerPasteText(plain);
+        const normalized = normalizePromptEditorPasteText(plain);
         event.preventDefault();
         if (!normalized) {
           return true;
         }
 
         const { state, dispatch } = view;
-        dispatch(applyComposerPasteText(state, normalized));
+        dispatch(applyPromptEditorPasteText(state, normalized));
         return true;
       },
     },

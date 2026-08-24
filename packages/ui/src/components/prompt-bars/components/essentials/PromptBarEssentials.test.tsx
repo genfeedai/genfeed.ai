@@ -49,9 +49,12 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/textarea', () => ({
-  Textarea: () => <textarea aria-label="prompt textarea" />,
-  default: () => <textarea aria-label="prompt textarea" />,
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({ testId, value }: { testId?: string; value?: string }) => (
+    <div aria-label="Prompt" data-testid={testId} role="textbox" tabIndex={0}>
+      {value}
+    </div>
+  ),
 }));
 
 vi.mock('@ui/primitives/checkbox', () => ({

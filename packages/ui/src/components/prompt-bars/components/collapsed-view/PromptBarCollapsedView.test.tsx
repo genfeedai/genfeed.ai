@@ -13,12 +13,25 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/input', () => ({
-  Input: ({ placeholder }: { placeholder?: string }) => (
-    <input placeholder={placeholder} />
-  ),
-  default: ({ placeholder }: { placeholder?: string }) => (
-    <input placeholder={placeholder} />
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    placeholder,
+    testId,
+    value,
+  }: {
+    placeholder?: string;
+    testId?: string;
+    value?: string;
+  }) => (
+    <div
+      aria-label="Prompt"
+      data-testid={testId}
+      placeholder={placeholder}
+      role="textbox"
+      tabIndex={0}
+    >
+      {value}
+    </div>
   ),
 }));
 

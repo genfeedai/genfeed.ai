@@ -4,13 +4,13 @@ import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
 import type { PromptBarContentCollapsedViewProps } from '@genfeedai/props/prompt-bars/prompt-bar-content.props';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
-import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import {
   COLLAPSE_BUTTON_CLASS,
   CONTROL_CLASS,
   POST_COUNT_CYCLE,
 } from '@ui/prompt-bars/content/prompt-bar-content.helpers';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp, Bookmark, ChevronUp, LayoutGrid, List } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 
@@ -29,7 +29,7 @@ export default function PromptBarContentCollapsedView({
   showThreadToggle,
   onCountChange,
   onExpand,
-  onKeyDown,
+  onKeyDown: _onKeyDown,
   onPresetChange,
   onPromptChange,
   onSubmit,
@@ -55,15 +55,19 @@ export default function PromptBarContentCollapsedView({
         />
       )}
 
-      <Input
-        name="prompt"
-        type="text"
-        value={prompt}
-        onChange={(event) => onPromptChange(event.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder={promptPlaceholder}
+      <PromptEditor
+        ariaLabel="Prompt"
+        className="h-9 flex-1 border border-border bg-background-tertiary px-3"
         isDisabled={isEnhancing}
-        className="h-9 flex-1 border border-border bg-background-tertiary px-3 text-sm text-foreground focus:border-border-strong focus:outline-none"
+        onSubmit={() => {
+          onSubmit({ preventDefault() {} } as unknown as Parameters<
+            typeof onSubmit
+          >[0]);
+        }}
+        onValueChange={onPromptChange}
+        placeholder={promptPlaceholder}
+        testId="prompt-input"
+        value={prompt}
       />
 
       {(showCountDropdown || showThreadToggle) && (
