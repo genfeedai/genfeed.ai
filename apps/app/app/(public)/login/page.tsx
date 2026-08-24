@@ -18,9 +18,11 @@ import LoginPage from './content';
  */
 export const metadata: Metadata = {
   alternates: { canonical: 'https://app.genfeed.ai/login' },
-  description: 'Sign in to your Genfeed workspace.',
+  description:
+    'Sign in to Genfeed to access your content studio, brand assets, generation tools, publishing workflows, and team workspace.',
   robots: { follow: true, index: true },
-  title: 'Sign In | Genfeed',
+  title: 'Sign In to Your Genfeed Workspace',
+  twitter: { card: 'summary' },
 };
 
 export default function AppLoginPage() {

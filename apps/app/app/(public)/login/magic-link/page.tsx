@@ -4,7 +4,11 @@ import { Suspense } from 'react';
 import LoginBetterAuth from '../login-better-auth';
 
 export const metadata: Metadata = {
-  title: 'Magic Link Sign In | Genfeed',
+  alternates: { canonical: 'https://app.genfeed.ai/login/magic-link' },
+  description:
+    'Sign in to Genfeed with a secure magic link to access your content studio, brand assets, publishing workflows, and team workspace.',
+  title: 'Sign In with a Magic Link | Genfeed',
+  twitter: { card: 'summary' },
 };
 
 export default function MagicLinkLoginPage() {

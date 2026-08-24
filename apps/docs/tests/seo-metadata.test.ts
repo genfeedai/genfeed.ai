@@ -118,15 +118,13 @@ describe('docs SEO metadata', () => {
     expect(body).toContain('Sitemap: https://docs.genfeed.ai/sitemap.xml');
   });
 
-  it('gives the interactive API reference exactly one server-rendered H1', () => {
+  it('lets rendered Swagger own the interactive API reference H1', () => {
     const source = fs.readFileSync(apiReferencePath, 'utf8');
 
-    // SwaggerUI is `ssr: false`, so its own heading never reaches a crawler and
-    // the route shipped no H1 at all (2026-08-19 audit). The MDX heading is the
-    // only server-rendered one; Swagger renders its API title as an h2 below.
+    // The watchdog inspects the rendered DOM, where Swagger emits its document
+    // title as an H1. A manual MDX H1 would therefore produce two H1 elements.
     expect(source).toContain('<SwaggerUI />');
-    expect(source.match(/^# /gm) ?? []).toHaveLength(1);
-    expect(source).toContain('# API Reference');
+    expect(source.match(/^# /gm) ?? []).toHaveLength(0);
   });
 
   it('builds a complete Open Graph card for every docs route', () => {
