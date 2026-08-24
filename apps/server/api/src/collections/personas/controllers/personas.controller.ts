@@ -13,9 +13,21 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { PersonaStatus } from '@genfeedai/enums';
+import type { AgentCharacterMentionsResponse } from '@genfeedai/interfaces';
 import { PersonaSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Body, Controller, Param, Patch, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -76,6 +88,56 @@ export class PersonasController extends BaseCRUDController<
       orderBy: handleQuerySort(query.sort),
       where: match,
     };
+  }
+
+  @Get('mentions')
+  async getMentions(
+    @CurrentUser() user: User,
+    @Query('q') q?: string,
+  ): Promise<AgentCharacterMentionsResponse> {
+    if (!user.organizationId) {
+      throw new BadRequestException({
+        detail: 'Organization not found in metadata',
+        title: 'Bad Request',
+      });
+    }
+
+    const mentions = await this.personasService.listCharacterMentions({
+      brandId: user.brandId,
+      organizationId: user.organizationId,
+      q,
+    });
+
+    return { mentions };
+  }
+
+  @Post('from-sheet')
+  async createFromSheet(
+    @CurrentUser() user: User,
+    @Body()
+    body: {
+      assetId: string;
+      handle: string;
+      label: string;
+    },
+  ) {
+    if (!user.organizationId || !user.brandId) {
+      throw new BadRequestException({
+        detail: 'Organization and brand are required to create a character',
+        title: 'Bad Request',
+      });
+    }
+
+    const persona = await this.personasService.createFromApprovedSheet({
+      assetId: body.assetId,
+      brandId: user.brandId,
+      handle: body.handle,
+      label: body.label,
+      organizationId: user.organizationId,
+      userId: user.userId ?? user.id,
+    });
+
+    return { data: persona };
   }
 
   /**

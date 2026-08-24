@@ -32,7 +32,8 @@ export type ExtractedMention =
       isAgent: boolean;
     }
   | { type: 'credential'; id: string; handle: string; platform: string }
-  | { type: 'content'; id: string; contentTitle: string; contentType: string };
+  | { type: 'content'; id: string; contentTitle: string; contentType: string }
+  | { type: 'character'; id: string; handle: string; label: string };
 
 interface AgentChatInputProps {
   onSend: (

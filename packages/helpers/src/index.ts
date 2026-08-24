@@ -6,6 +6,7 @@ export * from './brand/brand-interview-examples.helper';
 export * from './brand-completeness.helper';
 export * from './brand-kit-contract.helper';
 export * from './business/tier-models/tier-models.helper';
+export * from './content/character-mention.util';
 export * from './content/schema-org.helper';
 export * from './deserializer.helper';
 export * from './email/system-email.helper';

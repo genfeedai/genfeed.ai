@@ -46,6 +46,14 @@ export function extractMentions(json: JSONContent): ExtractedMention[] {
             type: 'content',
           });
           break;
+        case 'characterMention':
+          result.push({
+            handle: node.attrs.handle as string,
+            id: node.attrs.id as string,
+            label: node.attrs.label as string,
+            type: 'character',
+          });
+          break;
       }
     }
     if (node.content) {
@@ -87,6 +95,14 @@ export function mapMentionsToReferences(
         id: mention.id,
         label: `!${mention.handle}`,
         type: 'credential',
+      });
+      continue;
+    }
+    if (mention.type === 'character') {
+      references.push({
+        id: mention.id,
+        label: mention.label || `@${mention.handle}`,
+        type: 'character',
       });
     }
   }

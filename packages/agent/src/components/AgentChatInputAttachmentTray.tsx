@@ -14,6 +14,7 @@ export interface AgentChatReferenceItem {
     | 'asset'
     | 'brand'
     | 'content'
+    | 'character'
     | 'credential'
     | 'team'
     | ConversationComposerContextReferenceKind;

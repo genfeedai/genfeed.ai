@@ -19,6 +19,18 @@ export interface AgentContentMentionItem {
   thumbnailUrl?: string;
 }
 
+export interface AgentCharacterMentionItem {
+  avatarIngredientId?: string | null;
+  handle: string;
+  hasReferenceImage: boolean;
+  id: string;
+  label: string;
+}
+
+export interface AgentCharacterMentionsResponse {
+  mentions: AgentCharacterMentionItem[];
+}
+
 export interface AgentTeamMentionsResponse {
   mentions: AgentTeamMentionItem[];
 }

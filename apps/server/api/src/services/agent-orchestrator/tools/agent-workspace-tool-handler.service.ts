@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
@@ -29,6 +30,7 @@ export class AgentWorkspaceToolHandler {
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
     private readonly postsService: PostsService,
+    private readonly personasService: PersonasService,
   ) {}
 
   async getCreditsBalance(ctx: ToolExecutionContext): Promise<AgentToolResult> {
@@ -61,6 +63,30 @@ export class AgentWorkspaceToolHandler {
         brands: serializeAgentBrands(
           (brands.docs as Record<string, unknown>[] | undefined) ?? [],
         ),
+      },
+      success: true,
+    };
+  }
+
+  async listCharacters(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const mentions = await this.personasService.listCharacterMentions({
+      brandId: ctx.brandId,
+      organizationId: ctx.organizationId,
+      q: typeof params.q === 'string' ? params.q : undefined,
+    });
+
+    return {
+      creditsUsed: 0,
+      data: {
+        characters: mentions.map((mention) => ({
+          description: mention.label,
+          handle: mention.handle,
+          hasReferenceImage: mention.hasReferenceImage,
+          label: mention.label,
+        })),
       },
       success: true,
     };

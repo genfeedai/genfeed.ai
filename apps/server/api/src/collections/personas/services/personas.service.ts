@@ -6,8 +6,15 @@ import { ValidationException } from '@api/helpers/exceptions/http/validation.exc
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { isPersonaHandle, normalizePersonaHandle } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import {
+  isPersonaHandle,
+  normalizePersonaHandle,
+  PersonaStatus,
+} from '@genfeedai/enums';
+import type {
+  AgentCharacterMentionItem,
+  PopulateOption,
+} from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -170,6 +177,86 @@ export class PersonasService extends BaseService<
     ],
   ): Promise<PersonaDocument | null> {
     return super.findOne(params, populate);
+  }
+
+  async listCharacterMentions(params: {
+    organizationId: string;
+    brandId?: string | null;
+    q?: string;
+  }): Promise<AgentCharacterMentionItem[]> {
+    const prefix = params.q?.trim();
+    const rows = await this.prisma.persona.findMany({
+      orderBy: { label: 'asc' },
+      select: {
+        avatarIngredientId: true,
+        handle: true,
+        id: true,
+        label: true,
+      },
+      take: 20,
+      where: {
+        handle: { not: null },
+        isDeleted: false,
+        organizationId: params.organizationId,
+        status: PersonaStatus.ACTIVE,
+        ...(params.brandId ? { brandId: params.brandId } : {}),
+        ...(prefix
+          ? {
+              OR: [
+                {
+                  handle: {
+                    mode: 'insensitive',
+                    startsWith: prefix.toLowerCase(),
+                  },
+                },
+                { label: { mode: 'insensitive', startsWith: prefix } },
+              ],
+            }
+          : {}),
+      },
+    });
+
+    return rows.flatMap((row) => {
+      if (!row.handle) {
+        return [];
+      }
+      return [
+        {
+          avatarIngredientId: row.avatarIngredientId,
+          handle: row.handle,
+          hasReferenceImage: Boolean(row.avatarIngredientId),
+          id: row.id,
+          label: row.label,
+        },
+      ];
+    });
+  }
+
+  async createFromApprovedSheet(params: {
+    assetId: string;
+    brandId: string;
+    handle: string;
+    label: string;
+    organizationId: string;
+    userId: string;
+  }): Promise<PersonaDocument> {
+    const handle = normalizePersonaHandle(params.handle);
+    if (handle === null || !isPersonaHandle(handle)) {
+      throw new ValidationException(
+        'Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores',
+        'handle',
+        params.handle,
+      );
+    }
+    return this.create({
+      avatarIngredientId: params.assetId,
+      brandId: params.brandId,
+      handle,
+      label: params.label,
+      organizationId: params.organizationId,
+      status: PersonaStatus.ACTIVE,
+      userId: params.userId,
+    });
   }
 
   async assignMembers(

@@ -31,8 +31,10 @@ describe('PersonasController', () => {
   const mockServiceMethods = {
     assignMembers: vi.fn(),
     create: vi.fn(),
+    createFromApprovedSheet: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
+    listCharacterMentions: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
   };
@@ -156,6 +158,28 @@ describe('PersonasController', () => {
           memberIds: [memberId1],
         } as any),
       ).rejects.toThrow('DB error');
+    });
+  });
+
+  describe('getMentions', () => {
+    it('returns brand-scoped character mentions', async () => {
+      mockServiceMethods.listCharacterMentions.mockResolvedValue([
+        {
+          handle: 'anna',
+          hasReferenceImage: true,
+          id: personaId,
+          label: 'Anna',
+        },
+      ]);
+
+      const result = await controller.getMentions(mockUser as never, 'an');
+
+      expect(mockServiceMethods.listCharacterMentions).toHaveBeenCalledWith({
+        brandId,
+        organizationId,
+        q: 'an',
+      });
+      expect(result.mentions[0]?.handle).toBe('anna');
     });
   });
 
