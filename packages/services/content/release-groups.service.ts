@@ -220,6 +220,36 @@ export class ReleaseGroupsService extends HTTPBaseService {
   }
 
   /**
+   * Move a calendar card without enqueueing a publish. Used when the operator
+   * chooses card-only after dragging a published or past-due queued item.
+   */
+  async moveCalendarPlacement(
+    groupId: string,
+    scheduledDate: string,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { action: 'calendar-move', scheduledDate },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /**
+   * Publish again at the drop time through the existing release contract: a new
+   * scheduled occurrence for live posts, or a reschedule for unpublished ones.
+   */
+  async republishAt(
+    groupId: string,
+    scheduledDate: string,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${groupId}`,
+      { action: 'republish', scheduledDate },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
+  /**
    * Partial edit of a single channel target. Covers a per-target reschedule
    * (`scheduledDate`) and a manual retry of a failed target
    * (`executionState: scheduled`), which the API turns into a fresh publish

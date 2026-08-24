@@ -9,10 +9,14 @@ import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   badgeVariantForTone,
+  hasLivePublishedTarget,
+  isReleaseDragConfirmRequired,
+  isReleaseDraggable,
   isReleaseReschedulable,
   isTargetBlockedByReadiness,
   isTargetReschedulable,
   releasePlatformIndicators,
+  releaseScheduledInstant,
   releaseSources,
   releaseStatusBadge,
   releaseTargets,
@@ -107,13 +111,13 @@ describe('releaseTargets', () => {
 });
 
 describe('isReleaseReschedulable', () => {
-  it('refuses to move a release that already published', () => {
+  it('refuses an in-place rewrite of a release that already published', () => {
     expect(
       isReleaseReschedulable(release({ status: ReleaseStatus.PUBLISHED })),
     ).toBe(false);
   });
 
-  it('refuses to move a scheduled release whose target already published', () => {
+  it('refuses an in-place rewrite when any target already published', () => {
     expect(
       isReleaseReschedulable(
         release({
@@ -141,6 +145,101 @@ describe('isReleaseReschedulable', () => {
         }),
       ),
     ).toBe(true);
+  });
+});
+
+describe('isReleaseDraggable', () => {
+  it('lets a published card be dragged so the host can ask card-only vs republish', () => {
+    expect(
+      isReleaseDraggable(
+        release({
+          status: ReleaseStatus.PUBLISHED,
+          targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('still locks cancelled and in-flight releases', () => {
+    expect(
+      isReleaseDraggable(release({ status: ReleaseStatus.CANCELLED })),
+    ).toBe(false);
+    expect(
+      isReleaseDraggable(release({ status: ReleaseStatus.PUBLISHING })),
+    ).toBe(false);
+  });
+});
+
+describe('isReleaseDragConfirmRequired', () => {
+  const now = new Date('2026-03-12T12:00:00.000Z');
+
+  it('does not prompt for a future scheduled or draft drag', () => {
+    expect(
+      isReleaseDragConfirmRequired(
+        release({ scheduledAt: '2026-03-13T10:00:00.000Z' }),
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isReleaseDragConfirmRequired(
+        release({
+          scheduledAt: '2026-03-10T10:00:00.000Z',
+          status: ReleaseStatus.DRAFT,
+        }),
+        now,
+      ),
+    ).toBe(false);
+  });
+
+  it('prompts when the card already published', () => {
+    expect(
+      isReleaseDragConfirmRequired(
+        release({
+          scheduledAt: '2026-03-13T10:00:00.000Z',
+          status: ReleaseStatus.PUBLISHED,
+          targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
+        }),
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it('prompts for a queued item whose time has already passed', () => {
+    expect(
+      isReleaseDragConfirmRequired(
+        release({ scheduledAt: '2026-03-12T10:00:00.000Z' }),
+        now,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('hasLivePublishedTarget / releaseScheduledInstant', () => {
+  it('treats a published sibling target as already live', () => {
+    expect(
+      hasLivePublishedTarget(
+        release({
+          targets: [
+            target(),
+            target({
+              executionState: TargetExecutionState.PUBLISHED,
+              id: 'target-2',
+            }),
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('falls back to the first target instant when the release has none', () => {
+    expect(
+      releaseScheduledInstant(
+        release({
+          scheduledAt: null,
+          targets: [target({ scheduledAt: '2026-03-14T09:00:00.000Z' })],
+        }),
+      ),
+    ).toBe('2026-03-14T09:00:00.000Z');
   });
 });
 

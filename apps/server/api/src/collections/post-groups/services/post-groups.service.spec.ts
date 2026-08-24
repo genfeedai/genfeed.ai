@@ -1848,6 +1848,139 @@ describe('PostGroupsService', () => {
       versionPinId: 'pin-1',
     });
   });
+
+  it('moves calendar placement without enqueueing a publish or rewriting targets', async () => {
+    const scheduledAt = '2026-08-02T09:00:00.000Z';
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({
+        scheduledAt: new Date('2026-07-01T09:00:00.000Z'),
+        status: ReleaseStatus.PUBLISHED,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
+    ]);
+
+    await service.moveCalendarPlacement('org-1', 'user-1', 'group-1', {
+      scheduledDate: scheduledAt,
+    });
+
+    expect(prisma.postGroup.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { scheduledAt: new Date(scheduledAt) },
+      }),
+    );
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(prisma.post.create).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid calendar-move timestamp before writing', async () => {
+    await expect(
+      service.moveCalendarPlacement('org-1', 'user-1', 'group-1', {
+        scheduledDate: 'not-a-date',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prisma.postGroup.update).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('republishes a live post as one new scheduled target without enqueueing', async () => {
+    const scheduledAt = '2026-07-09T12:00:00.000Z';
+    const publishedGroup = makeGroup({
+      status: ReleaseStatus.PUBLISHED,
+    });
+    prisma.postGroup.findFirst.mockImplementation(
+      (args: { where?: { idempotencyKey?: string } } | undefined) => {
+        if (args?.where?.idempotencyKey) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve(publishedGroup);
+      },
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        description: 'Base content',
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        targetSettings: { replyPolicy: 'everyone' },
+      }),
+    ]);
+    prisma.postGroup.create.mockImplementation(({ data }) =>
+      Promise.resolve(makeGroup({ ...data, id: 'group-2' })),
+    );
+    prisma.post.create.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeTarget({
+          ...data,
+          groupId: 'group-2',
+          id: 'target-2',
+        }),
+      ),
+    );
+
+    const result = await service.republishAt('org-1', 'user-1', 'group-1', {
+      scheduledDate: scheduledAt,
+    });
+
+    expect(prisma.postGroup.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          idempotencyKey: `calendar-republish:group-1:${scheduledAt}`,
+          scheduledAt: new Date(scheduledAt),
+          status: ReleaseStatus.SCHEDULED,
+        }),
+      }),
+    );
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          groupId: 'group-2',
+          scheduledDate: new Date(scheduledAt),
+          source: 'calendar-republish',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      }),
+    );
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+    expect(result.id).toBe('group-2');
+    expect(result.status).toBe(ReleaseStatus.SCHEDULED);
+    expect(result.targets).toHaveLength(1);
+  });
+
+  it('reschedules an unpublished past-due item in place without enqueueing', async () => {
+    const scheduledAt = '2026-07-09T12:00:00.000Z';
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({
+        scheduledAt: new Date('2026-07-01T09:00:00.000Z'),
+        status: ReleaseStatus.SCHEDULED,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        scheduledDate: new Date('2026-07-01T09:00:00.000Z'),
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+
+    await service.republishAt('org-1', 'user-1', 'group-1', {
+      scheduledDate: scheduledAt,
+    });
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+    expect(prisma.postGroup.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scheduledAt: new Date(scheduledAt),
+        }),
+      }),
+    );
+    expect(prisma.post.updateMany).toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
 });
 
 function makeCredential(

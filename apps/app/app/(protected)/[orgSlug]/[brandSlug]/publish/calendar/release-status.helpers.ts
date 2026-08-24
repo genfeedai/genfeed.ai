@@ -74,13 +74,11 @@ const BADGE_VARIANTS: Record<
 };
 
 /**
- * Release states that can no longer be moved. Dragging a published or cancelled
- * release would imply a reschedule the backend will reject, so the calendar
- * never offers it.
+ * In-flight or abandoned releases stay locked. Published cards are draggable —
+ * the host asks card-only vs republish instead of silently rewriting history.
  */
 const IMMOVABLE_RELEASE_STATUSES = new Set<ReleaseStatus>([
   ReleaseStatus.CANCELLED,
-  ReleaseStatus.PUBLISHED,
   ReleaseStatus.PUBLISHING,
 ]);
 
@@ -88,6 +86,17 @@ const IMMOVABLE_TARGET_STATES = new Set<TargetExecutionState>([
   TargetExecutionState.CANCELLED,
   TargetExecutionState.PUBLISHED,
   TargetExecutionState.PUBLISHING,
+]);
+
+const LOCKED_DRAG_TARGET_STATES = new Set<TargetExecutionState>([
+  TargetExecutionState.CANCELLED,
+  TargetExecutionState.PUBLISHING,
+  TargetExecutionState.SKIPPED,
+]);
+
+const LIVE_RELEASE_STATUSES = new Set<ReleaseStatus>([
+  ReleaseStatus.PARTIALLY_PUBLISHED,
+  ReleaseStatus.PUBLISHED,
 ]);
 
 export function badgeVariantForTone(
@@ -117,11 +126,6 @@ export function validationBadge(
 }
 
 /**
- * A release can be dragged to a new slot only when every one of its targets is
- * still movable. Moving a release whose targets have already gone out would
- * silently rewrite history for the ones that published.
- */
-/**
  * JSON:API to-many sideloads sometimes collapse `targets` to a single object
  * or a string. `for...of` / `.find` on those shapes throw and loop the
  * protected-shell ErrorBoundary on `/publish/calendar`.
@@ -132,8 +136,28 @@ export function releaseTargets(
   return Array.isArray(release?.targets) ? release.targets : [];
 }
 
+/** Earliest instant a release occupies, so a target-only schedule still lands. */
+export function releaseScheduledInstant(
+  release: IReleaseGroup,
+): string | undefined {
+  return (
+    release.scheduledAt ??
+    releaseTargets(release).find((target) => target.scheduledAt)?.scheduledAt ??
+    undefined
+  );
+}
+
+/**
+ * In-place reschedule without a republish prompt: draft, scheduled, and paused
+ * releases whose targets have not gone live. The drawer still uses this so a
+ * published post cannot be rewritten from the datetime picker.
+ */
 export function isReleaseReschedulable(release: IReleaseGroup): boolean {
   if (IMMOVABLE_RELEASE_STATUSES.has(release.status)) {
+    return false;
+  }
+
+  if (LIVE_RELEASE_STATUSES.has(release.status)) {
     return false;
   }
 
@@ -142,8 +166,80 @@ export function isReleaseReschedulable(release: IReleaseGroup): boolean {
   );
 }
 
+/**
+ * Calendar drag eligibility. Published and past-due queued cards are movable;
+ * the drop handler asks before persisting. Cancelled and in-flight stays locked.
+ */
+export function isReleaseDraggable(release: IReleaseGroup): boolean {
+  if (IMMOVABLE_RELEASE_STATUSES.has(release.status)) {
+    return false;
+  }
+
+  const targets = releaseTargets(release);
+  if (
+    targets.some(
+      (target) => target.executionState === TargetExecutionState.PUBLISHING,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    targets.length > 0 &&
+    targets.every((target) =>
+      LOCKED_DRAG_TARGET_STATES.has(target.executionState),
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export function isTargetReschedulable(target: IChannelTarget): boolean {
   return !IMMOVABLE_TARGET_STATES.has(target.executionState);
+}
+
+export function hasLivePublishedTarget(release: IReleaseGroup): boolean {
+  if (LIVE_RELEASE_STATUSES.has(release.status)) {
+    return true;
+  }
+
+  return releaseTargets(release).some(
+    (target) => target.executionState === TargetExecutionState.PUBLISHED,
+  );
+}
+
+/**
+ * Dragging these asks card-only vs publish-again: already-live posts, and
+ * queued items whose scheduled time has already passed.
+ */
+export function isReleaseDragConfirmRequired(
+  release: IReleaseGroup,
+  now: Date = new Date(),
+): boolean {
+  if (!isReleaseDraggable(release)) {
+    return false;
+  }
+
+  if (hasLivePublishedTarget(release)) {
+    return true;
+  }
+
+  if (
+    release.status !== ReleaseStatus.SCHEDULED &&
+    release.status !== ReleaseStatus.PAUSED
+  ) {
+    return false;
+  }
+
+  const instant = releaseScheduledInstant(release);
+  if (!instant) {
+    return false;
+  }
+
+  const scheduledTime = Date.parse(instant);
+  return Number.isFinite(scheduledTime) && scheduledTime <= now.getTime();
 }
 
 /**
