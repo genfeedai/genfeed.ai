@@ -18,8 +18,6 @@
    selector, which these apps do not use. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-@source "../../node_modules/@shipshitdev/ui/dist";
-
 @theme inline {
   /* Semantic surface tokens */
   --color-surface: rgb(var(--surface));
@@ -120,17 +118,16 @@
   --color-background-100: hsl(var(--background-100));
   --color-background-200: hsl(var(--background-200));
 
-  /* Semantic colors layered on shipshitdev/ui ship-* tokens */
+  /* Surfaces that DESIGN.md names without a shadcn counterpart. */
+  --color-tertiary: hsl(var(--background-tertiary));
+  --color-elevated: hsl(var(--popover));
+  --color-hover: hsl(var(--gray-300));
+
   --color-border-strong: hsl(var(--border-strong));
-  --color-accent-hover: var(--ship-accent-hover);
-  /*
-   * Ship Badge `danger` uses text-danger / bg-danger/*. Point danger at the
-   * same red as destructive so those utilities actually paint red even when
-   * --ship-danger is only defined under .ship-ui.
-   */
+  --color-accent-hover: var(--accent-hover);
   --color-danger: hsl(var(--destructive));
-  --color-agent: var(--ship-agent);
-  --color-done: var(--ship-done);
+  --color-agent: var(--agent);
+  --color-done: var(--done);
 
   /* 11px is the hard floor for product type: below it Satoshi's low x-height
      stops resolving at 1x. `text-2xs` replaces every text-[10px] / text-[11px]
@@ -161,76 +158,20 @@
   --spacing-icon-lg: var(--icon-lg);
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   ShipCode palette → semantic tokens.
-   `--ship-*` is the vocabulary the shipshitdev/ui primitives were authored
-   against. It is no longer a second palette: every entry now points at the
-   same neutral ladder and semantic roles as the rest of the product, so a Ship
-   primitive and a Genfeed primitive sitting side by side paint identical
-   surfaces in both themes.
-
-   Hoisted to `:root` as well as `.ship-ui` because `@theme inline` reads
-   `--ship-accent-hover` / `--ship-agent` / `--ship-done` for the
-   `accent-hover` / `agent` / `done` colour utilities, which are used outside
-   any `.ship-ui` subtree.
-   ────────────────────────────────────────────────────────────────────────── */
-:root,
-.ship-ui {
-  /* Four planes, one step apart, in this order — the whole depth system:
-     canvas → card/panel → nested fill → hover. `tertiary` and `accent` are the
-     same step on purpose: "one above the card" is both the fill of a panel
-     nested in a card and the hover state of a row sitting on one. `hover` is a
-     further step up so it stays visible on all three planes below it. */
-  --ship-bg-primary: hsl(var(--background));
-  --ship-bg-secondary: hsl(var(--background-secondary));
-  --ship-bg-tertiary: hsl(var(--background-tertiary));
-  --ship-bg-elevated: hsl(var(--popover));
-  --ship-bg-hover: hsl(var(--gray-300));
-  --ship-border: hsl(var(--border));
-  --ship-border-strong: hsl(var(--border-strong));
-  /* The three-step text ladder: 1000 primary, 900 secondary (7.5:1+),
-     800 muted (4.5:1+). Nothing below 800 is allowed to carry words. */
-  --ship-text-primary: hsl(var(--gray-1000));
-  --ship-text-secondary: hsl(var(--gray-900));
-  --ship-text-muted: hsl(var(--gray-800));
-  --ship-accent: hsl(var(--primary));
-  --ship-accent-foreground: hsl(var(--primary-foreground));
+:root {
   /* One notch off a full-strength foreground fill — the only place the product
      dims `gray-1000`, so it has no scale step of its own. */
-  --ship-accent-hover: #cccccc;
-  --ship-success: hsl(var(--success));
-  --ship-warning: hsl(var(--warning));
-  --ship-danger: hsl(var(--destructive));
-  --ship-info: hsl(var(--info));
+  --accent-hover: #cccccc;
   /* Agent + done are the only two product hues outside the status set. Both are
      checked as text against their own canvas: 9.25:1 and 7.49:1 on #0A0A0A. */
-  --ship-agent: #38bdf8;
-  --ship-done: #c084fc;
-
-  /*
-   * Ship primitives also reference unprefixed theme vars
-   * (e.g. Switch thumb: bg-[var(--text-primary)]). Alias them so
-   * those components don't paint with unresolved/transparent colors.
-   */
-  --bg-hover: var(--ship-bg-hover);
-  --text-primary: var(--ship-text-primary);
-  --text-secondary: var(--ship-text-secondary);
-  --text-muted: var(--ship-text-muted);
-  --bg-primary: var(--ship-bg-primary);
-  --bg-secondary: var(--ship-bg-secondary);
-  --bg-tertiary: var(--ship-bg-tertiary);
-  --bg-elevated: var(--ship-bg-elevated);
+  --agent: #38bdf8;
+  --done: #c084fc;
 }
 
-/*
- * Light overrides the three raw hues only. Every other `--ship-*` above is a
- * `var()` onto a themed token, so it inverts on its own — that is the whole
- * point of a role-parallel scale.
- */
 [data-theme="light"] {
-  --ship-accent-hover: #383838;
-  --ship-agent: #0369a1; /* #0284c7 is 3.92:1 on #FAFAFA — fails AA as text */
-  --ship-done: #7c3aed;
+  --accent-hover: #383838;
+  --agent: #0369a1; /* #0284c7 is 3.92:1 on #FAFAFA — fails AA as text */
+  --done: #7c3aed;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -288,96 +229,6 @@ body.gf-studio-app {
    full Geist stack (hairline + tight + ambient) as one token. */
 @utility shadow-tooltip {
   box-shadow: var(--shadow-tooltip);
-}
-
-/* ship-ui scoped utilities */
-
-/* Backgrounds */
-.ship-ui.bg-primary,
-.ship-ui .bg-primary {
-  background-color: var(--ship-bg-primary);
-}
-.ship-ui.bg-secondary,
-.ship-ui .bg-secondary {
-  background-color: var(--ship-bg-secondary);
-}
-.ship-ui.bg-tertiary,
-.ship-ui .bg-tertiary {
-  background-color: var(--ship-bg-tertiary);
-}
-.ship-ui.bg-elevated,
-.ship-ui .bg-elevated {
-  background-color: var(--ship-bg-elevated);
-}
-.ship-ui.bg-hover,
-.ship-ui .bg-hover {
-  background-color: var(--ship-bg-hover);
-}
-.ship-ui.bg-accent,
-.ship-ui .bg-accent {
-  background-color: var(--ship-accent);
-}
-.ship-ui.bg-accent-hover,
-.ship-ui .bg-accent-hover {
-  background-color: var(--ship-accent-hover);
-}
-
-/* Text */
-.ship-ui.text-primary,
-.ship-ui .text-primary {
-  color: var(--ship-text-primary);
-}
-.ship-ui.text-secondary,
-.ship-ui .text-secondary {
-  color: var(--ship-text-secondary);
-}
-.ship-ui.text-muted,
-.ship-ui .text-muted {
-  color: var(--ship-text-muted);
-}
-.ship-ui.text-accent-foreground,
-.ship-ui .text-accent-foreground {
-  color: var(--ship-accent-foreground);
-}
-
-/* Borders */
-.ship-ui.border-border,
-.ship-ui .border-border {
-  border-color: var(--ship-border);
-}
-.ship-ui.border-border-strong,
-.ship-ui .border-border-strong {
-  border-color: var(--ship-border-strong);
-}
-.ship-ui.border-accent,
-.ship-ui .border-accent {
-  border-color: var(--ship-accent);
-}
-.ship-ui.border-danger\/30,
-.ship-ui .border-danger\/30 {
-  border-color: color-mix(in oklab, var(--ship-danger) 30%, transparent);
-}
-
-/* Hover */
-.ship-ui.hover\:bg-hover:hover,
-.ship-ui .hover\:bg-hover:hover {
-  background-color: var(--ship-bg-hover);
-}
-.ship-ui.hover\:bg-accent-hover:hover,
-.ship-ui .hover\:bg-accent-hover:hover {
-  background-color: var(--ship-accent-hover);
-}
-.ship-ui.hover\:text-primary:hover,
-.ship-ui .hover\:text-primary:hover {
-  color: var(--ship-text-primary);
-}
-.ship-ui.hover\:text-secondary:hover,
-.ship-ui .hover\:text-secondary:hover {
-  color: var(--ship-text-secondary);
-}
-.ship-ui.hover\:border-text-secondary:hover,
-.ship-ui .hover\:border-text-secondary:hover {
-  border-color: var(--ship-text-secondary);
 }
 
 .app-region-drag {

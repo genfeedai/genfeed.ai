@@ -1,37 +1,46 @@
 'use client';
 
 import * as PopoverPrimitive from '@radix-ui/react-popover';
-import {
-  Popover as ShipPopover,
-  PopoverAnchor as ShipPopoverAnchor,
-  PopoverContent as ShipPopoverContent,
-  PopoverTrigger as ShipPopoverTrigger,
-} from '@shipshitdev/ui/primitives';
 import type { ComponentPropsWithRef } from 'react';
 import { cn } from '../lib/utils';
 import { overlayMenuSurfaceClassName } from './field-control';
 
-const Popover: typeof ShipPopover = ShipPopover;
+const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;
 
-const PopoverTrigger: typeof ShipPopoverTrigger = ShipPopoverTrigger;
+const PopoverTrigger: typeof PopoverPrimitive.Trigger =
+  PopoverPrimitive.Trigger;
 
-const PopoverAnchor: typeof ShipPopoverAnchor = ShipPopoverAnchor;
+const PopoverAnchor: typeof PopoverPrimitive.Anchor = PopoverPrimitive.Anchor;
 
 function PopoverContent({
   ref,
   className,
   align = 'center',
   sideOffset = 4,
+  onPointerDownOutside,
   ...props
 }: ComponentPropsWithRef<typeof PopoverPrimitive.Content>) {
   return (
-    <ShipPopoverContent
-      ref={ref}
-      align={align}
-      sideOffset={sideOffset}
-      className={cn('ship-ui w-72 p-4', overlayMenuSurfaceClassName, className)}
-      {...props}
-    />
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Content
+        ref={ref}
+        align={align}
+        sideOffset={sideOffset}
+        onPointerDownOutside={(event) => {
+          const target = event.target as Element | null;
+          if (target?.closest('[data-radix-popper-content-wrapper]')) {
+            event.preventDefault();
+          }
+          onPointerDownOutside?.(event);
+        }}
+        className={cn(
+          'app-region-no-drag z-50 w-72 rounded-md border border-border p-4 outline-none',
+          overlayMenuSurfaceClassName,
+          className,
+        )}
+        {...props}
+      />
+    </PopoverPrimitive.Portal>
   );
 }
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
@@ -41,20 +50,30 @@ function PopoverPanelContent({
   className,
   align = 'start',
   sideOffset = 6,
+  onPointerDownOutside,
   ...props
 }: ComponentPropsWithRef<typeof PopoverPrimitive.Content>) {
   return (
-    <ShipPopoverContent
-      ref={ref}
-      align={align}
-      sideOffset={sideOffset}
-      className={cn(
-        'ship-ui z-[10001] overflow-hidden rounded-xl',
-        overlayMenuSurfaceClassName,
-        className,
-      )}
-      {...props}
-    />
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Content
+        ref={ref}
+        align={align}
+        sideOffset={sideOffset}
+        onPointerDownOutside={(event) => {
+          const target = event.target as Element | null;
+          if (target?.closest('[data-radix-popper-content-wrapper]')) {
+            event.preventDefault();
+          }
+          onPointerDownOutside?.(event);
+        }}
+        className={cn(
+          'app-region-no-drag z-[10001] overflow-hidden rounded-xl border border-border outline-none',
+          overlayMenuSurfaceClassName,
+          className,
+        )}
+        {...props}
+      />
+    </PopoverPrimitive.Portal>
   );
 }
 PopoverPanelContent.displayName = 'PopoverPanelContent';

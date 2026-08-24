@@ -69,9 +69,7 @@ describe('browser extension theme CSS contract', () => {
     expect(styles).toContain(
       '@source "../../../../../packages/ui/src/primitives"',
     );
-    expect(styles).toContain(
-      '@source "../../../../../packages/ui/node_modules/@shipshitdev/ui/dist"',
-    );
+    expect(styles).not.toContain('@shipshitdev/ui');
     expect(styles).toContain('--color-background: hsl(var(--background))');
     expect(styles).toContain('--color-foreground: hsl(var(--foreground))');
     expect(styles).toContain('--color-muted: hsl(var(--muted))');

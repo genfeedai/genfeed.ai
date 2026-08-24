@@ -10,11 +10,11 @@ import {
 } from './dropdown-menu';
 import { overlayMenuSurfaceClassName } from './field-control';
 
-vi.mock('@shipshitdev/ui/primitives', () => ({
-  DropdownMenu: ({ children }: { children?: ReactNode }) => (
+vi.mock('@radix-ui/react-dropdown-menu', () => ({
+  CheckboxItem: ({ children }: { children?: ReactNode }) => (
     <div>{children}</div>
   ),
-  DropdownMenuContent: ({
+  Content: ({
     children,
     className,
   }: {
@@ -25,14 +25,17 @@ vi.mock('@shipshitdev/ui/primitives', () => ({
       {children}
     </div>
   ),
-  DropdownMenuItem: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuSeparator: () => null,
-  DropdownMenuSub: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuSubContent: ({
+  Group: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Item: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  ItemIndicator: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Label: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Portal: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  RadioGroup: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  RadioItem: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Root: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Separator: () => null,
+  Sub: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  SubContent: ({
     children,
     className,
   }: {
@@ -43,12 +46,8 @@ vi.mock('@shipshitdev/ui/primitives', () => ({
       {children}
     </div>
   ),
-  DropdownMenuSubTrigger: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuTrigger: ({ children }: { children?: ReactNode }) => (
-    <>{children}</>
-  ),
+  SubTrigger: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Trigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 describe('DropdownMenu overlay surface', () => {

@@ -1,25 +1,16 @@
 'use client';
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
-import {
-  DropdownMenu as ShipDropdownMenu,
-  DropdownMenuContent as ShipDropdownMenuContent,
-  DropdownMenuItem as ShipDropdownMenuItem,
-  DropdownMenuSeparator as ShipDropdownMenuSeparator,
-  DropdownMenuSub as ShipDropdownMenuSub,
-  DropdownMenuSubContent as ShipDropdownMenuSubContent,
-  DropdownMenuSubTrigger as ShipDropdownMenuSubTrigger,
-  DropdownMenuTrigger as ShipDropdownMenuTrigger,
-} from '@shipshitdev/ui/primitives';
-import { Check, Minus } from 'lucide-react';
+import { Check, ChevronRight, Minus } from 'lucide-react';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import { overlayMenuSurfaceClassName } from './field-control';
 
-const DropdownMenu: typeof ShipDropdownMenu = ShipDropdownMenu;
+const DropdownMenu: typeof DropdownMenuPrimitive.Root =
+  DropdownMenuPrimitive.Root;
 
-const DropdownMenuTrigger: typeof ShipDropdownMenuTrigger =
-  ShipDropdownMenuTrigger;
+const DropdownMenuTrigger: typeof DropdownMenuPrimitive.Trigger =
+  DropdownMenuPrimitive.Trigger;
 
 const DropdownMenuGroup: typeof DropdownMenuPrimitive.Group =
   DropdownMenuPrimitive.Group;
@@ -27,7 +18,8 @@ const DropdownMenuGroup: typeof DropdownMenuPrimitive.Group =
 const DropdownMenuPortal: typeof DropdownMenuPrimitive.Portal =
   DropdownMenuPrimitive.Portal;
 
-const DropdownMenuSub: typeof ShipDropdownMenuSub = ShipDropdownMenuSub;
+const DropdownMenuSub: typeof DropdownMenuPrimitive.Sub =
+  DropdownMenuPrimitive.Sub;
 
 const DropdownMenuRadioGroup: typeof DropdownMenuPrimitive.RadioGroup =
   DropdownMenuPrimitive.RadioGroup;
@@ -42,13 +34,18 @@ function DropdownMenuSubTrigger({
   inset?: boolean;
 }) {
   return (
-    <ShipDropdownMenuSubTrigger
+    <DropdownMenuPrimitive.SubTrigger
       ref={ref}
-      className={cn('ship-ui', inset && 'pl-8', className)}
+      className={cn(
+        'mx-1 flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-[13px] text-foreground outline-none hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[state=open]:bg-hover data-[disabled]:opacity-50',
+        inset && 'pl-8',
+        className,
+      )}
       {...props}
     >
       {children}
-    </ShipDropdownMenuSubTrigger>
+      <ChevronRight size={12} className="ml-auto text-muted-foreground" />
+    </DropdownMenuPrimitive.SubTrigger>
   );
 }
 DropdownMenuSubTrigger.displayName =
@@ -57,18 +54,30 @@ DropdownMenuSubTrigger.displayName =
 function DropdownMenuSubContent({
   ref,
   className,
+  sideOffset = 8,
+  onPointerDownOutside,
   ...props
 }: ComponentPropsWithRef<typeof DropdownMenuPrimitive.SubContent>) {
   return (
-    <ShipDropdownMenuSubContent
-      ref={ref}
-      className={cn(
-        'ship-ui z-[10001]',
-        overlayMenuSurfaceClassName,
-        className,
-      )}
-      {...props}
-    />
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.SubContent
+        ref={ref}
+        sideOffset={sideOffset}
+        onPointerDownOutside={(event) => {
+          const target = event.target as Element | null;
+          if (target?.closest('[data-radix-popper-content-wrapper]')) {
+            event.preventDefault();
+          }
+          onPointerDownOutside?.(event);
+        }}
+        className={cn(
+          'app-region-no-drag z-[10001] min-w-[160px] overflow-hidden rounded-md border border-border py-1',
+          overlayMenuSurfaceClassName,
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
   );
 }
 DropdownMenuSubContent.displayName =
@@ -78,19 +87,31 @@ function DropdownMenuContent({
   ref,
   className,
   sideOffset = 4,
+  align = 'end',
+  onPointerDownOutside,
   ...props
 }: ComponentPropsWithRef<typeof DropdownMenuPrimitive.Content>) {
   return (
-    <ShipDropdownMenuContent
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        'ship-ui z-[10001]',
-        overlayMenuSurfaceClassName,
-        className,
-      )}
-      {...props}
-    />
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        ref={ref}
+        align={align}
+        sideOffset={sideOffset}
+        onPointerDownOutside={(event) => {
+          const target = event.target as Element | null;
+          if (target?.closest('[data-radix-popper-content-wrapper]')) {
+            event.preventDefault();
+          }
+          onPointerDownOutside?.(event);
+        }}
+        className={cn(
+          'app-region-no-drag z-[10001] min-w-[160px] overflow-hidden rounded-md border border-border py-1',
+          overlayMenuSurfaceClassName,
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
   );
 }
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
@@ -104,9 +125,13 @@ function DropdownMenuItem({
   inset?: boolean;
 }) {
   return (
-    <ShipDropdownMenuItem
+    <DropdownMenuPrimitive.Item
       ref={ref}
-      className={cn('ship-ui', inset && 'pl-8', className)}
+      className={cn(
+        'mx-1 flex cursor-pointer select-none items-center gap-2 rounded-sm px-3 py-1.5 text-[13px] text-foreground outline-none hover:bg-hover focus:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        inset && 'pl-8',
+        className,
+      )}
       {...props}
     />
   );
@@ -124,7 +149,7 @@ function DropdownMenuCheckboxItem({
     <DropdownMenuPrimitive.CheckboxItem
       ref={ref}
       className={cn(
-        'ship-ui relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-primary outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-foreground outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}
       checked={checked}
@@ -152,7 +177,7 @@ function DropdownMenuRadioItem({
     <DropdownMenuPrimitive.RadioItem
       ref={ref}
       className={cn(
-        'ship-ui relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-primary outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        'relative mx-1 flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-3 text-sm text-foreground outline-none transition-colors focus:bg-hover hover:bg-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         className,
       )}
       {...props}
@@ -180,7 +205,7 @@ function DropdownMenuLabel({
     <DropdownMenuPrimitive.Label
       ref={ref}
       className={cn(
-        'ship-ui px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-muted',
+        'px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground',
         inset && 'pl-8',
         className,
       )}
@@ -196,9 +221,9 @@ function DropdownMenuSeparator({
   ...props
 }: ComponentPropsWithRef<typeof DropdownMenuPrimitive.Separator>) {
   return (
-    <ShipDropdownMenuSeparator
+    <DropdownMenuPrimitive.Separator
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn('my-1 h-px bg-border', className)}
       {...props}
     />
   );
@@ -212,7 +237,7 @@ const DropdownMenuShortcut = ({
   return (
     <span
       className={cn(
-        'ml-auto text-2xs uppercase tracking-[0.16em] text-muted',
+        'ml-auto text-2xs uppercase tracking-[0.16em] text-muted-foreground',
         className,
       )}
       {...props}

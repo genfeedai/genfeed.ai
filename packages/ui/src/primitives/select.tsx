@@ -1,18 +1,8 @@
 'use client';
 
 import * as SelectPrimitive from '@radix-ui/react-select';
-import {
-  Select as ShipSelect,
-  SelectContent as ShipSelectContent,
-  SelectGroup as ShipSelectGroup,
-  SelectItem as ShipSelectItem,
-  SelectLabel as ShipSelectLabel,
-  SelectSeparator as ShipSelectSeparator,
-  SelectTrigger as ShipSelectTrigger,
-  SelectValue as ShipSelectValue,
-} from '@shipshitdev/ui/primitives';
 import { cva } from 'class-variance-authority';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   type ChangeEvent,
   Children,
@@ -25,7 +15,11 @@ import {
 import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
 import { cn } from '../lib/utils';
-import { fieldControlPopoverClassName } from './field-control';
+import {
+  fieldControlClassName,
+  fieldControlPopoverClassName,
+  fieldControlTriggerClassName,
+} from './field-control';
 import { Label } from './label';
 
 /** Radix reserves the empty string for clearing a selection. */
@@ -46,7 +40,7 @@ function Select({
   ...props
 }: ComponentProps<typeof SelectPrimitive.Root>) {
   return (
-    <ShipSelect
+    <SelectPrimitive.Root
       {...props}
       defaultValue={
         defaultValue == null ? defaultValue : toSelectItemValue(defaultValue)
@@ -59,9 +53,9 @@ function Select({
   );
 }
 
-const SelectGroup: typeof ShipSelectGroup = ShipSelectGroup;
+const SelectGroup: typeof SelectPrimitive.Group = SelectPrimitive.Group;
 
-const SelectValue: typeof ShipSelectValue = ShipSelectValue;
+const SelectValue: typeof SelectPrimitive.Value = SelectPrimitive.Value;
 
 const selectFieldVariants = cva('', {
   defaultVariants: {
@@ -82,13 +76,20 @@ function SelectTrigger({
   ...props
 }: ComponentPropsWithRef<typeof SelectPrimitive.Trigger>) {
   return (
-    <ShipSelectTrigger
+    <SelectPrimitive.Trigger
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn(
+        fieldControlClassName,
+        fieldControlTriggerClassName,
+        className,
+      )}
       {...props}
     >
       {children}
-    </ShipSelectTrigger>
+      <SelectPrimitive.Icon asChild>
+        <ChevronDown className="size-4 opacity-50" aria-hidden="true" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
   );
 }
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
@@ -137,14 +138,36 @@ SelectScrollDownButton.displayName =
 function SelectContent({
   ref,
   className,
+  children,
+  position = 'popper',
   ...props
 }: ComponentPropsWithRef<typeof SelectPrimitive.Content>) {
   return (
-    <ShipSelectContent
-      ref={ref}
-      className={cn(fieldControlPopoverClassName, className)}
-      {...props}
-    />
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        ref={ref}
+        className={cn(
+          'relative max-h-96 min-w-[8rem] overflow-hidden',
+          position === 'popper' && 'translate-y-1',
+          fieldControlPopoverClassName,
+          className,
+        )}
+        position={position}
+        {...props}
+      >
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn(
+            'p-1',
+            position === 'popper' &&
+              'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
   );
 }
 SelectContent.displayName = SelectPrimitive.Content.displayName;
@@ -155,9 +178,12 @@ function SelectLabel({
   ...props
 }: ComponentPropsWithRef<typeof SelectPrimitive.Label>) {
   return (
-    <ShipSelectLabel
+    <SelectPrimitive.Label
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn(
+        'px-2 py-1.5 font-semibold text-[11px] text-muted-foreground uppercase tracking-wide',
+        className,
+      )}
       {...props}
     />
   );
@@ -172,14 +198,22 @@ function SelectItem({
   ...props
 }: ComponentPropsWithRef<typeof SelectPrimitive.Item>) {
   return (
-    <ShipSelectItem
+    <SelectPrimitive.Item
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn(
+        'relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pr-2 pl-8 text-sm text-foreground outline-none focus:bg-hover focus:text-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        className,
+      )}
       value={toSelectItemValue(value)}
       {...props}
     >
-      {children}
-    </ShipSelectItem>
+      <span className="absolute left-2 flex size-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <Check className="size-4" aria-hidden="true" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
   );
 }
 SelectItem.displayName = SelectPrimitive.Item.displayName;
@@ -190,9 +224,9 @@ function SelectSeparator({
   ...props
 }: ComponentPropsWithRef<typeof SelectPrimitive.Separator>) {
   return (
-    <ShipSelectSeparator
+    <SelectPrimitive.Separator
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn('-mx-1 my-1 h-px bg-border', className)}
       {...props}
     />
   );
