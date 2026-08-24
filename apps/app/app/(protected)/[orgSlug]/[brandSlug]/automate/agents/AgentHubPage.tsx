@@ -10,6 +10,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import {
+  isBrandResourceReady,
   isCollectionFetchReady,
   toBrandListParams,
   useCollectionScope,
@@ -194,7 +195,9 @@ function AgentCard({
 
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
-  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
+  const collectionScope = useCollectionScope();
+  const { brandId, isReady, organizationId, pageScope } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
   const { strategies, isLoading, refresh } = useAgentStrategies({
     ...toBrandListParams({ brandId }),
     enabled: isCollectionFetchReady({

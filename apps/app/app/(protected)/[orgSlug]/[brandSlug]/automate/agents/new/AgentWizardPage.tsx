@@ -141,7 +141,7 @@ export default function AgentWizardPage({
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<IAgentWizardFormData>(() =>
     buildInitialForm(
-      isBrandReady ? brandId : '',
+      isBrandReady && brandId ? brandId : '',
       isBrandReady ? selectedBrand : undefined,
     ),
   );
