@@ -44,6 +44,7 @@ import {
   SubtitleNode,
   UpscaleNode,
   VideoFrameExtractNode,
+  VideoQaNode,
   VideoStitchNode,
   VideoTrimNode,
 } from './processing';
@@ -79,6 +80,7 @@ export const nodeTypes: NodeTypes = {
   videoFrameExtract: VideoFrameExtractNode,
   videoGen: VideoGenNode,
   videoInput: VideoInputNode,
+  videoQa: VideoQaNode,
   videoStitch: VideoStitchNode,
   videoTrim: VideoTrimNode,
   voiceChange: VoiceChangeNode,

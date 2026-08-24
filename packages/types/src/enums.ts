@@ -49,4 +49,5 @@ export enum ProcessingNodeType {
   SUBTITLE = 'subtitle',
   VIDEO_STITCH = 'videoStitch',
   WORKFLOW_REF = 'workflowRef',
+  VIDEO_QA = 'videoQa',
 }

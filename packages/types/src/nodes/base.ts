@@ -32,6 +32,7 @@ export enum NodeTypeEnum {
   SUBTITLE = 'subtitle',
   OUTPUT_GALLERY = 'outputGallery',
   IMAGE_COMPARE = 'imageCompare',
+  VIDEO_QA = 'videoQa',
   // Output nodes
   DOWNLOAD = 'download',
   // Composition nodes (workflow-as-node)

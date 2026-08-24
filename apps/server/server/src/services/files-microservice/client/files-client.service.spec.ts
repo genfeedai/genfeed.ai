@@ -274,6 +274,32 @@ describe('FilesClientService', () => {
     });
   });
 
+  describe('inspectVideoQa', () => {
+    it('forwards inspection parameters to the files processing endpoint', async () => {
+      const { post, service } = createHarness();
+      const payload = {
+        contactSheetUrl: null,
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: 'I: -16.0 LUFS',
+        probeJson: '{}',
+      };
+      post.mockReturnValue(of({ data: payload }));
+      const params = {
+        blackDurationSeconds: 0.5,
+        freezeDurationSeconds: 2,
+        isContactSheetEnabled: false,
+        videoUrl: 'https://cdn/v.mp4',
+      };
+
+      await expect(service.inspectVideoQa(params)).resolves.toEqual(payload);
+      expect(post).toHaveBeenCalledWith(
+        `${BASE}/v1/files/processing/video-qa`,
+        params,
+      );
+    });
+  });
+
   describe('uploadToS3', () => {
     it('sends a buffer source as multipart, not base64 JSON', async () => {
       const { post, service } = createHarness();

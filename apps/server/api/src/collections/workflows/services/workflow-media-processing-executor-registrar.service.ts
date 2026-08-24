@@ -20,6 +20,7 @@ import {
   TransformationCategory,
 } from '@genfeedai/enums';
 import {
+  createVideoQaExecutor,
   createVideoStitchExecutor,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
@@ -48,6 +49,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     this.registerCaptionsExecutor(engine);
     this.registerMusicSourceExecutor(engine);
     this.registerSoundOverlayExecutor(engine);
+    this.registerVideoQaExecutor(engine);
     this.registerVideoStitchExecutor(engine);
     this.registerDirectMediaInputExecutors(engine);
   }
@@ -309,6 +311,28 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         videoUrl: this.helper.buildVideoIngredientUrl(mergedIngredientId),
       };
     });
+  }
+
+  private registerVideoQaExecutor(engine: WorkflowEngine): void {
+    const filesClientService = this.filesClientService;
+
+    if (!filesClientService) {
+      return;
+    }
+
+    const executor = createVideoQaExecutor(async (params) =>
+      filesClientService.inspectVideoQa({
+        blackDurationSeconds: params.blackDurationSeconds,
+        freezeDurationSeconds: params.freezeDurationSeconds,
+        isContactSheetEnabled: params.isContactSheetEnabled,
+        videoUrl: params.videoUrl,
+      }),
+    );
+
+    engine.registerExecutor(
+      'videoQa',
+      this.helper.wrapEngineExecutor(executor),
+    );
   }
 
   private registerVideoStitchExecutor(engine: WorkflowEngine): void {

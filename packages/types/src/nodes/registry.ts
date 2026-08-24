@@ -612,6 +612,37 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
     outputs: [{ id: 'video', label: 'Video', type: 'video' }],
     type: 'videoInput',
   },
+  videoQa: {
+    category: 'processing',
+    defaultData: {
+      blackDurationSeconds: 0.5,
+      expectedDurationSeconds: null,
+      expectedFrameRate: null,
+      expectedHeight: null,
+      expectedWidth: null,
+      freezeDurationSeconds: 2,
+      hasExpectedAudio: null,
+      inputVideo: null,
+      isContactSheetEnabled: false,
+      jobId: null,
+      label: 'Video QA',
+      loudnessTargetLufs: -16,
+      loudnessToleranceLufs: 2,
+      report: null,
+      status: 'idle',
+    },
+    description:
+      'Inspect a video for decode, duration, resolution, black frames, freezes, and loudness. Contact sheet is off by default.',
+    icon: 'ShieldCheck',
+    inputs: [{ id: 'video', label: 'Video', required: true, type: 'video' }],
+    label: 'Video QA',
+    outputs: [
+      { id: 'passed', label: 'Passed', type: 'text' },
+      { id: 'report', label: 'QA Report', type: 'text' },
+      { id: 'video', label: 'Video', type: 'video' },
+    ],
+    type: 'videoQa',
+  },
   videoStitch: {
     category: 'processing',
     defaultData: {
@@ -773,6 +804,7 @@ export const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
     'annotation',
     'subtitle',
     'animation',
+    'videoQa',
   ],
 };
 

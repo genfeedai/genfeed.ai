@@ -365,6 +365,20 @@
       "startFrameReference": "Start-frame reference",
       "subject": "Subject",
       "vocabularyLibrary": "Vocabulary library"
+    },
+    "videoQa": {
+      "connectVideo": "Connect a video to inspect",
+      "contactSheet": "Render contact sheet",
+      "contactSheetAlt": "Video QA contact sheet",
+      "duration": "Duration: {value}",
+      "fail": "Fail",
+      "inspect": "Inspect video",
+      "inspecting": "Inspecting...",
+      "loudness": "{value} LUFS",
+      "loudnessNa": "Loudness: n/a",
+      "loudnessTarget": "Loudness target (LUFS)",
+      "pass": "Pass",
+      "resolutionFallback": "Resolution: —"
     }
   }
 }

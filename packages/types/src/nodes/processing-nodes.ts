@@ -129,6 +129,74 @@ export interface VideoFrameExtractNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
+export type VideoQaFailureCode =
+  | 'DECODE_FAILED'
+  | 'DURATION_MISMATCH'
+  | 'RESOLUTION_MISMATCH'
+  | 'FRAME_RATE_MISMATCH'
+  | 'STREAM_LAYOUT_MISMATCH'
+  | 'BLACK_FRAMES'
+  | 'FREEZE_FRAMES'
+  | 'LOUDNESS_OFF_TARGET';
+
+export interface VideoQaFailure {
+  code: VideoQaFailureCode;
+  message: string;
+  timestamp: number | null;
+}
+
+export interface VideoQaSegment {
+  start: number;
+  end: number;
+}
+
+export interface VideoQaStreamInfo {
+  codecType: string;
+  codecName: string | null;
+  width: number | null;
+  height: number | null;
+  frameRate: number | null;
+  channels: number | null;
+}
+
+/**
+ * Structured video-QA report consumed by workflow branching (#3436).
+ * Fail closed: `passed: false` plus `failures[]` — do not treat the source
+ * video as a successful passthrough.
+ */
+export interface VideoQaReport {
+  passed: boolean;
+  decodeOk: boolean;
+  durationSeconds: number | null;
+  width: number | null;
+  height: number | null;
+  frameRate: number | null;
+  streams: VideoQaStreamInfo[];
+  blackSegments: VideoQaSegment[];
+  freezeSegments: VideoQaSegment[];
+  loudnessLufs: number | null;
+  loudnessTargetLufs: number;
+  loudnessDeviation: number | null;
+  contactSheetUrl: string | null;
+  failures: VideoQaFailure[];
+}
+
+export interface VideoQaNodeData extends BaseNodeData {
+  inputVideo: string | null;
+  loudnessTargetLufs: number;
+  loudnessToleranceLufs: number;
+  freezeDurationSeconds: number;
+  blackDurationSeconds: number;
+  isContactSheetEnabled: boolean;
+  expectedDurationSeconds: number | null;
+  expectedWidth: number | null;
+  expectedHeight: number | null;
+  expectedFrameRate: number | null;
+  hasExpectedAudio: boolean | null;
+  report: VideoQaReport | null;
+  jobId: string | null;
+}
+
 // =============================================================================
 // REFRAME NODE DATA
 // =============================================================================

@@ -39,6 +39,7 @@ import type {
   SubtitleNodeData,
   UpscaleNodeData,
   VideoFrameExtractNodeData,
+  VideoQaNodeData,
   VideoStitchNodeData,
   VideoTrimNodeData,
 } from './processing-nodes';
@@ -60,6 +61,7 @@ export type WorkflowNodeData =
   | MotionControlNodeData
   | AnimationNodeData
   | VideoStitchNodeData
+  | VideoQaNodeData
   | ResizeNodeData
   | VideoTrimNodeData
   | VideoFrameExtractNodeData

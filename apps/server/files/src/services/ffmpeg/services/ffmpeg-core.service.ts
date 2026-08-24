@@ -159,6 +159,56 @@ export class FFmpegCoreService implements OnModuleInit {
   }
 
   /**
+   * Execute ffmpeg and return stdout/stderr even on non-zero exit.
+   * Used by detect filters (blackdetect, freezedetect, ebur128) whose
+   * findings are written to stderr.
+   */
+  async executeFFmpegCapture(
+    args: string[],
+  ): Promise<{ stdout: string; stderr: string; code: number | null }> {
+    await this.ffmpegSemaphore.acquire();
+    try {
+      return await this.spawnFFmpegCapture(args);
+    } finally {
+      this.ffmpegSemaphore.release();
+    }
+  }
+
+  private spawnFFmpegCapture(
+    args: string[],
+  ): Promise<{ stdout: string; stderr: string; code: number | null }> {
+    return new Promise((resolve, reject) => {
+      let ffmpegPath: string;
+      try {
+        const paths = this.binaryValidationService.getBinaryPaths();
+        ffmpegPath = paths.ffmpegPath;
+      } catch (error: unknown) {
+        reject(error instanceof Error ? error : new Error(String(error)));
+        return;
+      }
+
+      const process: ChildProcess = spawn(ffmpegPath, args);
+      let stdout = '';
+      let stderr = '';
+
+      process.stdout?.on('data', (data) => {
+        stdout += data.toString();
+      });
+      process.stderr?.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      process.on('close', (code) => {
+        resolve({ code, stderr, stdout });
+      });
+
+      process.on('error', (error) => {
+        reject(error);
+      });
+    });
+  }
+
+  /**
    * Execute ffprobe command to get media information
    */
   async probe(inputPath: string): Promise<FFprobeData> {

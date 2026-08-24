@@ -56,6 +56,11 @@ const routes = [
     'processing/split-image',
   ],
   [
+    FilesProcessingController.prototype.inspectVideoQa,
+    RequestMethod.POST,
+    'processing/video-qa',
+  ],
+  [
     FilesMetadataController.prototype.getFileMetadata,
     RequestMethod.POST,
     'metadata',

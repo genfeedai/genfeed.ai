@@ -51,6 +51,102 @@ export class FFmpegService {
     return this.core.cleanupTempFiles(...filePaths);
   }
 
+  async executeFFmpegCapture(
+    args: string[],
+  ): Promise<{ stdout: string; stderr: string; code: number | null }> {
+    return this.core.executeFFmpegCapture(args);
+  }
+
+  async inspectVideoQa(
+    inputPath: string,
+    options: {
+      blackDurationSeconds: number;
+      freezeDurationSeconds: number;
+      contactSheetPath?: string;
+    },
+  ): Promise<{
+    probeJson: string;
+    detectLog: string;
+    loudnessLog: string | null;
+    decodeOk: boolean;
+  }> {
+    let probeJson = '{}';
+    let decodeOk = false;
+
+    try {
+      const probeData = await this.core.probe(inputPath);
+      probeJson = JSON.stringify(probeData);
+      decodeOk = true;
+    } catch {
+      decodeOk = false;
+    }
+
+    const decodeCheck = await this.core.executeFFmpegCapture([
+      '-v',
+      'error',
+      '-i',
+      inputPath,
+      '-f',
+      'null',
+      '-',
+    ]);
+    if (decodeCheck.code !== 0 || decodeCheck.stderr.trim().length > 0) {
+      decodeOk = false;
+    }
+
+    const detect = await this.core.executeFFmpegCapture([
+      '-hide_banner',
+      '-i',
+      inputPath,
+      '-vf',
+      `blackdetect=d=${options.blackDurationSeconds}:pix_th=0.10,freezedetect=n=0.003:d=${options.freezeDurationSeconds}`,
+      '-an',
+      '-f',
+      'null',
+      '-',
+    ]);
+
+    let loudnessLog: string | null = null;
+    const hasAudio = await this.core.hasAudioStream(inputPath);
+    if (hasAudio) {
+      const loudness = await this.core.executeFFmpegCapture([
+        '-hide_banner',
+        '-i',
+        inputPath,
+        '-af',
+        'ebur128=peak=true',
+        '-f',
+        'null',
+        '-',
+      ]);
+      loudnessLog = loudness.stderr;
+    }
+
+    if (options.contactSheetPath) {
+      try {
+        await this.core.executeFFmpeg([
+          '-y',
+          '-i',
+          inputPath,
+          '-vf',
+          'fps=1,scale=320:-2,tile=4x4',
+          '-frames:v',
+          '1',
+          options.contactSheetPath,
+        ]);
+      } catch {
+        // Optional review artifact; QA report still stands without it.
+      }
+    }
+
+    return {
+      decodeOk,
+      detectLog: detect.stderr,
+      loudnessLog,
+      probeJson,
+    };
+  }
+
   // ============================================================
   // Transform Operations (delegated to FFmpegTransformService)
   // ============================================================

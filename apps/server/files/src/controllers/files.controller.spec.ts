@@ -408,6 +408,8 @@ describe('FilesController', () => {
         storageController.getPresignedUploadUrl.bind(storageController),
       getQueueStats: jobsController.getQueueStats.bind(jobsController),
       getTempFile: metadataController.getTempFile.bind(metadataController),
+      inspectVideoQa:
+        processingController.inspectVideoQa.bind(processingController),
       processFile: jobsController.processFile.bind(jobsController),
       processHookRemix: jobsController.processHookRemix.bind(jobsController),
       processImage: jobsController.processImage.bind(jobsController),
