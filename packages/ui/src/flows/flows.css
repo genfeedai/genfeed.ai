@@ -1,0 +1,161 @@
+:root,
+.dark,
+[data-theme="dark"] {
+  --flow-handle-default: hsl(var(--accent));
+  --flow-handle-image: oklch(0.75 0.18 75);
+  --flow-handle-video: oklch(0.65 0.2 285);
+  --flow-handle-text: oklch(0.7 0.17 160);
+  --flow-handle-number: oklch(0.65 0.2 250);
+  --flow-handle-audio: oklch(0.7 0.2 330);
+  --flow-handle-success: hsl(var(--success));
+  --flow-handle-warning: hsl(var(--warning));
+  --flow-handle-danger: hsl(var(--destructive));
+  --flow-handle-info: hsl(var(--info));
+  --flow-handle-accent: var(--agent);
+}
+
+.light,
+[data-theme="light"] {
+  --flow-handle-default: hsl(var(--accent));
+  --flow-handle-image: oklch(0.72 0.17 78);
+  --flow-handle-video: oklch(0.62 0.18 280);
+  --flow-handle-text: oklch(0.64 0.15 162);
+  --flow-handle-number: oklch(0.6 0.18 248);
+  --flow-handle-audio: oklch(0.65 0.18 328);
+  --flow-handle-success: hsl(var(--success));
+  --flow-handle-warning: hsl(var(--warning));
+  --flow-handle-danger: hsl(var(--destructive));
+  --flow-handle-info: hsl(var(--info));
+  --flow-handle-accent: var(--agent);
+}
+
+.react-flow {
+  background:
+    radial-gradient(
+      circle at top,
+      color-mix(in srgb, hsl(var(--accent)) 8%, transparent),
+      transparent 42%
+    ),
+    hsl(var(--background-secondary));
+}
+
+.react-flow__node {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+}
+
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: var(--flow-handle-default);
+  border: 2px solid hsl(var(--background));
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.react-flow__handle.connectionindicator,
+.react-flow__handle-connecting {
+  box-shadow: 0 0 0 4px color-mix(in srgb, hsl(var(--accent)) 24%, transparent);
+  transform: scale(1.08);
+}
+
+.react-flow__handle-left {
+  left: -6px;
+}
+
+.react-flow__handle-right {
+  right: -6px;
+}
+
+.react-flow__handle-top {
+  top: -6px;
+}
+
+.react-flow__handle-bottom {
+  bottom: -6px;
+}
+
+.react-flow__edge-path {
+  stroke: hsl(var(--muted-foreground));
+  stroke-width: 2;
+}
+
+.react-flow__background {
+  background-color: transparent;
+}
+
+.react-flow__minimap {
+  background: color-mix(in srgb, hsl(var(--popover)) 94%, transparent);
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.react-flow__controls {
+  background: color-mix(in srgb, hsl(var(--popover)) 96%, transparent);
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+}
+
+.react-flow__controls-button {
+  background: transparent;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+.react-flow__controls-button:hover {
+  background: hsl(var(--gray-300));
+  color: hsl(var(--foreground));
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.flow-handle-default {
+  background: var(--flow-handle-default);
+}
+
+.flow-handle-image {
+  background: var(--flow-handle-image);
+}
+
+.flow-handle-video {
+  background: var(--flow-handle-video);
+}
+
+.flow-handle-text {
+  background: var(--flow-handle-text);
+}
+
+.flow-handle-number {
+  background: var(--flow-handle-number);
+}
+
+.flow-handle-audio {
+  background: var(--flow-handle-audio);
+}
+
+.flow-handle-success {
+  background: var(--flow-handle-success);
+}
+
+.flow-handle-warning {
+  background: var(--flow-handle-warning);
+}
+
+.flow-handle-danger {
+  background: var(--flow-handle-danger);
+}
+
+.flow-handle-info {
+  background: var(--flow-handle-info);
+}
+
+.flow-handle-accent {
+  background: var(--flow-handle-accent);
+}

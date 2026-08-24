@@ -10,8 +10,13 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
+import {
+  buildMinimaxH3GenerationSource,
+  buildPrunaaiPVideoGenerationSource,
+} from '@api-types/contracts/video-generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelProvider } from '@genfeedai/enums';
+import { IngredientCategory, ModelProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -25,9 +30,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 describe('VideoGenerationService', () => {
   const ORG = 'org-1';
+  const FOREIGN_ORG = 'org-foreign';
   const RESOLVED_BRAND = 'brand-resolved';
+  const REFERENCE_CDN = 'https://cdn.genfeed.ai';
+  const REFERENCE_INGREDIENTS_ENDPOINT = `${REFERENCE_CDN}/ingredients`;
+  const FAL_SELECTION_KEY = 'fal/minimax/h3/text-to-video';
+  const FAL_ENDPOINT = 'minimax/h3/text-to-video';
   const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5;
   const NON_BATCH_MODEL = MODEL_KEYS.KLINGAI_V2;
+  const COMPILED_MODEL_MINIMAX = MODEL_KEYS.REPLICATE_MINIMAX_H3;
+  const COMPILED_MODEL_PRUNAAI = MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO;
   const promptId = testId('prompt');
   const missingPromptId = testId('prompt', 2);
 
@@ -154,9 +166,29 @@ describe('VideoGenerationService', () => {
     const pollingService = {
       waitForMultipleIngredientsCompletion: vi.fn(),
     };
-    const assetsService = {};
-    const ingredientsService = {};
-    const configService = {};
+    // Registered-compiler models (MiniMax H3 / PrunaAI P-Video) resolve
+    // reference/end-frame ids through this pair before dispatch. Default to a
+    // resolvable image ingredient so existing reference-free tests are
+    // unaffected; individual brief-compilation tests override these to
+    // simulate an unresolvable reference. Tenant-isolation tests override
+    // via mockTenantIngredients.
+    const assetsService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    };
+    const ingredientsService = {
+      findOne: vi
+        .fn()
+        .mockImplementation(
+          ({ category, id }: { category: string; id: string }) =>
+            Promise.resolve(
+              category === IngredientCategory.IMAGE ? { id } : null,
+            ),
+        ),
+    };
+    const configService = {
+      cdnUrl: REFERENCE_CDN,
+      ingredientsEndpoint: REFERENCE_INGREDIENTS_ENDPOINT,
+    };
     const loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -214,20 +246,51 @@ describe('VideoGenerationService', () => {
     );
 
     return {
+      assetsService,
       brandsService,
       cacheService,
       creditsUtilsService,
       failedGenerationService,
       falService,
+      ingredientsService,
       klingAIService,
       metadataService,
       modelRegistrationService,
+      promptBuilderService,
       promptsService,
       replicateService,
       service,
       sharedService,
     };
   };
+
+  function mockTenantIngredients(
+    ingredientsService: { findOne: ReturnType<typeof vi.fn> },
+    rows: Array<{ id: string; isDeleted?: boolean; organizationId: string }>,
+  ) {
+    ingredientsService.findOne.mockImplementation(
+      (query: {
+        id?: string;
+        isDeleted?: boolean;
+        organizationId?: string;
+      }) => {
+        const row = rows.find((candidate) => candidate.id === query.id);
+        if (!row) {
+          return Promise.resolve(null);
+        }
+        if (
+          query.organizationId !== undefined &&
+          row.organizationId !== query.organizationId
+        ) {
+          return Promise.resolve(null);
+        }
+        if (query.isDeleted === false && row.isDeleted === true) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({ id: row.id });
+      },
+    );
+  }
 
   const baseDto = (overrides: Partial<CreateVideoDto> = {}): CreateVideoDto =>
     ({
@@ -324,21 +387,19 @@ describe('VideoGenerationService', () => {
         modelRegistrationService,
         replicateService,
       } = createService();
-      const selectionKey = 'fal/minimax/h3/text-to-video';
-      const endpoint = 'minimax/h3/text-to-video';
       modelRegistrationService.validateModelForOrg.mockResolvedValue({
-        endpoint,
+        endpoint: FAL_ENDPOINT,
         provider: ModelProvider.FAL,
       });
 
       await service.generateVideo(
         buildUser(),
-        baseDto({ model: selectionKey }),
+        baseDto({ model: FAL_SELECTION_KEY }),
         buildRequest(),
       );
 
       expect(falService.generateVideo).toHaveBeenCalledWith(
-        endpoint,
+        FAL_ENDPOINT,
         expect.any(Object),
       );
       expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
@@ -564,5 +625,303 @@ describe('VideoGenerationService', () => {
     await service.generateVideo(buildUser(), baseDto(), buildRequest());
 
     expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['videos']);
+  });
+
+  // #3468 — model-aware video briefs: assemble + compile a canonical brief
+  // for registered model families before provider dispatch, and persist a
+  // redacted evidence/generation-source pair alongside every document.
+  describe('video brief compilation (#3468)', () => {
+    it('compiles a brief for a registered model family and persists redacted evidence', async () => {
+      const { service, sharedService } = createService();
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ model: COMPILED_MODEL_MINIMAX }),
+        buildRequest(),
+      );
+
+      const [, payload] = sharedService.createMediaDocuments.mock.calls[0];
+      expect(payload.generationSource).toBe(buildMinimaxH3GenerationSource());
+      expect(payload.providerData).toMatchObject({
+        compilerId: 'minimax-h3-compiler',
+        mediaKind: 'video',
+        modelKey: COMPILED_MODEL_MINIMAX,
+        profileId: 'minimax-h3-capability',
+        status: 'compiled',
+      });
+      expect(payload.providerData).not.toHaveProperty('prompt');
+      expect(payload.providerData).not.toHaveProperty('dispatch');
+      expect(JSON.stringify(payload.providerData)).not.toMatch(/https?:\/\//);
+    });
+
+    it('compiles a brief for the PrunaAI P-Video family with its own evidence shape', async () => {
+      const { service, sharedService } = createService();
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ model: COMPILED_MODEL_PRUNAAI }),
+        buildRequest(),
+      );
+
+      const [, payload] = sharedService.createMediaDocuments.mock.calls[0];
+      expect(payload.generationSource).toBe(
+        buildPrunaaiPVideoGenerationSource(),
+      );
+      expect(payload.providerData).toMatchObject({
+        compilerId: 'prunaai-p-video-compiler',
+        mediaKind: 'video',
+        modelKey: COMPILED_MODEL_PRUNAAI,
+        profileId: 'prunaai-p-video-capability',
+        status: 'compiled',
+      });
+    });
+
+    it('bypasses brief compilation for a model without a registered compiler', async () => {
+      const { service, sharedService } = createService();
+
+      await service.generateVideo(buildUser(), baseDto(), buildRequest());
+
+      const [, payload] = sharedService.createMediaDocuments.mock.calls[0];
+      expect(payload.generationSource).toBe(
+        'generation-brief-exemption:legacy_prompt_builder',
+      );
+      expect(payload.providerData).toMatchObject({
+        compilerId: null,
+        profileId: null,
+        reason: 'legacy_prompt_builder',
+        status: 'exempted',
+      });
+    });
+
+    it('resolves first-frame and last-frame references into the compiled provider dispatch', async () => {
+      const { service, replicateService } = createService();
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({
+          endFrame: 'ref-end',
+          model: COMPILED_MODEL_MINIMAX,
+          references: ['ref-first'],
+        }),
+        buildRequest(),
+      );
+
+      expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+        COMPILED_MODEL_MINIMAX,
+        expect.objectContaining({
+          first_frame_image: `${REFERENCE_INGREDIENTS_ENDPOINT}/images/ref-first`,
+          last_frame_image: `${REFERENCE_INGREDIENTS_ENDPOINT}/images/ref-end`,
+        }),
+      );
+    });
+
+    it('records an omitted signal when Guided fidelity cannot honor a constraint', async () => {
+      const { service, sharedService } = createService();
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({
+          blacklist: ['no watermark'],
+          isBrandingEnabled: true,
+          model: COMPILED_MODEL_MINIMAX,
+        }),
+        buildRequest(),
+      );
+
+      const [, payload] = sharedService.createMediaDocuments.mock.calls[0];
+      expect(payload.providerData.fidelityMode).toBe('guided');
+      expect(payload.providerData.omittedSignals).toEqual(
+        expect.arrayContaining([
+          {
+            field: 'constraints.avoid',
+            reason: 'MiniMax H3 has no native negative-prompt field.',
+          },
+        ]),
+      );
+    });
+
+    // A Strict-fidelity brief can only be constructed today by calling the
+    // compiler directly (see compile-minimax-h3-generation-brief.spec.ts /
+    // compile-prunaai-p-video-generation-brief.spec.ts, both of which assert
+    // GenerationBriefCompileError on an unsupported required signal) — no
+    // CreateVideoDto field currently drives resolveVideoGenerationFidelityMode
+    // to 'strict' (it only ever yields 'off' or 'guided'). That DTO-trigger
+    // gap is shared with the parallel image-brief lane (#3467) and is
+    // expected to close alongside the cross-surface wiring in #3469. Until
+    // then, this test proves the reachable half of the ordering guarantee:
+    // a compiled-dispatch reference that cannot be resolved to a source URL
+    // blocks inside prepare() — before ensureDeferredCredits() is ever
+    // reached — exactly the ordering Strict-fidelity blocking depends on.
+    it('blocks before any credit-bearing dispatch when a required reference cannot be resolved', async () => {
+      const {
+        assetsService,
+        creditsUtilsService,
+        ingredientsService,
+        service,
+        sharedService,
+      } = createService();
+      ingredientsService.findOne.mockResolvedValue(null);
+      assetsService.findOne.mockResolvedValue(null);
+
+      const error = await service
+        .generateVideo(
+          buildUser(),
+          baseDto({
+            model: COMPILED_MODEL_MINIMAX,
+            references: ['ref-missing'],
+          }),
+          buildRequest(),
+        )
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    });
+
+    it('does not change credit authorization for a compiled model versus an exempt one', async () => {
+      const { service, creditsUtilsService } = createService();
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ model: COMPILED_MODEL_MINIMAX, resolution: 'high' }),
+        buildRequest({ creditsConfig: { deferred: true } }),
+      );
+
+      // base 10 x2 (high res), single non-batch output — identical
+      // multiplication rule as the exempt-path assertion above (finding 4).
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(ORG, 20);
+    });
+
+    // Security: the persisted snapshot is the only durable record of what was
+    // dispatched, so it must independently pass the same redaction assertion
+    // the compiler evidence itself is built from — not just the ad hoc
+    // pattern checks above. toRedactedVideoGenerationBriefProviderData()
+    // already throws before persistence if a forbidden key/value slips
+    // through (see redact-generation-brief-evidence.ts); this test proves
+    // the exact object handed to createMediaDocuments() still satisfies that
+    // assertion end to end, for both the primary and an additional output.
+    it('persists a provider-data snapshot that independently satisfies the shared redaction assertion', async () => {
+      const { service, sharedService } = createService();
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({
+          model: COMPILED_MODEL_MINIMAX,
+          outputs: 2,
+          references: ['ref-first'],
+        }),
+        buildRequest(),
+      );
+
+      for (const call of sharedService.createMediaDocuments.mock.calls) {
+        const [, payload] = call;
+        expect(() =>
+          assertRedactedVideoGenerationBriefEvidence(payload.providerData),
+        ).not.toThrow();
+      }
+    });
+  });
+
+  describe('reference image tenant isolation (#3501)', () => {
+    const sameTenantId = testId('reference', 1);
+    const foreignId = testId('reference', 2);
+    const deletedId = testId('reference', 3);
+    const sameTenantUrl = `${REFERENCE_INGREDIENTS_ENDPOINT}/images/${sameTenantId}`;
+
+    async function generateFalVideo(
+      references: string[],
+      rows: Array<{ id: string; isDeleted?: boolean; organizationId: string }>,
+    ) {
+      const created = createService();
+      created.modelRegistrationService.validateModelForOrg.mockResolvedValue({
+        endpoint: FAL_ENDPOINT,
+        provider: ModelProvider.FAL,
+      });
+      mockTenantIngredients(created.ingredientsService, rows);
+      await created.service.generateVideo(
+        buildUser(),
+        baseDto({ model: FAL_SELECTION_KEY, references }),
+        buildRequest(),
+      );
+      return created;
+    }
+
+    it('dispatches a same-tenant reference URL to the provider', async () => {
+      const { falService, ingredientsService, promptBuilderService } =
+        await generateFalVideo(
+          [sameTenantId],
+          [
+            { id: sameTenantId, organizationId: ORG },
+            { id: foreignId, organizationId: FOREIGN_ORG },
+          ],
+        );
+
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: sameTenantId,
+          isDeleted: false,
+          organizationId: ORG,
+        }),
+      );
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ references: [sameTenantUrl] }),
+        ORG,
+      );
+      expect(JSON.stringify(falService.generateVideo.mock.calls)).toContain(
+        sameTenantUrl,
+      );
+    });
+
+    it('does not dispatch a foreign-organization reference id to the provider', async () => {
+      const { falService, ingredientsService, promptBuilderService } =
+        await generateFalVideo(
+          [foreignId],
+          [
+            { id: sameTenantId, organizationId: ORG },
+            { id: foreignId, organizationId: FOREIGN_ORG },
+          ],
+        );
+
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: foreignId,
+          isDeleted: false,
+          organizationId: ORG,
+        }),
+      );
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ references: [] }),
+        ORG,
+      );
+      expect(falService.generateVideo).toHaveBeenCalled();
+      expect(JSON.stringify(falService.generateVideo.mock.calls)).not.toContain(
+        foreignId,
+      );
+    });
+
+    it('does not dispatch a soft-deleted same-tenant reference id', async () => {
+      const { falService, promptBuilderService } = await generateFalVideo(
+        [deletedId],
+        [{ id: deletedId, isDeleted: true, organizationId: ORG }],
+      );
+
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ references: [] }),
+        ORG,
+      );
+      expect(falService.generateVideo).toHaveBeenCalled();
+      expect(JSON.stringify(falService.generateVideo.mock.calls)).not.toContain(
+        deletedId,
+      );
+    });
   });
 });

@@ -135,6 +135,12 @@ export interface IReleaseGroup extends IBaseEntity {
   targets?: IChannelTarget[];
   /** Denormalized execution-state roll-up for calendar/list views. */
   targetSummary?: IReleaseTargetSummary;
+  /**
+   * Stored background color of the first tag on the release's first target
+   * post. Null when the release is untagged. Calendar cards use this on the
+   * next load after a tag color edit; missing ghosts never receive it.
+   */
+  firstTagColor?: string | null;
   /** Per-target, snapshot-bound analytics comparison for read-only consumers. */
   analyticsComparison: IReleaseAnalyticsComparison;
   /** Release-scoped attachments (global signature, shared first comment). */

@@ -4,12 +4,27 @@ import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
 } from '@api/helpers/utils/reference/reference.util';
-import { IngredientCategory } from '@genfeedai/enums';
+import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
 const BASE_URL = 'https://cdn.genfeed.ai';
+const ORGANIZATION_ID = testId('org');
+const FOREIGN_ORGANIZATION_ID = testId('org', 2);
+
+type ReferenceLookupQuery = {
+  category?: string;
+  id?: string;
+  isDeleted?: boolean;
+  organizationId?: string;
+};
+
+type TenantMediaRow = {
+  id: string;
+  isDeleted?: boolean;
+  organizationId: string;
+};
 
 function createMocks() {
   const ingredientsService = {
@@ -33,6 +48,51 @@ function createMocks() {
   return { assetsService, configService, ingredientsService, loggerService };
 }
 
+function withOrganization(
+  mocks: ReturnType<typeof createMocks>,
+  extra: { referenceId: string },
+): ReturnType<typeof createMocks> & {
+  organizationId: string;
+  referenceId: string;
+};
+function withOrganization(
+  mocks: ReturnType<typeof createMocks>,
+  extra: { referenceIds: string[] },
+): ReturnType<typeof createMocks> & {
+  organizationId: string;
+  referenceIds: string[];
+};
+function withOrganization(
+  mocks: ReturnType<typeof createMocks>,
+  extra: { referenceId: string } | { referenceIds: string[] },
+) {
+  return {
+    ...mocks,
+    organizationId: ORGANIZATION_ID,
+    ...extra,
+  };
+}
+
+function resolveTenantRow(
+  rows: TenantMediaRow[],
+  query: ReferenceLookupQuery,
+): Promise<{ id: string } | null> {
+  const row = rows.find((candidate) => candidate.id === query.id);
+  if (!row) {
+    return Promise.resolve(null);
+  }
+  if (
+    query.organizationId !== undefined &&
+    row.organizationId !== query.organizationId
+  ) {
+    return Promise.resolve(null);
+  }
+  if (query.isDeleted === false && row.isDeleted === true) {
+    return Promise.resolve(null);
+  }
+  return Promise.resolve({ id: row.id });
+}
+
 describe('buildReferenceImageUrl', () => {
   const referenceId = testId('reference');
 
@@ -41,13 +101,12 @@ describe('buildReferenceImageUrl', () => {
       createMocks();
 
     await expect(
-      buildReferenceImageUrl({
-        assetsService,
-        configService,
-        ingredientsService,
-        loggerService,
-        referenceId: '',
-      }),
+      buildReferenceImageUrl(
+        withOrganization(
+          { assetsService, configService, ingredientsService, loggerService },
+          { referenceId: '' },
+        ),
+      ),
     ).resolves.toBeNull();
 
     expect(ingredientsService.findOne).not.toHaveBeenCalled();
@@ -63,20 +122,21 @@ describe('buildReferenceImageUrl', () => {
       id: referenceId,
     });
 
-    const url = await buildReferenceImageUrl({
-      assetsService,
-      configService,
-      ingredientsService,
-      loggerService,
-      referenceId,
-    });
+    const url = await buildReferenceImageUrl(
+      withOrganization(
+        { assetsService, configService, ingredientsService, loggerService },
+        { referenceId },
+      ),
+    );
 
     expect(url).toBe(`${BASE_URL}/ingredients/images/${referenceId}`);
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(1);
-    const ingredientQuery = (ingredientsService.findOne as vi.Mock).mock
-      .calls[0][0];
-    expect(ingredientQuery.id).toBe(referenceId);
-    expect(ingredientQuery.category).toBe(IngredientCategory.IMAGE);
+    expect(ingredientsService.findOne).toHaveBeenCalledWith({
+      category: IngredientCategory.IMAGE,
+      id: referenceId,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
     expect(assetsService.findOne).not.toHaveBeenCalled();
   });
 
@@ -84,23 +144,25 @@ describe('buildReferenceImageUrl', () => {
     const { ingredientsService, assetsService, configService, loggerService } =
       createMocks();
 
-    // First call (IMAGE) returns null, second call (VIDEO) returns the video
     (ingredientsService.findOne as vi.Mock)
-      .mockResolvedValueOnce(null) // IMAGE check
-      .mockResolvedValueOnce({ id: referenceId }); // VIDEO check
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: referenceId });
 
-    const url = await buildReferenceImageUrl({
-      assetsService,
-      configService,
-      ingredientsService,
-      loggerService,
-      referenceId,
-    });
+    const url = await buildReferenceImageUrl(
+      withOrganization(
+        { assetsService, configService, ingredientsService, loggerService },
+        { referenceId },
+      ),
+    );
 
     expect(url).toBe(`${BASE_URL}/ingredients/thumbnails/${referenceId}`);
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(2);
-    const videoQuery = (ingredientsService.findOne as vi.Mock).mock.calls[1][0];
-    expect(videoQuery.category).toBe(IngredientCategory.VIDEO);
+    expect(ingredientsService.findOne).toHaveBeenNthCalledWith(2, {
+      category: IngredientCategory.VIDEO,
+      id: referenceId,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
     expect(assetsService.findOne).not.toHaveBeenCalled();
   });
 
@@ -108,25 +170,27 @@ describe('buildReferenceImageUrl', () => {
     const { ingredientsService, assetsService, configService, loggerService } =
       createMocks();
 
-    // Both IMAGE and VIDEO checks return null
     (ingredientsService.findOne as vi.Mock).mockResolvedValue(null);
     (assetsService.findOne as vi.Mock).mockResolvedValue({
       id: referenceId,
     });
 
-    const url = await buildReferenceImageUrl({
-      assetsService,
-      configService,
-      ingredientsService,
-      loggerService,
-      referenceId,
-    });
+    const url = await buildReferenceImageUrl(
+      withOrganization(
+        { assetsService, configService, ingredientsService, loggerService },
+        { referenceId },
+      ),
+    );
 
     expect(url).toBe(`${BASE_URL}/references/${referenceId}`);
-    expect(ingredientsService.findOne).toHaveBeenCalledTimes(2); // IMAGE + VIDEO checks
+    expect(ingredientsService.findOne).toHaveBeenCalledTimes(2);
     expect(assetsService.findOne).toHaveBeenCalledTimes(1);
-    const assetQuery = (assetsService.findOne as vi.Mock).mock.calls[0][0];
-    expect(assetQuery.id).toBe(referenceId);
+    expect(assetsService.findOne).toHaveBeenCalledWith({
+      category: AssetCategory.REFERENCE,
+      id: referenceId,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
   });
 
   it('logs a warning and returns null when reference is not found', async () => {
@@ -137,16 +201,15 @@ describe('buildReferenceImageUrl', () => {
     (assetsService.findOne as vi.Mock).mockResolvedValue(null);
 
     await expect(
-      buildReferenceImageUrl({
-        assetsService,
-        configService,
-        ingredientsService,
-        loggerService,
-        referenceId,
-      }),
+      buildReferenceImageUrl(
+        withOrganization(
+          { assetsService, configService, ingredientsService, loggerService },
+          { referenceId },
+        ),
+      ),
     ).resolves.toBeNull();
 
-    expect(ingredientsService.findOne).toHaveBeenCalledTimes(2); // IMAGE + VIDEO checks
+    expect(ingredientsService.findOne).toHaveBeenCalledTimes(2);
     expect(loggerService.warn).toHaveBeenCalledWith(
       'Reference not found or invalid',
       { reference: referenceId },
@@ -163,13 +226,12 @@ describe('buildReferenceImageUrl', () => {
     );
 
     await expect(
-      buildReferenceImageUrl({
-        assetsService,
-        configService,
-        ingredientsService,
-        loggerService,
-        referenceId: invalidId,
-      }),
+      buildReferenceImageUrl(
+        withOrganization(
+          { assetsService, configService, ingredientsService, loggerService },
+          { referenceId: invalidId },
+        ),
+      ),
     ).resolves.toBeNull();
 
     expect(ingredientsService.findOne).toHaveBeenCalled();
@@ -189,13 +251,12 @@ describe('buildReferenceImageUrls', () => {
       createMocks();
 
     await expect(
-      buildReferenceImageUrls({
-        assetsService,
-        configService,
-        ingredientsService,
-        loggerService,
-        referenceIds: [],
-      }),
+      buildReferenceImageUrls(
+        withOrganization(
+          { assetsService, configService, ingredientsService, loggerService },
+          { referenceIds: [] },
+        ),
+      ),
     ).resolves.toEqual([]);
 
     expect(ingredientsService.findOne).not.toHaveBeenCalled();
@@ -207,33 +268,153 @@ describe('buildReferenceImageUrls', () => {
     const { ingredientsService, assetsService, configService, loggerService } =
       createMocks();
 
-    // id1: IMAGE found on first call
-    // id2: IMAGE not found, VIDEO not found, ASSET found
-    // invalidId: findOne throws (invalid ObjectId), caught and returns null
     (ingredientsService.findOne as vi.Mock)
-      .mockResolvedValueOnce({ id: id1 }) // id1: IMAGE check - found
-      .mockResolvedValueOnce(null) // id2: IMAGE check - not found
-      .mockResolvedValueOnce(null) // id2: VIDEO check - not found
-      .mockRejectedValueOnce(new Error('Invalid ObjectId')); // invalidId: throws
+      .mockResolvedValueOnce({ id: id1 })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockRejectedValueOnce(new Error('Invalid ObjectId'));
 
     (assetsService.findOne as vi.Mock).mockResolvedValueOnce({
       id: id2,
     });
 
-    const result = await buildReferenceImageUrls({
-      assetsService,
-      configService,
-      ingredientsService,
-      loggerService,
-      referenceIds: [id1, id2, invalidId],
-    });
+    const result = await buildReferenceImageUrls(
+      withOrganization(
+        { assetsService, configService, ingredientsService, loggerService },
+        { referenceIds: [id1, id2, invalidId] },
+      ),
+    );
 
     expect(result).toEqual([
       `${BASE_URL}/ingredients/images/${id1}`,
       `${BASE_URL}/references/${id2}`,
     ]);
-    // id1: 1 call (IMAGE found), id2: 2 calls (IMAGE + VIDEO), invalidId: 1 (throws)
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(4);
     expect(assetsService.findOne).toHaveBeenCalledTimes(1);
+    expect(ingredientsService.findOne).toHaveBeenCalledWith({
+      category: IngredientCategory.IMAGE,
+      id: id1,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
+  });
+});
+
+describe('reference image tenant isolation', () => {
+  const sameTenantId = testId('reference', 10);
+  const foreignId = testId('reference', 11);
+  const deletedId = testId('reference', 12);
+  const missingId = testId('reference', 13);
+
+  const rows: TenantMediaRow[] = [
+    { id: sameTenantId, organizationId: ORGANIZATION_ID },
+    { id: foreignId, organizationId: FOREIGN_ORGANIZATION_ID },
+    { id: deletedId, isDeleted: true, organizationId: ORGANIZATION_ID },
+  ];
+
+  function createTenantMocks() {
+    const mocks = createMocks();
+    (mocks.ingredientsService.findOne as vi.Mock).mockImplementation(
+      (query: ReferenceLookupQuery) => resolveTenantRow(rows, query),
+    );
+    (mocks.assetsService.findOne as vi.Mock).mockImplementation(
+      (query: ReferenceLookupQuery) => resolveTenantRow(rows, query),
+    );
+    return mocks;
+  }
+
+  it('resolves a same-tenant live IMAGE ingredient', async () => {
+    const mocks = createTenantMocks();
+
+    const url = await buildReferenceImageUrl(
+      withOrganization(mocks, { referenceId: sameTenantId }),
+    );
+
+    expect(url).toBe(`${BASE_URL}/ingredients/images/${sameTenantId}`);
+    expect(mocks.ingredientsService.findOne).toHaveBeenCalledWith({
+      category: IngredientCategory.IMAGE,
+      id: sameTenantId,
+      isDeleted: false,
+      organizationId: ORGANIZATION_ID,
+    });
+  });
+
+  it('returns null for a foreign-organization id without a distinct error', async () => {
+    const mocks = createTenantMocks();
+
+    await expect(
+      buildReferenceImageUrl(
+        withOrganization(mocks, { referenceId: foreignId }),
+      ),
+    ).resolves.toBeNull();
+
+    expect(mocks.loggerService.warn).toHaveBeenCalledWith(
+      'Reference not found or invalid',
+      { reference: foreignId },
+    );
+    expect(
+      JSON.stringify((mocks.ingredientsService.findOne as vi.Mock).mock.calls),
+    ).not.toContain(FOREIGN_ORGANIZATION_ID);
+  });
+
+  it('returns null for a soft-deleted same-tenant id', async () => {
+    const mocks = createTenantMocks();
+
+    await expect(
+      buildReferenceImageUrl(
+        withOrganization(mocks, { referenceId: deletedId }),
+      ),
+    ).resolves.toBeNull();
+
+    expect(mocks.loggerService.warn).toHaveBeenCalledWith(
+      'Reference not found or invalid',
+      { reference: deletedId },
+    );
+  });
+
+  it('treats missing, foreign, and deleted ids as indistinguishable misses', async () => {
+    const mocks = createTenantMocks();
+
+    const missing = await buildReferenceImageUrl(
+      withOrganization(mocks, { referenceId: missingId }),
+    );
+    const foreign = await buildReferenceImageUrl(
+      withOrganization(mocks, { referenceId: foreignId }),
+    );
+    const deleted = await buildReferenceImageUrl(
+      withOrganization(mocks, { referenceId: deletedId }),
+    );
+
+    expect(missing).toBeNull();
+    expect(foreign).toBeNull();
+    expect(deleted).toBeNull();
+    expect(mocks.loggerService.warn).toHaveBeenCalledTimes(3);
+    expect(mocks.loggerService.warn).toHaveBeenNthCalledWith(
+      1,
+      'Reference not found or invalid',
+      { reference: missingId },
+    );
+    expect(mocks.loggerService.warn).toHaveBeenNthCalledWith(
+      2,
+      'Reference not found or invalid',
+      { reference: foreignId },
+    );
+    expect(mocks.loggerService.warn).toHaveBeenNthCalledWith(
+      3,
+      'Reference not found or invalid',
+      { reference: deletedId },
+    );
+  });
+
+  it('aggregates only same-tenant live URLs from a mixed id list', async () => {
+    const mocks = createTenantMocks();
+
+    const result = await buildReferenceImageUrls(
+      withOrganization(mocks, {
+        referenceIds: [sameTenantId, foreignId, deletedId, missingId],
+      }),
+    );
+
+    expect(result).toEqual([`${BASE_URL}/ingredients/images/${sameTenantId}`]);
   });
 });

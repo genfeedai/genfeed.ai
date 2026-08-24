@@ -1,0 +1,64 @@
+{
+  "constraints": [
+    {
+      "kind": "desired_outcome",
+      "required": false,
+      "value": "Keep the logo crisp in every frame"
+    },
+    {
+      "kind": "avoid",
+      "required": false,
+      "value": "motion blur"
+    }
+  ],
+  "fidelityMode": "guided",
+  "intent": {
+    "audioDirection": "soft ambient synth pad",
+    "cinematography": "steady wide establishing shot",
+    "motion": "slow push in",
+    "objective": "Animate the product spin into a full campaign clip",
+    "requestedText": ["NEW"],
+    "scene": "minimalist white cyclorama studio",
+    "subjects": ["Reusable bottle"],
+    "visualDirection": "Clean editorial product cinematography"
+  },
+  "mediaKind": "video",
+  "output": {
+    "aspectRatio": "9:16",
+    "durationSeconds": 10,
+    "height": 1920,
+    "width": 1080
+  },
+  "provenance": [
+    {
+      "field": "intent.objective",
+      "source": "user"
+    },
+    {
+      "field": "intent.visualDirection",
+      "source": "brand"
+    },
+    {
+      "field": "references.last_frame",
+      "source": "user"
+    }
+  ],
+  "references": [
+    {
+      "assetId": "asset_product_123",
+      "description": "Opening frame",
+      "role": "first_frame"
+    },
+    {
+      "assetId": "asset_logo_789",
+      "description": "Brand mark",
+      "role": "subject"
+    },
+    {
+      "assetId": "asset_end_456",
+      "description": "Closing frame",
+      "role": "last_frame"
+    }
+  ],
+  "version": 1
+}

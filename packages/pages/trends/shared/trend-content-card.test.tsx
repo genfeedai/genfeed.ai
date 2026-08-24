@@ -3,7 +3,11 @@ import type { TrendContentItem } from '@props/trends/trends-page.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ openRemix: vi.fn(), push: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  isRemixAvailable: true,
+  openRemix: vi.fn(),
+  push: vi.fn(),
+}));
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => {
@@ -11,6 +15,7 @@ vi.mock('next-intl', () => ({
       'actions.copyPrompt': 'Copy prompt',
       'actions.openSource': 'Open source',
       'actions.remix': 'Remix',
+      'actions.remixUnavailable': 'Remix unavailable',
       'actions.sendToAgent': 'Send to agent',
     };
     return messages[key] ?? key;
@@ -37,7 +42,8 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
-  useOptionalDiscoverRemix: () => ({ openRemix: mocks.openRemix }),
+  useOptionalDiscoverRemix: () =>
+    mocks.isRemixAvailable ? { openRemix: mocks.openRemix } : null,
 }));
 
 import TrendContentCard from './trend-content-card';
@@ -60,7 +66,10 @@ describe('TrendContentCard', () => {
     trendViralityScore: 87,
   };
 
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.isRemixAvailable = true;
+  });
 
   it('links an imported trend reference to the org- and brand-scoped variation flow', () => {
     render(<TrendContentCard item={item} />);
@@ -119,6 +128,47 @@ describe('TrendContentCard', () => {
       expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
     },
   );
+
+  it('falls back to the legacy remix link when the provider is missing on TikTok', () => {
+    mocks.isRemixAvailable = false;
+    render(
+      <TrendContentCard
+        item={{
+          ...item,
+          contentType: 'video',
+          platform: 'tiktok',
+          sourceReferenceId: 'tiktok-reference-1',
+          trendId: 'tiktok-trend-1',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
+      'href',
+      '/org-1/brand-1/publish/remix?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
+    );
+    expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
+  });
+
+  it('shows an unavailable remix control when YouTube has no provider or legacy path', () => {
+    mocks.isRemixAvailable = false;
+    render(
+      <TrendContentCard
+        item={{
+          ...item,
+          contentType: 'video',
+          platform: 'youtube',
+          sourceReferenceId: 'youtube-reference-1',
+          trendId: 'youtube-trend-1',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Remix unavailable' }),
+    ).toBeDisabled();
+    expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
+  });
 
   it('does not offer direct remix when TikTok content has no durable source reference', () => {
     render(

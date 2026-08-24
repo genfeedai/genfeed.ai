@@ -126,6 +126,8 @@ export interface MetaNamedAdObject {
   id: string;
   name: string;
   status: string;
+  campaignId?: string;
+  adSetId?: string;
 }
 
 export interface MetaAdVideo {

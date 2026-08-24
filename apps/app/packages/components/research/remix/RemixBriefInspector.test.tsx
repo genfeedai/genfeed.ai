@@ -1,4 +1,5 @@
 import type { BrandRemixRunView } from '@api-types/contracts';
+import { ContentRunStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,7 +63,7 @@ const run: BrandRemixRunView = {
     sourceId: 'source-reference-1',
     title: 'Proof-led TikTok hook',
   },
-  status: 'pending',
+  status: ContentRunStatus.PENDING,
   updatedAt: '2026-08-20T10:00:00.000Z',
   version: 1,
 };
@@ -93,9 +94,7 @@ vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 

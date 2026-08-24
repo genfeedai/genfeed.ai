@@ -1,0 +1,11 @@
+{
+  "duration": 10,
+  "first_frame_image": "asset_product_123",
+  "last_frame_image": "asset_end_456",
+  "prompt": "Animate the product spin into a full campaign clip. Reusable bottle. minimalist white cyclorama studio. steady wide establishing shot. slow push in. Clean editorial product cinematography. Audio: soft ambient synth pad. Visible text: NEW. Keep the logo crisp in every frame",
+  "ratio": "adaptive",
+  "reference_audio_urls": [],
+  "reference_image_urls": ["asset_logo_789"],
+  "reference_video_urls": [],
+  "resolution": "768P"
+}

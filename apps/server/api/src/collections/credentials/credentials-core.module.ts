@@ -1,6 +1,7 @@
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
@@ -18,6 +19,7 @@ import { Module } from '@nestjs/common';
     AccountHealthService,
     AccountPublishingContextService,
     CredentialCryptoService,
+    CredentialPostingTimesService,
     CredentialPublishingReadinessService,
     CredentialsService,
   ],
@@ -26,6 +28,7 @@ import { Module } from '@nestjs/common';
     AccountHealthService,
     AccountPublishingContextService,
     CredentialCryptoService,
+    CredentialPostingTimesService,
     CredentialPublishingReadinessService,
     CredentialsService,
   ],

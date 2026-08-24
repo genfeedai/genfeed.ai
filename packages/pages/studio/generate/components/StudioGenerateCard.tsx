@@ -87,8 +87,10 @@ function buildMasonryIngredient(
  */
 export default function StudioGenerateCard({
   assetActions,
+  isSelected = false,
   job,
   onReprompt,
+  onSelect,
 }: StudioGenerateCardProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const { label } = getStudioGenerateTypeConfig(job.type);
@@ -121,7 +123,7 @@ export default function StudioGenerateCard({
       isActionsEnabled: true,
       isContainerHovered: true,
       isDragEnabled: false,
-      onClickIngredient: assetActions.onClickIngredient,
+      onClickIngredient: () => onSelect(job),
       onCopyPrompt: assetActions.onCopyPrompt,
       onDeleteIngredient: assetActions.onDeleteIngredient,
       onMarkRejected: assetActions.onMarkRejected,
@@ -136,8 +138,9 @@ export default function StudioGenerateCard({
     return (
       <article
         aria-label={`${label} generation`}
-        className="group relative w-full overflow-visible rounded-lg"
+        className={`group relative w-full overflow-visible rounded-lg ${isSelected ? 'ring-2 ring-primary' : ''}`}
         data-asset-media-state={mediaState}
+        data-selected={isSelected ? 'true' : 'false'}
         data-testid={`studio-asset-${job.id}`}
       >
         {job.type === 'image' ? (
@@ -173,12 +176,23 @@ export default function StudioGenerateCard({
   return (
     <article
       aria-label={`${label} generation`}
-      className="group relative w-full overflow-hidden rounded-lg bg-card shadow-border"
+      className={`group relative w-full overflow-hidden rounded-lg bg-card shadow-border ${isSelected ? 'ring-2 ring-primary' : ''}`}
       data-asset-media-state={mediaState}
+      data-selected={isSelected ? 'true' : 'false'}
       data-testid={`studio-asset-${job.id}`}
       style={{ aspectRatio: `${width} / ${height}` }}
     >
-      <div className="relative flex size-full min-h-40 items-center justify-center overflow-hidden bg-foreground/[0.04]">
+      <Button
+        ariaLabel={translate('selectGenerationAria', {
+          prompt: job.prompt || job.id,
+          type: label,
+        })}
+        className="absolute inset-0 z-[5]"
+        onClick={() => onSelect(job)}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+      />
+      <div className="pointer-events-none relative z-0 flex size-full min-h-40 items-center justify-center overflow-hidden bg-foreground/[0.04]">
         {isPending ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
@@ -201,7 +215,7 @@ export default function StudioGenerateCard({
           AUDIO_TYPES.has(job.type) ? (
             // biome-ignore lint/a11y/useMediaCaption: generated audio has no track
             <audio
-              className="w-full px-3"
+              className="pointer-events-auto w-full px-3"
               controls
               onError={handleMediaError}
               src={job.url}
@@ -209,7 +223,7 @@ export default function StudioGenerateCard({
           ) : VIDEO_TYPES.has(job.type) ? (
             // biome-ignore lint/a11y/useMediaCaption: generated video has no track
             <video
-              className="size-full object-cover"
+              className="pointer-events-auto size-full object-cover"
               controls
               onError={handleMediaError}
               src={job.url}
@@ -229,7 +243,7 @@ export default function StudioGenerateCard({
       </div>
 
       <div
-        className="pointer-events-none absolute inset-0 z-10 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/25 to-black/10 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+        className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/25 to-black/10 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
         data-asset-details
       >
         <Badge

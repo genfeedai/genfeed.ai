@@ -1,22 +1,7 @@
 'use client';
 
 import type { DialogProps } from '@radix-ui/react-dialog';
-import {
-  Command as ShipCommand,
-  CommandEmpty as ShipCommandEmpty,
-  CommandGroup as ShipCommandGroup,
-  CommandInput as ShipCommandInput,
-  CommandItem as ShipCommandItem,
-  CommandList as ShipCommandList,
-  CommandSeparator as ShipCommandSeparator,
-  CommandShortcut as ShipCommandShortcut,
-} from '@shipshitdev/ui/primitives';
-// Types only: cmdk's prop shapes are identical to ship's bundled copy, but ship
-// bundles its OWN cmdk instance — so every RENDERED command part must come from
-// @shipshitdev/ui/primitives to share one context. Using the standalone package
-// for rendering (e.g. CommandPrimitive.Input) mounts a detached context and
-// throws "Cannot read properties of undefined (reading 'subscribe')".
-import type { Command as CommandPrimitive } from 'cmdk';
+import { Command as CommandPrimitive } from 'cmdk';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import { Dialog, DialogContent } from './dialog';
@@ -27,7 +12,14 @@ function Command({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive>) {
   return (
-    <ShipCommand ref={ref} className={cn('ship-ui', className)} {...props} />
+    <CommandPrimitive
+      ref={ref}
+      className={cn(
+        'flex h-full w-full flex-col overflow-hidden rounded-xl bg-tertiary text-foreground',
+        className,
+      )}
+      {...props}
+    />
   );
 }
 Command.displayName = 'Command';
@@ -48,11 +40,16 @@ function CommandInput({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive.Input>) {
   return (
-    <ShipCommandInput
-      ref={ref}
-      className={cn('ship-ui', className)}
-      {...props}
-    />
+    <div className="flex items-center border-b border-border px-3">
+      <CommandPrimitive.Input
+        ref={ref}
+        className={cn(
+          'flex h-11 w-full rounded-md bg-transparent py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
+          className,
+        )}
+        {...props}
+      />
+    </div>
   );
 }
 CommandInput.displayName = 'CommandInput';
@@ -63,7 +60,7 @@ function CommandList({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive.List>) {
   return (
-    <ShipCommandList
+    <CommandPrimitive.List
       ref={ref}
       className={cn(
         'max-h-dropdown overflow-y-auto overflow-x-hidden',
@@ -80,9 +77,9 @@ function CommandEmpty({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive.Empty>) {
   return (
-    <ShipCommandEmpty
+    <CommandPrimitive.Empty
       ref={ref}
-      className="ship-ui py-6 text-center text-sm text-muted"
+      className="py-6 text-center text-sm text-muted-foreground"
       {...props}
     />
   );
@@ -95,9 +92,12 @@ function CommandGroup({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive.Group>) {
   return (
-    <ShipCommandGroup
+    <CommandPrimitive.Group
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn(
+        'overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:text-xs',
+        className,
+      )}
       {...props}
     />
   );
@@ -110,9 +110,9 @@ function CommandSeparator({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive.Separator>) {
   return (
-    <ShipCommandSeparator
+    <CommandPrimitive.Separator
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn('-mx-1 h-px bg-border', className)}
       {...props}
     />
   );
@@ -125,9 +125,12 @@ function CommandItem({
   ...props
 }: ComponentPropsWithRef<typeof CommandPrimitive.Item>) {
   return (
-    <ShipCommandItem
+    <CommandPrimitive.Item
       ref={ref}
-      className={cn('ship-ui', className)}
+      className={cn(
+        'relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-hover data-[selected=true]:text-foreground data-[disabled=true]:opacity-50',
+        className,
+      )}
       {...props}
     />
   );
@@ -138,8 +141,11 @@ const CommandShortcut = ({
   className,
   ...props
 }: HTMLAttributes<HTMLSpanElement>) => (
-  <ShipCommandShortcut
-    className={cn('ship-ui text-muted', className)}
+  <span
+    className={cn(
+      'ml-auto text-xs tracking-widest text-muted-foreground',
+      className,
+    )}
     {...props}
   />
 );

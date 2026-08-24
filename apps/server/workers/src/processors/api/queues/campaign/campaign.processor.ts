@@ -6,9 +6,15 @@
  * - Executes pending targets with rate limiting
  * - Updates campaign statistics
  */
+import {
+  DEFAULT_CAMPAIGN_SCHEDULE_VERSION,
+  isScheduledBlastDueForDispatch,
+  readCampaignScheduleVersion,
+} from '@api/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
+import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreach-capability.util';
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
 import {
   CAMPAIGN_PROCESSING_QUEUE,
@@ -58,7 +64,7 @@ export class CampaignProcessor extends WorkerHost {
   private async processInternal(
     job: Job<CampaignProcessingJobData>,
   ): Promise<CampaignProcessingResult> {
-    const { campaignId, organizationId } = job.data;
+    const { campaignId, organizationId, scheduleVersion } = job.data;
 
     this.logger.log(`Campaign processing started for ${campaignId}`, {
       campaignId,
@@ -69,16 +75,16 @@ export class CampaignProcessor extends WorkerHost {
     try {
       await job.updateProgress(10);
 
-      const campaign = await this.campaignsService.findOne({
-        id: campaignId,
-        isDeleted: false,
+      const campaign = await this.campaignsService.findOneById(
+        campaignId,
         organizationId,
-      });
+      );
 
       const ineligibleReason = this.ineligibleReason(
         campaign,
         campaignId,
         organizationId,
+        scheduleVersion,
       );
       if (ineligibleReason) {
         this.logger.log(`Campaign ${campaignId} is ineligible, skipping`, {
@@ -138,12 +144,16 @@ export class CampaignProcessor extends WorkerHost {
 
   private ineligibleReason(
     campaign: {
+      campaignType?: string;
       isDeleted?: boolean;
       organizationId?: string;
+      platform?: string;
+      schedule?: { dueAt?: string; version?: number } | null;
       status?: string;
     } | null,
     campaignId: string,
     organizationId: string,
+    scheduleVersion: number,
   ): string | undefined {
     if (!campaign) {
       return 'campaign_not_found';
@@ -159,6 +169,26 @@ export class CampaignProcessor extends WorkerHost {
 
     if (campaign.status !== CampaignStatus.ACTIVE) {
       return 'campaign_not_active';
+    }
+
+    if (
+      !isCampaignOutreachPairExecutable({
+        campaignType: campaign.campaignType,
+        platform: campaign.platform,
+      })
+    ) {
+      return 'outreach_pair_unavailable';
+    }
+
+    if (
+      readCampaignScheduleVersion(campaign.schedule) !==
+      (scheduleVersion ?? DEFAULT_CAMPAIGN_SCHEDULE_VERSION)
+    ) {
+      return 'stale_schedule_version';
+    }
+
+    if (!isScheduledBlastDueForDispatch(campaign)) {
+      return 'scheduled_blast_not_due';
     }
 
     if (!campaignId) {

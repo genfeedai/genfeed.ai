@@ -1,9 +1,9 @@
 'use client';
 
-import type {
-  CampaignPlatform,
+import {
+  type CampaignPlatform,
   CampaignType,
-  ReplyTone,
+  type ReplyTone,
 } from '@genfeedai/enums';
 import Badge from '@ui/display/badge/Badge';
 
@@ -14,6 +14,8 @@ interface OutreachCampaignWizardStep5Props {
   maxPerDay: number;
   maxPerHour: number;
   platform: CampaignPlatform;
+  scheduledLocalDateTime: string;
+  timezone: string;
   tone: ReplyTone;
 }
 
@@ -24,6 +26,8 @@ export default function OutreachCampaignWizardStep5({
   maxPerDay,
   maxPerHour,
   platform,
+  scheduledLocalDateTime,
+  timezone,
   tone,
 }: OutreachCampaignWizardStep5Props) {
   return (
@@ -60,6 +64,18 @@ export default function OutreachCampaignWizardStep5({
             <span className="text-foreground/60">Max/Day:</span>
             <span className="ml-2">{maxPerDay}</span>
           </div>
+          {campaignType === CampaignType.SCHEDULED_BLAST ? (
+            <>
+              <div>
+                <span className="text-foreground/60">Delivery time:</span>
+                <span className="ml-2">{scheduledLocalDateTime}</span>
+              </div>
+              <div>
+                <span className="text-foreground/60">Timezone:</span>
+                <span className="ml-2">{timezone}</span>
+              </div>
+            </>
+          ) : null}
         </div>
 
         {description && (

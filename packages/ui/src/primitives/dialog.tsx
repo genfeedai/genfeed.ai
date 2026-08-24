@@ -1,43 +1,40 @@
-import {
-  Dialog as ShipDialog,
-  DialogClose as ShipDialogClose,
-  DialogContent as ShipDialogContent,
-  DialogDescription as ShipDialogDescription,
-  DialogOverlay as ShipDialogOverlay,
-  DialogPortal as ShipDialogPortal,
-  DialogTitle as ShipDialogTitle,
-  DialogTrigger as ShipDialogTrigger,
-} from '@shipshitdev/ui/primitives';
+'use client';
+
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import { useModalContentGlobalSideEffectCleanup } from '../utils/modal-global-side-effects';
 
-const Dialog: typeof ShipDialog = ShipDialog;
+const Dialog: typeof DialogPrimitive.Root = DialogPrimitive.Root;
 
-const DialogTrigger: typeof ShipDialogTrigger = ShipDialogTrigger;
+const DialogTrigger: typeof DialogPrimitive.Trigger = DialogPrimitive.Trigger;
 
-const DialogPortal: typeof ShipDialogPortal = ShipDialogPortal;
+const DialogPortal: typeof DialogPrimitive.Portal = DialogPrimitive.Portal;
 
-const DialogClose: typeof ShipDialogClose = ShipDialogClose;
+const DialogClose: typeof DialogPrimitive.Close = DialogPrimitive.Close;
 
 function DialogOverlay({
   ref,
   className,
   ...props
-}: ComponentPropsWithRef<typeof ShipDialogOverlay>) {
+}: ComponentPropsWithRef<typeof DialogPrimitive.Overlay>) {
   return (
-    <ShipDialogOverlay
+    <DialogPrimitive.Overlay
       ref={ref}
-      className={cn('bg-black/72 backdrop-blur-sm', className)}
+      className={cn(
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/72 backdrop-blur-sm data-[state=closed]:animate-out data-[state=open]:animate-in',
+        className,
+      )}
       {...props}
     />
   );
 }
-DialogOverlay.displayName = ShipDialogOverlay.displayName ?? 'DialogOverlay';
+DialogOverlay.displayName =
+  DialogPrimitive.Overlay.displayName ?? 'DialogOverlay';
 
 interface DialogContentProps
-  extends ComponentPropsWithRef<typeof ShipDialogContent> {
+  extends ComponentPropsWithRef<typeof DialogPrimitive.Content> {
   showCloseButton?: boolean;
 }
 
@@ -51,26 +48,31 @@ function DialogContent({
   useModalContentGlobalSideEffectCleanup();
 
   return (
-    <ShipDialogContent
-      ref={ref}
-      aria-describedby={props['aria-describedby'] ?? undefined}
-      className={cn(
-        'ship-ui text-primary duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      {showCloseButton && (
-        <ShipDialogClose className="absolute right-4 top-4 rounded-md p-1 text-secondary transition-colors hover:bg-hover hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none">
-          <X className="size-4" />
-          <span className="sr-only">Close</span>
-        </ShipDialogClose>
-      )}
-    </ShipDialogContent>
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        aria-describedby={props['aria-describedby'] ?? undefined}
+        className={cn(
+          'fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-elevated p-6 text-foreground shadow-dialog outline-none',
+          'duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        {showCloseButton ? (
+          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none">
+            <X className="size-4" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        ) : null}
+      </DialogPrimitive.Content>
+    </DialogPortal>
   );
 }
-DialogContent.displayName = ShipDialogContent.displayName ?? 'DialogContent';
+DialogContent.displayName =
+  DialogPrimitive.Content.displayName ?? 'DialogContent';
 
 const DialogHeader = ({
   className,
@@ -104,32 +106,32 @@ function DialogTitle({
   ref,
   className,
   ...props
-}: ComponentPropsWithRef<typeof ShipDialogTitle>) {
+}: ComponentPropsWithRef<typeof DialogPrimitive.Title>) {
   return (
-    <ShipDialogTitle
+    <DialogPrimitive.Title
       ref={ref}
       className={cn('text-base font-semibold leading-none', className)}
       {...props}
     />
   );
 }
-DialogTitle.displayName = ShipDialogTitle.displayName ?? 'DialogTitle';
+DialogTitle.displayName = DialogPrimitive.Title.displayName ?? 'DialogTitle';
 
 function DialogDescription({
   ref,
   className,
   ...props
-}: ComponentPropsWithRef<typeof ShipDialogDescription>) {
+}: ComponentPropsWithRef<typeof DialogPrimitive.Description>) {
   return (
-    <ShipDialogDescription
+    <DialogPrimitive.Description
       ref={ref}
-      className={cn('text-sm text-secondary', className)}
+      className={cn('text-sm text-muted-foreground', className)}
       {...props}
     />
   );
 }
 DialogDescription.displayName =
-  ShipDialogDescription.displayName ?? 'DialogDescription';
+  DialogPrimitive.Description.displayName ?? 'DialogDescription';
 
 export type { DialogContentProps };
 export {

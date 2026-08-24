@@ -5,6 +5,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { resolvePairedRemixIdentity } from '@pages/studio/generate/utils/studio-remix-run';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -47,7 +48,7 @@ export default function StudioRemixRunPanel({
   );
   const isPaidMeta =
     run.draft.target.kind === 'paid' && run.draft.target.platform === 'meta';
-  const hasCanonicalIdentity = 'avatarAssetId' in run.draft.identity;
+  const canonicalIdentity = resolvePairedRemixIdentity(run.draft.identity);
   const isMetaHandoffEligible =
     isPaidMeta &&
     run.phase === 'approved' &&
@@ -92,7 +93,7 @@ export default function StudioRemixRunPanel({
 
   return (
     <section
-      aria-label="Remix run"
+      aria-label={translate('remixRun.regionLabel')}
       className="space-y-4 border-y border-border bg-card/40 p-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -117,7 +118,7 @@ export default function StudioRemixRunPanel({
             <Button
               icon={<GitBranch className="size-4" />}
               isDisabled={isWorking}
-              label="Vary recipe"
+              label={translate('remixRun.varyRecipe')}
               onClick={onVary}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
@@ -127,7 +128,9 @@ export default function StudioRemixRunPanel({
             <Button
               icon={<Send className="size-4" />}
               isDisabled={isWorking}
-              label={`Send ${readyVariantIds.length} to Review`}
+              label={translate('remixRun.sendToReview', {
+                count: readyVariantIds.length,
+              })}
               onClick={() => onReview(readyVariantIds)}
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
@@ -172,7 +175,7 @@ export default function StudioRemixRunPanel({
         </dl>
       ) : null}
 
-      {hasCanonicalIdentity ? (
+      {canonicalIdentity ? (
         <div
           aria-label="Canonical identity"
           className="flex flex-wrap gap-2"
@@ -180,12 +183,12 @@ export default function StudioRemixRunPanel({
         >
           <Badge variant="secondary">
             {translate('remixRun.identity.avatar', {
-              id: run.draft.identity.avatarAssetId,
+              id: canonicalIdentity.avatarAssetId,
             })}
           </Badge>
           <Badge variant="secondary">
             {translate('remixRun.identity.voice', {
-              id: run.draft.identity.speechVoiceId,
+              id: canonicalIdentity.speechVoiceId,
             })}
           </Badge>
         </div>
@@ -223,7 +226,7 @@ export default function StudioRemixRunPanel({
                   <p className="truncate text-muted-foreground">
                     {variant.assetIds.length
                       ? variant.assetIds.join(', ')
-                      : 'Waiting for durable asset ids'}
+                      : translate('remixRun.waitingForAssetIds')}
                   </p>
                   {variant.content ? (
                     <p className="mt-1 whitespace-pre-wrap text-foreground">

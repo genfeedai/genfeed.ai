@@ -183,6 +183,15 @@ describe('loadMessages', () => {
     );
     expect(english.agent.generationActionCard.promptLabel).toBe('Prompt');
     expect(english.agent.generationActionCard.readFull).toBe('Read & edit');
+    expect(english.pages.remixBrief.errors.saveFailed).toBe(
+      'The on-brand remix brief could not be saved.',
+    );
+    expect(english.pages.adsResearch.errors.remixUnavailable).toBe(
+      'The on-brand remix workflow is unavailable here.',
+    );
+    expect(english.pages.studioGenerate.remixRun.sendToReview).toBe(
+      'Send {count} to Review',
+    );
     expect(english.pages.posts.list.loadError).toBe(
       'Posts could not be loaded. Refresh to try again.',
     );

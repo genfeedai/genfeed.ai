@@ -1382,11 +1382,1060 @@ export const INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT =
     version: INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_VERSION,
   });
 
+export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID = 'social-warmup.youtube';
+export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_VERSION = 1;
+
+/**
+ * YouTube guided warm-up (#2220).
+ * Channel setup, niche/search research, native viewing/engagement, first
+ * Shorts, owned-video analytics, and a Shorts-to-long-form transition.
+ * No automated watch time, subscriptions, likes, or comments.
+ */
+export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
+  socialWarmupBlueprintSchema.parse({
+    evidenceBasis: [
+      {
+        id: 'yt-product-guidance',
+        kind: 'product_guidance',
+        reference: 'skills/youtube-warmup/SKILL.md',
+        reviewedOn: '2026-08-24',
+        title: 'Genfeed YouTube warm-up long-form guidance',
+      },
+      {
+        id: 'yt-data-api',
+        kind: 'platform_documentation',
+        reference: 'https://developers.google.com/youtube/v3/docs',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Data API overview',
+      },
+      {
+        id: 'yt-channels',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/docs/channels/list',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Channels list',
+      },
+      {
+        id: 'yt-playlist-items',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/docs/playlistItems/list',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube PlaylistItems list',
+      },
+      {
+        id: 'yt-videos',
+        kind: 'platform_documentation',
+        reference: 'https://developers.google.com/youtube/v3/docs/videos/list',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Videos list',
+      },
+      {
+        id: 'yt-analytics',
+        kind: 'platform_documentation',
+        reference: 'https://developers.google.com/youtube/analytics',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube Analytics API',
+      },
+      {
+        id: 'yt-upload',
+        kind: 'platform_documentation',
+        reference:
+          'https://developers.google.com/youtube/v3/guides/uploading_a_video',
+        reviewedOn: '2026-08-24',
+        title: 'YouTube video upload',
+      },
+    ],
+    graduation: {
+      disclaimer:
+        'Graduation means the configured channel and video checks have enough evidence to begin a gradual Shorts-to-long-form cadence. It does not promise recommendation-system outcomes, search ranking, or freedom from moderation.',
+      minimumElapsedDays: 10,
+      recommendedElapsedDays: 14,
+      rules: [
+        {
+          completion: {
+            description:
+              'The user has confirmed required native viewing, search, and channel-setup actions.',
+            key: 'manual-foundation-confirmed',
+            type: 'attestation',
+          },
+          description:
+            'Complete native YouTube foundation without representing private watch history, subscriptions, likes, comments, search, or homepage ranking as API telemetry.',
+          evidenceIds: ['yt-product-guidance'],
+          id: 'manual-foundation-complete',
+          provenance: 'user_confirmed',
+          requirement: 'required',
+          title: 'Native viewing and channel foundation confirmed',
+        },
+        {
+          completion: {
+            description:
+              'Authorized channel metadata and owned-upload signals have been refreshed when the connection allows.',
+            key: 'authorized-channel-snapshot',
+            type: 'signal',
+          },
+          description:
+            'Use only fields granted by the YouTube connection; missing analytics or unpublished channel selection stay unavailable.',
+          evidenceIds: ['yt-data-api', 'yt-channels', 'yt-videos'],
+          id: 'authorized-signals-refreshed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'Authorized channel signals refreshed',
+        },
+        {
+          completion: {
+            description:
+              'YouTube exposes an owned upload or Genfeed has recorded a completed Shorts publish when available.',
+            key: 'first-upload-platform-signal',
+            type: 'signal',
+          },
+          description:
+            'Observe the first Short through authorized uploads or Genfeed publish status.',
+          evidenceIds: ['yt-videos', 'yt-upload'],
+          id: 'first-shorts-platform-observed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'First Short observed',
+        },
+        {
+          completion: {
+            description:
+              'Owned-video analytics were refreshed when yt-analytics.readonly is granted.',
+            key: 'owned-video-analytics-snapshot',
+            type: 'signal',
+          },
+          description:
+            'Missing analytics permissions stay permission-limited. Do not invent CTR, average view duration, or traffic-source values.',
+          evidenceIds: ['yt-analytics'],
+          id: 'analytics-refreshed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'Owned-video analytics refreshed',
+        },
+        {
+          completion: {
+            description:
+              'Genfeed has recorded upload, publish, failure, cadence, and clip-lineage outcomes without replacing them with inferred platform behavior.',
+            key: 'genfeed-publish-outcomes-observed',
+            type: 'event',
+          },
+          description:
+            'Review unresolved Genfeed failures and clip lineage before increasing cadence.',
+          evidenceIds: ['yt-product-guidance', 'yt-upload'],
+          id: 'genfeed-outcomes-reviewed',
+          provenance: 'genfeed_observed',
+          requirement: 'required_when_available',
+          title: 'Genfeed outcomes reviewed',
+        },
+        {
+          completion: {
+            description:
+              'The user confirmed a Shorts-first or Shorts-plus-long-form path without treating it as a recommendation guarantee.',
+            key: 'shorts-to-longform-path-confirmed',
+            type: 'attestation',
+          },
+          description:
+            'Choose a gradual Shorts-to-long-form transition from configurable channel/video evidence and user confirmation.',
+          evidenceIds: ['yt-product-guidance'],
+          id: 'shorts-to-longform-path-confirmed',
+          provenance: 'user_confirmed',
+          requirement: 'required',
+          title: 'Shorts-to-long-form path confirmed',
+        },
+      ],
+    },
+    id: YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
+    lastReviewedOn: '2026-08-24',
+    phases: [
+      {
+        description:
+          'Research the niche through YouTube search and watch native recommendations before uploading.',
+        endDay: 3,
+        id: 'search-and-native-viewing',
+        startDay: 1,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms niche keyword searches were performed in YouTube.',
+              key: 'niche-search-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Search niche keywords and watch top organic results. Search activity stays user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'search-niche-keywords',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Search niche keywords manually',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they watched niche videos to completion without automation.',
+              key: 'native-viewing-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Watch niche videos in the native YouTube app. Watch history is not API-visible and stays user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'watch-niche-videos',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Watch niche videos to completion',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they subscribed to relevant channels and watched from the subscription feed.',
+              key: 'subscriptions-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Subscribe to a small set of active niche channels and watch from the subscription feed. Subscriptions stay user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'subscribe-and-watch-subscriptions',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Subscribe and watch from subscriptions',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms likes and comments made outside Genfeed were manual.',
+              key: 'likes-and-comments-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Like and comment selectively in the native app. Likes and comments made outside Genfeed stay user_confirmed.',
+            days: [1, 2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'like-and-comment-selectively',
+            provenance: 'user_confirmed',
+            requirement: 'optional',
+            title: 'Like and comment selectively (manual)',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms the Home feed is becoming more niche-relevant.',
+              key: 'homepage-tuning-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Check whether Home recommendations match the niche. Homepage ranking stays user_confirmed.',
+            days: [2, 3],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'check-homepage-relevance',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Check Home feed relevance',
+          },
+        ],
+        title: 'Niche search and native viewing',
+      },
+      {
+        description:
+          'Complete public channel identity and refresh authorized channel metadata before the first Short.',
+        endDay: 7,
+        id: 'channel-setup',
+        startDay: 4,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms handle, avatar, banner, About copy, and playlists are complete.',
+              key: 'channel-setup-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Finish YouTube channel setup in Studio before the first upload. Native Studio edits stay user_confirmed.',
+            days: [4, 5],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'complete-channel-setup',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Complete channel setup',
+          },
+          {
+            completion: {
+              description:
+                'Authorized channel metadata is readable when YouTube scopes allow.',
+              key: 'channel-fields-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'Refresh channel identity from the authorized connection. Missing channel selection stays recoverable.',
+            days: [4, 5, 6, 7],
+            evidenceIds: ['yt-channels', 'yt-data-api'],
+            id: 'refresh-authorized-channel',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Refresh authorized channel',
+          },
+          {
+            completion: {
+              description:
+                'Authorized upload capability is readable when publish scopes allow.',
+              key: 'publishing-capability-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Confirm the connected channel can upload when youtube.upload or youtube is granted.',
+            days: [5, 6, 7],
+            evidenceIds: ['yt-upload', 'yt-channels'],
+            id: 'snapshot-publishing-capability',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot publishing capability',
+          },
+          {
+            completion: {
+              description:
+                'Genfeed has recorded any draft or clip activity created inside Genfeed.',
+              key: 'genfeed-draft-activity-observed',
+              type: 'event',
+            },
+            description:
+              'When using Genfeed for Shorts drafts or clip lineage, outcomes stay genfeed_observed.',
+            days: [6, 7],
+            evidenceIds: ['yt-product-guidance', 'yt-upload'],
+            id: 'observe-genfeed-drafts',
+            provenance: 'genfeed_observed',
+            requirement: 'optional',
+            title: 'Observe Genfeed draft activity',
+          },
+        ],
+        title: 'Channel setup',
+      },
+      {
+        description:
+          'Publish a first original Short and observe owned uploads without automating watch time.',
+        endDay: 10,
+        id: 'first-shorts',
+        startDay: 8,
+        steps: [
+          {
+            completion: {
+              description:
+                'Genfeed has a first Shorts draft or publish outcome.',
+              key: 'first-shorts-upload',
+              type: 'event',
+            },
+            description:
+              'Upload one original Short with search-intent metadata. Prefer quality over volume.',
+            days: [8, 9],
+            evidenceIds: ['yt-product-guidance', 'yt-upload'],
+            id: 'first-shorts-upload',
+            provenance: 'genfeed_observed',
+            requirement: 'required_when_available',
+            title: 'First Shorts upload',
+          },
+          {
+            completion: {
+              description:
+                'Authorized owned uploads show the first video when permissions allow.',
+              key: 'first-upload-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'When upload listing is available, verify the first Short appeared. Empty channels stay empty, not failed.',
+            days: [8, 9, 10],
+            evidenceIds: ['yt-playlist-items', 'yt-videos', 'yt-upload'],
+            id: 'observe-first-upload-platform',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Observe first upload on YouTube',
+          },
+          {
+            completion: {
+              description:
+                'Authorized owned-upload inventory was refreshed when scopes allow.',
+              key: 'owned-uploads-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Snapshot owned uploads from the uploads playlist. Do not invent videos the API did not return.',
+            days: [9, 10],
+            evidenceIds: ['yt-playlist-items', 'yt-videos'],
+            id: 'snapshot-owned-uploads',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot owned uploads',
+          },
+        ],
+        title: 'First Shorts',
+      },
+      {
+        description:
+          'Review owned-video analytics and choose a gradual Shorts-to-long-form cadence.',
+        endDay: 14,
+        id: 'performance-and-longform',
+        startDay: 11,
+        steps: [
+          {
+            completion: {
+              description:
+                'Owned-video analytics were refreshed when analytics scope allows.',
+              key: 'owned-video-analytics-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Refresh CTR, average view duration, and related owned-video analytics when yt-analytics.readonly is granted. Missing analytics stay permission-limited.',
+            days: [11, 12, 13],
+            evidenceIds: ['yt-analytics'],
+            id: 'snapshot-owned-video-analytics',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot owned-video analytics',
+          },
+          {
+            completion: {
+              description:
+                'The user confirmed they reviewed outcomes before raising volume or adding long-form.',
+              key: 'performance-review-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Assess owned-video evidence and Genfeed failures before increasing cadence. Completing the plan does not guarantee recommendations.',
+            days: [12, 13],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'assess-before-longform',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Assess before long-form',
+          },
+          {
+            completion: {
+              description:
+                'The user confirmed a Shorts-first continuation or a gradual long-form introduction.',
+              key: 'shorts-to-longform-path-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Choose Shorts-first or Shorts plus one long-form video. Do not jump to a high long-form cadence.',
+            days: [13, 14],
+            evidenceIds: ['yt-product-guidance'],
+            id: 'confirm-shorts-to-longform-path',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Confirm Shorts-to-long-form path',
+          },
+          {
+            completion: {
+              description:
+                'Genfeed has recorded cadence, failures, and clip lineage for YouTube publishes.',
+              key: 'genfeed-publish-outcomes-observed',
+              type: 'event',
+            },
+            description:
+              'Review Genfeed upload, failure, cadence, and clip-lineage records before scaling.',
+            days: [14],
+            evidenceIds: ['yt-product-guidance', 'yt-upload'],
+            id: 'observe-genfeed-cadence',
+            provenance: 'genfeed_observed',
+            requirement: 'required_when_available',
+            title: 'Observe Genfeed cadence and clip lineage',
+          },
+        ],
+        title: 'Performance review and gradual long-form',
+      },
+    ],
+    platform: CredentialPlatform.YOUTUBE,
+    summary:
+      'A 10–14 day YouTube progression from channel setup and search-first native viewing, through first Shorts and owned-video analytics, to a gradual Shorts-to-long-form cadence — without automated watch time or engagement farming.',
+    title: 'YouTube 10–14 day channel warm-up',
+    version: YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  });
+
+export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID = 'social-warmup.linkedin';
+export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_VERSION = 1;
+
+/**
+ * LinkedIn guided warm-up (#2221).
+ * Profile completeness, niche feed consumption, comment-first
+ * participation, first value-led posts, assessment, and cadence growth.
+ * No automated connection requests, reactions, comments, messages, or SSI.
+ */
+export const LINKEDIN_SOCIAL_WARMUP_BLUEPRINT =
+  socialWarmupBlueprintSchema.parse({
+    evidenceBasis: [
+      {
+        id: 'li-product-guidance',
+        kind: 'product_guidance',
+        reference: 'skills/linkedin-warmup/SKILL.md',
+        reviewedOn: '2026-08-24',
+        title: 'Genfeed LinkedIn warm-up long-form guidance',
+      },
+      {
+        id: 'li-oauth',
+        kind: 'platform_documentation',
+        reference:
+          'https://learn.microsoft.com/en-us/linkedin/shared/authentication/authentication',
+        reviewedOn: '2026-08-24',
+        title: 'LinkedIn OAuth 2.0 authorization',
+      },
+      {
+        id: 'li-member-profile',
+        kind: 'platform_documentation',
+        reference:
+          'https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2',
+        reviewedOn: '2026-08-24',
+        title: 'Sign In with LinkedIn using OpenID Connect',
+      },
+      {
+        id: 'li-ugc-posts',
+        kind: 'platform_documentation',
+        reference:
+          'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/ugc-post-api',
+        reviewedOn: '2026-08-24',
+        title: 'LinkedIn UGC Post API',
+      },
+      {
+        id: 'li-social-actions',
+        kind: 'platform_documentation',
+        reference:
+          'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/network-update-social-actions',
+        reviewedOn: '2026-08-24',
+        title: 'LinkedIn social actions',
+      },
+      {
+        id: 'li-organization-acls',
+        kind: 'platform_documentation',
+        reference:
+          'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-access-control',
+        reviewedOn: '2026-08-24',
+        title: 'LinkedIn organization access control',
+      },
+      {
+        id: 'li-member-share',
+        kind: 'platform_documentation',
+        reference:
+          'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/ugc-post-api#create-ugc-posts',
+        reviewedOn: '2026-08-24',
+        title: 'Create LinkedIn member UGC posts',
+      },
+    ],
+    graduation: {
+      disclaimer:
+        'Graduation means the configured LinkedIn profile, participation, and first-post checks have enough evidence to begin a gradual posting cadence. It does not promise SSI growth, feed reach, or freedom from restriction or moderation.',
+      minimumElapsedDays: 10,
+      recommendedElapsedDays: 14,
+      rules: [
+        {
+          completion: {
+            description:
+              'The user has confirmed required native profile, feed, connection, and comment actions.',
+            key: 'manual-foundation-confirmed',
+            type: 'attestation',
+          },
+          description:
+            'Complete native LinkedIn foundation without representing feed consumption, connection requests, comments, reactions, saves, messages, or SSI as API telemetry.',
+          evidenceIds: ['li-product-guidance'],
+          id: 'manual-foundation-complete',
+          provenance: 'user_confirmed',
+          requirement: 'required',
+          title: 'Native profile and participation confirmed',
+        },
+        {
+          completion: {
+            description:
+              'Authorized member profile signals have been refreshed when the connection allows.',
+            key: 'member-profile-fields-platform-signal',
+            type: 'signal',
+          },
+          description:
+            'Use only fields granted by the LinkedIn member connection. Missing organization scopes stay unavailable on a separate claim.',
+          evidenceIds: ['li-member-profile', 'li-oauth'],
+          id: 'authorized-member-signals-refreshed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'Authorized member profile refreshed',
+        },
+        {
+          completion: {
+            description:
+              'Organization-page identity and publishing were snapshotted separately from the member profile.',
+            key: 'organization-page-snapshot',
+            type: 'signal',
+          },
+          description:
+            'Personal-profile and organization-page capabilities stay distinct. Missing organization permissions stay permission-limited, not ready.',
+          evidenceIds: ['li-organization-acls', 'li-oauth'],
+          id: 'member-vs-organization-distinguished',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'Member and organization capabilities distinguished',
+        },
+        {
+          completion: {
+            description:
+              'LinkedIn exposes an owned post or Genfeed has recorded a completed publish when available.',
+            key: 'first-publish-platform-signal',
+            type: 'signal',
+          },
+          description:
+            'Observe the first value-led post through authorized owned posts or Genfeed publish status.',
+          evidenceIds: ['li-ugc-posts', 'li-member-share'],
+          id: 'first-post-platform-observed',
+          provenance: 'platform_verified',
+          requirement: 'required_when_available',
+          title: 'First value-led post observed',
+        },
+        {
+          completion: {
+            description:
+              'Genfeed has recorded create, schedule, publish, failure, and cadence outcomes without replacing them with inferred platform behavior.',
+            key: 'genfeed-publish-outcomes-observed',
+            type: 'event',
+          },
+          description:
+            'Review unresolved Genfeed failures before increasing cadence.',
+          evidenceIds: ['li-product-guidance', 'li-member-share'],
+          id: 'genfeed-outcomes-reviewed',
+          provenance: 'genfeed_observed',
+          requirement: 'required_when_available',
+          title: 'Genfeed outcomes reviewed',
+        },
+        {
+          completion: {
+            description:
+              'The user confirmed SSI and cadence observations without treating them as a distribution guarantee.',
+            key: 'ssi-and-cadence-confirmed',
+            type: 'attestation',
+          },
+          description:
+            'SSI remains a native observation. Completing warm-up does not guarantee SSI, reach, or restriction avoidance.',
+          evidenceIds: ['li-product-guidance'],
+          id: 'ssi-and-cadence-confirmed',
+          provenance: 'user_confirmed',
+          requirement: 'required',
+          title: 'SSI observation and gradual cadence confirmed',
+        },
+      ],
+    },
+    id: LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID,
+    lastReviewedOn: '2026-08-24',
+    phases: [
+      {
+        description:
+          'Complete the native LinkedIn profile and refresh authorized member versus organization identity before posting.',
+        endDay: 2,
+        id: 'profile-completeness',
+        startDay: 1,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms headshot, headline, About, experience, education, skills, and custom URL are complete.',
+              key: 'native-profile-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Finish profile completeness in the native LinkedIn app. Native profile edits stay user_confirmed.',
+            days: [1, 2],
+            evidenceIds: ['li-product-guidance'],
+            id: 'complete-native-profile',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Complete native LinkedIn profile',
+          },
+          {
+            completion: {
+              description:
+                'Authorized member profile fields are readable when OpenID/profile scopes allow.',
+              key: 'member-profile-fields-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'Refresh member identity from the authorized connection. Do not treat this as organization-page readiness.',
+            days: [1, 2],
+            evidenceIds: ['li-member-profile', 'li-oauth'],
+            id: 'refresh-authorized-member-profile',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Refresh authorized member profile',
+          },
+          {
+            completion: {
+              description:
+                'Authorized organization-page identity is readable when organization scopes allow.',
+              key: 'organization-page-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Snapshot the connected organization page separately from the member profile. Missing organization permissions stay permission-limited.',
+            days: [1, 2],
+            evidenceIds: ['li-organization-acls', 'li-oauth'],
+            id: 'snapshot-organization-page',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot organization page separately',
+          },
+        ],
+        title: 'Profile completeness',
+      },
+      {
+        description:
+          'Read the niche feed, search, save, and react in the native app before original posts.',
+        endDay: 4,
+        id: 'niche-feed-consumption',
+        startDay: 3,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms they read the LinkedIn home feed for niche-relevant posts without automation.',
+              key: 'niche-feed-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Read the native LinkedIn home feed. Feed ranking and consumption stay user_confirmed.',
+            days: [3, 4],
+            evidenceIds: ['li-product-guidance'],
+            id: 'read-niche-feed',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Read the niche feed manually',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms niche keyword searches were performed in LinkedIn.',
+              key: 'niche-search-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Search niche keywords and read top posts. Search activity stays user_confirmed.',
+            days: [3, 4],
+            evidenceIds: ['li-product-guidance'],
+            id: 'search-niche-keywords',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Search niche keywords manually',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms saves and mixed reactions were made in the native app.',
+              key: 'saves-and-reactions-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Save and react selectively. Saves and reactions stay user_confirmed.',
+            days: [3, 4],
+            evidenceIds: ['li-product-guidance'],
+            id: 'save-and-react-selectively',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Save and react selectively (manual)',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they followed niche people rather than brand pages.',
+              key: 'niche-follows-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Follow active people in the niche. Follows stay user_confirmed.',
+            days: [4],
+            evidenceIds: ['li-product-guidance'],
+            id: 'follow-niche-people',
+            provenance: 'user_confirmed',
+            requirement: 'optional',
+            title: 'Follow niche people (manual)',
+          },
+        ],
+        title: 'Niche feed consumption',
+      },
+      {
+        description:
+          'Join conversations with thoughtful comments and personalized connection requests. No automated outreach.',
+        endDay: 7,
+        id: 'thoughtful-participation',
+        startDay: 5,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirms personalized connection requests were sent under a natural daily cap.',
+              key: 'connection-requests-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Send personalized connection notes. Connection requests stay user_confirmed and are never automated.',
+            days: [5, 6, 7],
+            evidenceIds: ['li-product-guidance'],
+            id: 'send-personalized-connection-requests',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Send personalized connection requests',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms substantive comments were written in the native app.',
+              key: 'thoughtful-comments-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Leave thoughtful comments on niche posts. Comments stay user_confirmed.',
+            days: [5, 6, 7],
+            evidenceIds: ['li-product-guidance'],
+            id: 'leave-thoughtful-comments',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Leave thoughtful comments (manual)',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms welcome messages to accepted connections were sent without pitching.',
+              key: 'welcome-messages-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Send brief welcome messages, not pitches. Messages stay user_confirmed.',
+            days: [6, 7],
+            evidenceIds: ['li-product-guidance'],
+            id: 'welcome-new-connections',
+            provenance: 'user_confirmed',
+            requirement: 'optional',
+            title: 'Welcome new connections (manual)',
+          },
+          {
+            completion: {
+              description:
+                'Authorized member publishing capability is readable when w_member_social is granted.',
+              key: 'member-publishing-capability-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Confirm the connected member can publish. Do not treat this as organization-page publishing readiness.',
+            days: [6, 7],
+            evidenceIds: ['li-member-share', 'li-oauth'],
+            id: 'snapshot-member-publishing-capability',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot member publishing capability',
+          },
+        ],
+        title: 'Thoughtful participation',
+      },
+      {
+        description:
+          'Publish first value-led text posts and observe owned posts without promotional CTAs.',
+        endDay: 10,
+        id: 'first-value-led-posts',
+        startDay: 8,
+        steps: [
+          {
+            completion: {
+              description:
+                'Genfeed has a first LinkedIn draft, schedule, or publish outcome.',
+              key: 'first-value-led-post',
+              type: 'event',
+            },
+            description:
+              'Create one value-led text post. Prefer quality over volume; no promotional CTAs.',
+            days: [8, 9],
+            evidenceIds: ['li-product-guidance', 'li-member-share'],
+            id: 'first-value-led-post',
+            provenance: 'genfeed_observed',
+            requirement: 'required_when_available',
+            title: 'First value-led post',
+          },
+          {
+            completion: {
+              description:
+                'Authorized owned posts show the first share when permissions allow.',
+              key: 'first-publish-platform-signal',
+              type: 'signal',
+            },
+            description:
+              'When owned-post listing is available, verify the first post appeared. Empty profiles stay empty, not failed.',
+            days: [8, 9, 10],
+            evidenceIds: ['li-ugc-posts', 'li-member-share'],
+            id: 'observe-first-publish-platform',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Observe first post on LinkedIn',
+          },
+          {
+            completion: {
+              description:
+                'Authorized owned-post inventory was refreshed when scopes allow.',
+              key: 'owned-posts-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Snapshot owned posts from the authorized connection. Do not invent posts the API did not return.',
+            days: [9, 10],
+            evidenceIds: ['li-ugc-posts'],
+            id: 'snapshot-owned-posts',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot owned posts',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms first posts were text-first without body links or more than five hashtags.',
+              key: 'text-first-posts-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Keep warmup posts text-first. External links belong in the first comment, never the post body.',
+            days: [8, 9, 10],
+            evidenceIds: ['li-product-guidance'],
+            id: 'confirm-text-first-no-links',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Confirm text-first posts',
+          },
+        ],
+        title: 'First value-led posts',
+      },
+      {
+        description:
+          'Review owned-post performance and native SSI without treating either as a guarantee.',
+        endDay: 12,
+        id: 'assessment',
+        startDay: 11,
+        steps: [
+          {
+            completion: {
+              description:
+                'Owned-post performance was refreshed when listing and social-action scopes allow.',
+              key: 'owned-post-performance-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Refresh impressions and engagement on owned posts when available. Missing permissions stay permission-limited.',
+            days: [11, 12],
+            evidenceIds: ['li-social-actions', 'li-ugc-posts'],
+            id: 'snapshot-owned-post-performance',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot owned-post performance',
+          },
+          {
+            completion: {
+              description:
+                'The user confirms they observed SSI in the native LinkedIn product.',
+              key: 'ssi-observation-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'SSI is not API-visible on this connection. Record it as user_confirmed and do not treat it as platform_verified.',
+            days: [11, 12],
+            evidenceIds: ['li-product-guidance'],
+            id: 'confirm-ssi-observation',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Confirm SSI observation (manual)',
+          },
+          {
+            completion: {
+              description:
+                'The user confirmed they reviewed outcomes before promotional content.',
+              key: 'performance-review-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Assess owned-post evidence and Genfeed failures before promotional posts. Completing the plan does not guarantee SSI, reach, or restriction avoidance.',
+            days: [12],
+            evidenceIds: ['li-product-guidance'],
+            id: 'assess-before-promotional',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Assess before promotional content',
+          },
+        ],
+        title: 'Assessment',
+      },
+      {
+        description:
+          'Choose a gradual posting cadence and keep organization publishing as a separate claim.',
+        endDay: 14,
+        id: 'cadence-growth',
+        startDay: 13,
+        steps: [
+          {
+            completion: {
+              description:
+                'The user confirmed a gradual posting cadence rather than a sudden volume jump.',
+              key: 'gradual-cadence-confirmed',
+              type: 'attestation',
+            },
+            description:
+              'Increase posts gradually after warmup. Sudden spikes can trigger review.',
+            days: [13, 14],
+            evidenceIds: ['li-product-guidance'],
+            id: 'confirm-gradual-cadence',
+            provenance: 'user_confirmed',
+            requirement: 'required',
+            title: 'Confirm gradual cadence growth',
+          },
+          {
+            completion: {
+              description:
+                'Genfeed has recorded cadence, schedules, publishes, and failures for LinkedIn.',
+              key: 'genfeed-publish-outcomes-observed',
+              type: 'event',
+            },
+            description:
+              'Review Genfeed create, schedule, publish, failure, and cadence records before scaling.',
+            days: [14],
+            evidenceIds: ['li-product-guidance', 'li-member-share'],
+            id: 'observe-genfeed-cadence',
+            provenance: 'genfeed_observed',
+            requirement: 'required_when_available',
+            title: 'Observe Genfeed cadence',
+          },
+          {
+            completion: {
+              description:
+                'Authorized organization-page publishing is readable when organization scopes allow.',
+              key: 'organization-publishing-capability-snapshot',
+              type: 'signal',
+            },
+            description:
+              'Confirm organization-page publishing separately from member w_member_social. Missing organization scopes stay permission-limited.',
+            days: [13, 14],
+            evidenceIds: [
+              'li-organization-acls',
+              'li-member-share',
+              'li-oauth',
+            ],
+            id: 'snapshot-organization-publishing-capability',
+            provenance: 'platform_verified',
+            requirement: 'required_when_available',
+            title: 'Snapshot organization publishing capability',
+          },
+        ],
+        title: 'Cadence growth',
+      },
+    ],
+    platform: CredentialPlatform.LINKEDIN,
+    summary:
+      'A 10–14 day LinkedIn progression from profile completeness and niche feed consumption, through thoughtful comments and first value-led posts, to assessment and gradual cadence — without automated connections, engagement, or SSI claims.',
+    title: 'LinkedIn 10–14 day profile and network warm-up',
+    version: LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  });
+
 export const SOCIAL_WARMUP_BLUEPRINT_CATALOG: readonly SocialWarmupBlueprint[] =
   Object.freeze([
     TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
     TWITTER_SOCIAL_WARMUP_BLUEPRINT,
     INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT,
+    YOUTUBE_SOCIAL_WARMUP_BLUEPRINT,
+    LINKEDIN_SOCIAL_WARMUP_BLUEPRINT,
   ]);
 
 export function findSocialWarmupBlueprint(

@@ -1,4 +1,3 @@
-import { Textarea as ShipTextarea } from '@shipshitdev/ui/primitives';
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -72,6 +71,9 @@ interface RegisteredTextareaInnerProps<T extends FieldValues = FieldValues>
   register: UseFormRegisterReturn<Path<T>>;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
 }
+
+const textareaClassName =
+  'flex min-h-[80px] w-full rounded-lg border border-border bg-background-tertiary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-border-strong disabled:cursor-not-allowed disabled:opacity-50 font-[inherit] min-h-textarea h-auto resize-y';
 
 function assignRef(
   ref:
@@ -150,10 +152,10 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
   }, [adjustHeight]);
 
   return (
-    <ShipTextarea
+    <textarea
       {...props}
       className={cn(
-        'ship-ui min-h-textarea h-auto resize-y font-[inherit]',
+        textareaClassName,
         hasError && 'border-destructive focus-visible:border-destructive',
         className,
       )}
@@ -263,8 +265,7 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
     <textarea
       {...props}
       className={cn(
-        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
-        'min-h-textarea h-auto resize-y',
+        textareaClassName,
         hasError && 'border-destructive focus-visible:border-destructive',
         className,
       )}
@@ -340,8 +341,7 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
       {...registerProps}
       {...props}
       className={cn(
-        'flex min-h-[80px] w-full rounded-lg border border-border bg-background-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-foreground/18 disabled:cursor-not-allowed disabled:opacity-50 font-[inherit]',
-        'min-h-textarea h-auto resize-y',
+        textareaClassName,
         hasError && 'border-destructive focus-visible:border-destructive',
         className,
       )}

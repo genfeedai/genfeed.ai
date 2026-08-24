@@ -1,0 +1,8 @@
+{
+  "aspect_ratio": "1:1",
+  "duration": 8,
+  "image": "asset_product_123",
+  "prompt": "Bring the new bottle to life in a studio spin. Reusable bottle. sun-drenched ceramics studio. Centered product portrait. soft window light. slow dolly-in, shallow depth of field. gentle parallax. Clean editorial product cinematography. Visible text: NEW. Keep the bottle label readable",
+  "prompt_upsampling": true,
+  "seed": 42
+}

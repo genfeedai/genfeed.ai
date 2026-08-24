@@ -45,7 +45,6 @@ export async function watchExtensionThemeCss(): Promise<() => void> {
     path.join(EXTENSION_ROOT, 'src'),
     path.join(REPO_ROOT, 'packages/ui/src/primitives'),
     path.join(REPO_ROOT, 'packages/ui/web-tokens.css'),
-    path.join(REPO_ROOT, 'packages/ui/node_modules/@shipshitdev/ui/dist'),
   ];
   const watchers: FSWatcher[] = [];
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;

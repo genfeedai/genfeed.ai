@@ -15,6 +15,11 @@ import {
   STUDIO_MAX_OUTPUTS,
 } from '@pages/studio/generate/utils/studio-generate-settings';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import {
+  clampRemixDurationSeconds,
+  REMIX_MAX_DURATION_SECONDS,
+  REMIX_MIN_DURATION_SECONDS,
+} from '@pages/studio/generate/utils/studio-remix-run';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -187,15 +192,11 @@ function StudioRemixOutputSettingsPopover({
               <Input
                 aria-label="Duration"
                 className={SHELL_CONTROL_HEIGHT_CLASS}
-                max={300}
-                min={1}
+                max={REMIX_MAX_DURATION_SECONDS}
+                min={REMIX_MIN_DURATION_SECONDS}
                 onChange={(event) => {
-                  const duration = Number(event.target.value);
                   onChange({
-                    duration:
-                      Number.isFinite(duration) && duration > 0
-                        ? duration
-                        : undefined,
+                    duration: clampRemixDurationSeconds(event.target.value),
                   });
                 }}
                 type="number"

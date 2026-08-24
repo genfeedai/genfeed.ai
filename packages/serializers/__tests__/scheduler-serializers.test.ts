@@ -35,6 +35,7 @@ describe('Scheduler serializer configs', () => {
       'type',
       'recurrence-rule',
     );
+    expect(releaseGroupSerializerConfig.attributes).toContain('firstTagColor');
   });
 
   test('channel target config wires credential + attachments relationships', () => {
@@ -168,6 +169,7 @@ describe('Release group serialization', () => {
       },
       id: 'rel_1',
       baseContent: 'Launch day is here.',
+      firstTagColor: '#ef4444',
       idempotencyKey: 'idem-1',
       status: 'partially-published',
       targetSummary: { failed: 1, published: 1, total: 2 },
@@ -192,6 +194,7 @@ describe('Release group serialization', () => {
     expect(result.data).toHaveProperty('type', 'release-group');
     expect(result.data).toHaveProperty('id', 'rel_1');
     expect(result.data.attributes).toHaveProperty('title', 'Launch');
+    expect(result.data.attributes).toHaveProperty('firstTagColor', '#ef4444');
     expect(result.data.attributes).toHaveProperty(
       'status',
       'partially-published',

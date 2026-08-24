@@ -33,6 +33,7 @@ const publicFields = [
   'accessTokenExpiry',
   'label',
   'description',
+  'postingTimes',
   'accountHealth',
   'warmupAssessedAt',
   'warmupHoldReason',

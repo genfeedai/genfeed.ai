@@ -14,10 +14,12 @@ import {
   CampaignPlatform,
   CampaignSkipReason,
   CampaignStatus,
+  CampaignType,
   ReplyLength,
   ReplyTone,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,6 +44,7 @@ describe('CampaignExecutorService', () => {
   };
 
   const mockCampaignTargetsService = {
+    claimForProcessing: vi.fn(),
     getPendingTargets: vi.fn(),
     markAsFailed: vi.fn(),
     markAsProcessing: vi.fn(),
@@ -103,6 +106,7 @@ describe('CampaignExecutorService', () => {
         useAiGeneration: true,
       } as CampaignAiConfig,
       brandId,
+      campaignType: CampaignType.MANUAL,
       credentialId,
       organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
@@ -139,6 +143,9 @@ describe('CampaignExecutorService', () => {
     vi.clearAllMocks();
     mockOutreachCampaignsService.reserveReplySlot.mockResolvedValue({
       reserved: true,
+    });
+    mockCampaignTargetsService.claimForProcessing.mockResolvedValue({
+      id: targetId,
     });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -188,13 +195,10 @@ describe('CampaignExecutorService', () => {
 
       expect(result.success).toBe(false);
       expect(result.skipReason).toBe(CampaignSkipReason.CAMPAIGN_PAUSED);
-      expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
-        targetId.toString(),
-        CampaignSkipReason.CAMPAIGN_PAUSED,
-      );
+      expect(mockCampaignTargetsService.markAsSkipped).not.toHaveBeenCalled();
       expect(
         mockOutreachCampaignsService.incrementSkippedCounter,
-      ).toHaveBeenCalledWith(campaignId.toString());
+      ).not.toHaveBeenCalled();
       expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
       expect(
         mockOutreachCampaignsService.reserveReplySlot,
@@ -269,11 +273,12 @@ describe('CampaignExecutorService', () => {
       expect(result.success).toBe(true);
       expect(result.replyText).toBe('Great point!');
       expect(result.replyExternalId).toBe('reply123');
-      expect(mockCampaignTargetsService.markAsProcessing).toHaveBeenCalledWith(
-        targetId.toString(),
-      );
+      expect(
+        mockCampaignTargetsService.claimForProcessing,
+      ).toHaveBeenCalledWith(targetId.toString(), orgId);
       expect(mockCampaignTargetsService.markAsReplied).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         expect.objectContaining({ replyText: 'Great point!' }),
       );
       expect(
@@ -324,6 +329,7 @@ describe('CampaignExecutorService', () => {
       expect(result.error).toBe('Rate limited by Twitter');
       expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         'Rate limited by Twitter',
         1,
       );
@@ -368,7 +374,9 @@ describe('CampaignExecutorService', () => {
       ).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         CampaignSkipReason.RATE_LIMITED,
+        expect.anything(),
       );
     });
 
@@ -520,7 +528,7 @@ describe('CampaignExecutorService', () => {
         mockSystemWorkflowProvenanceService.runAction,
       ).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
-      expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).not.toHaveBeenCalled();
     });
 
     it('should return error for unsupported platform (reddit)', async () => {
@@ -533,11 +541,37 @@ describe('CampaignExecutorService', () => {
       const result = await service.executeTarget(campaign, target);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Reddit replies not yet implemented');
+      expect(result.error).toBe(
+        'This outreach platform and campaign type combination is not available.',
+      );
+      expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.claimForProcessing,
+      ).not.toHaveBeenCalled();
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+      expect(
+        mockSystemWorkflowProvenanceService.runAction,
+      ).not.toHaveBeenCalled();
+      expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsSkipped).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).not.toHaveBeenCalled();
     });
   });
 
   describe('previewReply', () => {
+    it('rejects an unavailable pair before generation', async () => {
+      const campaign = makeCampaign({
+        platform: CampaignPlatform.INSTAGRAM,
+      });
+      const target = makeTarget();
+
+      await expect(
+        service.previewReply(campaign, target),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+    });
+
     it('should return generated reply without posting', async () => {
       const campaign = makeCampaign();
       const target = makeTarget();
@@ -558,6 +592,22 @@ describe('CampaignExecutorService', () => {
   });
 
   describe('processPendingTargets', () => {
+    it('skips an unavailable pair before reading targets', async () => {
+      const campaign = makeCampaign({ platform: CampaignPlatform.INSTAGRAM });
+
+      const results = await service.processPendingTargets(campaign, 10);
+
+      expect(results).toEqual({
+        failed: 0,
+        processed: 0,
+        skipped: 0,
+        successful: 0,
+      });
+      expect(
+        mockCampaignTargetsService.getPendingTargets,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should process a batch of pending targets', async () => {
       const campaign = makeCampaign();
       const targets = [makeTarget(), makeTarget({ id: 'test-object-id' })];
@@ -573,6 +623,12 @@ describe('CampaignExecutorService', () => {
 
       const results = await service.processPendingTargets(campaign, 10);
 
+      expect(mockCampaignTargetsService.getPendingTargets).toHaveBeenCalledWith(
+        campaignId,
+        orgId,
+        10,
+        { scheduleVersion: 1 },
+      );
       expect(results.processed).toBe(2);
       expect(results.successful).toBe(2);
       expect(results.failed).toBe(0);

@@ -35,11 +35,12 @@ npx skills add genfeedai/skills/youtube-warmup
 
 | Phase | Days | Output |
 |-------|------|--------|
-| Engagement Only | 1-3 | Keyword bank, channel follow criteria, daily checklist, comment templates |
-| Channel Setup | 4-7 | About page, playlist plan, channel art brief, banner direction |
-| First Upload (Short) | 7-10 | Shorts script, thumbnail brief, title, description, tags |
-| Assessment | Day 9-12 (48h check) | CTR, avg view duration, traffic sources, go/no-go framework |
-| Transition | Week 3+ | Long-form vs. Shorts-first decision, graduated cadence, community post timing |
+| Niche search and native viewing | 1-3 | Keyword bank, watch/subscribe/comment checklist (`user_confirmed`) |
+| Channel Setup | 4-7 | About page, playlist plan, authorized channel refresh |
+| First Shorts | 8-10 | Shorts script, thumbnail brief, owned-upload snapshot |
+| Performance and long-form | 11-14 | Owned-video analytics, Shorts-to-long-form path, Genfeed cadence |
+
+The canonical machine-readable definition is `social-warmup.youtube@1` in `@genfeedai/api-types`; `SKILL.md` remains the long-form guidance source.
 
 ## License
 

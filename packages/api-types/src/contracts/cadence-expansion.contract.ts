@@ -125,6 +125,49 @@ export function buildSlotIdentityKey(input: {
   ].join('|');
 }
 
+/**
+ * Two cadences that land on the same credential, format, and instant collapse
+ * to one occurrence. The oldest cadence (createdAt, then id) keeps the slot.
+ */
+export type CollapsibleCadenceOccurrence = {
+  cadenceCreatedAt: string;
+  cadenceId: string;
+  credentialId: string;
+  format: string;
+  instantUtc: string;
+};
+
+export function collapseOverlappingCadenceOccurrences<
+  T extends CollapsibleCadenceOccurrence,
+>(occurrences: T[]): T[] {
+  const winners = new Map<string, T>();
+  for (const occurrence of occurrences) {
+    const collapseKey = [
+      occurrence.credentialId,
+      occurrence.format,
+      occurrence.instantUtc,
+    ].join('|');
+    const existing = winners.get(collapseKey);
+    if (!existing || isOlderCadence(occurrence, existing)) {
+      winners.set(collapseKey, occurrence);
+    }
+  }
+  return [...winners.values()];
+}
+
+function isOlderCadence(
+  candidate: CollapsibleCadenceOccurrence,
+  existing: CollapsibleCadenceOccurrence,
+): boolean {
+  const createdDelta =
+    Date.parse(candidate.cadenceCreatedAt) -
+    Date.parse(existing.cadenceCreatedAt);
+  if (createdDelta !== 0) {
+    return createdDelta < 0;
+  }
+  return candidate.cadenceId < existing.cadenceId;
+}
+
 export function isWithinConsumptionTolerance(
   occurrenceInstant: string,
   scheduledInstant: string,

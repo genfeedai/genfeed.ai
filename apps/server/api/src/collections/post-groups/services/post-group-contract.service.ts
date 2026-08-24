@@ -250,6 +250,7 @@ export class PostGroupContractService {
       baseContent: group.baseContent,
       brandId: group.brandId,
       createdAt: group.createdAt.toISOString(),
+      firstTagColor: this.firstTagColorFromTargets(targets),
       id: group.id,
       idempotencyKey: group.idempotencyKey,
       isDeleted: group.isDeleted,
@@ -267,6 +268,15 @@ export class PostGroupContractService {
       title: group.title,
       updatedAt: group.updatedAt.toISOString(),
     };
+  }
+
+  /** First tag on the first target post. Later targets and tags are ignored. */
+  private firstTagColorFromTargets(
+    targets: readonly SchedulerPostTarget[],
+  ): string | null {
+    const firstTag = targets[0]?.tags?.find((tag) => tag.isDeleted !== true);
+    const color = firstTag?.backgroundColor?.trim();
+    return color ? color : null;
   }
 
   deriveReleaseStatus(
