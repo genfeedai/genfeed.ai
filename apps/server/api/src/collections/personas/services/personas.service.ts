@@ -194,10 +194,8 @@ export class PersonasService extends BaseService<
         label: true,
       },
       take: 20,
-      where: {
+      where: scopedWhere(params.organizationId, {
         handle: { not: null },
-        isDeleted: false,
-        organizationId: params.organizationId,
         status: PersonaStatus.ACTIVE,
         ...(params.brandId ? { brandId: params.brandId } : {}),
         ...(prefix
@@ -213,7 +211,7 @@ export class PersonasService extends BaseService<
               ],
             }
           : {}),
-      },
+      }),
     });
 
     return rows.flatMap((row) => {
