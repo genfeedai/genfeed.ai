@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -49,7 +50,8 @@ export function runRecoveryNpmPlanGuard({
 
 const isDirectInvocation =
   process.argv[1] &&
-  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+  import.meta.url ===
+    pathToFileURL(realpathSync(path.resolve(process.argv[1]))).href;
 
 if (isDirectInvocation) {
   try {
