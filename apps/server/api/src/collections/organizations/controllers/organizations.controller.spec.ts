@@ -205,9 +205,15 @@ describe('OrganizationsController', () => {
       expect(mockMembersService.find).not.toHaveBeenCalled();
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
         id: 'org_a',
+        isDeleted: false,
       });
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
         id: 'org_b',
+        isDeleted: false,
+      });
+      expect(mockBrandsService.findOne).toHaveBeenCalledWith({
+        isDeleted: false,
+        organizationId: 'org_a',
       });
       expect(result.map((entry) => entry.id)).toEqual(['org_a', 'org_b']);
       expect(
@@ -285,6 +291,33 @@ describe('OrganizationsController', () => {
         { id: 'org_active', isActive: true },
         { id: 'org_other', isActive: false },
       ]);
+    });
+
+    it('returns live memberships when the session organization is stale', async () => {
+      mockMembersService.findActiveForUserAccess.mockResolvedValue([
+        { id: 'member_live', isActive: true, organizationId: 'org_live' },
+      ]);
+      mockOrganizationsService.findOne.mockResolvedValue({
+        id: 'org_live',
+        label: 'Live Org',
+        slug: 'live-org',
+      });
+      mockBrandsService.findOne.mockResolvedValue(null);
+
+      const result = (await controller.findMine({
+        ...currentUser,
+        organizationId: 'org_stale',
+      })) as OrganizationOption[];
+
+      expect(result.map((entry) => entry.id)).toEqual(['org_live']);
+      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
+        id: 'org_live',
+        isDeleted: false,
+      });
+      expect(mockOrganizationsService.findOne).not.toHaveBeenCalledWith({
+        id: 'org_stale',
+        isDeleted: false,
+      });
     });
 
     it('does not trust a stale session organization when the user has no active memberships', async () => {
