@@ -349,6 +349,9 @@
     }
   },
   "library": {
+    "inspector": {
+      "type": "Type"
+    },
     "sidebar": {
       "shelvesGroup": "Shelves",
       "storageLabel": "Storage"

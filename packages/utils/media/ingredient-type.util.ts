@@ -51,6 +51,7 @@ export function isVideoIngredient(
 
   return (
     ingredient.category === IngredientCategory.VIDEO ||
+    ingredient.category === IngredientCategory.VIDEO_EDIT ||
     isAvatarVideoIngredient(ingredient)
   );
 }
@@ -64,6 +65,7 @@ export function isImageIngredient(
 
   return (
     ingredient.category === IngredientCategory.IMAGE ||
+    ingredient.category === IngredientCategory.IMAGE_EDIT ||
     ingredient.category === IngredientCategory.GIF ||
     isAvatarSourceImageIngredient(ingredient)
   );

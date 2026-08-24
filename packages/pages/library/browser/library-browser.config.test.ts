@@ -24,6 +24,18 @@ describe('LIBRARY_TYPE_CHIPS', () => {
       }
     }
   });
+
+  it('keeps filter labels singular so they match table pills', () => {
+    expect(LIBRARY_TYPE_CHIPS.map((chip) => chip.label)).toEqual([
+      'Image',
+      'Video',
+      'GIF',
+      'Avatar',
+      'Audio',
+      'Voice',
+      'Text',
+    ]);
+  });
 });
 
 describe('LIBRARY_TYPE_PRESETS', () => {

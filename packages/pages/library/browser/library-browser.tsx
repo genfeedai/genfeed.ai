@@ -39,11 +39,11 @@ export default function LibraryBrowser({
   const {
     categories,
     contextValue,
+    handleCategoriesChange,
     handleClearCategories,
     handleRefresh,
     handleSearchChange,
     handleSortChange,
-    handleToggleCategories,
     handleUpload,
     handleViewModeChange,
     isRefreshing,
@@ -99,11 +99,11 @@ export default function LibraryBrowser({
             <LibraryBrowserToolbar
               categories={categories}
               isRefreshing={isRefreshing}
+              onCategoriesChange={handleCategoriesChange}
               onClearCategories={handleClearCategories}
               onRefresh={handleRefresh}
               onSearchChange={handleSearchChange}
               onSortChange={handleSortChange}
-              onToggleCategories={handleToggleCategories}
               onUpload={handleUpload}
               onViewModeChange={handleViewModeChange}
               search={search}

@@ -1,13 +1,17 @@
 'use client';
 
 import { ButtonVariant, ComponentSize, ViewType } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
+import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  categoriesFromAssetTypeIds,
+  selectedAssetTypeIds,
+} from '@utils/media/library-asset-type.util';
 import { LayoutGrid, Rows3, Upload, X } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 
@@ -22,8 +26,13 @@ const VIEW_OPTIONS = [
   { icon: <Rows3 className="size-4" />, label: 'List', type: ViewType.LIST },
 ];
 
+const TYPE_OPTIONS = LIBRARY_TYPE_CHIPS.map((chip) => ({
+  label: chip.label,
+  value: chip.id,
+}));
+
 /**
- * The Library's control plane: the type axis as multi-select chips, plus
+ * The Library's control plane: the type axis as a multi-select dropdown, plus
  * search, sort and density. The shelf and folder axes are *not* here — a shelf
  * is the route and a folder is the sidebar, so putting either in this row would
  * re-collapse the three axes the redesign just separated.
@@ -35,7 +44,7 @@ export default function LibraryBrowserToolbar({
   sortOptions,
   viewMode,
   isRefreshing,
-  onToggleCategories,
+  onCategoriesChange,
   onClearCategories,
   onSearchChange,
   onSortChange,
@@ -44,33 +53,21 @@ export default function LibraryBrowserToolbar({
   onUpload,
 }: LibraryBrowserToolbarProps) {
   const hasTypeFilter = categories.length > 0;
+  const selectedTypeIds = selectedAssetTypeIds(categories);
 
   return (
     <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-        {LIBRARY_TYPE_CHIPS.map((chip) => {
-          const isActive = chip.categories.every((category) =>
-            categories.includes(category),
-          );
-
-          return (
-            <Button
-              key={chip.label}
-              aria-pressed={isActive}
-              className={cn(
-                'h-7 rounded-full border px-3 text-xs font-medium transition-colors',
-                isActive
-                  ? 'border-border-strong bg-foreground text-background'
-                  : 'border-border bg-card text-foreground/70 hover:bg-hover hover:text-foreground',
-              )}
-              onClick={() => onToggleCategories(chip.categories)}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            >
-              {chip.label}
-            </Button>
-          );
-        })}
+        <DropdownMultiSelect
+          className="h-8 rounded-md border border-border bg-secondary px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground"
+          name="categories"
+          onChange={(_name, values) => {
+            onCategoriesChange(categoriesFromAssetTypeIds(values));
+          }}
+          options={TYPE_OPTIONS}
+          placeholder="Type"
+          values={selectedTypeIds}
+        />
 
         {hasTypeFilter ? (
           <Button

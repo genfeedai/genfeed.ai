@@ -8,7 +8,7 @@ import {
 } from '@genfeedai/enums';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import type { StatusDropdownProps } from '@genfeedai/props/social/status-dropdown.props';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import type { ReactNode } from 'react';
@@ -132,6 +132,18 @@ describe('DropdownStatus', () => {
     const { container } = render(<DropdownStatus {...baseProps} />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
+  });
+
+  it('paints the trigger as a muted status pill, not a raw variant name', () => {
+    render(<DropdownStatus {...baseProps} />);
+
+    const trigger = within(screen.getByTestId('dropdown-trigger')).getByText(
+      'Completed',
+    );
+
+    expect(trigger).toHaveClass('bg-success/10');
+    expect(trigger).toHaveClass('text-success');
+    expect(trigger.className).not.toMatch(/\buppercase\b/);
   });
 
   it('patches posts with canonical execution state and visibility', async () => {

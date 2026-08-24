@@ -7,9 +7,12 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
+import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
 import Badge from '@ui/display/badge/Badge';
+import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 import { getIngredientShelf } from './ingredient-shelf.util';
 
@@ -105,8 +108,9 @@ export default function IngredientInspectorRail({
   hasHeading = true,
   ingredient,
 }: IngredientInspectorRailProps) {
+  const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
-  const previewUrl = ingredient.thumbnailUrl || ingredient.ingredientUrl;
+  const previewUrl = getIngredientPreviewUrl(ingredient);
   const dimensions =
     ingredient.width && ingredient.height
       ? `${ingredient.width} × ${ingredient.height}`
@@ -152,7 +156,14 @@ export default function IngredientInspectorRail({
       ) : null}
 
       <dl className="flex flex-col divide-y divide-foreground/6">
-        <InspectorField label="Type" value={ingredient.category} />
+        <div className="flex items-baseline justify-between gap-3 py-1.5">
+          <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-foreground/35">
+            {translate('type')}
+          </dt>
+          <dd className="min-w-0">
+            <LibraryAssetTypeBadge category={ingredient.category} />
+          </dd>
+        </div>
         <InspectorField label="Size" value={dimensions} />
         <InspectorField
           label="File"

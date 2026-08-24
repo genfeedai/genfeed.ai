@@ -1,7 +1,7 @@
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { StrictMode } from 'react';
@@ -647,12 +647,28 @@ describe('AgentFullPage', () => {
     const view = render(
       <AgentFullPage apiService={apiService as never} threadId="thread-a" />,
     );
-    view.rerender(
-      <AgentFullPage apiService={apiService as never} threadId="thread-b" />,
-    );
-    view.rerender(
-      <AgentFullPage apiService={apiService as never} threadId="thread-c" />,
-    );
+    await waitFor(() => {
+      expect(apiService.getMessages).toHaveBeenCalledWith(
+        'thread-a',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    vi.useFakeTimers();
+    try {
+      view.rerender(
+        <AgentFullPage apiService={apiService as never} threadId="thread-b" />,
+      );
+      view.rerender(
+        <AgentFullPage apiService={apiService as never} threadId="thread-c" />,
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(THREAD_SWITCH_DEBOUNCE_MS);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
 
     await waitFor(() => {
       expect(storeState.setMessagesPage).toHaveBeenCalled();

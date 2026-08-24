@@ -173,23 +173,17 @@ export function useLibraryBrowser({
   );
 
   /**
-   * Toggle a chip, not a raw category. One chip can cover several categories —
-   * an edited image is still an image — so the group moves as a unit: fully
-   * selected chips clear, anything else fills in.
+   * Replace the type axis from the multi-select dropdown. One option covers
+   * several categories — an edited image is still an image — so the caller
+   * expands groups before they arrive here.
    */
-  const handleToggleCategories = useCallback(
-    (chipCategories: readonly IngredientCategory[]) => {
-      const isSelected = chipCategories.every((entry) =>
-        categories.includes(entry),
-      );
-
+  const handleCategoriesChange = useCallback(
+    (nextCategories: IngredientCategory[]) => {
       pushAxes({
-        categories: isSelected
-          ? categories.filter((entry) => !chipCategories.includes(entry))
-          : Array.from(new Set([...categories, ...chipCategories])),
+        categories: Array.from(new Set(nextCategories)),
       });
     },
-    [categories, pushAxes],
+    [pushAxes],
   );
 
   const handleClearCategories = useCallback(() => {
@@ -305,11 +299,11 @@ export function useLibraryBrowser({
     categories,
     contextValue,
     folderId,
+    handleCategoriesChange,
     handleClearCategories,
     handleRefresh,
     handleSearchChange,
     handleSortChange,
-    handleToggleCategories,
     handleUpload,
     handleViewModeChange,
     isRefreshing,
