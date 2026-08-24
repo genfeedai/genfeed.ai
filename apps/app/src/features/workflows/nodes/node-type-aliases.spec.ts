@@ -11,6 +11,9 @@ describe('normalizeNodeTypeForEditor', () => {
     expect(normalizeNodeTypeForEditor('ai-prompt-constructor')).toBe(
       'promptConstructor',
     );
+    expect(normalizeNodeTypeForEditor('cast-prompt-generator')).toBe(
+      'castPrompt',
+    );
     expect(normalizeNodeTypeForEditor('workflow-input')).toBe('workflowInput');
     expect(normalizeNodeTypeForEditor('workflow-output')).toBe(
       'workflowOutput',
@@ -30,6 +33,7 @@ describe('normalizeNodeTypeForApi', () => {
     expect(normalizeNodeTypeForApi('promptConstructor')).toBe(
       'ai-prompt-constructor',
     );
+    expect(normalizeNodeTypeForApi('castPrompt')).toBe('cast-prompt-generator');
     expect(normalizeNodeTypeForApi('workflowInput')).toBe('workflow-input');
     expect(normalizeNodeTypeForApi('workflowOutput')).toBe('workflow-output');
   });
@@ -44,6 +48,7 @@ describe('normalizeNodeTypeForApi', () => {
     const apiTypes = [
       'ai-generate-image',
       'ai-prompt-constructor',
+      'cast-prompt-generator',
       'workflow-input',
       'workflow-output',
     ];

@@ -2,6 +2,8 @@ export * from './analytics-feedback-executor';
 export * from './brand-asset-executor';
 export * from './brand-context-executor';
 export * from './brand-executor';
+// CAST prompt generator (UGC + cinematic preset families)
+export * from './cast-prompt-executor';
 // Cinematic post-production executors
 export * from './cinematic-camera-presets';
 export * from './cinematic-color-grade-executor';

@@ -13,6 +13,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import {
+  CastPromptExecutor,
   HookGeneratorExecutor,
   PromptConstructorExecutor,
   type WorkflowEngine,
@@ -34,6 +35,7 @@ export class WorkflowContentExecutorRegistrarService {
   register(engine: WorkflowEngine): void {
     this.registerPromptExecutor(engine);
     this.registerPromptConstructorExecutor(engine);
+    this.registerCastPromptExecutor(engine);
     this.registerHookGeneratorExecutor(engine);
     this.registerLlmExecutor(engine);
     this.registerSourceCorpusExecutor(engine);
@@ -67,6 +69,13 @@ export class WorkflowContentExecutorRegistrarService {
       'promptConstructor',
       this.helper.wrapEngineExecutor(promptConstructorExecutor),
     );
+  }
+
+  private registerCastPromptExecutor(engine: WorkflowEngine): void {
+    const castPromptExecutor = new CastPromptExecutor();
+    const wrapped = this.helper.wrapEngineExecutor(castPromptExecutor);
+    engine.registerExecutor('castPrompt', wrapped);
+    engine.registerExecutor('cast-prompt-generator', wrapped);
   }
 
   private registerHookGeneratorExecutor(engine: WorkflowEngine): void {

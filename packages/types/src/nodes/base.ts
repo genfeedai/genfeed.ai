@@ -9,6 +9,7 @@ export enum NodeTypeEnum {
   VIDEO_INPUT = 'videoInput',
   PROMPT = 'prompt',
   PROMPT_CONSTRUCTOR = 'promptConstructor',
+  CAST_PROMPT = 'castPrompt',
   // AI generation nodes
   IMAGE_GEN = 'imageGen',
   VIDEO_GEN = 'videoGen',

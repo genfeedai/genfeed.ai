@@ -33,6 +33,8 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   noop: 0,
   postPublishTrigger: 0, // trigger node — the optimization workflow it starts bills itself
   promptConstructor: 0,
+  castPrompt: 0,
+  'cast-prompt-generator': 0,
   trendTrigger: 0,
   // videoInput is a core input node (see @genfeedai/types); free like other inputs
   videoInput: 0,
