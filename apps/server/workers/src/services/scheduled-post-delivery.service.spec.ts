@@ -176,7 +176,7 @@ describe('ScheduledPostDeliveryService', () => {
     mocks = createDeliveryMocks();
     mocks.credentialsService.findOne.mockResolvedValue({
       id: 'cred-1',
-      platform: CredentialPlatform.TWITTER,
+      platform: 'TWITTER',
     });
     service = createDeliveryService(mocks);
   });
@@ -626,12 +626,15 @@ describe('ScheduledPostDeliveryService', () => {
       platform: CredentialPlatform.TWITTER,
       url: 'https://x.com/example/status/tweet-scalar-1',
     });
+    mocks.organizationsService.findOne.mockResolvedValue({
+      id: 'org-scalar-1',
+    });
     mocks.credentialsService.findOne.mockImplementation(
       (query: { id?: unknown }) =>
         query?.id === 'cred-scalar-1'
           ? Promise.resolve({
               id: 'cred-scalar-1',
-              platform: CredentialPlatform.TWITTER,
+              platform: 'TWITTER',
             })
           : Promise.resolve(null),
     );

@@ -21,12 +21,12 @@ const makeAdapter = () => ({
   updateCampaign: vi.fn(),
 });
 
-const mockCtx = {
+const mockCtx: AdsAdapterContext = {
   accessToken: 'tok',
   adAccountId: 'act_123',
   credentialId: 'cred_123',
   organizationId: 'org_123',
-} satisfies AdsAdapterContext;
+};
 
 const buildInsights = (
   spend: number,

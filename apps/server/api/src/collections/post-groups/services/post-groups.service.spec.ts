@@ -129,6 +129,7 @@ describe('PostGroupsService', () => {
   let postPublishQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let publishApprovalsService: {
     createForCurrentPost: ReturnType<typeof vi.fn>;
+    invalidatePost: ReturnType<typeof vi.fn>;
     markQueued: ReturnType<typeof vi.fn>;
     toPublicInterface: ReturnType<typeof vi.fn>;
   };
@@ -220,6 +221,7 @@ describe('PostGroupsService', () => {
         provenance: {},
         status: PublishApprovalStatus.FAILED,
       }),
+      invalidatePost: vi.fn().mockResolvedValue(undefined),
       markQueued: vi.fn().mockResolvedValue(undefined),
       toPublicInterface: vi.fn(),
     };

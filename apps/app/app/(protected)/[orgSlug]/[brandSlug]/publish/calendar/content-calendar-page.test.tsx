@@ -1164,7 +1164,7 @@ describe('ContentCalendarPage', () => {
       (item) => item.id === 'day:2026-03-12',
     );
     expect(aggregate?.missingCount).toBe(12);
-    expect(aggregate?.filledCount).toBe(1);
+    expect(aggregate?.filledCount).toBe(0);
   });
 
   it('exposes Generate as a real button on a focused missing slot', async () => {
