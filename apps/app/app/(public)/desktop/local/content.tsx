@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type {
   IDesktopBootstrap,
   IDesktopGeneratedContent,
@@ -15,6 +16,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
+import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -22,6 +24,8 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function LocalDesktopContent() {
   const translate = useTranslations('common.desktop.local');
+  const { isEnabled: isLocalWorkspaceEnabled, isReady: isLocalWorkspaceReady } =
+    useDesktopLocalWorkspaceFlag();
   const [bootstrap, setBootstrap] = useState<IDesktopBootstrap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(true);
@@ -30,6 +34,11 @@ export default function LocalDesktopContent() {
 
   const loadLocalRuntime = useCallback(
     async (signal?: AbortSignal) => {
+      if (!isLocalWorkspaceEnabled) {
+        setIsBusy(false);
+        return;
+      }
+
       const bridge = getDesktopBridge();
       if (!bridge) {
         setError(translate('errors.desktopOnly'));
@@ -50,14 +59,23 @@ export default function LocalDesktopContent() {
         if (!signal?.aborted) setIsBusy(false);
       }
     },
-    [translate],
+    [isLocalWorkspaceEnabled, translate],
   );
 
   useEffect(() => {
+    if (isLocalWorkspaceReady && !isLocalWorkspaceEnabled) {
+      window.location.assign(APP_ROUTES.LOGIN);
+      return;
+    }
+
+    if (!isLocalWorkspaceEnabled) {
+      return;
+    }
+
     const abortController = new AbortController();
     void loadLocalRuntime(abortController.signal);
     return () => abortController.abort();
-  }, [loadLocalRuntime]);
+  }, [isLocalWorkspaceEnabled, isLocalWorkspaceReady, loadLocalRuntime]);
 
   const refreshBootstrap = async (): Promise<void> => {
     const bridge = getDesktopBridge();

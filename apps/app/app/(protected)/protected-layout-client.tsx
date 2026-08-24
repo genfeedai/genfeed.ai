@@ -4,6 +4,7 @@ import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
 import {
   APP_SWITCHER_FEATURE_FLAG_KEYS,
+  DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/constants';
 import { useAuthUser } from '@hooks/auth/use-auth-user';
@@ -21,6 +22,7 @@ import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-sh
 const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
 const REMOTE_FEATURE_FLAG_KEYS = [
   ...APP_SWITCHER_FEATURE_FLAG_KEYS,
+  DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 ] as const;
 

@@ -2,16 +2,23 @@
 
 import { BrandProvider } from '@contexts/user/brand-context/brand-context';
 import { UserProvider } from '@contexts/user/user-context/user-context';
+import { isDesktopClient } from '@genfeedai/config/deployment';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import { ProtectedAuthGate } from '@providers/protected-providers/protected-providers';
 import ThemePreferenceSync from '@providers/theme-sync/theme-preference-sync';
 import { ErrorBoundary } from '@ui/error';
+import { usePathname } from 'next/navigation';
 import { Suspense } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
+  const pathname = usePathname();
+  const isDesktopLocalProviders =
+    isDesktopClient() && pathname === APP_ROUTES.ONBOARDING.PROVIDERS;
+
   const content = (
     <ApiStatusProvider>
       <UserProvider>
@@ -31,6 +38,10 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
       </UserProvider>
     </ApiStatusProvider>
   );
+
+  if (isDesktopLocalProviders) {
+    return content;
+  }
 
   return <ProtectedAuthGate>{content}</ProtectedAuthGate>;
 }

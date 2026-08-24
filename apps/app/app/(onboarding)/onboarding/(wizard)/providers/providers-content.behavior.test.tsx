@@ -9,6 +9,7 @@ import ProvidersContent from './providers-content';
 
 const {
   assignMock,
+  getDesktopBridgeMock,
   getInstallReadinessMock,
   getUsersServiceMock,
   handleStepCompleteMock,
@@ -17,6 +18,7 @@ const {
   resolveAuthTokenMock,
 } = vi.hoisted(() => ({
   assignMock: vi.fn(),
+  getDesktopBridgeMock: vi.fn(() => null),
   getInstallReadinessMock: vi.fn(),
   getUsersServiceMock: vi.fn(),
   handleStepCompleteMock: vi.fn(),
@@ -29,6 +31,10 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     getToken: vi.fn(),
   }),
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isDesktopClient: () => process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1',
 }));
 
 vi.mock('@contexts/onboarding/onboarding-context', () => ({
@@ -82,6 +88,10 @@ vi.mock('@services/organization/users.service', () => ({
       patchSettings: patchSettingsMock,
     })),
   },
+}));
+
+vi.mock('@/lib/desktop/runtime', () => ({
+  getDesktopBridge: () => getDesktopBridgeMock(),
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -150,6 +160,9 @@ const localStorageMock = (() => {
 describe('ProvidersContent behavior', () => {
   beforeEach(() => {
     assignMock.mockReset();
+    vi.unstubAllEnvs();
+    getDesktopBridgeMock.mockReset();
+    getDesktopBridgeMock.mockReturnValue(null);
     getInstallReadinessMock.mockReset();
     getUsersServiceMock.mockReset();
     handleStepCompleteMock.mockReset();
@@ -381,11 +394,20 @@ describe('ProvidersContent behavior', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: 'Continue with server defaults' }),
+        screen.getByRole('button', { name: 'Use Genfeed Cloud' }),
       ).toBeEnabled();
     });
 
+    expect(
+      screen.queryByRole('button', { name: 'Continue with server defaults' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Server-configured providers'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Local agent tools')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Add my own API keys' }),
+    ).toBeVisible();
   });
 
   it('persists cloud mode and redirects to cloud signup with brand context', async () => {
@@ -424,5 +446,34 @@ describe('ProvidersContent behavior', () => {
     expect(redirectUrl.searchParams.get('brandName')).toBe('Acme');
     expect(redirectUrl.searchParams.get('source')).toBe('oss-onboarding');
     expect(pushMock).not.toHaveBeenCalledWith('/onboarding/summary');
+  });
+
+  it('detects local CLIs on desktop local mode and continues to the workspace', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    getDesktopBridgeMock.mockReturnValue({
+      app: {
+        detectLocalTools: vi.fn().mockResolvedValue({
+          anyDetected: true,
+          claude: true,
+          codex: false,
+          detected: ['claude'],
+          grok: true,
+        }),
+        getBootstrap: vi.fn().mockResolvedValue({ isOfflineMode: true }),
+      },
+    });
+
+    render(<ProvidersContent />);
+
+    expect(await screen.findByText('Claude CLI')).toBeVisible();
+    expect(screen.getByText('Codex CLI')).toBeVisible();
+    expect(screen.getByText('Grok CLI')).toBeVisible();
+    expect(
+      screen.queryByText('Server-configured providers'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue to workspace' }),
+    );
+    expect(pushMock).toHaveBeenCalledWith('/desktop/local');
   });
 });

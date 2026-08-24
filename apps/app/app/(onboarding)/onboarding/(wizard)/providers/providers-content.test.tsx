@@ -24,5 +24,7 @@ describe('app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx',
     expect(source).toContain('Add my own API keys');
     expect(source).toContain('Continue with server defaults');
     expect(source).toContain('Use Genfeed Cloud');
+    expect(source).toContain('Continue to workspace');
+    expect(source).toContain('Grok CLI');
   });
 });

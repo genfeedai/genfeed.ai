@@ -1,3 +1,4 @@
+import { isDesktopServerRequest } from '@app-server/desktop-request.server';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import LoginPage from './content';
@@ -25,7 +26,11 @@ export const metadata: Metadata = {
 export default function AppLoginPage() {
   return (
     <Suspense fallback={null}>
-      <LoginPage />
+      <DesktopAwareLoginPage />
     </Suspense>
   );
+}
+
+async function DesktopAwareLoginPage() {
+  return <LoginPage isDesktopShell={await isDesktopServerRequest()} />;
 }

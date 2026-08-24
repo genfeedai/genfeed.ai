@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   act,
   fireEvent,
@@ -9,9 +10,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './content';
 import LoginBetterAuth from './login-better-auth';
-import MagicLinkLoginPage from './magic-link/page';
-import AppLoginPage from './page';
-import PasswordLoginPage from './password/page';
 
 const authClientMocks = vi.hoisted(() => ({
   email: vi.fn(),
@@ -29,6 +27,11 @@ const desktopRuntimeMocks = vi.hoisted(() => ({
   unsubscribe: vi.fn(),
 }));
 
+const desktopLocalWorkspaceFlagMock = vi.hoisted(() => ({
+  isEnabled: true,
+  isReady: true,
+}));
+
 let desktopSessionChangeCallback: ((session: object | null) => void) | null =
   null;
 
@@ -43,6 +46,10 @@ vi.mock('@genfeedai/auth-client', () => ({
 
 vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
+}));
+
+vi.mock('@/lib/desktop/use-desktop-local-workspace-flag', () => ({
+  useDesktopLocalWorkspaceFlag: () => desktopLocalWorkspaceFlagMock,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -93,6 +100,8 @@ describe('LoginPage', () => {
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
     desktopRuntimeMocks.eventOrder.length = 0;
+    desktopLocalWorkspaceFlagMock.isEnabled = true;
+    desktopLocalWorkspaceFlagMock.isReady = true;
     desktopRuntimeMocks.enableOfflineMode.mockReset();
     desktopRuntimeMocks.enableOfflineMode.mockResolvedValue({});
     desktopRuntimeMocks.getDesktopBridge.mockReset();
@@ -175,17 +184,34 @@ describe('LoginPage', () => {
     expect(screen.getByRole('link', { name: 'Magic Link' })).toBeVisible();
   });
 
+  it('renders the desktop surface from the server snapshot without a web-form flash', () => {
+    window.history.replaceState({}, '', '/login');
+
+    render(<LoginPage isDesktopShell />);
+
+    expect(
+      screen.getByRole('heading', { name: 'Connect to Genfeed' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Welcome back' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
   it.each([
-    { Page: AppLoginPage, pathname: '/login' },
-    { Page: PasswordLoginPage, pathname: '/login/password' },
-    { Page: MagicLinkLoginPage, pathname: '/login/magic-link' },
+    { ui: <LoginPage />, pathname: '/login' },
+    { ui: <LoginBetterAuth mode="password" />, pathname: '/login/password' },
+    {
+      ui: <LoginBetterAuth mode="magic-link" />,
+      pathname: '/login/magic-link',
+    },
   ])(
     'renders the desktop sign-in surface for $pathname',
-    ({ Page, pathname }) => {
+    ({ ui, pathname }) => {
       vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
       window.history.replaceState({}, '', pathname);
 
-      render(<Page />);
+      render(ui);
 
       expect(
         screen.getByRole('heading', { name: 'Connect to Genfeed' }),
@@ -206,6 +232,25 @@ describe('LoginPage', () => {
       ).not.toBeInTheDocument();
     },
   );
+
+  it('keeps local workspace as a coming-soon demand signal when the PostHog flag is off', () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    desktopLocalWorkspaceFlagMock.isEnabled = false;
+    desktopLocalWorkspaceFlagMock.isReady = true;
+    render(<LoginPage />);
+
+    const localModeButton = screen.getByRole('button', {
+      name: 'Use a local workspace — coming soon',
+    });
+    expect(localModeButton).toBeDisabled();
+    fireEvent.click(localModeButton);
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'Local workspace is coming soon. Sign in with Genfeed Cloud.',
+      ),
+    ).toBeVisible();
+  });
 
   it('starts local mode only after the user selects it', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
@@ -229,7 +274,9 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
-    expect(locationAssignMock).toHaveBeenCalledWith('/desktop/local');
+    expect(locationAssignMock).toHaveBeenCalledWith(
+      APP_ROUTES.ONBOARDING.PROVIDERS,
+    );
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {

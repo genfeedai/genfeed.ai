@@ -1,9 +1,8 @@
 import '@styles/globals.css';
 
+import { isDesktopServerRequest } from '@app-server/desktop-request.server';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
-import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
 import { resolveRequestLocale } from '@helpers/ui/locale/locale.helper';
@@ -13,7 +12,6 @@ import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
-import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import AnalyticsAnonymousSessionSync from '@/components/analytics/AnalyticsAnonymousSessionSync';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
@@ -55,14 +53,11 @@ function createRuntimeConfigScript(clientSurface: 'desktop' | 'web'): string {
 }
 
 export default async function RootLayout({ children }: LayoutProps) {
-  const [initialTheme, locale, requestHeaders] = await Promise.all([
+  const [initialTheme, locale, isDesktopShell] = await Promise.all([
     resolveRequestTheme(),
     resolveRequestLocale(),
-    headers(),
+    isDesktopServerRequest(),
   ]);
-  const isDesktopShell =
-    isDesktopClient() ||
-    Boolean(requestHeaders.get(DESKTOP_HTTP_HEADERS.version)?.trim());
   const bodyClassName = isDesktopShell
     ? 'gf-app gf-desktop-shell gf-studio-app'
     : 'gf-app gf-studio-app';

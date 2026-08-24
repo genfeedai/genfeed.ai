@@ -29,6 +29,8 @@ const getDesktopAppOrigin = (): string | null => {
 
 const desktopBridge: IGenfeedDesktopBridge = {
   app: {
+    detectLocalTools: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appDetectLocalTools),
     enableOfflineMode: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appEnableOfflineMode),
     getBootstrap: async () =>

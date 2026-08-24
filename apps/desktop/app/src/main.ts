@@ -52,6 +52,7 @@ import { DesktopGenerationService } from './main/generation.service';
 import { DesktopKvService } from './main/kv.service';
 import { DesktopLocalService } from './main/local.service';
 import { LocalIdentityService } from './main/local-identity.service';
+import { detectDesktopLocalTools } from './main/local-tools.util';
 import { DesktopLogService } from './main/log.service';
 import { buildDesktopMenu } from './main/menu.service';
 import type { DesktopPgliteService } from './main/pglite.service';
@@ -1243,6 +1244,10 @@ const registerIpcHandlers = (): void => {
   // side effect; appEnableOfflineMode is the single explicit activation path.
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.appBootstrap, async () =>
     getBootstrap(),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.appDetectLocalTools,
+    async () => detectDesktopLocalTools(),
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,

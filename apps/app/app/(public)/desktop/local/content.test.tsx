@@ -33,6 +33,10 @@ vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: mocks.getDesktopBridge,
 }));
 
+vi.mock('@/lib/desktop/use-desktop-local-workspace-flag', () => ({
+  useDesktopLocalWorkspaceFlag: () => ({ isEnabled: true, isReady: true }),
+}));
+
 vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
   default: () => <div>Local provider settings</div>,
 }));
