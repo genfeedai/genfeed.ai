@@ -192,9 +192,12 @@ describe('AdPerformanceService', () => {
           ],
           adPlatform: 'x',
           isDeleted: false,
-          organizationId: 'org-1',
         },
       });
+      const rankingWhere = adPerformance.findMany.mock.calls[0][0].where as {
+        organizationId?: string;
+      };
+      expect(rankingWhere).not.toHaveProperty('organizationId');
     });
 
     it('limits tenant repository rows to explicitly organization-wide rows when no brand is active', async () => {
@@ -327,9 +330,12 @@ describe('AdPerformanceService', () => {
           ],
           id: 'repository-ad',
           isDeleted: false,
-          organizationId: 'org-1',
         },
       });
+      const detailWhere = adPerformance.findFirst.mock.calls[0][0].where as {
+        organizationId?: string;
+      };
+      expect(detailWhere).not.toHaveProperty('organizationId');
     });
 
     it('does not include another brand in a repository detail lookup', async () => {

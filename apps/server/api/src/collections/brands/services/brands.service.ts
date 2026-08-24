@@ -415,7 +415,7 @@ export class BrandsService extends BaseService<
             agentConfig: {
               equals:
                 expectedAgentConfig === null
-                  ? Prisma.JsonNull
+                  ? Prisma.AnyNull
                   : (expectedAgentConfig as Prisma.InputJsonValue),
             },
           }
@@ -665,7 +665,7 @@ export class BrandsService extends BaseService<
     // the same database timestamp tick.
     const expectedAgentConfig =
       storedConfig === null
-        ? Prisma.JsonNull
+        ? Prisma.AnyNull
         : (storedConfig as Prisma.InputJsonValue);
     const result = await this.delegate.updateMany({
       data: {

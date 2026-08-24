@@ -611,6 +611,32 @@ describe('proxy', () => {
     );
 
     it.each(['/onboarding/providers', '/onboarding/summary'])(
+      'does not bounce a signed-in user to brand setup when bootstrap cannot be read from %s',
+      async (pathname) => {
+        fetchMock.mockImplementation(async (input: string | URL) => {
+          const url = String(input);
+          if (url.endsWith('/auth/token')) {
+            return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+              status: 200,
+            });
+          }
+          if (url.endsWith('/auth/bootstrap')) {
+            return new Response('error', { status: 500 });
+          }
+          return new Response('not found', { status: 404 });
+        });
+
+        const { default: proxy } = await import('./proxy');
+        const response = await proxy(
+          makeSignedInRequest(pathname),
+          {} as never,
+        );
+
+        expect(response.headers.get('location')).toBeNull();
+      },
+    );
+
+    it.each(['/onboarding/providers', '/onboarding/summary'])(
       'pulls a signed-in Community user off the classic wizard route %s',
       async (pathname) => {
         mockIncompleteUser();
@@ -1762,6 +1788,25 @@ describe('proxy', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('does not fetch bootstrap to decide onboarding redirects on a signed-in desktop protected path', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeDesktopRequest('/acme/~/agent', { hasSession: true }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/auth/bootstrap'),
+      ),
+    ).toBe(false);
   });
 
   it('falls back to the Better Auth bearer when the desktop key is stale', async () => {

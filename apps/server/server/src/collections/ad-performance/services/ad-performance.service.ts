@@ -137,6 +137,29 @@ export class AdPerformanceService {
     return where;
   }
 
+  /**
+   * Public Discover mixes a global benchmark corpus with tenant-owned
+   * repository rows. The outer `organizationId` pin from `scopedWhere` would
+   * hide every public row ingested under another org.
+   */
+  private resolveDiscoverRankingWhere(
+    params: TopPerformerParams,
+    where: Prisma.AdPerformanceWhereInput,
+  ): Prisma.AdPerformanceWhereInput {
+    if (this.readString(params.scope) === 'public') {
+      // tenant-scope-ignore: global public benchmark rows are cross-org;
+      // tenant research rows are already pinned inside buildResearchVisibilityWhere
+      return where;
+    }
+
+    if (params.organizationId) {
+      return scopedWhere(params.organizationId, where);
+    }
+
+    // tenant-scope-ignore: public ranking with no session org
+    return where;
+  }
+
   private buildResearchVisibilityWhere(
     organizationId: string,
     brandId?: string,
@@ -436,21 +459,10 @@ export class AdPerformanceService {
 
     if (this.isScalarTopPerformerMetric(metric)) {
       const metricWhere = this.buildScalarMetricWhere(where, metric, params);
-      if (params.organizationId) {
-        const records = await this.prisma.adPerformance.findMany({
-          orderBy: this.buildMetricOrderBy(metric),
-          take: limit,
-          where: scopedWhere(params.organizationId, metricWhere),
-        });
-
-        return records.map((record) => this.normalizeRecord(record));
-      }
-
-      // tenant-scope-ignore: public benchmark ranking has no session org
       const records = await this.prisma.adPerformance.findMany({
         orderBy: this.buildMetricOrderBy(metric),
         take: limit,
-        where: metricWhere,
+        where: this.resolveDiscoverRankingWhere(params, metricWhere),
       });
 
       return records.map((record) => this.normalizeRecord(record));
@@ -463,21 +475,11 @@ export class AdPerformanceService {
       ...where,
       performanceScore: { not: null },
     };
-    let jsonRecords: AdPerformance[];
-    if (params.organizationId) {
-      jsonRecords = await this.prisma.adPerformance.findMany({
-        orderBy: this.buildMetricOrderBy('performanceScore'),
-        take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),
-        where: scopedWhere(params.organizationId, jsonWhere),
-      });
-    } else {
-      // tenant-scope-ignore: public JSON-metric ranking has no session org
-      jsonRecords = await this.prisma.adPerformance.findMany({
-        orderBy: this.buildMetricOrderBy('performanceScore'),
-        take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),
-        where: jsonWhere,
-      });
-    }
+    const jsonRecords = await this.prisma.adPerformance.findMany({
+      orderBy: this.buildMetricOrderBy('performanceScore'),
+      take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),
+      where: this.resolveDiscoverRankingWhere(params, jsonWhere),
+    });
 
     return jsonRecords
       .map((record) => this.normalizeRecord(record))
@@ -506,11 +508,14 @@ export class AdPerformanceService {
     brandId?: string,
   ): Promise<AdPerformanceDocument | null> {
     if (organizationId) {
+      // tenant-scope-ignore: global public benchmark rows are cross-org;
+      // tenant research rows are already pinned inside buildResearchVisibilityWhere
       const record = await this.prisma.adPerformance.findFirst({
-        where: scopedWhere(organizationId, {
+        where: {
           id,
+          isDeleted: false,
           OR: this.buildResearchVisibilityWhere(organizationId, brandId),
-        }),
+        },
       });
 
       return record ? this.normalizeRecord(record) : null;

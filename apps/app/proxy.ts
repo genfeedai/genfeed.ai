@@ -821,6 +821,9 @@ async function redirectSignedInUserToAgentOnboarding(
 ): Promise<NextResponse | null> {
   const onboardingState = await readOnboardingRedirectState(token);
   if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
+    if (!onboardingState.shouldRedirect) {
+      return null;
+    }
     return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
   }
 
@@ -1208,74 +1211,72 @@ async function routeBetterAuthRequest(
     return redirectToLoginPreservingDestination(req);
   }
 
-  const onboardingState = await readOnboardingRedirectState(token);
-  if (
-    // Desktop stays exempt from proxy-driven onboarding redirects: a
-    // cloud-connected desktop user is not routed into web onboarding.
-    // Onboarding on desktop is reached through `/onboarding`, which the
-    // session gate above already protects.
-    options.isDesktopSurface !== true &&
-    onboardingState.shouldRedirect
-  ) {
-    // Desktop keeps the form wizard while SaaS and Community share
-    // `/onboarding/brand` then continue in the agent workspace.
-    if (!hasAgentFirstOnboarding()) {
-      return redirectPreservingSearch(req, ONBOARDING_PATH);
-    }
+  // Desktop stays exempt from proxy-driven onboarding redirects: a
+  // cloud-connected desktop user is not routed into web onboarding.
+  // Onboarding on desktop is reached through `/onboarding`, which the
+  // session gate above already protects. Skip the bootstrap fetch entirely
+  // on desktop — do not pay it only to ignore shouldRedirect.
+  if (options.isDesktopSurface !== true) {
+    const onboardingState = await readOnboardingRedirectState(token);
+    if (onboardingState.shouldRedirect) {
+      if (!hasAgentFirstOnboarding()) {
+        return redirectPreservingSearch(req, ONBOARDING_PATH);
+      }
 
-    const hasBrand = hasCompletedBrandOnboardingStep(
-      onboardingState.completedSteps,
-    );
+      const hasBrand = hasCompletedBrandOnboardingStep(
+        onboardingState.completedSteps,
+      );
 
-    if (!hasBrand) {
-      return redirectPreservingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
-    }
+      if (!hasBrand) {
+        return redirectPreservingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
+      }
 
-    // The agent onboarding surface is itself a protected route — stay there
-    // after brand exists. If the URL org is a leftover stub (or a stale slug
-    // cookie), move the user onto their membership org.
-    if (isAgentOnboardingPath(pathname)) {
+      // The agent onboarding surface is itself a protected route — stay there
+      // after brand exists. If the URL org is a leftover stub (or a stale slug
+      // cookie), move the user onto their membership org.
+      if (isAgentOnboardingPath(pathname)) {
+        const agentOnboarding = await resolveAgentOnboardingRedirect(
+          token,
+          sessionCookie,
+          req,
+        );
+        const pathOrgSlug = getAgentOnboardingOrgSlug(pathname);
+        if (
+          agentOnboarding &&
+          pathOrgSlug &&
+          pathOrgSlug !== agentOnboarding.orgSlug
+        ) {
+          const rest = pathname.replace(/^\/[^/]+/, '');
+          const response = redirectPreservingSearch(
+            req,
+            `/${agentOnboarding.orgSlug}${rest}`,
+          );
+          if (agentOnboarding.cookieValue) {
+            setSlugCookie(response, agentOnboarding.cookieValue);
+          }
+          return response;
+        }
+
+        return NextResponse.next();
+      }
+
       const agentOnboarding = await resolveAgentOnboardingRedirect(
         token,
         sessionCookie,
         req,
       );
-      const pathOrgSlug = getAgentOnboardingOrgSlug(pathname);
-      if (
-        agentOnboarding &&
-        pathOrgSlug &&
-        pathOrgSlug !== agentOnboarding.orgSlug
-      ) {
-        const rest = pathname.replace(/^\/[^/]+/, '');
-        const response = redirectPreservingSearch(
-          req,
-          `/${agentOnboarding.orgSlug}${rest}`,
-        );
+      if (agentOnboarding) {
+        const response = redirectPreservingSearch(req, agentOnboarding.path);
         if (agentOnboarding.cookieValue) {
           setSlugCookie(response, agentOnboarding.cookieValue);
         }
         return response;
       }
 
-      return NextResponse.next();
+      return pathname === '/'
+        ? NextResponse.next()
+        : redirectPreservingSearch(req, '/');
     }
-
-    const agentOnboarding = await resolveAgentOnboardingRedirect(
-      token,
-      sessionCookie,
-      req,
-    );
-    if (agentOnboarding) {
-      const response = redirectPreservingSearch(req, agentOnboarding.path);
-      if (agentOnboarding.cookieValue) {
-        setSlugCookie(response, agentOnboarding.cookieValue);
-      }
-      return response;
-    }
-
-    return pathname === '/'
-      ? NextResponse.next()
-      : redirectPreservingSearch(req, '/');
   }
 
   const recoveredProtectedPath = getApiNamespacePoisonedProtectedPath(pathname);
