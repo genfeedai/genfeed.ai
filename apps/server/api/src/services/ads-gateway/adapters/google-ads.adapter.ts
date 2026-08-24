@@ -1,4 +1,9 @@
 import {
+  INVALID_CAMPAIGN_STATUS_MESSAGE,
+  isAcceptedCampaignStatus,
+  resolveProviderCampaignStatus,
+} from '@api/services/ads-gateway/ads-campaign-status.util';
+import {
   type AdsInsightsDateRange,
   emptyUnifiedInsights,
   resolveAdsInsightsDateRange,
@@ -168,6 +173,15 @@ export class GoogleAdsAdapter implements IAdsAdapter {
     campaignId: string,
     input: UpdateCampaignInput,
   ): Promise<UnifiedCampaign> {
+    this.assertPausedOnlyStatus(input.status);
+
+    // Omitted stays omitted — a budget rename must not flip a Google campaign's
+    // serving state as a side effect.
+    const providerStatus = resolveProviderCampaignStatus(
+      this.platform,
+      input.status,
+    );
+
     await this.googleAdsService.updateCampaign(
       ctx.accessToken,
       ctx.adAccountId,
@@ -175,7 +189,7 @@ export class GoogleAdsAdapter implements IAdsAdapter {
       {
         dailyBudget: input.dailyBudget,
         name: input.name,
-        status: input.status,
+        status: providerStatus,
       },
       ctx.loginCustomerId,
     );
@@ -197,8 +211,18 @@ export class GoogleAdsAdapter implements IAdsAdapter {
       objective: updatedCampaign?.advertisingChannelType || '',
       platform: this.platform,
       startDate: updatedCampaign?.startDate,
-      status: updatedCampaign?.status || input.status || '',
+      status: updatedCampaign?.status || providerStatus || '',
     };
+  }
+
+  /**
+   * Direct adapter callers bypass the gateway controller, so every write path
+   * re-asserts the paused-only contract before touching the provider.
+   */
+  private assertPausedOnlyStatus(status: unknown): void {
+    if (!isAcceptedCampaignStatus(status)) {
+      throw new BadRequestException(INVALID_CAMPAIGN_STATUS_MESSAGE);
+    }
   }
 
   async listAdSets(

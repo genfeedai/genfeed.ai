@@ -2,15 +2,23 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
+import {
+  INVALID_CAMPAIGN_STATUS_MESSAGE,
+  isAcceptedCampaignStatus,
+  resolveProviderCampaignStatus,
+  resolveProviderPausedStatus,
+} from '@api/services/ads-gateway/ads-campaign-status.util';
+import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -46,6 +54,7 @@ export class MetaAdsController {
 
   @Get('accounts')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getAdAccounts(@CurrentUser() user: User) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -56,6 +65,7 @@ export class MetaAdsController {
 
   @Get('campaigns')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async listCampaigns(
     @CurrentUser() user: User,
     @Query('adAccountId') adAccountId: string,
@@ -74,6 +84,7 @@ export class MetaAdsController {
 
   @Get('campaigns/compare')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async compareCampaigns(
     @CurrentUser() user: User,
     @Query('campaignIds') campaignIds: string,
@@ -92,6 +103,7 @@ export class MetaAdsController {
 
   @Get('campaigns/:id/insights')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getCampaignInsights(
     @CurrentUser() user: User,
     @Param('id') campaignId: string,
@@ -116,6 +128,7 @@ export class MetaAdsController {
 
   @Get('adsets/:id/insights')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getAdSetInsights(
     @CurrentUser() user: User,
     @Param('id') adSetId: string,
@@ -136,6 +149,7 @@ export class MetaAdsController {
 
   @Get('ads/:id/insights')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getAdInsights(
     @CurrentUser() user: User,
     @Param('id') adId: string,
@@ -156,6 +170,7 @@ export class MetaAdsController {
 
   @Get('creatives')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getAdCreatives(
     @CurrentUser() user: User,
     @Query('adAccountId') adAccountId: string,
@@ -172,6 +187,7 @@ export class MetaAdsController {
 
   @Get('top-performers')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getTopPerformers(
     @CurrentUser() user: User,
     @Query('adAccountId') adAccountId: string,
@@ -194,6 +210,7 @@ export class MetaAdsController {
 
   @Post('campaigns')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createCampaign(
     @CurrentUser() user: User,
     @Body() body: { adAccountId: string } & CreateCampaignParams,
@@ -202,17 +219,25 @@ export class MetaAdsController {
     this.loggerService.log(`${url} started`);
 
     const { adAccountId, ...params } = body;
+    this.assertPausedOnlyStatus(params.status);
+
     const accessToken = await this.getAccessTokenFromCredential(user);
     const id = await this.metaAdsService.createCampaign(
       accessToken,
       adAccountId,
-      params,
+      {
+        ...params,
+        // Sent explicitly rather than left to Meta's default so an omitted
+        // status can never create a campaign that is able to spend.
+        status: resolveProviderPausedStatus('meta'),
+      },
     );
     return { id };
   }
 
   @Patch('campaigns/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateCampaign(
     @CurrentUser() user: User,
     @Param('id') campaignId: string,
@@ -221,13 +246,21 @@ export class MetaAdsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
+    this.assertPausedOnlyStatus(body.status);
+
     const accessToken = await this.getAccessTokenFromCredential(user);
-    await this.metaAdsService.updateCampaign(accessToken, campaignId, body);
+    await this.metaAdsService.updateCampaign(accessToken, campaignId, {
+      ...body,
+      // Omitted stays omitted so a budget or rename edit never mutates the
+      // campaign's serving state.
+      status: resolveProviderCampaignStatus('meta', body.status),
+    });
     return { success: true };
   }
 
   @Post('adsets')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createAdSet(
     @CurrentUser() user: User,
     @Body() body: { adAccountId: string } & CreateAdSetParams,
@@ -247,6 +280,7 @@ export class MetaAdsController {
 
   @Patch('adsets/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateAdSet(
     @CurrentUser() user: User,
     @Param('id') adSetId: string,
@@ -262,6 +296,7 @@ export class MetaAdsController {
 
   @Post('ads')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createAd(
     @CurrentUser() user: User,
     @Body() body: { adAccountId: string } & CreateAdParams,
@@ -281,6 +316,7 @@ export class MetaAdsController {
 
   @Post('ads/:id/pause')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async pauseAd(@CurrentUser() user: User, @Param('id') adId: string) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -292,6 +328,7 @@ export class MetaAdsController {
 
   @Delete('ads/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async deleteAd(@CurrentUser() user: User, @Param('id') adId: string) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -303,6 +340,7 @@ export class MetaAdsController {
 
   @Post('media/image')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async uploadAdImage(
     @CurrentUser() user: User,
     @Body() body: { adAccountId: string; imageUrl: string },
@@ -320,6 +358,7 @@ export class MetaAdsController {
 
   @Post('media/video')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async uploadAdVideo(
     @CurrentUser() user: User,
     @Body() body: { adAccountId: string; videoUrl: string; title?: string },
@@ -337,6 +376,16 @@ export class MetaAdsController {
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────
+
+  /**
+   * The direct Meta routes reach the provider without the unified gateway, so
+   * they enforce the same paused-only contract before a token is resolved.
+   */
+  private assertPausedOnlyStatus(status: unknown): void {
+    if (!isAcceptedCampaignStatus(status)) {
+      throw new BadRequestException(INVALID_CAMPAIGN_STATUS_MESSAGE);
+    }
+  }
 
   /**
    * Extract the Facebook access token from the user's credentials.

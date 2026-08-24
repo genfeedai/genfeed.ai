@@ -1,78 +1,75 @@
+vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
+  AutoSwagger: () => () => undefined,
+}));
+
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
+import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { ApiKeyScope } from '@genfeedai/enums';
 
-const READ_METHODS = [
+const READ_HANDLERS = [
+  'comparePlatforms',
   'getAdAccounts',
   'listCampaigns',
-  'compareCampaigns',
   'getCampaignInsights',
   'getAdSetInsights',
   'getAdInsights',
-  'getAdCreatives',
   'getTopPerformers',
+  'listAdSets',
+  'listAds',
 ] as const;
 
-const WRITE_METHODS = [
+const WRITE_HANDLERS = [
   'createCampaign',
   'updateCampaign',
   'createAdSet',
-  'updateAdSet',
   'createAd',
-  'pauseAd',
-  'deleteAd',
-  'uploadAdImage',
-  'uploadAdVideo',
 ] as const;
 
-describe('MetaAdsController RBAC', () => {
-  it.each(READ_METHODS)(
-    'should require owner, admin, or analytics role for %s',
-    (method) => {
+describe('AdsGatewayController RBAC', () => {
+  it.each(READ_HANDLERS)(
+    'requires owner, admin, or analytics role for %s',
+    (handler) => {
       const metadata = Reflect.getMetadata(
         'roles',
-        MetaAdsController.prototype[method],
+        AdsGatewayController.prototype[handler],
       );
 
       expect(metadata).toEqual(['owner', 'admin', 'analytics']);
     },
   );
 
-  it.each(READ_METHODS)(
-    'should require an analytics-read scope for %s',
-    (method) => {
+  it.each(READ_HANDLERS)(
+    'requires an analytics-read scope for %s',
+    (handler) => {
       const metadata = Reflect.getMetadata(
         API_KEY_SCOPES_KEY,
-        MetaAdsController.prototype[method],
+        AdsGatewayController.prototype[handler],
       );
 
       expect(metadata).toEqual([ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN]);
     },
   );
 
-  it.each(WRITE_METHODS)(
-    'should require owner or admin role for %s',
-    (method) => {
-      const metadata = Reflect.getMetadata(
-        'roles',
-        MetaAdsController.prototype[method],
-      );
+  it.each(WRITE_HANDLERS)('requires owner or admin role for %s', (handler) => {
+    const metadata = Reflect.getMetadata(
+      'roles',
+      AdsGatewayController.prototype[handler],
+    );
 
-      expect(metadata).toEqual(['owner', 'admin']);
-    },
-  );
+    expect(metadata).toEqual(['owner', 'admin']);
+  });
 
-  it.each(WRITE_METHODS)('should require the admin scope for %s', (method) => {
+  it.each(WRITE_HANDLERS)('requires the admin scope for %s', (handler) => {
     const metadata = Reflect.getMetadata(
       API_KEY_SCOPES_KEY,
-      MetaAdsController.prototype[method],
+      AdsGatewayController.prototype[handler],
     );
 
     expect(metadata).toEqual([ApiKeyScope.ADMIN]);
   });
 
-  it('should leave no direct Meta route without role and scope metadata', () => {
-    const prototype = MetaAdsController.prototype as unknown as Record<
+  it('leaves no paid-media route without role and scope metadata', () => {
+    const prototype = AdsGatewayController.prototype as unknown as Record<
       string,
       object
     >;
@@ -82,7 +79,7 @@ describe('MetaAdsController RBAC', () => {
       .filter((name) => Reflect.hasMetadata('path', prototype[name]));
 
     expect(routeHandlers).toHaveLength(
-      READ_METHODS.length + WRITE_METHODS.length,
+      READ_HANDLERS.length + WRITE_HANDLERS.length,
     );
 
     for (const handler of routeHandlers) {

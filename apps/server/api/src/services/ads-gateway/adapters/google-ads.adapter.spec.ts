@@ -86,9 +86,9 @@ describe('GoogleAdsAdapter', () => {
     const result = await adapter.updateCampaign(ctx, '987', {
       dailyBudget: 35,
       name: 'Updated Campaign',
-      status: 'ENABLED',
     });
 
+    // An omitted status stays omitted, so a rename cannot flip serving state.
     expect(googleAdsService.updateCampaign).toHaveBeenCalledWith(
       'token',
       '1234567890',
@@ -96,7 +96,7 @@ describe('GoogleAdsAdapter', () => {
       {
         dailyBudget: 35,
         name: 'Updated Campaign',
-        status: 'ENABLED',
+        status: undefined,
       },
       '1112223334',
     );
@@ -109,6 +109,37 @@ describe('GoogleAdsAdapter', () => {
         platform: 'google',
         status: 'ENABLED',
       }),
+    );
+  });
+
+  it.each(['ENABLED', 'ACTIVE', 'active', 'paused', 'REMOVED', ''])(
+    'rejects an update with status "%s" without calling the provider',
+    async (status) => {
+      await expect(
+        adapter.updateCampaign(ctx, '987', { status }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(googleAdsService.updateCampaign).not.toHaveBeenCalled();
+    },
+  );
+
+  it('passes an explicit PAUSED status through to the provider', async () => {
+    googleAdsService.getCampaign.mockResolvedValue({
+      advertisingChannelType: 'SEARCH',
+      budgetAmountMicros: '35000000',
+      id: '987',
+      name: 'Paused Campaign',
+      status: 'PAUSED',
+    });
+
+    await adapter.updateCampaign(ctx, '987', { status: 'PAUSED' });
+
+    expect(googleAdsService.updateCampaign).toHaveBeenCalledWith(
+      'token',
+      '1234567890',
+      '987',
+      expect.objectContaining({ status: 'PAUSED' }),
+      '1112223334',
     );
   });
 

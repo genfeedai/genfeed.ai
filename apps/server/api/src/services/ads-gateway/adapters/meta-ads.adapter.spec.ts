@@ -1,11 +1,15 @@
+import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { MetaAdsAdapter } from './meta-ads.adapter';
 
-const mockCtx = {
+const mockCtx: AdsAdapterContext = {
   accessToken: 'tok-abc',
   adAccountId: 'act_123456',
+  credentialId: 'credential-1',
+  organizationId: 'org-1',
 };
 
 describe('MetaAdsAdapter', () => {
@@ -270,7 +274,71 @@ describe('MetaAdsAdapter', () => {
         platform: 'meta',
         status: 'PAUSED',
       });
+      expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ status: 'PAUSED' }),
+      );
     });
+
+    it('sends the paused status even when the caller omits one', async () => {
+      metaAdsService.createCampaign.mockResolvedValue(
+        'new-campaign-id' as never,
+      );
+
+      await adapter.createCampaign(mockCtx, {
+        name: 'New Campaign',
+        objective: 'CONVERSIONS',
+      } as never);
+
+      expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ status: 'PAUSED' }),
+      );
+    });
+
+    it.each(['ACTIVE', 'active', 'paused', 'ARCHIVED', ''])(
+      'rejects creation with status "%s" without calling the provider',
+      async (status) => {
+        await expect(
+          adapter.createCampaign(mockCtx, {
+            name: 'Activating Campaign',
+            objective: 'CONVERSIONS',
+            status,
+          } as never),
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        expect(metaAdsService.createCampaign).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  // ── updateCampaign ────────────────────────────────────────────────────────
+
+  describe('updateCampaign', () => {
+    it('leaves an omitted status omitted', async () => {
+      metaAdsService.updateCampaign.mockResolvedValue(undefined as never);
+
+      await adapter.updateCampaign(mockCtx, 'c1', { name: 'Renamed' } as never);
+
+      expect(metaAdsService.updateCampaign).toHaveBeenCalledWith(
+        expect.anything(),
+        'c1',
+        expect.objectContaining({ status: undefined }),
+      );
+    });
+
+    it.each(['ACTIVE', 'active', 'paused'])(
+      'rejects an update with status "%s" without calling the provider',
+      async (status) => {
+        await expect(
+          adapter.updateCampaign(mockCtx, 'c1', { status } as never),
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        expect(metaAdsService.updateCampaign).not.toHaveBeenCalled();
+      },
+    );
   });
 
   // ── listAdSets ────────────────────────────────────────────────────────────

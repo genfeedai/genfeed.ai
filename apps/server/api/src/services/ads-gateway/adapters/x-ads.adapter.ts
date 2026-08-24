@@ -1,4 +1,10 @@
 import {
+  INVALID_CAMPAIGN_STATUS_MESSAGE,
+  isAcceptedCampaignStatus,
+  resolveProviderCampaignStatus,
+  resolveProviderPausedStatus,
+} from '@api/services/ads-gateway/ads-campaign-status.util';
+import {
   type AdsInsightsDateRange,
   emptyUnifiedInsights,
   formatAdsInsightsDate,
@@ -187,18 +193,15 @@ export class XAdsAdapter implements IAdsAdapter {
     ctx: AdsAdapterContext,
     input: CreateCampaignInput,
   ): Promise<UnifiedCampaign> {
+    // Rejected before the funding-instrument lookup so an activating status
+    // never reaches X's billing surface, not even as a read.
+    this.assertPausedOnlyStatus(input.status);
+
     const fundingInstrumentId = await this.resolveFundingInstrumentId(ctx);
 
     if (!fundingInstrumentId) {
       throw new BadRequestException(
         'X Ads account has no funding instrument available for campaign creation.',
-      );
-    }
-
-    if (input.status && input.status !== 'PAUSED') {
-      this.logger.warn(
-        'XAdsAdapter.createCampaign: forcing entityStatus=PAUSED regardless of requested status — X Ads campaigns always launch paused',
-        { requestedStatus: input.status },
       );
     }
 
@@ -210,7 +213,9 @@ export class XAdsAdapter implements IAdsAdapter {
           input.dailyBudget !== undefined
             ? Math.round(input.dailyBudget * 1_000_000)
             : undefined,
-        entityStatus: 'PAUSED',
+        entityStatus: this.toEntityStatus(
+          resolveProviderPausedStatus(this.platform),
+        ),
         fundingInstrumentId,
         name: input.name,
         totalBudgetAmountLocalMicro:
@@ -228,13 +233,12 @@ export class XAdsAdapter implements IAdsAdapter {
     campaignId: string,
     input: UpdateCampaignInput,
   ): Promise<UnifiedCampaign> {
-    if (input.status && input.status !== 'PAUSED') {
-      throw new BadRequestException({
-        detail:
-          'X Ads campaigns can only be kept paused through this integration — activating a real campaign is not supported.',
-        title: 'Unsupported campaign status',
-      });
-    }
+    this.assertPausedOnlyStatus(input.status);
+
+    const providerStatus = resolveProviderCampaignStatus(
+      this.platform,
+      input.status,
+    );
 
     const campaign = await this.xAdsService.updateCampaign(
       ctx.accessToken,
@@ -245,10 +249,9 @@ export class XAdsAdapter implements IAdsAdapter {
           input.dailyBudget !== undefined
             ? Math.round(input.dailyBudget * 1_000_000)
             : undefined,
-        entityStatus:
-          input.status && isXAdsEntityStatus(input.status)
-            ? input.status
-            : undefined,
+        entityStatus: providerStatus
+          ? this.toEntityStatus(providerStatus)
+          : undefined,
         name: input.name,
         totalBudgetAmountLocalMicro:
           input.lifetimeBudget !== undefined
@@ -258,6 +261,34 @@ export class XAdsAdapter implements IAdsAdapter {
     );
 
     return this.toUnifiedCampaign(campaign);
+  }
+
+  /**
+   * Direct adapter callers bypass the gateway controller, so every write path
+   * re-asserts the paused-only contract before touching the provider.
+   */
+  private assertPausedOnlyStatus(status: unknown): void {
+    if (!isAcceptedCampaignStatus(status)) {
+      throw new BadRequestException({
+        detail: INVALID_CAMPAIGN_STATUS_MESSAGE,
+        title: 'Unsupported campaign status',
+      });
+    }
+  }
+
+  /**
+   * Narrows the shared paused value onto X's own entity-status union so the
+   * provider payload stays typed without an assertion.
+   */
+  private toEntityStatus(status: string): XAdsEntityStatus {
+    if (!isXAdsEntityStatus(status)) {
+      throw new BadRequestException({
+        detail: INVALID_CAMPAIGN_STATUS_MESSAGE,
+        title: 'Unsupported campaign status',
+      });
+    }
+
+    return status;
   }
 
   async listAdSets(

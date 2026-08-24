@@ -1,3 +1,9 @@
+import {
+  INVALID_CAMPAIGN_STATUS_MESSAGE,
+  isAcceptedCampaignStatus,
+  resolveProviderCampaignStatus,
+  resolveProviderPausedStatus,
+} from '@api/services/ads-gateway/ads-campaign-status.util';
 import { emptyUnifiedInsights } from '@api/services/ads-gateway/ads-insights-range.util';
 import type {
   AdsAdapterContext,
@@ -14,7 +20,7 @@ import type {
   UpdateCampaignInput,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
   MetaInsightsData,
   MetaInsightsParams,
@@ -108,6 +114,12 @@ export class MetaAdsAdapter implements IAdsAdapter {
     ctx: AdsAdapterContext,
     input: CreateCampaignInput,
   ): Promise<UnifiedCampaign> {
+    this.assertPausedOnlyStatus(input.status);
+
+    // Creation always sends the provider's paused value explicitly rather than
+    // relying on a Meta-side default, so an omitted status cannot launch spend.
+    const pausedStatus = resolveProviderPausedStatus(this.platform);
+
     const id = await this.metaAdsService.createCampaign(
       ctx.accessToken,
       ctx.adAccountId,
@@ -117,7 +129,7 @@ export class MetaAdsAdapter implements IAdsAdapter {
         name: input.name,
         objective: input.objective,
         specialAdCategories: input.specialAdCategories,
-        status: input.status,
+        status: pausedStatus,
       },
     );
 
@@ -128,7 +140,7 @@ export class MetaAdsAdapter implements IAdsAdapter {
       name: input.name,
       objective: input.objective,
       platform: this.platform,
-      status: input.status || 'PAUSED',
+      status: pausedStatus,
     };
   }
 
@@ -137,11 +149,20 @@ export class MetaAdsAdapter implements IAdsAdapter {
     campaignId: string,
     input: UpdateCampaignInput,
   ): Promise<UnifiedCampaign> {
+    this.assertPausedOnlyStatus(input.status);
+
+    // An omitted status stays omitted so a budget-only edit never mutates the
+    // campaign's live state on Meta.
+    const providerStatus = resolveProviderCampaignStatus(
+      this.platform,
+      input.status,
+    );
+
     await this.metaAdsService.updateCampaign(ctx.accessToken, campaignId, {
       dailyBudget: input.dailyBudget,
       lifetimeBudget: input.lifetimeBudget,
       name: input.name,
-      status: input.status,
+      status: providerStatus,
     });
 
     return {
@@ -150,8 +171,18 @@ export class MetaAdsAdapter implements IAdsAdapter {
       name: input.name || '',
       objective: '',
       platform: this.platform,
-      status: input.status || '',
+      status: providerStatus || '',
     };
+  }
+
+  /**
+   * Direct adapter callers bypass the gateway controller, so every write path
+   * re-asserts the paused-only contract before touching the provider.
+   */
+  private assertPausedOnlyStatus(status: unknown): void {
+    if (!isAcceptedCampaignStatus(status)) {
+      throw new BadRequestException(INVALID_CAMPAIGN_STATUS_MESSAGE);
+    }
   }
 
   async listAdSets(

@@ -12,6 +12,7 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
@@ -203,8 +204,46 @@ describe('MetaAdsController', () => {
         'act_123',
         expect.not.objectContaining({ adAccountId: 'act_123' }),
       );
+      expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
+        decryptedToken,
+        'act_123',
+        expect.objectContaining({ status: 'PAUSED' }),
+      );
       expect(result).toEqual({ id: 'camp_new_1' });
     });
+
+    it('sends the paused status even when the caller omits one', async () => {
+      metaAdsService.createCampaign.mockResolvedValue('camp_new_2');
+
+      await controller.createCampaign(mockUser, {
+        adAccountId: 'act_123',
+        name: 'New Campaign',
+        objective: 'LINK_CLICKS',
+      } as never);
+
+      expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
+        decryptedToken,
+        'act_123',
+        expect.objectContaining({ status: 'PAUSED' }),
+      );
+    });
+
+    it.each(['ACTIVE', 'active', 'paused', 'ARCHIVED', ''])(
+      'rejects creation with status "%s" before resolving a token',
+      async (status) => {
+        await expect(
+          controller.createCampaign(mockUser, {
+            adAccountId: 'act_123',
+            name: 'Activating Campaign',
+            objective: 'LINK_CLICKS',
+            status,
+          } as never),
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        expect(credentialsService.findOne).not.toHaveBeenCalled();
+        expect(metaAdsService.createCampaign).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('updateCampaign', () => {
@@ -218,7 +257,8 @@ describe('MetaAdsController', () => {
       expect(metaAdsService.updateCampaign).toHaveBeenCalledWith(
         decryptedToken,
         'camp_1',
-        { name: 'Updated' },
+        // An omitted status stays omitted so a rename cannot change serving state.
+        { name: 'Updated', status: undefined },
       );
       expect(result).toEqual({ success: true });
     });
@@ -249,10 +289,22 @@ describe('MetaAdsController', () => {
       expect(metaAdsService.updateCampaign).toHaveBeenCalledWith(
         decryptedToken,
         'camp_1',
-        { dailyBudget: 50, lifetimeBudget: 1000 },
+        { dailyBudget: 50, lifetimeBudget: 1000, status: undefined },
       );
       expect(result).toEqual({ success: true });
     });
+
+    it.each(['ACTIVE', 'active', 'paused', 'ARCHIVED', ''])(
+      'rejects an update with status "%s" before resolving a token',
+      async (status) => {
+        await expect(
+          controller.updateCampaign(mockUser, 'camp_1', { status } as never),
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        expect(credentialsService.findOne).not.toHaveBeenCalled();
+        expect(metaAdsService.updateCampaign).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('deleteAd', () => {
