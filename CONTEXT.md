@@ -51,10 +51,17 @@ Prisma + Postgres, Redis + BullMQ, Better Auth, Biome, Vitest, Playwright, Docke
 Changing an item requires an accepted ADR before code.
 _Avoid_: tech choices, dependencies (which means package versions).
 
-**Contributor dev path**: The documented local setup for contributors: fixed ports (`dev:debug*`)
-plus `.env.example`, no elevated privileges, macOS or Linux (Windows via Docker/WSL). Distinct
-from the maintainer's Portless HTTPS path.
-_Avoid_: dev setup (ambiguous), Portless path (maintainer-only).
+**Contributor dev path**: The documented local setup for contributors: Portless HTTPS
+(package `dev`) plus `.env.example`, reaching the app at `https://app.genfeed.localhost/`, on
+macOS or Linux (Windows via WSL2). This is the default path for contributors and the maintainer
+alike — there is no separate maintainer setup.
+_Avoid_: dev setup (ambiguous), maintainer path (no such distinction).
+
+**Debug dev path**: The fixed-port fallback (`dev:debug*`) for when Portless cannot be used —
+plain HTTP on the ports in CLAUDE.md, no certificate trust or `:443` service. An optional
+debugging path, not the documented default. Never mix its origins with Portless routes in one
+environment.
+_Avoid_: contributor dev path (that is Portless), fixed-port path (ambiguous).
 
 **EARS acceptance criteria**: Requirement lines in the form `WHEN/WHILE/WHERE/IF … THE SYSTEM
 SHALL …`. Required on every issue opened in this repository (bug, feature, task).
