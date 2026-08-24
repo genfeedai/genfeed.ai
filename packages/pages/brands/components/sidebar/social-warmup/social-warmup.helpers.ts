@@ -1,6 +1,11 @@
 import type { SocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
+import { isSocialWarmupEnrollmentAllowed } from '@api-types/contracts/social-warmup-capability.contract';
 import {
-  CredentialPlatform,
+  isSocialWarmupJourneyCheckBlocking,
+  isSocialWarmupJourneyCheckSatisfied,
+} from '@api-types/contracts/social-warmup-journey.contract';
+import {
+  type CredentialPlatform,
   formatPlatformLabel,
   SocialWarmupSignalStatus,
 } from '@genfeedai/enums';
@@ -42,7 +47,7 @@ export function formatWarmupProvenanceLabel(
 export function canRefreshAuthorizedSignals(
   platform: CredentialPlatform | string,
 ): boolean {
-  return platform === CredentialPlatform.TIKTOK;
+  return isSocialWarmupEnrollmentAllowed(platform);
 }
 
 export function getSocialWarmupElapsedDays(
@@ -144,21 +149,13 @@ export function isSocialWarmupCheckComplete(
   check: SocialWarmupCheckView,
   enrollment: ISocialWarmupEnrollment,
 ): boolean {
-  if (check.provenance === 'user_confirmed') {
-    return enrollment.completedItemIds.includes(check.id);
-  }
-
-  const signal = findSignalForCheck(check, enrollment);
-  if (!signal) {
-    return enrollment.completedItemIds.includes(check.id);
-  }
-
-  if (signal.status === SocialWarmupSignalStatus.AVAILABLE) {
-    return true;
-  }
-
-  return (
-    signal.status === SocialWarmupSignalStatus.EMPTY && isSnapshotCheck(check)
+  return isSocialWarmupJourneyCheckSatisfied(
+    {
+      completionKey: check.completionKey,
+      id: check.id,
+      provenance: check.provenance,
+    },
+    enrollment,
   );
 }
 
@@ -240,20 +237,11 @@ export function resolveWarmupCheck(
   };
 }
 
-function isBlockingCheck(check: SocialWarmupResolvedCheck): boolean {
-  if (check.requirement === 'optional') {
-    return false;
-  }
-
-  if (check.isComplete) {
-    return false;
-  }
-
-  if (check.requirement === 'required_when_available') {
-    return check.state !== 'permission_limited' && check.state !== 'reconnect';
-  }
-
-  return true;
+function isBlockingCheck(
+  check: SocialWarmupResolvedCheck,
+  enrollment: ISocialWarmupEnrollment,
+): boolean {
+  return isSocialWarmupJourneyCheckBlocking(check, enrollment);
 }
 
 export function getSocialWarmupProgress(
@@ -358,7 +346,9 @@ export function buildSocialWarmupProgramModel(
     nextAction: getSocialWarmupNextAction(checks, currentDay, phase.id),
     progress: getSocialWarmupProgress(checks),
     todayChecks,
-    unresolvedChecks: checks.filter(isBlockingCheck),
+    unresolvedChecks: checks.filter((check) =>
+      isBlockingCheck(check, input.enrollment),
+    ),
   };
 }
 
