@@ -4,14 +4,12 @@ import {
   buildSettingsSearchCatalog,
   filterSettingsSearchCatalog,
   resolveSettingsSearchHref,
-  SETTINGS_SEARCH_SCOPE_LABELS,
 } from '@app-config/settings-search-catalog';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SettingsSearchItem,
   SettingsSearchProps,
-  SettingsSearchScope,
 } from '@genfeedai/props/ui/settings-search/settings-search.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -28,11 +26,23 @@ import { Popover, PopoverAnchor, PopoverContent } from '@ui/primitives/popover';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const SETTINGS_SEARCH_SCOPES: SettingsSearchScope[] = [
-  'personal',
-  'organization',
-  'brand',
-];
+function groupSettingsSearchItems(
+  items: readonly SettingsSearchItem[],
+): Array<{ group: string; items: SettingsSearchItem[] }> {
+  const groups: Array<{ group: string; items: SettingsSearchItem[] }> = [];
+
+  for (const item of items) {
+    const last = groups.at(-1);
+    if (last && last.group === item.group) {
+      last.items.push(item);
+      continue;
+    }
+
+    groups.push({ group: item.group, items: [item] });
+  }
+
+  return groups;
+}
 
 function scrollToSettingsHash(href: string): void {
   const hashIndex = href.indexOf('#');
@@ -51,7 +61,10 @@ function scrollToSettingsHash(href: string): void {
   });
 }
 
-export default function SettingsSearch({ className }: SettingsSearchProps) {
+export default function SettingsSearch({
+  className,
+  scope,
+}: SettingsSearchProps) {
   const router = useRouter();
   const { brandSlug, orgSlug } = useOrgUrl();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -62,8 +75,9 @@ export default function SettingsSearch({ className }: SettingsSearchProps) {
     () =>
       buildSettingsSearchCatalog({
         isEnterprise: hasOrganizationBillingHint(),
+        scope,
       }),
-    [],
+    [scope],
   );
 
   const visibleItems = useMemo(() => {
@@ -79,12 +93,10 @@ export default function SettingsSearch({ className }: SettingsSearchProps) {
     });
   }, [brandSlug, catalog, orgSlug, query]);
 
-  const groupedItems = useMemo(() => {
-    return SETTINGS_SEARCH_SCOPES.map((scope) => ({
-      items: visibleItems.filter((item) => item.scope === scope),
-      scope,
-    })).filter((group) => group.items.length > 0);
-  }, [visibleItems]);
+  const groupedItems = useMemo(
+    () => groupSettingsSearchItems(visibleItems),
+    [visibleItems],
+  );
 
   const handleOpen = useCallback(() => {
     setIsOpen(true);
@@ -168,8 +180,8 @@ export default function SettingsSearch({ className }: SettingsSearchProps) {
           <CommandList className="max-h-80 overflow-y-auto p-1">
             {groupedItems.map((group) => (
               <CommandGroup
-                key={group.scope}
-                heading={SETTINGS_SEARCH_SCOPE_LABELS[group.scope]}
+                key={group.group || group.items[0]?.id}
+                heading={group.group || undefined}
               >
                 {group.items.map((item) => (
                   <CommandItem

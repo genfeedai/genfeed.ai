@@ -124,14 +124,18 @@ function itemsForScope(
 }
 
 export function buildSettingsSearchCatalog(
-  options: SettingsSearchCatalogOptions = {},
+  options: SettingsSearchCatalogOptions,
 ): SettingsSearchItem[] {
-  return [
-    ...itemsForScope('personal', options),
-    ...PERSONAL_SECTION_ITEMS,
-    ...itemsForScope('organization', options),
-    ...itemsForScope('brand', options),
-  ];
+  if (options.scope === 'personal') {
+    const personalItems = itemsForScope('personal', options);
+    return [
+      ...personalItems.filter((item) => item.group === 'Account'),
+      ...PERSONAL_SECTION_ITEMS,
+      ...personalItems.filter((item) => item.group !== 'Account'),
+    ];
+  }
+
+  return itemsForScope(options.scope, options);
 }
 
 export function filterSettingsSearchCatalog(

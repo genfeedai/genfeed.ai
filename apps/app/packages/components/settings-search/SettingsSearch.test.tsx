@@ -94,27 +94,42 @@ describe('SettingsSearch', () => {
   });
 
   it('renders a settings searchbar with a cmd+k hint', () => {
-    render(<SettingsSearch />);
+    render(<SettingsSearch scope="personal" />);
 
     expect(screen.getByLabelText('Search settings')).toBeInTheDocument();
     expect(screen.getByText('⌘K')).toBeInTheDocument();
   });
 
-  it('lists personal, organization, and brand hits', async () => {
+  it('keeps personal search inside personal settings', async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(<SettingsSearch scope="personal" />);
 
     await user.type(screen.getByLabelText('Search settings'), 'model');
 
     expect(screen.getByRole('button', { name: /Chat Defaults/ })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /^Models/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Organization' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('lists organization pages only on organization settings', async () => {
+    const user = userEvent.setup();
+    render(<SettingsSearch scope="organization" />);
+
+    await user.type(screen.getByLabelText('Search settings'), 'model');
+
     expect(screen.getByRole('button', { name: /^Models/ })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Personal' })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Organization' })).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /Chat Defaults/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('navigates to the scoped settings href', async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(<SettingsSearch scope="personal" />);
 
     await user.type(screen.getByLabelText('Search settings'), 'chat defaults');
     await user.click(screen.getByRole('button', { name: /Chat Defaults/ }));
@@ -124,7 +139,7 @@ describe('SettingsSearch', () => {
 
   it('focuses the searchbar on cmd+k', async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch />);
+    render(<SettingsSearch scope="personal" />);
 
     const input = screen.getByLabelText('Search settings');
     expect(input).not.toHaveFocus();

@@ -8,16 +8,14 @@ import {
 } from './settings-search-catalog';
 
 describe('buildSettingsSearchCatalog', () => {
-  const catalog = buildSettingsSearchCatalog({ isEnterprise: true });
+  it('keeps personal search inside personal settings', () => {
+    const catalog = buildSettingsSearchCatalog({
+      isEnterprise: true,
+      scope: 'personal',
+    });
 
-  it('indexes personal, organization, and brand settings', () => {
     expect(SETTINGS_SEARCH_SCOPE_LABELS.personal).toBe('Personal');
-    expect(catalog.some((item) => item.scope === 'personal')).toBe(true);
-    expect(catalog.some((item) => item.scope === 'organization')).toBe(true);
-    expect(catalog.some((item) => item.scope === 'brand')).toBe(true);
-  });
-
-  it('includes personal section hits for chat defaults and appearance', () => {
+    expect(catalog.every((item) => item.scope === 'personal')).toBe(true);
     expect(catalog.map((item) => item.id)).toEqual(
       expect.arrayContaining([
         'personal-section:chat-defaults',
@@ -25,27 +23,42 @@ describe('buildSettingsSearchCatalog', () => {
         'personal-section:email-notifications',
       ]),
     );
+    expect(catalog.some((item) => item.label === 'Models')).toBe(false);
+    expect(catalog.some((item) => item.label === 'Profile')).toBe(false);
   });
 
-  it('keeps organization Models and brand Profile in the catalog', () => {
+  it('keeps organization search inside organization settings', () => {
+    const catalog = buildSettingsSearchCatalog({
+      isEnterprise: true,
+      scope: 'organization',
+    });
+
+    expect(catalog.every((item) => item.scope === 'organization')).toBe(true);
     expect(
       catalog.some(
         (item) =>
-          item.scope === 'organization' &&
-          item.label === 'Models' &&
-          item.href === APP_ROUTES.SETTINGS.MODELS,
+          item.label === 'Models' && item.href === APP_ROUTES.SETTINGS.MODELS,
       ),
     ).toBe(true);
     expect(
-      catalog.some(
-        (item) => item.scope === 'brand' && item.label === 'Profile',
-      ),
-    ).toBe(true);
+      catalog.some((item) => item.id === 'personal-section:chat-defaults'),
+    ).toBe(false);
+  });
+
+  it('keeps brand search inside brand settings', () => {
+    const catalog = buildSettingsSearchCatalog({ scope: 'brand' });
+
+    expect(catalog.every((item) => item.scope === 'brand')).toBe(true);
+    expect(catalog.some((item) => item.label === 'Profile')).toBe(true);
+    expect(catalog.some((item) => item.label === 'Members')).toBe(false);
   });
 });
 
 describe('filterSettingsSearchCatalog', () => {
-  const catalog = buildSettingsSearchCatalog({ isEnterprise: true });
+  const catalog = buildSettingsSearchCatalog({
+    isEnterprise: true,
+    scope: 'personal',
+  });
 
   it('returns the full catalog for an empty query', () => {
     expect(filterSettingsSearchCatalog(catalog, '  ')).toHaveLength(
@@ -53,13 +66,13 @@ describe('filterSettingsSearchCatalog', () => {
     );
   });
 
-  it('finds chat model settings from personal and org catalogs', () => {
+  it('finds chat defaults in personal search without org Models', () => {
     const results = filterSettingsSearchCatalog(catalog, 'model');
 
     expect(results.map((item) => item.id)).toEqual(
       expect.arrayContaining(['personal-section:chat-defaults']),
     );
-    expect(results.some((item) => item.label === 'Models')).toBe(true);
+    expect(results.some((item) => item.label === 'Models')).toBe(false);
   });
 });
 

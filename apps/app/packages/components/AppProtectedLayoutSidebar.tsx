@@ -109,7 +109,7 @@ export default function AppProtectedLayoutSidebar({
   isSettingsRoute,
   isStudioRoute,
   isAutomateRoute,
-  settingsScope: _settingsScope = 'personal',
+  settingsScope = 'personal',
   adminMenuItems,
   analyticsMenuItems,
   libraryMenuItems,
@@ -271,7 +271,11 @@ export default function AppProtectedLayoutSidebar({
         showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
-        renderTopSlot={isSettingsRoute ? () => <SettingsSearch /> : undefined}
+        renderTopSlot={
+          isSettingsRoute
+            ? () => <SettingsSearch scope={settingsScope} />
+            : undefined
+        }
       />
     );
   }
