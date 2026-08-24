@@ -80,6 +80,8 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   reframe: 3, // [ESTIMATED] AI reframe; heavier than colorGrade, cheaper than full gen
   soundOverlay: 1, // [ESTIMATED] simple FFmpeg audio mux
   upscale: 2,
+  // Pilot runs reuse this videoGen cost at min duration — there is no
+  // `videoPilot` key. VideoGenerationGateService scales by duration.
   videoGen: 10, // legacy alias
 
   // ----- audio / voice -----

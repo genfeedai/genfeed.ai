@@ -1,9 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
+import {
+  createVideoGenerationLineage,
+  isVideoGenerationNodeType,
+  VideoGenerationGateService,
+} from '../services/video-generation-gate.service';
 import type {
   CreditCostConfig,
   ExecutableNode,
   ExecutableWorkflow,
-  ExecutionOptions,
   ExecutionProgressEvent,
   ExecutionRunResult,
   ExecutionStatus,
@@ -12,6 +16,14 @@ import type {
   RetryConfig,
 } from '../types';
 import { DEFAULT_RETRY_CONFIG } from '../types';
+import {
+  DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
+  type EngineExecutionOptions,
+  type EvaluateVideoPilotFn,
+  type VideoGenerationAcceptance,
+  type VideoGenerationGateConfig,
+  type VideoGenerationLineage,
+} from '../video-generation-lineage';
 import { canExecuteNode, planPartialExecution } from './partial-execution';
 import { analyzeForResume, createCacheFromRun } from './resume-handler';
 import { withRetry } from './retry-handler';
@@ -29,6 +41,9 @@ export interface ExecutionContext {
   userId: string;
   executionId?: string;
   abortSignal?: AbortSignal;
+  videoGenerationLineage?: VideoGenerationLineage;
+  videoPilotAcceptance?: VideoGenerationAcceptance;
+  evaluateVideoPilot?: EvaluateVideoPilotFn;
 }
 
 export interface EngineConfig {
@@ -36,20 +51,30 @@ export interface EngineConfig {
   retryConfig: RetryConfig;
   creditCosts: CreditCostConfig;
   defaultExecutor?: NodeExecutor;
+  videoGenerationGate?: VideoGenerationGateConfig;
 }
 
 const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   creditCosts: {},
   maxConcurrency: 3,
   retryConfig: DEFAULT_RETRY_CONFIG,
+  videoGenerationGate: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
 };
 
 export class WorkflowEngine {
   private executors = new Map<string, NodeExecutor>();
   private config: EngineConfig;
+  private readonly videoGenerationGate = new VideoGenerationGateService();
 
   constructor(config: Partial<EngineConfig> = {}) {
-    this.config = { ...DEFAULT_ENGINE_CONFIG, ...config };
+    this.config = {
+      ...DEFAULT_ENGINE_CONFIG,
+      ...config,
+      videoGenerationGate: {
+        ...DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
+        ...config.videoGenerationGate,
+      },
+    };
   }
 
   registerExecutor(nodeType: string, executor: NodeExecutor): void {
@@ -71,7 +96,7 @@ export class WorkflowEngine {
 
   async execute(
     workflow: ExecutableWorkflow,
-    options: ExecutionOptions = {},
+    options: EngineExecutionOptions = {},
   ): Promise<ExecutionRunResult> {
     const runId = uuidv4();
     const startedAt = new Date();
@@ -88,10 +113,13 @@ export class WorkflowEngine {
 
     const context: ExecutionContext = {
       abortSignal: options.abortSignal,
+      evaluateVideoPilot: options.evaluateVideoPilot,
       executionId: options.executionId,
       organizationId: workflow.organizationId,
       runId,
       userId: workflow.userId,
+      videoGenerationLineage: options.videoGenerationLineage,
+      videoPilotAcceptance: options.videoPilotAcceptance,
       workflowId: workflow.id,
     };
 
@@ -386,7 +414,7 @@ export class WorkflowEngine {
   resume(
     workflow: ExecutableWorkflow,
     previousRunResult: ExecutionRunResult,
-    options: ExecutionOptions = {},
+    options: EngineExecutionOptions = {},
   ): Promise<ExecutionRunResult> {
     const previousRun = {
       completedAt: previousRunResult.completedAt,
@@ -440,7 +468,7 @@ export class WorkflowEngine {
     node: ExecutableNode,
     inputs: Map<string, unknown>,
     context: ExecutionContext,
-    options: ExecutionOptions,
+    options: EngineExecutionOptions,
   ): Promise<NodeExecutionResult> {
     const startedAt = new Date();
     let retryCount = 0;
@@ -459,14 +487,51 @@ export class WorkflowEngine {
       };
     }
 
-    try {
-      const output = await withRetry(
-        () => executor(node, inputs, context),
+    const runWithTransportRetry = (
+      gatedNode: ExecutableNode,
+      gatedInputs: Map<string, unknown>,
+    ): Promise<unknown> =>
+      withRetry(
+        () => executor(gatedNode, gatedInputs, context),
         { ...this.config.retryConfig, maxRetries },
         (attempt) => {
           retryCount = attempt;
         },
       );
+
+    if (isVideoGenerationNodeType(node.type)) {
+      const gateConfig =
+        this.config.videoGenerationGate ?? DEFAULT_VIDEO_GENERATION_GATE_CONFIG;
+      const gated = await this.videoGenerationGate.execute({
+        baseCreditCost: this.config.creditCosts[node.type] ?? 0,
+        evaluateVideoPilot: context.evaluateVideoPilot,
+        executor: runWithTransportRetry,
+        gateConfig,
+        inputs,
+        lineage:
+          context.videoGenerationLineage ??
+          createVideoGenerationLineage({
+            lineageId: `${context.executionId ?? context.runId}:${node.id}`,
+            nodeId: node.id,
+            workflowId: context.workflowId,
+          }),
+        node,
+        nodeId: node.id,
+        startedAt,
+        videoPilotAcceptance: context.videoPilotAcceptance,
+        workflowId: context.workflowId,
+      });
+
+      if (gated.kind === 'result') {
+        return {
+          ...gated.result,
+          retryCount,
+        };
+      }
+    }
+
+    try {
+      const output = await runWithTransportRetry(node, inputs);
 
       const creditsUsed = this.config.creditCosts[node.type] ?? 0;
 
@@ -577,7 +642,7 @@ export class WorkflowEngine {
   }
 
   private emitProgress(
-    options: ExecutionOptions,
+    options: EngineExecutionOptions,
     event: ExecutionProgressEvent,
   ): void {
     if (options.onProgress) {
@@ -590,7 +655,7 @@ export class WorkflowEngine {
   }
 
   private emitNodeStatusChange(
-    options: ExecutionOptions,
+    options: EngineExecutionOptions,
     event: NodeStatusChangeEvent,
   ): void {
     if (options.onNodeStatusChange) {

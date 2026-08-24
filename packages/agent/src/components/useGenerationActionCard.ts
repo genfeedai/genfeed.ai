@@ -23,6 +23,11 @@ import {
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
+import {
+  hasReachedVideoPilotRetryCeiling,
+  resolveVideoPilotDuration,
+  VIDEO_PILOT_PAID_RETRY_CEILING,
+} from '@genfeedai/agent/utils/video-pilot-gate.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ModelCategory,
@@ -47,7 +52,12 @@ import {
   useState,
 } from 'react';
 
-type CardStatus = 'idle' | 'generating' | 'done' | 'error';
+export type GenerationActionCardStatus =
+  | 'idle'
+  | 'generating'
+  | 'done'
+  | 'error'
+  | 'pilot_review';
 
 function isKnownInvalidModelVersionError(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -127,7 +137,13 @@ export function useGenerationActionCard({
       ? Math.min(8, Math.round(requested))
       : 1;
   });
-  const [status, setStatus] = useState<CardStatus>('idle');
+  const [status, setStatus] = useState<GenerationActionCardStatus>('idle');
+  const [paidRejectedCount, setPaidRejectedCount] = useState(0);
+  const [pilotDurationSeconds, setPilotDurationSeconds] = useState<
+    number | null
+  >(null);
+  const [isPilotCeilingReached, setIsPilotCeilingReached] = useState(false);
+  const isFullRunRef = useRef(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -326,8 +342,28 @@ export function useGenerationActionCard({
   }, []);
 
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || status === 'generating' || isAllowlistEmpty) {
+    if (
+      !prompt.trim() ||
+      status === 'generating' ||
+      isAllowlistEmpty ||
+      isPilotCeilingReached
+    ) {
       return;
+    }
+
+    const isFullRun = isFullRunRef.current;
+    const pilotDuration =
+      generationType === 'video'
+        ? resolveVideoPilotDuration(duration, durationOptions)
+        : null;
+    const requestDuration =
+      generationType === 'video'
+        ? isFullRun
+          ? duration
+          : (pilotDuration ?? duration)
+        : undefined;
+    if (!isFullRun && pilotDuration !== null) {
+      setPilotDurationSeconds(pilotDuration);
     }
 
     clearGenerationOutcome();
@@ -348,7 +384,7 @@ export function useGenerationActionCard({
       if (onUiAction) {
         const outcome = await onUiAction('confirm_generate_media', {
           aspectRatio,
-          duration: generationType === 'video' ? duration : undefined,
+          duration: requestDuration,
           generationType,
           model: !isAutoMode && modelKey ? modelKey : undefined,
           outputs: generationType === 'image' ? outputs : undefined,
@@ -366,7 +402,10 @@ export function useGenerationActionCard({
             composerError?.trim() ? composerError : 'Generation failed',
           );
         }
-        setStatus('done');
+        isFullRunRef.current = false;
+        setStatus(
+          !isFullRun && pilotDuration !== null ? 'pilot_review' : 'done',
+        );
         return;
       }
 
@@ -374,7 +413,7 @@ export function useGenerationActionCard({
         apiService.createPromptEffect(
           {
             category: getPromptCategoryForGenerationType(generationType),
-            duration: generationType === 'video' ? duration : undefined,
+            duration: requestDuration,
             isSkipEnhancement: true,
             model: !isAutoMode && modelKey ? modelKey : undefined,
             original: prompt,
@@ -386,7 +425,7 @@ export function useGenerationActionCard({
 
       const body = buildAgentGenerationRequestBody({
         aspectRatio,
-        duration: generationType === 'video' ? duration : undefined,
+        duration: requestDuration,
         modelKey: !isAutoMode && modelKey ? modelKey : undefined,
         outputs: generationType === 'image' ? outputs : undefined,
         prioritize,
@@ -407,8 +446,10 @@ export function useGenerationActionCard({
       setResultUrl(
         result.url || `${apiService.baseUrl}/${mediaPath}/${result.id}`,
       );
-      setStatus('done');
+      isFullRunRef.current = false;
+      setStatus(!isFullRun && pilotDuration !== null ? 'pilot_review' : 'done');
     } catch (err: unknown) {
+      isFullRunRef.current = false;
       if (controller.signal.aborted) {
         setStatus('idle');
         return;
@@ -438,8 +479,10 @@ export function useGenerationActionCard({
     modelKey,
     aspectRatio,
     duration,
+    durationOptions,
     outputs,
     generationType,
+    isPilotCeilingReached,
     apiService,
     clearGenerationOutcome,
     prioritize,
@@ -451,10 +494,44 @@ export function useGenerationActionCard({
   ]);
 
   const handleRetry = useCallback(async () => {
+    if (isPilotCeilingReached) {
+      return;
+    }
+    isFullRunRef.current = false;
     clearGenerationOutcome();
     setStatus('idle');
     await handleGenerate();
-  }, [clearGenerationOutcome, handleGenerate]);
+  }, [clearGenerationOutcome, handleGenerate, isPilotCeilingReached]);
+
+  const handleAcceptPilot = useCallback(async () => {
+    if (status !== 'pilot_review' || isPilotCeilingReached) {
+      return;
+    }
+    isFullRunRef.current = true;
+    await handleGenerate();
+  }, [handleGenerate, isPilotCeilingReached, status]);
+
+  const handleRejectPilot = useCallback(() => {
+    if (status !== 'pilot_review') {
+      return;
+    }
+
+    const nextRejected = paidRejectedCount + 1;
+    setPaidRejectedCount(nextRejected);
+    isFullRunRef.current = false;
+
+    if (hasReachedVideoPilotRetryCeiling(nextRejected)) {
+      setIsPilotCeilingReached(true);
+      setError(
+        `Stopped after ${VIDEO_PILOT_PAID_RETRY_CEILING} rejected paid candidates. No further video generation will run for this clip.`,
+      );
+      setStatus('error');
+      return;
+    }
+
+    clearGenerationOutcome();
+    setStatus('idle');
+  }, [clearGenerationOutcome, paidRejectedCount, status]);
 
   const handleRetryVoid = useCallback(() => {
     void handleRetry();
@@ -463,6 +540,10 @@ export function useGenerationActionCard({
   const handleGenerateVoid = useCallback(() => {
     void handleGenerate();
   }, [handleGenerate]);
+
+  const handleAcceptPilotVoid = useCallback(() => {
+    void handleAcceptPilot();
+  }, [handleAcceptPilot]);
 
   const handleStop = useCallback(() => {
     abortRef.current?.abort();
@@ -577,7 +658,12 @@ export function useGenerationActionCard({
     onRegenerateProp,
     handleRetryVoid,
     handleGenerateVoid,
+    handleAcceptPilotVoid,
+    handleRejectPilot,
     handleStop,
+    isPilotCeilingReached,
+    paidRejectedCount,
+    pilotDurationSeconds,
     handleToggleReference,
     handleUseResultAsReference,
     handleModelChange,

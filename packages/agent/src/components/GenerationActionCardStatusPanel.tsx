@@ -1,3 +1,4 @@
+import type { GenerationActionCardStatus } from '@genfeedai/agent/components/useGenerationActionCard';
 import { APP_ROUTES, createLibraryAssetRoute } from '@genfeedai/constants';
 import {
   ButtonSize,
@@ -5,16 +6,15 @@ import {
   IngredientCategory,
 } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { ImagePlus, Paintbrush, RefreshCw } from 'lucide-react';
+import { Check, ImagePlus, Paintbrush, RefreshCw, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 import { AgentRunFailureCard } from './AgentRunFailureCard';
 import { GenerationActionCardQualityBadge } from './GenerationActionCardQualityBadge';
 
-type CardStatus = 'idle' | 'generating' | 'done' | 'error';
-
 type GenerationActionCardStatusPanelProps = {
-  status: CardStatus;
+  status: GenerationActionCardStatus;
   isImage: boolean;
   resultUrl: string | null;
   resultId: string | null;
@@ -25,6 +25,11 @@ type GenerationActionCardStatusPanelProps = {
   onRetry: () => void;
   onRegenerateProp: (() => void) | undefined;
   onUseAsReference?: () => void;
+  onAcceptPilot?: () => void;
+  onRejectPilot?: () => void;
+  pilotDurationSeconds?: number | null;
+  isPilotCeilingReached?: boolean;
+  paidRejectedCount?: number;
 };
 
 export function GenerationActionCardStatusPanel({
@@ -39,7 +44,14 @@ export function GenerationActionCardStatusPanel({
   onRetry,
   onRegenerateProp,
   onUseAsReference,
+  onAcceptPilot,
+  onRejectPilot,
+  pilotDurationSeconds,
+  isPilotCeilingReached,
+  paidRejectedCount,
 }: GenerationActionCardStatusPanelProps): ReactElement | null {
+  const translate = useTranslations('agent.generationActionCard');
+
   if (status === 'idle') return null;
 
   if (status === 'generating') {
@@ -55,8 +67,55 @@ export function GenerationActionCardStatusPanel({
     return (
       <AgentRunFailureCard
         className="mb-0"
-        error={error ?? 'Generation failed'}
+        error={
+          isPilotCeilingReached
+            ? translate('pilotCeilingReached', {
+                count: paidRejectedCount ?? 3,
+              })
+            : (error ?? 'Generation failed')
+        }
       />
+    );
+  }
+
+  if (status === 'pilot_review') {
+    return (
+      <div className="space-y-2">
+        {resultUrl ? (
+          <div className="overflow-hidden border border-border">
+            <video src={resultUrl} controls className="w-full">
+              <track kind="captions" />
+            </video>
+          </div>
+        ) : null}
+        <p className="text-sm text-muted-foreground">
+          {translate('pilotReviewTitle', {
+            seconds: pilotDurationSeconds ?? 0,
+          })}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
+            onClick={onAcceptPilot}
+            ariaLabel={translate('acceptFullRunAria')}
+            className="flex-1"
+          >
+            <Check className="size-3" />
+            {translate('acceptFullRun')}
+          </Button>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            onClick={onRejectPilot}
+            ariaLabel={translate('rejectPilotAria')}
+            className="flex-1"
+          >
+            <X className="size-3" />
+            {translate('rejectPilot')}
+          </Button>
+        </div>
+      </div>
     );
   }
 

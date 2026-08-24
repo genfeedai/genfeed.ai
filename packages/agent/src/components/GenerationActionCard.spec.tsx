@@ -22,6 +22,9 @@ vi.mock('next-intl', () => ({
     () => (key: string, values?: Record<string, string | number>) => {
       const template =
         {
+          acceptFullRun: 'Accept full run',
+          acceptFullRunAria:
+            'Accept the pilot and generate the full-length video',
           durationSeconds: '{seconds}s',
           generateAria: 'Generate image',
           generateTooltip: 'Generate',
@@ -29,12 +32,19 @@ vi.mock('next-intl', () => ({
           loadingModels: 'Loading Genfeed models…',
           noModelsEnabled: 'No models enabled',
           noModelsEnabledTitle: 'No models enabled for this workspace',
+          pilotCeilingReached:
+            'Stopped after {count} rejected paid candidates. No further video generation will run for this clip.',
+          pilotReady: 'Pilot ready',
+          pilotReviewTitle:
+            'Review this {seconds}s pilot before the full-length run',
           previewDescription: 'Read and edit the full generation prompt',
           previewEditorAria: 'Full prompt',
           previewTitle: 'Prompt',
           promptLabel: 'Prompt',
           readFull: 'Read & edit',
           readFullAria: 'Read and edit the full prompt',
+          rejectPilot: 'Reject',
+          rejectPilotAria: 'Reject this pilot',
           stop: 'Stop',
           stopAria: 'Stop generation',
         }[key] ?? key;
@@ -1306,5 +1316,129 @@ describe('GenerationActionCard', () => {
     expect(generate).toBeDisabled();
     fireEvent.click(generate);
     expect(onUiAction).not.toHaveBeenCalled();
+  });
+
+  it('generates a short video pilot first and waits for acceptance before the full run', async () => {
+    const generateIngredient = vi
+      .fn()
+      .mockResolvedValueOnce({
+        id: 'video-pilot-1',
+        url: 'https://cdn.test/pilot.mp4',
+      })
+      .mockResolvedValueOnce({
+        id: 'video-full-1',
+        url: 'https://cdn.test/full.mp4',
+      });
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            duration: 10,
+            prompt: 'A presenter walking through neon rain.',
+          },
+          generationType: 'video',
+          id: 'action-video-pilot',
+          title: 'Generate Video',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              category: ModelCategory.VIDEO,
+              durations: [5, 10],
+              key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+              label: 'Kling 2.6',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate video/i }),
+    );
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledWith(
+        'video',
+        expect.objectContaining({ duration: 5 }),
+        expect.any(AbortSignal),
+      );
+    });
+
+    expect(
+      await screen.findByText(
+        'Review this 5s pilot before the full-length run',
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Accept the pilot and generate the full-length video',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(2);
+      expect(generateIngredient).toHaveBeenLastCalledWith(
+        'video',
+        expect.objectContaining({ duration: 10 }),
+        expect.any(AbortSignal),
+      );
+    });
+  });
+
+  it('halts after three rejected video pilots and does not call the provider again', async () => {
+    const generateIngredient = vi.fn().mockResolvedValue({
+      id: 'video-pilot-1',
+      url: 'https://cdn.test/pilot.mp4',
+    });
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            duration: 10,
+            prompt: 'A presenter walking through neon rain.',
+          },
+          generationType: 'video',
+          id: 'action-video-ceiling',
+          title: 'Generate Video',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              category: ModelCategory.VIDEO,
+              durations: [5, 10],
+              key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_6,
+              label: 'Kling 2.6',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      fireEvent.click(
+        await screen.findByRole('button', { name: /generate video/i }),
+      );
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Reject this pilot' }),
+      );
+    }
+
+    expect(
+      await screen.findByText(
+        'Stopped after 3 rejected paid candidates. No further video generation will run for this clip.',
+      ),
+    ).toBeInTheDocument();
+    expect(generateIngredient).toHaveBeenCalledTimes(3);
+    expect(
+      screen.queryByRole('button', { name: /generate video/i }),
+    ).not.toBeInTheDocument();
   });
 });
