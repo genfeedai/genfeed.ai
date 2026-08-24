@@ -478,14 +478,13 @@ export interface Hailuo23Input extends BaseVideoInput {
   seed?: number;
 }
 
-/** Minimax Hailuo 2.3 Fast (image-to-video only, no text prompt) */
+/** Minimax Hailuo 2.3 Fast (image-to-video; first_frame_image is required) */
 export interface Hailuo23FastInput extends Record<string, unknown> {
   prompt: string;
-  aspect_ratio: string;
+  first_frame_image: string;
   duration: number;
   resolution?: string;
-  image: string;
-  seed?: number;
+  prompt_optimizer?: boolean;
 }
 
 /** Vidu Q3 Pro / Turbo */

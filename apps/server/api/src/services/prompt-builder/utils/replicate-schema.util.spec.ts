@@ -1,5 +1,6 @@
 import type { ReplicateModelSchema } from '@api/services/prompt-builder/interfaces/replicate-schema.interface';
 import {
+  assertRequiredSchemaInput,
   clearSchemaCache,
   detectImageReferenceFields,
   getArrayImageLimit,
@@ -8,6 +9,9 @@ import {
   modelIdToSchemaFilename,
   schemaHasField,
 } from '@api/services/prompt-builder/utils/replicate-schema.util';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ErrorCode } from '@genfeedai/enums';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('ReplicateSchemaUtil', () => {
   afterEach(() => {
@@ -227,6 +231,47 @@ describe('ReplicateSchemaUtil', () => {
 
     it('should return false for non-existing fields', () => {
       expect(schemaHasField(schema, 'nonexistent')).toBe(false);
+    });
+  });
+
+  describe('assertRequiredSchemaInput', () => {
+    it('loads the Hailuo 2.3 Fast schema and requires first_frame_image', () => {
+      const schema = loadModelSchema(
+        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      );
+      expect(schema?.required).toEqual(
+        expect.arrayContaining(['prompt', 'first_frame_image']),
+      );
+
+      try {
+        assertRequiredSchemaInput(
+          MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+          { prompt: 'A cinematic product reveal' },
+        );
+        throw new Error('expected validation failure');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(HttpException);
+        const httpError = error as HttpException;
+        expect(httpError.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+        expect(httpError.getResponse()).toEqual(
+          expect.objectContaining({
+            code: ErrorCode.VALIDATION_FAILED,
+            detail: expect.stringContaining('first_frame_image'),
+          }),
+        );
+      }
+    });
+
+    it('accepts Hailuo 2.3 Fast input with a valid first-frame URI', () => {
+      expect(() =>
+        assertRequiredSchemaInput(
+          MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+          {
+            first_frame_image: 'https://cdn.example.com/first-frame.jpg',
+            prompt: 'A cinematic product reveal',
+          },
+        ),
+      ).not.toThrow();
     });
   });
 });

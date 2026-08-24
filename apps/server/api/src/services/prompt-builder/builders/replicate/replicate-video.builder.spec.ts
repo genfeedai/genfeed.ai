@@ -1,8 +1,40 @@
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ErrorCode, ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { ReplicateVideoBuilder } from './replicate-video.builder';
+
+function expectRequiredFieldValidation(
+  act: () => unknown,
+  field: string,
+): HttpException {
+  let thrown: unknown;
+  try {
+    act();
+  } catch (error: unknown) {
+    thrown = error;
+  }
+
+  expect(thrown).toBeInstanceOf(HttpException);
+  const httpError = thrown as HttpException;
+  expect(httpError.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+  expect(httpError.getResponse()).toEqual(
+    expect.objectContaining({
+      code: ErrorCode.VALIDATION_FAILED,
+      detail: expect.stringContaining(field),
+      status: HttpStatus.BAD_REQUEST,
+      title: 'Validation failed',
+      validationErrors: expect.arrayContaining([
+        expect.objectContaining({
+          field,
+          message: expect.stringContaining(field),
+        }),
+      ]),
+    }),
+  );
+  return httpError;
+}
 
 function createConfigService(isDev = false): ConfigService {
   return {
@@ -55,6 +87,75 @@ describe('ReplicateVideoBuilder', () => {
     it('should include MiniMax H3', () => {
       expect(builder.getSupportedModels()).toContain(
         MODEL_KEYS.REPLICATE_MINIMAX_H3,
+      );
+    });
+
+    it('should include Hailuo 2.3 Fast', () => {
+      expect(builder.getSupportedModels()).toContain(
+        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      );
+    });
+  });
+
+  describe('buildPrompt - Hailuo 2.3 Fast', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'A cinematic product reveal',
+      width: 1920,
+    };
+    const firstFrame = 'https://cdn.example.com/first-frame.jpg';
+
+    it('maps a valid first-frame reference onto first_frame_image', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+        { ...baseParams, references: [firstFrame] },
+        'A cinematic product reveal',
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          duration: 6,
+          first_frame_image: firstFrame,
+          prompt: 'A cinematic product reveal',
+        }),
+      );
+      expect(result).not.toHaveProperty('image');
+    });
+
+    it('rejects a missing first-frame image with a named 4xx validation error', () => {
+      expectRequiredFieldValidation(
+        () =>
+          builder.buildPrompt(
+            MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+            baseParams,
+            'A cinematic product reveal',
+          ),
+        'first_frame_image',
+      );
+    });
+
+    it('rejects an empty first-frame image with a named 4xx validation error', () => {
+      expectRequiredFieldValidation(
+        () =>
+          builder.buildPrompt(
+            MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+            { ...baseParams, references: ['   '] },
+            'A cinematic product reveal',
+          ),
+        'first_frame_image',
+      );
+    });
+
+    it('rejects a non-URI first-frame image with a named 4xx validation error', () => {
+      expectRequiredFieldValidation(
+        () =>
+          builder.buildPrompt(
+            MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+            { ...baseParams, references: ['local-frame.jpg'] },
+            'A cinematic product reveal',
+          ),
+        'first_frame_image',
       );
     });
   });

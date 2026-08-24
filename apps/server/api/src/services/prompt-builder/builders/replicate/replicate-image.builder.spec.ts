@@ -21,11 +21,15 @@ vi.mock('@genfeedai/helpers', async () => ({
 
 // Mock schema util — we control schema loading in tests
 vi.mock('@api/services/prompt-builder/utils/replicate-schema.util', () => ({
+  assertRequiredSchemaInput: vi.fn(),
   clearSchemaCache: vi.fn(),
   detectImageReferenceFields: vi.fn(() => []),
   getArrayImageLimit: vi.fn(() => undefined),
   isArrayImageField: vi.fn(() => false),
   loadModelSchema: vi.fn(() => null),
+  modelIdToSchemaFilename: vi.fn(
+    (modelId: string) => `${modelId.split('/').pop()}.schema.json`,
+  ),
   schemaHasField: vi.fn(() => false),
 }));
 

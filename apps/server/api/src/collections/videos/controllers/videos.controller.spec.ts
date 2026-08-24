@@ -1041,6 +1041,31 @@ describe('VideosController', () => {
       expect(replicateService.generateTextToVideo).toHaveBeenCalled();
     });
 
+    it('rejects Hailuo 2.3 Fast without first_frame_image before Replicate', async () => {
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        model: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      };
+
+      let thrown: unknown;
+      try {
+        await controller.create(mockRequest, dto, mockUser);
+      } catch (error: unknown) {
+        thrown = error;
+      }
+
+      expect(thrown).toBeInstanceOf(HttpException);
+      const httpError = thrown as HttpException;
+      expect(httpError.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect(httpError.getResponse()).toEqual(
+        expect.objectContaining({
+          detail: expect.stringContaining('first_frame_image'),
+          title: 'Validation failed',
+        }),
+      );
+      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+    });
+
     it('should throw error when prompt is missing', async () => {
       const dto: CreateVideoDto = {
         height: 1080,
