@@ -1,14 +1,12 @@
 import { cva } from 'class-variance-authority';
 
 /**
- * Local tone layer on top of @shipshitdev/ui Badge.
- *
- * Ship's semantic classes (`text-danger`, `bg-danger/12`, etc.) often don't
- * emit in this monorepo's Tailwind scan. Every variant must set explicit
- * design-token classes so status chips always paint color on the UI.
+ * Badge tone layer. Every variant sets explicit design-token classes so
+ * status chips always paint color — semantic Tailwind classes that miss the
+ * scan (text-danger, bg-danger/12) are not enough on their own.
  */
 export const badgeVariants = cva(
-  'ship-ui focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+  'inline-flex items-center rounded-sm border px-1.5 h-5 text-[10px] font-medium uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
   {
     defaultVariants: {
       variant: 'default',

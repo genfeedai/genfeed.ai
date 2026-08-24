@@ -55,10 +55,13 @@ export type CampaignRateLimits = {
 
 export type CampaignSchedule = {
   activeDays?: string[];
+  dueAt?: string;
   enabled?: boolean;
   endTime?: string;
+  localDateTime?: string;
   startTime?: string;
   timezone?: string;
+  version?: number;
   [key: string]: unknown;
 };
 

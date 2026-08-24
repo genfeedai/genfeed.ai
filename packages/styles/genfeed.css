@@ -119,7 +119,7 @@
 }
 
 .gen-dot-processing {
-  background: var(--ship-done);
+  background: var(--done);
 }
 
 .gen-dot-pulse {

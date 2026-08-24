@@ -5,9 +5,10 @@ import {
   formatClockTime,
   instantForClockTime,
 } from '@api-types/contracts/credential-posting-times.contract';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type {
+  CalendarEventAction,
   CalendarItem,
   CalendarViewKey,
   ContentCalendarProps,
@@ -36,6 +37,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { resolveFullCalendarConstructor } from './resolve-fullcalendar-constructor';
 
 interface FullCalendarHostProps {
@@ -61,6 +63,13 @@ const VIEW_IDS: Record<CalendarViewKey, string> = {
   list: 'listWeek',
   month: 'dayGridMonth',
   week: 'timeGridWeek',
+};
+
+const VIEW_KEYS: Record<string, CalendarViewKey> = {
+  dayGridMonth: 'month',
+  listWeek: 'list',
+  timeGridDay: 'day',
+  timeGridWeek: 'week',
 };
 
 const DEFAULT_VIEWS: CalendarViewKey[] = ['day', 'week', 'month', 'list'];
@@ -184,6 +193,32 @@ function DayViewRows<T extends CalendarItem>({
 
 function toViewId(view: CalendarViewKey): string {
   return VIEW_IDS[view];
+}
+
+function fromViewId(viewId: string): CalendarViewKey | null {
+  return VIEW_KEYS[viewId] ?? null;
+}
+
+function CalendarEventActions({ actions }: { actions: CalendarEventAction[] }) {
+  return (
+    <span className="gen-calendar-event-actions">
+      {actions.map((action) => (
+        <Button
+          key={action.id}
+          aria-label={action.label}
+          onClick={(event) => {
+            event.stopPropagation();
+            action.onClick();
+          }}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          {action.label}
+        </Button>
+      ))}
+    </span>
+  );
 }
 
 function isSameDateRange(
@@ -310,9 +345,11 @@ export default function ContentCalendar<T extends CalendarItem>({
   getEventBadge,
   getEventChannels,
   getEventIndicators,
+  getEventActions,
   isItemDraggable,
   onEventDrop,
   onDateClick,
+  onViewChange,
   initialView = 'week',
   views = DEFAULT_VIEWS,
   filterControls,
@@ -336,6 +373,7 @@ export default function ContentCalendar<T extends CalendarItem>({
    */
   const viewIdRef = useRef<string>(toViewId(initialView));
   const iconSpriteRef = useRef<HTMLDivElement | null>(null);
+  const actionRootsRef = useRef(new WeakMap<HTMLElement, Root>());
 
   const isDragEnabled = Boolean(isItemDraggable && onEventDrop);
 
@@ -368,8 +406,13 @@ export default function ContentCalendar<T extends CalendarItem>({
           const isDraggable = Boolean(
             isDragEnabled && !item.isDisabled && isItemDraggable?.(item),
           );
+          const statusClass = item.status
+            ? `gen-calendar-event-host--${item.status}`
+            : '';
           acc.push({
-            className: item.isDisabled ? 'event-disabled' : '',
+            className: [item.isDisabled ? 'event-disabled' : '', statusClass]
+              .filter(Boolean)
+              .join(' '),
             color,
             durationEditable: false,
             editable: isDraggable,
@@ -389,6 +432,13 @@ export default function ContentCalendar<T extends CalendarItem>({
 
   const handleEventClick = useCallback(
     (info: EventClickInfo) => {
+      const target = info.jsEvent?.target;
+      if (
+        target instanceof Element &&
+        target.closest('.gen-calendar-event-actions')
+      ) {
+        return;
+      }
       if (info.event.extendedProps.isDisabled) {
         return;
       }
@@ -397,6 +447,53 @@ export default function ContentCalendar<T extends CalendarItem>({
     },
     [onEventClick],
   );
+
+  const handleEventDidMount = useCallback(
+    (info: {
+      el: HTMLElement;
+      event: { extendedProps: { isDisabled?: boolean; item?: T } };
+    }) => {
+      const item = info.event.extendedProps.item;
+      const actions = item && getEventActions ? getEventActions(item) : [];
+      if (actions.length > 0) {
+        info.el.tabIndex = 0;
+        info.el.setAttribute('data-calendar-slot', 'focusable');
+        info.el.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+          }
+          if (info.event.extendedProps.isDisabled || !item) {
+            return;
+          }
+          event.preventDefault();
+          onEventClick(item);
+        });
+      }
+
+      const existingRoot = actionRootsRef.current.get(info.el);
+      existingRoot?.unmount();
+      info.el.querySelector('.gen-calendar-event-actions-root')?.remove();
+
+      if (actions.length === 0) {
+        actionRootsRef.current.delete(info.el);
+        return;
+      }
+
+      const mount = document.createElement('span');
+      mount.className = 'gen-calendar-event-actions-root';
+      info.el.appendChild(mount);
+      const root = createRoot(mount);
+      root.render(<CalendarEventActions actions={actions} />);
+      actionRootsRef.current.set(info.el, root);
+    },
+    [getEventActions, onEventClick],
+  );
+
+  const handleEventWillUnmount = useCallback((info: { el: HTMLElement }) => {
+    const root = actionRootsRef.current.get(info.el);
+    root?.unmount();
+    actionRootsRef.current.delete(info.el);
+  }, []);
 
   const handleDateClick = useCallback(
     (info: { date: Date }) => {
@@ -521,6 +618,10 @@ export default function ContentCalendar<T extends CalendarItem>({
       viewIdRef.current = arg.view.type;
       setIsDayView(arg.view.type === DAY_VIEW_ID);
       setVisibleDay(new Date(arg.start));
+      const viewKey = fromViewId(arg.view.type);
+      if (viewKey) {
+        onViewChange?.(viewKey);
+      }
 
       if (isSameDateRange(dateRangeRef.current, arg.start, arg.end)) {
         return;
@@ -535,7 +636,7 @@ export default function ContentCalendar<T extends CalendarItem>({
       setDateRange(nextDateRange);
       onDatesChange(nextDateRange.start, nextDateRange.end);
     },
-    [onDatesChange],
+    [onDatesChange, onViewChange],
   );
 
   const dayViewRows = useMemo(() => {
@@ -558,8 +659,11 @@ export default function ContentCalendar<T extends CalendarItem>({
     [views],
   );
 
-  const calendarOptions: CalendarOptions = useMemo(
-    () => ({
+  const calendarOptions = useMemo(
+    (): CalendarOptions & {
+      eventDidMount: typeof handleEventDidMount;
+      eventWillUnmount: typeof handleEventWillUnmount;
+    } => ({
       allDaySlot: false,
       contentHeight: 'auto',
       dateClick: onDateClick ? handleDateClick : undefined,
@@ -568,7 +672,9 @@ export default function ContentCalendar<T extends CalendarItem>({
       editable: isDragEnabled,
       eventClick: handleEventClick,
       eventContent: handleEventContent,
+      eventDidMount: handleEventDidMount,
       eventDrop: handleEventDrop,
+      eventWillUnmount: handleEventWillUnmount,
       eventTimeFormat: {
         hour: '2-digit',
         meridiem: false,
@@ -594,7 +700,9 @@ export default function ContentCalendar<T extends CalendarItem>({
       handleDateClick,
       handleEventClick,
       handleEventContent,
+      handleEventDidMount,
       handleEventDrop,
+      handleEventWillUnmount,
       handleDatesSet,
       onDateClick,
       isDragEnabled,

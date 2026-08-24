@@ -73,6 +73,7 @@ describe('StudioGenerateCard', () => {
         assetActions={buildAssetActions()}
         job={generatedJob}
         onReprompt={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
 
@@ -90,6 +91,7 @@ describe('StudioGenerateCard', () => {
         assetActions={buildAssetActions()}
         job={generatedJob}
         onReprompt={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
 
@@ -111,6 +113,7 @@ describe('StudioGenerateCard', () => {
         assetActions={buildAssetActions()}
         job={{ ...generatedJob, url: undefined }}
         onReprompt={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
 
@@ -132,6 +135,7 @@ describe('StudioGenerateCard', () => {
         assetActions={assetActions}
         job={job}
         onReprompt={onReprompt}
+        onSelect={vi.fn()}
       />,
     );
 
@@ -166,6 +170,7 @@ describe('StudioGenerateCard', () => {
         assetActions={assetActions}
         job={job}
         onReprompt={onReprompt}
+        onSelect={vi.fn()}
       />,
     );
 
@@ -209,9 +214,36 @@ describe('StudioGenerateCard', () => {
           url: 'https://cdn.example.com/video.mp4',
         }}
         onReprompt={vi.fn()}
+        onSelect={vi.fn()}
       />,
     );
 
     expect(screen.getByTestId('shared-masonry-video')).toBeInTheDocument();
+  });
+
+  it('selects a card so the inspector can open', () => {
+    const onSelect = vi.fn();
+    const job = {
+      ...generatedJob,
+      status: IngredientStatus.PROCESSING,
+      url: undefined,
+    };
+
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={job}
+        onReprompt={vi.fn()}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Inspect Image generation: ${job.prompt}`,
+      }),
+    );
+
+    expect(onSelect).toHaveBeenCalledWith(job);
   });
 });

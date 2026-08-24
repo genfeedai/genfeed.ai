@@ -59,9 +59,12 @@ export interface ICampaign {
     currentDayCount?: number;
   };
   schedule?: {
+    dueAt?: string;
+    localDateTime?: string;
     startAt?: string;
     endAt?: string;
     timezone?: string;
+    version?: number;
     activeDays?: string[];
     activeStartTime?: string;
     activeEndTime?: string;

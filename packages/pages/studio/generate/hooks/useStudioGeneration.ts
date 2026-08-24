@@ -21,10 +21,19 @@ import {
   buildVideoPayload,
 } from '@pages/studio/generate/utils/generation-payloads';
 import {
+  mergeStudioGenerateJobs,
   resolveJsonApiIngredientId,
   resolveStudioAssetDimensions,
   resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
+import {
+  isStudioGenerateJobPending,
+  recipeFromPromptData,
+} from '@pages/studio/generate/utils/studio-generate-recipe';
+import {
+  readStudioGenerateSessionJobs,
+  writeStudioGenerateSessionJobs,
+} from '@pages/studio/generate/utils/studio-generate-session';
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { IngredientsService } from '@services/content/ingredients.service';
@@ -54,6 +63,7 @@ export interface UseStudioGenerationReturn {
   clearJobs: () => void;
   isGenerating: boolean;
   jobs: readonly StudioGenerateJob[];
+  rehydratePending: (jobs: readonly StudioGenerateJob[]) => void;
   removeJob: (id: string) => void;
   submit: (promptText: string, references?: string[]) => Promise<void>;
 }
@@ -94,6 +104,8 @@ export function useStudioGeneration({
   const [isGenerating, setIsGenerating] = useState(false);
 
   const subscriptionsRef = useRef<Array<() => void>>([]);
+  const subscribedIdsRef = useRef(new Set<string>());
+  const restoredBrandRef = useRef<string | null>(null);
   const onGeneratedRef = useRef(onGenerated);
 
   useEffect(() => {
@@ -106,9 +118,17 @@ export function useStudioGeneration({
         unsubscribe();
       }
       subscriptionsRef.current = [];
+      subscribedIdsRef.current.clear();
     },
     [],
   );
+
+  useEffect(() => {
+    if (!brandId || restoredBrandRef.current !== brandId) {
+      return;
+    }
+    writeStudioGenerateSessionJobs(brandId, jobs);
+  }, [brandId, jobs]);
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -174,6 +194,89 @@ export function useStudioGeneration({
     ],
   );
 
+  const subscribeToPendingJob = useCallback(
+    (pendingId: string, jobType: StudioGenerateType) => {
+      if (subscribedIdsRef.current.has(pendingId)) {
+        return;
+      }
+
+      const config = getStudioGenerateTypeConfig(jobType);
+      // Socket topics are the lowercase plural of the ingredient category —
+      // `categoryToPlural()` on the server. Never derive this from the
+      // SCREAMING enum member.
+      const topic = `/${config.resourceSegment}/${pendingId}`;
+      let unsubscribe: (() => void) | null = null;
+
+      const cleanup = () => {
+        subscribedIdsRef.current.delete(pendingId);
+        if (!unsubscribe) {
+          return;
+        }
+        unsubscribe();
+        subscriptionsRef.current = subscriptionsRef.current.filter(
+          (entry) => entry !== unsubscribe,
+        );
+        unsubscribe = null;
+      };
+
+      const handler = createMediaHandler<SocketResult>(
+        async (result) => {
+          const resolvedId =
+            typeof result === 'string'
+              ? result
+              : typeof result.id === 'string'
+                ? result.id
+                : pendingId;
+
+          try {
+            const fetchService = await resolveFetchService(jobType);
+            const ingredient = await fetchService.findOne(resolvedId);
+            const dimensions = resolveStudioAssetDimensions(ingredient);
+
+            patchJob(pendingId, {
+              ...(dimensions.height ? { height: dimensions.height } : {}),
+              ingredient: ingredient ?? undefined,
+              ingredientId: String(ingredient?.id ?? resolvedId),
+              status: IngredientStatus.GENERATED,
+              url: resolveStudioAssetUrl(ingredient),
+              ...(dimensions.width ? { width: dimensions.width } : {}),
+            });
+            onGeneratedRef.current?.();
+          } catch (error) {
+            logger.error(
+              'Failed to load Studio generation result after socket event',
+              error,
+            );
+            // The asset may well exist, but we could not read it — showing a
+            // finished card with no media would be a lie. Fail it loudly and
+            // let the gallery refresh surface the row if it did land.
+            patchJob(pendingId, {
+              error: 'Generation finished but the asset could not be loaded',
+              status: IngredientStatus.FAILED,
+            });
+            onGeneratedRef.current?.();
+          } finally {
+            cleanup();
+          }
+        },
+        (errorMessage: string) => {
+          const message = errorMessage || `${config.label} generation failed`;
+          patchJob(pendingId, {
+            error: message,
+            status: IngredientStatus.FAILED,
+          });
+          notificationsService.error(message);
+          cleanup();
+        },
+      );
+
+      subscribedIdsRef.current.add(pendingId);
+      unsubscribe = subscribe(topic, handler);
+      subscriptionsRef.current.push(unsubscribe);
+    },
+    [notificationsService, patchJob, resolveFetchService, subscribe],
+  );
+
   const trackPendingIds = useCallback(
     (
       pendingIds: string[],
@@ -181,11 +284,12 @@ export function useStudioGeneration({
         height?: number;
         modelKey: string;
         promptText: string;
+        recipe?: StudioGenerateJob['recipe'];
+        runId: string;
+        type: StudioGenerateType;
         width?: number;
       },
     ) => {
-      const config = getStudioGenerateTypeConfig(type);
-
       setJobs((previous) => [
         ...pendingIds.map((id) => ({
           createdAt: Date.now(),
@@ -194,88 +298,61 @@ export function useStudioGeneration({
           ingredientId: id,
           modelKey: context.modelKey || undefined,
           prompt: context.promptText,
+          recipe: context.recipe,
+          runId: context.runId,
           status: IngredientStatus.PROCESSING,
-          type,
+          type: context.type,
           width: context.width,
         })),
         ...previous,
       ]);
 
       for (const pendingId of pendingIds) {
-        // Socket topics are the lowercase plural of the ingredient category —
-        // `categoryToPlural()` on the server. Never derive this from the
-        // SCREAMING enum member.
-        const topic = `/${config.resourceSegment}/${pendingId}`;
-        let unsubscribe: (() => void) | null = null;
-
-        const cleanup = () => {
-          if (!unsubscribe) {
-            return;
-          }
-          unsubscribe();
-          subscriptionsRef.current = subscriptionsRef.current.filter(
-            (entry) => entry !== unsubscribe,
-          );
-          unsubscribe = null;
-        };
-
-        const handler = createMediaHandler<SocketResult>(
-          async (result) => {
-            const resolvedId =
-              typeof result === 'string'
-                ? result
-                : typeof result.id === 'string'
-                  ? result.id
-                  : pendingId;
-
-            try {
-              const fetchService = await resolveFetchService(type);
-              const ingredient = await fetchService.findOne(resolvedId);
-              const dimensions = resolveStudioAssetDimensions(ingredient);
-
-              patchJob(pendingId, {
-                ...(dimensions.height ? { height: dimensions.height } : {}),
-                ingredient: ingredient ?? undefined,
-                ingredientId: String(ingredient?.id ?? resolvedId),
-                status: IngredientStatus.GENERATED,
-                url: resolveStudioAssetUrl(ingredient),
-                ...(dimensions.width ? { width: dimensions.width } : {}),
-              });
-              onGeneratedRef.current?.();
-            } catch (error) {
-              logger.error(
-                'Failed to load Studio generation result after socket event',
-                error,
-              );
-              // The asset may well exist, but we could not read it — showing a
-              // finished card with no media would be a lie. Fail it loudly and
-              // let the gallery refresh surface the row if it did land.
-              patchJob(pendingId, {
-                error: 'Generation finished but the asset could not be loaded',
-                status: IngredientStatus.FAILED,
-              });
-              onGeneratedRef.current?.();
-            } finally {
-              cleanup();
-            }
-          },
-          (errorMessage: string) => {
-            const message = errorMessage || `${config.label} generation failed`;
-            patchJob(pendingId, {
-              error: message,
-              status: IngredientStatus.FAILED,
-            });
-            notificationsService.error(message);
-            cleanup();
-          },
-        );
-
-        unsubscribe = subscribe(topic, handler);
-        subscriptionsRef.current.push(unsubscribe);
+        subscribeToPendingJob(pendingId, context.type);
       }
     },
-    [notificationsService, patchJob, resolveFetchService, subscribe, type],
+    [subscribeToPendingJob],
   );
+
+  const rehydratePending = useCallback(
+    (candidates: readonly StudioGenerateJob[]) => {
+      const pending = candidates.filter((job) =>
+        isStudioGenerateJobPending(job.status),
+      );
+
+      if (pending.length === 0) {
+        return;
+      }
+
+      setJobs((previous) => mergeStudioGenerateJobs(previous, pending));
+
+      for (const job of pending) {
+        subscribeToPendingJob(job.id, job.type);
+      }
+    },
+    [subscribeToPendingJob],
+  );
+
+  useEffect(() => {
+    if (!brandId || restoredBrandRef.current === brandId) {
+      return;
+    }
+
+    restoredBrandRef.current = brandId;
+    const restored = readStudioGenerateSessionJobs(brandId);
+
+    if (restored.length === 0) {
+      return;
+    }
+
+    setJobs((previous) => mergeStudioGenerateJobs(previous, restored));
+
+    for (const job of restored) {
+      if (isStudioGenerateJobPending(job.status)) {
+        subscribeToPendingJob(job.id, job.type);
+      }
+    }
+  }, [brandId, subscribeToPendingJob]);
 
   const submit = useCallback(
     async (promptText: string, references: string[] = []) => {
@@ -314,6 +391,16 @@ export function useStudioGeneration({
       const jobDimensions = config.capabilities.hasAspectRatio
         ? { height: promptData.height, width: promptData.width }
         : {};
+      const runId = crypto.randomUUID();
+      const recipe = recipeFromPromptData(promptData, type, settings);
+      const pendingContext = {
+        ...jobDimensions,
+        modelKey,
+        promptText,
+        recipe,
+        runId,
+        type,
+      };
 
       setIsGenerating(true);
 
@@ -329,11 +416,7 @@ export function useStudioGeneration({
               ...payload,
               blacklist: settings.blacklist,
             } as unknown as Partial<IImage>)) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), {
-              ...jobDimensions,
-              modelKey,
-              promptText,
-            });
+            trackPendingIds(resolvePendingIds(data), pendingContext);
             break;
           }
 
@@ -347,11 +430,7 @@ export function useStudioGeneration({
               ...payload,
               blacklist: settings.blacklist,
             } as unknown as Partial<IVideo>)) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), {
-              ...jobDimensions,
-              modelKey,
-              promptText,
-            });
+            trackPendingIds(resolvePendingIds(data), pendingContext);
             break;
           }
 
@@ -365,10 +444,7 @@ export function useStudioGeneration({
             const data = (await service.post(
               payload as Parameters<MusicsService['post']>[0],
             )) as GenerationResponse;
-            trackPendingIds(resolvePendingIds(data), {
-              modelKey,
-              promptText,
-            });
+            trackPendingIds(resolvePendingIds(data), pendingContext);
             break;
           }
 
@@ -386,10 +462,7 @@ export function useStudioGeneration({
               text: promptData.speech?.trim() || promptData.text?.trim() || '',
               voiceId: settings.voiceId,
             });
-            trackPendingIds([resolveJsonApiIngredientId(data)], {
-              modelKey,
-              promptText,
-            });
+            trackPendingIds([resolveJsonApiIngredientId(data)], pendingContext);
             break;
           }
 
@@ -416,6 +489,8 @@ export function useStudioGeneration({
                 ingredientId: String(voice.id),
                 modelKey: modelKey || undefined,
                 prompt: promptText,
+                recipe,
+                runId,
                 status: IngredientStatus.GENERATED,
                 type,
                 url: resolveStudioAssetUrl(voice),
@@ -446,6 +521,8 @@ export function useStudioGeneration({
             id: `failed-${crypto.randomUUID()}`,
             modelKey: modelKey || undefined,
             prompt: promptText,
+            recipe,
+            runId,
             status: IngredientStatus.FAILED,
             type,
           },
@@ -472,5 +549,12 @@ export function useStudioGeneration({
     ],
   );
 
-  return { clearJobs, isGenerating, jobs, removeJob, submit };
+  return {
+    clearJobs,
+    isGenerating,
+    jobs,
+    rehydratePending,
+    removeJob,
+    submit,
+  };
 }

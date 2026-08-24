@@ -2,7 +2,11 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
-import { CampaignStatus, CampaignType } from '@genfeedai/enums';
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/enums';
 import type { CampaignProcessingJobData } from '@genfeedai/queue-contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -16,10 +20,11 @@ describe('outreach campaign dispatch integration', () => {
   const organizationId = testId('organization');
   const campaignId = testId('campaign');
   const campaign = {
-    campaignType: CampaignType.REPLY,
+    campaignType: CampaignType.MANUAL,
     id: campaignId,
     isDeleted: false,
     organizationId,
+    platform: CampaignPlatform.TWITTER,
     status: CampaignStatus.ACTIVE,
   };
 
@@ -28,8 +33,7 @@ describe('outreach campaign dispatch integration', () => {
     getJob: vi.fn(),
   };
   const mockOutreachCampaignsService = {
-    find: vi.fn(),
-    findOne: vi.fn(),
+    findActiveForDispatch: vi.fn(),
     findOneById: vi.fn(),
   };
   const mockCampaignExecutorService = {
@@ -60,8 +64,10 @@ describe('outreach campaign dispatch integration', () => {
         id: options.jobId,
       }),
     );
-    mockOutreachCampaignsService.find.mockResolvedValue([campaign]);
-    mockOutreachCampaignsService.findOne.mockResolvedValue(campaign);
+    mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+      campaign,
+    ]);
+    mockOutreachCampaignsService.findOneById.mockResolvedValue(campaign);
     mockCampaignExecutorService.processPendingTargets.mockResolvedValue({
       failed: 0,
       processed: 1,
@@ -103,7 +109,7 @@ describe('outreach campaign dispatch integration', () => {
     });
     expect(mockCampaignQueue.add).toHaveBeenCalledWith(
       'process',
-      { campaignId, organizationId },
+      { campaignId, organizationId, scheduleVersion: 1 },
       expect.objectContaining({ jobId: `campaign-${campaignId}` }),
     );
 
@@ -112,6 +118,11 @@ describe('outreach campaign dispatch integration', () => {
       CampaignProcessingJobData,
       { jobId: string },
     ];
+    expect(queued[1]).toEqual({
+      campaignId,
+      organizationId,
+      scheduleVersion: 1,
+    });
     const job = {
       data: queued[1],
       id: queued[2].jobId,
@@ -120,11 +131,10 @@ describe('outreach campaign dispatch integration', () => {
 
     const result = await processor.process(job);
 
-    expect(mockOutreachCampaignsService.findOne).toHaveBeenCalledWith({
-      id: campaignId,
-      isDeleted: false,
+    expect(mockOutreachCampaignsService.findOneById).toHaveBeenCalledWith(
+      campaignId,
       organizationId,
-    });
+    );
     expect(
       mockCampaignExecutorService.processPendingTargets,
     ).toHaveBeenCalledWith(campaign, 10);
@@ -136,5 +146,42 @@ describe('outreach campaign dispatch integration', () => {
       processed: 1,
       successful: 1,
     });
+  });
+
+  it('takes a due Scheduled Blast from dispatch through the worker to one executor call', async () => {
+    const scheduledCampaign = {
+      ...campaign,
+      campaignType: CampaignType.SCHEDULED_BLAST,
+      schedule: {
+        dueAt: '2026-08-24T12:00:00.000Z',
+        version: 1,
+      },
+    };
+    mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+      scheduledCampaign,
+    ]);
+    mockOutreachCampaignsService.findOneById.mockResolvedValue(
+      scheduledCampaign,
+    );
+
+    const dispatch = await queueService.dispatchActiveCampaigns(organizationId);
+
+    expect(dispatch.enqueued).toBe(1);
+    expect(mockCampaignQueue.add).toHaveBeenCalledWith(
+      'process',
+      { campaignId, organizationId, scheduleVersion: 1 },
+      expect.objectContaining({ jobId: `campaign-${campaignId}` }),
+    );
+
+    const result = await processor.process({
+      data: { campaignId, organizationId, scheduleVersion: 1 },
+      id: `campaign-${campaignId}`,
+      updateProgress: vi.fn(),
+    } as unknown as Job<CampaignProcessingJobData>);
+
+    expect(
+      mockCampaignExecutorService.processPendingTargets,
+    ).toHaveBeenCalledWith(scheduledCampaign, 10);
+    expect(result.successful).toBe(1);
   });
 });

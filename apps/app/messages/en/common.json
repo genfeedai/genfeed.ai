@@ -703,6 +703,7 @@
     "credential": "Credential",
     "ctaLink": "CTA Link",
     "customInstructions": "Custom Instructions",
+    "deliveryTime": "Delivery time",
     "description": "Description",
     "dmTemplate": "DM Template",
     "hashtags": "Hashtags (comma-separated)",
@@ -711,7 +712,9 @@
     "productContext": "Product Context",
     "replyLength": "Reply Length",
     "replyTone": "Reply Tone",
+    "scheduleHelp": "Replies send at this local time in the selected timezone.",
     "subreddits": "Subreddits (comma-separated)",
+    "timezone": "Timezone",
     "templateText": "Template Text",
     "useAiGeneration": "Use AI Generation"
   },
@@ -772,6 +775,7 @@
         "copyPrompt": "Copy prompt",
         "openSource": "Open source",
         "remix": "Remix",
+        "remixUnavailable": "Remix unavailable",
         "sendToAgent": "Send to agent"
       },
       "metrics": {

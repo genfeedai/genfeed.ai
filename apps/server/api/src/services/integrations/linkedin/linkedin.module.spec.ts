@@ -3,6 +3,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -52,6 +53,10 @@ describe('LinkedInModule', () => {
             patch: vi.fn(),
             upsertForBrand: vi.fn(),
           },
+        },
+        {
+          provide: LinkedInAuthorizedSignalsService,
+          useValue: { refresh: vi.fn() },
         },
       ],
     }).compile();

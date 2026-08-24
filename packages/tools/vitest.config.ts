@@ -1,6 +1,19 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: [
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(__dirname, '../enums/src/index.ts'),
+      },
+      {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../api-types/src/$1'),
+      },
+    ],
+  },
   test: {
     coverage: {
       exclude: [

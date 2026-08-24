@@ -38,7 +38,7 @@ export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
  * occludes scrolling assistant text; no "You" label — the card is the highlight.
  */
 export const AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS = [
-  'ship-ui w-full max-w-full border border-border-strong bg-tertiary px-3 py-2.5 text-md leading-6 text-foreground',
+  'w-full max-w-full border border-border-strong bg-tertiary px-3 py-2.5 text-md leading-6 text-foreground',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
 

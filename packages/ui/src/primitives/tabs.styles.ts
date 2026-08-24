@@ -7,7 +7,7 @@ export function getTabsListClassName(
   variant?: TabsListVariant,
 ) {
   return cn(
-    'ship-ui inline-flex h-auto items-center gap-0.5 text-foreground/70',
+    'inline-flex h-auto items-center gap-0.5 text-foreground/70',
     variant === undefined &&
       'rounded-md border border-border bg-muted/40 p-0.5',
     variant === 'default' && 'gap-0.5',
@@ -20,7 +20,7 @@ export function getTabsListClassName(
 
 export function getTabsTriggerClassName(className?: string) {
   return cn(
-    'ship-ui inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors duration-200',
+    'inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-colors duration-200',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
     'disabled:pointer-events-none disabled:opacity-50',
     'data-[variant=default]:px-3 data-[variant=default]:py-2',

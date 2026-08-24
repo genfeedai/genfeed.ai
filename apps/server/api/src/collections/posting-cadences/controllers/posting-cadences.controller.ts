@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   BookCalendarSlotDto,
+  BulkGenerateCalendarSlotsDto,
   CancelCalendarSlotDto,
   FillCalendarSlotDto,
   SkipCalendarSlotDto,
@@ -18,6 +19,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import {
+  CalendarSlotBulkGenerateSerializer,
   CalendarSlotSerializer,
   PostingCadenceSerializer,
 } from '@genfeedai/serializers';
@@ -115,6 +117,32 @@ export class PostingCadencesController {
       ...data.slot,
       generatedItemId: data.targetId,
     });
+  }
+
+  @Post('slots/generate-bulk')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  async generateBulk(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: BulkGenerateCalendarSlotsDto,
+  ) {
+    const abort = new AbortController();
+    const onAborted = () => abort.abort();
+    request.on('aborted', onAborted);
+    try {
+      const data = await this.service.generateBulk(
+        user.organizationId,
+        user.id,
+        dto.identityKeys,
+        dto.confirmedCount,
+        dto.brief,
+        user,
+        abort.signal,
+      );
+      return serializeSingle(request, CalendarSlotBulkGenerateSerializer, data);
+    } finally {
+      request.off('aborted', onAborted);
+    }
   }
 
   @Post('slots/write')

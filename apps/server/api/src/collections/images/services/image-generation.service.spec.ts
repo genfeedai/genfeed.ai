@@ -35,14 +35,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 
 const ORG = 'org-1';
+const FOREIGN_ORG = 'org-foreign';
 const RESOLVED_BRAND = 'brand-resolved';
+const REFERENCE_CDN = 'https://cdn.genfeed.ai';
+const REFERENCE_INGREDIENTS_ENDPOINT = `${REFERENCE_CDN}/ingredients`;
 
 // REPLICATE_BYTEDANCE_SEEDREAM_5_LITE / _4_5 and REPLICATE_FAST_FLUX_TRAINER are
 // the batch-capable IMAGE models in MODEL_OUTPUT_CAPABILITIES; everything else is
 // non-batch. Use the `seedream-5-lite` key (no dot) so the provider registry's
 // owner/model matcher resolves it to the Replicate adapter.
 const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE;
-const NON_BATCH_REPLICATE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+// Recraft V4 stays on the #3467 `legacy_prompt_builder` exemption list, so
+// these credit/fan-out/output-arithmetic tests keep exercising the
+// promptBuilderService legacy path they were written to prove — unlike
+// Imagen, which #3467 onboarded onto model-aware brief compilation.
+const NON_BATCH_REPLICATE_MODEL = MODEL_KEYS.REPLICATE_RECRAFT_AI_RECRAFT_V4;
 const FAL_MODEL = MODEL_KEYS.FAL_NANO_BANANA_2;
 const SINGLE_OUTPUT_MODEL = MODEL_KEYS.LEONARDOAI;
 
@@ -203,9 +210,16 @@ const createService = () => {
       width: 1920,
     }),
   };
-  const assetsService = {};
-  const ingredientsService = {};
-  const configService = {};
+  const assetsService = {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
+  const ingredientsService = {
+    findOne: vi.fn().mockResolvedValue(null),
+  };
+  const configService = {
+    cdnUrl: REFERENCE_CDN,
+    ingredientsEndpoint: REFERENCE_INGREDIENTS_ENDPOINT,
+  };
   const loggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -276,6 +290,7 @@ const createService = () => {
     creditsUtilsService,
     failedGenerationService,
     falService,
+    ingredientsService,
     loggerService,
     metadataService,
     modelRegistrationService,
@@ -287,6 +302,30 @@ const createService = () => {
     sharedService,
   };
 };
+
+function mockTenantIngredients(
+  ingredientsService: { findOne: ReturnType<typeof vi.fn> },
+  rows: Array<{ id: string; isDeleted?: boolean; organizationId: string }>,
+) {
+  ingredientsService.findOne.mockImplementation(
+    (query: { id?: string; isDeleted?: boolean; organizationId?: string }) => {
+      const row = rows.find((candidate) => candidate.id === query.id);
+      if (!row) {
+        return Promise.resolve(null);
+      }
+      if (
+        query.organizationId !== undefined &&
+        row.organizationId !== query.organizationId
+      ) {
+        return Promise.resolve(null);
+      }
+      if (query.isDeleted === false && row.isDeleted === true) {
+        return Promise.resolve(null);
+      }
+      return Promise.resolve({ id: row.id });
+    },
+  );
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -685,6 +724,11 @@ describe('ImageGenerationService', () => {
 
   describe('generation brief compilation', () => {
     const fluxSchnell = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
+    // #3467 onboarded Imagen (and 15 other families) onto model-aware brief
+    // compilation; these assert a second, independently-registered compiler
+    // behaves the same as FLUX Schnell (evidence persistence, redaction,
+    // unchanged credit fan-out) so the coverage isn't FLUX-Schnell-only.
+    const imagen4 = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
 
     it('compiles FLUX Schnell from the versioned brief and persists redacted evidence', async () => {
       const { service, promptBuilderService, replicateService, sharedService } =
@@ -772,6 +816,145 @@ describe('ImageGenerationService', () => {
             status: 'exempted',
           }),
         }),
+      );
+    });
+
+    it('compiles Imagen 4 from the versioned brief and persists redacted evidence', async () => {
+      const { service, promptBuilderService, replicateService, sharedService } =
+        createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          height: 1080,
+          model: imagen4,
+          text: 'a sunset over the ocean',
+          width: 1920,
+        }),
+        buildRequest(),
+      );
+
+      expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+        imagen4,
+        {
+          aspect_ratio: '16:9',
+          output_format: 'jpg',
+          prompt: 'a sunset over the ocean',
+          safety_filter_level: 'block_only_high',
+        },
+      );
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          generationSource:
+            'generation-brief:v1:imagen-4-capability@1:imagen-image-compiler@1',
+          providerData: expect.objectContaining({
+            compilerId: 'imagen-image-compiler',
+            modelKey: imagen4,
+            profileId: 'imagen-4-capability',
+            status: 'compiled',
+          }),
+        }),
+      );
+      const providerData =
+        sharedService.createMediaDocuments.mock.calls[0]?.[1]?.providerData;
+      expect(providerData).not.toHaveProperty('prompt');
+      expect(JSON.stringify(providerData)).not.toContain(
+        'a sunset over the ocean',
+      );
+    });
+
+    it('keeps non-batch Imagen 4 credit fan-out unchanged', async () => {
+      const { service, creditsUtilsService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: imagen4, outputs: 2 }),
+        buildRequest({ creditsConfig: { deferred: true } }),
+      );
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(ORG, 20);
+    });
+  });
+
+  describe('reference image tenant isolation (#3501)', () => {
+    const sameTenantId = testId('reference', 1);
+    const foreignId = testId('reference', 2);
+    const deletedId = testId('reference', 3);
+    const sameTenantUrl = `${REFERENCE_INGREDIENTS_ENDPOINT}/images/${sameTenantId}`;
+
+    it('dispatches a same-tenant reference URL to the provider', async () => {
+      const { service, falService, ingredientsService } = createService();
+      mockTenantIngredients(ingredientsService, [
+        { id: sameTenantId, organizationId: ORG },
+        { id: foreignId, organizationId: FOREIGN_ORG },
+        { id: deletedId, isDeleted: true, organizationId: ORG },
+      ]);
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: FAL_MODEL, references: [sameTenantId] }),
+        buildRequest(),
+      );
+
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: sameTenantId,
+          isDeleted: false,
+          organizationId: ORG,
+        }),
+      );
+      expect(falService.generateImage).toHaveBeenCalled();
+      expect(JSON.stringify(falService.generateImage.mock.calls)).toContain(
+        sameTenantUrl,
+      );
+    });
+
+    it('does not dispatch a foreign-organization reference id to the provider', async () => {
+      const { service, falService, ingredientsService } = createService();
+      mockTenantIngredients(ingredientsService, [
+        { id: sameTenantId, organizationId: ORG },
+        { id: foreignId, organizationId: FOREIGN_ORG },
+      ]);
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: FAL_MODEL, references: [foreignId] }),
+        buildRequest(),
+      );
+
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: foreignId,
+          isDeleted: false,
+          organizationId: ORG,
+        }),
+      );
+      expect(falService.generateImage).toHaveBeenCalled();
+      expect(JSON.stringify(falService.generateImage.mock.calls)).not.toContain(
+        foreignId,
+      );
+    });
+
+    it('does not dispatch a soft-deleted same-tenant reference id', async () => {
+      const { service, falService, ingredientsService } = createService();
+      mockTenantIngredients(ingredientsService, [
+        { id: deletedId, isDeleted: true, organizationId: ORG },
+      ]);
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: FAL_MODEL, references: [deletedId] }),
+        buildRequest(),
+      );
+
+      expect(falService.generateImage).toHaveBeenCalled();
+      expect(JSON.stringify(falService.generateImage.mock.calls)).not.toContain(
+        deletedId,
       );
     });
   });

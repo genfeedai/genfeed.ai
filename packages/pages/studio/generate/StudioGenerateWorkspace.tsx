@@ -7,13 +7,14 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
-import { AlertCategory, ComponentSize } from '@genfeedai/enums';
+import { AlertCategory, ComponentSize, ViewType } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
+import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
 import StudioRemixRunPanel from '@pages/studio/generate/components/StudioRemixRunPanel';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
@@ -23,19 +24,31 @@ import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudi
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
 import { useStudioRemixRun } from '@pages/studio/generate/hooks/useStudioRemixRun';
 import { StudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
+import { buildRepromptData } from '@pages/studio/generate/utils/generation-payloads';
 import {
   filterStudioGenerateJobs,
   mergeStudioGenerateJobs,
   resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
+import {
+  groupStudioGenerateJobsByRun,
+  recipeFromRepromptData,
+  settingsPatchFromRecipe,
+} from '@pages/studio/generate/utils/studio-generate-recipe';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
-import { buildStudioRemixRunEdits } from '@pages/studio/generate/utils/studio-remix-run';
+import {
+  buildStudioRemixRunEdits,
+  getRemixDraftComposerState,
+  resolvePairedRemixIdentity,
+} from '@pages/studio/generate/utils/studio-remix-run';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
 import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
+import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import Searchbar from '@ui/primitives/searchbar';
+import { LayoutGrid, Rows3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
@@ -72,6 +85,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const [prompt, setPrompt] = useState('');
   const [search, setSearch] = useState('');
+  const [resultsView, setResultsView] = useState<
+    ViewType.GRID | ViewType.MASONRY
+  >(ViewType.MASONRY);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
   const [contentReferences, setContentReferences] = useState<
     ContentMentionItem[]
@@ -181,13 +198,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
     },
     [notificationsService, setType],
   );
-  const { isGenerating, jobs, removeJob, submit } = useStudioGeneration({
-    brandId,
-    models,
-    onGenerated: refresh,
-    settings,
-    type,
-  });
+  const { isGenerating, jobs, rehydratePending, removeJob, submit } =
+    useStudioGeneration({
+      brandId,
+      models,
+      onGenerated: refresh,
+      settings,
+      type,
+    });
   const {
     error: remixError,
     preparePausedDraft,
@@ -210,25 +228,39 @@ export default function StudioGenerateWorkspace(): ReactElement {
     }
     appliedRemixRevisionRef.current = revisionKey;
 
-    const output = remixRun.draft.output;
-    setPrompt(remixRun.draft.intent.objective);
-    if (output.kind === 'copy') {
-      updateSettings({ outputs: output.count });
+    const draft = getRemixDraftComposerState(remixRun);
+    setPrompt(draft.prompt);
+    if (draft.type) {
+      applyTypeSettings(draft.type, draft.settings);
       return;
     }
-    applyTypeSettings(output.kind, {
-      aspectRatio: output.aspectRatio,
-      ...('durationSeconds' in output
-        ? { duration: output.durationSeconds }
-        : { duration: undefined }),
-      outputs: output.count,
-    });
+    updateSettings(draft.settings);
   }, [applyTypeSettings, isHydrated, remixRun, updateSettings]);
+
+  const handleResetSettings = useCallback(() => {
+    if (!remixRun) {
+      resetSettings();
+      return;
+    }
+
+    const draft = getRemixDraftComposerState(remixRun);
+    setPrompt(draft.prompt);
+    if (draft.type) {
+      applyTypeSettings(draft.type, draft.settings);
+      return;
+    }
+    updateSettings(draft.settings);
+  }, [applyTypeSettings, remixRun, resetSettings, updateSettings]);
+
   const assetActions = useStudioGenerateAssetActions({
     onAttachReference: handleAttachGeneratedReference,
     onDeleted: removeJob,
     onRefresh: refresh,
   });
+
+  useEffect(() => {
+    rehydratePending(storedJobs);
+  }, [rehydratePending, storedJobs]);
 
   const visibleJobs = useMemo(
     () =>
@@ -238,6 +270,31 @@ export default function StudioGenerateWorkspace(): ReactElement {
       }),
     [jobs, search, storedJobs],
   );
+  const selectedJob = useMemo(
+    () => visibleJobs.find((job) => job.id === selectedJobId) ?? null,
+    [selectedJobId, visibleJobs],
+  );
+  const selectedRunJobs = useMemo(() => {
+    if (!selectedJob) {
+      return [];
+    }
+
+    const runId = selectedJob.runId;
+    if (!runId) {
+      return [selectedJob];
+    }
+
+    return (
+      groupStudioGenerateJobsByRun(visibleJobs).find((run) => run.id === runId)
+        ?.jobs ?? [selectedJob]
+    );
+  }, [selectedJob, visibleJobs]);
+
+  useEffect(() => {
+    if (selectedJobId && !selectedJob) {
+      setSelectedJobId(null);
+    }
+  }, [selectedJob, selectedJobId]);
 
   const referenceUrls = useMemo(
     () => [
@@ -358,73 +415,131 @@ export default function StudioGenerateWorkspace(): ReactElement {
       prompt.trim().length === 0,
   );
 
-  // Reprompt reloads the composer rather than firing immediately — the
-  // operator almost always wants to change one thing before running it again.
-  const handleReprompt = useCallback(
+  // Vary/Reprompt reloads the composer from the card's recipe rather than
+  // firing immediately — the operator tweaks the enriched request instead of
+  // retyping the raw box.
+  const handleVaryRecipe = useCallback(
     (job: StudioGenerateJob) => {
-      setType(job.type);
-      setPrompt(job.prompt);
+      const recipe = job.recipe
+        ? job.recipe
+        : job.ingredient
+          ? recipeFromRepromptData(
+              buildRepromptData(
+                job.ingredient,
+                getStudioGenerateTypeConfig(job.type).ingredientCategory,
+                brandId,
+                [...models],
+              ),
+              job.type,
+            )
+          : null;
+
+      if (!recipe) {
+        setType(job.type);
+        setPrompt(job.prompt);
+        return;
+      }
+
+      applyTypeSettings(job.type, settingsPatchFromRecipe(recipe));
+      setPrompt(recipe.text);
     },
-    [setType],
+    [applyTypeSettings, brandId, models, setType],
   );
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <SectionTopbar
         actions={
-          <Searchbar
-            className="w-64"
-            onChange={(event) => setSearch(event.target.value)}
-            onClear={() => setSearch('')}
-            placeholder="Search generations"
-            size={ComponentSize.SM}
-            value={search}
-          />
+          <div className="flex items-center gap-2">
+            <Searchbar
+              className="w-64"
+              onChange={(event) => setSearch(event.target.value)}
+              onClear={() => setSearch('')}
+              placeholder="Search generations"
+              size={ComponentSize.SM}
+              value={search}
+            />
+            <ViewToggle
+              activeView={resultsView}
+              onChange={(view) => {
+                if (view === ViewType.GRID || view === ViewType.MASONRY) {
+                  setResultsView(view);
+                }
+              }}
+              options={[
+                {
+                  icon: <Rows3 className="size-4" />,
+                  label: translate('viewMasonry'),
+                  type: ViewType.MASONRY,
+                },
+                {
+                  icon: <LayoutGrid className="size-4" />,
+                  label: translate('viewGrid'),
+                  type: ViewType.GRID,
+                },
+              ]}
+              size={ComponentSize.SM}
+            />
+          </div>
         }
         subtitle={translate('description')}
         title={translate('title')}
       />
 
-      <div className="flex-1 overflow-auto px-6 py-6">
-        <div className="mx-auto flex max-w-5xl flex-col gap-4">
-          {remixRun ? (
-            <StudioRemixRunPanel
-              error={remixError}
-              isWorking={remixStatus === 'working'}
-              onReview={(variantIds) => {
-                void submitForReview(variantIds);
-              }}
-              onPreparePaidDraft={() => {
-                const selector = remixRun.sourceSnapshot.selector;
-                if (
-                  selector.kind !== 'connected_ad' ||
-                  selector.platform !== 'meta'
-                ) {
-                  return;
-                }
-                void preparePausedDraft({
-                  destination: {
-                    adAccountId: selector.adAccountId,
-                    credentialId: selector.credentialId,
-                  },
-                });
-              }}
-              onVary={() => {
-                void vary();
-              }}
-              run={remixRun}
-            />
-          ) : remixError ? (
-            <Alert type={AlertCategory.ERROR}>{remixError}</Alert>
-          ) : null}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="flex-1 overflow-auto px-6 py-6">
+          <div className="mx-auto flex max-w-5xl flex-col gap-4">
+            {remixRun ? (
+              <StudioRemixRunPanel
+                error={remixError}
+                isWorking={remixStatus === 'working'}
+                onReview={(variantIds) => {
+                  void submitForReview(variantIds);
+                }}
+                onPreparePaidDraft={() => {
+                  const selector = remixRun.sourceSnapshot.selector;
+                  if (
+                    selector.kind !== 'connected_ad' ||
+                    selector.platform !== 'meta'
+                  ) {
+                    return;
+                  }
+                  void preparePausedDraft({
+                    destination: {
+                      adAccountId: selector.adAccountId,
+                      credentialId: selector.credentialId,
+                    },
+                  });
+                }}
+                onVary={() => {
+                  void vary();
+                }}
+                run={remixRun}
+              />
+            ) : remixError ? (
+              <Alert type={AlertCategory.ERROR}>{remixError}</Alert>
+            ) : null}
 
-          <StudioGenerateResults
-            assetActions={assetActions}
-            isLoading={isLoadingGallery}
-            jobs={visibleJobs}
-            onReprompt={handleReprompt}
-          />
+            <StudioGenerateResults
+              assetActions={assetActions}
+              isLoading={isLoadingGallery}
+              jobs={visibleJobs}
+              onReprompt={handleVaryRecipe}
+              onSelect={(job) => setSelectedJobId(job.id)}
+              selectedJobId={selectedJobId}
+              view={resultsView}
+            />
+          </div>
         </div>
+        {selectedJob ? (
+          <StudioGenerateInspector
+            job={selectedJob}
+            onClose={() => setSelectedJobId(null)}
+            onSelect={(job) => setSelectedJobId(job.id)}
+            onVary={handleVaryRecipe}
+            runJobs={selectedRunJobs}
+          />
+        ) : null}
       </div>
 
       <PromptBarContainer
@@ -436,7 +551,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         <div {...(capabilities.hasReferences ? dragHandlers : {})}>
           <StudioRemixRunScope
             canSelectAvatar={Boolean(
-              remixRun && 'avatarAssetId' in remixRun.draft.identity,
+              remixRun && resolvePairedRemixIdentity(remixRun.draft.identity),
             )}
             isActive={Boolean(remixRun)}
           >
@@ -457,7 +572,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 promptDocumentRef.current = document;
               }}
               onRemoveAttachedAsset={handleRemoveAttachedAsset}
-              onResetSettings={resetSettings}
+              onResetSettings={handleResetSettings}
               onSettingsChange={updateSettings}
               onStartListening={startListening}
               onStopListening={stopListening}

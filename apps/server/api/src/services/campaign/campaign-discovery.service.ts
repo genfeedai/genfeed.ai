@@ -14,6 +14,7 @@ import {
   CampaignDiscoveryConfig,
   type OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { requireExecutableOutreachPair } from '@api/services/campaign/outreach-capability.util';
 import {
   type SocialContentData,
   SocialMonitorService,
@@ -64,6 +65,10 @@ export class CampaignDiscoveryService {
     limit: number = 50,
   ): Promise<DiscoveredTarget[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
     const config = campaign.discoveryConfig;
 
     if (!config) {
@@ -123,8 +128,14 @@ export class CampaignDiscoveryService {
       const uniqueTargets = this.deduplicateTargets(allTargets);
 
       // Filter out already existing targets
+      const organizationId = requireRelationId(
+        campaign.organizationId,
+        'organizationId',
+        `Campaign ${campaign.id}`,
+      );
       const newTargets = await this.filterExistingTargets(
         campaign.id.toString(),
+        organizationId,
         uniqueTargets,
       );
 
@@ -401,17 +412,17 @@ export class CampaignDiscoveryService {
    */
   private async filterExistingTargets(
     campaignId: string,
+    organizationId: string,
     targets: DiscoveredTarget[],
   ): Promise<DiscoveredTarget[]> {
     if (targets.length === 0) {
       return [];
     }
 
-    // One existence query for the whole discovery batch instead of one per
-    // target — discovery routinely produces hundreds of candidates.
     const existingExternalIds =
       await this.campaignTargetsService.findExistingExternalIds(
         campaignId,
+        organizationId,
         targets.map((target) => target.externalId),
       );
 
@@ -428,6 +439,10 @@ export class CampaignDiscoveryService {
     targets: DiscoveredTarget[],
   ): Promise<number> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
 
     try {
       // Every created target row carries this as its tenant FK. The alias is
@@ -459,7 +474,11 @@ export class CampaignDiscoveryService {
       }));
 
       const addedCount =
-        await this.campaignTargetsService.createMany(targetsToCreate);
+        await this.campaignTargetsService.createManyForCampaign(
+          campaign.id.toString(),
+          organizationId,
+          targetsToCreate,
+        );
 
       this.loggerService.log(`${url} success`, {
         addedCount,

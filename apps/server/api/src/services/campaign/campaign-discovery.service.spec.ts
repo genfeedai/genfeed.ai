@@ -12,6 +12,7 @@ import {
   CampaignDiscoverySource,
   CampaignPlatform,
   CampaignTargetType,
+  CampaignType,
   ReplyBotPlatform,
   SocialContentType,
 } from '@genfeedai/enums';
@@ -34,7 +35,7 @@ describe('CampaignDiscoveryService', () => {
   };
 
   const mockCampaignTargetsService = {
-    createMany: vi.fn(),
+    createManyForCampaign: vi.fn(),
     findExistingExternalIds: vi.fn(),
   };
 
@@ -61,6 +62,7 @@ describe('CampaignDiscoveryService', () => {
   ): OutreachCampaignDocument =>
     ({
       id: campaignId,
+      campaignType: CampaignType.DISCOVERY,
       discoveryConfig: makeConfig(),
       organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
@@ -164,12 +166,6 @@ describe('CampaignDiscoveryService', () => {
     });
 
     it('should search by subreddits for Reddit campaigns', async () => {
-      const content = [makeContent({ id: 'rd1' })];
-      mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
-        new Set<string>(),
-      );
-
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({
           keywords: [],
@@ -178,15 +174,17 @@ describe('CampaignDiscoveryService', () => {
         platform: CampaignPlatform.REDDIT,
       });
 
-      const result = await service.discoverTargets(campaign, 50);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].targetType).toBe(CampaignTargetType.REDDIT_POST);
-      expect(mockSocialMonitorService.searchContent).toHaveBeenCalledWith(
-        ReplyBotPlatform.REDDIT,
-        'r/technology',
-        expect.any(Object),
+      await expect(service.discoverTargets(campaign, 50)).rejects.toMatchObject(
+        {
+          response: expect.objectContaining({
+            code: 'outreach_capability.unavailable',
+          }),
+        },
       );
+      expect(mockSocialMonitorService.searchContent).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.findExistingExternalIds,
+      ).not.toHaveBeenCalled();
     });
 
     it('should filter out content that is too old', async () => {
@@ -348,6 +346,37 @@ describe('CampaignDiscoveryService', () => {
   });
 
   describe('addDiscoveredTargetsToCampaign', () => {
+    it('rejects an unavailable pair before creating targets', async () => {
+      const campaign = makeCampaign({ platform: CampaignPlatform.REDDIT });
+
+      await expect(
+        service.addDiscoveredTargetsToCampaign(campaign, [
+          {
+            authorId: 'a1',
+            authorUsername: 'user1',
+            contentCreatedAt: new Date(),
+            contentText: 'text',
+            contentUrl: 'https://reddit.com/r/test/comments/abc123/title',
+            discoverySource: CampaignDiscoverySource.SUBREDDIT,
+            externalId: 'abc123',
+            likes: 10,
+            platform: CampaignPlatform.REDDIT,
+            relevanceScore: 0.8,
+            replies: 2,
+            retweets: 5,
+            targetType: CampaignTargetType.REDDIT_POST,
+          },
+        ]),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'outreach_capability.unavailable',
+        }),
+      });
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should create targets and return count', async () => {
       const targets = [
         {
@@ -367,7 +396,9 @@ describe('CampaignDiscoveryService', () => {
           targetType: CampaignTargetType.TWEET,
         },
       ];
-      mockCampaignTargetsService.createMany.mockResolvedValue(targets.length);
+      mockCampaignTargetsService.createManyForCampaign.mockResolvedValue(
+        targets.length,
+      );
 
       const campaign = makeCampaign();
       const count = await service.addDiscoveredTargetsToCampaign(
@@ -376,7 +407,11 @@ describe('CampaignDiscoveryService', () => {
       );
 
       expect(count).toBe(1);
-      expect(mockCampaignTargetsService.createMany).toHaveBeenCalledWith(
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).toHaveBeenCalledWith(
+        campaignId,
+        orgId,
         expect.arrayContaining([
           expect.objectContaining({ externalId: 'ext1' }),
         ]),
@@ -402,13 +437,17 @@ describe('CampaignDiscoveryService', () => {
           targetType: CampaignTargetType.TWEET,
         },
       ];
-      mockCampaignTargetsService.createMany.mockResolvedValue(targets);
+      mockCampaignTargetsService.createManyForCampaign.mockResolvedValue(
+        targets.length,
+      );
 
       const campaign = makeCampaign();
 
       await service.addDiscoveredTargetsToCampaign(campaign, targets);
 
-      expect(mockCampaignTargetsService.createMany).toHaveBeenCalledWith([
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).toHaveBeenCalledWith(campaignId, orgId, [
         expect.objectContaining({ organizationId: orgId }),
       ]);
     });
@@ -421,11 +460,13 @@ describe('CampaignDiscoveryService', () => {
       await expect(
         service.addDiscoveredTargetsToCampaign(campaign, []),
       ).rejects.toThrow();
-      expect(mockCampaignTargetsService.createMany).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).not.toHaveBeenCalled();
     });
 
     it('should throw when createMany fails', async () => {
-      mockCampaignTargetsService.createMany.mockRejectedValue(
+      mockCampaignTargetsService.createManyForCampaign.mockRejectedValue(
         new Error('Insert failed'),
       );
 

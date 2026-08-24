@@ -204,6 +204,44 @@ describe('mergeStudioGenerateJobs', () => {
     expect(merged[0]?.ingredient).toBe(refreshedIngredient);
   });
 
+  it('keeps the client run id and recipe when the gallery hydrates the row', () => {
+    const storedIngredient = buildIngredient({ id: 'a' });
+    const merged = mergeStudioGenerateJobs(
+      [
+        buildJob({
+          id: 'a',
+          recipe: {
+            blacklist: [],
+            brandingMode: 'brand',
+            isAudioEnabled: false,
+            outputs: 4,
+            references: [],
+            style: 'editorial',
+            tags: [],
+            text: 'Enriched',
+            type: 'image',
+          },
+          runId: 'run-1',
+          status: IngredientStatus.PROCESSING,
+        }),
+      ],
+      [
+        buildJob({
+          id: 'a',
+          ingredient: storedIngredient,
+          prompt: 'Raw box',
+          status: IngredientStatus.PROCESSING,
+        }),
+      ],
+    );
+
+    expect(merged[0]).toMatchObject({
+      ingredient: storedIngredient,
+      recipe: expect.objectContaining({ text: 'Enriched' }),
+      runId: 'run-1',
+    });
+  });
+
   it('sorts newest first across both sources', () => {
     const merged = mergeStudioGenerateJobs(
       [buildJob({ createdAt: 30, id: 'live' })],

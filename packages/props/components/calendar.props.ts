@@ -65,6 +65,17 @@ export interface CalendarEventDrop<T extends CalendarItem> {
   start: Date;
 }
 
+/**
+ * A real control rendered on a focused calendar event. Hosts supply React
+ * actions so missing-slot Generate is a keyboard-reachable Button, not a
+ * hover-only overlay.
+ */
+export interface CalendarEventAction {
+  id: string;
+  label: string;
+  onClick: () => void;
+}
+
 export interface ContentCalendarProps<T extends CalendarItem> {
   items: T[];
   title?: string;
@@ -113,6 +124,17 @@ export interface ContentCalendarProps<T extends CalendarItem> {
    * Falls back to UTC when omitted.
    */
   timezone?: string;
+  /**
+   * Fired when the operator switches day/week/month/list, including the first
+   * datesSet. Month aggregation lives in the host because only the host knows
+   * which items are ghosts.
+   */
+  onViewChange?: (view: CalendarViewKey) => void;
+  /**
+   * Actions mounted onto a focused event as real buttons. Missing slots use
+   * this for Generate so the control is keyboard-reachable.
+   */
+  getEventActions?: (item: T) => CalendarEventAction[];
   /**
    * Layout shown on first render. Subsequent view switches are owned by the
    * calendar, so this is genuinely initial rather than a controlled value.

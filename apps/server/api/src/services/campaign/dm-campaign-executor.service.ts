@@ -18,9 +18,11 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { resolveCampaignScope } from '@api/services/campaign/campaign-scope.util';
+import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreach-capability.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import { getOutreachCapabilityRefusal } from '@api-types/contracts/outreach-capabilities.contract';
 import {
   CampaignSkipReason,
   CampaignStatus,
@@ -70,8 +72,34 @@ export class DmCampaignExecutorService {
     };
 
     try {
+      if (
+        !isCampaignOutreachPairExecutable({
+          campaignType: campaign.campaignType,
+          platform: campaign.platform,
+        })
+      ) {
+        this.loggerService.log(`${url} skipped unavailable pair`, {
+          campaignId,
+          campaignType: campaign.campaignType,
+          platform: campaign.platform,
+        });
+        return results;
+      }
+
+      if (!campaign.organizationId) {
+        this.loggerService.error(`${url} failed`, {
+          campaignId,
+          reason: 'organization_id_required',
+        });
+        return results;
+      }
+
       const pendingTargets =
-        await this.campaignTargetsService.getPendingTargets(campaignId, limit);
+        await this.campaignTargetsService.getPendingTargets(
+          campaignId,
+          campaign.organizationId,
+          limit,
+        );
 
       for (const target of pendingTargets) {
         const result = await this.executeDmTarget(campaign, target);
@@ -124,13 +152,29 @@ export class DmCampaignExecutorService {
     const targetId = this.getTargetId(target);
 
     try {
-      // Check if campaign is still active
+      const refusal = getOutreachCapabilityRefusal({
+        campaignType: campaign.campaignType,
+        platform: campaign.platform,
+      });
+      if (refusal) {
+        return {
+          error: refusal.message,
+          success: false,
+        };
+      }
+
       if (campaign.status !== CampaignStatus.ACTIVE) {
-        await this.campaignTargetsService.markAsSkipped(
-          targetId,
-          CampaignSkipReason.CAMPAIGN_PAUSED,
-        );
-        await this.campaignsService.incrementSkippedCounter(campaignId);
+        if (campaign.organizationId) {
+          await this.campaignTargetsService.markAsSkipped(
+            targetId,
+            campaign.organizationId,
+            CampaignSkipReason.CAMPAIGN_PAUSED,
+          );
+          await this.campaignsService.incrementSkippedCounter(
+            campaignId,
+            campaign.organizationId,
+          );
+        }
         return {
           skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
           success: false,
@@ -147,22 +191,41 @@ export class DmCampaignExecutorService {
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
           targetId,
+          scope.organizationId,
           CampaignSkipReason.RATE_LIMITED,
         );
-        await this.campaignsService.incrementSkippedCounter(campaignId);
+        await this.campaignsService.incrementSkippedCounter(
+          campaignId,
+          scope.organizationId,
+        );
         return { skipReason: CampaignSkipReason.RATE_LIMITED, success: false };
       }
 
-      // Mark as processing
-      await this.campaignTargetsService.markAsProcessing(targetId);
+      const claimed = await this.campaignTargetsService.claimForProcessing(
+        targetId,
+        scope.organizationId,
+      );
+      if (!claimed) {
+        return {
+          skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
+          success: false,
+        };
+      }
 
       // Get credential
       const credential = await this.findCampaignCredential(scope);
 
       if (!credential) {
         const errorMessage = 'Credential not found';
-        await this.campaignTargetsService.markAsFailed(targetId, errorMessage);
-        await this.campaignsService.incrementFailedCounter(campaignId);
+        await this.campaignTargetsService.markAsFailed(
+          targetId,
+          scope.organizationId,
+          errorMessage,
+        );
+        await this.campaignsService.incrementFailedCounter(
+          campaignId,
+          scope.organizationId,
+        );
         return { error: errorMessage, success: false };
       }
 
@@ -172,8 +235,15 @@ export class DmCampaignExecutorService {
 
       if (!credentialData) {
         const errorMessage = 'Credential is missing an access token';
-        await this.campaignTargetsService.markAsFailed(targetId, errorMessage);
-        await this.campaignsService.incrementFailedCounter(campaignId);
+        await this.campaignTargetsService.markAsFailed(
+          targetId,
+          scope.organizationId,
+          errorMessage,
+        );
+        await this.campaignsService.incrementFailedCounter(
+          campaignId,
+          scope.organizationId,
+        );
         return { error: errorMessage, success: false };
       }
 
@@ -190,9 +260,14 @@ export class DmCampaignExecutorService {
           const errorMessage = `User not found: @${target.recipientUsername}`;
           await this.campaignTargetsService.markAsSkipped(
             targetId,
+            scope.organizationId,
             CampaignSkipReason.USER_NOT_FOUND,
+            CampaignTargetStatus.PROCESSING,
           );
-          await this.campaignsService.incrementSkippedCounter(campaignId);
+          await this.campaignsService.incrementSkippedCounter(
+            campaignId,
+            scope.organizationId,
+          );
           return {
             error: errorMessage,
             skipReason: CampaignSkipReason.USER_NOT_FOUND,
@@ -200,16 +275,24 @@ export class DmCampaignExecutorService {
           };
         }
 
-        // Cache the resolved userId back to target
-        await this.campaignTargetsService.updateOne(targetId, {
-          recipientUserId,
-        });
+        await this.campaignTargetsService.updateOne(
+          targetId,
+          scope.organizationId,
+          { recipientUserId },
+        );
       }
 
       if (!recipientUserId) {
         const errorMessage = 'No recipient username or userId';
-        await this.campaignTargetsService.markAsFailed(targetId, errorMessage);
-        await this.campaignsService.incrementFailedCounter(campaignId);
+        await this.campaignTargetsService.markAsFailed(
+          targetId,
+          scope.organizationId,
+          errorMessage,
+        );
+        await this.campaignsService.incrementFailedCounter(
+          campaignId,
+          scope.organizationId,
+        );
         return { error: errorMessage, success: false };
       }
 
@@ -257,9 +340,14 @@ export class DmCampaignExecutorService {
         if (isDmNotAllowed) {
           await this.campaignTargetsService.markAsSkipped(
             targetId,
+            scope.organizationId,
             CampaignSkipReason.DM_NOT_ALLOWED,
+            CampaignTargetStatus.PROCESSING,
           );
-          await this.campaignsService.incrementSkippedCounter(campaignId);
+          await this.campaignsService.incrementSkippedCounter(
+            campaignId,
+            scope.organizationId,
+          );
           return {
             error: dmResult.error,
             skipReason: CampaignSkipReason.DM_NOT_ALLOWED,
@@ -269,23 +357,29 @@ export class DmCampaignExecutorService {
 
         await this.campaignTargetsService.markAsFailed(
           targetId,
+          scope.organizationId,
           dmResult.error || 'Failed to send DM',
           (target.retryCount || 0) + 1,
         );
-        await this.campaignsService.incrementFailedCounter(campaignId);
+        await this.campaignsService.incrementFailedCounter(
+          campaignId,
+          scope.organizationId,
+        );
         return { error: dmResult.error, success: false };
       }
 
-      // Mark as sent
-      await this.campaignTargetsService.updateOne(targetId, {
-        dmSentAt: new Date(),
-        dmText,
-        processedAt: new Date(),
-        status: CampaignTargetStatus.SENT,
-      });
+      await this.campaignTargetsService.markAsSent(
+        targetId,
+        scope.organizationId,
+        {
+          dmText,
+        },
+      );
 
-      // Update campaign counters
-      await this.campaignsService.incrementDmCounter(campaignId);
+      await this.campaignsService.incrementDmCounter(
+        campaignId,
+        scope.organizationId,
+      );
 
       this.loggerService.log(`${url} DM sent`, {
         campaignId,
@@ -303,12 +397,18 @@ export class DmCampaignExecutorService {
         targetId,
       });
 
-      await this.campaignTargetsService.markAsFailed(
-        targetId,
-        errorMessage,
-        (target.retryCount || 0) + 1,
-      );
-      await this.campaignsService.incrementFailedCounter(campaignId);
+      if (campaign.organizationId) {
+        await this.campaignTargetsService.markAsFailed(
+          targetId,
+          campaign.organizationId,
+          errorMessage,
+          (target.retryCount || 0) + 1,
+        );
+        await this.campaignsService.incrementFailedCounter(
+          campaignId,
+          campaign.organizationId,
+        );
+      }
 
       return { error: errorMessage, success: false };
     }
