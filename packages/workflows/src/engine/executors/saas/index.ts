@@ -49,5 +49,6 @@ export * from './trend-trigger-executor';
 export * from './trend-video-inspiration-executor';
 // Upscale executor
 export * from './upscale-executor';
+export * from './video-stitch-executor';
 // Voice change executor
 export * from './voice-change-executor';

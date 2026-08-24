@@ -19,7 +19,10 @@ import {
   MusicSourceType,
   TransformationCategory,
 } from '@genfeedai/enums';
-import type { WorkflowEngine } from '@genfeedai/workflows/engine';
+import {
+  createVideoStitchExecutor,
+  type WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -45,6 +48,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     this.registerCaptionsExecutor(engine);
     this.registerMusicSourceExecutor(engine);
     this.registerSoundOverlayExecutor(engine);
+    this.registerVideoStitchExecutor(engine);
     this.registerDirectMediaInputExecutors(engine);
   }
 
@@ -305,5 +309,97 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         videoUrl: this.helper.buildVideoIngredientUrl(mergedIngredientId),
       };
     });
+  }
+
+  private registerVideoStitchExecutor(engine: WorkflowEngine): void {
+    const fileQueueService = this.fileQueueService;
+    const filesClientService = this.filesClientService;
+    const ingredientsService = this.ingredientsService;
+    const metadataService = this.metadataService;
+    const sharedService = this.sharedService;
+
+    if (
+      !fileQueueService ||
+      !filesClientService ||
+      !ingredientsService ||
+      !metadataService ||
+      !sharedService
+    ) {
+      return;
+    }
+
+    const executor = createVideoStitchExecutor(async (params) => {
+      const brandId = await this.helper.resolveBrandIdFromInputOrFail(
+        params.brandId,
+        params.videoUrls[0],
+        'videoStitch',
+        params.organizationId,
+      );
+      const sourceIds = params.videoUrls
+        .map((videoUrl) => this.helper.extractIngredientId(videoUrl))
+        .filter((id): id is string => typeof id === 'string');
+
+      if (sourceIds.length < 2) {
+        throw new Error(
+          'videoStitch requires at least 2 source video ingredient ids',
+        );
+      }
+
+      const { ingredientData, metadataData } =
+        await sharedService.createMediaDocumentsInternal({
+          brandId,
+          category: IngredientCategory.VIDEO,
+          extension: MetadataExtension.MP4,
+          organizationId: params.organizationId,
+          sourceIds,
+          status: IngredientStatus.PROCESSING,
+          userId: params.userId,
+        });
+
+      const ingredientId = ingredientData.id.toString();
+      const job = await fileQueueService.processVideo({
+        ingredientId,
+        organizationId: params.organizationId,
+        params: {
+          sourceIds,
+          transition: params.transitionType,
+          transitionDuration: params.transitionDuration,
+        },
+        room: getUserRoomName(params.userId),
+        type: 'merge-videos',
+        userId: params.userId,
+        websocketUrl: `/videos/${ingredientId}`,
+      });
+
+      const result = await fileQueueService.waitForJob(job.jobId, 300_000);
+      const outputPath = this.helper.getRequiredJobOutputPath(result);
+      const uploaded = await filesClientService.uploadToS3(
+        ingredientId,
+        'videos',
+        {
+          path: outputPath,
+          type: FileInputType.FILE,
+        },
+      );
+
+      await ingredientsService.patch(ingredientId, {
+        status: IngredientStatus.GENERATED,
+        transformations: [TransformationCategory.MERGED],
+      });
+      await metadataService.patch(
+        metadataData.id,
+        new MetadataEntity(uploaded),
+      );
+
+      return {
+        jobId: job.jobId,
+        outputVideoUrl: this.helper.buildVideoIngredientUrl(ingredientId),
+      };
+    });
+
+    engine.registerExecutor(
+      executor.nodeType,
+      this.helper.wrapEngineExecutor(executor),
+    );
   }
 }
