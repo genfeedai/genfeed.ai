@@ -29,7 +29,11 @@ import {
   resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
-import { buildStudioRemixRunEdits } from '@pages/studio/generate/utils/studio-remix-run';
+import {
+  buildStudioRemixRunEdits,
+  getRemixDraftComposerState,
+  resolvePairedRemixIdentity,
+} from '@pages/studio/generate/utils/studio-remix-run';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
 import Alert from '@ui/feedback/alert/Alert';
@@ -210,20 +214,30 @@ export default function StudioGenerateWorkspace(): ReactElement {
     }
     appliedRemixRevisionRef.current = revisionKey;
 
-    const output = remixRun.draft.output;
-    setPrompt(remixRun.draft.intent.objective);
-    if (output.kind === 'copy') {
-      updateSettings({ outputs: output.count });
+    const draft = getRemixDraftComposerState(remixRun);
+    setPrompt(draft.prompt);
+    if (draft.type) {
+      applyTypeSettings(draft.type, draft.settings);
       return;
     }
-    applyTypeSettings(output.kind, {
-      aspectRatio: output.aspectRatio,
-      ...('durationSeconds' in output
-        ? { duration: output.durationSeconds }
-        : { duration: undefined }),
-      outputs: output.count,
-    });
+    updateSettings(draft.settings);
   }, [applyTypeSettings, isHydrated, remixRun, updateSettings]);
+
+  const handleResetSettings = useCallback(() => {
+    if (!remixRun) {
+      resetSettings();
+      return;
+    }
+
+    const draft = getRemixDraftComposerState(remixRun);
+    setPrompt(draft.prompt);
+    if (draft.type) {
+      applyTypeSettings(draft.type, draft.settings);
+      return;
+    }
+    updateSettings(draft.settings);
+  }, [applyTypeSettings, remixRun, resetSettings, updateSettings]);
+
   const assetActions = useStudioGenerateAssetActions({
     onAttachReference: handleAttachGeneratedReference,
     onDeleted: removeJob,
@@ -436,7 +450,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         <div {...(capabilities.hasReferences ? dragHandlers : {})}>
           <StudioRemixRunScope
             canSelectAvatar={Boolean(
-              remixRun && 'avatarAssetId' in remixRun.draft.identity,
+              remixRun && resolvePairedRemixIdentity(remixRun.draft.identity),
             )}
             isActive={Boolean(remixRun)}
           >
@@ -457,7 +471,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                 promptDocumentRef.current = document;
               }}
               onRemoveAttachedAsset={handleRemoveAttachedAsset}
-              onResetSettings={resetSettings}
+              onResetSettings={handleResetSettings}
               onSettingsChange={updateSettings}
               onStartListening={startListening}
               onStopListening={stopListening}

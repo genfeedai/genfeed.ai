@@ -12,6 +12,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   createContext,
   type PropsWithChildren,
@@ -48,6 +49,7 @@ const DiscoverRemixContext = createContext<DiscoverRemixContextValue | null>(
 export function DiscoverRemixProvider({
   children,
 }: PropsWithChildren): ReactElement {
+  const translate = useTranslations('pages.remixBrief');
   const brandId = useBrandId();
   const { activeHref } = useOrgUrl();
   const router = useRouter();
@@ -83,7 +85,7 @@ export function DiscoverRemixProvider({
       if (!brandId) {
         setIsOpen(true);
         setRun(null);
-        setError('Select a brand before preparing an on-brand remix.');
+        setError(translate('errors.selectBrand'));
         setStatus('error');
         return;
       }
@@ -119,7 +121,7 @@ export function DiscoverRemixProvider({
         setError(
           getJsonApiErrorMessage(
             caughtError,
-            'The on-brand remix brief could not be prepared.',
+            translate('errors.prepareFailed'),
           ),
         );
         setStatus('error');
@@ -129,7 +131,7 @@ export function DiscoverRemixProvider({
         }
       }
     },
-    [brandId, getContentRunsService],
+    [brandId, getContentRunsService, translate],
   );
 
   const retry = useCallback(async () => {
@@ -178,10 +180,7 @@ export function DiscoverRemixProvider({
           return;
         }
         setError(
-          getJsonApiErrorMessage(
-            caughtError,
-            'The on-brand remix brief could not be prepared.',
-          ),
+          getJsonApiErrorMessage(caughtError, translate('errors.saveFailed')),
         );
         setStatus('error');
       } finally {
@@ -190,7 +189,7 @@ export function DiscoverRemixProvider({
         }
       }
     },
-    [activeHref, getContentRunsService, router, run, status],
+    [activeHref, getContentRunsService, router, run, status, translate],
   );
 
   const value = useMemo<DiscoverRemixContextValue>(

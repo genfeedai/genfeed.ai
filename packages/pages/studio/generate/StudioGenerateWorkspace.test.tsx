@@ -146,13 +146,20 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@pages/studio/generate/components/StudioGenerateComposer', () => ({
-  default: (props: { onSubmit: () => void; prompt: string }) => {
+  default: (props: {
+    onResetSettings: () => void;
+    onSubmit: () => void;
+    prompt: string;
+  }) => {
     mocks.composer(props);
     return (
       <div data-testid="studio-composer">
         <span>{props.prompt || 'Empty composer'}</span>
         <button type="button" onClick={props.onSubmit}>
           Generate
+        </button>
+        <button type="button" onClick={props.onResetSettings}>
+          Reset
         </button>
       </div>
     );
@@ -410,6 +417,43 @@ describe('StudioGenerateWorkspace', () => {
       ),
     );
     expect(screen.getByText('Remix the proof-led TikTok hook.')).toBeVisible();
+  });
+
+  it('resets remix settings to the authorized run draft instead of generic defaults', async () => {
+    const resetSettings = vi.fn();
+    mocks.remixRun.value = remixRun;
+    mocks.type.value = 'video';
+    mocks.settings.mockReturnValue({
+      resetSettings,
+      settings: {},
+      setType: mocks.setType,
+      type: 'video',
+      updateSettings: vi.fn(),
+    });
+    render(<StudioGenerateWorkspace />);
+
+    await waitFor(() =>
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'video',
+        expect.objectContaining({
+          aspectRatio: '9:16',
+          duration: 8,
+          outputs: 3,
+        }),
+      ),
+    );
+    mocks.applyTypeSettings.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+
+    expect(resetSettings).not.toHaveBeenCalled();
+    expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+      'video',
+      expect.objectContaining({
+        aspectRatio: '9:16',
+        duration: 8,
+        outputs: 3,
+      }),
+    );
   });
 
   it('starts the durable run without falling through to generic generation', async () => {

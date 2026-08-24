@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   createDraft: vi.fn(),
   deleteSource: vi.fn(),
   invalidateQueries: vi.fn(),
+  isRemixAvailable: true,
   notifyError: vi.fn(),
   notifySuccess: vi.fn(),
   openRemix: vi.fn(),
@@ -103,7 +104,8 @@ vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
 }));
 
 vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
-  useOptionalDiscoverRemix: () => ({ openRemix: mocks.openRemix }),
+  useOptionalDiscoverRemix: () =>
+    mocks.isRemixAvailable ? { openRemix: mocks.openRemix } : null,
 }));
 
 vi.mock('@pages/trends/following/FollowSourceModal', () => ({
@@ -225,6 +227,7 @@ describe('getSafeExternalUrl', () => {
 describe('FollowingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isRemixAvailable = true;
     mocks.refetch.mockResolvedValue(undefined);
     mocks.invalidateQueries.mockResolvedValue(undefined);
     mocks.syncBrand.mockResolvedValue({ count: 2, failures: [] });
@@ -502,6 +505,30 @@ describe('FollowingPage', () => {
       sourcePostId: 'post-tiktok-1',
     });
     expect(mocks.routerPush).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the legacy remix route when the provider is missing', async () => {
+    mocks.isRemixAvailable = false;
+    const user = userEvent.setup();
+    setFeed(
+      makeFeed({
+        posts: [
+          makePost({
+            contentType: 'video',
+            id: 'post-tiktok-1',
+            platform: SocialSourcePlatform.TIKTOK,
+          }),
+        ],
+      }),
+    );
+    render(<FollowingPage />);
+
+    await user.click(screen.getByRole('button', { name: 'Remix' }));
+
+    expect(mocks.openRemix).not.toHaveBeenCalled();
+    expect(mocks.routerPush).toHaveBeenCalledWith(
+      '/org-1/brand-1/publish/remix?platform=tiktok&sourcePostId=post-tiktok-1',
+    );
   });
 
   it('creates a reply draft from the post dropdown for twitter posts', async () => {
