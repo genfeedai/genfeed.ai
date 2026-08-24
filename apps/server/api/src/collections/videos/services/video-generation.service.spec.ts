@@ -25,7 +25,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 describe('VideoGenerationService', () => {
   const ORG = 'org-1';
+  const FOREIGN_ORG = 'org-foreign';
   const RESOLVED_BRAND = 'brand-resolved';
+  const REFERENCE_CDN = 'https://cdn.genfeed.ai';
+  const REFERENCE_INGREDIENTS_ENDPOINT = `${REFERENCE_CDN}/ingredients`;
+  const FAL_SELECTION_KEY = 'fal/minimax/h3/text-to-video';
+  const FAL_ENDPOINT = 'minimax/h3/text-to-video';
   const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5;
   const NON_BATCH_MODEL = MODEL_KEYS.KLINGAI_V2;
   const promptId = testId('prompt');
@@ -154,9 +159,16 @@ describe('VideoGenerationService', () => {
     const pollingService = {
       waitForMultipleIngredientsCompletion: vi.fn(),
     };
-    const assetsService = {};
-    const ingredientsService = {};
-    const configService = {};
+    const assetsService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    };
+    const ingredientsService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    };
+    const configService = {
+      cdnUrl: REFERENCE_CDN,
+      ingredientsEndpoint: REFERENCE_INGREDIENTS_ENDPOINT,
+    };
     const loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -219,15 +231,45 @@ describe('VideoGenerationService', () => {
       creditsUtilsService,
       failedGenerationService,
       falService,
+      ingredientsService,
       klingAIService,
       metadataService,
       modelRegistrationService,
+      promptBuilderService,
       promptsService,
       replicateService,
       service,
       sharedService,
     };
   };
+
+  function mockTenantIngredients(
+    ingredientsService: { findOne: ReturnType<typeof vi.fn> },
+    rows: Array<{ id: string; isDeleted?: boolean; organizationId: string }>,
+  ) {
+    ingredientsService.findOne.mockImplementation(
+      (query: {
+        id?: string;
+        isDeleted?: boolean;
+        organizationId?: string;
+      }) => {
+        const row = rows.find((candidate) => candidate.id === query.id);
+        if (!row) {
+          return Promise.resolve(null);
+        }
+        if (
+          query.organizationId !== undefined &&
+          row.organizationId !== query.organizationId
+        ) {
+          return Promise.resolve(null);
+        }
+        if (query.isDeleted === false && row.isDeleted === true) {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({ id: row.id });
+      },
+    );
+  }
 
   const baseDto = (overrides: Partial<CreateVideoDto> = {}): CreateVideoDto =>
     ({
@@ -324,21 +366,19 @@ describe('VideoGenerationService', () => {
         modelRegistrationService,
         replicateService,
       } = createService();
-      const selectionKey = 'fal/minimax/h3/text-to-video';
-      const endpoint = 'minimax/h3/text-to-video';
       modelRegistrationService.validateModelForOrg.mockResolvedValue({
-        endpoint,
+        endpoint: FAL_ENDPOINT,
         provider: ModelProvider.FAL,
       });
 
       await service.generateVideo(
         buildUser(),
-        baseDto({ model: selectionKey }),
+        baseDto({ model: FAL_SELECTION_KEY }),
         buildRequest(),
       );
 
       expect(falService.generateVideo).toHaveBeenCalledWith(
-        endpoint,
+        FAL_ENDPOINT,
         expect.any(Object),
       );
       expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
@@ -564,5 +604,102 @@ describe('VideoGenerationService', () => {
     await service.generateVideo(buildUser(), baseDto(), buildRequest());
 
     expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['videos']);
+  });
+
+  describe('reference image tenant isolation (#3501)', () => {
+    const sameTenantId = testId('reference', 1);
+    const foreignId = testId('reference', 2);
+    const deletedId = testId('reference', 3);
+    const sameTenantUrl = `${REFERENCE_INGREDIENTS_ENDPOINT}/images/${sameTenantId}`;
+
+    async function generateFalVideo(
+      references: string[],
+      rows: Array<{ id: string; isDeleted?: boolean; organizationId: string }>,
+    ) {
+      const created = createService();
+      created.modelRegistrationService.validateModelForOrg.mockResolvedValue({
+        endpoint: FAL_ENDPOINT,
+        provider: ModelProvider.FAL,
+      });
+      mockTenantIngredients(created.ingredientsService, rows);
+      await created.service.generateVideo(
+        buildUser(),
+        baseDto({ model: FAL_SELECTION_KEY, references }),
+        buildRequest(),
+      );
+      return created;
+    }
+
+    it('dispatches a same-tenant reference URL to the provider', async () => {
+      const { falService, ingredientsService, promptBuilderService } =
+        await generateFalVideo(
+          [sameTenantId],
+          [
+            { id: sameTenantId, organizationId: ORG },
+            { id: foreignId, organizationId: FOREIGN_ORG },
+          ],
+        );
+
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: sameTenantId,
+          isDeleted: false,
+          organizationId: ORG,
+        }),
+      );
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ references: [sameTenantUrl] }),
+        ORG,
+      );
+      expect(JSON.stringify(falService.generateVideo.mock.calls)).toContain(
+        sameTenantUrl,
+      );
+    });
+
+    it('does not dispatch a foreign-organization reference id to the provider', async () => {
+      const { falService, ingredientsService, promptBuilderService } =
+        await generateFalVideo(
+          [foreignId],
+          [
+            { id: sameTenantId, organizationId: ORG },
+            { id: foreignId, organizationId: FOREIGN_ORG },
+          ],
+        );
+
+      expect(ingredientsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: foreignId,
+          isDeleted: false,
+          organizationId: ORG,
+        }),
+      );
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ references: [] }),
+        ORG,
+      );
+      expect(falService.generateVideo).toHaveBeenCalled();
+      expect(JSON.stringify(falService.generateVideo.mock.calls)).not.toContain(
+        foreignId,
+      );
+    });
+
+    it('does not dispatch a soft-deleted same-tenant reference id', async () => {
+      const { falService, promptBuilderService } = await generateFalVideo(
+        [deletedId],
+        [{ id: deletedId, isDeleted: true, organizationId: ORG }],
+      );
+
+      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ references: [] }),
+        ORG,
+      );
+      expect(falService.generateVideo).toHaveBeenCalled();
+      expect(JSON.stringify(falService.generateVideo.mock.calls)).not.toContain(
+        deletedId,
+      );
+    });
   });
 });
