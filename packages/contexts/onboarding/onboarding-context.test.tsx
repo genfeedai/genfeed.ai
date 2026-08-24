@@ -67,6 +67,21 @@ vi.mock('next/navigation', () => ({
 import OnboardingProvider, {
   useOnboarding,
 } from '@genfeedai/contexts/onboarding/onboarding-context';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
+
+function StepCompleteControl() {
+  const { handleStepComplete } = useOnboarding();
+
+  return (
+    <Button
+      label="Complete step"
+      onClick={() => handleStepComplete('brand')}
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+    />
+  );
+}
 
 describe('OnboardingProvider', () => {
   beforeEach(() => {
@@ -82,19 +97,9 @@ describe('OnboardingProvider', () => {
   });
 
   it('refreshes user state after onboarding updates on the standard session token path', async () => {
-    function Consumer() {
-      const { handleStepComplete } = useOnboarding();
-
-      return (
-        <button type="button" onClick={() => handleStepComplete('brand')}>
-          Complete step
-        </button>
-      );
-    }
-
     render(
       <OnboardingProvider>
-        <Consumer />
+        <StepCompleteControl />
       </OnboardingProvider>,
     );
 
@@ -119,19 +124,9 @@ describe('OnboardingProvider', () => {
   it('keeps Desktop on the shared providers step after brand', async () => {
     hasAgentFirstOnboardingMock.mockReturnValue(false);
 
-    function Consumer() {
-      const { handleStepComplete } = useOnboarding();
-
-      return (
-        <button type="button" onClick={() => handleStepComplete('brand')}>
-          Complete step
-        </button>
-      );
-    }
-
     render(
       <OnboardingProvider>
-        <Consumer />
+        <StepCompleteControl />
       </OnboardingProvider>,
     );
 
