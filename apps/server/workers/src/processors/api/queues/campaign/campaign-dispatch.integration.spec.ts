@@ -16,7 +16,7 @@ describe('outreach campaign dispatch integration', () => {
   const organizationId = testId('organization');
   const campaignId = testId('campaign');
   const campaign = {
-    campaignType: CampaignType.REPLY,
+    campaignType: CampaignType.MANUAL,
     id: campaignId,
     isDeleted: false,
     organizationId,
