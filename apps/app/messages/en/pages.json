@@ -8,6 +8,11 @@
       "description": "Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.",
       "title": "Connect accounts for your campaigns"
     },
+    "dsaNotice": {
+      "badge": "DSA",
+      "description": "Ad data on this page comes from X's public Ads Repository / DSA transparency export, not live X reporting.",
+      "title": "X Ads Repository disclosure"
+    },
     "errors": {
       "title": "Ads hub needs attention"
     },
