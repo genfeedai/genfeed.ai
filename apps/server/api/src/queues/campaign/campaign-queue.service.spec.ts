@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { CampaignStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -6,19 +9,26 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CampaignQueueService } from './campaign-queue.service';
+import {
+  buildCampaignProcessingJobId,
+  CampaignQueueService,
+  MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH,
+} from './campaign-queue.service';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
-    getCallerName: vi.fn().mockReturnValue('scheduledProcessing'),
+    getCallerName: vi.fn().mockReturnValue('dispatchActiveCampaigns'),
   },
 }));
 
+const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));
+const organizationId = testId('organization');
 const campaignId = testId('campaign');
 
-const makeCampaign = (overrides = {}) => ({
+const makeCampaign = (overrides: Record<string, unknown> = {}) => ({
   id: campaignId,
-  organizationId: campaignId,
+  isDeleted: false,
+  organizationId,
   status: CampaignStatus.ACTIVE,
   ...overrides,
 });
@@ -72,6 +82,37 @@ describe('CampaignQueueService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('production reachability', () => {
+    it('does not schedule product dispatch with a static @Cron decorator', () => {
+      const source = readFileSync(
+        path.join(SPEC_DIR, 'campaign-queue.service.ts'),
+        'utf8',
+      );
+
+      expect(source).not.toMatch(/@Cron\s*\(/);
+      expect(source).not.toContain('CronExpression');
+    });
+
+    it('is not called from outreach campaign Start (Start only flips status)', () => {
+      const startSource = readFileSync(
+        path.resolve(
+          SPEC_DIR,
+          '../../collections/outreach-campaigns/services/outreach-campaigns.service.ts',
+        ),
+        'utf8',
+      );
+      const startMethod = startSource.slice(
+        startSource.indexOf('async start('),
+        startSource.indexOf('async pause('),
+      );
+
+      expect(startMethod).not.toContain('triggerProcessing');
+      expect(startMethod).not.toContain('dispatchActiveCampaigns');
+      expect(startMethod).not.toContain('CampaignQueueService');
+      expect(startMethod).toContain('status: CampaignStatus.ACTIVE');
+    });
+  });
+
   describe('onModuleInit()', () => {
     it('should log initialization', () => {
       service.onModuleInit();
@@ -81,70 +122,159 @@ describe('CampaignQueueService', () => {
     });
   });
 
-  describe('scheduledProcessing()', () => {
-    it('should queue jobs for all active campaigns', async () => {
-      const campaigns = [makeCampaign(), makeCampaign()];
-      mockOutreachCampaignsService.find.mockResolvedValue(campaigns);
+  describe('dispatchActiveCampaigns()', () => {
+    it('queues jobs for eligible active campaigns in the organization', async () => {
+      const secondCampaignId = testId('campaign-two');
+      mockOutreachCampaignsService.find.mockResolvedValue([
+        makeCampaign(),
+        makeCampaign({ id: secondCampaignId }),
+      ]);
       mockCampaignQueue.getJob.mockResolvedValue(null);
       mockCampaignQueue.add.mockResolvedValue({ id: 'job-1' });
 
-      await service.scheduledProcessing();
+      const result = await service.dispatchActiveCampaigns(organizationId);
 
+      expect(mockOutreachCampaignsService.find).toHaveBeenCalledWith({
+        isDeleted: false,
+        organizationId,
+        status: CampaignStatus.ACTIVE,
+      });
       expect(mockCampaignQueue.add).toHaveBeenCalledTimes(2);
       expect(mockCampaignQueue.add).toHaveBeenCalledWith(
         'process',
         {
           campaignId,
-          organizationId: campaignId,
+          organizationId,
         },
         expect.objectContaining({
-          jobId: `campaign-${campaignId}`,
+          jobId: buildCampaignProcessingJobId(campaignId),
         }),
       );
-    });
-
-    it('should query only active, non-deleted campaigns', async () => {
-      mockOutreachCampaignsService.find.mockResolvedValue([]);
-
-      await service.scheduledProcessing();
-
-      expect(mockOutreachCampaignsService.find).toHaveBeenCalledWith({
-        status: CampaignStatus.ACTIVE,
+      expect(result).toMatchObject({
+        enqueued: 2,
+        failed: 0,
+        organizationId,
+        status: 'completed',
       });
     });
 
-    it('should skip campaign if job already queued in active state', async () => {
-      const campaign = makeCampaign();
-      mockOutreachCampaignsService.find.mockResolvedValue([campaign]);
+    it('completes without creating jobs when no eligible campaigns exist', async () => {
+      mockOutreachCampaignsService.find.mockResolvedValue([]);
+
+      const result = await service.dispatchActiveCampaigns(organizationId);
+
+      expect(mockCampaignQueue.add).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        enqueued: 0,
+        organizationId,
+        reason: 'no_active_campaigns',
+        status: 'skipped',
+      });
+    });
+
+    it('does not enqueue paused, deleted, or moved campaigns', async () => {
+      mockOutreachCampaignsService.find.mockResolvedValue([
+        makeCampaign({ isDeleted: true }),
+        makeCampaign({ organizationId: testId('other-org') }),
+        makeCampaign({ id: '' }),
+      ]);
+
+      const result = await service.dispatchActiveCampaigns(organizationId);
+
+      expect(mockCampaignQueue.add).not.toHaveBeenCalled();
+      expect(result.skipped).toBe(3);
+      expect(result.enqueued).toBe(0);
+    });
+
+    it('produces one logical processing claim when two ticks overlap', async () => {
+      mockOutreachCampaignsService.find.mockResolvedValue([makeCampaign()]);
       mockCampaignQueue.getJob.mockResolvedValue({
         getState: vi.fn().mockResolvedValue('active'),
         remove: vi.fn(),
       });
 
-      await service.scheduledProcessing();
+      const first = await service.dispatchActiveCampaigns(organizationId);
+      const second = await service.dispatchActiveCampaigns(organizationId);
 
       expect(mockCampaignQueue.add).not.toHaveBeenCalled();
+      expect(first.alreadyQueued).toBe(1);
+      expect(second.alreadyQueued).toBe(1);
     });
 
-    it('should handle errors from getActiveCampaigns gracefully', async () => {
-      mockOutreachCampaignsService.find.mockRejectedValue(
-        new Error('DB timeout'),
+    it('reclaims a completed job id so the next tick can enqueue again', async () => {
+      const remove = vi.fn().mockResolvedValue(undefined);
+      mockOutreachCampaignsService.find.mockResolvedValue([makeCampaign()]);
+      mockCampaignQueue.getJob.mockResolvedValue({
+        getState: vi.fn().mockResolvedValue('completed'),
+        remove,
+      });
+      mockCampaignQueue.add.mockResolvedValue({
+        id: buildCampaignProcessingJobId(campaignId),
+      });
+
+      const result = await service.dispatchActiveCampaigns(organizationId);
+
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(mockCampaignQueue.add).toHaveBeenCalledTimes(1);
+      expect(result.enqueued).toBe(1);
+    });
+
+    it('emits a sanitized diagnostic and does not mark delivery successful when enqueue fails', async () => {
+      mockOutreachCampaignsService.find.mockResolvedValue([makeCampaign()]);
+      mockCampaignQueue.getJob.mockResolvedValue(null);
+      mockCampaignQueue.add.mockRejectedValue(
+        new Error('redis token=sk-secret message=hello'),
       );
 
-      await service.scheduledProcessing();
+      const result = await service.dispatchActiveCampaigns(organizationId);
 
-      expect(mockLogger.error).toHaveBeenCalled();
+      expect(result).toMatchObject({
+        enqueued: 0,
+        failed: 1,
+        reason: 'campaign_enqueue_failed',
+        status: 'failed',
+      });
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('enqueue failed'),
+        expect.objectContaining({
+          campaignId,
+          organizationId,
+          reason: 'campaign_enqueue_failed',
+        }),
+      );
+      const diagnostic = JSON.stringify(mockLogger.error.mock.calls);
+      expect(diagnostic).not.toContain('sk-secret');
+      expect(diagnostic).not.toContain('hello');
+    });
+
+    it('bounds a large active-campaign set', async () => {
+      const campaigns = Array.from(
+        { length: MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH + 5 },
+        (_, index) => makeCampaign({ id: `campaign-${index}` }),
+      );
+      mockOutreachCampaignsService.find.mockResolvedValue(campaigns);
+      mockCampaignQueue.getJob.mockResolvedValue(null);
+      mockCampaignQueue.add.mockResolvedValue({ id: 'job-1' });
+
+      const result = await service.dispatchActiveCampaigns(organizationId);
+
+      expect(mockCampaignQueue.add).toHaveBeenCalledTimes(
+        MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH,
+      );
+      expect(result.skipped).toBe(5);
     });
   });
 
   describe('triggerProcessing()', () => {
-    it('should add job to queue and return job id', async () => {
+    it('should add job to queue and return deterministic job id', async () => {
       mockCampaignQueue.getJob.mockResolvedValue(null);
-      mockCampaignQueue.add.mockResolvedValue({ id: 'campaign-abc' });
+      mockCampaignQueue.add.mockResolvedValue({
+        id: buildCampaignProcessingJobId('campaign-abc'),
+      });
 
       const jobId = await service.triggerProcessing('campaign-abc', 'org-123');
 
-      expect(jobId).toBe('campaign-abc');
+      expect(jobId).toBe(buildCampaignProcessingJobId('campaign-abc'));
     });
 
     it('should use deterministic job id format', async () => {
@@ -156,19 +286,17 @@ describe('CampaignQueueService', () => {
       expect(mockCampaignQueue.getJob).toHaveBeenCalledWith('campaign-xyz');
     });
 
-    it('should propagate queue errors', async () => {
-      // getJob rejection is caught inside queueCampaignProcessing's try-catch,
-      // which returns { id: undefined }. triggerProcessing then returns undefined.
+    it('surfaces queue failures instead of presenting a false success', async () => {
       mockCampaignQueue.getJob.mockRejectedValue(new Error('Queue error'));
 
-      const result = await service.triggerProcessing(
-        'campaign-fail',
-        'org-123',
-      );
-      expect(result).toBeUndefined();
-      expect(mockLogger.log).toHaveBeenCalledWith(
-        expect.stringContaining('job already exists'),
-        expect.anything(),
+      await expect(
+        service.triggerProcessing('campaign-fail', 'org-123'),
+      ).rejects.toThrow('Queue error');
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          reason: 'campaign_enqueue_failed',
+        }),
       );
     });
   });

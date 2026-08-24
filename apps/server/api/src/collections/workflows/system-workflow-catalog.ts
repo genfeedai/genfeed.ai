@@ -12,6 +12,7 @@ import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/work
 import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
+import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
 import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
 import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
@@ -31,6 +32,7 @@ export type SystemWorkflowCatalogFamily =
   | 'content-loop-autopilot'
   | 'content-production'
   | 'livestream-bot'
+  | 'outreach-campaign-dispatch'
   | 'product'
   | 'reply-polling'
   | 'system-action'
@@ -81,6 +83,12 @@ const CATALOG_TEMPLATE_SOURCES: readonly CatalogTemplateSource[] = [
     installable: true,
     sourceIssue: 783,
     templates: CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES,
+  },
+  {
+    family: 'outreach-campaign-dispatch',
+    installable: true,
+    sourceIssue: 3407,
+    templates: OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES,
   },
   {
     family: 'agent-autopilot',

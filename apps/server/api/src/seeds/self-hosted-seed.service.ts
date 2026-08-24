@@ -267,6 +267,10 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
         userId,
         organizationId,
       );
+      await workflowSeeder.ensureOutreachCampaignDispatchWorkflows(
+        userId,
+        organizationId,
+      );
       await workflowSeeder.ensureAgentAutopilotWorkflows(
         userId,
         organizationId,

@@ -21,6 +21,7 @@ import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/work
 import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
+import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
 import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
 import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import { type WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
@@ -559,6 +560,25 @@ export class WorkflowTemplateSeederService {
       organizationId,
       sourceIssue: 783,
       templates: CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES,
+      userId,
+    });
+  }
+
+  /**
+   * Idempotently seeds the default-on outreach campaign dispatch workflow for
+   * an organization. The node preserves previous cron scanner behavior by
+   * selecting active, non-deleted campaigns inside execution, scoped to the
+   * workflow organization.
+   */
+  async ensureOutreachCampaignDispatchWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.ensureSeededTemplateWorkflows({
+      logContext: 'ensureOutreachCampaignDispatchWorkflows',
+      organizationId,
+      sourceIssue: 3407,
+      templates: OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES,
       userId,
     });
   }

@@ -184,6 +184,10 @@ export class WorkflowDeploymentBackfillService {
       userId,
       organizationId,
     );
+    await workflowSeeder.ensureOutreachCampaignDispatchWorkflows(
+      userId,
+      organizationId,
+    );
     await workflowSeeder.ensureAgentAutopilotWorkflows(userId, organizationId);
     await workflowSeeder.ensureAnalyticsSyncWorkflows(userId, organizationId);
     await workflowSeeder.ensureContentProductionWorkflows(

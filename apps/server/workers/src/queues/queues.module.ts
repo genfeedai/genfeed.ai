@@ -6,7 +6,9 @@
  * registrations to ensure consistent retry/backoff behaviour.
  */
 
+import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
 import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
+import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
@@ -76,6 +78,7 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
 @Module({
   exports: [
     QueueService,
+    CampaignQueueService,
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
@@ -86,6 +89,7 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
   ],
   imports: [
     LoggerModule,
+    OutreachCampaignsCoreModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -502,6 +506,7 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
   ],
   providers: [
     QueueService,
+    CampaignQueueService,
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
