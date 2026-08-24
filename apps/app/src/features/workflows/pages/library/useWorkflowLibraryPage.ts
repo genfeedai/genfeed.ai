@@ -1,3 +1,4 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import type { IPaginationParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -20,6 +21,7 @@ export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 export function useWorkflowLibraryPage() {
   const { href } = useOrgUrl();
   const { push } = useRouter();
+  const { brandId, isReady } = useBrand();
   const { isConnected, isCapable } = useCloudSession();
   const notificationsService = NotificationsService.getInstance();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
@@ -38,6 +40,7 @@ export function useWorkflowLibraryPage() {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  const loadedBrandIdRef = useRef<string | null>(null);
 
   const getService = useAuthedService(createWorkflowApiService);
 
@@ -63,9 +66,16 @@ export function useWorkflowLibraryPage() {
         const service = await getService();
         if (signal.aborted) return;
 
+        const requestPage = loadedBrandIdRef.current === brandId ? page : 1;
+        if (loadedBrandIdRef.current !== brandId && page !== 1) {
+          setPage(1);
+        }
+        loadedBrandIdRef.current = brandId;
+
         const params: Record<string, unknown> = {
+          brandId,
           limit: WORKFLOW_LIBRARY_PAGE_SIZE,
-          page,
+          page: requestPage,
         };
         if (debouncedSearch) params.search = debouncedSearch;
 
@@ -86,14 +96,18 @@ export function useWorkflowLibraryPage() {
         }
       }
     },
-    [getService, debouncedSearch, page],
+    [brandId, getService, debouncedSearch, page],
   );
 
   useEffect(() => {
+    if (!isReady || !brandId) {
+      return;
+    }
+
     const controller = new AbortController();
     loadWorkflows(controller.signal);
     return () => controller.abort();
-  }, [loadWorkflows]);
+  }, [brandId, isReady, loadWorkflows]);
 
   // Actions
   const handleDuplicate = useCallback(

@@ -9,6 +9,20 @@ const baseInput = {
 };
 
 describe('buildWorkflowListWhere', () => {
+  it('scopes the customer library to the selected brand', () => {
+    expect(
+      buildWorkflowListWhere({
+        ...baseInput,
+        brandId: 'brand-fud',
+        includeSystem: false,
+        referencable: false,
+      }),
+    ).toMatchObject({
+      brandId: 'brand-fud',
+      userId: 'user-1',
+    });
+  });
+
   it('excludes persisted system workflows from the customer library', () => {
     expect(
       buildWorkflowListWhere({

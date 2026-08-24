@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
   isConnected: false,
   isCapable: false,
+  brandId: 'brand-fud',
+  isReady: true,
   serviceList: vi.fn(),
   serviceListPage: vi.fn(),
   serviceDuplicate: vi.fn(),
@@ -21,6 +23,13 @@ const mocks = vi.hoisted(() => ({
   serviceUpdateSchedule: vi.fn(),
   getService: vi.fn(),
   notificationsError: vi.fn(),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: mocks.brandId,
+    isReady: mocks.isReady,
+  }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -78,6 +87,8 @@ const makeWorkflow = (
 
 describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   beforeEach(() => {
+    mocks.isReady = true;
+    mocks.brandId = 'brand-fud';
     mocks.serviceList.mockResolvedValue([
       makeWorkflow({
         id: 'wf-1',
@@ -116,9 +127,19 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
 
     await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
     expect(mocks.serviceListPage).toHaveBeenCalledWith({
+      brandId: 'brand-fud',
       limit: 15,
       page: 1,
     });
+  });
+
+  it('does not fetch workflows until the selected brand is ready', async () => {
+    mocks.isReady = false;
+    mocks.brandId = '';
+
+    renderHook(() => useWorkflowLibraryPage());
+
+    expect(mocks.serviceListPage).not.toHaveBeenCalled();
   });
 
   it('calls updateSchedule with isScheduleEnabled=true when toggling on a workflow that has a schedule', async () => {
@@ -303,6 +324,8 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
 
 describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
   beforeEach(() => {
+    mocks.isReady = true;
+    mocks.brandId = 'brand-fud';
     mocks.serviceList.mockResolvedValue([
       makeWorkflow({
         id: 'wf-1',
