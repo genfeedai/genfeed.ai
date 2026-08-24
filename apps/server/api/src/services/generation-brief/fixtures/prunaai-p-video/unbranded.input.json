@@ -1,0 +1,24 @@
+{
+  "constraints": [],
+  "fidelityMode": "off",
+  "intent": {
+    "objective": "a drone shot flying over a canyon at sunrise",
+    "requestedText": [],
+    "subjects": []
+  },
+  "mediaKind": "video",
+  "output": {
+    "aspectRatio": "16:9",
+    "durationSeconds": 5,
+    "height": 1080,
+    "width": 1920
+  },
+  "provenance": [
+    {
+      "field": "intent.objective",
+      "source": "user"
+    }
+  ],
+  "references": [],
+  "version": 1
+}
