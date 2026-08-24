@@ -2,8 +2,8 @@ import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief
 import {
   type GenerationBriefConstraint,
   type GenerationBriefProvenance,
+  type GenerationBriefReference,
   type GenerationFidelityMode,
-  type VideoGenerationBriefReference,
   videoGenerationBriefSchema,
 } from '@api-types/contracts/generation-brief.contract';
 import { calculateAspectRatio } from '@genfeedai/helpers';
@@ -93,7 +93,7 @@ export function assembleVideoGenerationBrief(
   }
 
   const referenceIds = uniqueTexts(input.referenceIds);
-  const references: VideoGenerationBriefReference[] = referenceIds.map(
+  const references: GenerationBriefReference[] = referenceIds.map(
     (assetId, index) => ({
       assetId,
       role: index === 0 ? ('first_frame' as const) : ('subject' as const),
