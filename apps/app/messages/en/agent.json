@@ -19,6 +19,9 @@
     "slugField": "Brand slug",
     "slugPlaceholder": "brand-slug"
   },
+  "characterMentions": {
+    "empty": "No characters found"
+  },
   "composerToolbar": {
     "actions": "Actions",
     "actionsAria": "Open composer actions",

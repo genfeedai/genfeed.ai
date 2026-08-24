@@ -1,3 +1,5 @@
+'use client';
+
 import type {
   CharacterMentionItem,
   CharacterMentionListProps,
@@ -5,6 +7,7 @@ import type {
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
   useEffect,
@@ -17,6 +20,7 @@ export function CharacterMentionList({
   command,
   ref,
 }: CharacterMentionListProps): ReactElement {
+  const translate = useTranslations('agent.characterMentions');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
@@ -49,7 +53,7 @@ export function CharacterMentionList({
   if (items.length === 0) {
     return (
       <div className="border border-white/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
-        No characters found
+        {translate('empty')}
       </div>
     );
   }

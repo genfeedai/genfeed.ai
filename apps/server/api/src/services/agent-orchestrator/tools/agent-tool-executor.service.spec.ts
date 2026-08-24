@@ -842,6 +842,7 @@ describe('AgentToolExecutorService', () => {
       creditsUtilsService as never,
       brandsService as never,
       postsService as never,
+      { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
     );
     const reviewHandler = new AgentReviewToolHandler(
       batchGenerationService as never,
@@ -5264,6 +5265,7 @@ describe('AgentToolExecutorService', () => {
         {} as never,
         brandsService as never,
         postsService as never,
+        { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
       ),
       new AgentConnectionToolHandler(credentialsService as never),
       new AgentTrendsToolHandler({

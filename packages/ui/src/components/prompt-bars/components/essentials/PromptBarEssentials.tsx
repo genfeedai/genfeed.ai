@@ -26,7 +26,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useCallback } from 'react';
+import { type ChangeEvent, memo, useCallback } from 'react';
 
 function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
   if (isRecording) {

@@ -2,7 +2,7 @@ import { buildMentionSuggestion } from '@genfeedai/agent/components/agent-chat-i
 import { CharacterMentionList } from '@genfeedai/agent/components/CharacterMentionList';
 import { CharacterMention } from '@genfeedai/agent/extensions/character-mention.extension';
 import type { CharacterMentionItem } from '@genfeedai/agent/types/mention.types';
-import type { AnyExtension, Editor } from '@tiptap/core';
+import type { AnyExtension } from '@tiptap/core';
 
 export function createStudioCharacterMentionExtension(
   getMentions: () => readonly CharacterMentionItem[],
@@ -25,23 +25,16 @@ export function createStudioCharacterMentionExtension(
           );
         },
       }),
-      command: ({
-        editor,
-        props,
-        range,
-      }: {
-        editor: Editor;
-        props: CharacterMentionItem;
-        range: { from: number; to: number };
-      }) => {
+      command: ({ editor, props, range }) => {
+        const item = props as CharacterMentionItem;
         editor
           .chain()
           .focus()
           .insertContentAt(range, {
             attrs: {
-              handle: props.handle,
-              id: props.id,
-              label: props.label,
+              handle: item.handle,
+              id: item.id,
+              label: item.label,
             },
             type: 'characterMention',
           })

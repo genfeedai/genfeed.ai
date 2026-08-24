@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { CURATED_ACTION_CATALOG } from './curated-action-catalog';
 import { OVERLAP_TOOLS } from './source/overlap.tools';
 
