@@ -415,6 +415,10 @@ jobs:
             echo "::error::Validated draft ${release_tag} no longer has a stable release ID."
             exit 1
           }
+          if [ "${draft_title}" != "${release_tag}" ]; then
+            echo "::error::Draft ${release_tag} has title ${draft_title}, expected ${release_tag}."
+            exit 1
+          fi
           if [ "${RECOVERY_MODE}" = 'true' ] && {
             [ "${draft_id}" != "${RECOVERY_DRAFT_ID}" ] ||
             [ "${draft_title}" != "${RECOVERY_DRAFT_TITLE}" ] ||
@@ -659,7 +663,14 @@ jobs:
             echo "::error::Community publisher returned an invalid image digest: ${IMAGE_DIGEST}"
             exit 1
           }
-          actual_digest="sha256:$(docker buildx imagetools inspect "${IMAGE}:${IMAGE_TAG}" --raw | sha256sum | awk '{print $1}')"
+          actual_digest="$(
+            docker buildx imagetools inspect "${IMAGE}:${IMAGE_TAG}" --format '{{json .Manifest.Digest}}' |
+              jq -r .
+          )"
+          [[ "${actual_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "::error::Immutable image ${IMAGE}:${IMAGE_TAG} did not resolve to a registry manifest digest."
+            exit 1
+          }
           if [ "${actual_digest}" != "${IMAGE_DIGEST}" ]; then
             echo "::error::Immutable image ${IMAGE}:${IMAGE_TAG} moved from ${IMAGE_DIGEST} to ${actual_digest}."
             exit 1

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -24,8 +26,12 @@ const releaseWorkflow = readRepoFile('.github/workflows/release.yml');
 const selfHostedWorkflow = readRepoFile(
   '.github/workflows/_publish-selfhosted-core.yml',
 );
+const releasingGuide = readRepoFile('RELEASING.md');
 const recoveryEvidenceScript = readRepoFile(
   'scripts/ci/release-recovery-evidence.mjs',
+);
+const recoveryNpmGuardPath = fileURLToPath(
+  new URL('./recovery-npm-plan-guard.mjs', import.meta.url),
 );
 const prTitleWorkflow = readRepoFile('.github/workflows/pr-title.yml');
 const cliffConfig = readRepoFile('cliff.toml');
@@ -393,6 +399,54 @@ test('historical npm recovery reports its verified no-op', () => {
   ]);
 });
 
+function runRecoveryNpmPlanGuardCli(scriptPath, env) {
+  return spawnSync(process.execPath, [scriptPath], {
+    encoding: 'utf8',
+    env: { ...process.env, ...env },
+  });
+}
+
+test('direct invocation of the npm recovery guard does not silently exit 0', () => {
+  const result = runRecoveryNpmPlanGuardCli(recoveryNpmGuardPath, {
+    HAS_PACKAGES: '',
+    RECOVERY_RUN_ID: '',
+    VALIDATED_HISTORICAL_RECOVERY: '',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /validated historical recovery/i);
+});
+
+test('symlinked npm recovery guard still executes and fails on a non-empty plan', () => {
+  const tempDir = mkdtempSync(path.join(tmpdir(), 'recovery-npm-guard-'));
+
+  try {
+    const symlinkPath = path.join(tempDir, 'recovery-npm-plan-guard.mjs');
+    symlinkSync(recoveryNpmGuardPath, symlinkPath);
+
+    const emptyPlan = runRecoveryNpmPlanGuardCli(symlinkPath, {
+      HAS_PACKAGES: 'false',
+      RECOVERY_RUN_ID,
+      VALIDATED_HISTORICAL_RECOVERY: 'true',
+    });
+    assert.equal(emptyPlan.status, 0);
+    assert.match(emptyPlan.stdout, /empty npm plan/);
+
+    const pendingPlan = runRecoveryNpmPlanGuardCli(symlinkPath, {
+      HAS_PACKAGES: 'true',
+      RECOVERY_RUN_ID,
+      VALIDATED_HISTORICAL_RECOVERY: 'true',
+    });
+    assert.notEqual(pendingPlan.status, 0);
+    assert.match(
+      pendingPlan.stderr,
+      /cannot publish pending npm packages.*new release from current master/i,
+    );
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 test('release ties the dispatched tag to the root package.json version', () => {
   const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
 
@@ -622,6 +676,62 @@ test('recovery skips proved-green gates and reuses the exact immutable image', (
     /IMAGE_DIGEST: \$\{\{ needs\.publish-community\.outputs\.image_digest \}\}/,
   );
   assert.match(promote, /"\$\{IMAGE\}@\$\{IMAGE_DIGEST\}"/);
+});
+
+test('publisher and promoter compare the same registry manifest digest identity', () => {
+  const promote = jobBlock(releaseWorkflow, 'promote-community', 'release.yml');
+
+  assert.match(
+    selfHostedWorkflow,
+    /canonical_repo="ghcr\.io\/\$\{GITHUB_REPOSITORY\}"/,
+  );
+  assert.match(
+    selfHostedWorkflow,
+    /docker image inspect "\$\{image\}" --format '\{\{json \.RepoDigests\}\}'/,
+  );
+  assert.match(
+    selfHostedWorkflow,
+    /map\(select\(startswith\(\$repo \+ "@"\)\)\) \| first \/\/ empty/,
+  );
+  assert.doesNotMatch(selfHostedWorkflow, /index \.RepoDigests 0/);
+
+  assert.match(
+    promote,
+    /imagetools inspect "\$\{IMAGE\}:\$\{IMAGE_TAG\}" --format '\{\{json \.Manifest\.Digest\}\}'/,
+  );
+  assert.doesNotMatch(
+    promote,
+    /imagetools inspect "\$\{IMAGE\}:\$\{IMAGE_TAG\}" --raw \| sha256sum/,
+  );
+});
+
+test('draft titles must equal the single-line release tag before GITHUB_OUTPUT', () => {
+  const validate = jobBlock(releaseWorkflow, 'validate-release', 'release.yml');
+
+  assert.match(
+    validate,
+    /if \[ "\$\{draft_title\}" != "\$\{release_tag\}" \]; then\n\s+echo "::error::Draft \$\{release_tag\} has title \$\{draft_title\}, expected \$\{release_tag\}\."\n\s+exit 1\n\s+fi\n[\s\S]*echo "draft_title=\$\{draft_title\}"[\s\S]*>>"\$\{GITHUB_OUTPUT\}"/,
+  );
+  assert.doesNotMatch(
+    validate,
+    /echo "draft_title=\$\{draft_title\}"[\s\S]*if \[ "\$\{draft_title\}" != "\$\{release_tag\}" \]; then/,
+  );
+});
+
+test('RELEASING.md distinguishes normal SHA equality from historical recovery ancestry', () => {
+  assert.match(
+    releasingGuide,
+    /A normal release requires the pinned SHA to equal\ncurrent `master`; a validated historical recovery requires the recovered SHA to\nremain an ancestor of current `master`\./,
+  );
+  assert.match(
+    releasingGuide,
+    /This lets the `v0\.1\.66` recovery preserve truthful npm\nprovenance because its verified plan is a no-op/,
+  );
+  assert.doesNotMatch(
+    releasingGuide,
+    /npm publication always requires the pinned SHA to\nequal current `master`/,
+  );
+  assert.doesNotMatch(releasingGuide, /the v66 recovery/);
 });
 
 test('recovery gates irreversible promotion and preserves the draft until publication', () => {
