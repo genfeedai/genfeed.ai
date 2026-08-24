@@ -219,7 +219,9 @@ export class TerminalService {
   }
 
   private getBetterAuthBaseUrl(): string {
-    return resolveBetterAuthBaseUrlFromConfig(this.configService);
+    return resolveBetterAuthBaseUrlFromConfig({
+      get: (key) => this.configService.get(key),
+    });
   }
 
   /**

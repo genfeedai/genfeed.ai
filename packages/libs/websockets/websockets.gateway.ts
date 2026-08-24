@@ -247,9 +247,9 @@ export class WebSocketGateway
 
   private getBetterAuthVerifier(): BetterAuthJwksVerifier {
     if (!this.betterAuthVerifier) {
-      const betterAuthBaseUrl = resolveBetterAuthBaseUrlFromConfig(
-        this.configService,
-      );
+      const betterAuthBaseUrl = resolveBetterAuthBaseUrlFromConfig({
+        get: (key) => this.configService.get(key),
+      });
       if (
         !this.configService.get('BETTER_AUTH_URL')?.trim() &&
         !this.configService.get('API_BASE_URL')?.trim()

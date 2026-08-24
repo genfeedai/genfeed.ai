@@ -29,14 +29,19 @@ export function normalizeBetterAuthBaseUrl(baseUrl: string): string {
  * Match the terminal gateway: BETTER_AUTH_URL, then API_BASE_URL, then local.
  */
 export function resolveBetterAuthBaseUrlFromConfig(config: {
-  get: (key: string) => string | undefined;
+  get: (key: 'API_BASE_URL' | 'BETTER_AUTH_URL') => unknown;
 }): string {
-  const betterAuthUrl = config.get('BETTER_AUTH_URL')?.trim();
+  const read = (key: 'API_BASE_URL' | 'BETTER_AUTH_URL'): string => {
+    const value = config.get(key);
+    return typeof value === 'string' ? value.trim() : '';
+  };
+
+  const betterAuthUrl = read('BETTER_AUTH_URL');
   if (betterAuthUrl) {
     return normalizeBetterAuthBaseUrl(betterAuthUrl);
   }
 
-  const apiBaseUrl = config.get('API_BASE_URL')?.trim();
+  const apiBaseUrl = read('API_BASE_URL');
   if (apiBaseUrl) {
     return normalizeBetterAuthBaseUrl(apiBaseUrl);
   }
