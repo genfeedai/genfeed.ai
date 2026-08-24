@@ -79,6 +79,7 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   lipSync: 8, // [ESTIMATED] AI video synthesis; comparable to generateMusic
   reframe: 3, // [ESTIMATED] AI reframe; heavier than colorGrade, cheaper than full gen
   soundOverlay: 1, // [ESTIMATED] simple FFmpeg audio mux
+  videoStitch: 1, // FFmpeg concat pass
   upscale: 2,
   videoGen: 10, // legacy alias
 
