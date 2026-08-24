@@ -1,4 +1,4 @@
 export {
   default,
   generateMetadata,
-} from '../../[orgSlug]/~/settings/(pages)/chat/page';
+} from '@app/(protected)/[orgSlug]/~/settings/(pages)/chat/page';

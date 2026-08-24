@@ -162,6 +162,10 @@
         "name": "Name",
         "notSet": "Not set"
       },
+      "videoEmail": {
+        "description": "Send an email when a video generation completes or fails.",
+        "label": "Video Emails"
+      },
       "workflowEmail": {
         "cardTitle": "Email Notifications",
         "description": "Send an email when a workflow completes or fails.",

@@ -1,4 +1,4 @@
 export {
   default,
   generateMetadata,
-} from '../../[orgSlug]/~/settings/(pages)/progress/page';
+} from '@app/(protected)/[orgSlug]/~/settings/(pages)/progress/page';

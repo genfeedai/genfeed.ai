@@ -19,6 +19,7 @@ export interface ISetting extends IBaseEntity {
   isTrendNotificationsInApp: boolean;
   isTrendNotificationsTelegram: boolean;
   isTrendNotificationsEmail: boolean;
+  isVideoNotificationsEmail: boolean;
   trendNotificationsTelegramChatId?: string;
   trendNotificationsEmailAddress?: string;
   trendNotificationsFrequency: TrendNotificationFrequency;

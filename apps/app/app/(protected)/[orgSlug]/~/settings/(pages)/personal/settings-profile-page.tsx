@@ -15,6 +15,7 @@ import {
   type ThemePreference,
 } from '@genfeedai/constants';
 import type { ISetting } from '@genfeedai/interfaces';
+import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -163,7 +164,7 @@ export default function SettingsProfilePage() {
       </Card>
 
       <Card
-        id="language"
+        id={PERSONAL_SETTINGS_ANCHOR.LANGUAGE}
         label="Language"
         description="The language the app interface is shown in. Content you create is unaffected."
         bodyClassName="gap-3 p-4"
@@ -197,7 +198,7 @@ export default function SettingsProfilePage() {
       </Card>
 
       <Card
-        id="appearance"
+        id={PERSONAL_SETTINGS_ANCHOR.APPEARANCE}
         label="Appearance"
         description="Choose a light or dark interface, or follow your device setting."
         bodyClassName="gap-3 p-4"
@@ -225,7 +226,11 @@ export default function SettingsProfilePage() {
         </Select>
       </Card>
 
-      <Card id="features" label="Features" bodyClassName="gap-3 p-4">
+      <Card
+        id={PERSONAL_SETTINGS_ANCHOR.FEATURES}
+        label="Features"
+        bodyClassName="gap-3 p-4"
+      >
         <Switch
           label="Advanced Mode"
           description="Show studio, workflow editor, automation tools, and individual generation pages. Recommended for power users."

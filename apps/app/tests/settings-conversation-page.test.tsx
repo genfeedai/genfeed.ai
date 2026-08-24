@@ -1,3 +1,4 @@
+import SettingsConversationPage from '@app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-conversation-page';
 import {
   GenerationPriority,
   ModelCategory,
@@ -6,7 +7,6 @@ import {
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import SettingsConversationPage from '../app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-conversation-page';
 import '@testing-library/jest-dom/vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -102,10 +102,15 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   }),
 }));
 
+interface RegistryModelOverrides {
+  id?: string;
+  isLegacy?: boolean;
+}
+
 function createRegistryModel(
   key: string,
   label: string,
-  extras: { id?: string; isLegacy?: boolean } = {},
+  extras: RegistryModelOverrides = {},
 ) {
   return {
     category: ModelCategory.TEXT,

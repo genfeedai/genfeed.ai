@@ -1,5 +1,6 @@
 'use client';
 
+import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';
@@ -20,7 +21,7 @@ export default function SettingsProgressChecklistCard({
 }: Props) {
   return (
     <Card
-      id="setup-checklist"
+      id={PERSONAL_SETTINGS_ANCHOR.SETUP_CHECKLIST}
       label="Setup checklist"
       description="Review every setup step"
       bodyClassName="gap-3 p-4"

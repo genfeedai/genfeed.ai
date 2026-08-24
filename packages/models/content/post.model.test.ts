@@ -123,6 +123,7 @@ const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
   isTrendNotificationsEmail: false,
   isTrendNotificationsInApp: false,
   isTrendNotificationsTelegram: false,
+  isVideoNotificationsEmail: false,
   isVerified: false,
   theme: 'light',
   trendNotificationsFrequency: 'DAILY',

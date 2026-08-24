@@ -5,9 +5,7 @@ import SettingsNotificationsPage from './settings-notifications-page';
 import '@testing-library/jest-dom/vitest';
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
 
   return { useTranslations: translateFromCatalog };
 });
@@ -71,12 +69,32 @@ describe('SettingsNotificationsPage', () => {
     );
   });
 
-  it('renders email notification preferences', () => {
+  it('renders email notification preferences from the catalog', () => {
     render(<SettingsNotificationsPage />);
 
     expect(screen.getByText('Email Notifications')).toBeInTheDocument();
     expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
     expect(screen.getByText('Video Emails')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Send an email when a video generation completes or fails.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('persists the video email preference through shared settings', async () => {
+    const user = userEvent.setup();
+    render(<SettingsNotificationsPage />);
+
+    const toggle = screen.getByRole('switch', { name: 'Video Emails' });
+    expect(toggle).toBeChecked();
+    await user.click(toggle);
+
+    await waitFor(() => {
+      expect(mocks.patchSettings).toHaveBeenCalledWith({
+        isVideoNotificationsEmail: false,
+      });
+    });
   });
 
   it('loads and persists the durable workflow email preference', async () => {
