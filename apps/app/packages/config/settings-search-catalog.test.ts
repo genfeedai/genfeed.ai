@@ -1,21 +1,23 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import { SETTINGS_SURFACE_LABELS, SettingsSurface } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
   buildSettingsSearchCatalog,
   filterSettingsSearchCatalog,
   resolveSettingsSearchHref,
-  SETTINGS_SEARCH_SCOPE_LABELS,
 } from './settings-search-catalog';
 
 describe('buildSettingsSearchCatalog', () => {
   it('keeps personal search inside personal settings', () => {
     const catalog = buildSettingsSearchCatalog({
       isEnterprise: true,
-      scope: 'personal',
+      scope: SettingsSurface.PERSONAL,
     });
 
-    expect(SETTINGS_SEARCH_SCOPE_LABELS.personal).toBe('Personal');
-    expect(catalog.every((item) => item.scope === 'personal')).toBe(true);
+    expect(SETTINGS_SURFACE_LABELS[SettingsSurface.PERSONAL]).toBe('Personal');
+    expect(
+      catalog.every((item) => item.scope === SettingsSurface.PERSONAL),
+    ).toBe(true);
     expect(catalog.map((item) => item.id)).toEqual(
       expect.arrayContaining([
         'personal-section:chat-defaults',
@@ -30,10 +32,12 @@ describe('buildSettingsSearchCatalog', () => {
   it('keeps organization search inside organization settings', () => {
     const catalog = buildSettingsSearchCatalog({
       isEnterprise: true,
-      scope: 'organization',
+      scope: SettingsSurface.ORGANIZATION,
     });
 
-    expect(catalog.every((item) => item.scope === 'organization')).toBe(true);
+    expect(
+      catalog.every((item) => item.scope === SettingsSurface.ORGANIZATION),
+    ).toBe(true);
     expect(
       catalog.some(
         (item) =>
@@ -46,9 +50,13 @@ describe('buildSettingsSearchCatalog', () => {
   });
 
   it('keeps brand search inside brand settings', () => {
-    const catalog = buildSettingsSearchCatalog({ scope: 'brand' });
+    const catalog = buildSettingsSearchCatalog({
+      scope: SettingsSurface.BRAND,
+    });
 
-    expect(catalog.every((item) => item.scope === 'brand')).toBe(true);
+    expect(catalog.every((item) => item.scope === SettingsSurface.BRAND)).toBe(
+      true,
+    );
     expect(catalog.some((item) => item.label === 'Profile')).toBe(true);
     expect(catalog.some((item) => item.label === 'Members')).toBe(false);
   });
@@ -57,7 +65,7 @@ describe('buildSettingsSearchCatalog', () => {
 describe('filterSettingsSearchCatalog', () => {
   const catalog = buildSettingsSearchCatalog({
     isEnterprise: true,
-    scope: 'personal',
+    scope: SettingsSurface.PERSONAL,
   });
 
   it('returns the full catalog for an empty query', () => {
@@ -87,7 +95,7 @@ describe('resolveSettingsSearchHref', () => {
           id: 'personal-section:chat-defaults',
           keywords: ['model'],
           label: 'Chat Defaults',
-          scope: 'personal',
+          scope: SettingsSurface.PERSONAL,
         },
         { brandSlug: 'fud-news', orgSlug: 'demo' },
       ),
@@ -102,7 +110,7 @@ describe('resolveSettingsSearchHref', () => {
           id: 'organization:/settings/models',
           keywords: ['models'],
           label: 'Models',
-          scope: 'organization',
+          scope: SettingsSurface.ORGANIZATION,
         },
         { brandSlug: 'fud-news', orgSlug: 'demo' },
       ),
@@ -117,7 +125,7 @@ describe('resolveSettingsSearchHref', () => {
           id: 'brand:/settings/voice',
           keywords: ['voice'],
           label: 'Brand voice',
-          scope: 'brand',
+          scope: SettingsSurface.BRAND,
         },
         { brandSlug: 'fud-news', orgSlug: 'demo' },
       ),
@@ -134,7 +142,7 @@ describe('resolveSettingsSearchHref', () => {
           id: 'organization:/settings/members',
           keywords: [],
           label: 'Members',
-          scope: 'organization',
+          scope: SettingsSurface.ORGANIZATION,
         },
         { brandSlug: '', orgSlug: '' },
       ),

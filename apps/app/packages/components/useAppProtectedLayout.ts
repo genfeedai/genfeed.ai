@@ -24,6 +24,7 @@ import {
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
+import { SettingsSurface } from '@genfeedai/enums';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -377,10 +378,10 @@ export function useAppProtectedLayout(
   // route → org pages, otherwise personal pages. Scope is derived from the route
   // params (brandSlug/orgSlug), not selected-brand context.
   const settingsScope: SettingsScope = routeParams.brandSlug
-    ? 'brand'
+    ? SettingsSurface.BRAND
     : routeParams.orgSlug
-      ? 'organization'
-      : 'personal';
+      ? SettingsSurface.ORGANIZATION
+      : SettingsSurface.PERSONAL;
 
   const settingsMenuItems = useMemo(
     () =>

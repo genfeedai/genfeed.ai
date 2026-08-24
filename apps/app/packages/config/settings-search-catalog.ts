@@ -3,23 +3,13 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/constants';
+import { SETTINGS_SURFACE_LABELS, SettingsSurface } from '@genfeedai/enums';
 import type {
   SettingsSearchCatalogOptions,
   SettingsSearchHrefContext,
   SettingsSearchItem,
-  SettingsSearchScope,
 } from '@genfeedai/props/ui/settings-search/settings-search.props';
-import {
-  buildSettingsMenuItems,
-  type SettingsScope,
-} from './settings-menu-items.config';
-
-export const SETTINGS_SEARCH_SCOPE_LABELS: Record<SettingsSearchScope, string> =
-  {
-    brand: 'Brand',
-    organization: 'Organization',
-    personal: 'Personal',
-  };
+import { buildSettingsMenuItems } from './settings-menu-items.config';
 
 const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
@@ -29,7 +19,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     id: 'personal-section:appearance',
     keywords: ['theme', 'dark', 'light', 'system', 'appearance'],
     label: 'Appearance',
-    scope: 'personal',
+    scope: SettingsSurface.PERSONAL,
   },
   {
     description: 'The language the app interface is shown in',
@@ -38,7 +28,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     id: 'personal-section:language',
     keywords: ['locale', 'language', 'translation'],
     label: 'Language',
-    scope: 'personal',
+    scope: SettingsSurface.PERSONAL,
   },
   {
     description: 'Show studio, workflow editor, and generation pages',
@@ -47,7 +37,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     id: 'personal-section:features',
     keywords: ['advanced mode', 'features', 'studio', 'power user'],
     label: 'Advanced Mode',
-    scope: 'personal',
+    scope: SettingsSurface.PERSONAL,
   },
   {
     description: 'Workflow and video generation emails',
@@ -56,7 +46,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     id: 'personal-section:email-notifications',
     keywords: ['email', 'notifications', 'workflow', 'video'],
     label: 'Email Notifications',
-    scope: 'personal',
+    scope: SettingsSurface.PERSONAL,
   },
   {
     description: 'Default chat model and generation priority',
@@ -72,7 +62,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
       'llm',
     ],
     label: 'Chat Defaults',
-    scope: 'personal',
+    scope: SettingsSurface.PERSONAL,
   },
   {
     description: 'Review every setup step',
@@ -81,7 +71,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     id: 'personal-section:setup-checklist',
     keywords: ['setup', 'checklist', 'onboarding', 'progress'],
     label: 'Setup checklist',
-    scope: 'personal',
+    scope: SettingsSurface.PERSONAL,
   },
 ];
 
@@ -97,7 +87,7 @@ function uniqueKeywords(values: Array<string | undefined>): string[] {
 }
 
 function itemsForScope(
-  scope: SettingsScope,
+  scope: SettingsSurface,
   options: SettingsSearchCatalogOptions,
 ): SettingsSearchItem[] {
   return buildSettingsMenuItems({
@@ -126,8 +116,8 @@ function itemsForScope(
 export function buildSettingsSearchCatalog(
   options: SettingsSearchCatalogOptions,
 ): SettingsSearchItem[] {
-  if (options.scope === 'personal') {
-    const personalItems = itemsForScope('personal', options);
+  if (options.scope === SettingsSurface.PERSONAL) {
+    const personalItems = itemsForScope(SettingsSurface.PERSONAL, options);
     return [
       ...personalItems.filter((item) => item.group === 'Account'),
       ...PERSONAL_SECTION_ITEMS,
@@ -158,7 +148,7 @@ export function filterSettingsSearchCatalog(
       item.description,
       item.group,
       item.scope,
-      SETTINGS_SEARCH_SCOPE_LABELS[item.scope],
+      SETTINGS_SURFACE_LABELS[item.scope],
       ...item.keywords,
     ]
       .join(' ')
@@ -176,7 +166,7 @@ export function resolveSettingsSearchHref(
   const pathname = hashIndex >= 0 ? item.href.slice(0, hashIndex) : item.href;
   const hash = hashIndex >= 0 ? item.href.slice(hashIndex) : '';
 
-  if (item.scope === 'personal') {
+  if (item.scope === SettingsSurface.PERSONAL) {
     return `${pathname}${hash}`;
   }
 
@@ -184,7 +174,7 @@ export function resolveSettingsSearchHref(
     return null;
   }
 
-  if (item.scope === 'organization') {
+  if (item.scope === SettingsSurface.ORGANIZATION) {
     return `${createOrganizationAppRoute(context.orgSlug, pathname)}${hash}`;
   }
 

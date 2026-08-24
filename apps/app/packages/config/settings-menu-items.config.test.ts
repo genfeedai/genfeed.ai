@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import { SettingsSurface } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
   buildSettingsMenuItems,
@@ -7,7 +8,7 @@ import {
 
 describe('buildSettingsMenuItems', () => {
   describe('personal scope', () => {
-    const items = buildSettingsMenuItems({ scope: 'personal' });
+    const items = buildSettingsMenuItems({ scope: SettingsSurface.PERSONAL });
 
     it('shows only the personal pages plus Help', () => {
       expect(items.map((item) => item.label)).toEqual(['Personal', 'Help']);
@@ -37,7 +38,9 @@ describe('buildSettingsMenuItems', () => {
   describe('organization scope', () => {
     it('shows the organization pages plus the Brands and Models hubs (no Help)', () => {
       expect(
-        buildSettingsMenuItems({ scope: 'organization' }).map((i) => i.label),
+        buildSettingsMenuItems({ scope: SettingsSurface.ORGANIZATION }).map(
+          (i) => i.label,
+        ),
       ).toEqual([
         'General',
         'Members',
@@ -55,7 +58,7 @@ describe('buildSettingsMenuItems', () => {
     it('adds Subscription under Billing when organization billing is available (SaaS or EE)', () => {
       expect(
         buildSettingsMenuItems({
-          scope: 'organization',
+          scope: SettingsSurface.ORGANIZATION,
           isEnterprise: true,
         }).map((i) => i.label),
       ).toEqual([
@@ -75,10 +78,9 @@ describe('buildSettingsMenuItems', () => {
 
     it('uses Organization, Billing, and Developer groups', () => {
       expect(
-        buildSettingsMenuItems({ scope: 'organization' }).map((item) => [
-          item.label,
-          item.group,
-        ]),
+        buildSettingsMenuItems({ scope: SettingsSurface.ORGANIZATION }).map(
+          (item) => [item.label, item.group],
+        ),
       ).toEqual([
         ['General', 'Organization'],
         ['Members', 'Organization'],
@@ -95,7 +97,7 @@ describe('buildSettingsMenuItems', () => {
 
     it('scopes every entry to the organization and marks General exact', () => {
       const items = buildSettingsMenuItems({
-        scope: 'organization',
+        scope: SettingsSurface.ORGANIZATION,
         isEnterprise: true,
       });
       expect(items.every((item) => item.hrefScope === 'organization')).toBe(
@@ -109,7 +111,7 @@ describe('buildSettingsMenuItems', () => {
 
     it('hides Credits/Usage when showCredits is false; Subscription only when enterprise', () => {
       const items = buildSettingsMenuItems({
-        scope: 'organization',
+        scope: SettingsSurface.ORGANIZATION,
         showCredits: false,
       });
       expect(items.find((i) => i.label === 'Credits')).toBeUndefined();
@@ -121,7 +123,9 @@ describe('buildSettingsMenuItems', () => {
     });
 
     it('points Credits, Brands and Models at their hubs (prefix-active, not exact)', () => {
-      const items = buildSettingsMenuItems({ scope: 'organization' });
+      const items = buildSettingsMenuItems({
+        scope: SettingsSurface.ORGANIZATION,
+      });
       expect(items.find((i) => i.label === 'Credits')?.href).toBe(
         '/settings/credits',
       );
@@ -137,7 +141,9 @@ describe('buildSettingsMenuItems', () => {
     });
 
     it('points Agents at APP_ROUTES.SETTINGS.POLICY, not a /settings/agents slug', () => {
-      const items = buildSettingsMenuItems({ scope: 'organization' });
+      const items = buildSettingsMenuItems({
+        scope: SettingsSurface.ORGANIZATION,
+      });
       expect(items.find((i) => i.label === 'Agents')?.href).toBe(
         APP_ROUTES.SETTINGS.POLICY,
       );
@@ -146,7 +152,7 @@ describe('buildSettingsMenuItems', () => {
   });
 
   describe('brand scope', () => {
-    const items = buildSettingsMenuItems({ scope: 'brand' });
+    const items = buildSettingsMenuItems({ scope: SettingsSurface.BRAND });
 
     it('shows brand profile + automation pages including Social and Brand Kit', () => {
       expect(items.map((item) => item.label)).toEqual([

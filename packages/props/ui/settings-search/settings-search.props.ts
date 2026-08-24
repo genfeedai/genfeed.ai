@@ -1,4 +1,4 @@
-export type SettingsSearchScope = 'personal' | 'organization' | 'brand';
+import type { SettingsSurface } from '@genfeedai/enums';
 
 export interface SettingsSearchItem {
   description: string;
@@ -7,7 +7,7 @@ export interface SettingsSearchItem {
   id: string;
   keywords: string[];
   label: string;
-  scope: SettingsSearchScope;
+  scope: SettingsSurface;
 }
 
 export interface SettingsSearchCatalogOptions {
@@ -17,7 +17,7 @@ export interface SettingsSearchCatalogOptions {
    * personal never lists org/brand pages. Scope switching is the org/brand
    * switcher, same as the settings sidebar.
    */
-  scope: SettingsSearchScope;
+  scope: SettingsSurface;
   showCredits?: boolean;
 }
 
@@ -28,5 +28,5 @@ export interface SettingsSearchHrefContext {
 
 export interface SettingsSearchProps {
   className?: string;
-  scope: SettingsSearchScope;
+  scope: SettingsSurface;
 }

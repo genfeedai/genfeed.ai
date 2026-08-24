@@ -1,3 +1,4 @@
+import { SettingsSurface } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -94,7 +95,7 @@ describe('SettingsSearch', () => {
   });
 
   it('renders a settings searchbar with a cmd+k hint', () => {
-    render(<SettingsSearch scope="personal" />);
+    render(<SettingsSearch scope={SettingsSurface.PERSONAL} />);
 
     expect(screen.getByLabelText('Search settings')).toBeInTheDocument();
     expect(screen.getByText('⌘K')).toBeInTheDocument();
@@ -102,7 +103,7 @@ describe('SettingsSearch', () => {
 
   it('keeps personal search inside personal settings', async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch scope="personal" />);
+    render(<SettingsSearch scope={SettingsSurface.PERSONAL} />);
 
     await user.type(screen.getByLabelText('Search settings'), 'model');
 
@@ -117,7 +118,7 @@ describe('SettingsSearch', () => {
 
   it('lists organization pages only on organization settings', async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch scope="organization" />);
+    render(<SettingsSearch scope={SettingsSurface.ORGANIZATION} />);
 
     await user.type(screen.getByLabelText('Search settings'), 'model');
 
@@ -129,7 +130,7 @@ describe('SettingsSearch', () => {
 
   it('navigates to the scoped settings href', async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch scope="personal" />);
+    render(<SettingsSearch scope={SettingsSurface.PERSONAL} />);
 
     await user.type(screen.getByLabelText('Search settings'), 'chat defaults');
     await user.click(screen.getByRole('button', { name: /Chat Defaults/ }));
@@ -139,7 +140,7 @@ describe('SettingsSearch', () => {
 
   it('focuses the searchbar on cmd+k', async () => {
     const user = userEvent.setup();
-    render(<SettingsSearch scope="personal" />);
+    render(<SettingsSearch scope={SettingsSurface.PERSONAL} />);
 
     const input = screen.getByLabelText('Search settings');
     expect(input).not.toHaveFocus();

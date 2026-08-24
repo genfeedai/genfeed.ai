@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import type { SettingsSurface } from '@genfeedai/enums';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   Bot,
@@ -40,7 +41,7 @@ const BRAND_SETTINGS = {
 } as const;
 
 /** Which settings context the sidebar is rendering. */
-export type SettingsScope = 'personal' | 'organization' | 'brand';
+export type SettingsScope = SettingsSurface;
 
 export interface BuildSettingsMenuItemsParams {
   /**
