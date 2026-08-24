@@ -9,6 +9,10 @@ import {
   mergeReservedRateLimits,
 } from '@api/collections/outreach-campaigns/services/outreach-reply-slot.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import {
+  requireExecutableOutreachPair,
+  requireInactiveOutreachCapabilityChange,
+} from '@api/services/campaign/outreach-capability.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
@@ -280,6 +284,8 @@ export class OutreachCampaignsService {
       throw new BadRequestException('Organization context is required');
     }
 
+    requireExecutableOutreachPair({ campaignType, platform });
+
     const brandId = await this.assertBrandAccess(
       requestedBrandId,
       organizationId,
@@ -342,6 +348,23 @@ export class OutreachCampaignsService {
       status,
       ...configUpdates
     } = updateDto;
+
+    const nextPlatform = platform ?? existing.platform;
+    const nextCampaignType = campaignType ?? existing.campaignType;
+    const isCapabilityChange =
+      (platform !== undefined && platform !== existing.platform) ||
+      (campaignType !== undefined && campaignType !== existing.campaignType);
+
+    if (platform !== undefined || campaignType !== undefined) {
+      requireExecutableOutreachPair({
+        campaignType: nextCampaignType,
+        platform: nextPlatform,
+      });
+
+      if (isCapabilityChange && existing.status === CampaignStatus.ACTIVE) {
+        requireInactiveOutreachCapabilityChange();
+      }
+    }
 
     const credentialId =
       typeof requestedCredentialId === 'string'
@@ -445,6 +468,11 @@ export class OutreachCampaignsService {
     if (!campaign) {
       throw new NotFoundException(`Campaign ${id} not found`);
     }
+
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
 
     if (campaign.status === CampaignStatus.ACTIVE) {
       return campaign;

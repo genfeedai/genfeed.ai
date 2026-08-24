@@ -1,6 +1,10 @@
 'use client';
 
 import {
+  evaluateOutreachCapability,
+  isOutreachPairExecutable,
+} from '@api-types/contracts/outreach-capabilities.contract';
+import {
   ButtonVariant,
   CampaignPlatform,
   CampaignType,
@@ -11,6 +15,7 @@ import {
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { Button } from '@ui/primitives/button';
+import { type ReactNode, useId } from 'react';
 
 const platformOptions = [
   {
@@ -72,20 +77,15 @@ export default function OutreachCampaignWizardStep1({
         <p className="mb-2 text-sm font-medium">Platform</p>
         <div className="grid grid-cols-2 gap-4">
           {platformOptions.map((option) => (
-            <Button
+            <OutreachCapabilityOption
               key={option.value}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => onPlatformChange(option.value)}
-              className={`flex items-center gap-3 border p-4 transition-colors ${
-                platform === option.value
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <span className="text-2xl">{option.icon}</span>
-              <span className="font-medium">{option.label}</span>
-            </Button>
+              campaignType={campaignType}
+              icon={option.icon}
+              isSelected={platform === option.value}
+              label={option.label}
+              platform={option.value}
+              onSelect={() => onPlatformChange(option.value)}
+            />
           ))}
         </div>
       </div>
@@ -94,25 +94,81 @@ export default function OutreachCampaignWizardStep1({
         <p className="mb-2 text-sm font-medium">Campaign Type</p>
         <div className="space-y-3">
           {typeOptions.map((option) => (
-            <Button
+            <OutreachCapabilityOption
               key={option.value}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => onTypeChange(option.value)}
-              className={`flex w-full flex-col items-start border p-4 transition-colors ${
-                campaignType === option.value
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <span className="font-medium">{option.label}</span>
-              <span className="text-sm text-foreground/60">
-                {option.description}
-              </span>
-            </Button>
+              campaignType={option.value}
+              description={option.description}
+              isSelected={campaignType === option.value}
+              label={option.label}
+              layout="stack"
+              platform={platform}
+              onSelect={() => onTypeChange(option.value)}
+            />
           ))}
         </div>
       </div>
     </div>
+  );
+}
+
+function OutreachCapabilityOption({
+  campaignType,
+  description,
+  icon,
+  isSelected,
+  label,
+  layout = 'row',
+  onSelect,
+  platform,
+}: {
+  campaignType: CampaignType;
+  description?: string;
+  icon?: ReactNode;
+  isSelected: boolean;
+  label: string;
+  layout?: 'row' | 'stack';
+  onSelect: () => void;
+  platform: CampaignPlatform;
+}) {
+  const reasonId = useId();
+  const evaluation = evaluateOutreachCapability({
+    campaignType,
+    platform,
+  });
+  const isUnavailable = !isOutreachPairExecutable(evaluation);
+  const reason = isUnavailable ? evaluation.ui.body : undefined;
+
+  return (
+    <Button
+      aria-describedby={isUnavailable ? reasonId : undefined}
+      aria-disabled={isUnavailable || undefined}
+      aria-pressed={isSelected}
+      className={`flex items-start gap-3 border p-4 transition-colors ${
+        layout === 'stack' ? 'w-full flex-col' : 'items-center'
+      } ${
+        isSelected
+          ? 'border-primary bg-primary/10'
+          : 'border-border hover:border-primary/50'
+      } ${isUnavailable ? 'cursor-not-allowed opacity-50' : ''}`}
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      onClick={() => {
+        if (isUnavailable) {
+          return;
+        }
+        onSelect();
+      }}
+    >
+      {icon ? <span className="text-2xl">{icon}</span> : null}
+      <span className="font-medium">{label}</span>
+      {reason || description ? (
+        <span
+          className="text-sm text-foreground/60"
+          id={isUnavailable ? reasonId : undefined}
+        >
+          {reason ?? description}
+        </span>
+      ) : null}
+    </Button>
   );
 }

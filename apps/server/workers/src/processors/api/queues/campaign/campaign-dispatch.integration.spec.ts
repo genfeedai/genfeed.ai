@@ -2,7 +2,11 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
-import { CampaignStatus, CampaignType } from '@genfeedai/enums';
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/enums';
 import type { CampaignProcessingJobData } from '@genfeedai/queue-contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -16,10 +20,11 @@ describe('outreach campaign dispatch integration', () => {
   const organizationId = testId('organization');
   const campaignId = testId('campaign');
   const campaign = {
-    campaignType: CampaignType.REPLY,
+    campaignType: CampaignType.MANUAL,
     id: campaignId,
     isDeleted: false,
     organizationId,
+    platform: CampaignPlatform.TWITTER,
     status: CampaignStatus.ACTIVE,
   };
 

@@ -5,7 +5,11 @@ import type { OutreachCampaignDocument } from '@api/collections/outreach-campaig
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
-import { CampaignStatus } from '@genfeedai/enums';
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -37,6 +41,24 @@ describe('OutreachCampaignsController', () => {
     start: vi.fn(),
   };
 
+  const mockCampaignTargetsService = {
+    create: vi.fn(),
+    createManyForCampaign: vi.fn(),
+    findById: vi.fn(),
+    findExistingExternalIds: vi.fn(),
+  };
+
+  const mockCampaignDiscoveryService = {
+    addDiscoveredTargetsToCampaign: vi.fn(),
+    discover: vi.fn(),
+    discoverTargets: vi.fn(),
+  };
+
+  const mockCampaignExecutorService = {
+    execute: vi.fn(),
+    previewReply: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OutreachCampaignsController],
@@ -54,9 +76,18 @@ describe('OutreachCampaignsController', () => {
             warn: vi.fn(),
           },
         },
-        { provide: CampaignTargetsService, useValue: { create: vi.fn() } },
-        { provide: CampaignDiscoveryService, useValue: { discover: vi.fn() } },
-        { provide: CampaignExecutorService, useValue: { execute: vi.fn() } },
+        {
+          provide: CampaignTargetsService,
+          useValue: mockCampaignTargetsService,
+        },
+        {
+          provide: CampaignDiscoveryService,
+          useValue: mockCampaignDiscoveryService,
+        },
+        {
+          provide: CampaignExecutorService,
+          useValue: mockCampaignExecutorService,
+        },
       ],
     }).compile();
 
@@ -215,6 +246,84 @@ describe('OutreachCampaignsController', () => {
         mockUser.organizationId,
         mockUser.brandId,
       );
+    });
+  });
+
+  describe('capability guards', () => {
+    const unavailableCampaign = {
+      campaignType: CampaignType.MANUAL,
+      id: 'campaign_1',
+      organizationId,
+      platform: CampaignPlatform.REDDIT,
+    } as unknown as OutreachCampaignDocument;
+
+    it('rejects adding targets to an unavailable pair before persistence', async () => {
+      mockOutreachCampaignsService.findOneById.mockResolvedValue(
+        unavailableCampaign,
+      );
+
+      await expect(
+        controller.addTargets('campaign_1', mockUser, {
+          urls: ['https://x.com/user/status/1'],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(
+        mockCampaignTargetsService.findExistingExternalIds,
+      ).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects a target URL whose platform disagrees with the campaign', async () => {
+      mockOutreachCampaignsService.findOneById.mockResolvedValue({
+        campaignType: CampaignType.MANUAL,
+        id: 'campaign_1',
+        organizationId,
+        platform: CampaignPlatform.TWITTER,
+      });
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set(),
+      );
+
+      await expect(
+        controller.addTargets('campaign_1', mockUser, {
+          urls: ['https://reddit.com/r/test/comments/abc123/title'],
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'outreach_capability.target_platform_mismatch',
+        }),
+      });
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects discovery on an unavailable pair before provider access', async () => {
+      mockOutreachCampaignsService.findOneById.mockResolvedValue(
+        unavailableCampaign,
+      );
+
+      await expect(
+        controller.discoverTargets('campaign_1', mockUser, { limit: 10 }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(
+        mockCampaignDiscoveryService.discoverTargets,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects preview on an unavailable pair before generation', async () => {
+      mockOutreachCampaignsService.findOneById.mockResolvedValue(
+        unavailableCampaign,
+      );
+
+      await expect(
+        controller.previewReply('campaign_1', 'target_1', mockUser),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockCampaignTargetsService.findById).not.toHaveBeenCalled();
+      expect(mockCampaignExecutorService.previewReply).not.toHaveBeenCalled();
     });
   });
 });

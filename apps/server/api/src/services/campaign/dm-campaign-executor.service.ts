@@ -18,9 +18,11 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { resolveCampaignScope } from '@api/services/campaign/campaign-scope.util';
+import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreach-capability.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import { getOutreachCapabilityRefusal } from '@api-types/contracts/outreach-capabilities.contract';
 import {
   CampaignSkipReason,
   CampaignStatus,
@@ -70,6 +72,20 @@ export class DmCampaignExecutorService {
     };
 
     try {
+      if (
+        !isCampaignOutreachPairExecutable({
+          campaignType: campaign.campaignType,
+          platform: campaign.platform,
+        })
+      ) {
+        this.loggerService.log(`${url} skipped unavailable pair`, {
+          campaignId,
+          campaignType: campaign.campaignType,
+          platform: campaign.platform,
+        });
+        return results;
+      }
+
       if (!campaign.organizationId) {
         this.loggerService.error(`${url} failed`, {
           campaignId,
@@ -136,6 +152,17 @@ export class DmCampaignExecutorService {
     const targetId = this.getTargetId(target);
 
     try {
+      const refusal = getOutreachCapabilityRefusal({
+        campaignType: campaign.campaignType,
+        platform: campaign.platform,
+      });
+      if (refusal) {
+        return {
+          error: refusal.message,
+          success: false,
+        };
+      }
+
       if (campaign.status !== CampaignStatus.ACTIVE) {
         if (campaign.organizationId) {
           await this.campaignTargetsService.markAsSkipped(

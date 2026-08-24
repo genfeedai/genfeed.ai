@@ -1,5 +1,6 @@
 import OutreachCampaignWizard from '@pages/agents/campaigns/OutreachCampaignWizard';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -38,8 +39,58 @@ describe('OutreachCampaignWizard', () => {
     vi.clearAllMocks();
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(<OutreachCampaignWizard />);
-    expect(container.firstChild).toBeInTheDocument();
+  it('enables verified X pairs and exposes stable reasons for unavailable ones', async () => {
+    const user = userEvent.setup();
+    render(<OutreachCampaignWizard />);
+
+    const twitter = screen.getByRole('button', { name: /Twitter \/ X/i });
+    const reddit = screen.getByRole('button', { name: /Reddit/i });
+    const instagram = screen.getByRole('button', { name: /Instagram/i });
+    const scheduled = screen.getByRole('button', { name: /Scheduled Blast/i });
+    const dm = screen.getByRole('button', { name: /DM Outreach/i });
+
+    expect(twitter).toHaveAttribute('aria-pressed', 'true');
+    expect(twitter).not.toHaveAttribute('aria-disabled');
+    expect(reddit).toHaveAttribute('aria-disabled', 'true');
+    expect(instagram).toHaveAttribute('aria-disabled', 'true');
+    expect(scheduled).toHaveAttribute('aria-disabled', 'true');
+    expect(reddit).toHaveAccessibleDescription(
+      /Reddit and Instagram outreach are not available yet/i,
+    );
+    expect(scheduled).toHaveAccessibleDescription(
+      /Scheduled Blast is not available/i,
+    );
+
+    await user.click(reddit);
+    expect(twitter).toHaveAttribute('aria-pressed', 'true');
+    expect(reddit).not.toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(dm);
+    expect(dm).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: /^Manual/i }),
+    ).not.toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('keeps unavailable platform choices keyboard-accessible', () => {
+    render(<OutreachCampaignWizard />);
+    const reddit = screen.getByRole('button', { name: /Reddit/i });
+
+    expect(reddit).not.toBeDisabled();
+    reddit.focus();
+    expect(reddit).toHaveFocus();
+  });
+
+  it('defaults to an executable X public-reply pair', () => {
+    render(<OutreachCampaignWizard />);
+
+    expect(
+      screen.getByRole('button', { name: /Twitter \/ X/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Manual/i })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: /Next/i })).not.toBeDisabled();
   });
 });

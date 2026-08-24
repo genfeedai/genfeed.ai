@@ -11,10 +11,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 
 type OutreachCampaignRow = {
+  campaignType?: string;
   config: Record<string, unknown>;
   id: string;
   isDeleted: boolean;
   organizationId: string;
+  platform?: string;
   status: string;
 };
 
@@ -80,6 +82,7 @@ describe('OutreachCampaignsService', () => {
   ): OutreachCampaignRow => {
     const { rateLimits, config, ...rest } = overrides;
     return {
+      campaignType: CampaignType.MANUAL,
       config: {
         rateLimits: {
           currentDayCount: 0,
@@ -97,6 +100,7 @@ describe('OutreachCampaignsService', () => {
       id: campaignId,
       isDeleted: false,
       organizationId,
+      platform: CampaignPlatform.TWITTER,
       status: CampaignStatus.ACTIVE,
       ...rest,
     };
@@ -161,6 +165,117 @@ describe('OutreachCampaignsService', () => {
         userId: 'user-owned',
       }),
     });
+  });
+
+  it('rejects an unavailable create pair before tenant lookups or persistence', async () => {
+    const { prisma, service } = makeService();
+
+    await expect(
+      service.createScoped(
+        {
+          campaignType: CampaignType.MANUAL,
+          credentialId: 'credential-owned',
+          label: 'Campaign',
+          platform: CampaignPlatform.REDDIT,
+        },
+        {
+          brandId: 'brand-owned',
+          organizationId: 'org-owned',
+          userId: 'user-owned',
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+    expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+    expect(prisma.outreachCampaign.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects Scheduled Blast creates before persistence', async () => {
+    const { prisma, service } = makeService();
+
+    await expect(
+      service.createScoped(
+        {
+          campaignType: CampaignType.SCHEDULED_BLAST,
+          credentialId: 'credential-owned',
+          label: 'Campaign',
+          platform: CampaignPlatform.TWITTER,
+        },
+        { organizationId: 'org-owned' },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'outreach_capability.unavailable',
+      }),
+    });
+    expect(prisma.outreachCampaign.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects activating an unavailable historical campaign before status mutation', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findFirst.mockResolvedValue(
+      makeRow({
+        campaignType: CampaignType.MANUAL,
+        platform: CampaignPlatform.INSTAGRAM,
+        status: CampaignStatus.DRAFT,
+      }),
+    );
+
+    await expect(
+      service.start(campaignId, organizationId),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects capability-changing updates on an active campaign', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findFirst.mockResolvedValue(
+      makeRow({
+        campaignType: CampaignType.MANUAL,
+        platform: CampaignPlatform.TWITTER,
+        status: CampaignStatus.ACTIVE,
+      }),
+    );
+
+    await expect(
+      service.patch(
+        campaignId,
+        { campaignType: CampaignType.DM_OUTREACH },
+        organizationId,
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'outreach_capability.active_configuration_locked',
+      }),
+    });
+    expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+    expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows non-capability updates on a historical unavailable campaign', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findFirst
+      .mockResolvedValueOnce(
+        makeRow({
+          campaignType: CampaignType.MANUAL,
+          platform: CampaignPlatform.REDDIT,
+          status: CampaignStatus.DRAFT,
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeRow({
+          campaignType: CampaignType.MANUAL,
+          config: { label: 'Renamed' },
+          platform: CampaignPlatform.REDDIT,
+          status: CampaignStatus.DRAFT,
+        }),
+      );
+    prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.patch(campaignId, { label: 'Renamed' }, organizationId);
+
+    expect(prisma.outreachCampaign.updateMany).toHaveBeenCalled();
   });
 
   it('rejects credentials outside the authenticated organization and brand scope', async () => {
