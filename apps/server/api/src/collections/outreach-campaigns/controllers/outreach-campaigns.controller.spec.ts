@@ -33,6 +33,7 @@ describe('OutreachCampaignsController', () => {
     findOneById: vi.fn(),
     patch: vi.fn(),
     pause: vi.fn(),
+    remove: vi.fn(),
     start: vi.fn(),
   };
 
@@ -134,6 +135,31 @@ describe('OutreachCampaignsController', () => {
         });
       }
     });
+
+    it('ignores deleted-row filters from the client', () => {
+      expect(
+        controller.buildFindAllQuery(mockUser, {
+          isDeleted: true,
+        } as never),
+      ).toEqual(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            organizationId,
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('buildFindOneQuery', () => {
+    it('binds detail reads to the session organization', () => {
+      expect(controller.buildFindOneQuery(mockUser, 'campaign_1')).toEqual({
+        id: 'campaign_1',
+        isDeleted: false,
+        organizationId,
+      });
+    });
   });
 
   describe('patchCampaign', () => {
@@ -168,6 +194,27 @@ describe('OutreachCampaignsController', () => {
 
       expect(mockOutreachCampaignsService.pause).not.toHaveBeenCalled();
       expect(mockOutreachCampaignsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('patches non-status fields with authenticated organization context', async () => {
+      mockOutreachCampaignsService.patch.mockResolvedValue({
+        id: 'campaign_1',
+        label: 'Renamed campaign',
+      });
+
+      await controller.patchCampaign(
+        {} as never,
+        'campaign_1',
+        mockUser as never,
+        { label: 'Renamed campaign' },
+      );
+
+      expect(mockOutreachCampaignsService.patch).toHaveBeenCalledWith(
+        'campaign_1',
+        { label: 'Renamed campaign' },
+        mockUser.organizationId,
+        mockUser.brandId,
+      );
     });
   });
 });

@@ -31,7 +31,6 @@ function createJob(
 describe('CampaignProcessor', () => {
   let processor: CampaignProcessor;
   const campaignsService = {
-    findOne: vi.fn(),
     findOneById: vi.fn(),
   };
   const campaignExecutorService = {
@@ -68,7 +67,7 @@ describe('CampaignProcessor', () => {
         status: CampaignStatus.ACTIVE,
       };
 
-      campaignsService.findOne.mockResolvedValue(campaign);
+      campaignsService.findOneById.mockResolvedValue(campaign);
       campaignExecutorService.processPendingTargets.mockResolvedValue({
         failed: 0,
         processed: 1,
@@ -80,11 +79,10 @@ describe('CampaignProcessor', () => {
         createJob({ campaignId, organizationId }),
       );
 
-      expect(campaignsService.findOne).toHaveBeenCalledWith({
-        id: campaignId,
-        isDeleted: false,
+      expect(campaignsService.findOneById).toHaveBeenCalledWith(
+        campaignId,
         organizationId,
-      });
+      );
       expect(
         campaignExecutorService.processPendingTargets,
       ).toHaveBeenCalledWith(campaign, 10);
@@ -98,7 +96,7 @@ describe('CampaignProcessor', () => {
     it('skips a paused campaign before generation or provider calls', async () => {
       const campaignId = testId('campaign');
       const organizationId = testId('organization');
-      campaignsService.findOne.mockResolvedValue({
+      campaignsService.findOneById.mockResolvedValue({
         id: campaignId,
         isDeleted: false,
         organizationId,
@@ -127,17 +125,16 @@ describe('CampaignProcessor', () => {
     it('skips a deleted campaign before reading targets', async () => {
       const campaignId = testId('campaign');
       const organizationId = testId('organization');
-      campaignsService.findOne.mockResolvedValue(null);
+      campaignsService.findOneById.mockResolvedValue(null);
 
       const result = await processor.process(
         createJob({ campaignId, organizationId }, 'job-3'),
       );
 
-      expect(campaignsService.findOne).toHaveBeenCalledWith({
-        id: campaignId,
-        isDeleted: false,
+      expect(campaignsService.findOneById).toHaveBeenCalledWith(
+        campaignId,
         organizationId,
-      });
+      );
       expect(result.skipped).toBe(1);
       expect(
         campaignExecutorService.processPendingTargets,
@@ -147,7 +144,7 @@ describe('CampaignProcessor', () => {
     it('fails closed on a cross-organization job before reading targets', async () => {
       const campaignId = testId('campaign');
       const organizationId = testId('organization');
-      campaignsService.findOne.mockResolvedValue({
+      campaignsService.findOneById.mockResolvedValue({
         id: campaignId,
         isDeleted: false,
         organizationId: testId('other-org'),
@@ -170,7 +167,7 @@ describe('CampaignProcessor', () => {
     it('rethrows transient failures so retries preserve target-level claims', async () => {
       const campaignId = testId('campaign');
       const organizationId = testId('organization');
-      campaignsService.findOne.mockRejectedValue(
+      campaignsService.findOneById.mockRejectedValue(
         new Error('Service unavailable'),
       );
 

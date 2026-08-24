@@ -38,9 +38,11 @@ describe('DmCampaignExecutorService', () => {
   };
 
   const mockCampaignTargetsService = {
+    claimForProcessing: vi.fn(),
     getPendingTargets: vi.fn(),
     markAsFailed: vi.fn(),
     markAsProcessing: vi.fn(),
+    markAsSent: vi.fn(),
     markAsSkipped: vi.fn(),
     updateOne: vi.fn(),
   };
@@ -131,6 +133,9 @@ describe('DmCampaignExecutorService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockCampaignTargetsService.claimForProcessing.mockResolvedValue({
+      id: targetId,
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -179,6 +184,7 @@ describe('DmCampaignExecutorService', () => {
       expect(result.successful).toBe(0);
       expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         CampaignSkipReason.CAMPAIGN_PAUSED,
       );
     });
@@ -194,6 +200,7 @@ describe('DmCampaignExecutorService', () => {
       expect(result.skipped).toBe(1);
       expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         CampaignSkipReason.RATE_LIMITED,
       );
     });
@@ -210,6 +217,7 @@ describe('DmCampaignExecutorService', () => {
       expect(result.failed).toBe(1);
       expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         'Credential not found',
       );
     });
@@ -279,6 +287,7 @@ describe('DmCampaignExecutorService', () => {
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         'Credential not found',
       );
     });
@@ -293,10 +302,14 @@ describe('DmCampaignExecutorService', () => {
 
       const result = await service.processPendingDmTargets(campaign, 10);
 
-      expect(result.failed).toBe(1);
+      expect(result.failed).toBe(0);
+      expect(result.processed).toBe(0);
+      expect(
+        mockCampaignTargetsService.getPendingTargets,
+      ).not.toHaveBeenCalled();
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
       expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
-      expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).not.toHaveBeenCalled();
     });
 
     it('should resolve username to userId when recipientUserId is missing', async () => {
@@ -322,6 +335,7 @@ describe('DmCampaignExecutorService', () => {
       );
       expect(mockCampaignTargetsService.updateOne).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         expect.objectContaining({ recipientUserId: 'resolved-uid' }),
       );
     });
@@ -339,7 +353,9 @@ describe('DmCampaignExecutorService', () => {
       expect(result.skipped).toBe(1);
       expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         CampaignSkipReason.USER_NOT_FOUND,
+        CampaignTargetStatus.PROCESSING,
       );
     });
 
@@ -358,6 +374,7 @@ describe('DmCampaignExecutorService', () => {
       expect(result.failed).toBe(1);
       expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         'No recipient username or userId',
       );
     });
@@ -377,16 +394,16 @@ describe('DmCampaignExecutorService', () => {
 
       expect(result.successful).toBe(1);
       expect(result.processed).toBe(1);
-      expect(mockCampaignTargetsService.updateOne).toHaveBeenCalledWith(
+      expect(mockCampaignTargetsService.markAsSent).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         expect.objectContaining({
           dmText: 'Hi targetuser, check this out!',
-          status: CampaignTargetStatus.SENT,
         }),
       );
       expect(
         mockOutreachCampaignsService.incrementDmCounter,
-      ).toHaveBeenCalledWith(campaignId.toString());
+      ).toHaveBeenCalledWith(campaignId.toString(), orgId);
     });
 
     it('should use template when AI generation is disabled', async () => {
@@ -408,8 +425,9 @@ describe('DmCampaignExecutorService', () => {
 
       expect(result.successful).toBe(1);
       expect(mockReplyGenerationService.generateDm).not.toHaveBeenCalled();
-      expect(mockCampaignTargetsService.updateOne).toHaveBeenCalledWith(
+      expect(mockCampaignTargetsService.markAsSent).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         expect.objectContaining({
           dmText: 'Hey targetuser, grab 50% off at https://link.com',
         }),
@@ -433,7 +451,9 @@ describe('DmCampaignExecutorService', () => {
       expect(result.skipped).toBe(1);
       expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         CampaignSkipReason.DM_NOT_ALLOWED,
+        CampaignTargetStatus.PROCESSING,
       );
     });
 
@@ -454,6 +474,7 @@ describe('DmCampaignExecutorService', () => {
       expect(result.failed).toBe(1);
       expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         'Internal server error',
         1,
       );

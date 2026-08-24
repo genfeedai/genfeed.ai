@@ -28,8 +28,7 @@ describe('outreach campaign dispatch integration', () => {
     getJob: vi.fn(),
   };
   const mockOutreachCampaignsService = {
-    find: vi.fn(),
-    findOne: vi.fn(),
+    findActiveForDispatch: vi.fn(),
     findOneById: vi.fn(),
   };
   const mockCampaignExecutorService = {
@@ -60,8 +59,10 @@ describe('outreach campaign dispatch integration', () => {
         id: options.jobId,
       }),
     );
-    mockOutreachCampaignsService.find.mockResolvedValue([campaign]);
-    mockOutreachCampaignsService.findOne.mockResolvedValue(campaign);
+    mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+      campaign,
+    ]);
+    mockOutreachCampaignsService.findOneById.mockResolvedValue(campaign);
     mockCampaignExecutorService.processPendingTargets.mockResolvedValue({
       failed: 0,
       processed: 1,
@@ -120,11 +121,10 @@ describe('outreach campaign dispatch integration', () => {
 
     const result = await processor.process(job);
 
-    expect(mockOutreachCampaignsService.findOne).toHaveBeenCalledWith({
-      id: campaignId,
-      isDeleted: false,
+    expect(mockOutreachCampaignsService.findOneById).toHaveBeenCalledWith(
+      campaignId,
       organizationId,
-    });
+    );
     expect(
       mockCampaignExecutorService.processPendingTargets,
     ).toHaveBeenCalledWith(campaign, 10);

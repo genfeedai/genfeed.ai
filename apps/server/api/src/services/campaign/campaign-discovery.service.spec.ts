@@ -34,7 +34,7 @@ describe('CampaignDiscoveryService', () => {
   };
 
   const mockCampaignTargetsService = {
-    createMany: vi.fn(),
+    createManyForCampaign: vi.fn(),
     findExistingExternalIds: vi.fn(),
   };
 
@@ -367,7 +367,9 @@ describe('CampaignDiscoveryService', () => {
           targetType: CampaignTargetType.TWEET,
         },
       ];
-      mockCampaignTargetsService.createMany.mockResolvedValue(targets.length);
+      mockCampaignTargetsService.createManyForCampaign.mockResolvedValue(
+        targets.length,
+      );
 
       const campaign = makeCampaign();
       const count = await service.addDiscoveredTargetsToCampaign(
@@ -376,7 +378,11 @@ describe('CampaignDiscoveryService', () => {
       );
 
       expect(count).toBe(1);
-      expect(mockCampaignTargetsService.createMany).toHaveBeenCalledWith(
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).toHaveBeenCalledWith(
+        campaignId,
+        orgId,
         expect.arrayContaining([
           expect.objectContaining({ externalId: 'ext1' }),
         ]),
@@ -402,13 +408,17 @@ describe('CampaignDiscoveryService', () => {
           targetType: CampaignTargetType.TWEET,
         },
       ];
-      mockCampaignTargetsService.createMany.mockResolvedValue(targets);
+      mockCampaignTargetsService.createManyForCampaign.mockResolvedValue(
+        targets.length,
+      );
 
       const campaign = makeCampaign();
 
       await service.addDiscoveredTargetsToCampaign(campaign, targets);
 
-      expect(mockCampaignTargetsService.createMany).toHaveBeenCalledWith([
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).toHaveBeenCalledWith(campaignId, orgId, [
         expect.objectContaining({ organizationId: orgId }),
       ]);
     });
@@ -421,11 +431,13 @@ describe('CampaignDiscoveryService', () => {
       await expect(
         service.addDiscoveredTargetsToCampaign(campaign, []),
       ).rejects.toThrow();
-      expect(mockCampaignTargetsService.createMany).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.createManyForCampaign,
+      ).not.toHaveBeenCalled();
     });
 
     it('should throw when createMany fails', async () => {
-      mockCampaignTargetsService.createMany.mockRejectedValue(
+      mockCampaignTargetsService.createManyForCampaign.mockRejectedValue(
         new Error('Insert failed'),
       );
 

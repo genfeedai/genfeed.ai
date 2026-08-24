@@ -69,11 +69,10 @@ export class CampaignProcessor extends WorkerHost {
     try {
       await job.updateProgress(10);
 
-      const campaign = await this.campaignsService.findOne({
-        id: campaignId,
-        isDeleted: false,
+      const campaign = await this.campaignsService.findOneById(
+        campaignId,
         organizationId,
-      });
+      );
 
       const ineligibleReason = this.ineligibleReason(
         campaign,

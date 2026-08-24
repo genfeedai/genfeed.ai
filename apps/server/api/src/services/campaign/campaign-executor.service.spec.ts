@@ -42,6 +42,7 @@ describe('CampaignExecutorService', () => {
   };
 
   const mockCampaignTargetsService = {
+    claimForProcessing: vi.fn(),
     getPendingTargets: vi.fn(),
     markAsFailed: vi.fn(),
     markAsProcessing: vi.fn(),
@@ -140,6 +141,9 @@ describe('CampaignExecutorService', () => {
     mockOutreachCampaignsService.reserveReplySlot.mockResolvedValue({
       reserved: true,
     });
+    mockCampaignTargetsService.claimForProcessing.mockResolvedValue({
+      id: targetId,
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -188,13 +192,10 @@ describe('CampaignExecutorService', () => {
 
       expect(result.success).toBe(false);
       expect(result.skipReason).toBe(CampaignSkipReason.CAMPAIGN_PAUSED);
-      expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
-        targetId.toString(),
-        CampaignSkipReason.CAMPAIGN_PAUSED,
-      );
+      expect(mockCampaignTargetsService.markAsSkipped).not.toHaveBeenCalled();
       expect(
         mockOutreachCampaignsService.incrementSkippedCounter,
-      ).toHaveBeenCalledWith(campaignId.toString());
+      ).not.toHaveBeenCalled();
       expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
       expect(
         mockOutreachCampaignsService.reserveReplySlot,
@@ -269,11 +270,12 @@ describe('CampaignExecutorService', () => {
       expect(result.success).toBe(true);
       expect(result.replyText).toBe('Great point!');
       expect(result.replyExternalId).toBe('reply123');
-      expect(mockCampaignTargetsService.markAsProcessing).toHaveBeenCalledWith(
-        targetId.toString(),
-      );
+      expect(
+        mockCampaignTargetsService.claimForProcessing,
+      ).toHaveBeenCalledWith(targetId.toString(), orgId);
       expect(mockCampaignTargetsService.markAsReplied).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         expect.objectContaining({ replyText: 'Great point!' }),
       );
       expect(
@@ -324,6 +326,7 @@ describe('CampaignExecutorService', () => {
       expect(result.error).toBe('Rate limited by Twitter');
       expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         'Rate limited by Twitter',
         1,
       );
@@ -368,7 +371,9 @@ describe('CampaignExecutorService', () => {
       ).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsSkipped).toHaveBeenCalledWith(
         targetId.toString(),
+        orgId,
         CampaignSkipReason.RATE_LIMITED,
+        expect.anything(),
       );
     });
 
@@ -520,7 +525,7 @@ describe('CampaignExecutorService', () => {
         mockSystemWorkflowProvenanceService.runAction,
       ).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
-      expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).not.toHaveBeenCalled();
     });
 
     it('should return error for unsupported platform (reddit)', async () => {
@@ -573,6 +578,11 @@ describe('CampaignExecutorService', () => {
 
       const results = await service.processPendingTargets(campaign, 10);
 
+      expect(mockCampaignTargetsService.getPendingTargets).toHaveBeenCalledWith(
+        campaignId,
+        orgId,
+        10,
+      );
       expect(results.processed).toBe(2);
       expect(results.successful).toBe(2);
       expect(results.failed).toBe(0);

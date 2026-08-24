@@ -6,7 +6,6 @@
  */
 
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { CampaignStatus } from '@genfeedai/enums';
 import {
   CAMPAIGN_PROCESSING_QUEUE,
   CampaignProcessingJobData,
@@ -86,11 +85,8 @@ export class CampaignQueueService implements OnModuleInit {
     }
 
     try {
-      const campaigns = await this.campaignsService.find({
-        isDeleted: false,
-        organizationId,
-        status: CampaignStatus.ACTIVE,
-      });
+      const campaigns =
+        await this.campaignsService.findActiveForDispatch(organizationId);
 
       this.logger.log(`${url} starting`, {
         campaignCount: campaigns.length,

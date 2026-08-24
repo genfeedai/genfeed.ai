@@ -9,6 +9,7 @@ import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/serv
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -30,6 +31,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -89,10 +91,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
 
   public buildFindAllQuery(user: User, query: OutreachCampaignsQueryDto) {
     const match: Record<string, unknown> = {
-      isDeleted: query.isDeleted ?? false,
+      isDeleted: false,
     };
 
     CollectionFilterUtil.applyAuthorizedTenantMatch(match, query, user);
+    match.isDeleted = false;
 
     if (query.platform) {
       match.platform = query.platform;
@@ -130,10 +133,18 @@ export class OutreachCampaignsController extends BaseCRUDController<
     );
 
     if (!campaign) {
-      throw new BadRequestException('Campaign not found');
+      throw new NotFoundException('Campaign', id);
     }
 
     return serializeSingle(request, OutreachCampaignSerializer, campaign);
+  }
+
+  public buildFindOneQuery(user: User, id: string): Record<string, unknown> {
+    return {
+      id,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    };
   }
 
   public canUserModifyEntity(
@@ -206,7 +217,33 @@ export class OutreachCampaignsController extends BaseCRUDController<
       return serializeSingle(request, OutreachCampaignSerializer, data);
     }
 
-    return super.patch(request, user, id, updateDto);
+    const data = await this.outreachCampaignsService.patch(
+      id,
+      updateDto,
+      user.organizationId,
+      user.brandId,
+    );
+    return serializeSingle(request, OutreachCampaignSerializer, data);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Soft-delete a campaign' })
+  async remove(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const data = await this.outreachCampaignsService.remove(
+      id,
+      user.organizationId,
+      user.brandId,
+    );
+
+    if (!data) {
+      throw new NotFoundException('Campaign', id);
+    }
+
+    return serializeSingle(request, OutreachCampaignSerializer, data);
   }
 
   /**
@@ -229,7 +266,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     );
 
     if (!campaign) {
-      throw new BadRequestException('Campaign not found');
+      throw new NotFoundException('Campaign', id);
     }
 
     if (body.targetType === CampaignTargetType.DM_RECIPIENT) {
@@ -272,9 +309,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
     }
 
     const existingExternalIds =
-      await this.campaignTargetsService.findExistingExternalIds(id, [
-        ...parsedByExternalId.keys(),
-      ]);
+      await this.campaignTargetsService.findExistingExternalIds(
+        id,
+        campaign.organizationId,
+        [...parsedByExternalId.keys()],
+      );
 
     const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
 
@@ -295,11 +334,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
       });
     }
 
-    const added = await this.campaignTargetsService.createMany(targets);
-
-    if (added > 0) {
-      await this.outreachCampaignsService.incrementTargetsCount(id, added);
-    }
+    const added = await this.campaignTargetsService.createManyForCampaign(
+      id,
+      campaign.organizationId,
+      targets,
+    );
 
     return { added, skipped };
   }
@@ -335,6 +374,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     const existingExternalIds =
       await this.campaignTargetsService.findExistingExternalIds(
         id,
+        campaign.organizationId,
         normalizedUsernames,
       );
 
@@ -359,11 +399,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
       });
     }
 
-    const added = await this.campaignTargetsService.createMany(targets);
-
-    if (added > 0) {
-      await this.outreachCampaignsService.incrementTargetsCount(id, added);
-    }
+    const added = await this.campaignTargetsService.createManyForCampaign(
+      id,
+      campaign.organizationId,
+      targets,
+    );
 
     return { added, skipped };
   }
@@ -421,8 +461,12 @@ export class OutreachCampaignsController extends BaseCRUDController<
     const analytics = await this.outreachCampaignsService.getAnalytics(
       id,
       user.organizationId,
+      user.brandId,
     );
-    const targetStats = await this.campaignTargetsService.getTargetStats(id);
+    const targetStats = await this.campaignTargetsService.getTargetStats(
+      id,
+      user.organizationId,
+    );
 
     return {
       ...analytics,
@@ -447,10 +491,13 @@ export class OutreachCampaignsController extends BaseCRUDController<
     );
 
     if (!campaign) {
-      throw new BadRequestException('Campaign not found');
+      throw new NotFoundException('Campaign', id);
     }
 
-    return this.campaignTargetsService.findByCampaign(id);
+    return this.campaignTargetsService.findByCampaign(
+      id,
+      campaign.organizationId,
+    );
   }
 
   /**
@@ -472,10 +519,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
       user.organizationId,
+      user.brandId,
     );
 
     if (!campaign) {
-      throw new BadRequestException('Campaign not found');
+      throw new NotFoundException('Campaign', id);
     }
 
     if (!campaign.discoveryConfig) {
@@ -497,7 +545,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
           campaign,
           targets,
         );
-      await this.outreachCampaignsService.incrementTargetsCount(id, added);
     }
 
     return {
@@ -525,20 +572,21 @@ export class OutreachCampaignsController extends BaseCRUDController<
     const campaign = await this.outreachCampaignsService.findOneById(
       id,
       user.organizationId,
+      user.brandId,
     );
 
     if (!campaign) {
-      throw new BadRequestException('Campaign not found');
+      throw new NotFoundException('Campaign', id);
     }
 
-    const target = await this.campaignTargetsService.findById(targetId);
+    const target = await this.campaignTargetsService.findById(
+      targetId,
+      campaign.organizationId,
+      id,
+    );
 
     if (!target) {
-      throw new BadRequestException('Target not found');
-    }
-
-    if (!target.campaign || target.campaign.toString() !== id) {
-      throw new BadRequestException('Target does not belong to this campaign');
+      throw new NotFoundException('CampaignTarget', targetId);
     }
 
     const replyText = await this.campaignExecutorService.previewReply(

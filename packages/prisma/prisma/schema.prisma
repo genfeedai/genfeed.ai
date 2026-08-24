@@ -4806,7 +4806,9 @@ model OutreachCampaign {
   campaignType String?
   isActive     Boolean @default(true)
 
+  @@unique([id, organizationId], map: "outreach_campaigns_id_organizationId_key")
   @@index([organizationId, isDeleted])
+  @@index([organizationId, status, isDeleted], map: "outreach_campaigns_organizationId_status_isDeleted_idx")
   @@index([brandId, isDeleted])
   @@index([credentialId, isDeleted])
   @@map("outreach_campaigns")
@@ -4817,7 +4819,7 @@ model CampaignTarget {
   organizationId  String
   organization    Organization     @relation(fields: [organizationId], references: [id])
   campaignId      String
-  campaign        OutreachCampaign @relation(fields: [campaignId], references: [id])
+  campaign        OutreachCampaign @relation(fields: [campaignId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   // String column; canonical casing is the SCREAMING CampaignTargetStatus domain vocabulary (#2543).
   status          String           @default("PENDING")
   data            Json             @default("{}")
@@ -4836,6 +4838,8 @@ model CampaignTarget {
 
   @@index([campaignId, status])
   @@index([campaignId, createdAt])
+  @@index([organizationId, campaignId, status, isDeleted], map: "campaign_targets_org_campaign_status_deleted_idx")
+  @@index([organizationId, status, isDeleted, scheduledAt], map: "campaign_targets_org_status_deleted_scheduled_idx")
   @@map("campaign_targets")
 }
 

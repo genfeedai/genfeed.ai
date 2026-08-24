@@ -8,6 +8,7 @@ import {
   CampaignType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 
 type OutreachCampaignRow = {
   config: Record<string, unknown>;
@@ -214,28 +215,89 @@ describe('OutreachCampaignsService', () => {
     expect(campaign?.label).toBe('Campaign');
   });
 
-  it('implements BaseCRUD-compatible remove as a soft delete', async () => {
+  it('implements BaseCRUD-compatible remove as a scoped soft delete', async () => {
     const { prisma, service } = makeService();
-    prisma.outreachCampaign.findFirst.mockResolvedValue({
-      config: {},
-      id: 'campaign-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-      status: 'draft',
-    });
-    prisma.outreachCampaign.update.mockResolvedValue({
-      config: {},
-      id: 'campaign-1',
-      isDeleted: true,
-      organizationId: 'org-1',
-      status: 'draft',
-    });
+    prisma.outreachCampaign.findFirst
+      .mockResolvedValueOnce({
+        config: {},
+        id: 'campaign-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: 'draft',
+      })
+      .mockResolvedValueOnce({
+        config: {},
+        id: 'campaign-1',
+        isDeleted: true,
+        organizationId: 'org-1',
+        status: 'draft',
+      });
+    prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.remove('campaign-1');
+    await service.remove('campaign-1', 'org-1');
 
-    expect(prisma.outreachCampaign.update).toHaveBeenCalledWith({
+    expect(prisma.outreachCampaign.updateMany).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { id: 'campaign-1' },
+      where: {
+        id: 'campaign-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('returns the same NotFound for foreign and deleted campaign writes', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.patch('campaign-1', { label: 'x' }, 'org-foreign'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.start('campaign-1', 'org-foreign'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('ignores deleted-row filters and requires organization context on findOne', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findFirst.mockResolvedValue(makeRow());
+
+    await service.findOne({
+      id: campaignId,
+      isDeleted: true,
+      organizationId,
+    });
+
+    expect(prisma.outreachCampaign.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
+      },
+    });
+  });
+
+  it('blocks generic unscoped find in favor of system-only active inventory', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findMany.mockResolvedValue([makeRow()]);
+
+    await expect(
+      service.find({
+        isDeleted: false,
+        organizationId,
+        status: CampaignStatus.ACTIVE,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    const campaigns = await service.findActiveForDispatch(organizationId);
+    expect(campaigns).toHaveLength(1);
+    expect(prisma.outreachCampaign.findMany).toHaveBeenCalledWith({
+      where: {
+        isDeleted: false,
+        organizationId,
+        status: CampaignStatus.ACTIVE,
+      },
     });
   });
 
@@ -412,13 +474,19 @@ describe('OutreachCampaignsService', () => {
         },
       });
       prisma.outreachCampaign.findFirst.mockResolvedValue(reservedRow);
-      prisma.outreachCampaign.update.mockResolvedValue(reservedRow);
+      prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 1 });
 
-      await service.incrementReplyCounters(campaignId);
+      await service.incrementReplyCounters(campaignId, organizationId);
 
-      const written = prisma.outreachCampaign.update.mock.calls[0]?.[0] as {
+      const written = prisma.outreachCampaign.updateMany.mock.calls[0]?.[0] as {
         data: { config: { rateLimits: Record<string, unknown> } };
+        where: { id: string; isDeleted: boolean; organizationId: string };
       };
+      expect(written.where).toEqual({
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
+      });
       expect(written.data.config.rateLimits.currentHourCount).toBe(1);
       expect(written.data.config.rateLimits.currentDayCount).toBe(1);
       expect(written.data.config).toEqual(

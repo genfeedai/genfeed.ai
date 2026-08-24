@@ -48,7 +48,7 @@ describe('CampaignQueueService', () => {
   };
 
   const mockOutreachCampaignsService = {
-    find: vi.fn(),
+    findActiveForDispatch: vi.fn(),
   };
 
   const mockLogger = {
@@ -125,7 +125,7 @@ describe('CampaignQueueService', () => {
   describe('dispatchActiveCampaigns()', () => {
     it('queues jobs for eligible active campaigns in the organization', async () => {
       const secondCampaignId = testId('campaign-two');
-      mockOutreachCampaignsService.find.mockResolvedValue([
+      mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
         makeCampaign(),
         makeCampaign({ id: secondCampaignId }),
       ]);
@@ -134,11 +134,9 @@ describe('CampaignQueueService', () => {
 
       const result = await service.dispatchActiveCampaigns(organizationId);
 
-      expect(mockOutreachCampaignsService.find).toHaveBeenCalledWith({
-        isDeleted: false,
-        organizationId,
-        status: CampaignStatus.ACTIVE,
-      });
+      expect(
+        mockOutreachCampaignsService.findActiveForDispatch,
+      ).toHaveBeenCalledWith(organizationId);
       expect(mockCampaignQueue.add).toHaveBeenCalledTimes(2);
       expect(mockCampaignQueue.add).toHaveBeenCalledWith(
         'process',
@@ -159,7 +157,7 @@ describe('CampaignQueueService', () => {
     });
 
     it('completes without creating jobs when no eligible campaigns exist', async () => {
-      mockOutreachCampaignsService.find.mockResolvedValue([]);
+      mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([]);
 
       const result = await service.dispatchActiveCampaigns(organizationId);
 
@@ -173,7 +171,7 @@ describe('CampaignQueueService', () => {
     });
 
     it('does not enqueue paused, deleted, or moved campaigns', async () => {
-      mockOutreachCampaignsService.find.mockResolvedValue([
+      mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
         makeCampaign({ isDeleted: true }),
         makeCampaign({ organizationId: testId('other-org') }),
         makeCampaign({ id: '' }),
@@ -187,7 +185,9 @@ describe('CampaignQueueService', () => {
     });
 
     it('produces one logical processing claim when two ticks overlap', async () => {
-      mockOutreachCampaignsService.find.mockResolvedValue([makeCampaign()]);
+      mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+        makeCampaign(),
+      ]);
       mockCampaignQueue.getJob.mockResolvedValue({
         getState: vi.fn().mockResolvedValue('active'),
         remove: vi.fn(),
@@ -203,7 +203,9 @@ describe('CampaignQueueService', () => {
 
     it('reclaims a completed job id so the next tick can enqueue again', async () => {
       const remove = vi.fn().mockResolvedValue(undefined);
-      mockOutreachCampaignsService.find.mockResolvedValue([makeCampaign()]);
+      mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+        makeCampaign(),
+      ]);
       mockCampaignQueue.getJob.mockResolvedValue({
         getState: vi.fn().mockResolvedValue('completed'),
         remove,
@@ -220,7 +222,9 @@ describe('CampaignQueueService', () => {
     });
 
     it('emits a sanitized diagnostic and does not mark delivery successful when enqueue fails', async () => {
-      mockOutreachCampaignsService.find.mockResolvedValue([makeCampaign()]);
+      mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue([
+        makeCampaign(),
+      ]);
       mockCampaignQueue.getJob.mockResolvedValue(null);
       mockCampaignQueue.add.mockRejectedValue(
         new Error('redis token=sk-secret message=hello'),
@@ -252,7 +256,9 @@ describe('CampaignQueueService', () => {
         { length: MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH + 5 },
         (_, index) => makeCampaign({ id: `campaign-${index}` }),
       );
-      mockOutreachCampaignsService.find.mockResolvedValue(campaigns);
+      mockOutreachCampaignsService.findActiveForDispatch.mockResolvedValue(
+        campaigns,
+      );
       mockCampaignQueue.getJob.mockResolvedValue(null);
       mockCampaignQueue.add.mockResolvedValue({ id: 'job-1' });
 
