@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   act,
   fireEvent,
@@ -273,7 +274,9 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
-    expect(locationAssignMock).toHaveBeenCalledWith('/onboarding/providers');
+    expect(locationAssignMock).toHaveBeenCalledWith(
+      APP_ROUTES.ONBOARDING.PROVIDERS,
+    );
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {

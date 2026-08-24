@@ -2,6 +2,7 @@
 
 import { getSession, signIn } from '@genfeedai/auth-client';
 import { isDesktopClient } from '@genfeedai/config/deployment';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import Alert from '@ui/feedback/alert/Alert';
@@ -269,7 +270,7 @@ export default function LoginBetterAuth({
     setIsStartingLocalMode(true);
     try {
       await bridge.app.enableOfflineMode();
-      window.location.assign('/onboarding/providers');
+      window.location.assign(APP_ROUTES.ONBOARDING.PROVIDERS);
     } catch (error) {
       setDesktopErrorMessage(
         error instanceof Error

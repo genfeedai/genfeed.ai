@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type {
   IDesktopBootstrap,
   IDesktopGeneratedContent,
@@ -63,7 +64,7 @@ export default function LocalDesktopContent() {
 
   useEffect(() => {
     if (isLocalWorkspaceReady && !isLocalWorkspaceEnabled) {
-      window.location.assign('/login');
+      window.location.assign(APP_ROUTES.LOGIN);
       return;
     }
 
