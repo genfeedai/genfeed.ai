@@ -13,6 +13,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import {
   getSafeLinkedInOAuthErrorLog,
   throwMappedLinkedInOAuthError,
@@ -25,7 +26,15 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -38,6 +47,7 @@ export class LinkedInController {
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly linkedInService: LinkedInService,
+    private readonly linkedInAuthorizedSignalsService: LinkedInAuthorizedSignalsService,
   ) {}
 
   @Post('connect')
@@ -167,6 +177,27 @@ export class LinkedInController {
         },
       );
 
+      try {
+        await this.linkedInAuthorizedSignalsService.refresh({
+          accessToken,
+          credentialId: credential.id.toString(),
+          force: true,
+          grantedScopes: scope,
+          organizationId,
+        });
+        credential =
+          (await this.credentialsService.findOne({
+            id: credential.id.toString(),
+            organizationId,
+            platform: CredentialPlatform.LINKEDIN,
+          })) ?? credential;
+      } catch (signalError: unknown) {
+        this.loggerService.warn(
+          `${url} authorized signal refresh failed after connection`,
+          signalError,
+        );
+      }
+
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
       this.loggerService.error(
@@ -178,5 +209,35 @@ export class LinkedInController {
         'Failed to verify LinkedIn OAuth',
       );
     }
+  }
+
+  @Post(':credentialId/authorized-signals/refresh')
+  async refreshAuthorizedSignals(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    await this.linkedInAuthorizedSignalsService.refresh({
+      credentialId,
+      organizationId: user.organizationId,
+    });
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.LINKEDIN,
+    });
+
+    if (!credential) {
+      throw new HttpException(
+        {
+          detail: 'LinkedIn credential not found',
+          title: 'Not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 }

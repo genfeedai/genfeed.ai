@@ -204,7 +204,7 @@ describe('social-warmup-enrollment helpers', () => {
     ).toBe(false);
   });
 
-  it('reads authorized evidence from TikTok, X, or YouTube warmup snapshots', () => {
+  it('reads authorized evidence from TikTok, X, YouTube, or LinkedIn warmup snapshots', () => {
     expect(
       authorizedEvidenceFromWarmupSignals({
         twitterAuthorized: {
@@ -232,6 +232,24 @@ describe('social-warmup-enrollment helpers', () => {
         provenance: 'platform_verified',
       },
     ]);
+
+    expect(
+      authorizedEvidenceFromWarmupSignals({
+        linkedinAuthorized: {
+          evidence: [
+            {
+              key: 'member-profile-fields-platform-signal',
+              provenance: 'platform_verified',
+            },
+          ],
+        },
+      }),
+    ).toEqual([
+      {
+        key: 'member-profile-fields-platform-signal',
+        provenance: 'platform_verified',
+      },
+    ]);
   });
 
   it('detects partial YouTube scopes without treating a full snapshot as limited', () => {
@@ -253,6 +271,28 @@ describe('social-warmup-enrollment helpers', () => {
             'https://www.googleapis.com/auth/youtube',
             'https://www.googleapis.com/auth/youtube.upload',
           ],
+          state: 'full',
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it('detects partial LinkedIn scopes without treating a full member snapshot as limited', () => {
+    expect(
+      hasPartialSocialWarmupScopes({
+        linkedinAuthorized: {
+          evidence: [{ status: 'permission_limited' }],
+          grantedScopes: ['openid', 'profile'],
+          state: 'partial',
+        },
+      }),
+    ).toBe(true);
+
+    expect(
+      hasPartialSocialWarmupScopes({
+        linkedinAuthorized: {
+          evidence: [{ status: 'available' }],
+          grantedScopes: ['openid', 'profile', 'w_member_social'],
           state: 'full',
         },
       }),

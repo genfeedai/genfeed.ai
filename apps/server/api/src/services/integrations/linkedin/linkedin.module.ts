@@ -1,8 +1,10 @@
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-enrollments/social-warmup-enrollments.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -18,8 +20,11 @@ const BaseModule = createServiceModule(LinkedInService, {
 
 @Module({
   controllers: [LinkedInController],
-  exports: BaseModule.exports,
-  imports: BaseModule.imports,
-  providers: BaseModule.providers,
+  exports: [...(BaseModule.exports ?? []), LinkedInAuthorizedSignalsService],
+  imports: [...(BaseModule.imports ?? []), SocialWarmupEnrollmentsModule],
+  providers: [
+    ...(BaseModule.providers ?? []),
+    LinkedInAuthorizedSignalsService,
+  ],
 })
 export class LinkedInModule {}

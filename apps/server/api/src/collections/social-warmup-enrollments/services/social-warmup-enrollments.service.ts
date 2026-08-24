@@ -22,6 +22,7 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
+import type { LinkedinAuthorizedSignalsSnapshot } from '@api-types/contracts/linkedin-authorized-signals.contract';
 import {
   getCurrentSocialWarmupBlueprint,
   resolveSocialWarmupBlueprint,
@@ -297,6 +298,15 @@ export class SocialWarmupEnrollmentsService {
     await this.syncAuthorizedSnapshot(params);
   }
 
+  async syncLinkedinAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: LinkedinAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
   private async syncAuthorizedSnapshot(params: {
     brandId: string;
     credentialId: string;
@@ -305,7 +315,8 @@ export class SocialWarmupEnrollmentsService {
       | TikTokAuthorizedSignalsSnapshot
       | InstagramAuthorizedSignalsSnapshot
       | TwitterAuthorizedSignalsSnapshot
-      | YoutubeAuthorizedSignalsSnapshot;
+      | YoutubeAuthorizedSignalsSnapshot
+      | LinkedinAuthorizedSignalsSnapshot;
   }): Promise<void> {
     await this.syncPlatformSnapshot({
       brandId: params.brandId,

@@ -42,6 +42,8 @@ export const CACHE_PATTERNS = {
     `twitterAuthorizedSignals:single:${id}`,
   YOUTUBE_AUTHORIZED_SIGNALS_SINGLE: (id: string) =>
     `youtubeAuthorizedSignals:single:${id}`,
+  LINKEDIN_AUTHORIZED_SIGNALS_SINGLE: (id: string) =>
+    `linkedinAuthorizedSignals:single:${id}`,
 } as const;
 
 /**
@@ -61,6 +63,7 @@ export const CACHE_TAGS = {
   TIKTOK_AUTHORIZED_SIGNALS: 'tiktokAuthorizedSignals',
   TWITTER_AUTHORIZED_SIGNALS: 'twitterAuthorizedSignals',
   YOUTUBE_AUTHORIZED_SIGNALS: 'youtubeAuthorizedSignals',
+  LINKEDIN_AUTHORIZED_SIGNALS: 'linkedinAuthorizedSignals',
 } as const;
 
 /**
@@ -75,4 +78,5 @@ export const SCOPED_CACHE_TAGS = {
   TIKTOK_AUTHORIZED_SIGNALS: (orgId: string) => `tiktok-authz:${orgId}`,
   TWITTER_AUTHORIZED_SIGNALS: (orgId: string) => `twitter-authz:${orgId}`,
   YOUTUBE_AUTHORIZED_SIGNALS: (orgId: string) => `youtube-authz:${orgId}`,
+  LINKEDIN_AUTHORIZED_SIGNALS: (orgId: string) => `linkedin-authz:${orgId}`,
 } as const;

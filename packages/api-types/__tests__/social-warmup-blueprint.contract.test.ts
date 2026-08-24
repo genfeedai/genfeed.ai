@@ -4,6 +4,9 @@ import {
   INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT,
   INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
   INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  LINKEDIN_SOCIAL_WARMUP_BLUEPRINT,
+  LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID,
+  LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_VERSION,
   resolveSocialWarmupBlueprint,
   SOCIAL_WARMUP_BLUEPRINT_CATALOG,
   selectCurrentSocialWarmupBlueprint,
@@ -180,7 +183,7 @@ describe('social warm-up blueprint contract', () => {
     expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.TIKTOK)).toBe(
       TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
     );
-    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(4);
+    expect(SOCIAL_WARMUP_BLUEPRINT_CATALOG).toHaveLength(5);
   });
 
   test('publishes the canonical X 5–7 day warm-up (#2219)', () => {
@@ -323,6 +326,98 @@ describe('social warm-up blueprint contract', () => {
       provenance: 'user_confirmed',
       requirement: 'required',
     });
+  });
+
+  test('publishes the canonical LinkedIn 10–14 day warm-up (#2221)', () => {
+    expect(LINKEDIN_SOCIAL_WARMUP_BLUEPRINT).toMatchObject({
+      id: LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID,
+      lastReviewedOn: '2026-08-24',
+      platform: CredentialPlatform.LINKEDIN,
+      version: LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+    });
+    expect(getCurrentSocialWarmupBlueprint(CredentialPlatform.LINKEDIN)).toBe(
+      LINKEDIN_SOCIAL_WARMUP_BLUEPRINT,
+    );
+    expect(
+      LINKEDIN_SOCIAL_WARMUP_BLUEPRINT.phases.map((phase) => ({
+        endDay: phase.endDay,
+        id: phase.id,
+        startDay: phase.startDay,
+      })),
+    ).toEqual([
+      { endDay: 2, id: 'profile-completeness', startDay: 1 },
+      { endDay: 4, id: 'niche-feed-consumption', startDay: 3 },
+      { endDay: 7, id: 'thoughtful-participation', startDay: 5 },
+      { endDay: 10, id: 'first-value-led-posts', startDay: 8 },
+      { endDay: 12, id: 'assessment', startDay: 11 },
+      { endDay: 14, id: 'cadence-growth', startDay: 13 },
+    ]);
+    expect(LINKEDIN_SOCIAL_WARMUP_BLUEPRINT.graduation).toMatchObject({
+      minimumElapsedDays: 10,
+      recommendedElapsedDays: 14,
+    });
+    expect(
+      LINKEDIN_SOCIAL_WARMUP_BLUEPRINT.graduation.disclaimer.toLowerCase(),
+    ).toMatch(/ssi/);
+    expect(
+      LINKEDIN_SOCIAL_WARMUP_BLUEPRINT.graduation.disclaimer.toLowerCase(),
+    ).toMatch(/reach/);
+    expect(
+      LINKEDIN_SOCIAL_WARMUP_BLUEPRINT.graduation.disclaimer.toLowerCase(),
+    ).toMatch(/restriction/);
+
+    const steps = LINKEDIN_SOCIAL_WARMUP_BLUEPRINT.phases.flatMap(
+      (phase) => phase.steps,
+    );
+    const byId = new Map(steps.map((step) => [step.id, step]));
+
+    for (const id of [
+      'complete-native-profile',
+      'read-niche-feed',
+      'search-niche-keywords',
+      'save-and-react-selectively',
+      'send-personalized-connection-requests',
+      'leave-thoughtful-comments',
+      'welcome-new-connections',
+      'confirm-ssi-observation',
+    ]) {
+      expect(byId.get(id)).toMatchObject({
+        completion: { type: 'attestation' },
+        provenance: 'user_confirmed',
+      });
+    }
+
+    for (const id of [
+      'refresh-authorized-member-profile',
+      'snapshot-organization-page',
+      'snapshot-member-publishing-capability',
+      'snapshot-organization-publishing-capability',
+      'observe-first-publish-platform',
+      'snapshot-owned-posts',
+      'snapshot-owned-post-performance',
+    ]) {
+      expect(byId.get(id)).toMatchObject({
+        completion: { type: 'signal' },
+        provenance: 'platform_verified',
+        requirement: 'required_when_available',
+      });
+    }
+
+    expect(byId.get('first-value-led-post')).toMatchObject({
+      completion: { type: 'event' },
+      provenance: 'genfeed_observed',
+    });
+    expect(
+      byId.get('snapshot-member-publishing-capability')?.completion.key,
+    ).toBe('member-publishing-capability-snapshot');
+    expect(
+      byId.get('snapshot-organization-publishing-capability')?.completion.key,
+    ).toBe('organization-publishing-capability-snapshot');
+    expect(
+      byId.get('snapshot-member-publishing-capability')?.completion.key,
+    ).not.toBe(
+      byId.get('snapshot-organization-publishing-capability')?.completion.key,
+    );
   });
 
   test('keeps generic selection free of TikTok-specific branching', () => {

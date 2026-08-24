@@ -15,9 +15,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -45,6 +47,7 @@ describe('LinkedInController', () => {
   const mockBrandsService = { findOne: vi.fn() };
   const mockCredentialsService = {
     beginOAuthForBrand: vi.fn(),
+    findOne: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
     updateExternalProfile: vi.fn(),
@@ -54,7 +57,10 @@ describe('LinkedInController', () => {
     generateAuthUrl: vi.fn(),
     getUserProfile: vi.fn(),
   };
-  const mockLoggerService = { error: vi.fn(), log: vi.fn() };
+  const mockLinkedInAuthorizedSignalsService = {
+    refresh: vi.fn().mockResolvedValue({ state: 'partial' }),
+  };
+  const mockLoggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
   const brandId = 'test-object-id';
   const orgId = 'test-object-id';
@@ -75,6 +81,10 @@ describe('LinkedInController', () => {
         { provide: BrandsService, useValue: mockBrandsService },
         { provide: CredentialsService, useValue: mockCredentialsService },
         { provide: LinkedInService, useValue: mockLinkedInService },
+        {
+          provide: LinkedInAuthorizedSignalsService,
+          useValue: mockLinkedInAuthorizedSignalsService,
+        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -260,6 +270,15 @@ describe('LinkedInController', () => {
           name: 'John Doe',
         }),
       );
+      expect(mockLinkedInAuthorizedSignalsService.refresh).toHaveBeenCalledWith(
+        {
+          accessToken: 'linkedin-token',
+          credentialId: credId,
+          force: true,
+          grantedScopes: 'openid profile w_member_social',
+          organizationId: orgId,
+        },
+      );
     });
 
     it('should return bad request when code or state is missing', async () => {
@@ -422,6 +441,56 @@ describe('LinkedInController', () => {
           hasState: true,
         }),
       );
+    });
+  });
+
+  describe('refreshAuthorizedSignals', () => {
+    it('returns the documented 404 when the credential is missing or cross-org', async () => {
+      mockLinkedInAuthorizedSignalsService.refresh.mockRejectedValueOnce(
+        new NotFoundException('LinkedIn credential'),
+      );
+
+      await expect(
+        controller.refreshAuthorizedSignals(
+          mockRequest,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          'missing-credential',
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('refreshes and returns only the caller organization credential', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce({
+        id: 'credential-1',
+        organizationId: orgId,
+        platform: 'linkedin',
+      });
+
+      const result = await controller.refreshAuthorizedSignals(
+        mockRequest,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+        'credential-1',
+      );
+
+      expect(mockLinkedInAuthorizedSignalsService.refresh).toHaveBeenCalledWith(
+        {
+          credentialId: 'credential-1',
+          organizationId: orgId,
+        },
+      );
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        id: 'credential-1',
+        organizationId: orgId,
+        platform: 'linkedin',
+      });
+      expect(result).toEqual({
+        data: {
+          id: 'credential-1',
+          organizationId: orgId,
+          platform: 'linkedin',
+        },
+      });
     });
   });
 });

@@ -429,27 +429,39 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
     ui: FULL_BLUEPRINT_UI,
   }),
   [CredentialPlatform.LINKEDIN]: capability({
-    accountType: 'LinkedIn member via OIDC + w_member_social.',
-    connectionScopes: ['openid', 'profile', 'email', 'w_member_social'],
-    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against LinkedIn OAuth, productized scheduler capability, and skills/linkedin-warmup. No catalog blueprint or SSI adapter.`,
+    accountType:
+      'LinkedIn member via OIDC + w_member_social. Organization pages require separate organization scopes.',
+    connectionScopes: [
+      'openid',
+      'profile',
+      'email',
+      'w_member_social',
+      'r_member_social',
+      'r_organization_social',
+      'w_organization_social',
+      'rw_organization_admin',
+    ],
+    evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against the published catalog blueprint, LinkedIn OAuth scopes, and authorized-signals adapter.`,
     nativeOnlyActions: [
       'Complete the LinkedIn profile in the native app',
+      'Read the niche home feed',
+      'Search niche keywords',
+      'Save and react selectively',
       'Send personalized connection requests',
       'Comment on niche posts from the native app',
+      'Send welcome messages without pitching',
+      'Observe SSI in the native product',
     ],
     platform: CredentialPlatform.LINKEDIN,
-    policyConstraints: `${NO_AUTOMATED_ENGAGEMENT} Connection requests and comments stay native. SSI is not API-verified here.`,
+    policyConstraints: `${NO_AUTOMATED_ENGAGEMENT} Connection requests, comments, reactions, saves, messages, and SSI stay native. Member and organization publishing stay separate claims.`,
     profilePostSignals:
-      'OIDC profile/email. No SSI, connection-graph, or comment-history adapter.',
+      'Authorized member profile, owned posts, member publishing capability, organization-page identity, organization publishing, and owned-post performance when scopes are granted. Feed consumption, connection requests, comments, reactions, saves, messages, and SSI stay native-only.',
     publishingCapabilities:
-      'Member post publish with productized scheduler support.',
+      'Member post publish with productized scheduler support. Organization-page publish is a separate capability and is never inferred from w_member_social. Publishing hold consumes enrollment signals.',
     rationale:
-      'LinkedIn has a productized publisher and a warmup skill, but no versioned catalog blueprint, SSI/signal adapter, or publishing-gate warm-up semantics. Do not invent a 7-day plan here.',
-    support: 'readiness_only',
-    ui: {
-      body: 'Genfeed can confirm LinkedIn is connected and can publish. A guided catalog warm-up is not published yet. Connections and comments stay manual.',
-      headline: 'LinkedIn is connection-only',
-    },
+      'Published catalog blueprint with reviewed LinkedIn product guidance, structured profile-to-cadence steps, signal provenance, publishing-gate semantics, and an executable authorized-signal path that distinguishes member versus organization connections.',
+    support: 'full_blueprint',
+    ui: FULL_BLUEPRINT_UI,
   }),
   [CredentialPlatform.SNAPCHAT]: notSupported({
     accountType:

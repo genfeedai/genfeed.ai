@@ -34,6 +34,7 @@ describe('social warm-up capability matrix', () => {
     expect(listSocialWarmupPlatformsBySupport('full_blueprint').sort()).toEqual(
       [
         CredentialPlatform.INSTAGRAM,
+        CredentialPlatform.LINKEDIN,
         CredentialPlatform.TIKTOK,
         CredentialPlatform.TWITTER,
         CredentialPlatform.YOUTUBE,
@@ -52,9 +53,6 @@ describe('social warm-up capability matrix', () => {
 
     expect(
       getCurrentSocialWarmupBlueprint(CredentialPlatform.FACEBOOK),
-    ).toBeUndefined();
-    expect(
-      getCurrentSocialWarmupBlueprint(CredentialPlatform.LINKEDIN),
     ).toBeUndefined();
   });
 
@@ -107,19 +105,19 @@ describe('social warm-up capability matrix', () => {
     ).toEqual(['ads.read', 'ads.write', 'offline.access']);
   });
 
-  test('classifies LinkedIn as readiness_only until a catalog blueprint exists', () => {
+  test('classifies LinkedIn as full_blueprint with a catalog blueprint', () => {
     expect(getSocialWarmupSupportClass(CredentialPlatform.YOUTUBE)).toBe(
       'full_blueprint',
     );
     expect(getSocialWarmupSupportClass(CredentialPlatform.LINKEDIN)).toBe(
-      'readiness_only',
+      'full_blueprint',
     );
     expect(
       getCurrentSocialWarmupBlueprint(CredentialPlatform.YOUTUBE)?.platform,
     ).toBe(CredentialPlatform.YOUTUBE);
     expect(
-      getCurrentSocialWarmupBlueprint(CredentialPlatform.LINKEDIN),
-    ).toBeUndefined();
+      getCurrentSocialWarmupBlueprint(CredentialPlatform.LINKEDIN)?.platform,
+    ).toBe(CredentialPlatform.LINKEDIN);
   });
 
   test('exports UI copy for readiness-only and unsupported states', () => {

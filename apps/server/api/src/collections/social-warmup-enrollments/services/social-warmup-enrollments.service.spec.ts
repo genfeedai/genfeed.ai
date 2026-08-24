@@ -8,6 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { instagramAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/instagram-authorized-signals.contract';
+import { linkedinAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/linkedin-authorized-signals.contract';
 import {
   INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
@@ -749,6 +750,152 @@ describe('SocialWarmupEnrollmentsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           key: 'owned-video-analytics-snapshot',
+          status: SocialWarmupSignalStatus.PERMISSION_LIMITED,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'genfeed-publish-outcomes-observed',
+          source: SocialWarmupSignalSource.GENFEED,
+        }),
+      }),
+    );
+  });
+
+  it('upserts LinkedIn authorized snapshot evidence onto an existing enrollment', async () => {
+    socialWarmupEnrollment.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'enrollment-1',
+      organizationId: 'org-1',
+    });
+    socialWarmupSignal.findFirst.mockResolvedValue(null);
+
+    const common = {
+      fieldAvailability: { id: 'available' as const },
+      observedAt: '2026-08-24T08:00:00.000Z',
+      provenance: 'platform_verified' as const,
+      staleAt: null,
+      status: 'available' as const,
+    };
+    const snapshot = linkedinAuthorizedSignalsSnapshotSchema.parse({
+      credentialId: 'credential-1',
+      evidence: [
+        {
+          ...common,
+          key: 'member-profile-fields-platform-signal',
+          scope: {
+            granted: ['openid', 'profile'],
+            missing: [],
+            required: ['openid', 'profile'],
+          },
+          value: { accountKind: 'member', id: 'member-1' },
+        },
+        {
+          ...common,
+          key: 'organization-page-snapshot',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['r_organization_social'],
+            required: ['r_organization_social'],
+          },
+          status: 'permission_limited',
+        },
+        {
+          ...common,
+          key: 'member-publishing-capability-snapshot',
+          scope: {
+            granted: ['w_member_social'],
+            missing: [],
+            required: ['w_member_social'],
+          },
+          value: { accountKind: 'member', canPublish: true },
+        },
+        {
+          ...common,
+          key: 'organization-publishing-capability-snapshot',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['w_organization_social'],
+            required: ['w_organization_social'],
+          },
+          status: 'permission_limited',
+          value: { accountKind: 'organization', canPublish: false },
+        },
+        {
+          ...common,
+          key: 'owned-posts-snapshot',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['r_member_social'],
+            required: ['r_member_social'],
+          },
+          status: 'permission_limited',
+        },
+        {
+          ...common,
+          key: 'owned-post-performance-snapshot',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['r_member_social'],
+            required: ['r_member_social'],
+          },
+          status: 'permission_limited',
+        },
+        {
+          ...common,
+          key: 'first-publish-platform-signal',
+          reason: 'missing_scope',
+          scope: {
+            granted: [],
+            missing: ['r_member_social'],
+            required: ['r_member_social'],
+          },
+          status: 'permission_limited',
+        },
+        {
+          fieldAvailability: { outcome: 'available' },
+          key: 'genfeed-publish-outcomes-observed',
+          observedAt: '2026-08-24T08:00:00.000Z',
+          provenance: 'genfeed_observed',
+          scope: { granted: [], missing: [], required: [] },
+          staleAt: null,
+          status: 'empty',
+          value: { attempts: [] },
+        },
+      ],
+      grantedScopes: ['openid', 'profile', 'w_member_social'],
+      platform: CredentialPlatform.LINKEDIN,
+      refreshAttemptedAt: '2026-08-24T08:00:00.000Z',
+      state: 'partial',
+    });
+
+    await service.syncLinkedinAuthorizedSnapshot({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+      snapshot,
+    });
+
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'member-profile-fields-platform-signal',
+          organizationId: 'org-1',
+          source: SocialWarmupSignalSource.PLATFORM,
+          status: SocialWarmupSignalStatus.AVAILABLE,
+        }),
+      }),
+    );
+    expect(socialWarmupSignal.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          key: 'organization-publishing-capability-snapshot',
           status: SocialWarmupSignalStatus.PERMISSION_LIMITED,
         }),
       }),
