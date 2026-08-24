@@ -5,6 +5,7 @@ import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 
 describe('BotsController identity gates', () => {
   const organizationId = 'org-1';
@@ -89,21 +90,41 @@ describe('BotsController identity gates', () => {
     });
 
     it('rejects a member organization filter outside the session org', () => {
-      expect(() =>
+      const call = () =>
         controller.buildFindAllQuery(mockUser, {
           organizationId: 'org-other',
           scope: 'organization',
-        } as never),
-      ).toThrow('Access denied to this organization');
+        } as never);
+
+      expect(call).toThrow(ForbiddenException);
+      try {
+        call();
+        expect.unreachable('expected a ForbiddenException');
+      } catch (error) {
+        expect((error as ForbiddenException).getResponse()).toEqual({
+          detail: 'Access denied to this organization',
+          title: 'Forbidden',
+        });
+      }
     });
 
     it('rejects a member user filter for a different user', () => {
-      expect(() =>
+      const call = () =>
         controller.buildFindAllQuery(mockUser, {
           scope: 'user',
           userId: 'user-other',
-        } as never),
-      ).toThrow('Access denied to this user');
+        } as never);
+
+      expect(call).toThrow(ForbiddenException);
+      try {
+        call();
+        expect.unreachable('expected a ForbiddenException');
+      } catch (error) {
+        expect((error as ForbiddenException).getResponse()).toEqual({
+          detail: 'Access denied to this user',
+          title: 'Forbidden',
+        });
+      }
     });
   });
 });

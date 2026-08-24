@@ -8,7 +8,7 @@ import { CampaignExecutorService } from '@api/services/campaign/campaign-executo
 import { CampaignStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const organizationId = testId('org');
@@ -118,11 +118,21 @@ describe('OutreachCampaignsController', () => {
     });
 
     it('rejects a member organization filter outside the session org', () => {
-      expect(() =>
+      const call = () =>
         controller.buildFindAllQuery(mockUser, {
           organizationId: otherOrganizationId,
-        } as never),
-      ).toThrow('Access denied to this organization');
+        } as never);
+
+      expect(call).toThrow(ForbiddenException);
+      try {
+        call();
+        expect.unreachable('expected a ForbiddenException');
+      } catch (error) {
+        expect((error as ForbiddenException).getResponse()).toEqual({
+          detail: 'Access denied to this organization',
+          title: 'Forbidden',
+        });
+      }
     });
   });
 
