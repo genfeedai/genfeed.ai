@@ -38,7 +38,7 @@ import type { Request } from 'express';
 
 describe('TwitterController', () => {
   let controller: TwitterController;
-  const mockConfigGet = vi.fn(() => 'test-val');
+  const mockConfigGet = vi.fn((_key?: string) => 'test-val');
 
   const mockBrandsService = {
     findOne: vi.fn(),
@@ -69,6 +69,7 @@ describe('TwitterController', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockConfigGet.mockImplementation((_key?: string) => 'test-val');
 
     mockGenerateOAuth2AuthLink.mockReturnValue({
       codeVerifier: 'test-code-verifier',
@@ -164,7 +165,7 @@ describe('TwitterController', () => {
         organizationId: orgId,
         userId: 'test-object-id',
       });
-      mockConfigGet.mockImplementation((key: string) =>
+      mockConfigGet.mockImplementation((key?: string) =>
         key === 'TWITTER_CLIENT_ID' ? 'PLACEHOLDER_NOT_CONFIGURED' : 'test-val',
       );
 

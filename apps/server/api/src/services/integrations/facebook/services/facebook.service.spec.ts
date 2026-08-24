@@ -19,7 +19,7 @@ describe('FacebookService', () => {
   };
 
   const mockConfigService = {
-    get: vi.fn((key: string) => facebookConfig[key] ?? null),
+    get: vi.fn((key: string) => facebookConfig[key]),
   };
 
   const mockCredentialsService = {
@@ -110,7 +110,7 @@ describe('FacebookService', () => {
           ({
             ...facebookConfig,
             FACEBOOK_APP_ID: 'PLACEHOLDER_NOT_CONFIGURED',
-          })[key] ?? null,
+          })[key],
       );
 
       expect(() => service.generateAuthUrl('state')).toThrow(
@@ -118,7 +118,7 @@ describe('FacebookService', () => {
       );
 
       mockConfigService.get.mockImplementation(
-        (key: string) => facebookConfig[key] ?? null,
+        (key: string) => facebookConfig[key],
       );
     });
   });
