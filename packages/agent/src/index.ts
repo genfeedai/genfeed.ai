@@ -97,6 +97,8 @@ export {
 } from '@genfeedai/agent/hooks/use-agent-draft-context';
 export { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
 export { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
+export { useCharacterMentions } from '@genfeedai/agent/hooks/use-character-mentions';
+export { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 export type {
   AgentChatMessage as AgentChatMessageModel,
   AgentChatMessageMetadata,

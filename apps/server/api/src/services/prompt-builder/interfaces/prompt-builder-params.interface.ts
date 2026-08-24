@@ -94,6 +94,8 @@ export interface PromptBuilderParams {
 
   // LLM / Text generation parameters
   systemPrompt?: string;
+  /** Appended after the resolved system prompt (templates, brand context). */
+  systemPromptSuffix?: string;
   maxTokens?: number;
   temperature?: number;
   topP?: number;

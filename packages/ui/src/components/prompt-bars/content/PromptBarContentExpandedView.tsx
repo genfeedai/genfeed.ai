@@ -6,14 +6,14 @@ import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-ic
 import type { PromptBarContentExpandedViewProps } from '@genfeedai/props/prompt-bars/prompt-bar-content.props';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
-import { Textarea } from '@ui/primitives/textarea';
 import {
   COLLAPSE_BUTTON_CLASS,
   CONTROL_CLASS,
   POST_COUNT_OPTIONS,
 } from '@ui/prompt-bars/content/prompt-bar-content.helpers';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp, Bookmark, ChevronUp, LayoutGrid, List } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, SyntheticEvent } from 'react';
 
 export default function PromptBarContentExpandedView({
   buttonLabel,
@@ -31,7 +31,7 @@ export default function PromptBarContentExpandedView({
   showThreadToggle,
   onCollapse,
   onCountChange,
-  onKeyDown,
+  onKeyDown: _onKeyDown,
   onPlatformChange,
   onPresetChange,
   onPromptChange,
@@ -99,14 +99,17 @@ export default function PromptBarContentExpandedView({
       </div>
 
       <form onSubmit={onSubmit} className="mt-2 flex flex-col gap-2">
-        <Textarea
-          name="prompt"
-          value={prompt}
-          onChange={(event) => onPromptChange(event.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={promptPlaceholder}
+        <PromptEditor
+          ariaLabel="Prompt"
+          className="min-h-[96px] w-full border border-border p-2"
           isDisabled={isEnhancing}
-          className="min-h-[96px] w-full resize-none border border-border bg-transparent p-2 text-sm text-foreground shadow-none focus:border-border-strong focus-visible:ring-0"
+          onSubmit={() => {
+            onSubmit({ preventDefault() {} } as SyntheticEvent);
+          }}
+          onValueChange={onPromptChange}
+          placeholder={promptPlaceholder}
+          testId="prompt-textarea"
+          value={prompt}
         />
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-2">

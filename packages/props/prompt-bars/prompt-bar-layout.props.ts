@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/enums';
 import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type { StudioGenerationMeter } from '@props/prompt-bars/prompt-bar-generation-meter.props';
+import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type { FormEvent, MutableRefObject, ReactNode, RefObject } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 
@@ -43,6 +44,8 @@ export interface PromptBarCollapsedViewProps {
   toggleVoice?: () => void;
   isRecording?: boolean;
   isProcessing?: boolean;
+  extraExtensions?: readonly AnyExtension[];
+  onDocumentChange?: (document: JSONContent) => void;
 }
 
 export interface PromptBarSpeechInputProps {

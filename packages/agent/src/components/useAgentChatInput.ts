@@ -12,10 +12,12 @@ import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMen
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
 import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { BrandMention } from '@genfeedai/agent/extensions/brand-mention.extension';
+import { CharacterMention } from '@genfeedai/agent/extensions/character-mention.extension';
 import { CredentialMention } from '@genfeedai/agent/extensions/credential-mention.extension';
 import { SlashCommands } from '@genfeedai/agent/extensions/slash-commands.extension';
 import { TeamMention } from '@genfeedai/agent/extensions/team-mention.extension';
 import { useBrandMentions } from '@genfeedai/agent/hooks/use-brand-mentions';
+import { useCharacterMentions } from '@genfeedai/agent/hooks/use-character-mentions';
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
@@ -37,8 +39,6 @@ import {
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
-import { applyComposerPasteText } from '@genfeedai/agent/utils/apply-composer-paste.util';
-import { normalizeComposerPasteText } from '@genfeedai/agent/utils/normalize-composer-paste.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
@@ -51,6 +51,8 @@ import type { Editor, JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { applyPromptEditorPasteText } from '@ui/prompt-editor/apply-prompt-editor-paste';
+import { normalizePromptEditorPasteText } from '@ui/prompt-editor/normalize-prompt-editor-paste';
 import { useTranslations } from 'next-intl';
 import {
   type ClipboardEvent,
@@ -224,6 +226,9 @@ export function useAgentChatInput({
   );
   const { mentions: brandMentions } = useBrandMentions();
   const { mentions: teamMentions } = useTeamMentions(apiService ?? null);
+  const { mentions: characterMentions } = useCharacterMentions(
+    apiService ?? null,
+  );
   const { isLoading: isContentLibraryLoading, mentions: contentLibraryItems } =
     useContentMentions(apiService ?? null);
 
@@ -324,14 +329,14 @@ export function useAgentChatInput({
           return false;
         }
 
-        const normalized = normalizeComposerPasteText(plain);
+        const normalized = normalizePromptEditorPasteText(plain);
         event.preventDefault();
         if (!normalized) {
           return true;
         }
 
         const { state, dispatch } = view;
-        dispatch(applyComposerPasteText(state, normalized));
+        dispatch(applyPromptEditorPasteText(state, normalized));
         return true;
       },
     },
@@ -370,6 +375,12 @@ export function useAgentChatInput({
           }),
         },
       }),
+      CharacterMention.configure({
+        HTMLAttributes: { class: 'mention mention-character' },
+        renderText({ node }) {
+          return node.attrs.label ?? node.attrs.handle;
+        },
+      }),
       TeamMention.configure({
         HTMLAttributes: { class: 'mention mention-team' },
         renderText({ node }) {
@@ -379,11 +390,75 @@ export function useAgentChatInput({
           char: '@',
           ...buildMentionSuggestion({
             component: TeamMentionList,
-            getItems: (query) =>
-              teamMentions.filter((item) =>
-                item.displayName.toLowerCase().includes(query.toLowerCase()),
-              ),
+            getItems: (query) => {
+              const needle = query.toLowerCase();
+              const characters = characterMentions.filter(
+                (item) =>
+                  item.handle.toLowerCase().includes(needle) ||
+                  item.label.toLowerCase().includes(needle),
+              );
+              const team = teamMentions.filter((item) =>
+                item.displayName.toLowerCase().includes(needle),
+              );
+              return [
+                ...characters.map((item) => ({
+                  avatar: undefined,
+                  displayName: `${item.label} (@${item.handle})`,
+                  handle: item.handle,
+                  id: item.id,
+                  isAgent: false,
+                  label: item.label,
+                  role: 'Character',
+                })),
+                ...team,
+              ];
+            },
           }),
+          command: ({
+            editor,
+            props,
+            range,
+          }: {
+            editor: Editor;
+            props: {
+              displayName?: string;
+              handle?: string;
+              id: string;
+              isAgent?: boolean;
+              label?: string;
+              role?: string;
+            };
+            range: { from: number; to: number };
+          }) => {
+            if (props.role === 'Character') {
+              editor
+                .chain()
+                .focus()
+                .insertContentAt(range, {
+                  attrs: {
+                    handle: props.handle,
+                    id: props.id,
+                    label: props.label,
+                  },
+                  type: 'characterMention',
+                })
+                .run();
+              return;
+            }
+            editor
+              .chain()
+              .focus()
+              .insertContentAt(range, {
+                attrs: {
+                  displayName: props.displayName,
+                  isAgent: props.isAgent,
+                  role: props.role,
+                  userId: props.id,
+                },
+                type: 'teamMention',
+              })
+              .run();
+          },
         },
       }),
       CredentialMention.configure({

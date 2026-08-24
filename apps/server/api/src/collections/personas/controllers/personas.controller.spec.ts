@@ -5,6 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { PersonaStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -30,8 +31,10 @@ describe('PersonasController', () => {
   const mockServiceMethods = {
     assignMembers: vi.fn(),
     create: vi.fn(),
+    createFromApprovedSheet: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
+    listCharacterMentions: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
   };
@@ -155,6 +158,111 @@ describe('PersonasController', () => {
           memberIds: [memberId1],
         } as any),
       ).rejects.toThrow('DB error');
+    });
+  });
+
+  describe('composeSheetPrompt', () => {
+    it('returns the server-composed character sheet preset', async () => {
+      const result = await controller.composeSheetPrompt(mockUser as never, {
+        description: 'a tall woman in a red coat',
+        isNonHumanoid: false,
+      });
+
+      expect(result.prompt).toContain('CHARACTER REFERENCE SHEET PRESET');
+      expect(result.prompt).toContain(
+        '<<<CHARACTER_DESCRIPTION>>>a tall woman in a red coat<<<END_CHARACTER_DESCRIPTION>>>',
+      );
+    });
+  });
+
+  describe('createFromSheet', () => {
+    it('creates a persona from an approved sheet', async () => {
+      mockServiceMethods.createFromApprovedSheet.mockResolvedValue({
+        handle: 'anna',
+        id: personaId,
+        label: 'Anna',
+      });
+
+      const result = await controller.createFromSheet(mockUser as never, {
+        assetId: testId('asset'),
+        handle: 'anna',
+        label: 'Anna',
+      });
+
+      expect(mockServiceMethods.createFromApprovedSheet).toHaveBeenCalledWith({
+        assetId: testId('asset'),
+        brandId,
+        handle: 'anna',
+        label: 'Anna',
+        organizationId,
+        userId,
+      });
+      expect(result).toEqual({
+        data: { handle: 'anna', id: personaId, label: 'Anna' },
+      });
+    });
+  });
+
+  describe('getMentions', () => {
+    it('returns brand-scoped character mentions', async () => {
+      mockServiceMethods.listCharacterMentions.mockResolvedValue([
+        {
+          handle: 'anna',
+          hasReferenceImage: true,
+          id: personaId,
+          label: 'Anna',
+        },
+      ]);
+
+      const result = await controller.getMentions(mockUser as never, 'an');
+
+      expect(mockServiceMethods.listCharacterMentions).toHaveBeenCalledWith({
+        brandId,
+        organizationId,
+        q: 'an',
+      });
+      expect(result.mentions[0]?.handle).toBe('anna');
+    });
+  });
+
+  describe('buildFindAllQuery (mention suggestions)', () => {
+    it('scopes mentionable suggestions to the caller org/brand and active handles', () => {
+      const query = controller.buildFindAllQuery(
+        mockUser as never,
+        {
+          isMentionable: true,
+          q: 'an',
+        } as never,
+      );
+
+      expect(query.where).toMatchObject({
+        brandId,
+        handle: { not: null },
+        isDeleted: false,
+        organizationId,
+        status: PersonaStatus.ACTIVE,
+      });
+      expect(query.where).toEqual(
+        expect.objectContaining({
+          OR: [
+            { handle: { mode: 'insensitive', startsWith: 'an' } },
+            { label: { mode: 'insensitive', startsWith: 'an' } },
+          ],
+        }),
+      );
+    });
+
+    it('refuses to search another organization', () => {
+      expect(() =>
+        controller.buildFindAllQuery(
+          mockUser as never,
+          {
+            isMentionable: true,
+            organizationId: testId('org', 9),
+            q: 'an',
+          } as never,
+        ),
+      ).toThrow(/Access denied to this organization/);
     });
   });
 });

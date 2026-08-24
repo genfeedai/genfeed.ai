@@ -211,6 +211,51 @@ describe('AiActionsService', () => {
       expect(result.result).toBe('Trimmed result');
     });
 
+    it('includes cinematography lexicon guidance for enhance-prompt', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.ENHANCE_PROMPT,
+        content: 'shot from above, moody',
+        context: { category: 'MODELS_PROMPT_IMAGE' },
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'high-angle shot, low-key' } }],
+        usage: { total_tokens: 40 },
+      } as never);
+
+      await service.execute('org_123', dto);
+
+      const callArgs = openRouterService.chatCompletion.mock.calls[0][0];
+      const systemMessage = callArgs.messages.find(
+        (message: { role: string }) => message.role === 'system',
+      );
+      expect(systemMessage.content).toContain('Cinematography vocabulary');
+      expect(systemMessage.content).toContain('high-angle shot');
+    });
+
+    it('omits cinematography lexicon guidance for text-only enhance-prompt categories', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.ENHANCE_PROMPT,
+        content: 'rewrite this caption',
+        context: { category: 'ARTICLE' },
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'rewritten caption' } }],
+        usage: { total_tokens: 20 },
+      } as never);
+
+      await service.execute('org_123', dto);
+
+      const callArgs = openRouterService.chatCompletion.mock.calls[0][0];
+      const systemMessage = callArgs.messages.find(
+        (message: { role: string }) => message.role === 'system',
+      );
+      expect(systemMessage.content).not.toContain('Cinematography vocabulary');
+    });
+
     it('should handle empty response content', async () => {
       const dto: ExecuteAiActionDto = {
         action: AiActionType.REWRITE,

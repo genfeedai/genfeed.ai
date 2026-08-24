@@ -3067,6 +3067,10 @@ model Persona {
   @@index([brandId, organizationId, isDeleted])
   @@index([organizationId, isDeleted, isAutopilotEnabled, nextAutopilotRunAt])
   @@index([organizationId, isDeleted, isFleetCharacter])
+  // Prefix lookup for @-mention suggestions (handle/label).
+  @@index([organizationId, brandId, isDeleted, status, handle], map: "personas_mention_suggest_idx")
+  // Partial unique (organizationId, brandId, handle) WHERE handle IS NOT NULL
+  // AND isDeleted = false lives in 20260824120000_persona_handle_brand_unique.
   @@map("personas")
 }
 

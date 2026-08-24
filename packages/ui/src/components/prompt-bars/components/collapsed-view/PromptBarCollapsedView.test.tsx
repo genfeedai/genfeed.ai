@@ -13,13 +13,33 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/input', () => ({
-  Input: ({ placeholder }: { placeholder?: string }) => (
-    <input placeholder={placeholder} />
-  ),
-  default: ({ placeholder }: { placeholder?: string }) => (
-    <input placeholder={placeholder} />
-  ),
+const promptEditorProps: { extraExtensions?: unknown } = {};
+
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    extraExtensions,
+    placeholder,
+    testId,
+    value,
+  }: {
+    extraExtensions?: unknown;
+    placeholder?: string;
+    testId?: string;
+    value?: string;
+  }) => {
+    promptEditorProps.extraExtensions = extraExtensions;
+    return (
+      <div
+        aria-label="Prompt"
+        data-testid={testId}
+        placeholder={placeholder}
+        role="textbox"
+        tabIndex={0}
+      >
+        {value}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({
@@ -78,6 +98,17 @@ describe('PromptBarCollapsedView', () => {
   it('should render without crashing', () => {
     const { container } = render(<PromptBarCollapsedView {...defaultProps} />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('forwards extraExtensions to PromptEditor', () => {
+    const extraExtensions = [{ name: 'characterMention' }];
+    render(
+      <PromptBarCollapsedView
+        {...defaultProps}
+        extraExtensions={extraExtensions as never}
+      />,
+    );
+    expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
   });
 
   it('should render input field', () => {

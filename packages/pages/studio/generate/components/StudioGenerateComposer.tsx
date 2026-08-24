@@ -22,17 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-
-const PROMPT_MAX_HEIGHT = 112;
-const PROMPT_ROWS = 1;
 
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
@@ -45,6 +42,7 @@ const PROMPT_PLACEHOLDER = 'Describe what you want to generate…';
  */
 export default function StudioGenerateComposer({
   attachedAssets,
+  extraExtensions,
   isDragActive = false,
   isGenerating,
   isListening,
@@ -55,6 +53,7 @@ export default function StudioGenerateComposer({
   onAddFiles,
   onOpenLibrary,
   onPromptChange,
+  onPromptDocumentChange,
   onRemoveAttachedAsset,
   onResetSettings,
   onSettingsChange,
@@ -105,24 +104,18 @@ export default function StudioGenerateComposer({
       className={cn(isDragActive && 'ring-1 ring-primary/40')}
       data-testid="studio-generate-composer-shell"
     >
-      <Textarea
-        className="min-h-9 w-full resize-none border-0 bg-transparent px-0 py-1.5 text-sm shadow-none focus-visible:ring-0"
-        id="studio-generate-prompt"
+      <PromptEditor
+        ariaLabel="Prompt"
+        className="min-h-9 w-full"
+        extraExtensions={extraExtensions}
         isDisabled={isGenerating}
-        maxHeight={PROMPT_MAX_HEIGHT}
-        onChange={(event) => onPromptChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (
-            event.key !== 'Enter' ||
-            event.shiftKey ||
-            event.nativeEvent.isComposing ||
-            isSubmitBlocked
-          ) {
-            return;
+        onDocumentChange={onPromptDocumentChange}
+        onSubmit={() => {
+          if (!isSubmitBlocked) {
+            onSubmit();
           }
-          event.preventDefault();
-          onSubmit();
         }}
+        onValueChange={onPromptChange}
         placeholder={
           isDragActive
             ? 'drop it here?'
@@ -130,7 +123,7 @@ export default function StudioGenerateComposer({
               ? SCRIPT_PLACEHOLDER
               : PROMPT_PLACEHOLDER
         }
-        rows={PROMPT_ROWS}
+        testId="studio-generate-prompt"
         value={prompt}
       />
 

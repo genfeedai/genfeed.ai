@@ -348,6 +348,7 @@ export const APP_ROUTES = {
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     /** Personal chat model and generation-priority defaults. */
+    CHARACTERS: '/settings/characters',
     CHAT: '/settings/chat',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',

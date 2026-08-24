@@ -1,6 +1,5 @@
 'use client';
 
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
@@ -8,14 +7,13 @@ import type { PromptBarEssentialsProps } from '@genfeedai/props/prompt-bars/prom
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
-import { Textarea } from '@ui/primitives/textarea';
-import { PROMPT_BAR_TEXTAREA_MAX_HEIGHT } from '@ui/prompt-bars/base/prompt-bar.helpers';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
 import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
 import PromptBarQualityControls from '@ui/prompt-bars/components/quality-controls/PromptBarQualityControls';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import {
   ArrowUp,
   ChevronUp,
@@ -28,8 +26,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import Image from 'next/image';
-import { type ChangeEvent, memo } from 'react';
-import type { UseFormRegisterReturn } from 'react-hook-form';
+import { memo, useCallback } from 'react';
 
 function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
   if (isRecording) {
@@ -127,8 +124,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   onSuggestionSelect,
   showSuggestionsWhenEmpty = true,
   maxSuggestions = 3,
-  textareaRef,
-  textareaRegister,
+  textareaRef: _textareaRef,
+  textareaRegister: _textareaRegister,
   modelDropdownRef,
   promptBarHeight,
   getModelDefaultDuration,
@@ -149,6 +146,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   generateLabel,
   avatars = [],
   voices = [],
+  extraExtensions,
+  onDocumentChange,
 }: PromptBarEssentialsProps) {
   const isCollapsible = features.collapsible ?? true;
   // Simple mode (Advanced Mode off) strips the bar to its essentials: type,
@@ -175,15 +174,19 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
     setTextValue(item.prompt);
     onTextChange?.(item.prompt);
     triggerConfigChange();
-
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.value = item.prompt;
-      textarea.focus();
-      const cursorPosition = item.prompt.length;
-      textarea.setSelectionRange(cursorPosition, cursorPosition);
-    }
   };
+
+  const handleEditorValueChange = useCallback(
+    (plainText: string) => {
+      form.setValue('text', plainText, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      handleTextareaChange();
+    },
+    [form, handleTextareaChange],
+  );
 
   return (
     <div className="flex flex-col gap-1 w-full">
@@ -200,27 +203,20 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
           />
         )}
 
-        <Textarea<PromptTextareaSchema>
-          name="text"
-          register={
-            textareaRegister as unknown as UseFormRegisterReturn<'text'>
-          }
-          textareaRef={textareaRef}
-          placeholder={currentConfig.placeholder}
-          isDisabled={isDisabledState}
-          onChange={handleTextareaChange}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault();
-              handleSubmitForm();
-            }
-          }}
-          maxHeight={PROMPT_BAR_TEXTAREA_MAX_HEIGHT}
+        <PromptEditor
+          ariaLabel="Prompt"
           className={cn(
-            'min-h-9 w-full resize-none border-0 bg-transparent px-2 py-2 text-sm shadow-none focus-visible:border-transparent focus-visible:ring-0',
+            'min-h-9 w-full px-2 py-2',
             isMinimalBar ? 'pr-4' : isCollapsible ? 'pr-24' : 'pr-12',
           )}
-          data-testid="prompt-textarea"
+          extraExtensions={extraExtensions}
+          isDisabled={isDisabledState}
+          onDocumentChange={onDocumentChange}
+          onSubmit={handleSubmitForm}
+          onValueChange={handleEditorValueChange}
+          placeholder={currentConfig.placeholder}
+          testId="prompt-textarea"
+          value={form.watch('text') ?? ''}
         />
 
         {shouldShowSuggestions && (

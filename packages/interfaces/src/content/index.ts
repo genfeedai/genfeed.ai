@@ -2,6 +2,7 @@ export * from './account-publishing-context.interface';
 export * from './agent-mention.interface';
 export * from './article.interface';
 export * from './article-extended.interface';
+export * from './character-sheet.interface';
 export * from './clip-draft-handoff.interface';
 export * from './clip-reference-frame.interface';
 export * from './clip-reference-generation.interface';

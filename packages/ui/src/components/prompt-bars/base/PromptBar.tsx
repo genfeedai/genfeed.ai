@@ -51,6 +51,9 @@ function PromptBar({
   onSuggestionSelect,
   showSuggestionsWhenEmpty = true,
   maxSuggestions = 3,
+  extraExtensions,
+  onPromptDocumentChange,
+  onPrepareSubmit,
   banner,
 }: PromptBarProps) {
   const {
@@ -121,6 +124,9 @@ function PromptBar({
     onSuggestionSelect,
     showSuggestionsWhenEmpty,
     maxSuggestions,
+    extraExtensions,
+    onPromptDocumentChange,
+    onPrepareSubmit,
   });
 
   return (
@@ -186,6 +192,8 @@ function PromptBar({
                         }
                       : undefined
                   }
+                  extraExtensions={extraExtensions}
+                  onDocumentChange={internalContextValue.onDocumentChange}
                   isSupported={
                     isSupported && settings?.isVoiceControlEnabled !== false
                   }

@@ -75,6 +75,10 @@ export class AgentApiService extends AgentBaseApiService {
   // Mentions / memory
   getMentionsEffect = mentionsApi.getMentionsEffect.bind(null, this);
   getTeamMentionsEffect = mentionsApi.getTeamMentionsEffect.bind(null, this);
+  getCharacterMentionsEffect = mentionsApi.getCharacterMentionsEffect.bind(
+    null,
+    this,
+  );
   getContentMentionsEffect = mentionsApi.getContentMentionsEffect.bind(
     null,
     this,

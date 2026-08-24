@@ -41,6 +41,7 @@ const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.GET_DASHBOARD_LAYOUT,
   AgentToolName.GET_TRENDS,
   AgentToolName.LIST_BRANDS,
+  AgentToolName.LIST_CHARACTERS,
   AgentToolName.LIST_POSTS,
   AgentToolName.LIST_REVIEW_QUEUE,
   AgentToolName.GET_CONNECTION_STATUS,

@@ -35,6 +35,7 @@ import type {
   PromptBarFeatures,
   UploadModalOptions,
 } from '@genfeedai/props/studio/prompt-bar.props';
+import type { AnyExtension, JSONContent } from '@tiptap/core';
 import {
   createContext,
   type Dispatch,
@@ -181,6 +182,8 @@ export interface PromptBarInternalContextValue {
 
   isCollapsed?: boolean;
   setIsCollapsed?: Dispatch<SetStateAction<boolean>>;
+  extraExtensions?: readonly AnyExtension[];
+  onDocumentChange?: (document: JSONContent) => void;
 }
 
 export const PromptBarInternalContext =

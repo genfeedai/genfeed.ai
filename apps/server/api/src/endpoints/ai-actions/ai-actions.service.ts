@@ -1,5 +1,9 @@
-import { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import {
+  AiActionType,
+  ExecuteAiActionDto,
+} from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AI_ACTION_PROMPTS } from '@api/endpoints/ai-actions/prompts/action-prompts';
+import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { getDefaultModel } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -43,7 +47,12 @@ export class AiActionsService {
       throw new BadRequestException(`Unknown action type: ${dto.action}`);
     }
 
-    let systemPrompt = promptConfig.systemPrompt;
+    let systemPrompt =
+      dto.action === AiActionType.ENHANCE_PROMPT
+        ? resolveEnhancePromptSystemPrompt({
+            category: dto.context?.category,
+          })
+        : promptConfig.systemPrompt;
 
     if (dto.context) {
       for (const [key, value] of Object.entries(dto.context)) {

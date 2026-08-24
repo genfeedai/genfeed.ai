@@ -20,6 +20,7 @@ import {
   Plug,
   Puzzle,
   Receipt,
+  ScanFace,
   Send,
   Share2,
   Sparkles,
@@ -32,6 +33,7 @@ import {
 // `prefixHref`. Shared route constants cover paths used outside this menu.
 const BRAND_SETTINGS = {
   AGENT_DEFAULTS: APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
+  CHARACTERS: APP_ROUTES.SETTINGS.CHARACTERS,
   HARNESS: '/settings/harness',
   INTERVIEW: '/settings/interview',
   KIT: '/settings/kit',
@@ -263,6 +265,14 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Brand Kit',
       outline: Palette,
       solid: Palette,
+    },
+    {
+      group: 'Brand',
+      href: BRAND_SETTINGS.CHARACTERS,
+      hrefScope: 'brand',
+      label: 'Characters',
+      outline: ScanFace,
+      solid: ScanFace,
     },
     {
       // Writing voice for agents (tone/style/audience) — not TTS/speech library voices.

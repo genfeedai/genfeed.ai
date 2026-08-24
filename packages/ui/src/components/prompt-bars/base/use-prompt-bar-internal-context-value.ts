@@ -38,6 +38,7 @@ import type {
   PromptBarAttachedAsset,
   UploadModalOptions,
 } from '@genfeedai/props/studio/prompt-bar.props';
+import type { AnyExtension, JSONContent } from '@tiptap/core';
 import {
   type Dispatch,
   type FormEvent,
@@ -163,6 +164,8 @@ type UsePromptBarInternalContextValueParams = {
   openAttachedAssetsBrowser: () => void;
   isCollapsed: boolean;
   setIsCollapsed: Dispatch<SetStateAction<boolean>>;
+  extraExtensions?: readonly AnyExtension[];
+  onDocumentChange?: (document: JSONContent) => void;
 };
 
 export function usePromptBarInternalContextValue(
@@ -281,6 +284,8 @@ export function usePromptBarInternalContextValue(
       onBrowseAssets: p.openAttachedAssetsBrowser,
       isCollapsed: p.isCollapsed,
       setIsCollapsed: p.setIsCollapsed,
+      extraExtensions: p.extraExtensions,
+      onDocumentChange: p.onDocumentChange,
     }),
     [
       p.currentConfig,
@@ -393,6 +398,8 @@ export function usePromptBarInternalContextValue(
       p.openAttachedAssetsBrowser,
       p.isCollapsed,
       p.setIsCollapsed,
+      p.extraExtensions,
+      p.onDocumentChange,
     ],
   );
 }

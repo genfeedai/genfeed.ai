@@ -6,8 +6,10 @@ import {
 } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import type {
+  AgentCharacterMentionsResponse,
   AgentContentMentionsResponse,
   AgentTeamMentionsResponse,
+  AgentCharacterMentionItem as CharacterMentionItem,
   AgentContentMentionItem as ContentMentionItem,
   AgentTeamMentionItem as TeamMentionItem,
 } from '@genfeedai/interfaces';
@@ -61,6 +63,26 @@ export function getTeamMentionsEffect(
         decodeMentionsEffect<TeamMentionItem>(
           json,
           'Failed to decode team mentions',
+        ),
+      ),
+    );
+}
+
+export function getCharacterMentionsEffect(
+  api: AgentBaseApiService,
+  signal?: AbortSignal,
+): Effect.Effect<CharacterMentionItem[], AgentApiError> {
+  return api
+    .fetchJsonEffect<AgentCharacterMentionsResponse>(
+      `${api.config.baseUrl}/personas/mentions`,
+      { signal },
+      'Failed to fetch character mentions',
+    )
+    .pipe(
+      Effect.flatMap((json) =>
+        decodeMentionsEffect<CharacterMentionItem>(
+          json,
+          'Failed to decode character mentions',
         ),
       ),
     );

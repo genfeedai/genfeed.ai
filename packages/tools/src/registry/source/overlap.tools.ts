@@ -247,9 +247,23 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     name: 'generate_image',
     parameters: {
       properties: {
+        characterHandles: {
+          description:
+            'Optional brand character handles to resolve server-side into canonical reference images. Max 4. Unresolvable handles fail the whole call.',
+          items: { type: 'string' },
+          maxItems: 4,
+          type: 'array',
+        },
         prompt: {
           description: 'Description of the image to generate',
           type: 'string',
+        },
+        references: {
+          description:
+            'Optional asset/ingredient ids or URLs used as visual references (not the prompt). Max 8, further capped by the model.',
+          items: { type: 'string' },
+          maxItems: 8,
+          type: 'array',
         },
         quality: {
           default: 'standard',
@@ -364,14 +378,28 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           description: 'Duration in seconds (4-60, default 10)',
           type: 'number',
         },
+        characterHandles: {
+          description:
+            'Optional brand character handles to resolve server-side into canonical reference images. Max 4. Distinct from imageUrl, which is the start frame. Unresolvable handles fail the whole call.',
+          items: { type: 'string' },
+          maxItems: 4,
+          type: 'array',
+        },
         imageUrl: {
           description:
-            'Portrait image URL for avatar generation, or reference image for image-to-video.',
+            'Start-frame image URL for image-to-video or avatar generation. This is the first frame, not a character reference. Use references/characterHandles for identity references.',
           type: 'string',
         },
         prompt: {
           description: 'Detailed text description of the video to generate',
           type: 'string',
+        },
+        references: {
+          description:
+            'Optional asset/ingredient ids or URLs used as character/style references (not the start frame). Max 8, further capped by the model. Use imageUrl for the start frame.',
+          items: { type: 'string' },
+          maxItems: 8,
+          type: 'array',
         },
       },
       required: ['prompt'],
@@ -434,6 +462,22 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           default: 20,
           description: 'Maximum number of brands to return',
           type: 'number',
+        },
+      },
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      "List the current brand's active named characters (handle, label, description, whether a reference image exists). Tenant-scoped.",
+    name: 'list_characters',
+    parameters: {
+      properties: {
+        q: {
+          description: 'Optional handle or label prefix filter',
+          type: 'string',
         },
       },
       type: 'object',

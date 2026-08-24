@@ -15,8 +15,8 @@ import type {
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { EditorContent } from '@tiptap/react';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { type ReactElement, useCallback, useMemo } from 'react';
 
 // Stable default so memoized children do not see a new [] every render.
@@ -32,7 +32,8 @@ export type ExtractedMention =
       isAgent: boolean;
     }
   | { type: 'credential'; id: string; handle: string; platform: string }
-  | { type: 'content'; id: string; contentTitle: string; contentType: string };
+  | { type: 'content'; id: string; contentTitle: string; contentType: string }
+  | { type: 'character'; id: string; handle: string; label: string };
 
 interface AgentChatInputProps {
   onSend: (
@@ -206,7 +207,11 @@ export function AgentChatInput({
         density={isCompact ? 'compact' : 'default'}
         onPointerDown={handleShellPointerDown}
       >
-        <EditorContent editor={editor} className="flex-1" />
+        <PromptEditor
+          ariaLabel="Conversation prompt"
+          className="flex-1"
+          editor={editor}
+        />
 
         <AgentChatInputToolbar
           canSendMessage={canSendMessage}

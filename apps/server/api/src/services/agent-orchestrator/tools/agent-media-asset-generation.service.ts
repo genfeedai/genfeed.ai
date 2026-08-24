@@ -1,3 +1,4 @@
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
   readMediaAssetUrl,
   readMediaResponseString,
@@ -7,6 +8,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import { RouterPriority, Status } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -27,7 +29,103 @@ export class AgentMediaAssetGenerationService {
     private readonly harnessGenerationService?: HarnessGenerationService,
     @Optional()
     private readonly moduleRef?: ModuleRef,
+    @Optional()
+    private readonly personasService?: PersonasService,
   ) {}
+
+  private readStringArray(value: unknown, max: number): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0)
+      .slice(0, max);
+  }
+
+  private capReferences(references: string[], modelKey?: string): string[] {
+    const catalogLimit =
+      modelKey && modelKey in MODEL_OUTPUT_CAPABILITIES
+        ? MODEL_OUTPUT_CAPABILITIES[
+            modelKey as keyof typeof MODEL_OUTPUT_CAPABILITIES
+          ].maxReferences
+        : undefined;
+    const cap =
+      typeof catalogLimit === 'number' && catalogLimit > 0
+        ? Math.min(8, catalogLimit)
+        : 8;
+    return references.slice(0, cap);
+  }
+
+  async resolveGenerationReferences(params: {
+    attachmentFallback?: string;
+    ctx: ToolExecutionContext;
+    explicitReferences?: unknown;
+    handles?: unknown;
+    modelKey?: string;
+  }): Promise<{ error?: AgentToolResult; references: string[] }> {
+    const handles = this.readStringArray(params.handles, 4);
+    const explicit = this.readStringArray(params.explicitReferences, 8);
+    const unresolved: string[] = [];
+    const resolved: string[] = [];
+
+    if (handles.length > 0) {
+      if (!this.personasService) {
+        return {
+          error: {
+            creditsUsed: 0,
+            error: `Unresolved character handles: ${handles.join(', ')}`,
+            success: false,
+          },
+          references: [],
+        };
+      }
+      const characters = await this.personasService.listCharacterMentions({
+        brandId: params.ctx.brandId,
+        organizationId: params.ctx.organizationId,
+      });
+      const byHandle = new Map(
+        characters.map((character) => [character.handle, character]),
+      );
+      for (const handle of handles) {
+        const character = byHandle.get(handle.toLowerCase());
+        if (!character?.avatarIngredientId) {
+          unresolved.push(handle);
+          continue;
+        }
+        resolved.push(character.avatarIngredientId);
+      }
+    }
+
+    if (unresolved.length > 0) {
+      return {
+        error: {
+          creditsUsed: 0,
+          data: { unresolvedHandles: unresolved },
+          error: `Unresolved character handles: ${unresolved.join(', ')}`,
+          success: false,
+        },
+        references: [],
+      };
+    }
+
+    const merged: string[] = [];
+    const seen = new Set<string>();
+    for (const id of [
+      ...resolved,
+      ...explicit,
+      ...(params.attachmentFallback ? [params.attachmentFallback] : []),
+    ]) {
+      if (seen.has(id)) {
+        continue;
+      }
+      seen.add(id);
+      merged.push(id);
+    }
+
+    return { references: this.capReferences(merged, params.modelKey) };
+  }
 
   async generateImage(
     params: Record<string, unknown>,
@@ -50,6 +148,19 @@ export class AgentMediaAssetGenerationService {
     const promptPreview = rawPrompt.substring(0, 80);
     const imageUrl =
       (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
+    const resolvedReferences = await this.resolveGenerationReferences({
+      attachmentFallback: imageUrl,
+      ctx,
+      explicitReferences: params.references,
+      handles: params.characterHandles,
+      modelKey:
+        typeof ctx.generationModelOverride === 'string'
+          ? ctx.generationModelOverride
+          : undefined,
+    });
+    if (resolvedReferences.error) {
+      return resolvedReferences.error;
+    }
     const requestedOutputs =
       typeof params.outputs === 'number' && Number.isFinite(params.outputs)
         ? Math.min(8, Math.max(1, Math.round(params.outputs)))
@@ -64,7 +175,9 @@ export class AgentMediaAssetGenerationService {
       ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-      ...(imageUrl ? { references: [imageUrl] } : {}),
+      ...(resolvedReferences.references.length > 0
+        ? { references: resolvedReferences.references }
+        : {}),
     };
 
     if (ctx.generationModelOverride) {
@@ -225,6 +338,18 @@ export class AgentMediaAssetGenerationService {
     );
     const imageUrl =
       (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
+    const resolvedReferences = await this.resolveGenerationReferences({
+      ctx,
+      explicitReferences: params.references,
+      handles: params.characterHandles,
+      modelKey:
+        typeof ctx.generationModelOverride === 'string'
+          ? ctx.generationModelOverride
+          : undefined,
+    });
+    if (resolvedReferences.error) {
+      return resolvedReferences.error;
+    }
     const audioUrl = params.audioUrl as string | undefined;
     const rawPrompt = String(params.prompt ?? '');
     const prompt = await this.applyBrandHarnessToPrompt({
@@ -238,6 +363,7 @@ export class AgentMediaAssetGenerationService {
       ctx,
       dimensions,
       duration: (params.duration as number) || 10,
+      extraReferences: resolvedReferences.references,
       imageUrl,
       prompt,
     });
@@ -424,6 +550,7 @@ export class AgentMediaAssetGenerationService {
     ctx: ToolExecutionContext;
     dimensions: { height: number; width: number };
     duration: number;
+    extraReferences?: string[];
     imageUrl?: string;
     prompt: string;
   }): Record<string, unknown> {
@@ -452,6 +579,21 @@ export class AgentMediaAssetGenerationService {
       body.autoSelectModel = true;
       body.prioritize = params.ctx.generationPriority || RouterPriority.QUALITY;
       if (params.imageUrl) body.references = [params.imageUrl];
+    }
+    if (params.extraReferences && params.extraReferences.length > 0) {
+      const existing = Array.isArray(body.references)
+        ? (body.references as string[])
+        : [];
+      const seen = new Set(existing);
+      const merged = [...existing];
+      for (const reference of params.extraReferences) {
+        if (seen.has(reference)) {
+          continue;
+        }
+        seen.add(reference);
+        merged.push(reference);
+      }
+      body.references = merged;
     }
     return body;
   }

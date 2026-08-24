@@ -53,8 +53,13 @@ describe('PromptsOperationsController', () => {
 
   const mockPrompt = {
     _id: testId('prompt'),
+    id: testId('prompt'),
+    brandId,
+    category: PromptCategory.MODELS_PROMPT_IMAGE,
+    organizationId: testId('org'),
     original: 'Test prompt',
     status: 'completed',
+    userId: testId('user'),
   };
 
   const mockServices = {
@@ -185,6 +190,53 @@ describe('PromptsOperationsController', () => {
       expect(mockServices.whisperService.transcribeAudio).toHaveBeenCalled();
       expect(result).toBeDefined();
       expect(result.text).toBeDefined();
+    });
+  });
+
+  describe('enhanceExisting', () => {
+    const mockRequest = {
+      get: vi.fn().mockReturnValue('localhost'),
+      headers: {},
+      path: `/prompts/${testId('prompt')}/enhance`,
+      protocol: 'https',
+      query: {},
+    } as never;
+
+    it('passes cinematic lexicon guidance for IMAGE prompts', async () => {
+      mockServices.promptsService.findOne.mockResolvedValue(mockPrompt);
+      mockServices.activitiesService.create.mockResolvedValue({
+        id: activityId,
+      });
+
+      await controller.enhanceExisting(mockRequest, mockPrompt.id, mockUser);
+
+      expect(
+        mockServices.promptBuilderService.buildPrompt,
+      ).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          systemPromptSuffix: expect.stringContaining(
+            'Cinematography vocabulary',
+          ),
+        }),
+        mockUser.organizationId,
+      );
+    });
+
+    it('omits cinematic lexicon guidance for text-only prompts', async () => {
+      mockServices.promptsService.findOne.mockResolvedValue({
+        ...mockPrompt,
+        category: PromptCategory.PRESET_DESCRIPTION_TEXT,
+      });
+      mockServices.activitiesService.create.mockResolvedValue({
+        id: activityId,
+      });
+
+      await controller.enhanceExisting(mockRequest, mockPrompt.id, mockUser);
+
+      const buildArgs =
+        mockServices.promptBuilderService.buildPrompt.mock.calls[0];
+      expect(buildArgs[1].systemPromptSuffix).toBeUndefined();
     });
   });
 });

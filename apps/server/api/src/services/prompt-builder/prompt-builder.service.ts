@@ -365,6 +365,10 @@ export class PromptBuilderService {
           }
         }
 
+        if (params.systemPromptSuffix) {
+          systemPromptResult = `${systemPromptResult}\n\n${params.systemPromptSuffix}`;
+        }
+
         // Set the final system prompt
         params = { ...params, systemPrompt: systemPromptResult };
       } else {

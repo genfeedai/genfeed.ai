@@ -25,6 +25,7 @@ export enum AgentToolName {
   GENERATE_CONTENT_BATCH = 'generate_content_batch',
   GET_TRENDS = 'get_trends',
   LIST_BRANDS = 'list_brands',
+  LIST_CHARACTERS = 'list_characters',
   GET_CURRENT_BRAND = 'get_current_brand',
   GET_CREDITS_BALANCE = 'get_credits_balance',
   UPSCALE_IMAGE = 'upscale_image',

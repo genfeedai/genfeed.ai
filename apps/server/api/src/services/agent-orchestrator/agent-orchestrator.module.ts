@@ -21,6 +21,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
+import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
@@ -142,6 +143,7 @@ import { Module } from '@nestjs/common';
     MarketplaceIntegrationModule,
     OrganizationSettingsModule,
     OrganizationsCoreModule,
+    PersonasCoreModule,
     PostGroupsModule,
     PostsModule,
     QueuesModule,

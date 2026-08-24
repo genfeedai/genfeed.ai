@@ -132,6 +132,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_agent_runs', surfaces: ['mcp'] },
   { name: 'list_avatars', surfaces: ['mcp'] },
   { name: 'list_brands', surfaces: ['agent', 'mcp'] },
+  { name: 'list_characters', surfaces: ['agent', 'mcp'] },
   { name: 'list_clip_projects', surfaces: ['mcp'] },
   { name: 'list_genfeed_tools', surfaces: ['agent'] },
   { name: 'list_google_ads_campaigns', surfaces: ['mcp'] },

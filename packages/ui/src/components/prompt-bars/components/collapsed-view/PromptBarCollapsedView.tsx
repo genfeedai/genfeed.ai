@@ -10,12 +10,12 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarCollapsedViewProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarGenerationMeter from '@ui/prompt-bars/components/generation-meter/PromptBarGenerationMeter';
+import PromptEditor from '@ui/prompt-editor/PromptEditor';
 import { ArrowUp, ChevronUp, LayoutGrid, Mic, Square } from 'lucide-react';
 import Image from 'next/image';
-import { type ChangeEvent, memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 
 function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
@@ -29,7 +29,7 @@ function getVoiceTooltip(isRecording: boolean, isProcessing: boolean): string {
 }
 
 const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
-  collapsedInputRef,
+  collapsedInputRef: _collapsedInputRef,
   form,
   placeholder,
   isDisabled,
@@ -58,6 +58,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   toggleVoice,
   isRecording,
   isProcessing,
+  extraExtensions,
+  onDocumentChange,
 }: PromptBarCollapsedViewProps) {
   const watchedText = useWatch({
     control: form.control,
@@ -70,23 +72,18 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   );
 
   const updatePromptBarCollapsedView = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-      const cursorPos = event.target.selectionStart ?? value.length;
-
+    (plainText: string) => {
       isInternalUpdateRef.current = true;
-      form.setValue('text', value, { shouldValidate: true });
+      form.setValue('text', plainText, { shouldValidate: true });
       onTextChange?.();
-
-      requestAnimationFrame(() => {
-        if (collapsedInputRef.current) {
-          collapsedInputRef.current.setSelectionRange(cursorPos, cursorPos);
-        }
-        isInternalUpdateRef.current = false;
-      });
+      isInternalUpdateRef.current = false;
     },
-    [collapsedInputRef, form, isInternalUpdateRef, onTextChange],
+    [form, isInternalUpdateRef, onTextChange],
   );
+
+  const submitCollapsedPrompt = useCallback(() => {
+    onSubmit();
+  }, [onSubmit]);
 
   const hasReferences = references && references.length > 0;
   const firstReference = hasReferences ? references[0] : null;
@@ -148,16 +145,18 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
         )}
 
         <div className="relative flex-1">
-          <Input
-            name="text"
-            type="text"
-            inputRef={collapsedInputRef}
-            value={form.getValues('text')}
-            onChange={updatePromptBarCollapsedView}
-            placeholder={placeholder}
+          <PromptEditor
+            ariaLabel="Prompt"
+            className="h-10 w-full pl-3 pr-12"
+            editorClassName="py-2"
+            extraExtensions={extraExtensions}
             isDisabled={isDisabled}
-            className="h-10 w-full border-0 bg-transparent pl-3 pr-12 text-sm shadow-none focus:border-transparent focus:outline-none focus-visible:ring-0"
-            data-testid="prompt-input"
+            onDocumentChange={onDocumentChange}
+            onSubmit={submitCollapsedPrompt}
+            onValueChange={updatePromptBarCollapsedView}
+            placeholder={placeholder}
+            testId="prompt-input"
+            value={typeof watchedText === 'string' ? watchedText : ''}
           />
           {isGenerating && onCancel ? (
             <Button

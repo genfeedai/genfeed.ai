@@ -96,6 +96,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
   AgentToolName.LIST_ADS_RESEARCH,
   AgentToolName.LIST_AGENT_RUNS,
   AgentToolName.LIST_BRANDS,
+  AgentToolName.LIST_CHARACTERS,
   AgentToolName.LIST_GENFEED_TOOLS,
   AgentToolName.LIST_POSTS,
   AgentToolName.LIST_REVIEW_QUEUE,
@@ -261,6 +262,9 @@ export class AgentToolExecutorService {
 
       case AgentToolName.LIST_BRANDS:
         return this.workspaceHandler.listBrands(ctx);
+
+      case AgentToolName.LIST_CHARACTERS:
+        return this.workspaceHandler.listCharacters(params, ctx);
 
       case AgentToolName.GET_CURRENT_BRAND:
         return this.workspaceHandler.getCurrentBrand(ctx);

@@ -2,8 +2,10 @@ import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInpu
 import type { AgentChatReferenceItem } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
 import { createSuggestionPopupRenderer } from '@genfeedai/agent/utils/suggestion-popup.util';
 import type { JSONContent } from '@tiptap/core';
-import { Extension } from '@tiptap/core';
+import { SendOnEnter } from '@ui/prompt-editor/send-on-enter.extension';
 import type { ComponentType } from 'react';
+
+export { SendOnEnter };
 
 export function extractMentions(json: JSONContent): ExtractedMention[] {
   const result: ExtractedMention[] = [];
@@ -42,6 +44,14 @@ export function extractMentions(json: JSONContent): ExtractedMention[] {
             contentType: node.attrs.contentType as string,
             id: node.attrs.contentId as string,
             type: 'content',
+          });
+          break;
+        case 'characterMention':
+          result.push({
+            handle: node.attrs.handle as string,
+            id: node.attrs.id as string,
+            label: node.attrs.label as string,
+            type: 'character',
           });
           break;
       }
@@ -86,6 +96,14 @@ export function mapMentionsToReferences(
         label: `!${mention.handle}`,
         type: 'credential',
       });
+      continue;
+    }
+    if (mention.type === 'character') {
+      references.push({
+        id: mention.id,
+        label: mention.label || `@${mention.handle}`,
+        type: 'character',
+      });
     }
   }
   return references;
@@ -116,34 +134,6 @@ export function areAgentChatMentionReferencesEqual(
 
   return true;
 }
-
-interface SendOnEnterOptions {
-  onEnter: () => boolean;
-}
-
-// Enter submits the message (mirroring the Send button); Shift+Enter falls
-// through to the HardBreak newline. Declared before the mention/slash
-// extensions so their Suggestion plugins keep Enter-to-select while a popup is
-// open, but ahead of the core newline keymap when no popup is active. The IME
-// guard prevents committing an in-progress composition (critical for CJK).
-export const SendOnEnter = Extension.create<SendOnEnterOptions>({
-  addKeyboardShortcuts() {
-    return {
-      Enter: ({ editor }) => {
-        if (editor.view.composing) {
-          return false;
-        }
-        return this.options.onEnter();
-      },
-    };
-  },
-  addOptions() {
-    return {
-      onEnter: () => false,
-    };
-  },
-  name: 'sendOnEnter',
-});
 
 export function buildMentionSuggestion<T>({
   component,
