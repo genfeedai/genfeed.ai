@@ -1,7 +1,10 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import type { IPaginationParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -21,7 +24,7 @@ export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 export function useWorkflowLibraryPage() {
   const { href } = useOrgUrl();
   const { push } = useRouter();
-  const { brandId, isReady } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const { isConnected, isCapable } = useCloudSession();
   const notificationsService = NotificationsService.getInstance();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
@@ -40,7 +43,7 @@ export function useWorkflowLibraryPage() {
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
-  const loadedBrandIdRef = useRef<string | null>(null);
+  const loadedScopeKeyRef = useRef<string | null>(null);
 
   const getService = useAuthedService(createWorkflowApiService);
 
@@ -66,14 +69,15 @@ export function useWorkflowLibraryPage() {
         const service = await getService();
         if (signal.aborted) return;
 
-        const requestPage = loadedBrandIdRef.current === brandId ? page : 1;
-        if (loadedBrandIdRef.current !== brandId && page !== 1) {
+        const scopeKey = `${pageScope}:${brandId ?? ''}`;
+        const requestPage = loadedScopeKeyRef.current === scopeKey ? page : 1;
+        if (loadedScopeKeyRef.current !== scopeKey && page !== 1) {
           setPage(1);
         }
-        loadedBrandIdRef.current = brandId;
+        loadedScopeKeyRef.current = scopeKey;
 
         const params: Record<string, unknown> = {
-          brandId,
+          ...toBrandListParams({ brandId }),
           limit: WORKFLOW_LIBRARY_PAGE_SIZE,
           page: requestPage,
         };
@@ -96,18 +100,21 @@ export function useWorkflowLibraryPage() {
         }
       }
     },
-    [brandId, getService, debouncedSearch, page],
+    [brandId, pageScope, getService, debouncedSearch, page],
   );
 
   useEffect(() => {
-    if (!isReady || !brandId) {
+    if (!isReady || !organizationId) {
+      return;
+    }
+    if (pageScope === 'brand' && !brandId) {
       return;
     }
 
     const controller = new AbortController();
     loadWorkflows(controller.signal);
     return () => controller.abort();
-  }, [brandId, isReady, loadWorkflows]);
+  }, [brandId, isReady, loadWorkflows, organizationId, pageScope]);
 
   // Actions
   const handleDuplicate = useCallback(

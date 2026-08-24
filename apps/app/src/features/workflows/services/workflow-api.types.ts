@@ -200,6 +200,7 @@ export interface ExecutionResult {
 /** Query params for listing executions */
 export interface ListExecutionsParams {
   workflowId?: string;
+  brandId?: string;
   status?: WorkflowExecutionStatus;
   trigger?: string;
   limit?: number;

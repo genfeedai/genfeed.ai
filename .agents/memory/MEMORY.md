@@ -29,6 +29,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [genfeedai_managed_provider](genfeedai_managed_provider.md) — managed inference is `provider=genfeedai`
 - [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
 - [system_workflows_admin_only](system_workflows_admin_only.md) — persisted system clones are Admin-only; customer library never lists them
+- [page_org_brand_scope](page_org_brand_scope.md) — org always selected; brand empty (`~/`) or brand selected on every customer list
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
 - [curated_action_surface_boundaries](curated_action_surface_boundaries.md) — why each agent-only / MCP-only action stays that way
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps

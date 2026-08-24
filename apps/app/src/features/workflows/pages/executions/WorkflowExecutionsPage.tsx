@@ -1,12 +1,15 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
 import {
   AuthenticationTokenUnavailableError,
   useAuthedService,
 } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
@@ -90,7 +93,7 @@ const EXECUTIONS_PER_PAGE = 20;
  */
 export default function WorkflowExecutionsPage() {
   const { href } = useOrgUrl();
-  const { isReady, organizationId } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const [state, dispatch] = useReducer(executionsReducer, initialState);
   const { executions, workflowLabels, isLoading, error, offset, hasMore } =
     state;
@@ -107,17 +110,21 @@ export default function WorkflowExecutionsPage() {
 
         dispatch({ type: 'FETCH_START' });
 
+        const brandParams = toBrandListParams({ brandId });
         const [data, workflows] = await Promise.all([
           service.listExecutions({
+            ...brandParams,
             limit: EXECUTIONS_PER_PAGE,
             offset: pageOffset,
           }),
-          service.list({ limit: 100 }).catch((error: unknown) => {
-            logger.error('Failed to load workflow labels for executions', {
-              error,
-            });
-            return [];
-          }),
+          service
+            .list({ ...brandParams, limit: 100 })
+            .catch((error: unknown) => {
+              logger.error('Failed to load workflow labels for executions', {
+                error,
+              });
+              return [];
+            }),
         ]);
         if (signal.aborted) {
           return;
@@ -146,18 +153,21 @@ export default function WorkflowExecutionsPage() {
         dispatch({ type: 'FETCH_ERROR', error: message });
       }
     },
-    [getService],
+    [brandId, getService],
   );
 
   useEffect(() => {
     if (!isReady || !organizationId) {
       return;
     }
+    if (pageScope === 'brand' && !brandId) {
+      return;
+    }
 
     const controller = new AbortController();
     loadExecutions(controller.signal, offset);
     return () => controller.abort();
-  }, [isReady, loadExecutions, offset, organizationId]);
+  }, [brandId, isReady, loadExecutions, offset, organizationId, pageScope]);
 
   if (isLoading && executions.length === 0) {
     return (
