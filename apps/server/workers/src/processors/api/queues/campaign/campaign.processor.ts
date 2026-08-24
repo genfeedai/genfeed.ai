@@ -9,6 +9,7 @@
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
+import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreach-capability.util';
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
 import {
   CAMPAIGN_PROCESSING_QUEUE,
@@ -137,8 +138,10 @@ export class CampaignProcessor extends WorkerHost {
 
   private ineligibleReason(
     campaign: {
+      campaignType?: string;
       isDeleted?: boolean;
       organizationId?: string;
+      platform?: string;
       status?: string;
     } | null,
     campaignId: string,
@@ -158,6 +161,15 @@ export class CampaignProcessor extends WorkerHost {
 
     if (campaign.status !== CampaignStatus.ACTIVE) {
       return 'campaign_not_active';
+    }
+
+    if (
+      !isCampaignOutreachPairExecutable({
+        campaignType: campaign.campaignType,
+        platform: campaign.platform,
+      })
+    ) {
+      return 'outreach_pair_unavailable';
     }
 
     if (!campaignId) {

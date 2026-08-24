@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  evaluateOutreachCapability,
+  isOutreachPairExecutable,
+} from '@api-types/contracts/outreach-capabilities.contract';
 import { ButtonVariant, CampaignStatus, CampaignType } from '@genfeedai/enums';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -65,6 +69,13 @@ export default function OutreachCampaignDetail() {
     );
   }
 
+  const pairEvaluation = evaluateOutreachCapability({
+    campaignType: campaign.campaignType,
+    platform: campaign.platform,
+  });
+  const isPairExecutable = isOutreachPairExecutable(pairEvaluation);
+  const unavailableReasonId = 'outreach-campaign-unavailable-reason';
+
   return (
     <Container
       label={campaign.label}
@@ -89,13 +100,22 @@ export default function OutreachCampaignDetail() {
             />
           ) : campaign.status !== CampaignStatus.COMPLETED ? (
             <Button
+              aria-describedby={
+                isPairExecutable ? undefined : unavailableReasonId
+              }
+              aria-disabled={isPairExecutable ? undefined : true}
               label={
                 <>
                   <Play /> Start
                 </>
               }
               variant={ButtonVariant.DEFAULT}
-              onClick={handleStartCampaign}
+              onClick={() => {
+                if (!isPairExecutable) {
+                  return;
+                }
+                handleStartCampaign();
+              }}
             />
           ) : null}
 
@@ -114,6 +134,17 @@ export default function OutreachCampaignDetail() {
       }
     >
       <div className="space-y-6">
+        {!isPairExecutable ? (
+          <div
+            className="border border-border bg-card p-4 text-sm"
+            id={unavailableReasonId}
+            role="status"
+          >
+            <p className="font-medium">{pairEvaluation.ui.headline}</p>
+            <p className="mt-1 text-foreground/70">{pairEvaluation.ui.body}</p>
+          </div>
+        ) : null}
+
         <OutreachCampaignDetailHeader
           platform={campaign.platform}
           status={campaign.status}
@@ -172,8 +203,12 @@ export default function OutreachCampaignDetail() {
 
         <OutreachCampaignAddTargets
           campaignType={campaign.campaignType}
+          isUnavailable={!isPairExecutable}
           urlInput={urlInput}
           isAddingUrls={isAddingUrls}
+          unavailableReason={
+            isPairExecutable ? undefined : pairEvaluation.ui.body
+          }
           onUrlInputChange={setUrlInput}
           onAddUrls={handleAddUrls}
           onAddDmRecipients={handleAddDmRecipients}

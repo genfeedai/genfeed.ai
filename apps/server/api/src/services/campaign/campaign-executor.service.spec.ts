@@ -14,10 +14,12 @@ import {
   CampaignPlatform,
   CampaignSkipReason,
   CampaignStatus,
+  CampaignType,
   ReplyLength,
   ReplyTone,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -104,6 +106,7 @@ describe('CampaignExecutorService', () => {
         useAiGeneration: true,
       } as CampaignAiConfig,
       brandId,
+      campaignType: CampaignType.MANUAL,
       credentialId,
       organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
@@ -538,11 +541,37 @@ describe('CampaignExecutorService', () => {
       const result = await service.executeTarget(campaign, target);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Reddit replies not yet implemented');
+      expect(result.error).toBe(
+        'This outreach platform and campaign type combination is not available.',
+      );
+      expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
+      expect(
+        mockCampaignTargetsService.claimForProcessing,
+      ).not.toHaveBeenCalled();
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+      expect(
+        mockSystemWorkflowProvenanceService.runAction,
+      ).not.toHaveBeenCalled();
+      expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsSkipped).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).not.toHaveBeenCalled();
     });
   });
 
   describe('previewReply', () => {
+    it('rejects an unavailable pair before generation', async () => {
+      const campaign = makeCampaign({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+      });
+      const target = makeTarget();
+
+      await expect(
+        service.previewReply(campaign, target),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+    });
+
     it('should return generated reply without posting', async () => {
       const campaign = makeCampaign();
       const target = makeTarget();
@@ -563,6 +592,22 @@ describe('CampaignExecutorService', () => {
   });
 
   describe('processPendingTargets', () => {
+    it('skips an unavailable pair before reading targets', async () => {
+      const campaign = makeCampaign({ platform: CampaignPlatform.INSTAGRAM });
+
+      const results = await service.processPendingTargets(campaign, 10);
+
+      expect(results).toEqual({
+        failed: 0,
+        processed: 0,
+        skipped: 0,
+        successful: 0,
+      });
+      expect(
+        mockCampaignTargetsService.getPendingTargets,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should process a batch of pending targets', async () => {
       const campaign = makeCampaign();
       const targets = [makeTarget(), makeTarget({ id: 'test-object-id' })];

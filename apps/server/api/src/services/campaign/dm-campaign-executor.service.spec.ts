@@ -15,6 +15,7 @@ import {
   CampaignSkipReason,
   CampaignStatus,
   CampaignTargetStatus,
+  CampaignType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -104,6 +105,7 @@ describe('DmCampaignExecutorService', () => {
     ({
       id: campaignId,
       brandId,
+      campaignType: CampaignType.DM_OUTREACH,
       credentialId,
       dmConfig: {
         context: 'outreach',
@@ -173,6 +175,29 @@ describe('DmCampaignExecutorService', () => {
   });
 
   describe('processPendingDmTargets', () => {
+    it('skips an unavailable pair before reading targets', async () => {
+      const campaign = makeCampaign({ platform: CampaignPlatform.INSTAGRAM });
+
+      const result = await service.processPendingDmTargets(campaign, 10);
+
+      expect(result).toEqual({
+        failed: 0,
+        processed: 0,
+        skipped: 0,
+        successful: 0,
+      });
+      expect(
+        mockCampaignTargetsService.getPendingTargets,
+      ).not.toHaveBeenCalled();
+      expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockReplyGenerationService.generateDm).not.toHaveBeenCalled();
+      expect(
+        mockSystemWorkflowProvenanceService.runAction,
+      ).not.toHaveBeenCalled();
+      expect(mockBotActionExecutorService.sendDm).not.toHaveBeenCalled();
+    });
+
     it('should skip targets when campaign is paused', async () => {
       const campaign = makeCampaign({ status: CampaignStatus.PAUSED });
       const target = makeTarget();

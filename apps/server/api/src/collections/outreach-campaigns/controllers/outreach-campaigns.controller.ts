@@ -15,6 +15,10 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
+import {
+  requireExecutableOutreachPair,
+  requireMatchingOutreachTargetPlatform,
+} from '@api/services/campaign/outreach-capability.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -269,6 +273,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
       throw new NotFoundException('Campaign', id);
     }
 
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
+
     if (body.targetType === CampaignTargetType.DM_RECIPIENT) {
       return this.addDmRecipients(campaign, id, body.usernames ?? []);
     }
@@ -304,6 +313,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
         skipped++;
         continue;
       }
+
+      requireMatchingOutreachTargetPlatform({
+        campaignPlatform: campaign.platform,
+        targetPlatform: parsed.platform,
+      });
 
       parsedByExternalId.set(parsed.externalId, { ...parsed, url });
     }
@@ -526,6 +540,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
       throw new NotFoundException('Campaign', id);
     }
 
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
+
     if (!campaign.discoveryConfig) {
       throw new BadRequestException(
         'Campaign has no discovery configuration. Add keywords, hashtags, or subreddits first.',
@@ -578,6 +597,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
     if (!campaign) {
       throw new NotFoundException('Campaign', id);
     }
+
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
 
     const target = await this.campaignTargetsService.findById(
       targetId,

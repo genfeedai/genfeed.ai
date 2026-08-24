@@ -30,6 +30,7 @@ export default function OutreachCampaignWizard() {
     handleChange,
     handleNext,
     handleSubmit,
+    isPairExecutable,
     isSubmitting,
     router,
   } = useOutreachCampaignWizard();
@@ -211,7 +212,9 @@ export default function OutreachCampaignWizard() {
               }
               variant={ButtonVariant.DEFAULT}
               onClick={handleNext}
-              isDisabled={currentStep === 2 && !formData.label}
+              isDisabled={
+                !isPairExecutable || (currentStep === 2 && !formData.label)
+              }
             />
           ) : (
             <Button
@@ -223,7 +226,10 @@ export default function OutreachCampaignWizard() {
               variant={ButtonVariant.DEFAULT}
               onClick={handleSubmit}
               isDisabled={
-                isSubmitting || !formData.label || !formData.credential
+                isSubmitting ||
+                !isPairExecutable ||
+                !formData.label ||
+                !formData.credential
               }
             />
           )}
