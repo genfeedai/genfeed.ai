@@ -152,6 +152,76 @@ describe('MetaAdsService', () => {
     );
   });
 
+  it('preserves campaign and ad-set parent identifiers on list reads', async () => {
+    const { service } = createService();
+    const privateMethods = service as unknown as MetaAdsPrivateMethods;
+    privateMethods.makeRequest = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            campaign_id: 'campaign-1',
+            id: 'adset-1',
+            name: 'Set A',
+            status: 'ACTIVE',
+          },
+          {
+            campaign_id: 'campaign-1',
+            id: 'adset-2',
+            name: 'Set B',
+            status: 'PAUSED',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            adset_id: 'adset-1',
+            id: 'ad-1',
+            name: 'Ad A',
+            status: 'ACTIVE',
+          },
+          {
+            adset_id: 'adset-2',
+            id: 'ad-2',
+            name: 'Ad B',
+            status: 'PAUSED',
+          },
+        ],
+      });
+
+    await expect(
+      service.listAdSets('access-token', 'act-1', 'campaign-1'),
+    ).resolves.toEqual([
+      {
+        campaignId: 'campaign-1',
+        id: 'adset-1',
+        name: 'Set A',
+        status: 'ACTIVE',
+      },
+      {
+        campaignId: 'campaign-1',
+        id: 'adset-2',
+        name: 'Set B',
+        status: 'PAUSED',
+      },
+    ]);
+    await expect(service.listAds('access-token', 'act-1')).resolves.toEqual([
+      {
+        adSetId: 'adset-1',
+        id: 'ad-1',
+        name: 'Ad A',
+        status: 'ACTIVE',
+      },
+      {
+        adSetId: 'adset-2',
+        id: 'ad-2',
+        name: 'Ad B',
+        status: 'PAUSED',
+      },
+    ]);
+  });
+
   it('scans documented video pages for deterministic replay titles', async () => {
     const { service } = createService();
     const privateMethods = service as unknown as MetaAdsPrivateMethods;

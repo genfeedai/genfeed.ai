@@ -324,7 +324,12 @@ export class MetaAdsService {
     );
     return items
       .filter((item) => !campaignId || item.campaign_id === campaignId)
-      .map(({ id, name, status }) => ({ id, name, status }));
+      .map(({ campaign_id, id, name, status }) => ({
+        campaignId: campaign_id,
+        id,
+        name,
+        status,
+      }));
   }
 
   async listAds(
@@ -354,7 +359,12 @@ export class MetaAdsService {
     );
     return items
       .filter((item) => !adSetId || item.adset_id === adSetId)
-      .map(({ id, name, status }) => ({ id, name, status }));
+      .map(({ adset_id, id, name, status }) => ({
+        adSetId: adset_id,
+        id,
+        name,
+        status,
+      }));
   }
 
   async listAdVideos(
