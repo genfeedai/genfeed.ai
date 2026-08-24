@@ -2,7 +2,6 @@
 
 import {
   appendCheckoutReturnParams,
-  buildOnboardingResumeHref,
   isFreePlanHandoff,
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
@@ -14,10 +13,8 @@ import {
 } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
-  APP_ROUTES,
-  createOrganizationAppRoute,
-  getResumeStep,
   ONBOARDING_STEPS,
+  resolveForcedOnboardingHref,
 } from '@genfeedai/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -99,24 +96,19 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       return '/';
     }
 
-    const onboardingHref = buildOnboardingResumeHref(
-      getResumeStep(completedSteps),
-      localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
-    );
+    const orgSlug = isSaaS() ? await resolveActiveOrgSlug() : null;
 
-    if (!isSaaS()) {
-      return onboardingHref;
-    }
-
-    const orgSlug = await resolveActiveOrgSlug();
-    return orgSlug
-      ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
-      : '/';
+    return resolveForcedOnboardingHref({
+      brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
+      completedSteps,
+      hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+      orgSlug,
+    });
   }, [currentUser, resolveActiveOrgSlug]);
 
-  // Default first-run destination. SaaS (#1726) and Community (#1835) both
-  // onboard inside the agent workspace; the desktop client keeps the form
-  // wizard until #2380.
+  // Default first-run destination. Every surface starts at `/onboarding/brand`.
+  // SaaS (#1726) and Community (#1835) then continue in the agent workspace;
+  // the desktop client keeps providers/summary until #2380.
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps =
@@ -127,19 +119,16 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       return '/';
     }
 
-    const wizardHref = buildOnboardingResumeHref(
-      getResumeStep(completedSteps),
-      localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
-    );
+    const orgSlug = hasAgentFirstOnboarding()
+      ? await resolveActiveOrgSlug()
+      : null;
 
-    if (!hasAgentFirstOnboarding()) {
-      return wizardHref;
-    }
-
-    const orgSlug = await resolveActiveOrgSlug();
-    return orgSlug
-      ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
-      : '/';
+    return resolveForcedOnboardingHref({
+      brandDomain: localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
+      completedSteps,
+      hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+      orgSlug,
+    });
   }, [currentUser, resolveActiveOrgSlug]);
 
   useEffect(() => {

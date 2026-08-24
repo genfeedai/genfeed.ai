@@ -6,8 +6,9 @@ import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createOrganizationAppRoute,
-  getResumeStep,
+  hasCompletedBrandOnboardingStep,
   ONBOARDING_STEPS,
+  resolveForcedOnboardingHref,
 } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAccessState } from '@providers/access-state/access-state.provider';
@@ -87,19 +88,22 @@ export default function ProtectedRootResolver() {
         organizationId,
         selectedBrand,
       }).orgSlug;
-      if (hasAgentFirstOnboarding()) {
-        if (!agentOrgSlug) {
-          setNeedsWorkspaceAction(true);
-          return;
-        }
-
-        replace(
-          createOrganizationAppRoute(agentOrgSlug, APP_ROUTES.AGENT.ONBOARDING),
-        );
+      if (
+        hasAgentFirstOnboarding() &&
+        hasCompletedBrandOnboardingStep(completedSteps) &&
+        !agentOrgSlug
+      ) {
+        setNeedsWorkspaceAction(true);
         return;
       }
 
-      replace(`/onboarding/${getResumeStep(completedSteps)}`);
+      replace(
+        resolveForcedOnboardingHref({
+          completedSteps,
+          hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+          orgSlug: agentOrgSlug,
+        }),
+      );
       return;
     }
 
@@ -162,9 +166,7 @@ export default function ProtectedRootResolver() {
             <p>
               Genfeed could not resolve an active organization yet. Retry the
               workspace bootstrap
-              {workspaceActionOrgSlug
-                ? ' or continue setup in the agent workspace.'
-                : '.'}
+              {workspaceActionOrgSlug ? ' or continue brand setup.' : '.'}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
@@ -180,14 +182,7 @@ export default function ProtectedRootResolver() {
               </Button>
               {workspaceActionOrgSlug ? (
                 <Button asChild variant={ButtonVariant.GHOST}>
-                  <Link
-                    href={createOrganizationAppRoute(
-                      workspaceActionOrgSlug,
-                      APP_ROUTES.AGENT.ONBOARDING,
-                    )}
-                  >
-                    Continue setup
-                  </Link>
+                  <Link href={APP_ROUTES.ONBOARDING.BRAND}>Continue setup</Link>
                 </Button>
               ) : null}
             </div>

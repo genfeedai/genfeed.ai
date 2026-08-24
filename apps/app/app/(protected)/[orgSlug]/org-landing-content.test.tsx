@@ -83,11 +83,11 @@ describe('OrgLandingContent', () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
-  it('redirects to agent onboarding when the organization has no projects', async () => {
+  it('redirects to the shared brand step when the organization has no projects', async () => {
     render(<OrgLandingContent />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
@@ -108,7 +108,7 @@ describe('OrgLandingContent', () => {
     });
   });
 
-  it('routes incomplete Community users to agent onboarding before a seeded project', async () => {
+  it('routes incomplete Community users to the shared brand step before a seeded project', async () => {
     mocks.currentUserState.currentUser = {
       id: 'user_1',
       isOnboardingCompleted: false,
@@ -126,9 +126,8 @@ describe('OrgLandingContent', () => {
     render(<OrgLandingContent />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
-    expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/brand');
   });
 
   it('keeps self-hosted desktop org-root navigation on the classic wizard', async () => {
@@ -154,7 +153,7 @@ describe('OrgLandingContent', () => {
     });
   });
 
-  it('routes incomplete SaaS users to the agent onboarding surface', async () => {
+  it('routes incomplete SaaS users to the shared brand step', async () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -173,7 +172,7 @@ describe('OrgLandingContent', () => {
     render(<OrgLandingContent />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 

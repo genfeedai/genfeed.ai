@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildOnboardingResumeHref,
   getResumeStep,
+  hasCompletedBrandOnboardingStep,
+  isSharedBrandOnboardingPath,
   ONBOARDING_STEP_LABELS,
   ONBOARDING_STEPS,
   PERSONAL_EMAIL_DOMAINS,
+  resolveForcedOnboardingHref,
+  resolveOnboardingContinueHref,
   SETUP_CARD_STEPS,
 } from './onboarding.constant';
 
@@ -45,6 +50,75 @@ describe('onboarding.constant', () => {
 
     it('returns first incomplete step in order', () => {
       expect(getResumeStep(['plan'])).toBe('brand');
+    });
+  });
+
+  describe('shared brand routing', () => {
+    it('treats /onboarding and /onboarding/brand as the shared brand entry', () => {
+      expect(isSharedBrandOnboardingPath('/onboarding/brand')).toBe(true);
+      expect(isSharedBrandOnboardingPath('/onboarding')).toBe(true);
+      expect(isSharedBrandOnboardingPath('/onboarding/providers')).toBe(false);
+    });
+
+    it('detects the brand wizard step', () => {
+      expect(hasCompletedBrandOnboardingStep(undefined)).toBe(false);
+      expect(hasCompletedBrandOnboardingStep([])).toBe(false);
+      expect(hasCompletedBrandOnboardingStep(['brand'])).toBe(true);
+    });
+
+    it('sends Cloud continue from brand into the agent conversation', () => {
+      expect(
+        resolveOnboardingContinueHref({
+          completedStep: 'brand',
+          hasAgentFirstOnboarding: true,
+          orgSlug: 'acme',
+        }),
+      ).toBe('/acme/~/agent/onboarding');
+    });
+
+    it('keeps Desktop continue from brand on the shared providers step', () => {
+      expect(
+        resolveOnboardingContinueHref({
+          completedStep: 'brand',
+          hasAgentFirstOnboarding: false,
+        }),
+      ).toBe('/onboarding/providers');
+    });
+
+    it('forces incomplete Cloud users onto the shared brand form', () => {
+      expect(
+        resolveForcedOnboardingHref({
+          brandDomain: 'acme.co',
+          completedSteps: [],
+          hasAgentFirstOnboarding: true,
+          orgSlug: 'acme',
+        }),
+      ).toBe('/onboarding/brand?auto=true');
+    });
+
+    it('forces Cloud users who already confirmed brand into the agent', () => {
+      expect(
+        resolveForcedOnboardingHref({
+          completedSteps: ['brand'],
+          hasAgentFirstOnboarding: true,
+          orgSlug: 'acme',
+        }),
+      ).toBe('/acme/~/agent/onboarding');
+    });
+
+    it('resumes Desktop at the first incomplete wizard step', () => {
+      expect(
+        resolveForcedOnboardingHref({
+          completedSteps: ['brand'],
+          hasAgentFirstOnboarding: false,
+        }),
+      ).toBe('/onboarding/providers');
+    });
+
+    it('adds auto-brand resume when a stored brand domain is available', () => {
+      expect(buildOnboardingResumeHref('brand', 'acme.co')).toBe(
+        '/onboarding/brand?auto=true',
+      );
     });
   });
 

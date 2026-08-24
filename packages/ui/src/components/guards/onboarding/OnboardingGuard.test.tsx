@@ -88,11 +88,50 @@ describe('OnboardingGuard', () => {
     expect(replaceMock).not.toHaveBeenCalled();
   });
 
-  it('leaves incomplete users to the agent workspace instead of the classic wizard', async () => {
+  it('sends incomplete Cloud users without brand setup to the shared brand step', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
         onboardingStepsCompleted: [],
+      },
+      isLoading: false,
+    });
+    useAccessStateMock.mockReturnValue({
+      accessState: {
+        brandId: 'brand_1',
+        creditsBalance: 250,
+        hasEverHadCredits: true,
+        isOnboardingCompleted: false,
+        isSuperAdmin: false,
+        organizationId: '',
+        subscriptionStatus: 'canceled',
+        subscriptionTier: 'payg',
+        userId: 'user_1',
+      },
+      hasPaygCredits: true,
+      isByok: false,
+      isLoading: false,
+      isSubscribed: false,
+      isSuperAdmin: false,
+      needsOnboarding: true,
+    });
+
+    render(
+      <OnboardingGuard>
+        <div>Child</div>
+      </OnboardingGuard>,
+    );
+
+    await waitFor(() => {
+      expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
+    });
+  });
+
+  it('leaves incomplete Cloud users on the agent workspace after brand setup', async () => {
+    useCurrentUserMock.mockReturnValue({
+      currentUser: {
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: ['brand'],
       },
       isLoading: false,
     });

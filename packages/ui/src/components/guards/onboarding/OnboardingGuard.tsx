@@ -5,7 +5,12 @@ import {
   isDesktopClient,
 } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  getResumeStep,
+  hasCompletedBrandOnboardingStep,
+  ONBOARDING_STEPS,
+} from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
@@ -71,10 +76,16 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
         return null;
       }
 
-      // In agent-first modes the agent workspace owns the incomplete-onboarding
-      // flow and the proxy already routes users there, so this guard must not
-      // pull them back into the classic wizard.
+      // Cloud / Community share `/onboarding/brand` with Desktop. After that
+      // step the agent workspace owns the rest of first-run; this guard must
+      // not pull those users into providers/summary.
       if (hasAgentFirstOnboarding()) {
+        if (
+          !hasCompletedBrandOnboardingStep(currentUser.onboardingStepsCompleted)
+        ) {
+          return APP_ROUTES.ONBOARDING.BRAND;
+        }
+
         return null;
       }
 

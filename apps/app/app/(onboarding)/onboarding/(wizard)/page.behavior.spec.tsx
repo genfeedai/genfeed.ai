@@ -63,7 +63,7 @@ describe('OnboardingRootPage routing', () => {
     render(<OnboardingRootPage />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
+      expect(mocks.replace).toHaveBeenCalledWith('/agent/onboarding');
     });
   });
 });

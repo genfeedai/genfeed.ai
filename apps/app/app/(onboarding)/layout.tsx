@@ -16,8 +16,10 @@ import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
   const pathname = usePathname();
-  const isDesktopLocalProviders =
-    isDesktopClient() && pathname === APP_ROUTES.ONBOARDING.PROVIDERS;
+  const isDesktopLocalOnboarding =
+    isDesktopClient() &&
+    (pathname === APP_ROUTES.ONBOARDING.BRAND ||
+      pathname === APP_ROUTES.ONBOARDING.PROVIDERS);
 
   const content = (
     <ApiStatusProvider>
@@ -39,7 +41,7 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
     </ApiStatusProvider>
   );
 
-  if (isDesktopLocalProviders) {
+  if (isDesktopLocalOnboarding) {
     return content;
   }
 

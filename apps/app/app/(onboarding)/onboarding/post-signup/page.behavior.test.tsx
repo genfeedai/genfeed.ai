@@ -248,7 +248,7 @@ describe('PostSignupPage behavior', () => {
     });
   });
 
-  it('routes Community signups into agent onboarding and clears stale plan handoff', async () => {
+  it('routes Community signups into the shared brand step and clears stale plan handoff', async () => {
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, 'price_123');
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, 'acme.co');
 
@@ -257,7 +257,7 @@ describe('PostSignupPage behavior', () => {
     expect(screen.getByText('Setting up your workspace...')).toBeVisible();
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/acme/~/agent/onboarding');
+      expect(locationState.href).toBe('/onboarding/brand?auto=true');
     });
 
     expect(
@@ -275,7 +275,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/acme/~/agent/onboarding');
+      expect(locationState.href).toBe('/onboarding/brand?auto=true');
     });
 
     expect(
@@ -315,7 +315,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/acme/~/agent/onboarding');
+      expect(locationState.href).toBe('/onboarding/brand');
     });
 
     expect(
@@ -393,7 +393,7 @@ describe('PostSignupPage behavior', () => {
     );
   });
 
-  it('routes new SaaS signups to the org-scoped agent onboarding surface', async () => {
+  it('routes new SaaS signups to the shared brand step', async () => {
     isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([
@@ -410,12 +410,12 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/acme/~/agent/onboarding');
+      expect(locationState.href).toBe('/onboarding/brand');
     });
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
-  it('returns to protected bootstrap when no SaaS org slug can be resolved', async () => {
+  it('still opens the shared brand step when no SaaS org slug can be resolved', async () => {
     isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([]);
@@ -423,7 +423,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/');
+      expect(locationState.href).toBe('/onboarding/brand');
     });
   });
 
@@ -451,7 +451,7 @@ describe('PostSignupPage behavior', () => {
         quantity: null,
         stripePriceId: 'price_123',
         successUrl:
-          'http://localhost/acme/~/agent/onboarding?checkout=completed&checkoutKind=plan',
+          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');

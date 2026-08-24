@@ -8,7 +8,10 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
+  hasCompletedBrandOnboardingStep,
+  isSharedBrandOnboardingPath,
   LEGACY_APP_ROUTES,
+  ONBOARDING_STEPS,
   parseScopedAppPath,
 } from '@genfeedai/constants';
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
@@ -45,7 +48,6 @@ const SEEDED_WORKSPACE_PATH = createBrandAppRoute(
   'default',
   APP_ROUTES.WORKSPACE.OVERVIEW,
 );
-const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
 let hasWarnedAboutHostedModeMisconfiguration = false;
 const DEFAULT_MINIMUM_DESKTOP_VERSION = '0.1.0';
 
@@ -677,9 +679,14 @@ async function resolveActiveWorkspaceSlugs(
   return { cookieValue, slugs };
 }
 
-async function shouldRedirectSignedInUserToOnboarding(
+type OnboardingRedirectState = {
+  completedSteps: string[];
+  shouldRedirect: boolean;
+};
+
+async function readOnboardingRedirectState(
   token: string,
-): Promise<boolean> {
+): Promise<OnboardingRedirectState> {
   let bootstrapResponse: Response;
 
   try {
@@ -691,34 +698,39 @@ async function shouldRedirectSignedInUserToOnboarding(
       },
     });
   } catch {
-    return false;
+    return { completedSteps: [], shouldRedirect: false };
   }
 
   if (!bootstrapResponse.ok) {
-    return false;
+    return { completedSteps: [], shouldRedirect: false };
   }
 
   const bootstrap =
     (await bootstrapResponse.json()) as BootstrapResponse | null;
 
+  const completedSteps = Array.isArray(
+    bootstrap?.currentUser?.onboardingStepsCompleted,
+  )
+    ? (bootstrap.currentUser.onboardingStepsCompleted as string[])
+    : [];
+
   if (
     bootstrap?.access?.isOnboardingCompleted === true ||
     bootstrap?.currentUser?.isOnboardingCompleted === true
   ) {
-    return false;
+    return { completedSteps, shouldRedirect: false };
   }
 
   if (!bootstrap?.currentUser) {
-    return false;
+    return { completedSteps, shouldRedirect: false };
   }
 
-  const completedSteps = Array.isArray(
-    bootstrap.currentUser.onboardingStepsCompleted,
-  )
-    ? bootstrap.currentUser.onboardingStepsCompleted
-    : [];
-
-  return !ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+  return {
+    completedSteps,
+    shouldRedirect: !ONBOARDING_STEPS.every((step) =>
+      completedSteps.includes(step),
+    ),
+  };
 }
 
 // Matches the org-scoped agent onboarding surface and its threaded children,
@@ -778,6 +790,12 @@ function isClassicWizardPath(pathname: string): boolean {
     return false;
   }
 
+  // Shared brand setup stays reachable on every surface, including after
+  // Skip completes the onboarding gate so the operator can come back.
+  if (isSharedBrandOnboardingPath(pathname)) {
+    return false;
+  }
+
   if (
     MODE_AGNOSTIC_ONBOARDING_PATHS.some(
       (path) => pathname === path || pathname.startsWith(`${path}/`),
@@ -801,6 +819,11 @@ async function redirectSignedInUserToAgentOnboarding(
   token: string,
   cacheKey?: string | null,
 ): Promise<NextResponse | null> {
+  const onboardingState = await readOnboardingRedirectState(token);
+  if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
+    return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
+  }
+
   const agentOnboarding = await resolveAgentOnboardingRedirect(
     token,
     cacheKey,
@@ -1029,8 +1052,13 @@ async function redirectSignedInUserToDefaultRoute(
     return NextResponse.redirect(createSafeRedirectUrl(req, callbackPath));
   }
 
-  if (await shouldRedirectSignedInUserToOnboarding(token)) {
+  const onboardingState = await readOnboardingRedirectState(token);
+  if (onboardingState.shouldRedirect) {
     if (!isDesktopSurface && hasAgentFirstOnboarding()) {
+      if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
+        return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
+      }
+
       const agentOnboarding = await resolveAgentOnboardingRedirect(
         token,
         cacheKey,
@@ -1110,7 +1138,10 @@ async function routeBetterAuthRequest(
   }
 
   if (isDesktopOnboardingRoute) {
-    if (pathname === '/onboarding/providers') {
+    if (
+      pathname === APP_ROUTES.ONBOARDING.BRAND ||
+      pathname === APP_ROUTES.ONBOARDING.PROVIDERS
+    ) {
       return NextResponse.next();
     }
 
@@ -1149,9 +1180,10 @@ async function routeBetterAuthRequest(
       }
     }
 
-    // `/onboarding/*` is public so a half-provisioned signup can reach it, but
-    // a signed-in user in an agent-first mode must never land on the classic
-    // wizard — deep links and stale bookmarks route to the agent surface.
+    // `/onboarding/*` is public so a half-provisioned signup can reach it.
+    // `/onboarding/brand` is the shared brand step and stays reachable.
+    // Other classic wizard paths still bounce agent-first users to the
+    // agent surface after brand is confirmed.
     if (hasSession && isClassicWizardPath(pathname)) {
       const token = await getBetterAuthBearerToken(req);
       const response = token
@@ -1176,23 +1208,32 @@ async function routeBetterAuthRequest(
     return redirectToLoginPreservingDestination(req);
   }
 
+  const onboardingState = await readOnboardingRedirectState(token);
   if (
     // Desktop stays exempt from proxy-driven onboarding redirects: a
     // cloud-connected desktop user is not routed into web onboarding.
     // Onboarding on desktop is reached through `/onboarding`, which the
     // session gate above already protects.
     options.isDesktopSurface !== true &&
-    (await shouldRedirectSignedInUserToOnboarding(token))
+    onboardingState.shouldRedirect
   ) {
-    // Desktop keeps the form wizard while SaaS and Community onboard inside
-    // the agent workspace. There is no rollout flag or legacy-shell kill switch.
+    // Desktop keeps the form wizard while SaaS and Community share
+    // `/onboarding/brand` then continue in the agent workspace.
     if (!hasAgentFirstOnboarding()) {
       return redirectPreservingSearch(req, ONBOARDING_PATH);
     }
 
+    const hasBrand = hasCompletedBrandOnboardingStep(
+      onboardingState.completedSteps,
+    );
+
+    if (!hasBrand) {
+      return redirectPreservingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
+    }
+
     // The agent onboarding surface is itself a protected route — stay there
-    // instead of bouncing back to the wizard. If the URL org is a leftover
-    // stub (or a stale slug cookie), move the user onto their membership org.
+    // after brand exists. If the URL org is a leftover stub (or a stale slug
+    // cookie), move the user onto their membership org.
     if (isAgentOnboardingPath(pathname)) {
       const agentOnboarding = await resolveAgentOnboardingRedirect(
         token,

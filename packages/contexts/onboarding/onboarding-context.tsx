@@ -1,7 +1,13 @@
 'use client';
 
+import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import type { OnboardingStepKey } from '@genfeedai/constants';
-import { ONBOARDING_STEP_LABELS, ONBOARDING_STEPS } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  ONBOARDING_STEP_LABELS,
+  ONBOARDING_STEPS,
+  resolveOnboardingContinueHref,
+} from '@genfeedai/constants';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { IOnboardingContextValue } from '@genfeedai/interfaces';
@@ -105,14 +111,17 @@ export default function OnboardingProvider({
 
       await saveProgress(payload);
 
-      // Navigate to next step
-      const stepIdx = ONBOARDING_STEPS.indexOf(stepKey);
-      if (stepIdx < ONBOARDING_STEPS.length - 1) {
-        const nextStep = ONBOARDING_STEPS[stepIdx + 1];
-        router.push(`/onboarding/${nextStep}`);
-      } else {
-        router.replace('/');
+      const nextHref = resolveOnboardingContinueHref({
+        completedStep: stepKey,
+        hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+      });
+
+      if (nextHref === APP_ROUTES.ROOT) {
+        router.replace(nextHref);
+        return;
       }
+
+      router.push(nextHref);
     },
     [currentUser, saveProgress, router],
   );
@@ -132,7 +141,10 @@ export default function OnboardingProvider({
   }, [currentStepIndex, router]);
 
   const stepLabels = useMemo(
-    () => ONBOARDING_STEPS.map((key) => ONBOARDING_STEP_LABELS[key]),
+    () =>
+      hasAgentFirstOnboarding()
+        ? [ONBOARDING_STEP_LABELS.brand]
+        : ONBOARDING_STEPS.map((key) => ONBOARDING_STEP_LABELS[key]),
     [],
   );
 

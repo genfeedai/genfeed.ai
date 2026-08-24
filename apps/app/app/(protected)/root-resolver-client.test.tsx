@@ -168,7 +168,7 @@ describe('ProtectedRootResolver', () => {
     });
   });
 
-  it('routes incomplete Community users to the agent onboarding surface', async () => {
+  it('routes incomplete Community users to the shared brand step', async () => {
     mocks.currentUserState.currentUser = {
       id: 'user_1',
       isOnboardingCompleted: false,
@@ -184,9 +184,8 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
-    expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/brand');
   });
 
   it('keeps self-hosted desktop users on the classic wizard', async () => {
@@ -289,7 +288,7 @@ describe('ProtectedRootResolver', () => {
     rerender(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
@@ -346,7 +345,7 @@ describe('ProtectedRootResolver', () => {
     expect(mocks.brandState.refreshBrands).toHaveBeenCalledTimes(1);
   });
 
-  it('sends the workspace fallback CTA to agent onboarding once an org scope exists', async () => {
+  it('sends the workspace fallback CTA to the shared brand step once an org scope exists', async () => {
     vi.useFakeTimers();
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.brandState.isReady = false;
@@ -370,6 +369,6 @@ describe('ProtectedRootResolver', () => {
 
     expect(
       screen.getByRole('link', { name: 'Continue setup' }),
-    ).toHaveAttribute('href', '/acme/~/agent/onboarding');
+    ).toHaveAttribute('href', '/onboarding/brand');
   });
 });

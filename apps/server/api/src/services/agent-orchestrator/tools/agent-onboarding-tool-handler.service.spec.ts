@@ -162,7 +162,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
         checklist.checklist?.map((step) => [step.id, step.ctaHref]) ?? [],
       ),
     ).toEqual({
-      complete_company_info: '/agent/onboarding',
+      complete_company_info: '/onboarding/brand',
       connect_social_account: '/settings/brands',
       generate_first_image: '/settings/api-keys',
       generate_first_video: '/settings/api-keys',
