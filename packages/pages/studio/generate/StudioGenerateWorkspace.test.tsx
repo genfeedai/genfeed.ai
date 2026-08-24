@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   composer: vi.fn(),
   gallery: vi.fn(),
   results: vi.fn(),
+  rehydratePending: vi.fn(),
   removeJob: vi.fn(),
   remixRun: { value: null as BrandRemixRunView | null },
   settings: vi.fn(),
@@ -205,9 +206,27 @@ vi.mock('@pages/studio/generate/hooks/useStudioGeneration', () => ({
   useStudioGeneration: () => ({
     isGenerating: false,
     jobs: [],
+    rehydratePending: mocks.rehydratePending,
     removeJob: mocks.removeJob,
     submit: mocks.submit,
   }),
+}));
+
+vi.mock('@pages/studio/generate/components/StudioGenerateInspector', () => ({
+  default: ({
+    job,
+    onVary,
+  }: {
+    job: { id: string; prompt: string };
+    onVary: (job: { id: string }) => void;
+  }) => (
+    <div data-testid="studio-inspector">
+      <span>{job.prompt}</span>
+      <button type="button" onClick={() => onVary(job)}>
+        Vary
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@pages/studio/generate/hooks/useStudioRemixRun', () => ({
@@ -507,5 +526,87 @@ describe('StudioGenerateWorkspace', () => {
         output: expect.objectContaining({ kind: 'avatar' }),
       }),
     );
+  });
+
+  it('resubscribes stored in-flight jobs when the playground remounts', () => {
+    const storedJobs = [
+      {
+        createdAt: 1,
+        id: 'processing-1',
+        prompt: 'Still rendering',
+        status: 'PROCESSING',
+        type: 'image',
+      },
+    ];
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs,
+    });
+
+    render(<StudioGenerateWorkspace />);
+
+    expect(mocks.rehydratePending).toHaveBeenCalledWith(storedJobs);
+  });
+
+  it('toggles the results sheet into a uniform grid', () => {
+    render(<StudioGenerateWorkspace />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'viewGrid' }));
+
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({ view: 'grid' }),
+    );
+  });
+
+  it('prefills the composer from a card recipe on vary', () => {
+    const recipeJob = {
+      createdAt: 1,
+      id: 'job-1',
+      prompt: 'Raw box contents',
+      recipe: {
+        blacklist: [],
+        brandingMode: 'brand',
+        isAudioEnabled: false,
+        mood: 'confident',
+        outputs: 4,
+        promptTemplate: 'product-photo',
+        references: [],
+        style: 'editorial',
+        tags: [],
+        text: 'A founder at a desk',
+        type: 'image',
+      },
+      status: 'GENERATED',
+      type: 'image',
+    };
+    mocks.gallery.mockReturnValue({
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [recipeJob],
+    });
+
+    render(<StudioGenerateWorkspace />);
+
+    const resultsProps = mocks.results.mock.calls.at(-1)?.[0] as {
+      onReprompt: (job: typeof recipeJob) => void;
+      onSelect: (job: typeof recipeJob) => void;
+    };
+    act(() => resultsProps.onReprompt(recipeJob));
+
+    expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+      'image',
+      expect.objectContaining({
+        mood: 'confident',
+        outputs: 4,
+        promptTemplate: 'product-photo',
+        style: 'editorial',
+      }),
+    );
+    expect(screen.getByText('A founder at a desk')).toBeVisible();
+
+    act(() => resultsProps.onSelect(recipeJob));
+    fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
+    expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
   });
 });

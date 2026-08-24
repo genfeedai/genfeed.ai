@@ -1,3 +1,4 @@
+import type { ViewType } from '@genfeedai/enums';
 import type { IIngredient, IModel } from '@genfeedai/interfaces';
 import type {
   StudioGenerateJob,
@@ -73,10 +74,23 @@ export interface StudioGenerateResultsProps {
   isLoading: boolean;
   jobs: readonly StudioGenerateJob[];
   onReprompt: (job: StudioGenerateJob) => void;
+  onSelect: (job: StudioGenerateJob) => void;
+  selectedJobId?: string | null;
+  view: ViewType.GRID | ViewType.MASONRY;
 }
 
 export interface StudioGenerateCardProps {
   assetActions: StudioGenerateAssetActions;
+  isSelected?: boolean;
   job: StudioGenerateJob;
   onReprompt: (job: StudioGenerateJob) => void;
+  onSelect: (job: StudioGenerateJob) => void;
+}
+
+export interface StudioGenerateInspectorProps {
+  job: StudioGenerateJob;
+  onClose: () => void;
+  onSelect: (job: StudioGenerateJob) => void;
+  onVary: (job: StudioGenerateJob) => void;
+  runJobs: readonly StudioGenerateJob[];
 }

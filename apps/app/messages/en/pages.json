@@ -93,6 +93,21 @@
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
     "generationFailed": "Generation failed",
+    "inspector": {
+      "autoModel": "Auto",
+      "childAssets": "Derived assets",
+      "close": "Close inspector",
+      "emptyHistory": "No other outputs in this run.",
+      "emptyRecipe": "No recipe is attached to this generation yet.",
+      "emptyUsedIn": "This asset has not been used in a post yet.",
+      "history": "History",
+      "loading": "Loading…",
+      "recipe": "Recipe",
+      "runSiblings": "This run",
+      "title": "Generation details",
+      "usedIn": "Used in",
+      "vary": "Vary"
+    },
     "generationRemoved": "Generation removed",
     "generating": "Generating…",
     "loadingModels": "Loading models…",
@@ -112,6 +127,8 @@
     "removePersistedMessage": "Move this failed generation to Trash? You can restore it later.",
     "reprompt": "Reprompt",
     "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
+    "runOutputs": "{count} outputs",
+    "selectGenerationAria": "Inspect {type} generation: {prompt}",
     "remixOutput": {
       "description": "These settings are saved to this remix run before generation.",
       "title": "Output"
@@ -136,7 +153,9 @@
         "summaryOne": "Review batch {batchId} · {count} draft"
       }
     },
-    "title": "Generate"
+    "title": "Generate",
+    "viewGrid": "Grid",
+    "viewMasonry": "Masonry"
   },
   "warmupAccounts": {
     "invitation": {
