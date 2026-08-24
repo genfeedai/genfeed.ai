@@ -29,6 +29,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { FastlaneFormat } from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -1030,6 +1031,43 @@ describe('BrandsService', () => {
       });
     });
 
+    it('matches a never-set agentConfig with AnyNull on the Brand Kit CAS write', async () => {
+      delegate.findFirst.mockResolvedValueOnce({
+        agentConfig: null,
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+      delegate.findFirst.mockResolvedValueOnce({
+        agentConfig: {
+          voice: { tone: 'Confident' },
+        },
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      await service.applyBrandKitDraft(brandId, organizationId, {
+        fields: {
+          voiceTone: {
+            action: 'accept',
+            value: 'Confident',
+          },
+        },
+      });
+
+      expect(delegate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            agentConfig: { equals: Prisma.AnyNull },
+            id: brandId,
+            organizationId,
+          }),
+        }),
+      );
+    });
+
     it.each(['relocated', 'soft-deleted'])(
       'does not reread or invalidate when the brand is %s after the scoped read',
       async () => {
@@ -1623,6 +1661,29 @@ describe('BrandsService', () => {
      * writes unconditionally once the read resolved, so the tenant predicate has
      * to sit inside the mutating statement itself.
      */
+    it('matches a never-set agentConfig with AnyNull so DB NULL and JSON null both CAS', async () => {
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: null,
+        id: brandId,
+        updatedAt: new Date('2026-08-21T00:00:00.000Z'),
+      });
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        persona: 'First',
+      });
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        data: { agentConfig: { persona: 'First' } },
+        where: {
+          agentConfig: { equals: Prisma.AnyNull },
+          id: brandId,
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
+    });
+
     it('carries the organization predicate on the write, not only on the lookup', async () => {
       withStoredConfig({ persona: 'Original' });
 
