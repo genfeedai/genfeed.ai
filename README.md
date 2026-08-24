@@ -38,6 +38,41 @@ Add a provider key to `.env` when you want to run generation.
 bundle. Checksums, auth, providers, and upgrades:
 [self-hosting guide](docs/self-hosting.md).
 
+### Let your coding agent install it
+
+Genfeed is driven by agents, so installing it is a task you can hand to one.
+Paste this into Claude Code, Codex, Cursor, or any agent with shell access:
+
+````text
+Install Genfeed — the open-source AI content OS — on this machine, then connect
+it to yourself over MCP.
+
+1. Check Docker Engine with Compose v2 is available.
+2. Start the Community bundle:
+   curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+   tar -xzf genfeed-selfhosted.tar.gz && cd genfeed-selfhosted-v*
+   cp .env.example .env && docker compose --env-file .env -f compose.yml up -d
+3. Wait for http://localhost:3000 to answer. The seed creates one user,
+   organization (slug `default`), and brand.
+4. Ask me to open http://localhost:3000/default/~/settings/api-keys, create a key
+   with the **MCP** preset, and paste it back. Never read it out of a file.
+5. Register the server with that key:
+   claude mcp add --transport http genfeed --scope user http://localhost:3014/mcp \
+     --header "Authorization: Bearer $GENFEED_API_KEY"
+6. List the Genfeed tools to confirm the connection, then stop.
+
+Reference: https://github.com/genfeedai/genfeed.ai/blob/master/docs/self-hosting.md
+Docs index for agents: https://docs.genfeed.ai/llms.txt
+````
+
+Already on the hosted product? Skip the install — create the key at
+[app.genfeed.ai](https://app.genfeed.ai) and point the same client at
+`https://mcp.genfeed.ai/mcp`.
+
+The MCP preset is approval-first: an agent can generate, draft, and schedule, but
+publishing waits for a human. What each surface exposes and why is in
+[Agent Surface](docs/agent-surface.md).
+
 ![Agent conversation shell in a mocked Community workspace](docs/assets/readme/agent-shell.png)
 
 *Mocked Playwright capture of the agent conversation shell. Fixture data, not a live generation.*
