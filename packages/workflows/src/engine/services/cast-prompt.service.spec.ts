@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  composeUgcPromptBlocks,
+  getUgcPresetById,
+} from '../presets/ugc-presets';
+import {
   type CASTInput,
   extractPostProcessingConfig,
   generateCASTPrompt,
@@ -367,6 +371,195 @@ describe('CASTPromptService', () => {
       const result = generateCASTPrompt(input);
       expect(result.preset.id).toBe('indie_film');
       expect(result.prompt).toContain('Blackmagic');
+    });
+  });
+
+  describe('UGC amateur-realism presets', () => {
+    const ugcInput: CASTInput = {
+      action: 'creator talking to camera about a morning routine',
+      cameraMovement: 'dolly',
+      colorPalette: 'everyday indoor color',
+      lighting: 'window light from the side',
+      mood: 'casual, unpolished',
+      presetId: 'ugc_selfie_handheld',
+      subject: 'young creator in a bedroom, phone in hand',
+    };
+
+    const cinematicGlossPatterns: RegExp[] = [
+      /\banamorphic\b/i,
+      /red v-?raptor/i,
+      /sony venice/i,
+      /\barri\b/i,
+      /panavision/i,
+      /cinealta/i,
+      /lens flare/i,
+      /cinema[- ]camera/i,
+    ];
+
+    describe('four-block composition', () => {
+      it('composes micro-expression, camera-imperfection, identity-lock, and framing-anchor into the compiled prompt', () => {
+        const presetIds = [
+          'ugc_selfie_handheld',
+          'ugc_tripod_vlog',
+          'ugc_filmed_by_another',
+        ] as const;
+
+        presetIds.forEach((presetId) => {
+          const preset = getUgcPresetById(presetId);
+          expect(preset).not.toBeNull();
+          if (!preset) {
+            return;
+          }
+
+          const blocks = composeUgcPromptBlocks({
+            hasStartFrameReference: false,
+            preset,
+          });
+          const result = generateCASTPrompt({ ...ugcInput, presetId });
+
+          expect(result.preset.id).toBe(presetId);
+          expect(result.prompt).toContain(blocks.microExpression);
+          expect(result.prompt).toContain(blocks.cameraImperfection);
+          expect(result.prompt).toContain(blocks.identityLock);
+          expect(result.prompt).toContain(blocks.framingAnchor);
+          expect(result.prompt).toContain(ugcInput.action);
+          expect(result.prompt).toContain(ugcInput.subject);
+        });
+      });
+    });
+
+    describe('three camera modes', () => {
+      it('uses the UGC camera mode instead of cinematic camera movement copy', () => {
+        const selfie = generateCASTPrompt({
+          ...ugcInput,
+          cameraMovement: 'dolly',
+          presetId: 'ugc_selfie_handheld',
+        });
+        const tripod = generateCASTPrompt({
+          ...ugcInput,
+          cameraMovement: 'crane',
+          presetId: 'ugc_tripod_vlog',
+        });
+        const filmedByAnother = generateCASTPrompt({
+          ...ugcInput,
+          cameraMovement: 'aerial',
+          presetId: 'ugc_filmed_by_another',
+        });
+
+        expect(selfie.metadata.cameraMovement).toBe('selfie-handheld');
+        expect(selfie.prompt).toMatch(/handheld selfie sway/i);
+        expect(selfie.prompt).not.toContain('smooth dolly shot pushing in');
+
+        expect(tripod.metadata.cameraMovement).toBe('tripod-vlog');
+        expect(tripod.prompt).toMatch(/static locked-off/i);
+        expect(tripod.prompt).not.toContain('sweeping crane movement');
+
+        expect(filmedByAnother.metadata.cameraMovement).toBe(
+          'filmed-by-another-person',
+        );
+        expect(filmedByAnother.prompt).toMatch(/filmed by another person/i);
+        expect(filmedByAnother.prompt).not.toContain(
+          'aerial drone establishing shot',
+        );
+      });
+    });
+
+    describe('identity-lock-with-reference', () => {
+      it('includes an identity-lock directive tied to the start-frame reference', () => {
+        const result = generateCASTPrompt({
+          ...ugcInput,
+          hasStartFrameReference: true,
+          presetId: 'ugc_tripod_vlog',
+        });
+
+        expect(result.prompt).toMatch(/start-frame reference/i);
+        expect(result.prompt).toMatch(/facial proportions/i);
+        expect(result.prompt).toMatch(/eye shape/i);
+        expect(result.prompt).toMatch(/hairstyle/i);
+      });
+    });
+
+    describe('cinematic-vocab-absent', () => {
+      it('omits cinematic-gloss vocabulary from UGC-preset output', () => {
+        const presetIds = [
+          'ugc_selfie_handheld',
+          'ugc_tripod_vlog',
+          'ugc_filmed_by_another',
+        ] as const;
+
+        presetIds.forEach((presetId) => {
+          const result = generateCASTPrompt({
+            ...ugcInput,
+            hasStartFrameReference: true,
+            presetId,
+          });
+
+          cinematicGlossPatterns.forEach((pattern) => {
+            expect(
+              result.prompt,
+              `UGC ${presetId} matched cinematic gloss ${pattern}`,
+            ).not.toMatch(pattern);
+          });
+        });
+      });
+    });
+
+    describe('cinematic-regression-byte-identical', () => {
+      const cinematicFixtureInput: CASTInput = {
+        action: 'a woman walking through rain',
+        cameraMovement: 'dolly',
+        colorPalette: 'teal and orange, warm highlights',
+        lighting: 'moody neon lighting with rain reflections',
+        mood: 'melancholic, introspective',
+        subject: 'young woman in a red coat, wet streets reflecting neon',
+        presetId: 'hollywood_blockbuster',
+      };
+
+      const cinematicPromptFixtures: Record<string, string> = {
+        commercial_clean:
+          'Sony Venice 2 with Sony CineAlta 50mm T2.0, pristine detail, balanced color science, soft diffusion, studio lighting, smooth dolly shot pushing in. a woman walking through rain. young woman in a red coat, wet streets reflecting neon. moody neon lighting with rain reflections, teal and orange, warm highlights, melancholic, introspective.',
+        documentary_raw:
+          'Filmed on RED V-Raptor XL with Zeiss Supreme Prime 35mm, handheld stabilized, natural lighting, high detail retention in shadows, smooth dolly shot pushing in. a woman walking through rain. young woman in a red coat, wet streets reflecting neon. moody neon lighting with rain reflections, teal and orange, warm highlights, melancholic, introspective.',
+        hollywood_blockbuster:
+          'Shot on ARRI Alexa Mini LF with Cooke S7/i 50mm T2.0, shallow depth of field, natural skin tones, wide dynamic range, subtle film grain, smooth dolly shot pushing in. a woman walking through rain. young woman in a red coat, wet streets reflecting neon. moody neon lighting with rain reflections, teal and orange, warm highlights, melancholic, introspective.',
+        indie_film:
+          'Shot on Blackmagic Pocket 6K Pro with Rokinon 24mm T1.5, anamorphic lens flare, desaturated color palette, visible film grain, moody atmosphere, smooth dolly shot pushing in. a woman walking through rain. young woman in a red coat, wet streets reflecting neon. moody neon lighting with rain reflections, teal and orange, warm highlights, melancholic, introspective.',
+        social_media_cinematic:
+          'Canon C70 with Sigma 18-35mm f/1.8 Art lens, vibrant colors, punchy contrast, smooth bokeh in background, smooth dolly shot pushing in. a woman walking through rain. young woman in a red coat, wet streets reflecting neon. moody neon lighting with rain reflections, teal and orange, warm highlights, melancholic, introspective.',
+        vintage_35mm:
+          'Filmed on 35mm Kodak Vision3 500T film stock, Panavision Primo 40mm lens, heavy grain structure, warm color shift, lifted blacks, halation on highlights, smooth dolly shot pushing in. a woman walking through rain. young woman in a red coat, wet streets reflecting neon. moody neon lighting with rain reflections, teal and orange, warm highlights, melancholic, introspective.',
+      };
+
+      it('leaves cinematic preset output byte-identical when no UGC preset is selected', () => {
+        Object.entries(cinematicPromptFixtures).forEach(
+          ([presetId, expectedPrompt]) => {
+            const result = generateCASTPrompt({
+              ...cinematicFixtureInput,
+              presetId,
+            });
+            expect(result.prompt).toBe(expectedPrompt);
+          },
+        );
+      });
+
+      it('does not change cinematic output when a start-frame flag is present without a UGC preset', () => {
+        const baseline = generateCASTPrompt(cinematicFixtureInput);
+        const withReferenceFlag = generateCASTPrompt({
+          ...cinematicFixtureInput,
+          hasStartFrameReference: true,
+        });
+
+        expect(withReferenceFlag.prompt).toBe(baseline.prompt);
+        expect(withReferenceFlag.prompt).toBe(
+          cinematicPromptFixtures.hollywood_blockbuster,
+        );
+      });
+    });
+
+    it('accepts UGC preset ids in CAST validation', () => {
+      const result = validateCASTInput(ugcInput);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 });

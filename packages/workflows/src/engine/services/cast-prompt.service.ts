@@ -1,5 +1,10 @@
-import type { CinematicPreset } from '../presets/cinematic-presets';
 import { getPresetById } from '../presets/cinematic-presets';
+import type { UgcPreset, VideoPromptPreset } from '../presets/ugc-presets';
+import {
+  compileUgcPrompt,
+  getUgcPresetById,
+  isCinematicPreset,
+} from '../presets/ugc-presets';
 
 export type CameraMovement =
   | 'dolly'
@@ -18,11 +23,12 @@ export interface CASTInput {
   lighting: string; // "moody neon lighting with rain reflections"
   colorPalette: string; // "teal and orange, warm highlights"
   mood: string; // "melancholic, introspective"
+  hasStartFrameReference?: boolean;
 }
 
 export interface CASTOutput {
-  prompt: string; // Full structured prompt (max 150 words)
-  preset: CinematicPreset;
+  prompt: string; // Full structured prompt (max 150 words for cinematic)
+  preset: VideoPromptPreset;
   metadata: {
     wordCount: number;
     cameraMovement: string;
@@ -74,17 +80,7 @@ const truncateToWordLimit = (text: string, maxWords: number): string => {
   return truncated;
 };
 
-/**
- * Generate a CAST-structured prompt for cinematic video generation
- */
-export const generateCASTPrompt = (input: CASTInput): CASTOutput => {
-  // Validate preset exists
-  const preset = getPresetById(input.presetId);
-  if (!preset) {
-    throw new Error(`Preset not found: ${input.presetId}`);
-  }
-
-  // Validate required fields
+const validateCastSceneFields = (input: CASTInput): void => {
   if (!input.action?.trim()) {
     throw new Error('Action is required');
   }
@@ -100,6 +96,50 @@ export const generateCASTPrompt = (input: CASTInput): CASTOutput => {
   if (!input.mood?.trim()) {
     throw new Error('Mood is required');
   }
+};
+
+const generateUgcCastPrompt = (
+  input: CASTInput,
+  preset: UgcPreset,
+): CASTOutput => {
+  validateCastSceneFields(input);
+
+  const prompt = compileUgcPrompt({
+    action: input.action.trim(),
+    colorPalette: input.colorPalette.trim(),
+    hasStartFrameReference: input.hasStartFrameReference === true,
+    lighting: input.lighting.trim(),
+    mood: input.mood.trim(),
+    presetId: preset.id,
+    subject: input.subject.trim(),
+  });
+
+  return {
+    metadata: {
+      cameraMovement: preset.cameraMode,
+      wordCount: countWords(prompt),
+    },
+    preset,
+    prompt,
+  };
+};
+
+/**
+ * Generate a CAST-structured prompt for cinematic video generation
+ */
+export const generateCASTPrompt = (input: CASTInput): CASTOutput => {
+  const ugcPreset = getUgcPresetById(input.presetId);
+  if (ugcPreset) {
+    return generateUgcCastPrompt(input, ugcPreset);
+  }
+
+  // Validate preset exists
+  const preset = getPresetById(input.presetId);
+  if (!preset) {
+    throw new Error(`Preset not found: ${input.presetId}`);
+  }
+
+  validateCastSceneFields(input);
 
   // Build CAST prompt structure
   const cameraMovementDesc = CAMERA_MOVEMENT_DESCRIPTIONS[input.cameraMovement];
@@ -141,19 +181,23 @@ export const validateCASTInput = (
 ): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
+  const ugcPreset = input.presetId ? getUgcPresetById(input.presetId) : null;
+
   if (!input.presetId) {
     errors.push('Preset ID is required');
   } else {
-    const preset = getPresetById(input.presetId);
-    if (!preset) {
+    const cinematicPreset = getPresetById(input.presetId);
+    if (!cinematicPreset && !ugcPreset) {
       errors.push(`Invalid preset ID: ${input.presetId}`);
     }
   }
 
-  if (!input.cameraMovement) {
-    errors.push('Camera movement is required');
-  } else if (!CAMERA_MOVEMENT_DESCRIPTIONS[input.cameraMovement]) {
-    errors.push(`Invalid camera movement: ${input.cameraMovement}`);
+  if (!ugcPreset) {
+    if (!input.cameraMovement) {
+      errors.push('Camera movement is required');
+    } else if (!CAMERA_MOVEMENT_DESCRIPTIONS[input.cameraMovement]) {
+      errors.push(`Invalid camera movement: ${input.cameraMovement}`);
+    }
   }
 
   if (!input.action?.trim()) {
@@ -185,7 +229,13 @@ export const validateCASTInput = (
 /**
  * Extract post-processing configuration from preset
  */
-export const extractPostProcessingConfig = (preset: CinematicPreset) => {
+export const extractPostProcessingConfig = (preset: VideoPromptPreset) => {
+  if (!isCinematicPreset(preset)) {
+    throw new Error(
+      'Post-processing config is only available for cinematic presets',
+    );
+  }
+
   return {
     colorGrade: preset.colorGrade,
     filmGrain: preset.filmGrain,
