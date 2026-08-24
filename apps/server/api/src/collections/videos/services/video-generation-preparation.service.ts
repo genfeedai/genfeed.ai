@@ -33,11 +33,36 @@ import {
   isImageToVideoRequest,
   resolveGenerationDefaultModel,
 } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
-import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import {
+  buildReferenceImageUrl,
+  buildReferenceImageUrls,
+} from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
+import {
+  assembleVideoGenerationBrief,
+  assertRedactedVideoGenerationBriefEvidence,
+  compileMinimaxH3GenerationBrief,
+  compilePrunaaiPVideoGenerationBrief,
+  GenerationBriefCompileError,
+  resolveVideoGenerationBriefSupport,
+  resolveVideoGenerationFidelityMode,
+  toRedactedVideoGenerationBriefProviderData,
+} from '@api/services/generation-brief';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type {
+  MinimaxH3Dispatch,
+  PrunaaiPVideoDispatch,
+  VideoGenerationBriefPersistedEvidence,
+} from '@api-types/contracts/video-generation-brief-compiler.contract';
+import {
+  buildMinimaxH3GenerationSource,
+  buildPrunaaiPVideoGenerationSource,
+  buildVideoGenerationBriefExemptionSource,
+  PRUNAAI_P_VIDEO_COMPILER_ID,
+} from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -166,54 +191,81 @@ export class VideoGenerationPreparationService {
     const { endFrameUrl, referenceImageUrls } =
       await this.resolveReferenceUrls(resolved);
     const promptText = await this.resolvePromptText(resolved);
+
     const {
-      input: promptParams,
-      templateUsed,
-      templateVersion,
-    } = await this.promptBuilderService.buildPrompt(
+      brief: generationBrief,
+      dispatch: rawCompiledDispatch,
+      evidence: briefEvidence,
+      generationSource,
+    } = this.compileVideoGenerationBrief({
+      createVideoDto,
+      height,
       model,
-      {
-        audioUrl: createVideoDto.audioUrl,
-        blacklist: createVideoDto.blacklist,
-        brand: {
-          description: optionalBrandString(brand.description),
-          label: brandPromptLabel(brand.label),
-          primaryColor: optionalBrandString(brand.primaryColor),
-          secondaryColor: optionalBrandString(brand.secondaryColor),
-          text: optionalBrandString(brand.text),
+      promptOriginalText: promptText,
+      referenceIds,
+      width,
+    });
+    const compiledDispatch = rawCompiledDispatch
+      ? await this.resolveCompiledDispatchReferenceUrls(
+          rawCompiledDispatch,
+          user.organizationId,
+        )
+      : undefined;
+
+    let promptParams: Record<string, unknown>;
+    let templateUsed: string | undefined;
+    let templateVersion: number | undefined;
+    if (compiledDispatch) {
+      promptParams = compiledDispatch as unknown as Record<string, unknown>;
+    } else {
+      const builtPrompt = await this.promptBuilderService.buildPrompt(
+        model,
+        {
+          audioUrl: createVideoDto.audioUrl,
+          blacklist: createVideoDto.blacklist,
+          brand: {
+            description: optionalBrandString(brand.description),
+            label: brandPromptLabel(brand.label),
+            primaryColor: optionalBrandString(brand.primaryColor),
+            secondaryColor: optionalBrandString(brand.secondaryColor),
+            text: optionalBrandString(brand.text),
+          },
+          branding: buildPromptBrandingFromBrand(brand),
+          brandingMode: createVideoDto.brandingMode,
+          camera: createVideoDto.camera,
+          cameraMovement: createVideoDto.cameraMovement,
+          duration: createVideoDto.duration,
+          endFrame: endFrameUrl,
+          fontFamily: createVideoDto.fontFamily,
+          height,
+          isAudioEnabled: createVideoDto.isAudioEnabled,
+          isBrandingEnabled: createVideoDto.isBrandingEnabled,
+          lens: createVideoDto.lens,
+          lighting: createVideoDto.lighting,
+          modelCategory:
+            ((request as unknown as { selectedModel?: { category?: string } })
+              .selectedModel?.category as ModelCategory) || ModelCategory.VIDEO,
+          mood: createVideoDto.mood,
+          outputs: createVideoDto.outputs,
+          prompt: promptText,
+          promptTemplate: createVideoDto.promptTemplate,
+          references: referenceImageUrls,
+          resolution: createVideoDto.resolution,
+          scene: createVideoDto.scene,
+          seed: createVideoDto.seed,
+          sounds: createVideoDto.sounds,
+          speech: createVideoDto.speech,
+          style: createVideoDto.style,
+          tags: createVideoDto.tags?.map((tag) => tag.toString()),
+          useTemplate: createVideoDto.useTemplate,
+          width,
         },
-        branding: buildPromptBrandingFromBrand(brand),
-        brandingMode: createVideoDto.brandingMode,
-        camera: createVideoDto.camera,
-        cameraMovement: createVideoDto.cameraMovement,
-        duration: createVideoDto.duration,
-        endFrame: endFrameUrl,
-        fontFamily: createVideoDto.fontFamily,
-        height,
-        isAudioEnabled: createVideoDto.isAudioEnabled,
-        isBrandingEnabled: createVideoDto.isBrandingEnabled,
-        lens: createVideoDto.lens,
-        lighting: createVideoDto.lighting,
-        modelCategory:
-          ((request as unknown as { selectedModel?: { category?: string } })
-            .selectedModel?.category as ModelCategory) || ModelCategory.VIDEO,
-        mood: createVideoDto.mood,
-        outputs: createVideoDto.outputs,
-        prompt: promptText,
-        promptTemplate: createVideoDto.promptTemplate,
-        references: referenceImageUrls,
-        resolution: createVideoDto.resolution,
-        scene: createVideoDto.scene,
-        seed: createVideoDto.seed,
-        sounds: createVideoDto.sounds,
-        speech: createVideoDto.speech,
-        style: createVideoDto.style,
-        tags: createVideoDto.tags?.map((tag) => tag.toString()),
-        useTemplate: createVideoDto.useTemplate,
-        width,
-      },
-      user.organizationId,
-    );
+        user.organizationId,
+      );
+      promptParams = builtPrompt.input;
+      templateUsed = builtPrompt.templateUsed;
+      templateVersion = builtPrompt.templateVersion;
+    }
     const promptInput = promptParams as PromptInput;
     const promptData = await this.promptsService.create(
       new PromptEntity({
@@ -245,6 +297,7 @@ export class VideoGenerationPreparationService {
         extension: MetadataExtension.MP4,
         generationPrompt: promptText,
         generationSeed: createVideoDto.seed,
+        generationSource,
         groupId: placeholderScope?.groupId,
         groupIndex: placeholderScope?.groupIndex,
         hasAudio: createVideoDto.isAudioEnabled,
@@ -256,6 +309,7 @@ export class VideoGenerationPreparationService {
         organizationId: brand.organizationId,
         promptId: promptData.id,
         promptTemplate: templateUsed,
+        providerData: toRedactedVideoGenerationBriefProviderData(briefEvidence),
         resolution: createVideoDto.resolution,
         scope: createVideoDto.scope,
         sourceIds: referenceIds,
@@ -269,6 +323,10 @@ export class VideoGenerationPreparationService {
     return {
       ...resolved,
       abortSignal: createRequestAbortSignal(request),
+      briefEvidence,
+      compiledDispatch,
+      generationBrief,
+      generationSource,
       height,
       ingredientData,
       metadataData,
@@ -279,6 +337,169 @@ export class VideoGenerationPreparationService {
       referenceImageUrls,
       width,
     };
+  }
+
+  private compileVideoGenerationBrief(params: {
+    createVideoDto: CreateVideoDto;
+    height: number;
+    model: string;
+    promptOriginalText: string;
+    referenceIds: string[];
+    width: number;
+  }): {
+    brief?: VideoGenerationBrief;
+    dispatch?: MinimaxH3Dispatch | PrunaaiPVideoDispatch;
+    evidence: VideoGenerationBriefPersistedEvidence;
+    generationSource: string;
+  } {
+    const support = resolveVideoGenerationBriefSupport(params.model);
+    if (support.kind === 'exempt') {
+      return {
+        evidence: assertRedactedVideoGenerationBriefEvidence({
+          compilerId: null,
+          compilerVersion: null,
+          modelKey: support.modelKey,
+          profileId: null,
+          profileVersion: null,
+          reason: support.reason,
+          status: 'exempted',
+        }),
+        generationSource: buildVideoGenerationBriefExemptionSource(
+          support.reason,
+        ),
+      };
+    }
+
+    try {
+      const fidelityMode = resolveVideoGenerationFidelityMode({
+        brandingMode: params.createVideoDto.brandingMode,
+        isBrandingEnabled: params.createVideoDto.isBrandingEnabled,
+      });
+      const composition = [
+        params.createVideoDto.camera,
+        params.createVideoDto.lens,
+      ]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .join(', ');
+      const avoid = [
+        ...(params.createVideoDto.blacklist ?? []),
+        ...(params.createVideoDto.negativePrompt
+          ? [params.createVideoDto.negativePrompt]
+          : []),
+      ];
+      const brief = assembleVideoGenerationBrief({
+        audioDirection: params.createVideoDto.speech,
+        avoid,
+        composition,
+        durationSeconds: params.createVideoDto.duration,
+        endFrameId: params.createVideoDto.endFrame,
+        fidelityMode,
+        height: params.height,
+        lighting: params.createVideoDto.lighting,
+        motion: params.createVideoDto.cameraMovement,
+        objective: params.promptOriginalText,
+        referenceIds: params.referenceIds,
+        scene: params.createVideoDto.scene,
+        visualDirection:
+          params.createVideoDto.style || params.createVideoDto.mood,
+        visualDirectionSource: 'user',
+        width: params.width,
+      });
+
+      const isPrunaaiPVideo =
+        support.compilerId === PRUNAAI_P_VIDEO_COMPILER_ID;
+      const compiled = isPrunaaiPVideo
+        ? compilePrunaaiPVideoGenerationBrief({
+            brief,
+            seed: params.createVideoDto.seed,
+          })
+        : compileMinimaxH3GenerationBrief({
+            brief,
+            seed: params.createVideoDto.seed,
+          });
+
+      return {
+        brief: compiled.brief,
+        dispatch: compiled.dispatch,
+        evidence: assertRedactedVideoGenerationBriefEvidence(compiled.evidence),
+        generationSource: isPrunaaiPVideo
+          ? buildPrunaaiPVideoGenerationSource()
+          : buildMinimaxH3GenerationSource(),
+      };
+    } catch (error: unknown) {
+      if (error instanceof GenerationBriefCompileError) {
+        throw new HttpException(
+          {
+            detail: error.message,
+            title: 'Generation brief compilation failed',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async resolveCompiledDispatchReferenceUrls(
+    dispatch: MinimaxH3Dispatch | PrunaaiPVideoDispatch,
+    organizationId: string,
+  ): Promise<MinimaxH3Dispatch | PrunaaiPVideoDispatch> {
+    const resolveUrl = async (
+      referenceId: string,
+      role: string,
+    ): Promise<string> => {
+      const url = await buildReferenceImageUrl({
+        assetsService: this.assetsService,
+        configService: this.configService,
+        ingredientsService: this.ingredientsService,
+        loggerService: this.loggerService,
+        organizationId,
+        referenceId,
+      });
+      if (!url) {
+        throw new HttpException(
+          {
+            detail: `Could not resolve a source URL for the ${role} reference`,
+            title: 'Generation brief reference resolution failed',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      return url;
+    };
+
+    if ('ratio' in dispatch) {
+      const [firstFrameImage, lastFrameImage, referenceImageUrls] =
+        await Promise.all([
+          dispatch.first_frame_image
+            ? resolveUrl(dispatch.first_frame_image, 'first frame')
+            : Promise.resolve(undefined),
+          dispatch.last_frame_image
+            ? resolveUrl(dispatch.last_frame_image, 'last frame')
+            : Promise.resolve(undefined),
+          Promise.all(
+            (dispatch.reference_image_urls ?? []).map((assetId) =>
+              resolveUrl(assetId, 'reference'),
+            ),
+          ),
+        ]);
+      return {
+        ...dispatch,
+        ...(firstFrameImage !== undefined
+          ? { first_frame_image: firstFrameImage }
+          : {}),
+        ...(lastFrameImage !== undefined
+          ? { last_frame_image: lastFrameImage }
+          : {}),
+        reference_image_urls: referenceImageUrls,
+      };
+    }
+
+    if (!dispatch.image) {
+      return dispatch;
+    }
+    const image = await resolveUrl(dispatch.image, 'first frame');
+    return { ...dispatch, image };
   }
 
   private async resolveReferenceUrls(

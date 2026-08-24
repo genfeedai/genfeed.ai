@@ -16,6 +16,7 @@ import { VideoGenerationProviderDispatchService } from '@api/collections/videos/
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -201,12 +202,22 @@ export class VideoGenerationExecutionService {
       extension: MetadataExtension.MP4,
       generationPrompt: context.promptData.original,
       generationSeed: context.createVideoDto.seed,
+      ...(context.generationSource
+        ? { generationSource: context.generationSource }
+        : {}),
       hasAudio: context.createVideoDto.isAudioEnabled,
       height: context.height,
       language: context.createVideoDto.language,
       model: context.model,
       negativePrompt: context.createVideoDto.negativePrompt,
       organizationId: context.brand.organizationId,
+      ...(context.briefEvidence
+        ? {
+            providerData: toRedactedVideoGenerationBriefProviderData(
+              context.briefEvidence,
+            ),
+          }
+        : {}),
       promptId: context.promptData.id,
       resolution: context.createVideoDto.resolution,
       scope: context.createVideoDto.scope,

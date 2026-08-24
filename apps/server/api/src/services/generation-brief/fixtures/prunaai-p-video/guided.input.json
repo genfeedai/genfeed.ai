@@ -1,0 +1,51 @@
+{
+  "constraints": [
+    {
+      "kind": "desired_outcome",
+      "required": false,
+      "value": "Keep the bottle label readable"
+    },
+    {
+      "kind": "avoid",
+      "required": false,
+      "value": "busy backgrounds"
+    }
+  ],
+  "fidelityMode": "guided",
+  "intent": {
+    "cinematography": "slow dolly-in, shallow depth of field",
+    "composition": "Centered product portrait",
+    "lighting": "soft window light",
+    "motion": "gentle parallax",
+    "objective": "Bring the new bottle to life in a studio spin",
+    "requestedText": ["NEW"],
+    "scene": "sun-drenched ceramics studio",
+    "subjects": ["Reusable bottle"],
+    "visualDirection": "Clean editorial product cinematography"
+  },
+  "mediaKind": "video",
+  "output": {
+    "aspectRatio": "1:1",
+    "durationSeconds": 8,
+    "height": 1024,
+    "width": 1024
+  },
+  "provenance": [
+    {
+      "field": "intent.objective",
+      "source": "user"
+    },
+    {
+      "field": "intent.visualDirection",
+      "source": "brand"
+    }
+  ],
+  "references": [
+    {
+      "assetId": "asset_product_123",
+      "description": "Approved product first frame",
+      "role": "first_frame"
+    }
+  ],
+  "version": 1
+}
