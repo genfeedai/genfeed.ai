@@ -174,6 +174,24 @@ export class PostGroupsController {
             id,
           );
           break;
+        case 'calendar-move':
+          data = await this.postGroupsService.moveCalendarPlacement(
+            organization,
+            user.id,
+            id,
+            body,
+            metadata,
+          );
+          break;
+        case 'republish':
+          data = await this.postGroupsService.republishAt(
+            organization,
+            user.id,
+            id,
+            body,
+            metadata,
+          );
+          break;
         default:
           data = await this.postGroupsService.update(
             organization,

@@ -72,6 +72,11 @@ const SCHEDULABLE_TARGET_STATES = new Set<string>([
   TargetExecutionState.SCHEDULED,
 ]);
 
+const REPUBLISH_SKIP_TARGET_STATES = new Set<string>([
+  TargetExecutionState.CANCELLED,
+  TargetExecutionState.SKIPPED,
+]);
+
 @Injectable()
 export class PostGroupContractService {
   private readonly logger = new Logger(PostGroupContractService.name);
@@ -397,19 +402,121 @@ export class PostGroupContractService {
     );
   }
 
-  parseFutureScheduleDate(value: string): Date {
+  parseScheduleDate(value: string): Date {
     if (!STRICT_SCHEDULE_DATE_SCHEMA.safeParse(value).success) {
       throw new BadRequestException(
         'scheduledAt must be a valid ISO 8601 date and time with an explicit UTC offset.',
       );
     }
-    const date = new Date(value);
+    return new Date(value);
+  }
+
+  parseFutureScheduleDate(value: string): Date {
+    const date = this.parseScheduleDate(value);
     if (date.getTime() < Date.now() - 1000) {
       throw new BadRequestException(
         'scheduledAt must be now or in the future.',
       );
     }
     return date;
+  }
+
+  readScheduledDate(body: unknown): string {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return '';
+    }
+    const value = (body as Record<string, unknown>).scheduledDate;
+    return typeof value === 'string' ? value : '';
+  }
+
+  hasPublishedTarget(targets: readonly SchedulerPostTarget[]): boolean {
+    return targets.some(
+      (target) =>
+        target.targetExecutionState === TargetExecutionState.PUBLISHED,
+    );
+  }
+
+  /**
+   * Clone a live release into a new scheduled create payload. Recurrence is
+   * omitted on purpose — evergreen series edits stay on #1130.
+   */
+  buildRepublishCreateInput(
+    group: SchedulerPostGroup,
+    targets: readonly SchedulerPostTarget[],
+    scheduledDate: string,
+  ): CreateReleaseGroupInput {
+    const cloneable = targets.filter(
+      (target) =>
+        !REPUBLISH_SKIP_TARGET_STATES.has(target.targetExecutionState),
+    );
+    if (cloneable.length === 0) {
+      throw new BadRequestException(
+        'This release has no channel that can be published again.',
+      );
+    }
+
+    const media = this.asMedia(group.media).map((item) => ({
+      assetId: item.assetId,
+      ...(item.kind ? { kind: item.kind } : {}),
+      ...(item.order !== undefined ? { order: item.order } : {}),
+    }));
+    const attachments = this.asReleaseAttachments(group.attachments, group.id)
+      .filter((attachment) => !attachment.targetId)
+      .map((attachment) => ({
+        body: attachment.body,
+        kind: attachment.kind,
+        order: attachment.order,
+        ...(attachment.platform ? { platform: attachment.platform } : {}),
+      }));
+
+    return {
+      ...(attachments.length > 0 ? { attachments } : {}),
+      baseContent: group.baseContent,
+      ...(group.brandId ? { brandId: group.brandId } : {}),
+      ...(media.length > 0 ? { media } : {}),
+      scheduledDate,
+      status: ReleaseStatus.SCHEDULED,
+      targets: cloneable.map((target, index) =>
+        this.toRepublishTargetInput(group, target, scheduledDate, index),
+      ),
+      timezone: group.timezone,
+      title: group.title,
+    };
+  }
+
+  private toRepublishTargetInput(
+    group: SchedulerPostGroup,
+    target: SchedulerPostTarget,
+    scheduledDate: string,
+    index: number,
+  ): ChannelTargetInput {
+    const caption = this.readTargetCaption(
+      target.description,
+      group.baseContent,
+    );
+    const settings = this.asRecord(target.targetSettings);
+    const attachments = this.asReleaseAttachments(
+      target.targetAttachments,
+      group.id,
+      target.id,
+    ).map((attachment) => ({
+      body: attachment.body,
+      kind: attachment.kind,
+      order: attachment.order,
+      ...(attachment.platform ? { platform: attachment.platform } : {}),
+    }));
+
+    return {
+      ...(attachments.length > 0 ? { attachments } : {}),
+      ...(caption !== group.baseContent ? { caption } : {}),
+      credentialId: target.credentialId,
+      order: target.order ?? index,
+      platform: this.parseCredentialPlatform(target.platform),
+      scheduledDate,
+      ...(Object.keys(settings).length > 0 ? { settings } : {}),
+      timezone: target.timezone || group.timezone,
+      visibility: this.toPostVisibility(target.visibility),
+    };
   }
 
   toDate(value: string | undefined | null): Date | null {

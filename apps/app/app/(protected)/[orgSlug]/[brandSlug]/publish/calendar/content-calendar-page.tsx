@@ -35,6 +35,7 @@ import type {
   CalendarItem,
 } from '@props/components/calendar.props';
 import type {
+  PendingCalendarDrop,
   ReleaseCalendarFilterOption,
   ReleaseCalendarFilters as ReleaseFilters,
 } from '@props/publisher/release-calendar.props';
@@ -52,7 +53,7 @@ import { Button } from '@ui/primitives/button';
 import { Calendar, FileText, List, Repeat } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
   'Help me write a new long-form article for my brand.',
@@ -62,6 +63,10 @@ const CREATE_POST_AGENT_HREF = buildAgentPromptHref(
 );
 
 import CadenceFormSheet from './cadence-form-sheet';
+import CalendarRepublishDialog, {
+  CALENDAR_MOVE_ACTION,
+  CALENDAR_REPUBLISH_ACTION,
+} from './calendar-republish-dialog';
 import CalendarSlotDrawer from './calendar-slot-drawer';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
@@ -73,7 +78,9 @@ import ReleaseDetailDrawer, {
   targetRetryAction,
 } from './release-detail-drawer';
 import {
-  isReleaseReschedulable,
+  isReleaseDragConfirmRequired,
+  isReleaseDraggable,
+  releaseScheduledInstant,
   releaseStatusBadge,
   releaseTargets,
 } from './release-status.helpers';
@@ -113,15 +120,6 @@ function mutationErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
     : 'The schedule change could not be saved.';
-}
-
-/** Earliest instant a release occupies, so a target-only schedule still lands. */
-function releaseInstant(release: IReleaseGroup): string | undefined {
-  return (
-    release.scheduledAt ??
-    releaseTargets(release).find((target) => target.scheduledAt)?.scheduledAt ??
-    undefined
-  );
 }
 
 export default function ContentCalendarPage(): React.JSX.Element {
@@ -169,6 +167,11 @@ export default function ContentCalendarPage(): React.JSX.Element {
     EMPTY_RELEASE_CALENDAR_FILTERS,
   );
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [pendingDrop, setPendingDrop] = useState<PendingCalendarDrop | null>(
+    null,
+  );
+  const pendingDropRef = useRef<PendingCalendarDrop | null>(null);
+  pendingDropRef.current = pendingDrop;
   const [drawerError, setDrawerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dateRange, setDateRange] = useCalendarWeekRange();
@@ -286,7 +289,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         id: release.id,
         itemType: 'release',
         release,
-        scheduledDate: releaseInstant(release),
+        scheduledDate: releaseScheduledInstant(release),
         status: release.status,
         title: release.title,
       }),
@@ -354,11 +357,15 @@ export default function ContentCalendarPage(): React.JSX.Element {
       try {
         const service = await getReleaseGroupsService();
         const updated = await mutation(service);
-        setReleases((current) =>
-          current.map((release) =>
-            release.id === updated.id ? updated : release,
-          ),
-        );
+        setReleases((current) => {
+          const exists = current.some((release) => release.id === updated.id);
+          if (exists) {
+            return current.map((release) =>
+              release.id === updated.id ? updated : release,
+            );
+          }
+          return [...current, updated];
+        });
       } catch (error) {
         onFailure?.();
         const message = mutationErrorMessage(error);
@@ -466,7 +473,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
   const isItemDraggable = useCallback(
     (item: ContentCalendarItem): boolean =>
-      item.itemType === 'release' && isReleaseReschedulable(item.release),
+      item.itemType === 'release' && isReleaseDraggable(item.release),
     [],
   );
 
@@ -477,8 +484,29 @@ export default function ContentCalendarPage(): React.JSX.Element {
         return;
       }
 
+      if (pendingDropRef.current) {
+        change.revert();
+        return;
+      }
+
+      if (!Number.isFinite(change.start.getTime())) {
+        change.revert();
+        notificationsService.error('That drop time is not a valid schedule.');
+        return;
+      }
+
       const { release } = change.item;
       const scheduledDate = change.start.toISOString();
+
+      if (isReleaseDragConfirmRequired(release)) {
+        setPendingDrop({
+          release,
+          revert: change.revert,
+          scheduledDate,
+        });
+        return;
+      }
+
       const previous = releases;
 
       // Optimistic: the event is already in its new slot, so the list has to
@@ -500,8 +528,63 @@ export default function ContentCalendarPage(): React.JSX.Element {
         },
       );
     },
-    [releases, runMutation],
+    [notificationsService, releases, runMutation],
   );
+
+  const clearPendingDrop = useCallback((shouldRevert: boolean) => {
+    setPendingDrop((current) => {
+      if (shouldRevert) {
+        current?.revert();
+      }
+      return null;
+    });
+  }, []);
+
+  const handleCancelPendingDrop = useCallback(() => {
+    clearPendingDrop(true);
+  }, [clearPendingDrop]);
+
+  const handleCardOnlyDrop = useCallback(() => {
+    if (!pendingDrop) {
+      return;
+    }
+
+    const { release, revert, scheduledDate } = pendingDrop;
+    const previous = releases;
+
+    void (async () => {
+      await runMutation(
+        CALENDAR_MOVE_ACTION,
+        (service) => service.moveCalendarPlacement(release.id, scheduledDate),
+        () => {
+          revert();
+          setReleases(previous);
+        },
+      );
+      setPendingDrop(null);
+    })();
+  }, [pendingDrop, releases, runMutation]);
+
+  const handleRepublishDrop = useCallback(() => {
+    if (!pendingDrop) {
+      return;
+    }
+
+    const { release, revert, scheduledDate } = pendingDrop;
+    const previous = releases;
+
+    void (async () => {
+      await runMutation(
+        CALENDAR_REPUBLISH_ACTION,
+        (service) => service.republishAt(release.id, scheduledDate),
+        () => {
+          revert();
+          setReleases(previous);
+        },
+      );
+      setPendingDrop(null);
+    })();
+  }, [pendingDrop, releases, runMutation]);
 
   const handleRescheduleRelease = useCallback(
     (scheduledDate: string) => {
@@ -838,6 +921,18 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
   const modal = (
     <>
+      <CalendarRepublishDialog
+        isOpen={pendingDrop !== null}
+        onCancel={handleCancelPendingDrop}
+        onChooseCardOnly={handleCardOnlyDrop}
+        onChooseRepublish={handleRepublishDrop}
+        pendingAction={
+          pendingAction === CALENDAR_MOVE_ACTION ||
+          pendingAction === CALENDAR_REPUBLISH_ACTION
+            ? pendingAction
+            : null
+        }
+      />
       <ReleaseDetailDrawer
         error={drawerError}
         onAddChannel={handleAddChannel}

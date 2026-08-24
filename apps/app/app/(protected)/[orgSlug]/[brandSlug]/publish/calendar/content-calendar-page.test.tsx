@@ -44,6 +44,8 @@ const findArticlesMock = vi.fn();
 const findReleasesMock = vi.fn();
 const updateReleaseMock = vi.fn();
 const updateTargetMock = vi.fn();
+const moveCalendarPlacementMock = vi.fn();
+const republishAtMock = vi.fn();
 const pushMock = vi.fn();
 const setDateRangeMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
@@ -61,6 +63,8 @@ const getPostsServiceMock = vi.fn(async () => ({
 }));
 const getReleaseGroupsServiceMock = vi.fn(async () => ({
   findAll: findReleasesMock,
+  moveCalendarPlacement: moveCalendarPlacementMock,
+  republishAt: republishAtMock,
   update: updateReleaseMock,
   updateTarget: updateTargetMock,
 }));
@@ -274,6 +278,36 @@ vi.mock('./release-detail-drawer', async (importOriginal) => {
   };
 });
 
+vi.mock('@ui/primitives/dialog', () => ({
+  Dialog: ({ children, open }: { children: ReactNode; open: boolean }) =>
+    open ? <div role="dialog">{children}</div> : null,
+  DialogContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  DialogFooter: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogHeader: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
+}));
+
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children: ReactNode }) => (
+    <div role="alert">{children}</div>
+  ),
+  AlertDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  AlertTitle: ({ children }: { children: ReactNode }) => (
+    <strong>{children}</strong>
+  ),
+}));
+
 vi.mock('./evergreen-series-controls', () => ({
   default: ({ groupId }: { groupId: string }) => (
     <div data-testid="evergreen-series-controls">{groupId}</div>
@@ -297,7 +331,7 @@ function target(overrides: Partial<IChannelTarget> = {}): IChannelTarget {
 function release(overrides: Partial<IReleaseGroup> = {}): IReleaseGroup {
   return {
     id: 'release-1',
-    scheduledAt: '2026-03-12T10:00:00.000Z',
+    scheduledAt: '2026-12-12T10:00:00.000Z',
     status: ReleaseStatus.SCHEDULED,
     targets: [target()],
     timezone: 'UTC',
@@ -507,7 +541,7 @@ describe('ContentCalendarPage', () => {
     ).toEqual([]);
   });
 
-  it('refuses to drag a release that can no longer be moved', async () => {
+  it('refuses to drag a cancelled release and lets a published card be moved', async () => {
     findReleasesMock.mockResolvedValue([
       release(),
       release({
@@ -517,6 +551,16 @@ describe('ContentCalendarPage', () => {
           target({
             executionState: TargetExecutionState.PUBLISHED,
             id: 'target-2',
+          }),
+        ],
+      }),
+      release({
+        id: 'release-3',
+        status: ReleaseStatus.CANCELLED,
+        targets: [
+          target({
+            executionState: TargetExecutionState.CANCELLED,
+            id: 'target-3',
           }),
         ],
       }),
@@ -535,12 +579,17 @@ describe('ContentCalendarPage', () => {
       isItemDraggable(
         items.find((item) => item.id === 'release-2') as CalendarItemShape,
       ),
+    ).toBe(true);
+    expect(
+      isItemDraggable(
+        items.find((item) => item.id === 'release-3') as CalendarItemShape,
+      ),
     ).toBe(false);
   });
 
   it('persists a drag as a release-level reschedule', async () => {
     updateReleaseMock.mockResolvedValue(
-      release({ scheduledAt: '2026-03-13T10:00:00.000Z' }),
+      release({ scheduledAt: '2026-12-13T10:00:00.000Z' }),
     );
 
     await renderLoaded();
@@ -551,16 +600,188 @@ describe('ContentCalendarPage', () => {
       onEventDrop({
         item: items[0],
         revert,
-        start: new Date('2026-03-13T10:00:00.000Z'),
+        start: new Date('2026-12-13T10:00:00.000Z'),
       });
     });
 
     await waitFor(() => {
       expect(updateReleaseMock).toHaveBeenCalledWith('release-1', {
-        scheduledDate: '2026-03-13T10:00:00.000Z',
+        scheduledDate: '2026-12-13T10:00:00.000Z',
       });
     });
     expect(revert).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('asks before moving a published card and reverts when cancelled', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        status: ReleaseStatus.PUBLISHED,
+        targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
+      }),
+    ]);
+
+    await renderLoaded();
+
+    const revert = vi.fn();
+    const { items, onEventDrop } = latestCalendarProps();
+    act(() => {
+      onEventDrop({
+        item: items[0],
+        revert,
+        start: new Date('2026-12-13T10:00:00.000Z'),
+      });
+    });
+
+    expect(
+      screen.getByRole('heading', { name: 'Move the card or publish again?' }),
+    ).toBeInTheDocument();
+    expect(updateReleaseMock).not.toHaveBeenCalled();
+    expect(moveCalendarPlacementMock).not.toHaveBeenCalled();
+    expect(republishAtMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(revert).toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('moves a published card without creating a second publish', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        status: ReleaseStatus.PUBLISHED,
+        targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
+      }),
+    ]);
+    moveCalendarPlacementMock.mockResolvedValue(
+      release({
+        scheduledAt: '2026-12-13T10:00:00.000Z',
+        status: ReleaseStatus.PUBLISHED,
+      }),
+    );
+
+    await renderLoaded();
+
+    const revert = vi.fn();
+    const { items, onEventDrop } = latestCalendarProps();
+    act(() => {
+      onEventDrop({
+        item: items[0],
+        revert,
+        start: new Date('2026-12-13T10:00:00.000Z'),
+      });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move card only' }));
+
+    await waitFor(() => {
+      expect(moveCalendarPlacementMock).toHaveBeenCalledWith(
+        'release-1',
+        '2026-12-13T10:00:00.000Z',
+      );
+    });
+    expect(republishAtMock).not.toHaveBeenCalled();
+    expect(updateReleaseMock).not.toHaveBeenCalled();
+    expect(revert).not.toHaveBeenCalled();
+  });
+
+  it('republishes a published card as a new scheduled occurrence', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        status: ReleaseStatus.PUBLISHED,
+        targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
+      }),
+    ]);
+    republishAtMock.mockResolvedValue(
+      release({
+        id: 'release-2',
+        scheduledAt: '2026-12-13T10:00:00.000Z',
+        status: ReleaseStatus.SCHEDULED,
+      }),
+    );
+
+    await renderLoaded();
+
+    const revert = vi.fn();
+    const { items, onEventDrop } = latestCalendarProps();
+    act(() => {
+      onEventDrop({
+        item: items[0],
+        revert,
+        start: new Date('2026-12-13T10:00:00.000Z'),
+      });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publish again' }));
+
+    await waitFor(() => {
+      expect(republishAtMock).toHaveBeenCalledWith(
+        'release-1',
+        '2026-12-13T10:00:00.000Z',
+      );
+    });
+    expect(moveCalendarPlacementMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(
+        latestCalendarProps().items.some((item) => item.id === 'release-2'),
+      ).toBe(true);
+    });
+  });
+
+  it('asks the same question for a queued item whose time has already passed', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({ scheduledAt: '2026-03-12T10:00:00.000Z' }),
+    ]);
+
+    await renderLoaded();
+
+    const revert = vi.fn();
+    const { items, onEventDrop } = latestCalendarProps();
+    act(() => {
+      onEventDrop({
+        item: items[0],
+        revert,
+        start: new Date('2026-12-13T10:00:00.000Z'),
+      });
+    });
+
+    expect(
+      screen.getByRole('heading', { name: 'Move the card or publish again?' }),
+    ).toBeInTheDocument();
+    expect(updateReleaseMock).not.toHaveBeenCalled();
+  });
+
+  it('reverts a published drag when republish is rejected', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        status: ReleaseStatus.PUBLISHED,
+        targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
+      }),
+    ]);
+    republishAtMock.mockRejectedValue(
+      new Error('scheduledAt must be now or in the future.'),
+    );
+
+    await renderLoaded();
+
+    const revert = vi.fn();
+    const { items, onEventDrop } = latestCalendarProps();
+    act(() => {
+      onEventDrop({
+        item: items[0],
+        revert,
+        start: new Date('2026-12-13T10:00:00.000Z'),
+      });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publish again' }));
+
+    await waitFor(() => {
+      expect(revert).toHaveBeenCalled();
+    });
+    expect(notifyErrorMock).toHaveBeenCalledWith(
+      'scheduledAt must be now or in the future.',
+    );
   });
 
   it('reverts the dragged event when the API rejects the new slot', async () => {
@@ -578,7 +799,7 @@ describe('ContentCalendarPage', () => {
       onEventDrop({
         item: items[0],
         revert,
-        start: new Date('2026-03-13T10:00:00.000Z'),
+        start: new Date('2026-12-13T10:00:00.000Z'),
       });
     });
 

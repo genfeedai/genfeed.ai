@@ -304,6 +304,55 @@ describe('PostGroupContractService', () => {
     );
   });
 
+  it('allows a past calendar-move timestamp while still requiring ISO-8601', () => {
+    expect(
+      service.parseScheduleDate('2026-07-01T09:00:00.000Z').toISOString(),
+    ).toBe('2026-07-01T09:00:00.000Z');
+    expect(() => service.parseScheduleDate('Tuesday')).toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('clones a live release into a scheduled create payload without recurrence', () => {
+    const input = service.buildRepublishCreateInput(
+      makeGroup({
+        recurrence: { frequency: 'weekly', interval: 1 },
+        status: ReleaseStatus.PUBLISHED,
+      }),
+      [
+        makeTarget({
+          description: 'X-specific caption',
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        }),
+        makeTarget({
+          credentialId: 'credential-2',
+          id: 'target-2',
+          targetExecutionState: TargetExecutionState.CANCELLED,
+        }),
+      ],
+      '2026-07-21T09:00:00.000Z',
+    );
+
+    expect(input).toEqual(
+      expect.objectContaining({
+        baseContent: 'Launch note',
+        brandId: 'brand-1',
+        scheduledDate: '2026-07-21T09:00:00.000Z',
+        status: ReleaseStatus.SCHEDULED,
+        title: 'Launch',
+      }),
+    );
+    expect(input.recurrence).toBeUndefined();
+    expect(input.targets).toEqual([
+      expect.objectContaining({
+        caption: 'X-specific caption',
+        credentialId: 'credential-1',
+        platform: CredentialPlatform.TWITTER,
+        scheduledDate: '2026-07-21T09:00:00.000Z',
+      }),
+    ]);
+  });
+
   it.each([
     {
       expected: ReleaseTargetSource.MANUAL,

@@ -622,6 +622,98 @@ export class PostGroupsService {
     return release;
   }
 
+  /**
+   * Update only the release's calendar placement. Never writes channel-target
+   * schedule columns and never enqueues a publish.
+   */
+  async moveCalendarPlacement(
+    organizationId: string,
+    _userId: string,
+    groupId: string,
+    body: unknown,
+    apiKeyContext?: ApiKeyPublishingContext,
+  ): Promise<IReleaseGroup> {
+    assertApiKeyPublishingScope(apiKeyContext ?? {}, 'schedule');
+    const scheduledAt = this.contractService.parseScheduleDate(
+      this.contractService.readScheduledDate(body),
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await this.persistenceService.getGroupOrThrow(
+        tx,
+        organizationId,
+        groupId,
+      );
+      await tx.postGroup.update({
+        data: { scheduledAt },
+        where: scopedWhere(organizationId, { id: existing.id }),
+      });
+      return this.persistenceService.hydrateWithDerivedStatus(
+        tx,
+        organizationId,
+        existing.id,
+      );
+    });
+  }
+
+  /**
+   * Publish again at `scheduledDate` through the existing release contract.
+   * Live posts clone a new scheduled occurrence; unpublished queued items
+   * reschedule in place. Neither path edits a live provider post.
+   */
+  async republishAt(
+    organizationId: string,
+    userId: string,
+    groupId: string,
+    body: unknown,
+    apiKeyContext?: ApiKeyPublishingContext,
+  ): Promise<IReleaseGroup> {
+    assertApiKeyPublishingScope(apiKeyContext ?? {}, 'schedule');
+    const scheduledDate = this.contractService.readScheduledDate(body);
+    this.contractService.parseFutureScheduleDate(scheduledDate);
+
+    const existing = await this.prisma.$transaction(async (tx) => {
+      const group = await this.persistenceService.getGroupOrThrow(
+        tx,
+        organizationId,
+        groupId,
+      );
+      const targets = await this.persistenceService.getTargets(
+        tx,
+        organizationId,
+        group.id,
+      );
+      return { group, targets };
+    });
+
+    if (this.contractService.hasPublishedTarget(existing.targets)) {
+      const idempotencyKey = `calendar-republish:${groupId}:${scheduledDate}`;
+      return this.create(
+        organizationId,
+        userId,
+        {
+          ...this.contractService.buildRepublishCreateInput(
+            existing.group,
+            existing.targets,
+            scheduledDate,
+          ),
+          idempotencyKey,
+        },
+        idempotencyKey,
+        { source: 'calendar-republish' },
+        apiKeyContext,
+      );
+    }
+
+    return this.update(
+      organizationId,
+      userId,
+      groupId,
+      { scheduledDate },
+      apiKeyContext,
+    );
+  }
+
   async updateTarget(
     organizationId: string,
     userId: string,

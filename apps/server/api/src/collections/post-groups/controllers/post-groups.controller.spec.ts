@@ -20,8 +20,10 @@ describe('PostGroupsController', () => {
     create: ReturnType<typeof vi.fn>;
     getOne: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
+    moveCalendarPlacement: ReturnType<typeof vi.fn>;
     pause: ReturnType<typeof vi.fn>;
     publishNow: ReturnType<typeof vi.fn>;
+    republishAt: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
     ensureReleaseForPost: ReturnType<typeof vi.fn>;
     publishTargetNow: ReturnType<typeof vi.fn>;
@@ -56,6 +58,8 @@ describe('PostGroupsController', () => {
             create: vi.fn().mockResolvedValue({ id: 'group-1' }),
             ensureReleaseForPost: vi.fn().mockResolvedValue({ id: 'group-1' }),
             getOne: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            moveCalendarPlacement: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            republishAt: vi.fn().mockResolvedValue({ id: 'group-2' }),
             list: vi.fn().mockResolvedValue({
               docs: [{ id: 'group-1' }],
               limit: 1,
@@ -189,6 +193,42 @@ describe('PostGroupsController', () => {
       'user-1',
       'post-1',
     );
+  });
+
+  it('routes calendar-move and republish through PATCH action bodies', async () => {
+    const body = { scheduledDate: '2026-09-01T10:00:00.000Z' };
+
+    await controller.update(req, user, 'group-1', {
+      action: 'calendar-move',
+      ...body,
+    });
+    await controller.update(req, user, 'group-1', {
+      action: 'republish',
+      ...body,
+    });
+
+    expect(service.moveCalendarPlacement).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      { action: 'calendar-move', ...body },
+      expect.objectContaining({
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
+    expect(service.republishAt).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      { action: 'republish', ...body },
+      expect.objectContaining({
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
+    expect(service.update).not.toHaveBeenCalled();
+    expect(service.publishNow).not.toHaveBeenCalled();
   });
 
   it('routes publish-now through PATCH action body', async () => {

@@ -143,6 +143,48 @@ describe('ReleaseGroupsService', () => {
     expect(mockExtractResource).toHaveBeenCalledWith(document);
   });
 
+  it('moves calendar placement through the calendar-move action', async () => {
+    const document = { data: { id: 'release-1' } };
+    const release = {
+      id: 'release-1',
+      scheduledAt: '2026-08-02T09:00:00.000Z',
+    };
+    mockPatch.mockResolvedValue({ data: document });
+    mockDeserializeResource.mockReturnValue(release);
+
+    await expect(
+      new ReleaseGroupsService('token').moveCalendarPlacement(
+        'release-1',
+        '2026-08-02T09:00:00.000Z',
+      ),
+    ).resolves.toEqual(release);
+    expect(mockPatch).toHaveBeenCalledWith('/release-1', {
+      action: 'calendar-move',
+      scheduledDate: '2026-08-02T09:00:00.000Z',
+    });
+  });
+
+  it('republishes through the republish action', async () => {
+    const document = { data: { id: 'release-2' } };
+    const release = {
+      id: 'release-2',
+      scheduledAt: '2026-08-02T11:00:00.000Z',
+    };
+    mockPatch.mockResolvedValue({ data: document });
+    mockDeserializeResource.mockReturnValue(release);
+
+    await expect(
+      new ReleaseGroupsService('token').republishAt(
+        'release-1',
+        '2026-08-02T11:00:00.000Z',
+      ),
+    ).resolves.toEqual(release);
+    expect(mockPatch).toHaveBeenCalledWith('/release-1', {
+      action: 'republish',
+      scheduledDate: '2026-08-02T11:00:00.000Z',
+    });
+  });
+
   it('reschedules a release through the release-level patch endpoint', async () => {
     const document = { data: { id: 'release-1' } };
     const release = {

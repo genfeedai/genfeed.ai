@@ -74,6 +74,21 @@ export interface ReleaseTargetHistoryEntry {
   label: string;
 }
 
+/** Calendar drag that needs an explicit card-only vs republish choice. */
+export interface PendingCalendarDrop {
+  release: IReleaseGroup;
+  revert: () => void;
+  scheduledDate: string;
+}
+
+export interface CalendarRepublishDialogProps {
+  isOpen: boolean;
+  onCancel: () => void;
+  onChooseCardOnly: () => void;
+  onChooseRepublish: () => void;
+  pendingAction: string | null;
+}
+
 export interface ReleaseDetailDrawerProps {
   /** Message from the most recent failed mutation, already user-safe. */
   error: string | null;
