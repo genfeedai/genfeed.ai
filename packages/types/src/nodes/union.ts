@@ -21,6 +21,7 @@ import type {
 } from './composition-nodes';
 import type {
   AudioInputNodeData,
+  CastPromptNodeData,
   ImageInputNodeData,
   PromptConstructorNodeData,
   PromptNodeData,
@@ -48,6 +49,7 @@ export type WorkflowNodeData =
   | VideoInputNodeData
   | PromptNodeData
   | PromptConstructorNodeData
+  | CastPromptNodeData
   | ImageGenNodeData
   | VideoGenNodeData
   | LLMNodeData

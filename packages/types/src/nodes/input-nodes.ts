@@ -45,3 +45,32 @@ export interface PromptConstructorNodeData extends BaseNodeData {
   outputText: string | null;
   unresolvedVars: string[];
 }
+
+export const CAST_PROMPT_FAMILIES = ['ugc', 'cinematic'] as const;
+
+export type CastPromptFamily = (typeof CAST_PROMPT_FAMILIES)[number];
+
+export const CAST_CAMERA_MOVEMENTS = [
+  'dolly',
+  'tracking',
+  'static',
+  'crane',
+  'aerial',
+  'handheld',
+  'steadicam',
+] as const;
+
+export type CastCameraMovement = (typeof CAST_CAMERA_MOVEMENTS)[number];
+
+export interface CastPromptNodeData extends BaseNodeData {
+  action: string;
+  cameraMovement: CastCameraMovement;
+  colorPalette: string;
+  family: CastPromptFamily;
+  hasStartFrameReference: boolean;
+  lighting: string;
+  mood: string;
+  outputPrompt: string | null;
+  presetId: string;
+  subject: string;
+}

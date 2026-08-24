@@ -1,6 +1,7 @@
 const API_TO_EDITOR_NODE_TYPE: Record<string, string> = {
   'ai-generate-image': 'imageGen',
   'ai-prompt-constructor': 'promptConstructor',
+  'cast-prompt-generator': 'castPrompt',
   'workflow-input': 'workflowInput',
   'workflow-output': 'workflowOutput',
 };

@@ -16,6 +16,7 @@ export type {
   UgcPresetId,
   UgcPromptBlockKind,
   UgcPromptBlocks,
+  UgcVocabularyEntry,
   VideoPromptPreset,
 } from './ugc-presets';
 export {
@@ -24,10 +25,12 @@ export {
   getAllUgcPresets,
   getAllVideoPresets,
   getUgcPresetById,
+  getUgcVocabularyLibrary,
   isCinematicPreset,
   isUgcPreset,
   isUgcPresetId,
   UGC_PRESET_IDS,
   UGC_PRESETS,
   UGC_PROMPT_BLOCK_KINDS,
+  UGC_VOCABULARY_LABELS,
 } from './ugc-presets';

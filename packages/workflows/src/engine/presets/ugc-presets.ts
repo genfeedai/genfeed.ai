@@ -23,6 +23,26 @@ export type UgcPromptBlocks = {
   microExpression: string;
 };
 
+export type UgcVocabularyEntry = {
+  kind: UgcPromptBlockKind;
+  label: string;
+  text: string;
+};
+
+export const UGC_VOCABULARY_LABELS: Record<UgcPromptBlockKind, string> = {
+  'camera-imperfection': 'Camera',
+  'framing-anchor': 'Framing anchors',
+  'identity-lock': 'Identity lock',
+  'micro-expression': 'Micro-expression & presenter pacing',
+};
+
+const UGC_VOCABULARY_ORDER: UgcPromptBlockKind[] = [
+  'identity-lock',
+  'framing-anchor',
+  'micro-expression',
+  'camera-imperfection',
+];
+
 export type UgcPreset = {
   blocks: UgcPromptBlocks;
   cameraMode: UgcCameraMode;
@@ -161,4 +181,22 @@ export const compileUgcPrompt = (input: CompileUgcPromptInput): string => {
     blocks.cameraImperfection,
     tonePart,
   ].join(' ');
+};
+
+export const getUgcVocabularyLibrary = (
+  input: ComposeUgcPromptBlocksInput,
+): UgcVocabularyEntry[] => {
+  const blocks = composeUgcPromptBlocks(input);
+  const texts: Record<UgcPromptBlockKind, string> = {
+    'camera-imperfection': blocks.cameraImperfection,
+    'framing-anchor': blocks.framingAnchor,
+    'identity-lock': blocks.identityLock,
+    'micro-expression': blocks.microExpression,
+  };
+
+  return UGC_VOCABULARY_ORDER.map((kind) => ({
+    kind,
+    label: UGC_VOCABULARY_LABELS[kind],
+    text: texts[kind],
+  }));
 };

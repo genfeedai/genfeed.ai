@@ -349,6 +349,41 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
     outputs: [{ id: 'text', label: 'Prompt', type: 'text' }],
     type: 'promptConstructor',
   },
+  castPrompt: {
+    category: 'input',
+    defaultData: {
+      action: '',
+      cameraMovement: 'static',
+      colorPalette: '',
+      family: 'ugc',
+      hasStartFrameReference: false,
+      label: 'CAST Prompt',
+      lighting: '',
+      mood: '',
+      outputPrompt: null,
+      presetId: 'ugc_selfie_handheld',
+      status: 'idle',
+      subject: '',
+    },
+    description:
+      'UGC or cinematic video prompt presets. UGC shows the amateur-realism vocabulary library.',
+    icon: 'Film',
+    inputs: [
+      {
+        id: 'startFrame',
+        label: 'Start Frame',
+        required: false,
+        type: 'image',
+      },
+    ],
+    label: 'CAST Prompt',
+    outputs: [
+      { id: 'text', label: 'Prompt', type: 'text' },
+      { id: 'output', label: 'Prompt', type: 'text' },
+      { id: 'preset', label: 'Preset', type: 'text' },
+    ],
+    type: 'castPrompt',
+  },
   reframe: {
     category: 'processing',
     defaultData: {
@@ -722,6 +757,7 @@ export const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
     'audioInput',
     'prompt',
     'promptConstructor',
+    'castPrompt',
   ],
   output: ['download', 'outputGallery', 'imageCompare'],
   processing: [

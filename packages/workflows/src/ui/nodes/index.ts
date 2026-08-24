@@ -26,6 +26,7 @@ import {
 } from './composition';
 import {
   AudioInputNode,
+  CastPromptNode,
   ImageInputNode,
   PromptConstructorNode,
   PromptNode,
@@ -66,6 +67,8 @@ export const nodeTypes: NodeTypes = {
   outputGallery: OutputGalleryNode,
   prompt: PromptNode,
   promptConstructor: PromptConstructorNode,
+  castPrompt: CastPromptNode,
+  'cast-prompt-generator': CastPromptNode,
   reframe: ReframeNode,
   // Processing nodes
   resize: ResizeNode,

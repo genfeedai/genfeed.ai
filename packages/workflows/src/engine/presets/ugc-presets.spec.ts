@@ -6,9 +6,11 @@ import {
   getAllUgcPresets,
   getAllVideoPresets,
   getUgcPresetById,
+  getUgcVocabularyLibrary,
   isUgcPresetId,
   UGC_CAMERA_MODES,
   UGC_PRESETS,
+  UGC_VOCABULARY_LABELS,
   type UgcCameraMode,
   type UgcPreset,
 } from './ugc-presets';
@@ -369,6 +371,33 @@ describe('UgcPresets', () => {
       expect(cinematic).toHaveLength(6);
       expect(combined).toHaveLength(cinematic.length + 3);
       expect(combined.slice(0, cinematic.length)).toEqual(cinematic);
+    });
+  });
+
+  describe('vocabulary library', () => {
+    it('displays the four UGC blocks in anchor order with human labels', () => {
+      const preset = UGC_PRESETS.ugc_selfie_handheld;
+      const library = getUgcVocabularyLibrary({
+        hasStartFrameReference: true,
+        preset,
+      });
+      const blocks = composeUgcPromptBlocks({
+        hasStartFrameReference: true,
+        preset,
+      });
+
+      expect(library.map((entry) => entry.kind)).toEqual([
+        'identity-lock',
+        'framing-anchor',
+        'micro-expression',
+        'camera-imperfection',
+      ]);
+      expect(library[0]?.label).toBe(UGC_VOCABULARY_LABELS['identity-lock']);
+      expect(library[0]?.text).toBe(blocks.identityLock);
+      expect(library[1]?.text).toBe(blocks.framingAnchor);
+      expect(library[2]?.text).toBe(blocks.microExpression);
+      expect(library[3]?.text).toBe(blocks.cameraImperfection);
+      expect(library[0]?.text).toMatch(/sole presenter and scene reference/i);
     });
   });
 });

@@ -9,6 +9,8 @@ const TEMPLATE_NODE_TYPES = [
   'imageGen',
   'musicSource',
   'promptConstructor',
+  'castPrompt',
+  'cast-prompt-generator',
   'soundOverlay',
   'workflowInput',
   'workflowOutput',
