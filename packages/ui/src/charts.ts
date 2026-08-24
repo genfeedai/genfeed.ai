@@ -1,1 +1,38 @@
-export * from '@shipshitdev/ui/charts';
+export {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  RadialBar,
+  RadialBarChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+export type {
+  ChartConfig,
+  ChartLegendContentProps,
+  ChartSeriesConfig,
+  ChartTooltipContentProps,
+} from './charts/chart';
+export {
+  ChartContainer,
+  ChartLegendContent,
+  ChartTooltipContent,
+  chartColorVar,
+} from './charts/chart';

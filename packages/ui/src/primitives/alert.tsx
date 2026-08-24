@@ -1,63 +1,62 @@
-import {
-  Alert as ShipAlert,
-  AlertDescription as ShipAlertDescription,
-  AlertTitle as ShipAlertTitle,
-} from '@shipshitdev/ui/primitives';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../lib/utils';
 
-const alertVariants = cva('ship-ui', {
-  defaultVariants: {
-    variant: 'default',
-  },
-  variants: {
-    variant: {
-      default: '',
-      destructive: '',
-      info: 'border-info/30 bg-info/10 text-info [&>svg]:text-info',
-      success:
-        'border-success/30 bg-success/10 text-success [&>svg]:text-success',
-      warning: '',
+const alertVariants = cva(
+  'relative w-full rounded-md border p-4 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:translate-y-[-3px] [&:has(svg)]:pl-11',
+  {
+    defaultVariants: {
+      variant: 'default',
+    },
+    variants: {
+      variant: {
+        default: 'bg-secondary border-border text-foreground',
+        destructive: 'bg-destructive/10 border-destructive/30 text-destructive',
+        info: 'border-info/30 bg-info/10 text-info [&>svg]:text-info',
+        success:
+          'border-success/30 bg-success/10 text-success [&>svg]:text-success',
+        warning: 'bg-warning/10 border-warning/30 text-warning',
+      },
     },
   },
-});
-
-type AlertVariant = NonNullable<VariantProps<typeof alertVariants>['variant']>;
-
-const SHIP_VARIANT_MAP: Record<
-  AlertVariant,
-  'default' | 'destructive' | 'warning'
-> = {
-  default: 'default',
-  destructive: 'destructive',
-  info: 'default',
-  success: 'default',
-  warning: 'warning',
-};
+);
 
 function Alert({
   className,
   variant = 'default',
   ...props
 }: ComponentPropsWithoutRef<'div'> & VariantProps<typeof alertVariants>) {
-  const resolvedVariant = variant ?? 'default';
-
   return (
-    <ShipAlert
-      className={cn(alertVariants({ variant: resolvedVariant }), className)}
-      variant={SHIP_VARIANT_MAP[resolvedVariant]}
+    <div
+      role="alert"
+      className={cn(
+        alertVariants({ variant: variant ?? 'default' }),
+        className,
+      )}
       {...props}
     />
   );
 }
 
-function AlertTitle(props: ComponentPropsWithoutRef<'h5'>) {
-  return <ShipAlertTitle {...props} />;
+function AlertTitle({ className, ...props }: ComponentPropsWithoutRef<'h5'>) {
+  return (
+    <h5
+      className={cn('mb-1 font-medium leading-none tracking-tight', className)}
+      {...props}
+    />
+  );
 }
 
-function AlertDescription(props: ComponentPropsWithoutRef<'div'>) {
-  return <ShipAlertDescription {...props} />;
+function AlertDescription({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'div'>) {
+  return (
+    <div
+      className={cn('text-sm [&_p]:leading-relaxed', className)}
+      {...props}
+    />
+  );
 }
 
 export { Alert, AlertDescription, AlertTitle };

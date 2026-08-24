@@ -1,4 +1,3 @@
-import { Input as ShipInput } from '@shipshitdev/ui/primitives';
 import type {
   ChangeEvent,
   FocusEvent,
@@ -97,7 +96,7 @@ function renderInput<T extends FieldValues = FieldValues>({
   );
 
   const input = (
-    <ShipInput
+    <input
       {...props}
       checked={isCheckable ? isChecked : undefined}
       className={inputClassName}

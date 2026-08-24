@@ -6,7 +6,6 @@ describe('WorkspaceSurface', () => {
   it('renders framed surface styling by default', () => {
     const { container } = render(<WorkspaceSurface>Body</WorkspaceSurface>);
     expect(container.querySelector('section')).toHaveClass('rounded-card');
-    expect(container.querySelector('section')).toHaveClass('ship-ui');
     expect(container.querySelector('section')).toHaveClass('bg-card');
     expect(container.querySelector('section')).toHaveClass('shadow-border');
   });
@@ -47,7 +46,6 @@ describe('WorkspaceSurface', () => {
     );
 
     const section = container.querySelector('section');
-    expect(section).toHaveClass('ship-ui');
     expect(section).toHaveClass('bg-card');
     expect(section).toHaveClass('rounded-card');
     expect(section).toHaveClass('shadow-border');
@@ -73,7 +71,6 @@ describe('WorkspaceSurface', () => {
       );
 
       const section = container.querySelector('section');
-      expect(section).toHaveClass('ship-ui');
       expect(section).toHaveClass('bg-card');
       expect(section).toHaveClass('rounded-card');
       expect(section).toHaveClass('shadow-border');
@@ -88,7 +85,6 @@ describe('WorkspaceSurface', () => {
     );
 
     const section = container.querySelector('section');
-    expect(section).toHaveClass('ship-ui');
     expect(section).toHaveClass('bg-card');
     expect(section).toHaveClass('rounded-card');
     expect(section).toHaveClass('shadow-border-strong');
@@ -102,7 +98,6 @@ describe('WorkspaceSurface', () => {
       );
 
       const section = container.querySelector('section');
-      expect(section).toHaveClass('ship-ui');
       expect(section).toHaveClass('rounded-card');
       expect(section).not.toHaveClass('rounded-md');
       unmount();
@@ -113,7 +108,6 @@ describe('WorkspaceSurface', () => {
     const { container } = render(
       <WorkspaceSurface framed={false}>Body</WorkspaceSurface>,
     );
-    expect(container.querySelector('section')).toHaveClass('ship-ui');
     expect(container.querySelector('section')).toHaveClass('border-0');
     expect(container.querySelector('section')).toHaveClass('bg-transparent');
   });

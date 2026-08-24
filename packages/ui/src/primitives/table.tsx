@@ -10,7 +10,7 @@ function Table({
     <div className="relative w-full overflow-auto">
       <table
         ref={ref}
-        className={cn('ship-ui w-full caption-bottom text-sm', className)}
+        className={cn('w-full caption-bottom text-sm', className)}
         {...props}
       />
     </div>
@@ -28,7 +28,7 @@ function TableHeader({
   return (
     <thead
       ref={ref}
-      className={cn('ship-ui [&_tr]:border-b [&_tr]:border-border', className)}
+      className={cn('[&_tr]:border-b [&_tr]:border-border', className)}
       {...props}
     />
   );
@@ -46,7 +46,7 @@ function TableBody({
     <tbody
       ref={ref}
       className={cn(
-        'ship-ui divide-y divide-border [&_tr:last-child]:border-0',
+        'divide-y divide-border [&_tr:last-child]:border-0',
         className,
       )}
       {...props}
@@ -66,7 +66,7 @@ function TableFooter({
     <tfoot
       ref={ref}
       className={cn(
-        'ship-ui border-t border-border bg-tertiary/50 font-medium [&>tr]:last:border-b-0',
+        'border-t border-border bg-tertiary/50 font-medium [&>tr]:last:border-b-0',
         className,
       )}
       {...props}
@@ -86,7 +86,7 @@ function TableRow({
     <tr
       ref={ref}
       className={cn(
-        'ship-ui border-b border-border transition-colors hover:bg-tertiary/50 data-[state=selected]:bg-tertiary/60',
+        'border-b border-border transition-colors hover:bg-tertiary/50 data-[state=selected]:bg-tertiary/60',
         className,
       )}
       {...props}
@@ -106,7 +106,7 @@ function TableHead({
     <th
       ref={ref}
       className={cn(
-        'ship-ui h-9 px-2 text-left align-middle text-2xs font-medium uppercase tracking-wide text-muted [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'h-9 px-2 text-left align-middle text-2xs font-medium uppercase tracking-wide text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className,
       )}
       {...props}
@@ -126,7 +126,7 @@ function TableCell({
     <td
       ref={ref}
       className={cn(
-        'ship-ui px-2 py-2 align-middle text-xs text-primary [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
+        'px-2 py-2 align-middle text-xs text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
         className,
       )}
       {...props}
@@ -145,7 +145,7 @@ function TableCaption({
   return (
     <caption
       ref={ref}
-      className={cn('ship-ui mt-4 text-2xs text-muted', className)}
+      className={cn('mt-4 text-2xs text-muted-foreground', className)}
       {...props}
     />
   );
