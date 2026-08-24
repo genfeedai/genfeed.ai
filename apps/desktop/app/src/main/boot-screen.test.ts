@@ -19,11 +19,14 @@ describe('desktop boot screen', () => {
     expect(html).toContain('--desktop-boot-background: #030303');
   });
 
-  it('renders an animated Genfeed loading mark', () => {
+  it('renders the official Genfeed mark, not a homemade wordmark', () => {
     const html = buildDesktopLoadingScreenHtml();
 
     expect(html).toContain('aria-label="Genfeed is loading"');
     expect(html).toContain('aria-label="Genfeed"');
+    expect(html).toContain('viewBox="0 0 500 500"');
+    expect(html).toContain('M2360 4944');
+    expect(html).not.toContain('viewBox="0 0 760 160"');
     expect(html).toContain('@keyframes boot-pulse');
     expect(html).toContain('@keyframes boot-spin');
   });
