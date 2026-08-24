@@ -176,7 +176,7 @@ describe('ScheduledPostDeliveryService', () => {
     mocks = createDeliveryMocks();
     mocks.credentialsService.findOne.mockResolvedValue({
       id: 'cred-1',
-      platform: 'TWITTER',
+      platform: CredentialPlatform.TWITTER,
     });
     service = createDeliveryService(mocks);
   });

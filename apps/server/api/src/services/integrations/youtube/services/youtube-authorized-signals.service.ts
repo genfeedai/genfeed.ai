@@ -447,10 +447,12 @@ export class YoutubeAuthorizedSignalsService {
       );
     }
 
-    const selected = this.selectChannel(
-      channelResult.value?.channels ?? [],
-      credential.externalId,
-    );
+    const selected = channelResult.error
+      ? { channel: undefined, reason: undefined }
+      : this.selectChannel(
+          channelResult.value?.channels ?? [],
+          credential.externalId,
+        );
     if (
       !selected.channel &&
       isYoutubeChannelSelectionError(channelResult.error)
