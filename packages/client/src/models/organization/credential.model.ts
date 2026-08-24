@@ -2,6 +2,7 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type { CredentialPlatform } from '@genfeedai/enums';
 import type {
   IBrand,
+  IClockTime,
   ICredential,
   ICredentialInstagram,
   ICredentialOAuth,
@@ -25,6 +26,7 @@ export class BaseCredential extends BaseEntity implements ICredential {
   public declare externalAvatar?: string | null;
   public declare label?: string | null;
   public declare description?: string | null;
+  public declare postingTimes?: IClockTime[];
   public declare accessTokenExpiry?: string | null;
   public declare isConnected: boolean;
 

@@ -2,6 +2,23 @@ import type { CredentialPlatform } from '@genfeedai/enums';
 import type { IBaseEntity, IBrand, IOrganization, ITag, IUser } from '../index';
 import type { AccountHealthSummary } from './account-health.interface';
 
+export interface IClockTime {
+  hour: number;
+  minute: number;
+}
+
+export interface ICredentialPostingTimes {
+  times: IClockTime[];
+}
+
+export interface INextPostingSlot {
+  found: boolean;
+  hour?: number;
+  instant?: string;
+  minute?: number;
+  timezone?: string;
+}
+
 export interface ICredential extends IBaseEntity {
   userId: string | null;
   organizationId: string | null;
@@ -21,6 +38,7 @@ export interface ICredential extends IBaseEntity {
 
   label?: string | null;
   description?: string | null;
+  postingTimes?: IClockTime[];
   tags?: ITag[];
 
   accountHealth?: AccountHealthSummary;

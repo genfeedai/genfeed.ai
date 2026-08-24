@@ -1324,6 +1324,7 @@ model Credential {
   grantedScopesCapturedAt         DateTime?
   label                           String?
   description                     String?
+  postingTimes                    Json               @default("[]")
   warmupState                     String             @default("not_started")
   warmupScore                     Int                @default(0)
   warmupRiskLevel                 String             @default("unknown")

@@ -6,6 +6,7 @@ import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import CredentialPostingTimesEditor from '@pages/brands/components/sidebar/CredentialPostingTimesEditor';
 import SocialWarmupProgram from '@pages/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import type {
   BrandDetailConnectedAccountProps,
@@ -475,18 +476,25 @@ export default function BrandDetailSocialMediaCard({
         {isConnected ? (
           <div className="space-y-2">
             {platformConnections.map((connection) => (
-              <ConnectedAccount
-                key={connection.credentialId}
-                connection={connection}
-                isSelected={
-                  selectedConnection?.credentialId === connection.credentialId
-                }
-                onSelect={
-                  hasWarmupBlueprint(connection.platform)
-                    ? setSelectedCredentialId
-                    : undefined
-                }
-              />
+              <div className="space-y-2" key={connection.credentialId}>
+                <ConnectedAccount
+                  connection={connection}
+                  isSelected={
+                    selectedConnection?.credentialId === connection.credentialId
+                  }
+                  onSelect={
+                    hasWarmupBlueprint(connection.platform)
+                      ? setSelectedCredentialId
+                      : undefined
+                  }
+                />
+                {isPageVariant ? (
+                  <CredentialPostingTimesEditor
+                    credentialId={connection.credentialId}
+                    initialTimes={connection.postingTimes}
+                  />
+                ) : null}
+              </div>
             ))}
           </div>
         ) : null}

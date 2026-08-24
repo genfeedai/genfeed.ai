@@ -87,4 +87,35 @@ describe('CredentialsService', () => {
       });
     });
   });
+
+  describe('posting times', () => {
+    it('lists posting times for a credential', async () => {
+      const get = vi.fn().mockResolvedValue({
+        data: { times: [{ hour: 9, minute: 0 }] },
+      });
+      (service as unknown as TestableCredentialsService).instance = { get };
+
+      await expect(service.listPostingTimes('credential-1')).resolves.toEqual([
+        { hour: 9, minute: 0 },
+      ]);
+      expect(get).toHaveBeenCalledWith('/credential-1/posting-times', {
+        signal: undefined,
+      });
+    });
+
+    it('requests the next free slot', async () => {
+      const get = vi.fn().mockResolvedValue({
+        data: { found: false },
+      });
+      (service as unknown as TestableCredentialsService).instance = { get };
+
+      await expect(service.findNextSlot('credential-1')).resolves.toEqual({
+        found: false,
+      });
+      expect(get).toHaveBeenCalledWith('/credential-1/next-slot', {
+        params: undefined,
+        signal: undefined,
+      });
+    });
+  });
 });

@@ -13,6 +13,7 @@ export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
 export * from './channel-capabilities.contract';
 export * from './channel-repurpose.contract';
+export * from './credential-posting-times.contract';
 export * from './generation-brief.contract';
 export * from './generation-brief-compiler.contract';
 export * from './generation-capability-profile.contract';

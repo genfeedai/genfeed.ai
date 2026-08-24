@@ -559,6 +559,76 @@ describe('ContentCalendar', () => {
     ).toBeNull();
   });
 
+  it('renders day-view rows from preferred times when no posts exist', async () => {
+    render(
+      <ContentCalendar
+        items={[]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        preferredTimes={[
+          { hour: 9, minute: 0 },
+          { hour: 18, minute: 0 },
+        ]}
+        timezone="UTC"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      calendarMocks.instances[0]?.options.datesSet?.(
+        calendarMocks.createDatesSetArg(
+          '2026-03-10',
+          '2026-03-11',
+          'timeGridDay',
+        ),
+      );
+    });
+
+    const rows = await screen.findAllByTestId('calendar-day-view-row');
+    expect(rows.map((row) => row.getAttribute('data-time'))).toEqual([
+      '09:00',
+      '18:00',
+    ]);
+  });
+
+  it('adds occupied instants to day-view rows alongside preferred times', async () => {
+    render(
+      <ContentCalendar
+        items={[makeItem({ scheduledDate: '2026-03-10T13:07:00.000Z' })]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        preferredTimes={[{ hour: 9, minute: 0 }]}
+        timezone="UTC"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      calendarMocks.instances[0]?.options.datesSet?.(
+        calendarMocks.createDatesSetArg(
+          '2026-03-10',
+          '2026-03-11',
+          'timeGridDay',
+        ),
+      );
+    });
+
+    const rows = await screen.findAllByTestId('calendar-day-view-row');
+    expect(rows.map((row) => row.getAttribute('data-time'))).toEqual([
+      '09:00',
+      '13:07',
+    ]);
+    expect(screen.getByText('Launch note')).toBeVisible();
+  });
+
   it('does not mount FullCalendar while the host is still loading', () => {
     render(
       <ContentCalendar

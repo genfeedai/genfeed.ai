@@ -117,6 +117,12 @@ export interface IBrandAgentPlatformOverride {
   strategy?: IBrandAgentStrategy;
 }
 
+export interface IBrandAgentSchedule {
+  cronExpression?: string;
+  enabled?: boolean;
+  timezone?: string;
+}
+
 export interface IBrandAgentConfig {
   defaultModel?: string;
   defaultVoiceId?: string | null;
@@ -140,4 +146,5 @@ export interface IBrandAgentConfig {
   prompting?: IBrandAgentPrompting;
   autoPublish?: IBrandAgentAutoPublish;
   platformOverrides?: Record<string, IBrandAgentPlatformOverride>;
+  schedule?: IBrandAgentSchedule;
 }

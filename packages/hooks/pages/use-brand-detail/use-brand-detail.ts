@@ -571,6 +571,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
         label: credential.label,
         name: credential.externalName,
         platform: credential.platform,
+        postingTimes: credential.postingTimes,
         url: SocialUrlHelper.buildProfileUrl(
           credential.platform,
           credential.externalHandle,

@@ -88,6 +88,59 @@
   padding-right: 0.5rem;
 }
 
+.gen-calendar-custom-day {
+  height: auto;
+  min-height: 0;
+}
+
+.gen-calendar-custom-day .fc-timegrid-body,
+.gen-calendar-custom-day .fc-timegrid-slots,
+.gen-calendar-custom-day .fc-timegrid-divider {
+  display: none;
+}
+
+.gen-calendar-day-rows {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.gen-calendar-day-row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.gen-calendar-day-row-time {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--foreground) / 0.7);
+  padding-top: 0.5rem;
+}
+
+.gen-calendar-day-row-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.gen-calendar-day-row-event {
+  border-radius: 0.25rem;
+  color: hsl(var(--primary-foreground));
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.625rem;
+}
+
+.gen-calendar-day-row-empty {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.25rem;
+}
+
 /* Column headers */
 .fc .fc-col-header-cell {
   background-color: hsl(var(--muted));
