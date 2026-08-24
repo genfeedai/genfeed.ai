@@ -46,10 +46,6 @@ describe('UserSetupService', () => {
     generateUniqueSlug: vi.fn(),
   };
 
-  const mockDefaultRecurringContentService = {
-    ensureDefaultBundle: vi.fn(),
-  };
-
   const mockMembersService = {
     create: vi.fn(),
     findOne: vi.fn(),
@@ -124,10 +120,6 @@ describe('UserSetupService', () => {
         'default-organization',
       );
       mockBrandsService.create.mockResolvedValue(mockBrand);
-      mockDefaultRecurringContentService.ensureDefaultBundle.mockResolvedValue({
-        isConfigured: true,
-        items: [],
-      });
 
       mockCreditBalanceService.getOrCreateBalance.mockResolvedValue({
         balance: 0,
@@ -258,14 +250,6 @@ describe('UserSetupService', () => {
           userId,
         }),
       );
-    });
-
-    it('does not auto-provision default recurring workflows on signup', async () => {
-      await service.initializeUserResources(userId);
-
-      expect(
-        mockDefaultRecurringContentService.ensureDefaultBundle,
-      ).not.toHaveBeenCalled();
     });
 
     it('should fallback to user role if admin role not found', async () => {

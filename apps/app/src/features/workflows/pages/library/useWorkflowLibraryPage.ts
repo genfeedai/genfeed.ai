@@ -52,7 +52,6 @@ export function useWorkflowLibraryPage() {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
       setDebouncedSearch(searchInput);
-      setPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -69,7 +68,7 @@ export function useWorkflowLibraryPage() {
         const service = await getService();
         if (signal.aborted) return;
 
-        const scopeKey = `${pageScope}:${brandId ?? ''}`;
+        const scopeKey = `${organizationId}:${pageScope}:${brandId ?? ''}:${debouncedSearch}`;
         const requestPage = loadedScopeKeyRef.current === scopeKey ? page : 1;
         if (loadedScopeKeyRef.current !== scopeKey && page !== 1) {
           setPage(1);
@@ -100,7 +99,7 @@ export function useWorkflowLibraryPage() {
         }
       }
     },
-    [brandId, pageScope, getService, debouncedSearch, page],
+    [brandId, debouncedSearch, getService, organizationId, page, pageScope],
   );
 
   useEffect(() => {
@@ -115,6 +114,17 @@ export function useWorkflowLibraryPage() {
     loadWorkflows(controller.signal);
     return () => controller.abort();
   }, [brandId, isReady, loadWorkflows, organizationId, pageScope]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: org, brand, search, and scope changes must reset pagination and bulk selection before the next request.
+  useEffect(() => {
+    setPage((current) => (current === 1 ? current : 1));
+    setSelectedIds((current) => (current.size === 0 ? current : new Set()));
+  }, [brandId, debouncedSearch, organizationId, pageScope]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: page changes must drop selected IDs that are no longer in the current query.
+  useEffect(() => {
+    setSelectedIds((current) => (current.size === 0 ? current : new Set()));
+  }, [page]);
 
   // Actions
   const handleDuplicate = useCallback(
@@ -218,11 +228,12 @@ export function useWorkflowLibraryPage() {
   }, []);
 
   const handleDisableSelected = useCallback(async () => {
-    const ids = Array.from(selectedIds);
-    for (const id of ids) {
-      const workflow = workflows.find((item) => item.id === id);
-      if (workflow?.schedule && workflow.isScheduleEnabled) {
-        await handleToggleSchedule(id, false);
+    const selectedWorkflows = workflows.filter((item) =>
+      selectedIds.has(item.id),
+    );
+    for (const workflow of selectedWorkflows) {
+      if (workflow.schedule && workflow.isScheduleEnabled) {
+        await handleToggleSchedule(workflow.id, false);
       }
     }
     setSelectedIds(new Set());

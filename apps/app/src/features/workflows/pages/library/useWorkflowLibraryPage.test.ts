@@ -417,3 +417,187 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
     expect(result.current.workflows).toHaveLength(1);
   });
 });
+
+describe('useWorkflowLibraryPage — query scope and selection', () => {
+  beforeEach(() => {
+    mocks.collectionScope = {
+      brandId: 'brand-fud',
+      isReady: true,
+      organizationId: 'org-demo',
+      pageScope: 'brand',
+    };
+    mocks.serviceListPage.mockReset();
+    mocks.serviceUpdateSchedule.mockReset();
+    mocks.serviceListPage.mockImplementation(
+      async (params?: Record<string, unknown>) => {
+        const page = typeof params?.page === 'number' ? params.page : 1;
+        const items =
+          page === 2
+            ? [
+                makeWorkflow({
+                  id: 'wf-page-2',
+                  isScheduleEnabled: true,
+                  label: 'Weekly recap for FUD News',
+                  schedule: '0 8 * * 1',
+                  timezone: 'UTC',
+                }),
+              ]
+            : [
+                makeWorkflow({
+                  id: 'wf-1',
+                  isScheduleEnabled: true,
+                  label: 'Daily newsletter for FUD News',
+                  schedule: '0 8 * * *',
+                  timezone: 'UTC',
+                }),
+                makeWorkflow({
+                  id: 'wf-2',
+                  isScheduleEnabled: true,
+                  label: 'Daily posts for FUD News',
+                  schedule: '0 8 * * *',
+                  timezone: 'UTC',
+                }),
+              ];
+        return {
+          items,
+          pagination: {
+            limit: 15,
+            page,
+            pages: 2,
+            total: 16,
+          },
+        };
+      },
+    );
+    mocks.serviceUpdateSchedule.mockResolvedValue({
+      id: 'wf-page-2',
+      isScheduleEnabled: false,
+      nextRunAt: null,
+      schedule: '0 8 * * 1',
+      timezone: 'UTC',
+    });
+    mocks.getService.mockResolvedValue({
+      list: mocks.serviceList,
+      listPage: mocks.serviceListPage,
+      duplicate: mocks.serviceDuplicate,
+      remove: mocks.serviceRemove,
+      updateSchedule: mocks.serviceUpdateSchedule,
+    });
+  });
+
+  it('requests page 1 when the organization changes from a later page', async () => {
+    const { result, rerender } = renderHook(() => useWorkflowLibraryPage());
+
+    await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
+    expect(mocks.serviceListPage).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1 }),
+    );
+
+    await act(async () => {
+      result.current.setPage(2);
+    });
+    await waitFor(() => {
+      expect(mocks.serviceListPage).toHaveBeenCalledWith(
+        expect.objectContaining({ page: 2 }),
+      );
+    });
+
+    mocks.collectionScope = {
+      ...mocks.collectionScope,
+      organizationId: 'org-other',
+    };
+    rerender();
+
+    await waitFor(() => {
+      expect(result.current.page).toBe(1);
+      expect(mocks.serviceListPage.mock.calls.at(-1)?.[0]).toEqual(
+        expect.objectContaining({ page: 1 }),
+      );
+    });
+  });
+
+  it('clears selection when organization, page, search, or scope changes', async () => {
+    const { result, rerender } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    act(() => {
+      result.current.toggleSelected('wf-1');
+    });
+    expect(result.current.selectedIds.has('wf-1')).toBe(true);
+
+    await act(async () => {
+      result.current.setPage(2);
+    });
+    expect(result.current.selectedIds.size).toBe(0);
+
+    act(() => {
+      result.current.toggleSelected('wf-1');
+    });
+    expect(result.current.selectedIds.has('wf-1')).toBe(true);
+
+    mocks.collectionScope = {
+      ...mocks.collectionScope,
+      organizationId: 'org-other',
+    };
+    rerender();
+    await waitFor(() => expect(result.current.selectedIds.size).toBe(0));
+
+    act(() => {
+      result.current.toggleSelected('wf-1');
+    });
+    mocks.collectionScope = {
+      brandId: undefined,
+      isReady: true,
+      organizationId: 'org-other',
+      pageScope: 'org',
+    };
+    rerender();
+    await waitFor(() => expect(result.current.selectedIds.size).toBe(0));
+
+    act(() => {
+      result.current.toggleSelected('wf-1');
+    });
+    act(() => {
+      result.current.setSearchInput('newsletter');
+    });
+    await waitFor(() => expect(result.current.selectedIds.size).toBe(0));
+  });
+
+  it('bulk-disables only selected workflows that remain on the current query page', async () => {
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    act(() => {
+      result.current.toggleSelected('wf-1');
+    });
+
+    await act(async () => {
+      result.current.setPage(2);
+    });
+    expect(result.current.selectedIds.size).toBe(0);
+
+    await waitFor(() => {
+      expect(result.current.workflows.map((workflow) => workflow.id)).toEqual([
+        'wf-page-2',
+      ]);
+    });
+
+    await act(async () => {
+      await result.current.handleDisableSelected();
+    });
+    expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.toggleSelected('wf-page-2');
+    });
+    await act(async () => {
+      await result.current.handleDisableSelected();
+    });
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledWith('wf-page-2', {
+      isScheduleEnabled: false,
+      schedule: '0 8 * * 1',
+      timezone: 'UTC',
+    });
+    expect(result.current.selectedIds.size).toBe(0);
+  });
+});
