@@ -644,18 +644,25 @@ describe('AgentFullPage', () => {
       ),
     });
 
+    const view = render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-a" />,
+    );
+    await waitFor(() => {
+      expect(apiService.getMessages).toHaveBeenCalledWith(
+        'thread-a',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
     vi.useFakeTimers();
     try {
-      const view = render(
-        <AgentFullPage apiService={apiService as never} threadId="thread-a" />,
-      );
       view.rerender(
         <AgentFullPage apiService={apiService as never} threadId="thread-b" />,
       );
       view.rerender(
         <AgentFullPage apiService={apiService as never} threadId="thread-c" />,
       );
-
       await act(async () => {
         await vi.advanceTimersByTimeAsync(THREAD_SWITCH_DEBOUNCE_MS);
       });
