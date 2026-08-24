@@ -29,6 +29,7 @@ export * from './post-publish-trigger-executor';
 export * from './post-reply-executor';
 // Prompt construction executor
 export * from './prompt-constructor-executor';
+export * from './prompt-json';
 export * from './publish-executor';
 // Reframe executor
 export * from './reframe-executor';

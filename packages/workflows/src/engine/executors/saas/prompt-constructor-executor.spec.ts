@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { PromptConstructorJsonPayload } from '../../../contracts/prompt-constructor';
 import type { ExecutionContext } from '../../execution/engine';
 import type { ExecutableNode } from '../../types';
 import type { ExecutorInput } from '../base-executor';
 import { PromptConstructorExecutor } from './prompt-constructor-executor';
+import {
+  readPromptConstructorPrompt,
+  serializeStructuredPrompt,
+} from './prompt-json';
 
 function makeNode(
   configOverrides: Record<string, unknown> = {},
@@ -244,6 +249,145 @@ describe('PromptConstructorExecutor', () => {
         avoidCount: 0,
         hooksCount: 0,
       });
+    });
+  });
+
+  describe('json mode', () => {
+    const structuredPrompt = {
+      camera: { move: 'dolly' },
+      scene: 'night alley',
+      tags: ['wide', 'wet'],
+    };
+
+    it('emits a structured payload losslessly for valid JSON', async () => {
+      const input = makeInput({
+        promptFormat: 'json',
+        template: JSON.stringify(structuredPrompt),
+      });
+
+      const result = await executor.execute(input);
+      const data = result.data as PromptConstructorJsonPayload;
+
+      expect(data.promptFormat).toBe('json');
+      expect(data.structuredPrompt).toEqual(structuredPrompt);
+      expect(data.prompt).toBe(serializeStructuredPrompt(structuredPrompt));
+      expect(result.metadata).toMatchObject({
+        isStructuredPromptValid: true,
+        promptFormat: 'json',
+      });
+    });
+
+    it('re-emits a stored structuredPrompt object without re-serialization drift', async () => {
+      const stored = { b: 1, a: { z: true, m: [2, 1] } };
+      const input = makeInput({
+        promptFormat: 'json',
+        structuredPrompt: stored,
+        template: '{"b":1,"a":{"z":true,"m":[2,1]}}',
+      });
+
+      const result = await executor.execute(input);
+      const data = result.data as PromptConstructorJsonPayload;
+
+      expect(data.structuredPrompt).toBe(stored);
+      expect(data.prompt).toBe(serializeStructuredPrompt(stored));
+    });
+
+    it('substitutes template variables before parsing JSON', async () => {
+      const input = makeInput({
+        promptFormat: 'json',
+        template: '{"subject":"{{subject}}","style":"{{style}}"}',
+        variables: { style: 'cinematic', subject: 'a cat' },
+      });
+
+      const result = await executor.execute(input);
+      const data = result.data as PromptConstructorJsonPayload;
+
+      expect(data.structuredPrompt).toEqual({
+        style: 'cinematic',
+        subject: 'a cat',
+      });
+      expect(data.prompt).toBe(
+        serializeStructuredPrompt({
+          style: 'cinematic',
+          subject: 'a cat',
+        }),
+      );
+    });
+
+    it('serializes to deterministic text when structured output is not accepted', async () => {
+      const input = makeInput({
+        acceptsStructuredPrompt: false,
+        promptFormat: 'json',
+        template: JSON.stringify(structuredPrompt),
+      });
+
+      const result = await executor.execute(input);
+      const expected = serializeStructuredPrompt(structuredPrompt);
+
+      expect(result.data).toBe(expected);
+      expect(readPromptConstructorPrompt(result.data)).toBe(expected);
+      expect(result.metadata).toMatchObject({
+        isStructuredPromptSerialized: true,
+        isStructuredPromptValid: true,
+        promptFormat: 'json',
+      });
+    });
+
+    it('keeps invalid JSON as draft text without failing execution', async () => {
+      const draft = '{"scene":';
+      const input = makeInput({
+        promptFormat: 'json',
+        template: draft,
+      });
+
+      const result = await executor.execute(input);
+      const data = result.data as PromptConstructorJsonPayload;
+
+      expect(data.promptFormat).toBe('json');
+      expect(data.prompt).toBe(draft);
+      expect(data.structuredPrompt).toBeUndefined();
+      expect(result.metadata).toMatchObject({
+        isStructuredPromptValid: false,
+        promptFormat: 'json',
+      });
+    });
+
+    it('folds hooks and avoid into the string prompt without mutating structured JSON', async () => {
+      const input = makeInput(
+        {
+          promptFormat: 'json',
+          template: '{"scene":"studio"}',
+        },
+        [
+          ['hooks', ['I tried X for a week']],
+          ['avoid', ['giveaway']],
+        ],
+      );
+
+      const result = await executor.execute(input);
+      const data = result.data as PromptConstructorJsonPayload;
+
+      expect(data.structuredPrompt).toEqual({ scene: 'studio' });
+      expect(data.prompt).toBe(
+        [
+          serializeStructuredPrompt({ scene: 'studio' }),
+          'Proven hooks to emulate:\n- I tried X for a week',
+          'Avoid these topics:\n- giveaway',
+        ].join('\n\n'),
+      );
+    });
+
+    it('still exposes a string prompt for text-only consumers', async () => {
+      const input = makeInput({
+        promptFormat: 'json',
+        template: '{"scene":"night"}',
+      });
+
+      const result = await executor.execute(input);
+
+      expect(readPromptConstructorPrompt(result.data)).toBe(
+        serializeStructuredPrompt({ scene: 'night' }),
+      );
     });
   });
 });

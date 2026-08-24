@@ -3,12 +3,19 @@
 import type {
   AvailableVariable,
   PromptConstructorNodeData,
+  PromptFormat,
   PromptNodeData,
 } from '@genfeedai/types';
-import { Textarea } from '@genfeedai/ui';
+import { Textarea, ToggleGroup, ToggleGroupItem } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
-import { Expand } from 'lucide-react';
+import { Braces, Expand, Type } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  getPromptJsonWarning,
+  PROMPT_FORMAT_JSON,
+  PROMPT_FORMAT_TEXT,
+  parsePromptJson,
+} from '../../../engine/executors/saas/prompt-json';
 import { usePromptAutocomplete } from '../../hooks/usePromptAutocomplete';
 import { useWorkflowStore } from '../../stores/workflow';
 import { Button } from '../../ui/button';
@@ -26,6 +33,11 @@ function PromptConstructorNodeComponent(props: NodeProps) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const edges = useWorkflowStore((state) => state.edges);
   const nodes = useWorkflowStore((state) => state.nodes);
+  const promptFormat: PromptFormat =
+    nodeData.promptFormat === PROMPT_FORMAT_JSON
+      ? PROMPT_FORMAT_JSON
+      : PROMPT_FORMAT_TEXT;
+  const isJsonMode = promptFormat === PROMPT_FORMAT_JSON;
 
   // Local state for template to prevent cursor jumping
   const [localTemplate, setLocalTemplate] = useState(nodeData.template);
@@ -133,23 +145,135 @@ function PromptConstructorNodeComponent(props: NodeProps) {
     nodeData.outputText,
   ]);
 
+  const jsonWarning = isJsonMode ? getPromptJsonWarning(localTemplate) : null;
+
   const startTemplateEditing = useCallback(() => {
     isEditingRef.current = true;
   }, []);
 
+  const commitJsonTemplate = useCallback(
+    (template: string) => {
+      const parsed = parsePromptJson(template);
+      const nextTemplate = parsed.isValid ? parsed.pretty : template;
+      const nextStructured = parsed.isValid ? parsed.value : null;
+
+      if (parsed.isValid && nextTemplate !== localTemplate) {
+        setLocalTemplate(nextTemplate);
+      }
+
+      const hasTemplateChanged = nextTemplate !== nodeData.template;
+      const hasFormatChanged = nodeData.promptFormat !== PROMPT_FORMAT_JSON;
+      const hasStructuredChanged =
+        JSON.stringify(nodeData.structuredPrompt ?? null) !==
+        JSON.stringify(nextStructured);
+
+      if (!hasTemplateChanged && !hasFormatChanged && !hasStructuredChanged) {
+        return;
+      }
+
+      updateNodeData<PromptConstructorNodeData>(id, {
+        promptFormat: PROMPT_FORMAT_JSON,
+        structuredPrompt: nextStructured,
+        template: nextTemplate,
+      });
+    },
+    [
+      id,
+      localTemplate,
+      nodeData.promptFormat,
+      nodeData.structuredPrompt,
+      nodeData.template,
+      updateNodeData,
+    ],
+  );
+
   const commitTemplateEditing = useCallback(() => {
     isEditingRef.current = false;
-    if (localTemplate !== nodeData.template) {
+    if (isJsonMode) {
+      commitJsonTemplate(localTemplate);
+    } else if (localTemplate !== nodeData.template) {
       updateNodeData<PromptConstructorNodeData>(id, {
         template: localTemplate,
       });
     }
     setTimeout(() => closeAutocomplete(), 200);
-  }, [id, localTemplate, nodeData.template, updateNodeData, closeAutocomplete]);
+  }, [
+    closeAutocomplete,
+    commitJsonTemplate,
+    id,
+    isJsonMode,
+    localTemplate,
+    nodeData.template,
+    updateNodeData,
+  ]);
+
+  const handleFormatChange = useCallback(
+    (value: string) => {
+      if (value !== PROMPT_FORMAT_TEXT && value !== PROMPT_FORMAT_JSON) {
+        return;
+      }
+
+      if (value === PROMPT_FORMAT_TEXT) {
+        updateNodeData<PromptConstructorNodeData>(id, {
+          promptFormat: PROMPT_FORMAT_TEXT,
+          structuredPrompt: null,
+        });
+        return;
+      }
+
+      commitJsonTemplate(localTemplate);
+    },
+    [commitJsonTemplate, id, localTemplate, updateNodeData],
+  );
+
+  const handlePaste = useCallback(
+    (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      if (!isJsonMode) {
+        return;
+      }
+
+      const pasted = event.clipboardData.getData('text');
+      window.setTimeout(() => {
+        const nextValue = textareaRef.current?.value || pasted;
+        const parsed = parsePromptJson(nextValue);
+        if (parsed.isValid) {
+          setLocalTemplate(parsed.pretty);
+        }
+      }, 0);
+    },
+    [isJsonMode],
+  );
 
   return (
     <BaseNode {...props} headerActions={PROMPT_CONSTRUCTOR_HEADER_ACTIONS}>
       <div className="relative flex flex-col gap-2 flex-1">
+        <ToggleGroup
+          aria-label="Prompt format"
+          className="justify-start gap-0.5"
+          onValueChange={handleFormatChange}
+          size="sm"
+          type="single"
+          value={promptFormat}
+          variant="outline"
+        >
+          <ToggleGroupItem
+            aria-label="Text"
+            className="h-7 min-w-7 px-1.5"
+            title="Text"
+            value={PROMPT_FORMAT_TEXT}
+          >
+            <Type />
+          </ToggleGroupItem>
+          <ToggleGroupItem
+            aria-label="JSON"
+            className="h-7 min-w-7 px-1.5"
+            title="JSON"
+            value={PROMPT_FORMAT_JSON}
+          >
+            <Braces />
+          </ToggleGroupItem>
+        </ToggleGroup>
+
         {/* Warning badge for unresolved variables */}
         {unresolvedVars.length > 0 && (
           <div className="px-2 py-1 bg-warning/10 border border-warning/30 rounded text-2xs text-warning">
@@ -157,6 +281,15 @@ function PromptConstructorNodeComponent(props: NodeProps) {
             {unresolvedVars.map((v) => `@${v}`).join(', ')}
           </div>
         )}
+
+        {jsonWarning ? (
+          <div
+            className="px-2 py-1 bg-warning/10 border border-warning/30 rounded text-2xs text-warning"
+            data-testid="json-warning"
+          >
+            {jsonWarning}
+          </div>
+        ) : null}
 
         {/* Template textarea with autocomplete */}
         <div className="relative flex-1 flex flex-col">
@@ -167,8 +300,15 @@ function PromptConstructorNodeComponent(props: NodeProps) {
             onFocus={startTemplateEditing}
             onBlur={commitTemplateEditing}
             onKeyDown={handleKeyDown}
-            placeholder="Type @ to insert variables..."
-            className="nodrag nopan nowheel w-full flex-1 min-h-[70px] resize-none"
+            onPaste={handlePaste}
+            placeholder={
+              isJsonMode
+                ? '{"scene":"","camera":""}'
+                : 'Type @ to insert variables...'
+            }
+            className={`nodrag nopan nowheel w-full flex-1 min-h-[70px] resize-none${
+              isJsonMode ? ' font-mono' : ''
+            }`}
             title={resolvedPreview ? `Preview: ${resolvedPreview}` : undefined}
           />
 
