@@ -38,4 +38,23 @@ describe('resolveIngredientMediaUrl', () => {
       resolveIngredientMediaUrl({ metadata: 'meta-id-only' }, CDN),
     ).toBeUndefined();
   });
+
+  it('rewrites files-host and /local/ disk paths onto the public CDN', () => {
+    expect(
+      resolveIngredientMediaUrl(
+        {
+          cdnUrl:
+            'https://files.genfeed.localhost/local/ingredients/videos/abc.mp4',
+        },
+        'https://files.genfeed.localhost',
+      ),
+    ).toBe('https://staging-cdn.genfeed.ai/ingredients/videos/abc.mp4');
+
+    expect(
+      resolveIngredientMediaUrl(
+        { s3Key: 'local/ingredients/videos/abc.mp4' },
+        CDN,
+      ),
+    ).toBe('https://cdn.genfeed.ai/ingredients/videos/abc.mp4');
+  });
 });
