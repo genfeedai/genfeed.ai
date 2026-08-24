@@ -47,7 +47,9 @@ export function isPromptJsonValue(value: unknown): value is PromptJsonValue {
       return false;
     }
 
-    return Object.values(value).every(isPromptJsonValue);
+    return Object.values(value as Record<string, unknown>).every(
+      isPromptJsonValue,
+    );
   }
 
   return false;
