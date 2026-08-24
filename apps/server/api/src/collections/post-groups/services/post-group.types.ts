@@ -49,6 +49,14 @@ export type SchedulerPostGroup = {
   updatedAt: Date;
 };
 
+export type SchedulerPostTag = {
+  backgroundColor: string;
+  id: string;
+  isDeleted: boolean;
+  label: string;
+  textColor: string;
+};
+
 export type SchedulerPostTarget = {
   agentContextSource: string | null;
   agentContextVersion: number | null;
@@ -88,6 +96,7 @@ export type SchedulerPostTarget = {
   visibility: PostVisibility | null;
   targetValidationIssues: string[];
   targetValidationState: string;
+  tags?: SchedulerPostTag[];
   timezone: string;
   updatedAt: Date;
   url: string | null;

@@ -98,6 +98,17 @@ const SCHEDULER_POST_TARGET_SELECT = {
   targetSettings: true,
   targetValidationIssues: true,
   targetValidationState: true,
+  tags: {
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    select: {
+      backgroundColor: true,
+      id: true,
+      isDeleted: true,
+      label: true,
+      textColor: true,
+    },
+    where: { isDeleted: false },
+  },
   timezone: true,
   updatedAt: true,
   url: true,
@@ -807,6 +818,7 @@ export class PostGroupPersistenceService {
   ): Promise<SchedulerPostTarget[]> {
     return (await client.post.findMany({
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+      select: SCHEDULER_POST_TARGET_SELECT,
       where: scopedWhere(organizationId, { groupId, parentId: null }),
     })) as SchedulerPostTarget[];
   }

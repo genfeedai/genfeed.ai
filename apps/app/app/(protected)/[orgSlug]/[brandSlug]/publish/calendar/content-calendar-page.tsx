@@ -8,7 +8,6 @@ import {
   withArtifactEditorReturn,
 } from '@genfeedai/constants';
 import {
-  ArticleStatus,
   ButtonSize,
   ButtonVariant,
   CalendarSlotState,
@@ -74,6 +73,10 @@ import {
   isMissingCalendarSlot,
   isUnfilledCalendarSlot,
 } from './calendar-day-aggregate';
+import {
+  CALENDAR_SLOT_EVENT_COLOR,
+  getContentCalendarEventColor,
+} from './calendar-item-color.helper';
 import CalendarSlotDrawer from './calendar-slot-drawer';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
@@ -89,13 +92,6 @@ import {
   releaseStatusBadge,
   releaseTargets,
 } from './release-status.helpers';
-
-const DEFAULT_COLOR = '#8b5cf6';
-const ARTICLE_STATUS_COLORS: Record<string, string> = {
-  [ArticleStatus.ARCHIVED]: '#ef4444',
-  [ArticleStatus.DRAFT]: '#6b7280',
-  [ArticleStatus.PUBLISHED]: '#10b981',
-};
 
 interface ArticleContentCalendarItem extends CalendarItem {
   article: IArticle;
@@ -124,10 +120,6 @@ type ContentCalendarItem =
   | DayAggregateContentCalendarItem
   | ReleaseContentCalendarItem
   | SlotContentCalendarItem;
-
-function getArticleColor(status: string): string {
-  return ARTICLE_STATUS_COLORS[status] ?? DEFAULT_COLOR;
-}
 
 function mutationErrorMessage(error: unknown): string {
   return error instanceof Error
@@ -610,15 +602,11 @@ export default function ContentCalendarPage(): React.JSX.Element {
   );
 
   const getEventColor = useCallback((item: ContentCalendarItem) => {
-    if (item.itemType === 'article') {
-      return getArticleColor(item.status);
+    if (item.itemType === 'day-aggregate') {
+      return CALENDAR_SLOT_EVENT_COLOR;
     }
 
-    if (item.itemType === 'slot' || item.itemType === 'day-aggregate') {
-      return '#64748b';
-    }
-
-    return DEFAULT_COLOR;
+    return getContentCalendarEventColor(item);
   }, []);
 
   const getEventBadge = useCallback(
