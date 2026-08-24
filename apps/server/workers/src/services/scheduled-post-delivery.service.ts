@@ -304,7 +304,7 @@ export class ScheduledPostDeliveryService {
 
     return this.failChannel(
       post,
-      String(credential.platform ?? ''),
+      this.toDomainPlatform(credential.platform),
       blocking?.code ?? 'channel_not_ready',
       readinessError,
       readiness?.isRetryable ?? false,
@@ -344,11 +344,12 @@ export class ScheduledPostDeliveryService {
       },
       'Quota exceeded',
     );
+    const platform = this.toDomainPlatform(credential.platform);
     await this.activitiesService.create(
-      createQuotaExceededActivity(post, quotaCheck, credential.platform),
+      createQuotaExceededActivity(post, quotaCheck, platform),
     );
-    this.emitPublishFailedWebhook(post, 'Quota exceeded', credential.platform);
-    return createFailedPublishResult(credential.platform, 'Quota exceeded');
+    this.emitPublishFailedWebhook(post, 'Quota exceeded', platform);
+    return createFailedPublishResult(platform, 'Quota exceeded');
   }
 
   private async preparePublisherAndContext(
@@ -521,7 +522,7 @@ export class ScheduledPostDeliveryService {
       return await this.handlePublishFailure(
         post,
         result,
-        prepared.credential.platform,
+        prepared.platform,
         workflowExecutionId,
       );
     } catch (error: unknown) {
@@ -605,16 +606,8 @@ export class ScheduledPostDeliveryService {
     );
 
     if (!isProviderDraft) {
-      this.emitPublishPublishedWebhook(
-        post,
-        result,
-        prepared.credential.platform,
-      );
-      this.scheduleReplyPostWatchAfterPublish(
-        post,
-        result,
-        prepared.credential.platform,
-      );
+      this.emitPublishPublishedWebhook(post, result, prepared.platform);
+      this.scheduleReplyPostWatchAfterPublish(post, result, prepared.platform);
     }
 
     this.logger.log(
@@ -876,6 +869,15 @@ export class ScheduledPostDeliveryService {
 
     this.emitPublishFailedWebhook(post, errorMessage);
     return createFailedPublishResult('', errorMessage);
+  }
+
+  private toDomainPlatform(
+    platform: CredentialDocument['platform'] | string | null | undefined,
+  ): string {
+    return (
+      fromPrismaCredentialPlatform(String(platform ?? '')) ??
+      String(platform ?? '')
+    );
   }
 
   private emitPublishPublishedWebhook(

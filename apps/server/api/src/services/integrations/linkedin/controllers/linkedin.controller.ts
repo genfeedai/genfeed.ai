@@ -19,7 +19,10 @@ import {
   throwMappedLinkedInOAuthError,
 } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
+import {
+  buildGrantedScopesCredentialPatch,
+  parseGrantedOAuthScopes,
+} from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -182,7 +185,7 @@ export class LinkedInController {
           accessToken,
           credentialId: credential.id.toString(),
           force: true,
-          grantedScopes: scope,
+          grantedScopes: parseGrantedOAuthScopes(scope),
           organizationId,
         });
         credential =

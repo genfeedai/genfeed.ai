@@ -45,7 +45,7 @@ describe('compileRunwayGen4ImageTurboGenerationBrief', () => {
     expect(result.evidence.profileId).toBe(
       'runway-gen4-image-turbo-capability',
     );
-    expect(result.evidence.outputFormat).toBe('png');
+    expect(result.evidence.output.outputFormat).toBe('png');
     expect(assertRedactedGenerationBriefEvidence(result.evidence)).toEqual(
       result.evidence,
     );

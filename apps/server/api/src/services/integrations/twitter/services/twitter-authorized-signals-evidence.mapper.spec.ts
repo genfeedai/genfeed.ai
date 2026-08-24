@@ -489,6 +489,9 @@ describe('twitter authorized-signals evidence mapper', () => {
       status: 'available',
       value: { followersCount: 8 },
     });
+    if (evidence.key !== 'profile-statistics-snapshot') {
+      throw new Error(`expected statistics evidence, got ${evidence.key}`);
+    }
     expect(evidence.value?.tweetCount).toBeUndefined();
   });
 

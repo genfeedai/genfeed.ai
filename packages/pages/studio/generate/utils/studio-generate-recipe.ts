@@ -71,7 +71,8 @@ export function resolveAspectRatioFromDimensions(
   }
 
   const target = width / height;
-  let bestRatio = STUDIO_ASPECT_RATIOS[0];
+  let bestRatio: (typeof STUDIO_ASPECT_RATIOS)[number] =
+    STUDIO_ASPECT_RATIOS[0];
   let bestDistance = Number.POSITIVE_INFINITY;
 
   for (const aspectRatio of STUDIO_ASPECT_RATIOS) {

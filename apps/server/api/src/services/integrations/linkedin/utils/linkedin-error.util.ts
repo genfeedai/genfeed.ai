@@ -51,7 +51,7 @@ export function getLinkedinApiError(
   if (isRecord(data)) {
     if (typeof data.error === 'string') {
       return {
-        message: data.error_description ?? data.error,
+        message: readString(data.error_description) ?? data.error,
         status: data.error,
       };
     }
@@ -60,7 +60,7 @@ export function getLinkedinApiError(
         code: readCode(data.error.code) ?? readCode(data.serviceErrorCode),
         message: readString(data.error.message) ?? readString(data.message),
         serviceErrorCode: readFiniteNumber(data.serviceErrorCode),
-        status: data.error.status ?? data.status,
+        status: readCode(data.error.status) ?? readCode(data.status),
       };
     }
     if (
@@ -72,7 +72,7 @@ export function getLinkedinApiError(
         code: readCode(data.serviceErrorCode) ?? readCode(data.status),
         message: readString(data.message),
         serviceErrorCode: readFiniteNumber(data.serviceErrorCode),
-        status: data.status,
+        status: readCode(data.status),
       };
     }
   }

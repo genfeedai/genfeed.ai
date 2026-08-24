@@ -447,10 +447,12 @@ export class YoutubeAuthorizedSignalsService {
       );
     }
 
-    const selected = this.selectChannel(
-      channelResult.value?.channels ?? [],
-      credential.externalId,
-    );
+    const selected = channelResult.error
+      ? { channel: undefined, reason: undefined }
+      : this.selectChannel(
+          channelResult.value?.channels ?? [],
+          credential.externalId,
+        );
     if (
       !selected.channel &&
       isYoutubeChannelSelectionError(channelResult.error)
@@ -1304,7 +1306,6 @@ export class YoutubeAuthorizedSignalsService {
         lastAttemptAt: true,
         publicationDate: true,
         publishedAt: true,
-        sourcePostId: true,
         targetExecutionState: true,
         updatedAt: true,
       },
@@ -1336,12 +1337,7 @@ export class YoutubeAuthorizedSignalsService {
         row.updatedAt;
 
       return [
-        {
-          attemptedAt: attemptedAt.toISOString(),
-          outcome,
-          postId: row.id,
-          ...(row.sourcePostId ? { sourcePostId: row.sourcePostId } : {}),
-        },
+        { attemptedAt: attemptedAt.toISOString(), outcome, postId: row.id },
       ];
     });
 
@@ -1350,7 +1346,6 @@ export class YoutubeAuthorizedSignalsService {
         attemptedAt: 'available',
         outcome: 'available',
         postId: 'available',
-        sourcePostId: 'available',
       },
       key: 'genfeed-publish-outcomes-observed',
       observedAt,

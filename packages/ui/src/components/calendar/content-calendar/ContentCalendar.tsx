@@ -29,6 +29,7 @@ import type {
 import 'fullcalendar/skeleton.css';
 import 'fullcalendar/themes/classic/palette.css';
 import 'fullcalendar/themes/classic/theme.css';
+import { useTranslations } from 'next-intl';
 import {
   type CSSProperties,
   useCallback,
@@ -128,6 +129,7 @@ function DayViewRows<T extends CalendarItem>({
   timezone,
   visibleDay,
 }: DayViewRowsProps<T>) {
+  const translate = useTranslations('pages.publish.calendar');
   const visibleKey = localDateKey(visibleDay, timezone);
 
   return (
@@ -174,13 +176,13 @@ function DayViewRows<T extends CalendarItem>({
               ))}
               {rowItems.length === 0 && onDateClick && slotInstant ? (
                 <Button
-                  aria-label={`Schedule at ${label}`}
+                  aria-label={translate('scheduleAt', { label })}
                   className="gen-calendar-day-row-empty"
                   onClick={() => onDateClick(slotInstant)}
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                 >
-                  Schedule
+                  {translate('schedule')}
                 </Button>
               ) : null}
             </div>

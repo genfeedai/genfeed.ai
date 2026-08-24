@@ -13,6 +13,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 interface CredentialPostingTimesEditorProps {
@@ -26,6 +27,7 @@ export default function CredentialPostingTimesEditor({
   initialTimes = [],
   onTimesChange,
 }: CredentialPostingTimesEditorProps) {
+  const translate = useTranslations('pages.credentialPostingTimes');
   const { getToken } = useAuthIdentity();
   const [times, setTimes] = useState<IClockTime[]>(initialTimes);
   const [draft, setDraft] = useState('09:00');
@@ -83,10 +85,11 @@ export default function CredentialPostingTimesEditor({
 
   return (
     <div className="space-y-2" data-testid="posting-times-editor">
-      <p className="text-xs font-medium text-foreground">Posting times</p>
+      <p className="text-xs font-medium text-foreground">
+        {translate('title')}
+      </p>
       <p className="text-2xs leading-4 text-muted-foreground">
-        Day view uses these clock times as rows. You can still schedule outside
-        them.
+        {translate('help')}
       </p>
       {times.length > 0 ? (
         <ul className="space-y-1">
@@ -113,14 +116,14 @@ export default function CredentialPostingTimesEditor({
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                 >
-                  Remove
+                  {translate('remove')}
                 </Button>
               </li>
             );
           })}
         </ul>
       ) : (
-        <p className="text-2xs text-muted-foreground">No posting times yet.</p>
+        <p className="text-2xs text-muted-foreground">{translate('empty')}</p>
       )}
       <div className="flex items-end gap-2">
         <Input
@@ -147,7 +150,7 @@ export default function CredentialPostingTimesEditor({
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
         >
-          Add
+          {translate('add')}
         </Button>
       </div>
     </div>
