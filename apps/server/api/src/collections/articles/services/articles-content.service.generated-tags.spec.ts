@@ -1,10 +1,10 @@
-import type { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
+import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
 import type { ArticleReviewService } from '@api/collections/articles/services/article-review.service';
 import type { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import type { TagsService } from '@api/collections/tags/services/tags.service';
 import type { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { TagCategory } from '@genfeedai/enums';
+import { ArticleCategory, TagCategory } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
@@ -67,10 +67,6 @@ describe('ArticlesContentService generated tags', () => {
       ),
     } as unknown as ArticleReviewService;
 
-    const articleContentPersistenceService = {
-      updateArticleWithEnhancedContent: vi.fn(),
-    } as unknown as ArticleContentPersistenceService;
-
     const templatesService = {
       getRenderedPrompt: vi.fn().mockResolvedValue('rendered prompt'),
       updateMetadata: vi.fn().mockResolvedValue(undefined),
@@ -90,6 +86,15 @@ describe('ArticlesContentService generated tags', () => {
       }),
     } as unknown as TagsService;
 
+    const articleContentPersistenceService =
+      new ArticleContentPersistenceService(
+        logger,
+        moduleRef,
+        undefined,
+        undefined,
+        tagsService,
+      );
+
     const service = new ArticlesContentService(
       logger,
       configService,
@@ -104,7 +109,6 @@ describe('ArticlesContentService generated tags', () => {
       undefined, // harnessProfilesService
       undefined, // accountPublishingContextService
       replicateService,
-      tagsService,
     );
 
     const createArticleFn = vi.fn().mockResolvedValue({ id: 'article_1' });
@@ -221,5 +225,47 @@ describe('ArticlesContentService generated tags', () => {
     expect(createArticleFn).toHaveBeenCalledTimes(1);
     const payload = createArticleFn.mock.calls[0][0] as Record<string, unknown>;
     expect(payload.tags).toBeUndefined();
+  });
+
+  it('resolves generated tag labels on the X-article path', async () => {
+    const { createArticleFn, service, tagsService } = makeService({
+      existingTagsByLabel: { Growth: { id: 'existing-tag-1' } },
+      generationResponse: {
+        sections: [{ content: '<p>Body</p>', heading: 'One' }],
+        slug: 'x-title',
+        summary: 'Summary',
+        tags: ['Growth', 'AI'],
+        title: 'X Title',
+      },
+    });
+
+    await service.generateLongFormArticle(
+      { prompt: 'write a long brief' },
+      userId,
+      organizationId,
+      brandId,
+      modelConfig,
+      createArticleFn,
+    );
+
+    expect(tagsService.create).toHaveBeenCalledTimes(1);
+    expect(tagsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        category: TagCategory.ARTICLE,
+        label: 'AI',
+        organizationId,
+        userId,
+      }),
+    );
+    expect(createArticleFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: ArticleCategory.X_ARTICLE,
+        tags: ['existing-tag-1', 'created-tag-1'],
+      }),
+      userId,
+      organizationId,
+      brandId,
+    );
   });
 });
