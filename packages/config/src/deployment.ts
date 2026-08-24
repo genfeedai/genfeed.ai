@@ -176,9 +176,10 @@ export function isCommunity(): boolean {
 }
 
 /**
- * Deployment modes whose onboarding runs inside the agent workspace.
- * SaaS cut over in #1726 and Community in #1835; the desktop client keeps the
- * classic form wizard until #2380, so the wizard implementation stays in place.
+ * Deployment modes whose *post-brand* onboarding runs inside the agent
+ * workspace. SaaS cut over in #1726 and Community in #1835. Every surface
+ * still shares `/onboarding/brand` first. The desktop client keeps the
+ * classic providers/summary wizard after brand until #2380.
  */
 export function hasAgentFirstOnboarding(): boolean {
   return !isDesktopClient();

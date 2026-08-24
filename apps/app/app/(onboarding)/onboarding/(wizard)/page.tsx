@@ -1,10 +1,11 @@
 'use client';
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
-  getResumeStep,
   ONBOARDING_STEPS,
+  resolveForcedOnboardingHref,
 } from '@genfeedai/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -22,21 +23,25 @@ export default function OnboardingRootPage() {
     }
 
     const completedSteps = currentUser.onboardingStepsCompleted ?? [];
-    const hasCompletedAllOnboardingSteps = ONBOARDING_STEPS.every((step) =>
-      completedSteps.includes(step),
-    );
+    const hasCompletedAllOnboardingSteps =
+      currentUser.isOnboardingCompleted === true ||
+      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 
-    // An already-onboarded user who navigates to /onboarding replays the full
-    // wizard from the first step rather than jumping to the summary. Replaying
-    // is non-destructive: the brand step updates the existing brand (never
-    // duplicates) and the summary step only persists an access preference.
-    // Mid-onboarding users still resume at their first incomplete step.
+    // An already-onboarded user who navigates to /onboarding replays brand
+    // setup. Skip completes the gate so we do not force this again, but the
+    // operator can come back whenever they want. Replaying is non-destructive:
+    // the brand step updates the existing brand (never duplicates).
     if (hasCompletedAllOnboardingSteps) {
       replace(APP_ROUTES.ONBOARDING.BRAND);
       return;
     }
 
-    replace(`/onboarding/${getResumeStep(completedSteps)}`);
+    replace(
+      resolveForcedOnboardingHref({
+        completedSteps,
+        hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+      }),
+    );
   }, [currentUser, isLoading, replace]);
 
   return (

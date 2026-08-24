@@ -379,7 +379,8 @@ function BrandContentContent() {
         throw new Error('No organization found for the current workspace');
       }
 
-      // Mark first-login complete on the org settings resource (was /onboarding/skip).
+      // Skip completes the onboarding *gate* so we do not force the wizard
+      // again. Brand setup stays at `/onboarding/brand` for later.
       await OrganizationsService.getInstance(token).patchSettings(orgId, {
         isFirstLogin: false,
       });

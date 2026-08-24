@@ -44,7 +44,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
       id: 'complete_company_info',
       label: 'Complete company info',
       rewardCredits: 25,
-      selfHostedCtaHref: '/agent/onboarding',
+      selfHostedCtaHref: '/onboarding/brand',
       whyItMatters:
         'Better company context gives GenFeed better prompts, voice, and visual direction.',
     },

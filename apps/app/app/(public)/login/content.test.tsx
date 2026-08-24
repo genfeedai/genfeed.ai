@@ -275,7 +275,7 @@ describe('LoginPage', () => {
       expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
     expect(locationAssignMock).toHaveBeenCalledWith(
-      APP_ROUTES.ONBOARDING.PROVIDERS,
+      APP_ROUTES.ONBOARDING.BRAND,
     );
   });
 

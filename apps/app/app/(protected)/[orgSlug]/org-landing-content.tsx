@@ -6,9 +6,8 @@ import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createBrandAppRoute,
-  createOrganizationAppRoute,
-  getResumeStep,
   ONBOARDING_STEPS,
+  resolveForcedOnboardingHref,
 } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -94,19 +93,17 @@ export default function OrgLandingContent() {
 
     if (!hasCompletedOnboarding) {
       replace(
-        hasAgentFirstOnboarding() && orgSlug
-          ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
-          : `/onboarding/${getResumeStep(completedSteps)}`,
+        resolveForcedOnboardingHref({
+          completedSteps,
+          hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+          orgSlug,
+        }),
       );
       return;
     }
 
     if (brands.length === 0) {
-      replace(
-        hasAgentFirstOnboarding()
-          ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
-          : APP_ROUTES.ONBOARDING.ROOT,
-      );
+      replace(APP_ROUTES.ONBOARDING.BRAND);
       return;
     }
 

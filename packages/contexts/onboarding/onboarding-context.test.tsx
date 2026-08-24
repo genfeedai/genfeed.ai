@@ -38,13 +38,10 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/constants', () => ({
-  ONBOARDING_STEP_LABELS: {
-    brand: 'Brand',
-    providers: 'Providers',
-    summary: 'Summary',
-  },
-  ONBOARDING_STEPS: ['brand', 'providers', 'summary'],
+const hasAgentFirstOnboardingMock = vi.hoisted(() => vi.fn(() => true));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  hasAgentFirstOnboarding: () => hasAgentFirstOnboardingMock(),
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
@@ -74,6 +71,7 @@ import OnboardingProvider, {
 describe('OnboardingProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hasAgentFirstOnboardingMock.mockReturnValue(true);
     getBetterAuthTokenMock.mockResolvedValue(null);
     getTokenMock.mockResolvedValue('session-token');
     refetchUserMock.mockResolvedValue(undefined);
@@ -113,8 +111,39 @@ describe('OnboardingProvider', () => {
         onboardingStepsCompleted: ['brand'],
       });
       expect(refetchUserMock).toHaveBeenCalledTimes(1);
-      expect(pushMock).toHaveBeenCalledWith('/onboarding/providers');
+      expect(pushMock).toHaveBeenCalledWith('/agent/onboarding');
       expect(replaceMock).not.toHaveBeenCalled();
     });
+  });
+
+  it('keeps Desktop on the shared providers step after brand', async () => {
+    hasAgentFirstOnboardingMock.mockReturnValue(false);
+
+    function Consumer() {
+      const { handleStepComplete } = useOnboarding();
+
+      return (
+        <button type="button" onClick={() => handleStepComplete('brand')}>
+          Complete step
+        </button>
+      );
+    }
+
+    render(
+      <OnboardingProvider>
+        <Consumer />
+      </OnboardingProvider>,
+    );
+
+    const button = await screen.findByRole('button', {
+      name: 'Complete step',
+    });
+
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/onboarding/providers');
+    });
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 });

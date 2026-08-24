@@ -7,13 +7,13 @@ last_verified: 2026-08-14
 topics: [onboarding, agent, composer]
 ---
 
-# Onboarding is a conversation, not a setup form
+# Post-brand onboarding is a conversation, not a setup form
 
-First-login (`isOnboardingCompleted: false`) opens the agent conversation at
-`/agent/onboarding` on the signed-in user's membership org
-(`/:orgSlug/~/agent/onboarding` until a brand exists). The org/brand name
-comes from that user — never a hardcoded Default Organization stub. The
-signed-in user is already known. The canvas is a conversation.
+First-login still starts at the shared brand step (`/onboarding/brand`) so
+Cloud and Desktop run the same brand setup. After that, Cloud / Community
+open the agent conversation at `/:orgSlug/~/agent/onboarding`. The org/brand
+name comes from the signed-in user — never a hardcoded Default Organization
+stub. The canvas after brand is a conversation.
 
 **Why:** A persona picker plus a second textarea and a "Start with my first
 image" CTA is a wizard in the chat surface. It duplicates the composer and

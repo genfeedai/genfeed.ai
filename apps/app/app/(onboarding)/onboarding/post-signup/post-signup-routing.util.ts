@@ -44,16 +44,7 @@ export function parseSelectedCredits(
   return parsed;
 }
 
-export function buildOnboardingResumeHref(
-  resumeStep: string,
-  brandDomain?: string | null,
-): string {
-  if (resumeStep === 'brand' && brandDomain?.trim()) {
-    return '/onboarding/brand?auto=true';
-  }
-
-  return `/onboarding/${resumeStep}`;
-}
+export { buildOnboardingResumeHref } from '@genfeedai/constants';
 
 export function appendCheckoutReturnParams(
   href: string,
