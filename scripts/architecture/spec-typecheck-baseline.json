@@ -1,14 +1,6 @@
 {
   "entries": [
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/scripts/check-api-response-benchmarks.ts",
-      "fingerprint": "9f2464aef8fd8ce3a8c7",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 6,
       "file": "apps/server/api/src/auth/better-auth/better-auth.factory.spec.ts",
@@ -1521,14 +1513,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 39,
-      "file": "apps/server/api/src/collections/videos/controllers/videos.controller.spec.ts",
-      "fingerprint": "0be5bd637febb3c23fbb",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
       "code": 2561,
       "count": 1,
       "file": "apps/server/api/src/collections/videos/controllers/videos.controller.spec.ts",
@@ -1558,14 +1542,6 @@
       "file": "apps/server/api/src/collections/videos/services/avatar-video-generation.service.spec.ts",
       "fingerprint": "acc06f099c21367a019a",
       "message": "Property 'mockResolvedValue' does not exist on type 'never'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/services/avatar-video-generation.service.spec.ts",
-      "fingerprint": "72417e6b709d88f4ebc6",
-      "message": "Conversion of type '{ agentConfig: { defaultAvatarPhotoUrl: string; defaultVoiceRef: { externalVoiceId: string; provider: VoiceProvider; source: string; }; }; }' to type 'BrandDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ agentConfig: { defaultAvatarPhotoUrl: string; defaultVoiceRef: { externalVoiceId: string; provider: VoiceProvider; source: string; }; }; }' is missing the following properties from type 'BrandDocument': backgroundColor, description, fontFamily, label, and 23 more.",
       "workspace": "api"
     },
     {
@@ -2598,22 +2574,6 @@
       "file": "apps/server/api/src/queues/credit-deduction/credit-deduction-queue.service.spec.ts",
       "fingerprint": "b94936b1bb6490bbeb05",
       "message": "Type '\"video-generation\"' is not assignable to type 'ActivitySource'. Did you mean 'ActivitySource.VIDEO_GENERATION'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 12,
-      "file": "apps/server/api/src/services/ads-gateway/adapters/meta-ads.adapter.spec.ts",
-      "fingerprint": "6b78d21f7c3f9390d2c7",
-      "message": "Argument of type '{ accessToken: string; adAccountId: string; }' is not assignable to parameter of type 'AdsAdapterContext'.   Type '{ accessToken: string; adAccountId: string; }' is missing the following properties from type 'AdsAdapterContext': organizationId, credentialId",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/services/ads-gateway/adapters/tiktok-ads.adapter.spec.ts",
-      "fingerprint": "9042bd00c6ec34f00d3c",
-      "message": "Property 'credentialId' is missing in type '{ accessToken: string; adAccountId: string; organizationId: string; }' but required in type 'AdsAdapterContext'.",
       "workspace": "api"
     },
     {
@@ -3811,73 +3771,9 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/api/test/e2e-test.module.ts",
-      "fingerprint": "2bfde1f02ddd03f5d50c",
-      "message": "Argument of type 'unknown' is not assignable to parameter of type 'PrismaService'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2558,
-      "count": 1,
-      "file": "apps/server/api/test/e2e-test.module.ts",
-      "fingerprint": "f8128c860d6d39633b4b",
-      "message": "Expected 0 type arguments, but got 1.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/e2e/auth.e2e-spec.ts",
-      "fingerprint": "55c5f3cdd9018c236381",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/e2e/brands.e2e-spec.ts",
-      "fingerprint": "3b243759c777cb6319e0",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/e2e/e2e-test.utils.ts",
-      "fingerprint": "35e2c0740119b5f4d79a",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
       "file": "apps/server/api/test/e2e/e2e-test.utils.ts",
       "fingerprint": "c9f938bafc9fb3bc1295",
       "message": "Argument of type 'T[]' is not assignable to parameter of type 'Record<string, unknown>[]'.   Type 'T' is not assignable to type 'Record<string, unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/e2e/integrations.e2e-spec.ts",
-      "fingerprint": "6ac425be8ba9bdd0f675",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/e2e/organizations.e2e-spec.ts",
-      "fingerprint": "0ae4afb0bcf401f8be43",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/e2e/tasks.e2e-spec.ts",
-      "fingerprint": "4b925385ad1f5040e898",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
       "workspace": "api"
     },
     {
@@ -3974,14 +3870,6 @@
       "file": "apps/server/api/test/factories/user.factory.spec.ts",
       "fingerprint": "66ddbc8101aa14f6e521",
       "message": "Parameter 'response' implicitly has an 'any' type.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/integration/generation-credit-decrement.integration.spec.ts",
-      "fingerprint": "4bfd5bf4a1e507c03d59",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
       "workspace": "api"
     },
     {
@@ -4097,14 +3985,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/integration/publish-flow.integration.spec.ts",
-      "fingerprint": "8e1767690cc64306ca7d",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
-      "workspace": "api"
-    },
-    {
       "code": 2307,
       "count": 1,
       "file": "apps/server/api/test/integration/social-media-publishing.integration.spec.ts",
@@ -4118,14 +3998,6 @@
       "file": "apps/server/api/test/integration/social-media-publishing.integration.spec.ts",
       "fingerprint": "e5d418f1b21f53d1d83e",
       "message": "Cannot find module '@test/factories/base.factory' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/test/integration/stripe-webhook-credit-grant.integration.spec.ts",
-      "fingerprint": "8a0a0934b80b219377d7",
-      "message": "Argument of type 'TestingModule' is not assignable to parameter of type '{ get: (token: unknown) => unknown; }'.   Types of property 'get' are incompatible.     Type '{ <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<TInput>): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | symbol | Function | Type<...>, options: { ...; }): TResult; <TInput = any, TResult = TInput>(typeOrToken: string | ... 2 more ... | Type<...>, options: { ...; })...' is not assignable to type '(token: unknown) => unknown'.       Types of parameters 'typeOrToken' and 'token' are incompatible.         Type 'unknown' is not assignable to type 'string | symbol | Function | Type<any>'.",
       "workspace": "api"
     },
     {
@@ -4878,22 +4750,6 @@
       "file": "apps/server/workers/src/processors/api/queues/ad-sync-tiktok/ad-sync-tiktok.processor.spec.ts",
       "fingerprint": "17395e246ff23a451ee8",
       "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/campaign/campaign.processor.spec.ts",
-      "fingerprint": "cb9f95c20a20287bf67e",
-      "message": "Property 'REPLY' does not exist on type 'typeof CampaignType'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2724,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/campaign/campaign.processor.spec.ts",
-      "fingerprint": "a700bb5a14b6ebdfd52d",
-      "message": "'\"@workers/processors/api/queues/campaign/campaign.processor\"' has no exported member named 'CampaignProcessingJobData'. Did you mean 'CampaignProcessor'?",
       "workspace": "workers"
     },
     {
