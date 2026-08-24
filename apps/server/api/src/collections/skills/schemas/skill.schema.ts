@@ -13,6 +13,7 @@ export const SKILL_MODALITIES = [
 export const SKILL_CHANNELS = [
   'tiktok',
   'reels',
+  'instagram',
   'youtube',
   'x',
   'linkedin',
@@ -29,7 +30,12 @@ export const SKILL_WORKFLOW_STAGES = [
   'analysis',
 ] as const;
 
-export const SKILL_SOURCES = ['built_in', 'imported', 'custom'] as const;
+export const SKILL_SOURCES = [
+  'built_in',
+  'imported',
+  'custom',
+  'customized',
+] as const;
 export const SKILL_STATUSES = ['draft', 'published', 'disabled'] as const;
 
 export interface SkillDocument extends Skill {
@@ -39,6 +45,8 @@ export interface SkillDocument extends Skill {
   requiredProviders?: string[];
   reviewDefaults?: Record<string, unknown>;
   slug?: string;
+  sourceListingId?: string;
+  version?: string;
   workflowStage?: string;
   [key: string]: unknown;
 }

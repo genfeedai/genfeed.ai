@@ -1,5 +1,5 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
-import { isBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
+import { isExecutableBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
@@ -256,7 +256,7 @@ export class SkillExecutorService {
     if (
       !skill?.isEnabled ||
       skill.status === 'disabled' ||
-      !isBuiltInSkillIdentity(skill.id, skill.slug)
+      !isExecutableBuiltInSkillIdentity(skill.id, skill.slug)
     ) {
       throw new NotFoundException(`Skill not found: ${skillSlug}`);
     }

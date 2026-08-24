@@ -22,4 +22,6 @@ export const skillAttributes = createEntityAttributes([
   'toolOverrides',
   'isBuiltIn',
   'isEnabled',
+  'version',
+  'sourceListingId',
 ]);

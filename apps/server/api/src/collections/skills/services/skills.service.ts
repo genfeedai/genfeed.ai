@@ -1,3 +1,4 @@
+import { resolveDefaultFirstPartySkillSlugs } from '@api/collections/skills/catalog/default-first-party-skills';
 import {
   BUILT_IN_SKILL_CATALOG,
   isBuiltInSkillIdentity,
@@ -27,7 +28,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export interface ResolveBrandSkillsOptions {
+  agentType?: string;
   channel?: string;
+  fallbackToDefaultCatalog?: boolean;
   modality?: string;
   requestedSlugs?: string[];
   workflowStage?: string;
@@ -99,6 +102,7 @@ export class SkillsService {
       systemPromptTemplate: payload['systemPromptTemplate'],
       title: payload['title'],
       toolOverrides: payload['toolOverrides'],
+      version: payload['version'],
       workflowStage: payload['workflowStage'],
     };
   }
@@ -118,9 +122,11 @@ export class SkillsService {
       );
     }
 
-    if (payload.source === 'built_in') {
+    if (payload.source === 'built_in' || payload.source === 'customized') {
       throw new ValidationException(
-        'Built-in skills can only be created by internal catalog provisioning',
+        payload.source === 'built_in'
+          ? 'Built-in skills can only be created by internal catalog provisioning'
+          : 'Customized skills can only be created by forking an existing skill',
         'source',
         payload.source,
       );
@@ -215,10 +221,12 @@ export class SkillsService {
       requiredProviders: baseConfig['requiredProviders'],
       reviewDefaults: baseConfig['reviewDefaults'],
       slug: customizedSlug,
-      source: 'custom',
+      source: 'customized',
+      sourceListingId: baseConfig['sourceListingId'],
       status: 'draft',
       systemPromptTemplate: baseConfig['systemPromptTemplate'],
       toolOverrides: baseConfig['toolOverrides'],
+      version: baseConfig['version'],
       workflowStage: baseConfig['workflowStage'],
     });
 
@@ -475,13 +483,22 @@ export class SkillsService {
   ): Promise<ResolvedBrandSkill[]> {
     this.requireOrganizationId(organizationId);
 
-    const enabledSlugs = await this.getEnabledSkillSlugs(
-      organizationId,
-      brandId,
-    );
+    let enabledSlugs = await this.getEnabledSkillSlugs(organizationId, brandId);
 
     if (enabledSlugs.length === 0) {
-      return [];
+      if (!options.fallbackToDefaultCatalog) {
+        return [];
+      }
+
+      enabledSlugs = resolveDefaultFirstPartySkillSlugs({
+        agentType: options.agentType,
+        channel: options.channel,
+        modality: options.modality,
+      });
+
+      if (enabledSlugs.length === 0) {
+        return [];
+      }
     }
 
     const all = await this.prisma.skill.findMany({

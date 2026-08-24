@@ -3,6 +3,7 @@ export const SOURCE_FILTERS = [
   { labelKey: 'builtIn', value: 'built_in' },
   { labelKey: 'imported', value: 'imported' },
   { labelKey: 'custom', value: 'custom' },
+  { labelKey: 'customized', value: 'customized' },
 ] as const;
 
 export const MODALITY_FILTERS = [

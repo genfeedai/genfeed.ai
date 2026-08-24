@@ -8,7 +8,7 @@ const skillSerializer: IServiceSerializer<Skill> = {
   serialize: (data) => data,
 };
 
-export type SkillSource = 'built_in' | 'custom' | 'imported';
+export type SkillSource = 'built_in' | 'custom' | 'customized' | 'imported';
 export type SkillStatus = 'disabled' | 'draft' | 'published';
 export type SkillModality = 'audio' | 'image' | 'multi' | 'text' | 'video';
 export type SkillWorkflowStage =
@@ -63,9 +63,11 @@ export class Skill {
   reviewDefaults?: Record<string, unknown>;
   slug!: string;
   source!: SkillSource;
+  sourceListingId?: string;
   status!: SkillStatus;
   systemPromptTemplate?: string;
   toolOverrides?: string[];
+  version?: string;
   workflowStage!: SkillWorkflowStage;
 
   constructor(partial: Partial<Skill>) {
