@@ -101,6 +101,8 @@ const calendarRenderProps: Array<{
   items: CalendarItemShape[];
   onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
   onViewChange?: (view: CalendarViewKey) => void;
+  preferredTimes: Array<{ hour: number; minute: number }>;
+  timezone: string;
 }> = [];
 let useAuthedServiceCallCount = 0;
 
@@ -133,9 +135,16 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
         id: 'credential-1',
         label: '@acme',
         platform: 'instagram',
+        postingTimes: [
+          { hour: 9, minute: 0 },
+          { hour: 18, minute: 0 },
+        ],
       },
     ],
     organizationId: 'org-123',
+    selectedBrand: {
+      agentConfig: { schedule: { timezone: 'Europe/Malta' } },
+    },
   })),
 }));
 
@@ -177,6 +186,8 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     onEventClick,
     onEventDrop,
     onViewChange,
+    preferredTimes,
+    timezone,
   }: {
     filterControls: ReactNode;
     getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
@@ -189,6 +200,8 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     onEventClick: (item: CalendarItemShape) => void;
     onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
     onViewChange?: (view: CalendarViewKey) => void;
+    preferredTimes?: Array<{ hour: number; minute: number }>;
+    timezone?: string;
   }) => {
     calendarRenderProps.push({
       getEventActions: getEventActions ?? (() => []),
@@ -199,6 +212,8 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
       items,
       onEventDrop,
       onViewChange,
+      preferredTimes: preferredTimes ?? [],
+      timezone: timezone ?? 'UTC',
     });
 
     return (
@@ -410,6 +425,16 @@ describe('ContentCalendarPage', () => {
         expect.any(AbortSignal),
       );
     });
+  });
+
+  it('forwards credential posting times and brand timezone to day view', async () => {
+    await renderLoaded();
+
+    expect(latestCalendarProps().preferredTimes).toEqual([
+      { hour: 9, minute: 0 },
+      { hour: 18, minute: 0 },
+    ]);
+    expect(latestCalendarProps().timezone).toBe('Europe/Malta');
   });
 
   it('opens the release drawer instead of routing away', async () => {

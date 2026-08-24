@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -29,6 +30,7 @@ describe('CredentialsController', () => {
     string,
     ReturnType<typeof vi.fn>
   >;
+  let credentialPostingTimesService: Record<string, ReturnType<typeof vi.fn>>;
   let credentialsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
   let organizationsService: Record<string, ReturnType<typeof vi.fn>>;
@@ -107,6 +109,13 @@ describe('CredentialsController', () => {
       }),
       listBrandHealth: vi.fn().mockResolvedValue([accountHealthSummary]),
     };
+    credentialPostingTimesService = {
+      add: vi.fn(),
+      findNextSlot: vi.fn(),
+      list: vi.fn(),
+      remove: vi.fn(),
+      replace: vi.fn(),
+    };
     credentialsService = {
       create: vi.fn(),
       find: vi.fn().mockResolvedValue([]),
@@ -152,6 +161,7 @@ describe('CredentialsController', () => {
       accountHealthService as unknown as AccountHealthService,
       accountPublishingContextService as unknown as AccountPublishingContextService,
       brandsService as unknown as BrandsService,
+      credentialPostingTimesService as unknown as CredentialPostingTimesService,
       credentialPublishingReadinessService as unknown as CredentialPublishingReadinessService,
       credentialsService as unknown as CredentialsService,
       createMockPlatformService() as unknown as FacebookService,
@@ -448,6 +458,7 @@ describe('CredentialsController', () => {
         accountHealthService as unknown as AccountHealthService,
         accountPublishingContextService as unknown as AccountPublishingContextService,
         brandsService as unknown as BrandsService,
+        credentialPostingTimesService as unknown as CredentialPostingTimesService,
         credentialPublishingReadinessService as unknown as CredentialPublishingReadinessService,
         credentialsService as unknown as CredentialsService,
         createMockPlatformService() as unknown as FacebookService,
@@ -638,6 +649,55 @@ describe('CredentialsController', () => {
 
       await expect(controller.getQuotaStatus(credId, mockUser)).rejects.toThrow(
         HttpException,
+      );
+    });
+  });
+
+  describe('posting times', () => {
+    it('lists posting times for the tenant credential', async () => {
+      credentialPostingTimesService.list.mockResolvedValue([
+        { hour: 9, minute: 0 },
+      ]);
+
+      await expect(
+        controller.listPostingTimes(credId, mockUser),
+      ).resolves.toEqual({
+        times: [{ hour: 9, minute: 0 }],
+      });
+      expect(credentialPostingTimesService.list).toHaveBeenCalledWith(
+        orgId,
+        credId,
+      );
+    });
+
+    it('adds a posting time through the write endpoint', async () => {
+      credentialPostingTimesService.add.mockResolvedValue([
+        { hour: 9, minute: 0 },
+        { hour: 18, minute: 0 },
+      ]);
+
+      await expect(
+        controller.addPostingTime(credId, { hour: 18, minute: 0 }, mockUser),
+      ).resolves.toEqual({
+        times: [
+          { hour: 9, minute: 0 },
+          { hour: 18, minute: 0 },
+        ],
+      });
+    });
+
+    it('returns not-found from find-next-slot when no times exist', async () => {
+      credentialPostingTimesService.findNextSlot.mockResolvedValue({
+        found: false,
+      });
+
+      await expect(
+        controller.findNextPostingSlot(credId, {}, mockUser),
+      ).resolves.toEqual({ found: false });
+      expect(credentialPostingTimesService.findNextSlot).toHaveBeenCalledWith(
+        orgId,
+        credId,
+        undefined,
       );
     });
   });

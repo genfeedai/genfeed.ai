@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  buildDayViewRows,
+  formatClockTime,
+  instantForClockTime,
+} from '@api-types/contracts/credential-posting-times.contract';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type {
@@ -68,6 +73,123 @@ const VIEW_KEYS: Record<string, CalendarViewKey> = {
 };
 
 const DEFAULT_VIEWS: CalendarViewKey[] = ['day', 'week', 'month', 'list'];
+const DAY_VIEW_ID = VIEW_IDS.day;
+
+function localDateKey(instant: Date, timezone: string): string | null {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(
+      instant,
+    );
+  } catch {
+    return null;
+  }
+}
+
+function localClockLabel(instant: Date, timezone: string): string | null {
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      hourCycle: 'h23',
+      minute: '2-digit',
+      timeZone: timezone,
+    }).format(instant);
+  } catch {
+    return null;
+  }
+}
+
+function scheduledInstant(item: CalendarItem): Date | null {
+  if (!item.scheduledDate) {
+    return null;
+  }
+  const date =
+    item.scheduledDate instanceof Date
+      ? item.scheduledDate
+      : new Date(item.scheduledDate);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+interface DayViewRowsProps<T extends CalendarItem> {
+  getEventColor: (item: T) => string;
+  items: T[];
+  onDateClick?: (start: Date) => void;
+  onEventClick: (item: T) => void;
+  rows: Array<{ hour: number; minute: number }>;
+  timezone: string;
+  visibleDay: Date;
+}
+
+function DayViewRows<T extends CalendarItem>({
+  getEventColor,
+  items,
+  onDateClick,
+  onEventClick,
+  rows,
+  timezone,
+  visibleDay,
+}: DayViewRowsProps<T>) {
+  const visibleKey = localDateKey(visibleDay, timezone);
+
+  return (
+    <div className="gen-calendar-day-rows" data-testid="calendar-day-view-rows">
+      {rows.map((row) => {
+        const label = formatClockTime(row);
+        const rowItems = items.filter((item) => {
+          const instant = scheduledInstant(item);
+          if (!instant) {
+            return false;
+          }
+          return (
+            localDateKey(instant, timezone) === visibleKey &&
+            localClockLabel(instant, timezone) === label
+          );
+        });
+        const slotInstant = instantForClockTime({
+          date: visibleDay,
+          time: row,
+          timezone,
+        });
+
+        return (
+          <div
+            className="gen-calendar-day-row"
+            data-testid="calendar-day-view-row"
+            data-time={label}
+            key={label}
+          >
+            <span className="gen-calendar-day-row-time">{label}</span>
+            <div className="gen-calendar-day-row-events">
+              {rowItems.map((item) => (
+                <Button
+                  className="gen-calendar-day-row-event"
+                  isDisabled={item.isDisabled}
+                  key={item.id}
+                  onClick={() => onEventClick(item)}
+                  style={{ backgroundColor: getEventColor(item) }}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  {item.title}
+                </Button>
+              ))}
+              {rowItems.length === 0 && onDateClick && slotInstant ? (
+                <Button
+                  aria-label={`Schedule at ${label}`}
+                  className="gen-calendar-day-row-empty"
+                  onClick={() => onDateClick(slotInstant)}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                >
+                  Schedule
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function toViewId(view: CalendarViewKey): string {
   return VIEW_IDS[view];
@@ -234,9 +356,13 @@ export default function ContentCalendar<T extends CalendarItem>({
   modal,
   emptyState,
   isLoading = false,
+  preferredTimes = [],
+  timezone = 'UTC',
 }: ContentCalendarProps<T>) {
   const dateRangeRef = useRef<CalendarDateRange | null>(null);
   const [, setDateRange] = useState<CalendarDateRange | null>(null);
+  const [isDayView, setIsDayView] = useState(initialView === 'day');
+  const [visibleDay, setVisibleDay] = useState<Date | null>(null);
   /**
    * The calendar instance is destroyed and rebuilt whenever its options change
    * (a new `items` array is enough), so the active view has to survive outside
@@ -490,6 +616,8 @@ export default function ContentCalendar<T extends CalendarItem>({
       // the identical range, and losing that switch would reset the layout on
       // the next data refresh.
       viewIdRef.current = arg.view.type;
+      setIsDayView(arg.view.type === DAY_VIEW_ID);
+      setVisibleDay(new Date(arg.start));
       const viewKey = fromViewId(arg.view.type);
       if (viewKey) {
         onViewChange?.(viewKey);
@@ -510,6 +638,21 @@ export default function ContentCalendar<T extends CalendarItem>({
     },
     [onDatesChange, onViewChange],
   );
+
+  const dayViewRows = useMemo(() => {
+    if (!isDayView || !visibleDay) {
+      return [];
+    }
+    return buildDayViewRows({
+      date: visibleDay,
+      occupiedInstants: items.flatMap((item) => {
+        const instant = scheduledInstant(item);
+        return instant ? [instant] : [];
+      }),
+      preferredTimes,
+      timezone,
+    });
+  }, [isDayView, items, preferredTimes, timezone, visibleDay]);
 
   const viewSwitcher = useMemo(
     () => (views.length > 1 ? views.map(toViewId).join(',') : ''),
@@ -591,11 +734,29 @@ export default function ContentCalendar<T extends CalendarItem>({
           >
             <Skeleton className="h-[32rem] w-full" />
           </div>
-        ) : events.length === 0 && emptyState ? (
+        ) : events.length === 0 && emptyState && preferredTimes.length === 0 ? (
           emptyState
         ) : (
-          <div className="fullcalendar-container" style={calendarThemeStyle}>
+          <div
+            className={
+              isDayView && dayViewRows.length > 0
+                ? 'fullcalendar-container gen-calendar-custom-day'
+                : 'fullcalendar-container'
+            }
+            style={calendarThemeStyle}
+          >
             <FullCalendarHost options={calendarOptions} />
+            {isDayView && dayViewRows.length > 0 && visibleDay ? (
+              <DayViewRows
+                getEventColor={getEventColor}
+                items={items}
+                onDateClick={onDateClick}
+                onEventClick={onEventClick}
+                rows={dayViewRows}
+                timezone={timezone}
+                visibleDay={visibleDay}
+              />
+            ) : null}
           </div>
         )}
       </Card>

@@ -1561,6 +1561,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'organization',
       'organizationId',
       'platform',
+      'postingTimes',
       'refreshToken',
       'refreshTokenExpiry',
       'updatedAt',

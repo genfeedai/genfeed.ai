@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizePostingTimes } from '@api-types/contracts/credential-posting-times.contract';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   APP_ROUTES,
@@ -144,7 +145,7 @@ function releaseInstant(release: IReleaseGroup): string | undefined {
 }
 
 export default function ContentCalendarPage(): React.JSX.Element {
-  const { brandId, credentials } = useBrand();
+  const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const translate = useTranslations('pages.publish.calendar');
@@ -389,6 +390,20 @@ export default function ContentCalendarPage(): React.JSX.Element {
       })),
     [credentials],
   );
+
+  const preferredTimes = useMemo(() => {
+    const visibleCredentials = filters.credentialId.length
+      ? credentials.filter((credential) =>
+          filters.credentialId.includes(credential.id),
+        )
+      : credentials;
+    return normalizePostingTimes(
+      visibleCredentials.flatMap((credential) => credential.postingTimes ?? []),
+    );
+  }, [credentials, filters.credentialId]);
+
+  const timezone =
+    selectedBrand?.agentConfig?.schedule?.timezone?.trim() || 'UTC';
 
   const platformOptions: ReleaseCalendarFilterOption[] = useMemo(() => {
     const seen = new Map<string, ReleaseCalendarFilterOption>();
@@ -1191,6 +1206,8 @@ export default function ContentCalendarPage(): React.JSX.Element {
       onViewChange={setCalendarView}
       getEventColor={getEventColor}
       getEventBadge={getEventBadge}
+      preferredTimes={preferredTimes}
+      timezone={timezone}
       getEventChannels={getEventChannels}
       getEventActions={getEventActions}
       isItemDraggable={isItemDraggable}

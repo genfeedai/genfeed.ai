@@ -91,10 +91,20 @@ vi.mock('@services/organization/credentials.service', () => ({
   CredentialsService: {
     getInstance: () => ({
       listBrandAccountHealth,
+      listPostingTimes: vi.fn(async () => []),
       overrideAccountHealth,
     }),
   },
 }));
+
+vi.mock(
+  '@pages/brands/components/sidebar/CredentialPostingTimesEditor',
+  () => ({
+    default: ({ credentialId }: { credentialId: string }) => (
+      <div data-testid="posting-times-editor">{credentialId}</div>
+    ),
+  }),
+);
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
@@ -279,6 +289,9 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(
       screen.getByRole('button', { name: 'Reconnect Instagram' }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('posting-times-editor')).toHaveTextContent(
+      'credential-1',
+    );
   });
 
   it('does not offer Fanvue, which has no OAuth connect route', () => {

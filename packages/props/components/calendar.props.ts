@@ -1,3 +1,4 @@
+import type { IClockTime } from '@genfeedai/interfaces';
 import type { ReactNode } from 'react';
 
 export interface CalendarItem {
@@ -112,6 +113,17 @@ export interface ContentCalendarProps<T extends CalendarItem> {
    * Empty-cell click. Used to book a one-off missing slot at that instant.
    */
   onDateClick?: (start: Date) => void;
+  /**
+   * Preferred posting times for the visible credentials. Day view rows are
+   * these times plus any instant that already has a post. Slots are a
+   * convenience, not a lock — week/month still accept times outside the list.
+   */
+  preferredTimes?: IClockTime[];
+  /**
+   * Brand IANA timezone used to label day-view rows and map occupied instants.
+   * Falls back to UTC when omitted.
+   */
+  timezone?: string;
   /**
    * Fired when the operator switches day/week/month/list, including the first
    * datesSet. Month aggregation lives in the host because only the host knows

@@ -1,20 +1,28 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AssessAccountHealthDto } from '@api/collections/credentials/dto/assess-account-health.dto';
+import {
+  CredentialPostingTimeDto,
+  NextPostingSlotQueryDto,
+  ReplaceCredentialPostingTimesDto,
+} from '@api/collections/credentials/dto/credential-posting-time.dto';
 import { ManualAccountHealthOverrideDto } from '@api/collections/credentials/dto/manual-account-health-override.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -63,6 +71,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   SetMetadata,
@@ -129,6 +138,7 @@ export class CredentialsController {
     private readonly accountHealthService: AccountHealthService,
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly brandsService: BrandsService,
+    private readonly credentialPostingTimesService: CredentialPostingTimesService,
     private readonly credentialPublishingReadinessService: CredentialPublishingReadinessService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
@@ -189,6 +199,81 @@ export class CredentialsController {
     return this.credentialPublishingReadinessService.resolveForBrand(
       user.organizationId,
       brandId,
+    );
+  }
+
+  @Get(':credentialId/posting-times')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async listPostingTimes(
+    @Param('credentialId') credentialId: string,
+    @CurrentUser() user: User,
+  ) {
+    const times = await this.credentialPostingTimesService.list(
+      user.organizationId,
+      credentialId,
+    );
+    return { times };
+  }
+
+  @Put(':credentialId/posting-times')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async replacePostingTimes(
+    @Param('credentialId') credentialId: string,
+    @Body() dto: ReplaceCredentialPostingTimesDto,
+    @CurrentUser() user: User,
+  ) {
+    const times = await this.credentialPostingTimesService.replace(
+      user.organizationId,
+      credentialId,
+      dto.times,
+    );
+    return { times };
+  }
+
+  @Post(':credentialId/posting-times')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async addPostingTime(
+    @Param('credentialId') credentialId: string,
+    @Body() dto: CredentialPostingTimeDto,
+    @CurrentUser() user: User,
+  ) {
+    const times = await this.credentialPostingTimesService.add(
+      user.organizationId,
+      credentialId,
+      dto,
+    );
+    return { times };
+  }
+
+  @Delete(':credentialId/posting-times')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async removePostingTime(
+    @Param('credentialId') credentialId: string,
+    @Body() dto: CredentialPostingTimeDto,
+    @CurrentUser() user: User,
+  ) {
+    const times = await this.credentialPostingTimesService.remove(
+      user.organizationId,
+      credentialId,
+      dto,
+    );
+    return { times };
+  }
+
+  @Get(':credentialId/next-slot')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findNextPostingSlot(
+    @Param('credentialId') credentialId: string,
+    @Query() query: NextPostingSlotQueryDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.credentialPostingTimesService.findNextSlot(
+      user.organizationId,
+      credentialId,
+      query.after,
     );
   }
 
