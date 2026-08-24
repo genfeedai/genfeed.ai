@@ -31,13 +31,19 @@ const Card = memo(function Card({
   icon,
   iconWrapperClassName,
   iconClassName,
+  id,
   label,
   description,
   onClick,
   'data-testid': dataTestId,
 }: CardProps) {
   const cardClasses = cn(
-    'relative overflow-hidden rounded-card text-left transition-[border-color,background-color] duration-150 ease-out',
+    'relative rounded-card text-left transition-[border-color,background-color] duration-150 ease-out',
+    // Overlay images clip to the radius. overflow-hidden on every card is a
+    // clipping ancestor for Radix popovers (model picker, select) and shrinks
+    // --radix-popover-content-available-height to the card interior.
+    overlay && 'overflow-hidden',
+    id && 'scroll-mt-20',
     VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
     onClick && 'cursor-pointer',
@@ -111,6 +117,7 @@ const Card = memo(function Card({
         aria-label={typeof label === 'string' ? label : undefined}
         data-card-index={index}
         data-testid={dataTestId}
+        id={id}
         onClick={onClick}
         className={cardClasses}
         type="button"
@@ -127,6 +134,7 @@ const Card = memo(function Card({
       className={cardClasses}
       data-card-index={index}
       data-testid={dataTestId}
+      id={id}
     >
       {cardContent}
     </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import SettingsSearch from '@app-components/settings-search/SettingsSearch';
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
 import { AUTOMATE_LOGO_HREF } from '@app-config/automate-menu-items.config';
@@ -270,6 +271,7 @@ export default function AppProtectedLayoutSidebar({
         showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
+        renderTopSlot={isSettingsRoute ? () => <SettingsSearch /> : undefined}
       />
     );
   }

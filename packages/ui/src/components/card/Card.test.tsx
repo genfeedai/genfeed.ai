@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event';
 import Card from '@ui/card/Card';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/image', () => ({
+  default: () => null,
+}));
+
 describe('Card', () => {
   it('renders compact surface styling by default', () => {
     const { container } = render(<Card label="Surface">Body</Card>);
@@ -51,5 +55,30 @@ describe('Card', () => {
   it('exposes stable ordering metadata when index is provided', () => {
     const { container } = render(<Card index={3}>Body</Card>);
     expect(container.firstChild).toHaveAttribute('data-card-index', '3');
+  });
+
+  it('does not clip overlay menus unless an overlay image needs it', () => {
+    const { container, rerender } = render(<Card label="Surface">Body</Card>);
+
+    expect(container.firstChild).not.toHaveClass('overflow-hidden');
+
+    rerender(
+      <Card id="chat-defaults" label="Chat Defaults">
+        Body
+      </Card>,
+    );
+    expect(container.firstChild).toHaveAttribute('id', 'chat-defaults');
+    expect(container.firstChild).toHaveClass('scroll-mt-20');
+    expect(container.firstChild).not.toHaveClass('overflow-hidden');
+  });
+
+  it('clips overlay artwork to the card radius', () => {
+    const { container } = render(
+      <Card overlay="/cover.png" label="Cover">
+        Body
+      </Card>,
+    );
+
+    expect(container.firstChild).toHaveClass('overflow-hidden');
   });
 });

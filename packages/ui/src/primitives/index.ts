@@ -141,6 +141,7 @@ export {
 } from './platform-selector';
 export {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from './popover';

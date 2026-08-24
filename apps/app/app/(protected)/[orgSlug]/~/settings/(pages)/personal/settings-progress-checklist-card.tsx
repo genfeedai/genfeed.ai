@@ -20,6 +20,7 @@ export default function SettingsProgressChecklistCard({
 }: Props) {
   return (
     <Card
+      id="setup-checklist"
       label="Setup checklist"
       description="Review every setup step"
       bodyClassName="gap-3 p-4"

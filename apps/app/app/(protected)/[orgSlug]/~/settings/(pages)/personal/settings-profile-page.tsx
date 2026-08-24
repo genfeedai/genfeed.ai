@@ -231,6 +231,7 @@ export default function SettingsProfilePage() {
       </Card>
 
       <Card
+        id="language"
         label="Language"
         description="The language the app interface is shown in. Content you create is unaffected."
         bodyClassName="gap-3 p-4"
@@ -264,6 +265,7 @@ export default function SettingsProfilePage() {
       </Card>
 
       <Card
+        id="appearance"
         label="Appearance"
         description="Choose a light or dark interface, or follow your device setting."
         bodyClassName="gap-3 p-4"
@@ -291,7 +293,7 @@ export default function SettingsProfilePage() {
         </Select>
       </Card>
 
-      <Card label="Features" bodyClassName="gap-3 p-4">
+      <Card id="features" label="Features" bodyClassName="gap-3 p-4">
         <Switch
           label="Advanced Mode"
           description="Show studio, workflow editor, automation tools, and individual generation pages. Recommended for power users."
@@ -302,6 +304,7 @@ export default function SettingsProfilePage() {
       </Card>
 
       <Card
+        id="email-notifications"
         label={translate('settings.profile.workflowEmail.cardTitle')}
         bodyClassName="gap-3 p-4"
       >

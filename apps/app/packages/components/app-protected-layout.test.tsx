@@ -186,6 +186,10 @@ vi.mock('@ui/topbars/shared/TopbarShared', () => ({
   default: () => <div data-testid="topbar-shared" />,
 }));
 
+vi.mock('@app-components/settings-search/SettingsSearch', () => ({
+  default: () => <div data-testid="settings-search" />,
+}));
+
 vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
   default: ({ onClick }: { onClick?: () => void }) => (
     <button
@@ -1279,6 +1283,46 @@ describe('AppProtectedLayout', () => {
         isCollapsed: false,
         onToggleCollapse,
         sectionLabel: 'Library',
+      }),
+    );
+  });
+
+  it('mounts settings search on the settings sidebar', () => {
+    render(
+      <AppProtectedLayoutSidebar
+        taskContextSearchParams={new URLSearchParams()}
+        currentApp="workspace"
+        isAdminRoute={false}
+        isAnalyticsRoute={false}
+        isConversationRoute={false}
+        isFocusedOnboardingRoute={false}
+        isLibraryRoute={false}
+        isOrgRoute={false}
+        isPublishRoute={false}
+        isDiscoverRoute={false}
+        isSettingsRoute
+        isStudioRoute={false}
+        isAutomateRoute={false}
+        adminMenuItems={[]}
+        analyticsMenuItems={[]}
+        libraryMenuItems={[]}
+        menuItems={[]}
+        orgMenuItems={[]}
+        publishMenuItems={[]}
+        discoverMenuItems={[]}
+        secondaryMenuItems={[]}
+        settingsMenuItems={[{ href: '/settings', label: 'Personal' }]}
+        studioMenuItems={[]}
+        automateMenuItems={[]}
+        messagesMenuItems={[]}
+        onOpenCommandPalette={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('settings-search')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        renderTopSlot: expect.any(Function),
       }),
     );
   });

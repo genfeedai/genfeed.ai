@@ -301,7 +301,7 @@ export default function SettingsConversationPage({
         </Card>
       )}
 
-      <Card label="Chat Defaults" bodyClassName="gap-3 p-4">
+      <Card id="chat-defaults" label="Chat Defaults" bodyClassName="gap-3 p-4">
         <div className="space-y-3">
           <div>
             <p className="text-sm font-medium">Default chat model</p>
