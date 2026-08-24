@@ -1,7 +1,11 @@
 import * as Sentry from '@sentry/nextjs';
 import { initAnalytics } from '@/lib/analytics';
+import { dropUnhandledJsonApiObjectRejection } from '@/lib/sentry/drop-json-api-object-rejection';
 
 Sentry.init({
+  beforeSend(event, hint) {
+    return dropUnhandledJsonApiObjectRejection(event, hint);
+  },
   debug: false,
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   enabled: process.env.NODE_ENV !== 'development',

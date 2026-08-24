@@ -3,9 +3,7 @@ import type { IPaginatedResponse } from '@genfeedai/interfaces';
 import type {
   IHttpError,
   IServiceSerializer,
-  IStructuredError,
 } from '@genfeedai/interfaces/utils/error.interface';
-import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import {
   TypeValidator,
   type ValidationSchema,
@@ -19,6 +17,11 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 import { logger } from '@services/core/logger.service';
+import {
+  isCancelledRequest,
+  isServiceOperationError,
+  normalizeOperationError,
+} from '@services/core/operation-error';
 import {
   buildInstanceKey,
   ServiceInstanceManager,
@@ -34,15 +37,6 @@ const serviceInstances = new ServiceInstanceManager<BaseService<unknown>>();
  * instead of walking forever.
  */
 const MAX_COLLECTED_PAGES = 50;
-
-function isCancelledRequest(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'isCancelled' in error &&
-    error.isCancelled === true
-  );
-}
 
 /**
  * Base service class for API operations with type-safe request payloads.
@@ -257,51 +251,30 @@ export abstract class BaseService<
     operation: string,
     error: IHttpError | unknown,
   ): never {
-    // Use standardized error handler
-    const errorDetails = ErrorHandler.extractErrorDetails(error);
-    const httpError = error as IHttpError;
-    const statusCode =
-      httpError?.response?.status || errorDetails.status || 500;
+    if (isServiceOperationError(error)) {
+      throw error;
+    }
 
+    const structuredError = normalizeOperationError(operation, error);
+    const httpError = error as IHttpError;
     const method = httpError?.config?.method?.toUpperCase();
     const url = httpError?.config?.url;
-    const summary = [method, url, statusCode, errorDetails.message]
+    const summary = [
+      method,
+      url,
+      structuredError.status,
+      structuredError.message,
+    ]
       .filter(Boolean)
       .join(' · ');
 
     logger.error(`${operation} failed — ${summary}`, {
       reportToSentry: false,
-    });
-
-    // Create a structured error that includes all details
-    const structuredError = new Error(errorDetails.message) as IStructuredError;
-    structuredError.code = errorDetails.code;
-    structuredError.status = statusCode;
-    structuredError.validationErrors = errorDetails.validationErrors?.reduce(
-      (acc, error) => {
-        if (!acc[error.field]) {
-          acc[error.field] = [];
-        }
-        acc[error.field].push(error.message);
-        return acc;
+      tags: {
+        error_category: structuredError.category ?? 'service_operation',
+        operation,
       },
-      {} as Record<string, string[]>,
-    );
-    structuredError.originalError = error;
-
-    const flagged =
-      typeof error === 'object' && error !== null
-        ? (error as {
-            isAuthError?: boolean;
-            isCancelled?: boolean;
-            isNetworkError?: boolean;
-            isTimeout?: boolean;
-          })
-        : undefined;
-    structuredError.isAuthError = flagged?.isAuthError === true;
-    structuredError.isCancelled = flagged?.isCancelled === true;
-    structuredError.isNetworkError = flagged?.isNetworkError === true;
-    structuredError.isTimeout = flagged?.isTimeout === true;
+    });
 
     throw structuredError;
   }
