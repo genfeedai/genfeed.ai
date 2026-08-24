@@ -635,6 +635,29 @@ describe('TwitterAuthorizedSignalsService', () => {
     );
   });
 
+  it('marks a disconnected credential revoked without calling X', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      ...credential,
+      isConnected: false,
+    });
+
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    expect(snapshot.state).toBe('revoked');
+    expect(httpService.get).not.toHaveBeenCalled();
+    expect(twitterService.getValidCredential).not.toHaveBeenCalled();
+    expect(twitterService.refreshToken).not.toHaveBeenCalled();
+    expect(evidenceOf(snapshot, 'profile-completeness-signal')).toMatchObject({
+      reason: 'authorization_revoked',
+      status: 'revoked',
+    });
+  });
+
   it('throws the canonical 404 for a missing or cross-organization credential', async () => {
     credentialsService.findOne.mockResolvedValueOnce(null);
 
