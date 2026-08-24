@@ -4,6 +4,7 @@ import type {
   IArticle,
   IBrand,
   IBrandKitAssetValue,
+  IClockTime,
   IImage,
   ILink,
   IVideo,
@@ -52,6 +53,7 @@ export interface BrandDetailSocialConnection {
   label?: string | null;
   name?: string | null;
   platform: CredentialPlatform;
+  postingTimes?: IClockTime[];
   url?: string | null;
   handle?: string | null;
 }

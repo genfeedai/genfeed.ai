@@ -128,6 +128,7 @@ function captureHandler(): { current?: MediaHandler } {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  window.sessionStorage.clear();
   mockSubscribe.mockReturnValue(mockUnsubscribe);
   mockImagesPost.mockResolvedValue({ pendingIngredientIds: ['img-1'] });
   mockVideosPost.mockResolvedValue({ pendingIngredientIds: ['vid-1'] });
@@ -277,6 +278,89 @@ describe('useStudioGeneration socket tracking', () => {
     unmount();
 
     expect(mockUnsubscribe).toHaveBeenCalled();
+  });
+
+  it('stamps one run id and recipe onto every output of a submit', async () => {
+    mockImagesPost.mockResolvedValueOnce({
+      pendingIngredientIds: ['img-1', 'img-2', 'img-3', 'img-4'],
+    });
+    const { result } = renderStudioGeneration({
+      settings: {
+        ...getDefaultStudioGenerateSettings('image'),
+        mood: 'confident',
+        outputs: 4,
+        style: 'editorial',
+      },
+    });
+
+    await act(async () => {
+      await result.current.submit('A founder at a desk');
+    });
+
+    expect(result.current.jobs).toHaveLength(4);
+    const runIds = new Set(result.current.jobs.map((job) => job.runId));
+    expect(runIds.size).toBe(1);
+    expect([...runIds][0]).toEqual(expect.any(String));
+    expect(result.current.jobs[0]?.recipe).toMatchObject({
+      mood: 'confident',
+      outputs: 4,
+      style: 'editorial',
+      text: 'A founder at a desk',
+    });
+    expect(mockSubscribe).toHaveBeenCalledTimes(4);
+  });
+
+  it('resubscribes in-flight jobs after unmount so PROCESSING cards are not stranded', async () => {
+    const { result, unmount } = renderStudioGeneration();
+
+    await act(async () => {
+      await result.current.submit('A founder at a desk');
+    });
+
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      '/images/img-1',
+      expect.anything(),
+    );
+
+    unmount();
+    mockSubscribe.mockClear();
+
+    const remounted = renderStudioGeneration();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      '/images/img-1',
+      expect.anything(),
+    );
+    expect(remounted.result.current.jobs[0]).toMatchObject({
+      id: 'img-1',
+      status: IngredientStatus.PROCESSING,
+    });
+  });
+
+  it('resubscribes pending gallery jobs passed back in after a remount', async () => {
+    const { result } = renderStudioGeneration();
+
+    await act(async () => {
+      result.current.rehydratePending([
+        {
+          createdAt: 1,
+          id: 'stored-processing',
+          prompt: 'Still rendering',
+          status: IngredientStatus.PROCESSING,
+          type: 'video',
+        },
+      ]);
+    });
+
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      '/videos/stored-processing',
+      expect.anything(),
+    );
+    expect(result.current.jobs[0]?.id).toBe('stored-processing');
   });
 
   it('removes a live job after its persisted asset is deleted', async () => {

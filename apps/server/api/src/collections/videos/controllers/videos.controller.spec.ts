@@ -41,6 +41,7 @@ import { VideoMusicOrchestrationService } from '@api/collections/videos/services
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
+import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { ByokService } from '@api/services/byok/byok.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -65,10 +66,7 @@ import { FalService } from '@server/services/integrations/fal/services/fal.servi
 import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from 'express';
+import type { Response as ExpressResponse } from 'express';
 
 describe('VideosController', () => {
   let controller: VideosController;

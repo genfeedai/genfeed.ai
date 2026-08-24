@@ -1,3 +1,7 @@
+import {
+  evaluateOutreachCapability,
+  isOutreachPairExecutable,
+} from '@api-types/contracts/outreach-capabilities.contract';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
@@ -6,6 +10,7 @@ import {
   ReplyLength,
   ReplyTone,
 } from '@genfeedai/enums';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { OutreachCampaignsService } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -46,6 +51,8 @@ export interface CampaignFormData {
   maxPerHour: number;
   maxPerDay: number;
   delayBetweenRepliesSeconds: number;
+  scheduledLocalDateTime: string;
+  timezone: string;
 }
 
 export function useOutreachCampaignWizard() {
@@ -81,8 +88,10 @@ export function useOutreachCampaignWizard() {
     maxPerHour: 10,
     minEngagement: 0,
     platform: CampaignPlatform.TWITTER,
+    scheduledLocalDateTime: '',
     subreddits: '',
     templateText: '',
+    timezone: getBrowserTimezone(),
     tone: ReplyTone.FRIENDLY,
     useAiGeneration: true,
   });
@@ -98,11 +107,24 @@ export function useOutreachCampaignWizard() {
     [],
   );
 
+  const pairEvaluation = evaluateOutreachCapability({
+    campaignType: formData.campaignType,
+    platform: formData.platform,
+  });
+  const isPairExecutable = isOutreachPairExecutable(pairEvaluation);
+  const isScheduleComplete =
+    formData.campaignType !== CampaignType.SCHEDULED_BLAST ||
+    (formData.scheduledLocalDateTime.trim().length > 0 &&
+      formData.timezone.trim().length > 0);
+
   const handleNext = useCallback(() => {
+    if (!isPairExecutable) {
+      return;
+    }
     if (currentStep < 5) {
       setCurrentStep((prev) => prev + 1);
     }
-  }, [currentStep]);
+  }, [currentStep, isPairExecutable]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 1) {
@@ -111,6 +133,18 @@ export function useOutreachCampaignWizard() {
   }, [currentStep]);
 
   const handleSubmit = useCallback(async () => {
+    if (!isPairExecutable) {
+      notificationsService.error(pairEvaluation.ui.body);
+      return;
+    }
+
+    if (!isScheduleComplete) {
+      notificationsService.error(
+        'Scheduled Blast requires a future delivery time and timezone.',
+      );
+      return;
+    }
+
     if (!organizationId || !formData.credential) {
       notificationsService.error('Please select a credential');
       return;
@@ -163,6 +197,13 @@ export function useOutreachCampaignWizard() {
         },
       };
 
+      if (formData.campaignType === CampaignType.SCHEDULED_BLAST) {
+        (campaignData as Record<string, unknown>).schedule = {
+          localDateTime: formData.scheduledLocalDateTime,
+          timezone: formData.timezone,
+        };
+      }
+
       // Add dmConfig for DM_OUTREACH campaigns
       if (formData.campaignType === CampaignType.DM_OUTREACH) {
         (campaignData as Record<string, unknown>).dmConfig = {
@@ -185,7 +226,16 @@ export function useOutreachCampaignWizard() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [organizationId, formData, getService, notificationsService, router]);
+  }, [
+    formData,
+    getService,
+    isPairExecutable,
+    isScheduleComplete,
+    notificationsService,
+    organizationId,
+    pairEvaluation.ui.body,
+    router,
+  ]);
 
   const filteredCredentials = credentials.filter(
     (c: { platform: string }) => c.platform === formData.platform,
@@ -199,7 +249,10 @@ export function useOutreachCampaignWizard() {
     handleChange,
     handleNext,
     handleSubmit,
+    isPairExecutable,
+    isScheduleComplete,
     isSubmitting,
+    pairEvaluation,
     router,
   };
 }

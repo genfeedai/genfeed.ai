@@ -2,6 +2,7 @@ import type {
   BrandRemixRunView,
   BrandRemixSourceSelector,
 } from '@api-types/contracts';
+import { ContentRunStatus } from '@genfeedai/enums';
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,6 +34,11 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mocks.push }),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 import {
   DiscoverRemixProvider,
@@ -74,7 +80,7 @@ const run: BrandRemixRunView = {
     sourceId: 'source-reference-1',
     title: 'Proof-led hook',
   },
-  status: 'pending',
+  status: ContentRunStatus.PENDING,
   updatedAt: '2026-08-20T10:00:00.000Z',
   version: 1,
 };
@@ -154,6 +160,26 @@ describe('DiscoverRemixProvider', () => {
     expect(mocks.push).toHaveBeenCalledWith(
       '/acme/northstar/studio/generate?run=run-1',
     );
+  });
+
+  it('reports a save-specific fallback when a revision save has no JSON:API detail', async () => {
+    mocks.reviseBrandRemixRun.mockRejectedValueOnce({ status: 409 });
+    const { result } = renderHook(() => useDiscoverRemix(), { wrapper });
+
+    await act(async () => {
+      await result.current.openRemix(source);
+    });
+    await act(async () => {
+      await result.current.confirm({
+        intent: { objective: 'Keep the proof and sharpen the product reveal.' },
+      });
+    });
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.error).toBe(
+      'The on-brand remix brief could not be saved.',
+    );
+    expect(mocks.push).not.toHaveBeenCalled();
   });
 
   it('keeps a failed preparation visible and retryable without navigating', async () => {

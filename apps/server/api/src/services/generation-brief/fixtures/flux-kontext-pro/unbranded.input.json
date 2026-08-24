@@ -1,0 +1,28 @@
+{
+  "constraints": [],
+  "fidelityMode": "off",
+  "intent": {
+    "objective": "a sunset over the ocean",
+    "requestedText": [],
+    "subjects": []
+  },
+  "mediaKind": "image",
+  "output": {
+    "aspectRatio": "16:9",
+    "height": 1080,
+    "width": 1920
+  },
+  "provenance": [
+    {
+      "field": "intent.objective",
+      "source": "user"
+    }
+  ],
+  "references": [
+    {
+      "assetId": "asset_reference_001",
+      "role": "product"
+    }
+  ],
+  "version": 1
+}

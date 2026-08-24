@@ -9,6 +9,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
@@ -46,6 +47,7 @@ export class YoutubeController {
     private readonly credentialsService: CredentialsService,
     private readonly brandsService: BrandsService,
     private readonly youtubeService: YoutubeService,
+    private readonly youtubeAuthorizedSignalsService: YoutubeAuthorizedSignalsService,
   ) {}
 
   @Post('connect')
@@ -291,6 +293,27 @@ export class YoutubeController {
         // The user can verify later or we'll retry on next use
       }
 
+      try {
+        await this.youtubeAuthorizedSignalsService.refresh({
+          accessToken: tokens.access_token,
+          credentialId: credential.id.toString(),
+          force: true,
+          grantedScopes: tokens.scope,
+          organizationId,
+        });
+        credential =
+          (await this.credentialsService.findOne({
+            id: credential.id.toString(),
+            organizationId,
+            platform: CredentialPlatform.YOUTUBE,
+          })) ?? credential;
+      } catch (signalError: unknown) {
+        this.loggerService.warn(
+          `${url} authorized signal refresh failed after connection`,
+          signalError,
+        );
+      }
+
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
       const response = (error as { response?: { data?: unknown } })?.response;
@@ -298,6 +321,36 @@ export class YoutubeController {
 
       throw error;
     }
+  }
+
+  @Post(':credentialId/authorized-signals/refresh')
+  async refreshAuthorizedSignals(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+  ) {
+    await this.youtubeAuthorizedSignalsService.refresh({
+      credentialId,
+      organizationId: user.organizationId,
+    });
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.YOUTUBE,
+    });
+
+    if (!credential) {
+      throw new HttpException(
+        {
+          detail: 'YouTube credential not found',
+          title: 'Not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return serializeSingle(request, CredentialSerializer, credential);
   }
 
   @Get('trends')

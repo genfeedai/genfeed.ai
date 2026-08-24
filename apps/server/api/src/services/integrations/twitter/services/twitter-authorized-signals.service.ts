@@ -18,10 +18,8 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type TwitterAuthorizedSignalEvidence,
-  type TwitterAuthorizedSignalReason,
   type TwitterAuthorizedSignalsSnapshot,
   type TwitterOwnedPostSignal,
-  twitterAuthorizedSignalStatusValues,
   twitterAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/twitter-authorized-signals.contract';
 import {
@@ -36,6 +34,19 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+import {
+  assembleTwitterAuthorizedSnapshot,
+  buildTwitterRevokedSnapshot,
+  readIsoTimestamp,
+  readIsoToUnixSeconds,
+  readNonNegativeInteger,
+  readRecord,
+  readString,
+  TWEET_READ_SCOPE,
+  type TwitterOwnedPostsFetch,
+  type TwitterSettledResult,
+  USERS_READ_SCOPE,
+} from './twitter-authorized-signals-evidence.mapper';
 
 const TWITTER_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const TWITTER_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
@@ -46,65 +57,6 @@ const TWITTER_SIGNAL_RETRY_FALLBACK_MS = 1_000;
 const TWITTER_SIGNAL_RETRY_MAX_MS = 5_000;
 const TWITTER_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const TWITTER_POST_LIMIT = 20;
-
-type TwitterSignalFieldStatus =
-  (typeof twitterAuthorizedSignalStatusValues)[number];
-
-function toFieldAvailability(
-  entries: ReadonlyArray<readonly [string, TwitterSignalFieldStatus]>,
-): Record<string, TwitterSignalFieldStatus> {
-  return Object.fromEntries(entries);
-}
-
-const USERS_READ_SCOPE = 'users.read';
-const TWEET_READ_SCOPE = 'tweet.read';
-const TWEET_WRITE_SCOPE = 'tweet.write';
-const MEDIA_WRITE_SCOPE = 'media.write';
-
-const PROFILE_FIELDS = {
-  createdAt: USERS_READ_SCOPE,
-  description: USERS_READ_SCOPE,
-  isProtected: USERS_READ_SCOPE,
-  isVerified: USERS_READ_SCOPE,
-  location: USERS_READ_SCOPE,
-  name: USERS_READ_SCOPE,
-  profileImageUrl: USERS_READ_SCOPE,
-  url: USERS_READ_SCOPE,
-  username: USERS_READ_SCOPE,
-  verifiedType: USERS_READ_SCOPE,
-} as const;
-
-const STATISTICS_FIELDS = {
-  followersCount: USERS_READ_SCOPE,
-  followingCount: USERS_READ_SCOPE,
-  likeCount: USERS_READ_SCOPE,
-  listedCount: USERS_READ_SCOPE,
-  tweetCount: USERS_READ_SCOPE,
-} as const;
-
-const POST_FIELDS = [
-  'conversationId',
-  'createdAt',
-  'createTime',
-  'id',
-  'impressionCount',
-  'inReplyToUserId',
-  'isQuote',
-  'isReply',
-  'isRetweet',
-  'likeCount',
-  'quoteCount',
-  'replyCount',
-  'replySettings',
-  'retweetCount',
-  'text',
-] as const;
-
-const PUBLISHING_FIELDS = [
-  'canPublish',
-  'canUploadMedia',
-  'isProtected',
-] as const;
 
 const USER_PROVIDER_FIELDS = [
   'created_at',
@@ -130,7 +82,7 @@ const TWEET_PROVIDER_FIELDS = [
   'text',
 ].join(',');
 
-interface TwitterUserInfoResponse {
+type TwitterUserInfoResponse = {
   data?: {
     created_at?: unknown;
     description?: unknown;
@@ -151,9 +103,9 @@ interface TwitterUserInfoResponse {
     verified?: unknown;
     verified_type?: unknown;
   };
-}
+};
 
-interface TwitterTweetListResponse {
+type TwitterTweetListResponse = {
   data?: Array<{
     conversation_id?: unknown;
     created_at?: unknown;
@@ -174,9 +126,9 @@ interface TwitterTweetListResponse {
     next_token?: unknown;
     result_count?: unknown;
   };
-}
+};
 
-export interface RefreshTwitterAuthorizedSignalsParams {
+export type RefreshTwitterAuthorizedSignalsParams = {
   /**
    * Raw (plaintext) OAuth access token from a just-completed token exchange.
    * Used verbatim — never decrypted — so callers must not pass the encrypted
@@ -187,12 +139,7 @@ export interface RefreshTwitterAuthorizedSignalsParams {
   force?: boolean;
   grantedScopes?: readonly string[] | string;
   organizationId: string;
-}
-
-type PlatformEvidenceKey = Exclude<
-  TwitterAuthorizedSignalEvidence['key'],
-  'genfeed-publish-activity'
->;
+};
 
 type GenfeedPublishOutcome =
   | 'scheduled'
@@ -203,59 +150,32 @@ type GenfeedPublishOutcome =
   | 'cancelled'
   | 'skipped';
 
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
+type TwitterSignalsRefreshContext = {
+  cacheKey: string;
+  credential: CredentialDocument;
+  genfeedEvidence: TwitterAuthorizedSignalEvidence;
+  grantedScopes: string[];
+  organizationId: string;
+  previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined;
+  refreshAttemptedAt: string;
+};
 
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
+type TwitterSignalsCredentialResolution =
+  | { kind: 'cached'; snapshot: TwitterAuthorizedSignalsSnapshot }
+  | { context: TwitterSignalsRefreshContext; kind: 'revoked' }
+  | {
+      accessToken: string;
+      context: TwitterSignalsRefreshContext;
+      kind: 'authorized';
+    };
 
-function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(candidate);
-    return ['http:', 'https:'].includes(url.protocol) ? candidate : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function readBoolean(value: unknown): boolean | undefined {
-  return typeof value === 'boolean' ? value : undefined;
-}
-
-function readNonNegativeInteger(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0
-    ? value
-    : undefined;
-}
-
-function readIsoTimestamp(value: unknown): string | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  const date = new Date(candidate);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-
-function readIsoToUnixSeconds(value: unknown): number | undefined {
-  const iso = readIsoTimestamp(value);
-  if (!iso) {
-    return undefined;
-  }
-
-  const seconds = Math.floor(Date.parse(iso) / 1000);
-  return seconds > 0 ? seconds : undefined;
-}
+type TwitterSignalsProviderFetch =
+  | { kind: 'revoked'; snapshot: TwitterAuthorizedSignalsSnapshot }
+  | {
+      kind: 'fetched';
+      tweetsResult: TwitterSettledResult<TwitterOwnedPostsFetch>;
+      userInfoResult: TwitterSettledResult<Record<string, unknown>>;
+    };
 
 function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
   const outcomes = new Set<string>([
@@ -291,6 +211,51 @@ export class TwitterAuthorizedSignalsService {
   async refresh(
     params: RefreshTwitterAuthorizedSignalsParams,
   ): Promise<TwitterAuthorizedSignalsSnapshot> {
+    const resolved = await this.resolveRefreshCredential(params);
+    if (resolved.kind === 'cached') {
+      return resolved.snapshot;
+    }
+
+    const { context } = resolved;
+    if (resolved.kind === 'revoked') {
+      return await this.persistSnapshot(
+        context.credential,
+        context.organizationId,
+        context.cacheKey,
+        buildTwitterRevokedSnapshot(
+          context.credential.id,
+          context.grantedScopes,
+          context.previousSnapshot,
+          context.genfeedEvidence,
+          context.refreshAttemptedAt,
+        ),
+      );
+    }
+
+    const fetched = await this.fetchProviderSignals(
+      resolved.accessToken,
+      context,
+    );
+    const snapshot =
+      fetched.kind === 'revoked'
+        ? fetched.snapshot
+        : this.assembleAuthorizedSnapshot(
+            context,
+            fetched.userInfoResult,
+            fetched.tweetsResult,
+          );
+
+    return await this.persistSnapshot(
+      context.credential,
+      context.organizationId,
+      context.cacheKey,
+      snapshot,
+    );
+  }
+
+  private async resolveRefreshCredential(
+    params: RefreshTwitterAuthorizedSignalsParams,
+  ): Promise<TwitterSignalsCredentialResolution> {
     const platform = toPrismaCredentialPlatform(CredentialPlatform.TWITTER);
     const credential = await this.credentialsService.findOne({
       id: params.credentialId,
@@ -312,72 +277,40 @@ export class TwitterAuthorizedSignalsService {
       const cachedSnapshot =
         twitterAuthorizedSignalsSnapshotSchema.safeParse(cached);
       if (cachedSnapshot.success) {
-        return cachedSnapshot.data;
+        return { kind: 'cached', snapshot: cachedSnapshot.data };
       }
     }
 
     const refreshAttemptedAt = new Date().toISOString();
-    let grantedScopes = this.resolveGrantedScopes(
+    const grantedScopes = this.resolveGrantedScopes(
       params.grantedScopes,
       credential,
       previousSnapshot,
     );
-    const genfeedEvidence = await this.buildGenfeedEvidence(
+    const context: TwitterSignalsRefreshContext = {
+      cacheKey,
       credential,
-      params.organizationId,
-      refreshAttemptedAt,
-    );
-
-    if (!credential.isConnected && !params.accessToken) {
-      return await this.persistSnapshot(
+      genfeedEvidence: await this.buildGenfeedEvidence(
         credential,
         params.organizationId,
-        cacheKey,
-        this.buildRevokedSnapshot(
-          credential.id,
-          grantedScopes,
-          previousSnapshot,
-          genfeedEvidence,
-          refreshAttemptedAt,
-        ),
-      );
+        refreshAttemptedAt,
+      ),
+      grantedScopes,
+      organizationId: params.organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    };
+
+    if (!credential.isConnected && !params.accessToken) {
+      return { context, kind: 'revoked' };
     }
 
-    let accessToken: string;
     try {
-      const shouldDiscoverScopes =
-        params.accessToken === undefined &&
-        params.grantedScopes === undefined &&
-        !this.hasStoredScopeObservation(credential, previousSnapshot) &&
-        Boolean(credential.refreshToken);
-      const validCredential = params.accessToken
-        ? credential
-        : shouldDiscoverScopes
-          ? await this.twitterService.refreshToken(
-              params.organizationId,
-              credential.brandId ?? '',
-              credential.id,
-            )
-          : await this.twitterService.getValidCredential(
-              params.organizationId,
-              credential.brandId ?? '',
-              credential.id,
-            );
-      if (params.grantedScopes === undefined) {
-        grantedScopes = this.resolveGrantedScopes(
-          undefined,
-          validCredential,
-          previousSnapshot,
-        );
-      }
-      if (params.accessToken) {
-        accessToken = params.accessToken;
-      } else {
-        if (!validCredential.accessToken) {
-          throw new Error('X credential is missing an access token');
-        }
-        accessToken = EncryptionUtil.decrypt(validCredential.accessToken);
-      }
+      return {
+        accessToken: await this.resolveAccessToken(params, context),
+        context,
+        kind: 'authorized',
+      };
     } catch (error: unknown) {
       if (
         await this.twitterService.handleAuthorizationError(
@@ -386,41 +319,72 @@ export class TwitterAuthorizedSignalsService {
           `${this.constructorName} refresh`,
         )
       ) {
-        return await this.persistSnapshot(
-          credential,
-          params.organizationId,
-          cacheKey,
-          this.buildRevokedSnapshot(
-            credential.id,
-            grantedScopes,
-            previousSnapshot,
-            genfeedEvidence,
-            refreshAttemptedAt,
-          ),
-        );
+        return { context, kind: 'revoked' };
       }
       throw error;
     }
+  }
 
+  private async resolveAccessToken(
+    params: RefreshTwitterAuthorizedSignalsParams,
+    context: TwitterSignalsRefreshContext,
+  ): Promise<string> {
+    const { credential } = context;
+    const shouldDiscoverScopes =
+      params.accessToken === undefined &&
+      params.grantedScopes === undefined &&
+      !this.hasStoredScopeObservation(credential, context.previousSnapshot) &&
+      Boolean(credential.refreshToken);
+    const validCredential = params.accessToken
+      ? credential
+      : shouldDiscoverScopes
+        ? await this.twitterService.refreshToken(
+            params.organizationId,
+            credential.brandId ?? '',
+            credential.id,
+          )
+        : await this.twitterService.getValidCredential(
+            params.organizationId,
+            credential.brandId ?? '',
+            credential.id,
+          );
+    // Persist discovered scopes before decrypt so a later token failure still
+    // records the observation from the refreshed credential.
+    if (params.grantedScopes === undefined) {
+      context.grantedScopes = this.resolveGrantedScopes(
+        undefined,
+        validCredential,
+        context.previousSnapshot,
+      );
+    }
+    if (params.accessToken) {
+      return params.accessToken;
+    }
+    if (!validCredential.accessToken) {
+      throw new Error('X credential is missing an access token');
+    }
+    return EncryptionUtil.decrypt(validCredential.accessToken);
+  }
+
+  private async fetchProviderSignals(
+    accessToken: string,
+    context: TwitterSignalsRefreshContext,
+  ): Promise<TwitterSignalsProviderFetch> {
+    const { credential, grantedScopes } = context;
     const userInfoPromise = grantedScopes.includes(USERS_READ_SCOPE)
       ? this.requestWithRetry(() => this.fetchUserInfo(accessToken))
       : undefined;
     const userInfoResult = await this.settle(userInfoPromise);
     const userId =
       readString(userInfoResult.value?.id) ?? readString(credential.externalId);
-
     const tweetsPromise =
       grantedScopes.includes(TWEET_READ_SCOPE) && userId
         ? this.requestWithRetry(() => this.fetchOwnedPosts(accessToken, userId))
         : undefined;
-
     const tweetsResult = await this.settle(tweetsPromise);
-    const providerErrors = [userInfoResult.error, tweetsResult.error].filter(
-      (error) => error !== undefined,
-    );
-    const authorizationError = providerErrors.find((error) =>
-      this.isAuthorizationFailure(error),
-    );
+    const authorizationError = [userInfoResult.error, tweetsResult.error]
+      .filter((error) => error !== undefined)
+      .find((error) => this.isAuthorizationFailure(error));
 
     if (authorizationError) {
       await this.twitterService.handleAuthorizationError(
@@ -428,78 +392,35 @@ export class TwitterAuthorizedSignalsService {
         authorizationError,
         `${this.constructorName} refresh`,
       );
-      return await this.persistSnapshot(
-        credential,
-        params.organizationId,
-        cacheKey,
-        this.buildRevokedSnapshot(
+      return {
+        kind: 'revoked',
+        snapshot: buildTwitterRevokedSnapshot(
           credential.id,
           grantedScopes,
-          previousSnapshot,
-          genfeedEvidence,
-          refreshAttemptedAt,
+          context.previousSnapshot,
+          context.genfeedEvidence,
+          context.refreshAttemptedAt,
         ),
-      );
+      };
     }
 
-    const profileEvidence = this.buildProfileEvidence(
-      grantedScopes,
-      userInfoResult,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
-    const statisticsEvidence = this.buildStatisticsEvidence(
-      grantedScopes,
-      userInfoResult,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
-    const ownedPostsEvidence = this.buildOwnedPostsEvidence(
-      grantedScopes,
-      tweetsResult,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
-    const publishingEvidence = this.buildPublishingCapabilityEvidence(
-      grantedScopes,
-      userInfoResult,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
-    const nativeAgeEvidence = this.buildNativeAccountAgeEvidence(
-      grantedScopes,
-      userInfoResult,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
-    const derivedPostEvidence = this.buildDerivedPostEvidence(
-      ownedPostsEvidence,
-      refreshAttemptedAt,
-    );
-    const evidence: TwitterAuthorizedSignalEvidence[] = [
-      profileEvidence,
-      statisticsEvidence,
-      ownedPostsEvidence,
-      publishingEvidence,
-      ...derivedPostEvidence,
-      nativeAgeEvidence,
-      genfeedEvidence,
-    ];
-    const snapshot = twitterAuthorizedSignalsSnapshotSchema.parse({
-      credentialId: credential.id,
-      evidence,
-      grantedScopes,
-      platform: CredentialPlatform.TWITTER,
-      refreshAttemptedAt,
-      state: this.resolveSnapshotState(evidence),
-    });
+    return { kind: 'fetched', tweetsResult, userInfoResult };
+  }
 
-    return await this.persistSnapshot(
-      credential,
-      params.organizationId,
-      cacheKey,
-      snapshot,
-    );
+  private assembleAuthorizedSnapshot(
+    context: TwitterSignalsRefreshContext,
+    userInfoResult: TwitterSettledResult<Record<string, unknown>>,
+    tweetsResult: TwitterSettledResult<TwitterOwnedPostsFetch>,
+  ): TwitterAuthorizedSignalsSnapshot {
+    return assembleTwitterAuthorizedSnapshot({
+      credentialId: context.credential.id,
+      genfeedEvidence: context.genfeedEvidence,
+      grantedScopes: context.grantedScopes,
+      observedAt: context.refreshAttemptedAt,
+      previousSnapshot: context.previousSnapshot,
+      tweetsResult,
+      userInfoResult,
+    });
   }
 
   private async fetchUserInfo(
@@ -524,11 +445,7 @@ export class TwitterAuthorizedSignalsService {
   private async fetchOwnedPosts(
     accessToken: string,
     userId: string,
-  ): Promise<{
-    hasMore: boolean;
-    rawPostCount: number;
-    posts: TwitterOwnedPostSignal[];
-  }> {
+  ): Promise<TwitterOwnedPostsFetch> {
     const response = await firstValueFrom(
       this.httpService.get<TwitterTweetListResponse>(
         `${this.endpoint}/users/${userId}/tweets`,
@@ -550,39 +467,43 @@ export class TwitterAuthorizedSignalsService {
 
     return {
       hasMore: typeof response.data?.meta?.next_token === 'string',
+      posts: rawPosts.flatMap((post) => this.mapOwnedPost(post)),
       rawPostCount: rawPosts.length,
-      posts: rawPosts.flatMap((post) => {
-        const id = readString(post.id);
-        if (!id) {
-          return [];
-        }
-
-        const referenced = Array.isArray(post.referenced_tweets)
-          ? post.referenced_tweets
-          : [];
-        const metrics = post.public_metrics ?? {};
-
-        return [
-          {
-            conversationId: readString(post.conversation_id),
-            createdAt: readIsoTimestamp(post.created_at),
-            createTime: readIsoToUnixSeconds(post.created_at),
-            id,
-            impressionCount: readNonNegativeInteger(metrics.impression_count),
-            inReplyToUserId: readString(post.in_reply_to_user_id),
-            isQuote: referenced.some((item) => item.type === 'quoted'),
-            isReply: readString(post.in_reply_to_user_id) !== undefined,
-            isRetweet: referenced.some((item) => item.type === 'retweeted'),
-            likeCount: readNonNegativeInteger(metrics.like_count),
-            quoteCount: readNonNegativeInteger(metrics.quote_count),
-            replyCount: readNonNegativeInteger(metrics.reply_count),
-            replySettings: readString(post.reply_settings),
-            retweetCount: readNonNegativeInteger(metrics.retweet_count),
-            text: readString(post.text),
-          },
-        ];
-      }),
     };
+  }
+
+  private mapOwnedPost(
+    post: NonNullable<TwitterTweetListResponse['data']>[number],
+  ): TwitterOwnedPostSignal[] {
+    const id = readString(post.id);
+    if (!id) {
+      return [];
+    }
+
+    const referenced = Array.isArray(post.referenced_tweets)
+      ? post.referenced_tweets
+      : [];
+    const metrics = post.public_metrics ?? {};
+
+    return [
+      {
+        conversationId: readString(post.conversation_id),
+        createdAt: readIsoTimestamp(post.created_at),
+        createTime: readIsoToUnixSeconds(post.created_at),
+        id,
+        impressionCount: readNonNegativeInteger(metrics.impression_count),
+        inReplyToUserId: readString(post.in_reply_to_user_id),
+        isQuote: referenced.some((item) => item.type === 'quoted'),
+        isReply: readString(post.in_reply_to_user_id) !== undefined,
+        isRetweet: referenced.some((item) => item.type === 'retweeted'),
+        likeCount: readNonNegativeInteger(metrics.like_count),
+        quoteCount: readNonNegativeInteger(metrics.quote_count),
+        replyCount: readNonNegativeInteger(metrics.reply_count),
+        replySettings: readString(post.reply_settings),
+        retweetCount: readNonNegativeInteger(metrics.retweet_count),
+        text: readString(post.text),
+      },
+    ];
   }
 
   private async requestWithRetry<T>(request: () => Promise<T>): Promise<T> {
@@ -614,7 +535,7 @@ export class TwitterAuthorizedSignalsService {
 
   private async settle<T>(
     promise: Promise<T> | undefined,
-  ): Promise<{ error?: unknown; value?: T }> {
+  ): Promise<TwitterSettledResult<T>> {
     if (!promise) {
       return {};
     }
@@ -630,405 +551,6 @@ export class TwitterAuthorizedSignalsService {
     return (
       !isTwitterScopeOrTierError(error) && isTwitterAuthorizationError(error)
     );
-  }
-
-  private buildProfileEvidence(
-    grantedScopes: string[],
-    result: { error?: unknown; value?: Record<string, unknown> },
-    previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): TwitterAuthorizedSignalEvidence {
-    const requiredScopes = [USERS_READ_SCOPE];
-    if (!grantedScopes.includes(USERS_READ_SCOPE) || !result.value) {
-      return this.buildUnavailableEvidence(
-        'profile-completeness-signal',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const value = {
-      createdAt: readIsoTimestamp(result.value.created_at),
-      description: readString(result.value.description),
-      isProtected: readBoolean(result.value.protected),
-      isVerified: readBoolean(result.value.verified),
-      location: readString(result.value.location),
-      name: readString(result.value.name),
-      profileImageUrl: readHttpUrl(result.value.profile_image_url),
-      url: readHttpUrl(result.value.url),
-      username: readString(result.value.username),
-      verifiedType: readString(result.value.verified_type),
-    };
-    const fieldAvailability = Object.fromEntries(
-      Object.entries(PROFILE_FIELDS).map(
-        ([field, scope]) =>
-          [
-            field,
-            !grantedScopes.includes(scope)
-              ? 'permission_limited'
-              : value[field as keyof typeof value] === undefined
-                ? 'unavailable'
-                : 'available',
-          ] as const,
-      ),
-    );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
-
-    return {
-      fieldAvailability,
-      key: 'profile-completeness-signal',
-      observedAt,
-      provenance: 'platform_verified',
-      scope,
-      staleAt: null,
-      status:
-        scope.missing.length > 0
-          ? 'permission_limited'
-          : Object.values(value).every((item) => item === undefined)
-            ? 'unavailable'
-            : 'available',
-      value,
-    };
-  }
-
-  private buildStatisticsEvidence(
-    grantedScopes: string[],
-    result: { error?: unknown; value?: Record<string, unknown> },
-    previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): TwitterAuthorizedSignalEvidence {
-    const requiredScopes = [USERS_READ_SCOPE];
-    const metrics = readRecord(result.value?.public_metrics);
-    if (!grantedScopes.includes(USERS_READ_SCOPE) || !result.value) {
-      return this.buildUnavailableEvidence(
-        'profile-statistics-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const value = {
-      followersCount: readNonNegativeInteger(metrics.followers_count),
-      followingCount: readNonNegativeInteger(metrics.following_count),
-      likeCount: readNonNegativeInteger(metrics.like_count),
-      listedCount: readNonNegativeInteger(metrics.listed_count),
-      tweetCount: readNonNegativeInteger(metrics.tweet_count),
-    };
-    const fieldAvailability = Object.fromEntries(
-      Object.entries(STATISTICS_FIELDS).map(
-        ([field, scope]) =>
-          [
-            field,
-            !grantedScopes.includes(scope)
-              ? 'permission_limited'
-              : value[field as keyof typeof value] === undefined
-                ? 'unavailable'
-                : 'available',
-          ] as const,
-      ),
-    );
-    const scope = this.buildScope(requiredScopes, grantedScopes);
-
-    return {
-      fieldAvailability,
-      key: 'profile-statistics-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      scope,
-      staleAt: null,
-      status:
-        scope.missing.length > 0
-          ? 'permission_limited'
-          : Object.values(value).every((item) => item === undefined)
-            ? 'unavailable'
-            : 'available',
-      value,
-    };
-  }
-
-  private buildOwnedPostsEvidence(
-    grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        hasMore: boolean;
-        rawPostCount: number;
-        posts: TwitterOwnedPostSignal[];
-      };
-    },
-    previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): TwitterAuthorizedSignalEvidence {
-    const requiredScopes = [TWEET_READ_SCOPE];
-    if (!result.value) {
-      return this.buildUnavailableEvidence(
-        'owned-posts-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const scope = this.buildScope(requiredScopes, grantedScopes);
-    const fieldAvailability = Object.fromEntries(
-      POST_FIELDS.map(
-        (field) =>
-          [
-            field,
-            result.value?.posts.length === 0 ||
-            result.value?.posts.every((post) => post[field] !== undefined)
-              ? 'available'
-              : 'unavailable',
-          ] as const,
-      ),
-    );
-    const malformedResponse =
-      result.value.rawPostCount > 0 && result.value.posts.length === 0;
-
-    return {
-      fieldAvailability,
-      key: 'owned-posts-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      ...(malformedResponse ? { reason: 'empty_response' as const } : {}),
-      scope,
-      staleAt: null,
-      status: malformedResponse
-        ? 'unavailable'
-        : result.value.posts.length === 0
-          ? 'empty'
-          : 'available',
-      value: {
-        hasMore: result.value.hasMore,
-        posts: result.value.posts,
-      },
-    };
-  }
-
-  private buildPublishingCapabilityEvidence(
-    grantedScopes: string[],
-    result: { error?: unknown; value?: Record<string, unknown> },
-    previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): TwitterAuthorizedSignalEvidence {
-    const requiredScopes = [TWEET_WRITE_SCOPE];
-    if (!grantedScopes.includes(TWEET_WRITE_SCOPE)) {
-      return this.buildUnavailableEvidence(
-        'publishing-capability-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const value = {
-      canPublish: true,
-      canUploadMedia: grantedScopes.includes(MEDIA_WRITE_SCOPE),
-      isProtected: result.value
-        ? readBoolean(result.value.protected)
-        : undefined,
-    };
-    const fieldAvailability = toFieldAvailability(
-      PUBLISHING_FIELDS.map((field) => [
-        field,
-        field === 'isProtected' && value.isProtected === undefined
-          ? grantedScopes.includes(USERS_READ_SCOPE)
-            ? 'unavailable'
-            : 'permission_limited'
-          : 'available',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'publishing-capability-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: {
-        ...this.buildScope(requiredScopes, grantedScopes),
-        granted: grantedScopes.filter((scope) =>
-          [TWEET_WRITE_SCOPE, MEDIA_WRITE_SCOPE].includes(scope),
-        ),
-      },
-      staleAt: null,
-      status: 'available',
-      value,
-    };
-  }
-
-  private buildNativeAccountAgeEvidence(
-    grantedScopes: string[],
-    result: { error?: unknown; value?: Record<string, unknown> },
-    previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): TwitterAuthorizedSignalEvidence {
-    const requiredScopes = [USERS_READ_SCOPE];
-    const createdAt = result.value
-      ? readIsoTimestamp(result.value.created_at)
-      : undefined;
-    const createTime = result.value
-      ? readIsoToUnixSeconds(result.value.created_at)
-      : undefined;
-    if (!grantedScopes.includes(USERS_READ_SCOPE) || !result.value) {
-      return this.buildUnavailableEvidence(
-        'native-account-age',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    return {
-      fieldAvailability: {
-        createdAt: createdAt ? 'available' : 'unavailable',
-        createTime: createTime === undefined ? 'unavailable' : 'available',
-      },
-      key: 'native-account-age',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: createdAt ? 'available' : 'unavailable',
-      value: createdAt ? { createdAt, createTime } : {},
-    };
-  }
-
-  private buildDerivedPostEvidence(
-    ownedPosts: TwitterAuthorizedSignalEvidence,
-    observedAt: string,
-  ): TwitterAuthorizedSignalEvidence[] {
-    if (ownedPosts.key !== 'owned-posts-snapshot') {
-      throw new Error('X owned-post evidence is missing');
-    }
-
-    const posts = ownedPosts.value?.posts ?? [];
-    const firstOriginal =
-      posts.find((post) => !post.isReply && !post.isRetweet) ?? posts[0];
-    const common = {
-      fieldAvailability: ownedPosts.fieldAvailability,
-      observedAt: ownedPosts.observedAt ?? observedAt,
-      provenance: 'platform_verified' as const,
-      ...(ownedPosts.reason ? { reason: ownedPosts.reason } : {}),
-      scope: ownedPosts.scope,
-      staleAt: ownedPosts.staleAt,
-      status: ownedPosts.status,
-    };
-
-    return [
-      {
-        ...common,
-        key: 'first-upload-platform-signal',
-        value: firstOriginal
-          ? {
-              createdAt: firstOriginal.createdAt,
-              createTime: firstOriginal.createTime,
-              post: firstOriginal,
-            }
-          : {},
-      },
-      {
-        ...common,
-        key: 'owned-post-metrics-snapshot',
-        value: { posts },
-      },
-    ];
-  }
-
-  private buildUnavailableEvidence(
-    key: PlatformEvidenceKey,
-    requiredScopes: string[],
-    grantedScopes: string[],
-    error: unknown,
-    previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): TwitterAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
-    const reason: TwitterAuthorizedSignalReason =
-      scope.missing.length > 0 || isTwitterScopeOrTierError(error)
-        ? 'missing_scope'
-        : isTwitterRateLimitError(error)
-          ? 'rate_limited'
-          : 'provider_error';
-    const previous = previousSnapshot?.evidence.find(
-      (evidence) => evidence.key === key,
-    );
-    const reportedScope =
-      key === 'publishing-capability-snapshot'
-        ? {
-            ...scope,
-            granted: grantedScopes.filter((grantedScope) =>
-              [TWEET_WRITE_SCOPE, MEDIA_WRITE_SCOPE].includes(grantedScope),
-            ),
-          }
-        : scope;
-
-    if (previous && reason !== 'missing_scope') {
-      return {
-        ...previous,
-        reason,
-        scope: reportedScope,
-        staleAt: observedAt,
-        status: 'stale',
-      };
-    }
-
-    const fieldNames = this.fieldNamesForKey(key);
-    const effectiveScope =
-      isTwitterScopeOrTierError(error) && scope.missing.length === 0
-        ? { granted: [], missing: requiredScopes, required: requiredScopes }
-        : reportedScope;
-
-    return {
-      fieldAvailability: Object.fromEntries(
-        fieldNames.map((field) => [
-          field,
-          reason === 'missing_scope' ? 'permission_limited' : 'unavailable',
-        ]),
-      ),
-      key,
-      observedAt,
-      provenance: 'platform_verified',
-      reason,
-      scope: effectiveScope,
-      staleAt: null,
-      status: reason === 'missing_scope' ? 'permission_limited' : 'unavailable',
-    } as TwitterAuthorizedSignalEvidence;
-  }
-
-  private fieldNamesForKey(key: PlatformEvidenceKey): readonly string[] {
-    if (key === 'profile-completeness-signal') {
-      return Object.keys(PROFILE_FIELDS);
-    }
-    if (key === 'profile-statistics-snapshot') {
-      return Object.keys(STATISTICS_FIELDS);
-    }
-    if (key === 'publishing-capability-snapshot') {
-      return PUBLISHING_FIELDS;
-    }
-    if (key === 'native-account-age') {
-      return ['createdAt', 'createTime'];
-    }
-    return POST_FIELDS;
-  }
-
-  private buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
   }
 
   private async buildGenfeedEvidence(
@@ -1092,117 +614,6 @@ export class TwitterAuthorizedSignalsService {
       status: attempts.length > 0 ? 'available' : 'empty',
       value: { attempts },
     };
-  }
-
-  private buildRevokedSnapshot(
-    credentialId: string,
-    grantedScopes: string[],
-    previousSnapshot: TwitterAuthorizedSignalsSnapshot | undefined,
-    genfeedEvidence: TwitterAuthorizedSignalEvidence,
-    refreshAttemptedAt: string,
-  ): TwitterAuthorizedSignalsSnapshot {
-    const keys: PlatformEvidenceKey[] = [
-      'profile-completeness-signal',
-      'profile-statistics-snapshot',
-      'owned-posts-snapshot',
-      'publishing-capability-snapshot',
-      'first-upload-platform-signal',
-      'owned-post-metrics-snapshot',
-      'native-account-age',
-    ];
-    const evidence = keys.map((key) => {
-      const previous = previousSnapshot?.evidence.find(
-        (item) => item.key === key,
-      );
-      if (previous) {
-        const requiredScopes = this.requiredScopesForKey(key);
-        const scope = this.buildScope(requiredScopes, grantedScopes);
-        return {
-          ...previous,
-          reason: 'authorization_revoked' as const,
-          scope:
-            key === 'publishing-capability-snapshot'
-              ? {
-                  ...scope,
-                  granted: grantedScopes.filter((grantedScope) =>
-                    [TWEET_WRITE_SCOPE, MEDIA_WRITE_SCOPE].includes(
-                      grantedScope,
-                    ),
-                  ),
-                }
-              : scope,
-          staleAt: refreshAttemptedAt,
-          status: 'revoked' as const,
-        };
-      }
-
-      return {
-        ...this.buildUnavailableEvidence(
-          key,
-          this.requiredScopesForKey(key),
-          grantedScopes,
-          undefined,
-          undefined,
-          refreshAttemptedAt,
-        ),
-        reason: 'authorization_revoked' as const,
-        staleAt: refreshAttemptedAt,
-        status: 'revoked' as const,
-      };
-    });
-
-    return twitterAuthorizedSignalsSnapshotSchema.parse({
-      credentialId,
-      evidence: [...evidence, genfeedEvidence],
-      grantedScopes,
-      platform: CredentialPlatform.TWITTER,
-      refreshAttemptedAt,
-      state: 'revoked',
-    });
-  }
-
-  private requiredScopesForKey(key: PlatformEvidenceKey): string[] {
-    if (
-      key === 'profile-completeness-signal' ||
-      key === 'profile-statistics-snapshot' ||
-      key === 'native-account-age'
-    ) {
-      return [USERS_READ_SCOPE];
-    }
-    if (key === 'publishing-capability-snapshot') {
-      return [TWEET_WRITE_SCOPE];
-    }
-    return [TWEET_READ_SCOPE];
-  }
-
-  private resolveSnapshotState(
-    evidence: TwitterAuthorizedSignalEvidence[],
-  ): TwitterAuthorizedSignalsSnapshot['state'] {
-    const platformEvidence = evidence.filter(
-      (item) => item.provenance === 'platform_verified',
-    );
-
-    if (platformEvidence.every((item) => item.status === 'stale')) {
-      return 'stale';
-    }
-
-    const ownedPosts = platformEvidence.find(
-      (item) => item.key === 'owned-posts-snapshot',
-    );
-    if (
-      ownedPosts?.status === 'empty' &&
-      platformEvidence.every((item) =>
-        ['available', 'empty'].includes(item.status),
-      )
-    ) {
-      return 'empty';
-    }
-
-    return platformEvidence.every((item) =>
-      ['available', 'empty'].includes(item.status),
-    )
-      ? 'full'
-      : 'partial';
   }
 
   private resolveGrantedScopes(

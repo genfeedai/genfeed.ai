@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
+import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -43,6 +44,7 @@ export class OnboardingController {
    * Get onboarding status for current user
    */
   @Get('status')
+  @SkipRoles()
   @ApiOperation({ summary: 'Get onboarding status' })
   @ApiResponse({
     description: 'Returns onboarding status',
@@ -60,6 +62,7 @@ export class OnboardingController {
   }
 
   @Get('install-readiness')
+  @SkipRoles()
   @ApiOperation({
     summary: 'Get install readiness for OSS onboarding',
   })
@@ -71,6 +74,7 @@ export class OnboardingController {
    * Check if a prefix is available
    */
   @Get('prefix/:prefix/available')
+  @SkipRoles()
   @ApiOperation({
     description: 'Checks if a 3-letter prefix is available for use.',
     summary: 'Check prefix availability',

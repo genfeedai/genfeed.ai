@@ -14,6 +14,7 @@ export interface CampaignTargetDocument
     | 'replyText'
     | 'replyUrl'
     | 'retryCount'
+    | 'scheduleVersion'
     | 'scheduledAt'
     | 'skipReason'
   > {
@@ -36,6 +37,7 @@ export interface CampaignTargetDocument
   replyText?: string | null;
   replyUrl?: string | null;
   retryCount?: number;
+  scheduleVersion?: number;
   scheduledAt?: Date | null;
   skipReason?: string | null;
   [key: string]: unknown;

@@ -1,6 +1,12 @@
 import type { CalendarItem } from '@genfeedai/props/components/calendar.props';
 import '@testing-library/jest-dom/vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import type { CalendarOptions, EventInput } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -576,6 +582,76 @@ describe('ContentCalendar', () => {
     ).toBeNull();
   });
 
+  it('renders day-view rows from preferred times when no posts exist', async () => {
+    render(
+      <ContentCalendar
+        items={[]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        preferredTimes={[
+          { hour: 9, minute: 0 },
+          { hour: 18, minute: 0 },
+        ]}
+        timezone="UTC"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      calendarMocks.instances[0]?.options.datesSet?.(
+        calendarMocks.createDatesSetArg(
+          '2026-03-10',
+          '2026-03-11',
+          'timeGridDay',
+        ),
+      );
+    });
+
+    const rows = await screen.findAllByTestId('calendar-day-view-row');
+    expect(rows.map((row) => row.getAttribute('data-time'))).toEqual([
+      '09:00',
+      '18:00',
+    ]);
+  });
+
+  it('adds occupied instants to day-view rows alongside preferred times', async () => {
+    render(
+      <ContentCalendar
+        items={[makeItem({ scheduledDate: '2026-03-10T13:07:00.000Z' })]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        preferredTimes={[{ hour: 9, minute: 0 }]}
+        timezone="UTC"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      calendarMocks.instances[0]?.options.datesSet?.(
+        calendarMocks.createDatesSetArg(
+          '2026-03-10',
+          '2026-03-11',
+          'timeGridDay',
+        ),
+      );
+    });
+
+    const rows = await screen.findAllByTestId('calendar-day-view-row');
+    expect(rows.map((row) => row.getAttribute('data-time'))).toEqual([
+      '09:00',
+      '13:07',
+    ]);
+    expect(screen.getByText('Launch note')).toBeVisible();
+  });
+
   it('does not mount FullCalendar while the host is still loading', () => {
     render(
       <ContentCalendar
@@ -631,6 +707,78 @@ describe('ContentCalendar', () => {
     });
 
     expect(renderEventContent(item)).toBe(true);
+  });
+
+  it('notifies the host when the operator switches to month view', async () => {
+    const onViewChange = vi.fn();
+
+    render(
+      <ContentCalendar
+        items={[]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        onViewChange={onViewChange}
+        getEventColor={() => '#8b5cf6'}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      calendarMocks.instances[0]?.options.datesSet?.(
+        calendarMocks.createDatesSetArg(
+          '2026-03-01',
+          '2026-04-01',
+          'dayGridMonth',
+        ),
+      );
+    });
+
+    expect(onViewChange).toHaveBeenCalledWith('month');
+  });
+
+  it('marks missing slots keyboard-focusable and mounts Generate as a real button', async () => {
+    const item = makeItem({ status: 'missing' });
+    const onGenerate = vi.fn();
+    const eventElement = document.createElement('div');
+    document.body.append(eventElement);
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        getEventActions={() => [
+          { id: 'generate', label: 'Generate', onClick: onGenerate },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    act(() => {
+      const mount = (
+        latestOptions() as CalendarOptions & {
+          eventDidMount?: (info: unknown) => void;
+        }
+      ).eventDidMount;
+      mount?.({
+        el: eventElement,
+        event: { extendedProps: { item } },
+      });
+    });
+
+    expect(eventElement.tabIndex).toBe(0);
+    expect(eventElement).toHaveAttribute('data-calendar-slot', 'focusable');
+    const generate = await screen.findByRole('button', { name: 'Generate' });
+    fireEvent.click(generate);
+    expect(onGenerate).toHaveBeenCalledTimes(1);
+    eventElement.remove();
   });
 });
 

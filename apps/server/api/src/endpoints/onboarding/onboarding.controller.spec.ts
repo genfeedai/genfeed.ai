@@ -3,6 +3,7 @@ import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-previ
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
+import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -57,6 +58,48 @@ describe('OnboardingController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('lets onboarding status and readiness run before active-organization membership validation', () => {
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OnboardingController.prototype.getStatus,
+      ),
+    ).toBe(true);
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OnboardingController.prototype.getInstallReadiness,
+      ),
+    ).toBe(true);
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OnboardingController.prototype.checkPrefixAvailable,
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps onboarding writes and preview generation membership-gated', () => {
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OnboardingController.prototype.setPrefix,
+      ),
+    ).toBeUndefined();
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OnboardingController.prototype.generatePreview,
+      ),
+    ).toBeUndefined();
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OnboardingController.prototype.claimProactiveWorkspace,
+      ),
+    ).toBeUndefined();
   });
 
   describe('getStatus', () => {

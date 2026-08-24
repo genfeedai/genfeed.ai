@@ -6,10 +6,9 @@
    follow the resolved data-theme instead of the host operating-system media. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* The extension consumes both in-repo wrappers and compiled Ship primitives.
-   Tailwind must see both sources because neither lives below this stylesheet. */
+/* The extension consumes in-repo primitives. Tailwind must see that source
+   because it does not live below this stylesheet. */
 @source "../../../../../packages/ui/src/primitives";
-@source "../../../../../packages/ui/node_modules/@shipshitdev/ui/dist";
 
 /* Tailwind v4 does not consume tailwind.config.ts automatically. Register the
    shared HSL variables so semantic classes compile in the extension bundle. */

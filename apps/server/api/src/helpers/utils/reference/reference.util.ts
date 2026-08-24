@@ -7,20 +7,23 @@ import { LoggerService } from '@libs/logger/logger.service';
 /**
  * Builds a public reference image URL for a given reference id.
  * Tries Ingredient (image or video with thumbnail) first, then Asset (type: reference).
+ * Lookups are tenant-scoped: missing, foreign, and deleted ids all return null.
  */
 export async function buildReferenceImageUrl(params: {
-  referenceId: string;
-  ingredientsService: IngredientsService;
   assetsService: AssetsService;
   configService: ConfigService;
+  ingredientsService: IngredientsService;
   loggerService?: LoggerService;
+  organizationId: string;
+  referenceId: string;
 }): Promise<string | null> {
   const {
-    referenceId,
-    ingredientsService,
     assetsService,
     configService,
+    ingredientsService,
     loggerService,
+    organizationId,
+    referenceId,
   } = params;
 
   if (!referenceId || referenceId === '') {
@@ -29,8 +32,10 @@ export async function buildReferenceImageUrl(params: {
 
   try {
     const imageIngredient = await ingredientsService.findOne({
-      id: referenceId,
       category: IngredientCategory.IMAGE,
+      id: referenceId,
+      isDeleted: false,
+      organizationId,
     });
 
     if (imageIngredient?.id) {
@@ -39,22 +44,24 @@ export async function buildReferenceImageUrl(params: {
       }`;
     }
 
-    // If not an image, try to find a VIDEO ingredient and use its thumbnail
     const videoIngredient = await ingredientsService.findOne({
-      id: referenceId,
       category: IngredientCategory.VIDEO,
+      id: referenceId,
+      isDeleted: false,
+      organizationId,
     });
 
     if (videoIngredient?.id) {
-      // Use the video's thumbnail as the reference image
       return `${configService.ingredientsEndpoint}/thumbnails/${
         videoIngredient.id
       }`;
     }
 
     const asset = await assetsService.findOne({
-      id: referenceId,
       category: AssetCategory.REFERENCE,
+      id: referenceId,
+      isDeleted: false,
+      organizationId,
     });
 
     if (asset?.id) {
@@ -78,18 +85,20 @@ export async function buildReferenceImageUrl(params: {
  * Filters out invalid/null entries. Returns [] if none found.
  */
 export async function buildReferenceImageUrls(params: {
-  referenceIds: string[];
-  ingredientsService: IngredientsService;
   assetsService: AssetsService;
   configService: ConfigService;
+  ingredientsService: IngredientsService;
   loggerService?: LoggerService;
+  organizationId: string;
+  referenceIds: string[];
 }): Promise<string[]> {
   const {
-    referenceIds,
-    ingredientsService,
     assetsService,
     configService,
+    ingredientsService,
     loggerService,
+    organizationId,
+    referenceIds,
   } = params;
 
   if (!Array.isArray(referenceIds) || referenceIds.length === 0) {
@@ -103,6 +112,7 @@ export async function buildReferenceImageUrls(params: {
       configService,
       ingredientsService,
       loggerService,
+      organizationId,
       referenceId: id,
     });
     if (url) {

@@ -6,16 +6,40 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsCharactersPage from './content';
 
-const mocks = vi.hoisted(() => ({
-  composeSheetPrompt: vi.fn(),
-  createFromSheet: vi.fn(),
-  listCharacters: vi.fn(),
-  postImage: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const composeSheetPrompt = vi.fn();
+  const createFromSheet = vi.fn();
+  const listCharacters = vi.fn();
+  const postImage = vi.fn();
+  const personasService = {
+    composeSheetPrompt,
+    createFromSheet,
+    listCharacters,
+  };
+  const imagesService = { post: postImage };
+  return {
+    composeSheetPrompt,
+    createFromSheet,
+    getImagesService: async () => imagesService,
+    getPersonasService: async () => personasService,
+    listCharacters,
+    postImage,
+  };
+});
 
 vi.mock('next/image', () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span data-src={src}>{alt}</span>
+  default: ({
+    alt,
+    src,
+    ...props
+  }: {
+    alt: string;
+    src: string;
+    'data-testid'?: string;
+  }) => (
+    <span data-src={src} data-testid={props['data-testid']}>
+      {alt}
+    </span>
   ),
 }));
 
@@ -23,8 +47,9 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../../../../tests/next-intl.stub'
   );
+  const translate = translateFromCatalog('common.settings.characters');
   return {
-    useTranslations: () => translateFromCatalog('common.settings.characters'),
+    useTranslations: () => translate,
   };
 });
 
@@ -33,8 +58,13 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('test-token'),
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const created = factory('test-token') as { listCharacters?: unknown };
+    if (created && typeof created === 'object' && 'listCharacters' in created) {
+      return mocks.getPersonasService;
+    }
+    return mocks.getImagesService;
+  },
 }));
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
@@ -110,9 +140,8 @@ describe('BrandSettingsCharactersPage', () => {
   it('generates a sheet from the description using the server preset', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    await waitFor(() => {
-      expect(mocks.listCharacters).toHaveBeenCalled();
-    });
+    await screen.findByTestId('character-description');
+    expect(screen.queryByText('Loading')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },
@@ -137,9 +166,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('does not create a persona when the candidate is discarded', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    await waitFor(() => {
-      expect(mocks.listCharacters).toHaveBeenCalled();
-    });
+    await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },
@@ -157,9 +184,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('creates a persona from the approved sheet', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    await waitFor(() => {
-      expect(mocks.listCharacters).toHaveBeenCalled();
-    });
+    await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },

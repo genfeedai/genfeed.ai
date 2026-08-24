@@ -14,9 +14,11 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/interfaces';
 import type {
+  CalendarEventAction,
   CalendarEventBadge,
   CalendarEventChannel,
   CalendarEventDrop,
+  CalendarViewKey,
 } from '@props/components/calendar.props';
 import {
   act,
@@ -36,16 +38,21 @@ import '@testing-library/jest-dom/vitest';
 
 interface CalendarItemShape {
   article?: { tags?: Array<{ backgroundColor?: string }> };
+  filledCount?: number;
   id: string;
-  itemType: 'article' | 'release' | 'slot';
+  itemType: 'article' | 'day-aggregate' | 'release' | 'slot';
+  missingCount?: number;
+  missingIdentityKeys?: string[];
   release?: { firstTagColor?: string | null };
   status: string;
 }
 
-const { notifyErrorMock, openPostRepurposeModalMock } = vi.hoisted(() => ({
-  notifyErrorMock: vi.fn(),
-  openPostRepurposeModalMock: vi.fn(),
-}));
+const { notifyErrorMock, openConfirmMock, openPostRepurposeModalMock } =
+  vi.hoisted(() => ({
+    notifyErrorMock: vi.fn(),
+    openConfirmMock: vi.fn(),
+    openPostRepurposeModalMock: vi.fn(),
+  }));
 
 const findArticlesMock = vi.fn();
 const findReleasesMock = vi.fn();
@@ -76,12 +83,15 @@ const listCadencesMock = vi.fn(async () => []);
 const skipSlotMock = vi.fn();
 const cancelSlotMock = vi.fn();
 const writeSlotMock = vi.fn();
+const generateSlotMock = vi.fn();
+const generateBulkMock = vi.fn();
 const getPostingCadencesServiceMock = vi.fn(async () => ({
   book: vi.fn(),
   cancel: cancelSlotMock,
   create: vi.fn(),
   delete: vi.fn(),
-  generate: vi.fn(),
+  generate: generateSlotMock,
+  generateBulk: generateBulkMock,
   list: listCadencesMock,
   listSlots: listSlotsMock,
   skip: skipSlotMock,
@@ -90,6 +100,7 @@ const getPostingCadencesServiceMock = vi.fn(async () => ({
 }));
 
 const calendarRenderProps: Array<{
+  getEventActions: (item: CalendarItemShape) => CalendarEventAction[];
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
   getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
   getEventColor: (item: CalendarItemShape) => string;
@@ -97,6 +108,9 @@ const calendarRenderProps: Array<{
   isLoading: boolean;
   items: CalendarItemShape[];
   onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
+  onViewChange?: (view: CalendarViewKey) => void;
+  preferredTimes: Array<{ hour: number; minute: number }>;
+  timezone: string;
 }> = [];
 let useAuthedServiceCallCount = 0;
 
@@ -112,6 +126,10 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useConfirmModal: () => ({
+    closeConfirm: vi.fn(),
+    openConfirm: openConfirmMock,
+  }),
   usePostRepurposeModal: () => ({
     openPostRepurposeModal: openPostRepurposeModalMock,
   }),
@@ -125,9 +143,16 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
         id: 'credential-1',
         label: '@acme',
         platform: 'instagram',
+        postingTimes: [
+          { hour: 9, minute: 0 },
+          { hour: 18, minute: 0 },
+        ],
       },
     ],
     organizationId: 'org-123',
+    selectedBrand: {
+      agentConfig: { schedule: { timezone: 'Europe/Malta' } },
+    },
   })),
 }));
 
@@ -159,6 +184,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   default: ({
     filterControls,
+    getEventActions,
     getEventBadge,
     getEventChannels,
     getEventColor,
@@ -168,8 +194,12 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     modal,
     onEventClick,
     onEventDrop,
+    onViewChange,
+    preferredTimes,
+    timezone,
   }: {
     filterControls: ReactNode;
+    getEventActions?: (item: CalendarItemShape) => CalendarEventAction[];
     getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
     getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
     getEventColor: (item: CalendarItemShape) => string;
@@ -179,8 +209,12 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
     modal: ReactNode;
     onEventClick: (item: CalendarItemShape) => void;
     onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
+    onViewChange?: (view: CalendarViewKey) => void;
+    preferredTimes?: Array<{ hour: number; minute: number }>;
+    timezone?: string;
   }) => {
     calendarRenderProps.push({
+      getEventActions: getEventActions ?? (() => []),
       getEventBadge,
       getEventChannels,
       getEventColor,
@@ -188,19 +222,29 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
       isLoading: Boolean(isLoading),
       items,
       onEventDrop,
+      onViewChange,
+      preferredTimes: preferredTimes ?? [],
+      timezone: timezone ?? 'UTC',
     });
 
     return (
       <div>
         {filterControls}
         {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onEventClick(item)}
-          >
-            {`open:${item.id}`}
-          </button>
+          <div key={item.id}>
+            <button type="button" onClick={() => onEventClick(item)}>
+              {`open:${item.id}`}
+            </button>
+            {(getEventActions?.(item) ?? []).map((action) => (
+              <button
+                key={`${item.id}:${action.id}`}
+                type="button"
+                onClick={action.onClick}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
         ))}
         {modal}
       </div>
@@ -392,6 +436,16 @@ describe('ContentCalendarPage', () => {
         expect.any(AbortSignal),
       );
     });
+  });
+
+  it('forwards credential posting times and brand timezone to day view', async () => {
+    await renderLoaded();
+
+    expect(latestCalendarProps().preferredTimes).toEqual([
+      { hour: 9, minute: 0 },
+      { hour: 18, minute: 0 },
+    ]);
+    expect(latestCalendarProps().timezone).toBe('Europe/Malta');
   });
 
   it('opens the release drawer instead of routing away', async () => {
@@ -808,6 +862,112 @@ describe('ContentCalendarPage', () => {
     expect(pushMock).toHaveBeenCalledWith(
       '/acme-org/acme-creator/publish/posts/article-slot-1?returnTo=%2Facme-org%2Facme-creator%2Fpublish%2Fcalendar',
     );
+  });
+
+  it('confirms bulk generate with the missing-slot count before starting', async () => {
+    listSlotsMock.mockResolvedValue([
+      calendarSlot({ identityKey: 'ghost-1' }),
+      calendarSlot({
+        identityKey: 'ghost-2',
+        instant: '2026-03-12T12:00:00.000Z',
+      }),
+    ]);
+    generateBulkMock.mockResolvedValue({
+      completed: [
+        calendarSlot({ identityKey: 'ghost-1' }),
+        calendarSlot({ identityKey: 'ghost-2' }),
+      ],
+      completedCount: 2,
+      isCancelled: false,
+      isCreditsExhausted: false,
+      remainingCount: 0,
+      remainingIdentityKeys: [],
+    });
+    openConfirmMock.mockImplementation(
+      ({ onConfirm }: { onConfirm: () => void }) => {
+        onConfirm();
+      },
+    );
+
+    await renderLoaded();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Generate missing (2)' }),
+    );
+
+    expect(openConfirmMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        confirmLabel: 'Generate 2',
+        label: 'Generate 2 missing slots?',
+        message: expect.stringContaining('2 missing slots'),
+      }),
+    );
+    await waitFor(() => {
+      expect(generateBulkMock).toHaveBeenCalledWith(
+        {
+          confirmedCount: 2,
+          identityKeys: ['ghost-1', 'ghost-2'],
+        },
+        expect.any(AbortSignal),
+      );
+    });
+  });
+
+  it('aggregates dense ghosts in month view instead of drawing each slot', async () => {
+    listSlotsMock.mockResolvedValue(
+      Array.from({ length: 12 }, (_, index) =>
+        calendarSlot({
+          identityKey: `ghost-${index}`,
+          instant: `2026-03-12T${String(8 + index).padStart(2, '0')}:00:00.000Z`,
+        }),
+      ),
+    );
+
+    await renderLoaded();
+
+    expect(
+      latestCalendarProps().items.filter((item) => item.itemType === 'slot'),
+    ).toHaveLength(12);
+
+    act(() => {
+      latestCalendarProps().onViewChange?.('month');
+    });
+
+    await waitFor(() => {
+      const items = latestCalendarProps().items;
+      expect(items.some((item) => item.itemType === 'slot')).toBe(false);
+      expect(items.some((item) => item.id === 'day:2026-03-12')).toBe(true);
+    });
+
+    const aggregate = latestCalendarProps().items.find(
+      (item) => item.id === 'day:2026-03-12',
+    );
+    expect(aggregate?.missingCount).toBe(12);
+    expect(aggregate?.filledCount).toBe(1);
+  });
+
+  it('exposes Generate as a real button on a focused missing slot', async () => {
+    listSlotsMock.mockResolvedValue([
+      calendarSlot({ identityKey: 'missing-slot' }),
+    ]);
+    generateSlotMock.mockResolvedValue(
+      calendarSlot({
+        identityKey: 'missing-slot',
+        state: CalendarSlotState.FILLED,
+      }),
+    );
+
+    await renderLoaded();
+
+    const generate = screen.getByRole('button', { name: 'Generate' });
+    expect(generate).toBeVisible();
+    fireEvent.click(generate);
+
+    await waitFor(() => {
+      expect(generateSlotMock).toHaveBeenCalledWith({
+        identityKey: 'missing-slot',
+      });
+    });
   });
 });
 

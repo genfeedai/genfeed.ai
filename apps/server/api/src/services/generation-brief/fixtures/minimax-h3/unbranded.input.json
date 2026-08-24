@@ -1,0 +1,24 @@
+{
+  "constraints": [],
+  "fidelityMode": "off",
+  "intent": {
+    "objective": "a neon skyline timelapse at dusk",
+    "requestedText": [],
+    "subjects": []
+  },
+  "mediaKind": "video",
+  "output": {
+    "aspectRatio": "16:9",
+    "durationSeconds": 6,
+    "height": 1080,
+    "width": 1920
+  },
+  "provenance": [
+    {
+      "field": "intent.objective",
+      "source": "user"
+    }
+  ],
+  "references": [],
+  "version": 1
+}

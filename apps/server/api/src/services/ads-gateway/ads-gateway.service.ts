@@ -4,6 +4,7 @@ import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.
 import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import type {
   AdsAdapterContext,
+  AdsInsightsParams,
   AdsPlatform,
   CrossPlatformComparison,
   IAdsAdapter,
@@ -41,7 +42,7 @@ export class AdsGatewayService {
 
   async comparePlatforms(
     contexts: Array<{ platform: AdsPlatform; ctx: AdsAdapterContext }>,
-    datePreset?: string,
+    params?: AdsInsightsParams,
   ): Promise<CrossPlatformComparison> {
     const results = await Promise.allSettled(
       contexts.map(async ({ platform, ctx }) => {
@@ -56,9 +57,7 @@ export class AdsGatewayService {
         let roasCount = 0;
 
         const insightResults = await Promise.allSettled(
-          campaigns.map((c) =>
-            adapter.getCampaignInsights(ctx, c.id, { datePreset }),
-          ),
+          campaigns.map((c) => adapter.getCampaignInsights(ctx, c.id, params)),
         );
 
         for (const result of insightResults) {

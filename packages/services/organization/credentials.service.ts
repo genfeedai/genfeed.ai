@@ -4,6 +4,9 @@ import type {
   AccountPublishingContext,
   AssessAccountHealthRequest,
   ContentSurface,
+  IClockTime,
+  ICredentialPostingTimes,
+  INextPostingSlot,
   IPublishingProviderReadiness,
   ManualAccountHealthOverrideRequest,
 } from '@genfeedai/interfaces';
@@ -106,6 +109,65 @@ export class CredentialsService extends BaseService<Credential> {
     const response = await this.instance.post<AccountHealthSummary>(
       `/${credentialId}/account-health/override`,
       data,
+    );
+    return response.data;
+  }
+
+  public async listPostingTimes(
+    credentialId: string,
+    signal?: AbortSignal,
+  ): Promise<IClockTime[]> {
+    const response = await this.instance.get<ICredentialPostingTimes>(
+      `/${credentialId}/posting-times`,
+      { signal },
+    );
+    return response.data.times;
+  }
+
+  public async addPostingTime(
+    credentialId: string,
+    time: IClockTime,
+  ): Promise<IClockTime[]> {
+    const response = await this.instance.post<ICredentialPostingTimes>(
+      `/${credentialId}/posting-times`,
+      time,
+    );
+    return response.data.times;
+  }
+
+  public async removePostingTime(
+    credentialId: string,
+    time: IClockTime,
+  ): Promise<IClockTime[]> {
+    const response = await this.instance.delete<ICredentialPostingTimes>(
+      `/${credentialId}/posting-times`,
+      { data: time },
+    );
+    return response.data.times;
+  }
+
+  public async replacePostingTimes(
+    credentialId: string,
+    times: IClockTime[],
+  ): Promise<IClockTime[]> {
+    const response = await this.instance.put<ICredentialPostingTimes>(
+      `/${credentialId}/posting-times`,
+      { times },
+    );
+    return response.data.times;
+  }
+
+  public async findNextSlot(
+    credentialId: string,
+    after?: string,
+    signal?: AbortSignal,
+  ): Promise<INextPostingSlot> {
+    const response = await this.instance.get<INextPostingSlot>(
+      `/${credentialId}/next-slot`,
+      {
+        params: after ? { after } : undefined,
+        signal,
+      },
     );
     return response.data;
   }

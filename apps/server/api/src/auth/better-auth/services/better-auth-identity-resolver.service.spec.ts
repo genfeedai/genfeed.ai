@@ -10,7 +10,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BetterAuthIdentityResolverService } from './better-auth-identity-resolver.service';
 
 describe('BetterAuthIdentityResolverService', () => {
-  let usersService: { findOne: ReturnType<typeof vi.fn> };
+  let usersService: {
+    findOne: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let membersService: {
@@ -27,7 +30,7 @@ describe('BetterAuthIdentityResolverService', () => {
   let resolver: BetterAuthIdentityResolverService;
 
   beforeEach(() => {
-    usersService = { findOne: vi.fn() };
+    usersService = { findOne: vi.fn(), patch: vi.fn() };
     organizationsService = { findOne: vi.fn() };
     brandsService = { findOne: vi.fn() };
     membersService = {
@@ -58,16 +61,23 @@ describe('BetterAuthIdentityResolverService', () => {
     await expect(resolver.resolve('missing')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    expect(usersService.findOne).toHaveBeenCalledWith({ id: 'missing' }, []);
+    expect(usersService.findOne).toHaveBeenCalledWith(
+      { id: 'missing', isDeleted: false },
+      [],
+    );
   });
 
-  it('resolves the owner organization and its first brand, deriving isSuperAdmin from the platform role', async () => {
+  it('does not attach an owned organization without an active membership and provisions instead', async () => {
     usersService.findOne.mockResolvedValue({
       id: 'user_1',
+      lastUsedOrganizationId: 'org_owned',
       platformRole: 'SUPERADMIN',
     });
-    organizationsService.findOne.mockResolvedValue({ id: 'org_1' });
-    brandsService.findOne.mockResolvedValue({ id: 'brand_1' });
+    membersService.findActiveForUserAccess.mockResolvedValue([]);
+    userSetupService.initializeUserResources.mockResolvedValue({
+      brand: { id: 'brand_1' },
+      organization: { id: 'org_1' },
+    });
 
     const identity = await resolver.resolve('user_1');
 
@@ -77,10 +87,15 @@ describe('BetterAuthIdentityResolverService', () => {
       organizationId: 'org_1',
       userId: 'user_1',
     });
-    expect(organizationsService.findOne).toHaveBeenCalledWith({
-      userId: 'user_1',
+    expect(organizationsService.findOne).not.toHaveBeenCalled();
+    expect(userSetupService.initializeUserResources).toHaveBeenCalledWith(
+      'user_1',
+      undefined,
+      { email: null, name: null },
+    );
+    expect(usersService.patch).toHaveBeenCalledWith('user_1', {
+      lastUsedOrganizationId: 'org_1',
     });
-    expect(usersService.findOne).toHaveBeenCalledWith({ id: 'user_1' }, []);
   });
 
   it('does not treat organization admins as platform superadmins', async () => {
@@ -94,9 +109,7 @@ describe('BetterAuthIdentityResolverService', () => {
         role: { key: 'admin' },
       },
     ]);
-    organizationsService.findOne
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'org_admin' });
+    organizationsService.findOne.mockResolvedValue({ id: 'org_admin' });
     brandsService.findOne.mockResolvedValue({ id: 'brand_admin' });
 
     const identity = await resolver.resolve('user_org_admin');
@@ -114,10 +127,7 @@ describe('BetterAuthIdentityResolverService', () => {
     membersService.findActiveForUserAccess.mockResolvedValue([
       { organizationId: 'org_member' },
     ]);
-    // First call (owner lookup) → null; second call (membership lookup) → org.
-    organizationsService.findOne
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'org_member' });
+    organizationsService.findOne.mockResolvedValue({ id: 'org_member' });
     brandsService.findOne.mockResolvedValue({ id: 'brand_member' });
 
     const identity = await resolver.resolve('user_2');
@@ -140,7 +150,11 @@ describe('BetterAuthIdentityResolverService', () => {
     expect(identity.brandId).toBe('brand_last');
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: 'brand_last',
+      isDeleted: false,
       organizationId: 'org_3',
+    });
+    expect(usersService.patch).toHaveBeenCalledWith('user_3', {
+      lastUsedOrganizationId: 'org_3',
     });
   });
 
@@ -161,6 +175,39 @@ describe('BetterAuthIdentityResolverService', () => {
 
     expect(identity.organizationId).toBe('org_pref');
     expect(identity.brandId).toBe('brand_pref');
+    expect(organizationsService.findOne).toHaveBeenCalledWith({
+      id: 'org_pref',
+      isDeleted: false,
+    });
+    expect(usersService.patch).not.toHaveBeenCalled();
+  });
+
+  it('ignores a stale lastUsed organization and recovers the live membership org', async () => {
+    usersService.findOne.mockResolvedValue({
+      id: 'user_stale',
+      lastUsedOrganizationId: 'org_stale',
+    });
+    membersService.findActiveForUserAccess.mockResolvedValue([
+      { lastUsedBrandId: 'brand_live', organizationId: 'org_live' },
+    ]);
+    organizationsService.findOne.mockResolvedValue({ id: 'org_live' });
+    brandsService.findOne.mockResolvedValue({ id: 'brand_live' });
+
+    const identity = await resolver.resolve('user_stale');
+
+    expect(identity.organizationId).toBe('org_live');
+    expect(identity.brandId).toBe('brand_live');
+    expect(organizationsService.findOne).toHaveBeenCalledWith({
+      id: 'org_live',
+      isDeleted: false,
+    });
+    expect(organizationsService.findOne).not.toHaveBeenCalledWith({
+      id: 'org_stale',
+      isDeleted: false,
+    });
+    expect(usersService.patch).toHaveBeenCalledWith('user_stale', {
+      lastUsedOrganizationId: 'org_live',
+    });
   });
 
   // Library-loading bug (images/videos/gifs/agent-* list endpoints): an
@@ -179,16 +226,17 @@ describe('BetterAuthIdentityResolverService', () => {
     membersService.findActiveForUserAccess.mockResolvedValue([
       { organizationId: 'org_soft_deleted' },
     ]);
-    // Owner lookup → null; membership lookup for the only membership → null
-    // (organization soft-deleted or otherwise inaccessible).
-    organizationsService.findOne
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null);
+    organizationsService.findOne.mockResolvedValue(null);
 
     await expect(resolver.resolve('user_orphaned')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
+    expect(organizationsService.findOne).toHaveBeenCalledWith({
+      id: 'org_soft_deleted',
+      isDeleted: false,
+    });
     expect(brandsService.findOne).not.toHaveBeenCalled();
+    expect(usersService.patch).not.toHaveBeenCalled();
   });
 
   it('provisions a workspace when a signed-in user has no membership and no owned org', async () => {
@@ -198,7 +246,6 @@ describe('BetterAuthIdentityResolverService', () => {
       name: 'Vincent',
     });
     membersService.findActiveForUserAccess.mockResolvedValue([]);
-    organizationsService.findOne.mockResolvedValue(null);
     userSetupService.initializeUserResources.mockResolvedValue({
       brand: { id: 'brand_new' },
       organization: { id: 'org_new' },
@@ -211,18 +258,21 @@ describe('BetterAuthIdentityResolverService', () => {
       undefined,
       { email: 'vincent@shipshit.dev', name: 'Vincent' },
     );
+    expect(organizationsService.findOne).not.toHaveBeenCalled();
     expect(identity).toEqual({
       brandId: 'brand_new',
       isSuperAdmin: false,
       organizationId: 'org_new',
       userId: 'user_no_memberships',
     });
+    expect(usersService.patch).toHaveBeenCalledWith('user_no_memberships', {
+      lastUsedOrganizationId: 'org_new',
+    });
   });
 
   it('keeps the session usable when workspace provisioning fails', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_no_memberships' });
     membersService.findActiveForUserAccess.mockResolvedValue([]);
-    organizationsService.findOne.mockResolvedValue(null);
     userSetupService.initializeUserResources.mockRejectedValue(
       new Error('db down'),
     );
@@ -231,6 +281,7 @@ describe('BetterAuthIdentityResolverService', () => {
 
     expect(identity.organizationId).toBeUndefined();
     expect(identity.brandId).toBeUndefined();
+    expect(usersService.patch).not.toHaveBeenCalled();
   });
 
   it('returns the cached identity without touching the database on a cache hit', async () => {
@@ -254,6 +305,9 @@ describe('BetterAuthIdentityResolverService', () => {
 
   it('caches the resolved identity after a cache miss', async () => {
     usersService.findOne.mockResolvedValue({ id: 'user_5' });
+    membersService.findActiveForUserAccess.mockResolvedValue([
+      { organizationId: 'org_5' },
+    ]);
     organizationsService.findOne.mockResolvedValue({ id: 'org_5' });
     brandsService.findOne.mockResolvedValue({ id: 'brand_5' });
 
@@ -261,6 +315,9 @@ describe('BetterAuthIdentityResolverService', () => {
 
     expect(identityCache.get).toHaveBeenCalledWith('user_5');
     expect(identityCache.set).toHaveBeenCalledWith('user_5', identity);
+    expect(usersService.patch).toHaveBeenCalledWith('user_5', {
+      lastUsedOrganizationId: 'org_5',
+    });
   });
 
   it('does not cache when resolution throws', async () => {

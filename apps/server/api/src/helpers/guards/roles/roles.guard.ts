@@ -116,6 +116,7 @@ export class RolesGuard implements CanActivate {
     const member = await this.membersService.findOne(
       {
         isActive: true,
+        isDeleted: false,
         organizationId: organizationId,
         userId: user.userId ?? user.id,
       },

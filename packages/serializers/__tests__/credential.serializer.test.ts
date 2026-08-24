@@ -19,6 +19,26 @@ describe('CredentialSerializer', () => {
     expect(output.data.attributes.platform).toBe('twitter');
   });
 
+  it('emits preferred posting times on the credential', () => {
+    const output = CredentialSerializer.serialize({
+      id: 'cred-1',
+      platform: 'INSTAGRAM',
+      postingTimes: [
+        { hour: 9, minute: 0 },
+        { hour: 18, minute: 0 },
+      ],
+    }) as {
+      data: {
+        attributes: { postingTimes?: Array<{ hour: number; minute: number }> };
+      };
+    };
+
+    expect(output.data.attributes.postingTimes).toEqual([
+      { hour: 9, minute: 0 },
+      { hour: 18, minute: 0 },
+    ]);
+  });
+
   it('maps a collection of Prisma-shaped credentials', () => {
     const output = CredentialSerializer.serialize([
       { id: 'cred-1', platform: 'INSTAGRAM' },

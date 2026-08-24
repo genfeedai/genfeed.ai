@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizePostingTimes } from '@api-types/contracts/credential-posting-times.contract';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   APP_ROUTES,
@@ -28,16 +29,21 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
 import type {
+  CalendarEventAction,
   CalendarEventBadge,
   CalendarEventChannel,
   CalendarEventDrop,
   CalendarItem,
+  CalendarViewKey,
 } from '@props/components/calendar.props';
 import type {
   ReleaseCalendarFilterOption,
   ReleaseCalendarFilters as ReleaseFilters,
 } from '@props/publisher/release-calendar.props';
-import { usePostRepurposeModal } from '@providers/global-modals/global-modals.provider';
+import {
+  useConfirmModal,
+  usePostRepurposeModal,
+} from '@providers/global-modals/global-modals.provider';
 import { ArticlesService } from '@services/content/articles.service';
 import { PostingCadencesService } from '@services/content/posting-cadences.service';
 import { PostsService } from '@services/content/posts.service';
@@ -51,7 +57,8 @@ import { Button } from '@ui/primitives/button';
 import { Calendar, FileText, List, Repeat } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const WRITE_ARTICLE_AGENT_HREF = buildAgentPromptHref(
   'Help me write a new long-form article for my brand.',
@@ -61,7 +68,15 @@ const CREATE_POST_AGENT_HREF = buildAgentPromptHref(
 );
 
 import CadenceFormSheet from './cadence-form-sheet';
-import { getContentCalendarEventColor } from './calendar-item-color.helper';
+import {
+  aggregateCalendarItemsByDay,
+  isMissingCalendarSlot,
+  isUnfilledCalendarSlot,
+} from './calendar-day-aggregate';
+import {
+  CALENDAR_SLOT_EVENT_COLOR,
+  getContentCalendarEventColor,
+} from './calendar-item-color.helper';
 import CalendarSlotDrawer from './calendar-slot-drawer';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
@@ -93,8 +108,16 @@ interface SlotContentCalendarItem extends CalendarItem {
   slot: ICalendarSlot;
 }
 
+interface DayAggregateContentCalendarItem extends CalendarItem {
+  filledCount: number;
+  itemType: 'day-aggregate';
+  missingCount: number;
+  missingIdentityKeys: string[];
+}
+
 type ContentCalendarItem =
   | ArticleContentCalendarItem
+  | DayAggregateContentCalendarItem
   | ReleaseContentCalendarItem
   | SlotContentCalendarItem;
 
@@ -114,9 +137,11 @@ function releaseInstant(release: IReleaseGroup): string | undefined {
 }
 
 export default function ContentCalendarPage(): React.JSX.Element {
-  const { brandId, credentials } = useBrand();
+  const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.publish.calendar');
+  const { openConfirm } = useConfirmModal();
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -160,7 +185,16 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [drawerError, setDrawerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [calendarView, setCalendarView] = useState<CalendarViewKey>('week');
+  const [isBulkPending, setIsBulkPending] = useState(false);
+  const bulkAbortRef = useRef<AbortController | null>(null);
   const [dateRange, setDateRange] = useCalendarWeekRange();
+
+  useEffect(() => {
+    return () => {
+      bulkAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!dateRange) {
@@ -290,8 +324,46 @@ export default function ContentCalendarPage(): React.JSX.Element {
       title: slot.format,
     }));
 
-    return [...releaseItems, ...articleItems, ...slotItems];
-  }, [articles, releases, slots]);
+    if (calendarView !== 'month') {
+      return [...releaseItems, ...articleItems, ...slotItems];
+    }
+
+    const aggregates = aggregateCalendarItemsByDay([
+      ...releaseItems.map((item) => ({
+        instant: String(item.scheduledDate ?? ''),
+        kind: 'filled' as const,
+      })),
+      ...articleItems.map((item) => ({
+        instant: String(item.scheduledDate ?? ''),
+        kind: 'filled' as const,
+      })),
+      ...slotItems
+        .filter((item) => isUnfilledCalendarSlot(item.slot))
+        .map((item) => ({
+          identityKey: isMissingCalendarSlot(item.slot)
+            ? item.slot.identityKey
+            : undefined,
+          instant: item.slot.instant,
+          kind: 'missing' as const,
+        })),
+    ]);
+
+    return aggregates.map(
+      (aggregate): DayAggregateContentCalendarItem => ({
+        filledCount: aggregate.filledCount,
+        id: `day:${aggregate.dayKey}`,
+        itemType: 'day-aggregate',
+        missingCount: aggregate.missingCount,
+        missingIdentityKeys: aggregate.missingIdentityKeys,
+        scheduledDate: aggregate.instant,
+        status: 'aggregate',
+        title: translate('monthDaySummary', {
+          filled: aggregate.filledCount,
+          missing: aggregate.missingCount,
+        }),
+      }),
+    );
+  }, [articles, calendarView, releases, slots, translate]);
 
   const selectedRelease = useMemo(
     () => releases.find((release) => release.id === selectedReleaseId) ?? null,
@@ -310,6 +382,20 @@ export default function ContentCalendarPage(): React.JSX.Element {
       })),
     [credentials],
   );
+
+  const preferredTimes = useMemo(() => {
+    const visibleCredentials = filters.credentialId.length
+      ? credentials.filter((credential) =>
+          filters.credentialId.includes(credential.id),
+        )
+      : credentials;
+    return normalizePostingTimes(
+      visibleCredentials.flatMap((credential) => credential.postingTimes ?? []),
+    );
+  }, [credentials, filters.credentialId]);
+
+  const timezone =
+    selectedBrand?.agentConfig?.schedule?.timezone?.trim() || 'UTC';
 
   const platformOptions: ReleaseCalendarFilterOption[] = useMemo(() => {
     const seen = new Map<string, ReleaseCalendarFilterOption>();
@@ -361,8 +447,131 @@ export default function ContentCalendarPage(): React.JSX.Element {
     [getReleaseGroupsService, notificationsService],
   );
 
+  const missingIdentityKeys = useMemo(
+    () =>
+      slots
+        .filter((slot) => isMissingCalendarSlot(slot))
+        .map((slot) => slot.identityKey),
+    [slots],
+  );
+
+  const isAbortError = useCallback((error: unknown): boolean => {
+    return (
+      (error instanceof Error && error.name === 'CanceledError') ||
+      (typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'ERR_CANCELED')
+    );
+  }, []);
+
+  const runBulkGenerate = useCallback(
+    async (identityKeys: string[]): Promise<void> => {
+      if (identityKeys.length === 0) {
+        return;
+      }
+
+      bulkAbortRef.current?.abort();
+      const abort = new AbortController();
+      bulkAbortRef.current = abort;
+      setIsBulkPending(true);
+
+      try {
+        const service = await getPostingCadencesService();
+        const result = await service.generateBulk(
+          {
+            confirmedCount: identityKeys.length,
+            identityKeys,
+          },
+          abort.signal,
+        );
+        const completedKeys = new Set(
+          result.completed.map((slot) => slot.identityKey),
+        );
+        setSlots((current) =>
+          current.filter((slot) => !completedKeys.has(slot.identityKey)),
+        );
+        setSelectedSlot((current) =>
+          current && completedKeys.has(current.identityKey) ? null : current,
+        );
+
+        if (result.isCreditsExhausted) {
+          notificationsService.error(
+            translate('bulkGenerateCreditsStop', {
+              completed: result.completedCount,
+              remaining: result.remainingCount,
+              total: identityKeys.length,
+            }),
+          );
+          return;
+        }
+
+        if (result.isCancelled) {
+          return;
+        }
+
+        if (result.remainingCount > 0) {
+          notificationsService.success(
+            translate('bulkGeneratePartial', {
+              completed: result.completedCount,
+              remaining: result.remainingCount,
+              total: identityKeys.length,
+            }),
+          );
+          return;
+        }
+
+        notificationsService.success(
+          translate('bulkGenerateSuccess', { count: result.completedCount }),
+        );
+      } catch (error) {
+        if (abort.signal.aborted || isAbortError(error)) {
+          return;
+        }
+        notificationsService.error(mutationErrorMessage(error));
+      } finally {
+        if (bulkAbortRef.current === abort) {
+          bulkAbortRef.current = null;
+        }
+        setIsBulkPending(false);
+      }
+    },
+    [getPostingCadencesService, isAbortError, notificationsService, translate],
+  );
+
+  const confirmBulkGenerate = useCallback(
+    (identityKeys: string[]): void => {
+      if (identityKeys.length === 0 || isBulkPending) {
+        return;
+      }
+
+      openConfirm({
+        confirmLabel: translate('bulkGenerateConfirm', {
+          count: identityKeys.length,
+        }),
+        label: translate('bulkGenerateConfirmTitle', {
+          count: identityKeys.length,
+        }),
+        message: translate('bulkGenerateConfirmMessage', {
+          count: identityKeys.length,
+        }),
+        onConfirm: () => {
+          void runBulkGenerate(identityKeys);
+        },
+      });
+    },
+    [isBulkPending, openConfirm, runBulkGenerate, translate],
+  );
+
   const handleEventClick = useCallback(
     (item: ContentCalendarItem) => {
+      if (item.itemType === 'day-aggregate') {
+        if (item.missingIdentityKeys.length > 0) {
+          confirmBulkGenerate(item.missingIdentityKeys);
+        }
+        return;
+      }
+
       if (item.itemType === 'slot') {
         setSelectedSlot(item.slot);
         return;
@@ -382,7 +591,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
       setDrawerError(null);
       setSelectedReleaseId(item.release.id);
     },
-    [href, push],
+    [confirmBulkGenerate, href, push],
   );
 
   const handleDatesChange = useCallback(
@@ -392,32 +601,90 @@ export default function ContentCalendarPage(): React.JSX.Element {
     [setDateRange],
   );
 
-  const getEventColor = useCallback(
-    (item: ContentCalendarItem) => getContentCalendarEventColor(item),
-    [],
-  );
+  const getEventColor = useCallback((item: ContentCalendarItem) => {
+    if (item.itemType === 'day-aggregate') {
+      return CALENDAR_SLOT_EVENT_COLOR;
+    }
+
+    return getContentCalendarEventColor(item);
+  }, []);
 
   const getEventBadge = useCallback(
-    (item: ContentCalendarItem): CalendarEventBadge | null =>
-      item.itemType === 'release'
-        ? releaseStatusBadge(item.release)
-        : item.itemType === 'slot'
-          ? {
-              label:
-                item.slot.state === CalendarSlotState.GENERATE_FAILED
-                  ? 'failed'
-                  : item.slot.state === CalendarSlotState.GENERATING
-                    ? 'generating'
-                    : 'missing',
-              tone:
-                item.slot.state === CalendarSlotState.GENERATE_FAILED
-                  ? 'danger'
-                  : item.slot.state === CalendarSlotState.GENERATING
-                    ? 'warning'
-                    : 'muted',
-            }
-          : null,
-    [],
+    (item: ContentCalendarItem): CalendarEventBadge | null => {
+      if (item.itemType === 'release') {
+        return releaseStatusBadge(item.release);
+      }
+      if (item.itemType === 'day-aggregate') {
+        return {
+          label: translate('monthDaySummary', {
+            filled: item.filledCount,
+            missing: item.missingCount,
+          }),
+          tone: 'muted',
+        };
+      }
+      if (item.itemType !== 'slot') {
+        return null;
+      }
+      return {
+        label:
+          item.slot.state === CalendarSlotState.GENERATE_FAILED
+            ? 'failed'
+            : item.slot.state === CalendarSlotState.GENERATING
+              ? 'generating'
+              : 'missing',
+        tone:
+          item.slot.state === CalendarSlotState.GENERATE_FAILED
+            ? 'danger'
+            : item.slot.state === CalendarSlotState.GENERATING
+              ? 'warning'
+              : 'muted',
+      };
+    },
+    [translate],
+  );
+
+  const generateSlotByIdentity = useCallback(
+    async (identityKey: string, brief?: string): Promise<void> => {
+      setIsSlotPending(true);
+      try {
+        const service = await getPostingCadencesService();
+        const filled = await service.generate({ brief, identityKey });
+        setSlots((current) =>
+          current.filter((slot) => slot.identityKey !== filled.identityKey),
+        );
+        setSelectedSlot((current) =>
+          current?.identityKey === filled.identityKey ? null : current,
+        );
+        notificationsService.success('Slot generated.');
+      } catch (error) {
+        notificationsService.error(mutationErrorMessage(error));
+      } finally {
+        setIsSlotPending(false);
+      }
+    },
+    [getPostingCadencesService, notificationsService],
+  );
+
+  const getEventActions = useCallback(
+    (item: ContentCalendarItem): CalendarEventAction[] => {
+      if (
+        item.itemType !== 'slot' ||
+        item.slot.state !== CalendarSlotState.MISSING
+      ) {
+        return [];
+      }
+      return [
+        {
+          id: 'generate',
+          label: translate('generate'),
+          onClick: () => {
+            void generateSlotByIdentity(item.slot.identityKey);
+          },
+        },
+      ];
+    },
+    [generateSlotByIdentity, translate],
   );
 
   /**
@@ -622,27 +889,9 @@ export default function ContentCalendarPage(): React.JSX.Element {
       if (!selectedSlot) {
         return;
       }
-      setIsSlotPending(true);
-      void (async () => {
-        try {
-          const service = await getPostingCadencesService();
-          const filled = await service.generate({
-            brief,
-            identityKey: selectedSlot.identityKey,
-          });
-          setSlots((current) =>
-            current.filter((slot) => slot.identityKey !== filled.identityKey),
-          );
-          setSelectedSlot(null);
-          notificationsService.success('Slot generated.');
-        } catch (error) {
-          notificationsService.error(mutationErrorMessage(error));
-        } finally {
-          setIsSlotPending(false);
-        }
-      })();
+      void generateSlotByIdentity(selectedSlot.identityKey, brief);
     },
-    [getPostingCadencesService, notificationsService, selectedSlot],
+    [generateSlotByIdentity, selectedSlot],
   );
 
   const handleWriteSlot = useCallback(() => {
@@ -795,6 +1044,28 @@ export default function ContentCalendarPage(): React.JSX.Element {
         <Repeat className="size-4" />
         Cadence
       </Button>
+      {missingIdentityKeys.length > 0 ? (
+        <Button
+          aria-label={translate('bulkGenerate', {
+            count: missingIdentityKeys.length,
+          })}
+          isDisabled={isBulkPending}
+          onClick={() => confirmBulkGenerate(missingIdentityKeys)}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+        >
+          {translate('bulkGenerate', { count: missingIdentityKeys.length })}
+        </Button>
+      ) : null}
+      {isBulkPending ? (
+        <Button
+          onClick={() => bulkAbortRef.current?.abort()}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+        >
+          {translate('cancelBulk')}
+        </Button>
+      ) : null}
       <ReleaseCalendarFilters
         credentialOptions={credentialOptions}
         filters={filters}
@@ -920,9 +1191,13 @@ export default function ContentCalendarPage(): React.JSX.Element {
       onEventClick={handleEventClick}
       onDateClick={handleDateClick}
       onDatesChange={handleDatesChange}
+      onViewChange={setCalendarView}
       getEventColor={getEventColor}
       getEventBadge={getEventBadge}
+      preferredTimes={preferredTimes}
+      timezone={timezone}
       getEventChannels={getEventChannels}
+      getEventActions={getEventActions}
       isItemDraggable={isItemDraggable}
       onEventDrop={handleEventDrop}
       filterControls={filterControls}

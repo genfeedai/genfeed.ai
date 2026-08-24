@@ -4,6 +4,7 @@
  * adapter mapping, claim/replay/recovery state, and jsonb persistence stay real.
  */
 
+import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { PausedMetaCampaignDraftResult } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import type { PausedXAdsCampaignDraftResult } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
@@ -536,9 +537,11 @@ describeWithDatabase('Brand remix paid draft integration', () => {
       prepareX?: ReturnType<typeof vi.fn>;
     },
   ): BrandRemixRunsService =>
-    new BrandRemixRunsService(
-      prisma,
-      {
+    assembleBrandRemixRunsGraph({
+      adsResearchService: (options?.adsResearchService ?? {}) as never,
+      avatarVideoGenerationService: {} as never,
+      batchGenerationService: {} as never,
+      brandsService: {
         findOne: vi.fn().mockResolvedValue({
           agentConfig: {},
           description: 'Operational content systems.',
@@ -550,24 +553,26 @@ describeWithDatabase('Brand remix paid draft integration', () => {
         }),
         resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
       } as never,
-      { findOne: vi.fn().mockResolvedValue(null) } as never,
-      (options?.adsResearchService ?? {}) as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      { prepare } as never,
-      (options?.prepareX ? { prepare: options.prepareX } : {}) as never,
-      {} as never,
-      {} as never,
-      {
+      byokService: {
         isByokActiveForProvider: vi.fn().mockResolvedValue(false),
         isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
       } as never,
-      { now: () => NOW, randomId: () => 'unused-random-id' },
-    );
+      contentGeneratorService: {} as never,
+      creditsUtilsService: {} as never,
+      imageGenerationService: {} as never,
+      organizationSettingsService: {
+        findOne: vi.fn().mockResolvedValue(null),
+      } as never,
+      pausedMetaCampaignDraftService: { prepare } as never,
+      pausedXAdsCampaignDraftService: (options?.prepareX
+        ? { prepare: options.prepareX }
+        : {}) as never,
+      prisma,
+      runtime: { now: () => NOW, randomId: () => 'unused-random-id' },
+      systemWorkflowProvenanceService: {} as never,
+      trendReferenceCorpusService: {} as never,
+      videoGenerationService: {} as never,
+    }).service;
 });
 
 const approvedExecution = (fixture: RemixFixture, objective: string) => ({

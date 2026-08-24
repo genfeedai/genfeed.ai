@@ -19,11 +19,13 @@ import {
 
 export class CreateCampaignTargetDto {
   @IsEntityId()
+  @IsOptional()
   @ApiProperty({
-    description: 'Organization that owns this target',
-    required: true,
+    description:
+      'Ignored when present. Organization is derived from the parent campaign.',
+    required: false,
   })
-  organizationId!: string;
+  organizationId?: string;
 
   @IsEntityId()
   @ApiProperty({
@@ -85,6 +87,31 @@ export class CreateCampaignTargetDto {
     required: false,
   })
   recipientUsername?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Resolved user id of a direct-message recipient',
+    required: false,
+  })
+  recipientUserId?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Direct-message text to send or that was sent',
+    required: false,
+  })
+  dmText?: string;
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  @ApiProperty({
+    description: 'When the direct message was sent',
+    required: false,
+  })
+  dmSentAt?: Date;
 
   @IsString()
   @IsOptional()
@@ -165,6 +192,15 @@ export class CreateCampaignTargetDto {
     required: false,
   })
   scheduledAt?: Date;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({
+    default: 1,
+    description: 'Schedule version used to reject stale due-time claims',
+    required: false,
+  })
+  scheduleVersion?: number;
 
   @IsEnum(CampaignTargetStatus)
   @IsOptional()
