@@ -37,6 +37,27 @@ describe('system workflow catalog', () => {
     expect(getSystemWorkflowCatalogEntry('does-not-exist')).toBeNull();
   });
 
+  it('lists outreach campaign dispatch as an installable, schedule-enabled entry (#3407)', () => {
+    const entry = getSystemWorkflowCatalogEntry('outreach-campaign-dispatch');
+
+    expect(entry).toMatchObject({
+      canonicalId: 'outreach-campaign-dispatch',
+      family: 'outreach-campaign-dispatch',
+      installable: true,
+      isScheduleEnabled: true,
+      schedule: '*/1 * * * *',
+      sourceIssue: 3407,
+    });
+    expect(entry?.nodes.map((node) => node.type)).toEqual([
+      'outreachCampaignDispatch',
+    ]);
+    expect(
+      listInstallableSystemWorkflowCatalog().some(
+        (item) => item.canonicalId === 'outreach-campaign-dispatch',
+      ),
+    ).toBe(true);
+  });
+
   it('lists the content loop autopilot workflow as an installable, schedule-enabled entry (#3018)', () => {
     const entry = getSystemWorkflowCatalogEntry('content-loop-autopilot');
 

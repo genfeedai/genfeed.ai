@@ -26,6 +26,7 @@ import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/service
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
+import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
@@ -144,6 +145,8 @@ export class WorkflowEngineAdapterService {
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
     @Optional()
     private readonly xAdsInspirationWorkflowService?: XAdsInspirationWorkflowService,
+    @Optional()
+    private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -217,6 +220,7 @@ export class WorkflowEngineAdapterService {
       this.livestreamBotWorkflowService,
       this.winnerPromotionWorkflowService,
       this.xAdsInspirationWorkflowService,
+      this.outreachCampaignDispatchWorkflowService,
     );
     this.trendPublishRegistrar =
       new WorkflowTrendPublishExecutorRegistrarService(

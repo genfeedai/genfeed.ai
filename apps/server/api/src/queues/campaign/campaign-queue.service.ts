@@ -1,10 +1,8 @@
 /**
  * Campaign Queue Service
  *
- * Manages BullMQ jobs for campaign processing:
- * - Processing active campaigns
- * - Scheduling targets for execution
- * - Managing rate-limited job execution
+ * Enqueues BullMQ jobs for outreach campaign processing. Recurring dispatch is
+ * owned by the outreach-campaign-dispatch system workflow, not a static @Cron.
  */
 
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
@@ -19,6 +17,25 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
+
+export const CAMPAIGN_PROCESSING_JOB_NAME = 'process';
+export const MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH = 20;
+
+export type CampaignDispatchStatus = 'completed' | 'failed' | 'skipped';
+
+export interface CampaignDispatchResult {
+  alreadyQueued: number;
+  enqueued: number;
+  failed: number;
+  organizationId: string;
+  reason?: string;
+  skipped: number;
+  status: CampaignDispatchStatus;
+}
+
+export function buildCampaignProcessingJobId(campaignId: string): string {
+  return `campaign-${campaignId}`;
+}
 
 @Injectable()
 export class CampaignQueueService implements OnModuleInit {
@@ -37,38 +54,145 @@ export class CampaignQueueService implements OnModuleInit {
   }
 
   /**
-   * Cron job to process active campaigns every 2 minutes
-   * Currently disabled - uncomment to enable
+   * Queue processing for every eligible active campaign in one organization.
+   * Production owner is the outreach-campaign-dispatch workflow executor.
    */
-  // @Cron(CronExpression.EVERY_MINUTE)
-  async scheduledProcessing(): Promise<void> {
+  async dispatchActiveCampaigns(
+    organizationId: string,
+  ): Promise<CampaignDispatchResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
+    if (!organizationId) {
+      return this.emptyDispatch(organizationId, 'organization_id_required');
+    }
+
+    if (!this.campaignsService) {
+      this.logger.error(`${url} skipped`, {
+        organizationId,
+        reason: 'campaigns_service_unavailable',
+      });
+      return this.emptyDispatch(
+        organizationId,
+        'campaigns_service_unavailable',
+      );
+    }
+
+    if (!this.campaignQueue) {
+      this.logger.error(`${url} skipped`, {
+        organizationId,
+        reason: 'campaign_queue_unavailable',
+      });
+      return this.emptyDispatch(organizationId, 'campaign_queue_unavailable');
+    }
+
     try {
-      // Get all active campaigns
-      const activeCampaigns = await this.getActiveCampaigns();
+      const campaigns = await this.campaignsService.find({
+        isDeleted: false,
+        organizationId,
+        status: CampaignStatus.ACTIVE,
+      });
 
       this.logger.log(`${url} starting`, {
-        campaignCount: activeCampaigns.length,
+        campaignCount: campaigns.length,
+        organizationId,
       });
 
-      for (const campaign of activeCampaigns) {
-        await this.queueCampaignProcessing(
-          campaign.id,
-          campaign.organizationId,
-        );
+      let alreadyQueued = 0;
+      let enqueued = 0;
+      let failed = 0;
+      let skipped = 0;
+      const bounded = campaigns.slice(0, MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH);
+
+      if (campaigns.length > bounded.length) {
+        skipped += campaigns.length - bounded.length;
+        this.logger.log(`${url} bounded active-campaign scan`, {
+          bounded: bounded.length,
+          organizationId,
+          total: campaigns.length,
+        });
       }
 
+      for (const campaign of bounded) {
+        const campaignId = String(campaign.id);
+        if (
+          !campaignId ||
+          campaign.organizationId !== organizationId ||
+          campaign.isDeleted === true
+        ) {
+          skipped += 1;
+          continue;
+        }
+
+        try {
+          const outcome = await this.enqueueCampaignProcessing(
+            campaignId,
+            organizationId,
+          );
+          if (outcome === 'already_queued') {
+            alreadyQueued += 1;
+          } else {
+            enqueued += 1;
+          }
+        } catch {
+          failed += 1;
+          this.logger.error(`${url} enqueue failed`, {
+            campaignId,
+            organizationId,
+            reason: 'campaign_enqueue_failed',
+          });
+        }
+      }
+
+      const status: CampaignDispatchStatus =
+        failed > 0 && enqueued === 0 && alreadyQueued === 0
+          ? 'failed'
+          : campaigns.length === 0
+            ? 'skipped'
+            : 'completed';
+
       this.logger.log(`${url} completed`, {
-        jobsQueued: activeCampaigns.length,
+        alreadyQueued,
+        enqueued,
+        failed,
+        organizationId,
+        skipped,
+        status,
       });
-    } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
+
+      return {
+        alreadyQueued,
+        enqueued,
+        failed,
+        organizationId,
+        reason:
+          campaigns.length === 0
+            ? 'no_active_campaigns'
+            : failed > 0
+              ? 'campaign_enqueue_failed'
+              : undefined,
+        skipped,
+        status,
+      };
+    } catch {
+      this.logger.error(`${url} failed`, {
+        organizationId,
+        reason: 'campaign_dispatch_failed',
+      });
+      return {
+        alreadyQueued: 0,
+        enqueued: 0,
+        failed: 1,
+        organizationId,
+        reason: 'campaign_dispatch_failed',
+        skipped: 0,
+        status: 'failed',
+      };
     }
   }
 
   /**
-   * Manually trigger processing for a specific campaign
+   * Manually trigger processing for a specific campaign.
+   * Queue failures surface to the caller; already-queued is idempotent success.
    */
   async triggerProcessing(
     campaignId: string,
@@ -77,90 +201,68 @@ export class CampaignQueueService implements OnModuleInit {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const job = await this.queueCampaignProcessing(
+      const outcome = await this.enqueueCampaignProcessing(
         campaignId,
         organizationId,
       );
+      const jobId = buildCampaignProcessingJobId(campaignId);
 
       this.logger.log(`${url} triggered`, {
         campaignId,
-        jobId: job.id,
+        jobId,
         organizationId,
+        outcome,
       });
 
-      return job.id;
+      return jobId;
     } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
+      this.logger.error(`${url} failed`, {
+        campaignId,
+        organizationId,
+        reason: 'campaign_enqueue_failed',
+      });
       throw error;
     }
   }
 
   /**
-   * Queue a campaign processing job
-   * Uses deterministic job ID to prevent duplicate jobs without scanning the queue
+   * Queue a campaign processing job with a deterministic job id so overlapping
+   * ticks and retries cannot create a second in-flight send.
    */
-  private async queueCampaignProcessing(
+  private async enqueueCampaignProcessing(
     campaignId: string,
     organizationId: string,
-  ): Promise<{ id?: string }> {
-    // Use deterministic job ID - BullMQ will reject duplicates automatically
-    const jobId = `campaign-${campaignId}`;
+  ): Promise<'already_queued' | 'enqueued'> {
+    if (!this.campaignQueue) {
+      throw new Error('campaign_queue_unavailable');
+    }
 
-    try {
-      // Check if job already exists to prevent duplicate processing.
-      const reservation = await reserveIdempotentJob(this.campaignQueue, jobId);
-      if (reservation.alreadyQueued) {
-        this.logger.log(
-          `${this.constructorName} skipping - job already queued`,
-          { campaignId, jobId, state: reservation.state },
-        );
-        return { id: undefined };
-      }
-
-      return this.campaignQueue.add(
-        'process',
-        {
-          campaignId,
-          organizationId,
-        },
-        {
-          jobId,
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-      );
-    } catch (error) {
-      // If job ID already exists and is active, BullMQ throws an error
-      this.logger.log(`${this.constructorName} job already exists`, {
+    const jobId = buildCampaignProcessingJobId(campaignId);
+    const reservation = await reserveIdempotentJob(this.campaignQueue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.log(`${this.constructorName} skipping - job already queued`, {
         campaignId,
-        error,
+        jobId,
+        organizationId,
+        state: reservation.state,
       });
-      return { id: undefined };
+      return 'already_queued';
     }
-  }
 
-  /**
-   * Get all active campaigns
-   */
-  private async getActiveCampaigns(): Promise<
-    Array<{ id: string; organizationId: string }>
-  > {
-    try {
-      const campaigns = await this.campaignsService.find({
-        status: CampaignStatus.ACTIVE,
-      });
+    await this.campaignQueue.add(
+      CAMPAIGN_PROCESSING_JOB_NAME,
+      {
+        campaignId,
+        organizationId,
+      },
+      {
+        jobId,
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+    );
 
-      return campaigns.map((campaign) => ({
-        id: campaign.id.toString(),
-        organizationId: campaign.organizationId,
-      }));
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName} getActiveCampaigns failed`,
-        error,
-      );
-      return [];
-    }
+    return 'enqueued';
   }
 
   /**
@@ -196,5 +298,20 @@ export class CampaignQueueService implements OnModuleInit {
   async resumeProcessing(): Promise<void> {
     await this.campaignQueue.resume();
     this.logger.log(`${this.constructorName} processing resumed`);
+  }
+
+  private emptyDispatch(
+    organizationId: string,
+    reason: string,
+  ): CampaignDispatchResult {
+    return {
+      alreadyQueued: 0,
+      enqueued: 0,
+      failed: 0,
+      organizationId,
+      reason,
+      skipped: 0,
+      status: 'skipped',
+    };
   }
 }

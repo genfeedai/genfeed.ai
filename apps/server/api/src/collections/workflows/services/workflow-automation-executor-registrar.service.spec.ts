@@ -203,3 +203,106 @@ describe('WorkflowAutomationExecutorRegistrarService — x ads inspiration', () 
     });
   });
 });
+
+/**
+ * #3407: outreach campaign dispatch must be wired to
+ * `OutreachCampaignDispatchWorkflowService`, and degrade to a diagnosable skip
+ * when the service is unavailable — never a thrown "no executor registered".
+ */
+describe('WorkflowAutomationExecutorRegistrarService — outreach campaign dispatch', () => {
+  const helper = {
+    wrapEngineExecutor: () => async () => ({}),
+  } as unknown as WorkflowEngineExecutorHelperService;
+
+  function register(
+    outreachCampaignDispatchWorkflowService?: unknown,
+  ): WorkflowEngine {
+    const engine = new WorkflowEngine();
+    new WorkflowAutomationExecutorRegistrarService(
+      helper,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      outreachCampaignDispatchWorkflowService as never,
+    ).register(engine);
+    return engine;
+  }
+
+  it('registers the outreachCampaignDispatch node type', () => {
+    const engine = register({
+      runActiveCampaignDispatch: vi.fn(),
+    });
+
+    expect(engine.getRegisteredNodeTypes()).toContain(
+      'outreachCampaignDispatch',
+    );
+  });
+
+  it('delegates to OutreachCampaignDispatchWorkflowService.runActiveCampaignDispatch scoped to the run organization', async () => {
+    const runActiveCampaignDispatch = vi.fn().mockResolvedValue({
+      action: 'outreachCampaignDispatch',
+      alreadyQueued: 0,
+      enqueued: 2,
+      failed: 0,
+      organizationId: 'org-1',
+      skipped: 0,
+      status: 'completed',
+    });
+    const engine = register({ runActiveCampaignDispatch });
+
+    const executor = engine.getExecutor('outreachCampaignDispatch');
+    const output = await executor?.(
+      {
+        config: {},
+        id: 'n1',
+        inputs: [],
+        label: 'n1',
+        type: 'outreachCampaignDispatch',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'wf-1',
+      },
+    );
+
+    expect(runActiveCampaignDispatch).toHaveBeenCalledWith('org-1');
+    expect(output).toMatchObject({ enqueued: 2, status: 'completed' });
+  });
+
+  it('skips diagnosably instead of throwing when the service is unavailable', async () => {
+    const engine = register(undefined);
+
+    const executor = engine.getExecutor('outreachCampaignDispatch');
+    const output = await executor?.(
+      {
+        config: {},
+        id: 'n1',
+        inputs: [],
+        label: 'n1',
+        type: 'outreachCampaignDispatch',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'wf-1',
+      },
+    );
+
+    expect(output).toMatchObject({
+      reason: 'outreach_campaign_dispatch_service_unavailable',
+      status: 'skipped',
+    });
+  });
+});

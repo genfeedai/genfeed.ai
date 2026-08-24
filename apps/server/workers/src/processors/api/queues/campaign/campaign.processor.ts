@@ -2,8 +2,8 @@
  * Campaign Processor
  *
  * BullMQ worker that processes campaign jobs:
- * - Fetches campaign and pending targets
- * - Executes targets with rate limiting
+ * - Reloads the campaign under organization + active + non-deleted scope
+ * - Executes pending targets with rate limiting
  * - Updates campaign statistics
  */
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
@@ -69,32 +69,32 @@ export class CampaignProcessor extends WorkerHost {
     try {
       await job.updateProgress(10);
 
-      // Fetch campaign
       const campaign = await this.campaignsService.findOne({
         id: campaignId,
-        organizationId: organizationId,
+        isDeleted: false,
+        organizationId,
       });
 
-      if (!campaign) {
-        this.logger.error(`Campaign ${campaignId} not found`);
-        throw new Error(`Campaign ${campaignId} not found`);
+      const ineligibleReason = this.ineligibleReason(
+        campaign,
+        campaignId,
+        organizationId,
+      );
+      if (ineligibleReason) {
+        this.logger.log(`Campaign ${campaignId} is ineligible, skipping`, {
+          campaignId,
+          organizationId,
+          reason: ineligibleReason,
+        });
+        return this.emptyResult(campaignId);
       }
 
-      // Check if campaign is still active
-      if (campaign.status !== CampaignStatus.ACTIVE) {
-        this.logger.log(`Campaign ${campaignId} is not active, skipping`);
-        return {
-          campaignId,
-          failed: 0,
-          processed: 0,
-          skipped: 0,
-          successful: 0,
-        };
+      if (!campaign) {
+        return this.emptyResult(campaignId);
       }
 
       await job.updateProgress(30);
 
-      // Branch by campaign type
       const results =
         campaign.campaignType === CampaignType.DM_OUTREACH
           ? await this.dmCampaignExecutorService.processPendingDmTargets(
@@ -121,16 +121,61 @@ export class CampaignProcessor extends WorkerHost {
         summary,
       );
 
-      // Check if all targets have been processed
       if (results.processed === 0) {
         await this.checkCampaignCompletion(campaignId, organizationId);
       }
 
       return summary;
     } catch (error: unknown) {
-      this.logger.error(`Campaign processing failed for ${campaignId}`, error);
+      this.logger.error(`Campaign processing failed for ${campaignId}`, {
+        campaignId,
+        organizationId,
+        reason: 'campaign_processing_failed',
+      });
       throw error;
     }
+  }
+
+  private ineligibleReason(
+    campaign: {
+      isDeleted?: boolean;
+      organizationId?: string;
+      status?: string;
+    } | null,
+    campaignId: string,
+    organizationId: string,
+  ): string | undefined {
+    if (!campaign) {
+      return 'campaign_not_found';
+    }
+
+    if (campaign.isDeleted === true) {
+      return 'campaign_deleted';
+    }
+
+    if (campaign.organizationId !== organizationId) {
+      return 'organization_mismatch';
+    }
+
+    if (campaign.status !== CampaignStatus.ACTIVE) {
+      return 'campaign_not_active';
+    }
+
+    if (!campaignId) {
+      return 'campaign_id_required';
+    }
+
+    return undefined;
+  }
+
+  private emptyResult(campaignId: string): CampaignProcessingResult {
+    return {
+      campaignId,
+      failed: 0,
+      processed: 0,
+      skipped: 1,
+      successful: 0,
+    };
   }
 
   /**
@@ -149,8 +194,6 @@ export class CampaignProcessor extends WorkerHost {
       return;
     }
 
-    // If no pending targets and campaign is active, it might be complete
-    // The frontend can determine this based on target stats
     this.logger.log(
       `Campaign ${campaignId} has no pending targets to process`,
       {

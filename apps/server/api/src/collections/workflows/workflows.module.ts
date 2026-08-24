@@ -36,6 +36,7 @@ import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapte
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
+import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
@@ -177,6 +178,7 @@ import { Module } from '@nestjs/common';
     WorkflowGenerationService,
     ReplyPollingWorkflowService,
     LivestreamBotWorkflowService,
+    OutreachCampaignDispatchWorkflowService,
     ReviewGateNotificationService,
     WorkflowRunControlService,
     WorkflowSchedulerService,

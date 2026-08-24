@@ -5,6 +5,7 @@ import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/service
 import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
+import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
@@ -28,6 +29,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
     private readonly xAdsInspirationWorkflowService?: XAdsInspirationWorkflowService,
+    private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -41,6 +43,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerLivestreamBotExecutors(engine);
     this.registerWinnerPromotionExecutors(engine);
     this.registerXAdsInspirationExecutors(engine);
+    this.registerOutreachCampaignDispatchExecutors(engine);
   }
 
   private registerAdAutomationExecutors(engine: WorkflowEngine): void {
@@ -296,6 +299,23 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
   }
 
+  private registerOutreachCampaignDispatchExecutors(
+    engine: WorkflowEngine,
+  ): void {
+    engine.registerExecutor(
+      'outreachCampaignDispatch',
+      (_node, _inputs, context) =>
+        this.outreachCampaignDispatchWorkflowService
+          ? this.outreachCampaignDispatchWorkflowService.runActiveCampaignDispatch(
+              context.organizationId,
+            )
+          : this.outreachCampaignDispatchUnavailable(
+              'outreachCampaignDispatch',
+              context,
+            ),
+    );
+  }
+
   private async winnerPromotionUnavailable(
     action: string,
     context: ExecutionContext,
@@ -323,6 +343,22 @@ export class WorkflowAutomationExecutorRegistrarService {
       organizationId: context.organizationId,
       reason: 'x_ads_inspiration_service_unavailable',
       recordsIngested: 0,
+      skipped: 1,
+      status: 'skipped',
+    };
+  }
+
+  private async outreachCampaignDispatchUnavailable(
+    action: string,
+    context: ExecutionContext,
+  ) {
+    return {
+      action,
+      alreadyQueued: 0,
+      enqueued: 0,
+      failed: 0,
+      organizationId: context.organizationId,
+      reason: 'outreach_campaign_dispatch_service_unavailable',
       skipped: 1,
       status: 'skipped',
     };

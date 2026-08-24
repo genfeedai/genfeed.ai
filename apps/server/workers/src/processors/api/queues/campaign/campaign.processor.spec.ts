@@ -2,177 +2,189 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
+import type { CampaignProcessingJobData } from '@genfeedai/queue-contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  type CampaignProcessingJobData,
-  CampaignProcessor,
-} from '@workers/processors/api/queues/campaign/campaign.processor';
+import { CampaignProcessor } from '@workers/processors/api/queues/campaign/campaign.processor';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type CampaignRow = {
+  campaignType?: string;
+  id: string;
+  isDeleted?: boolean;
+  organizationId: string;
+  status: string;
+};
+
+function createJob(
+  data: CampaignProcessingJobData,
+  id = 'job-1',
+): Job<CampaignProcessingJobData> {
+  return {
+    data,
+    id,
+    updateProgress: vi.fn(),
+  } as unknown as Job<CampaignProcessingJobData>;
+}
+
 describe('CampaignProcessor', () => {
   let processor: CampaignProcessor;
-  let campaignsService: OutreachCampaignsService;
-  let campaignExecutorService: CampaignExecutorService;
-  let dmCampaignExecutorService: DmCampaignExecutorService;
-  let logger: LoggerService;
+  const campaignsService = {
+    findOne: vi.fn(),
+    findOneById: vi.fn(),
+  };
+  const campaignExecutorService = {
+    processPendingTargets: vi.fn(),
+  };
+  const dmCampaignExecutorService = {
+    processPendingDmTargets: vi.fn(),
+  };
+  const logger = {
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
 
   beforeEach(() => {
-    campaignsService = {
-      findOne: vi.fn(),
-      findOneById: vi.fn(),
-    } as any;
-
-    campaignExecutorService = {
-      processPendingTargets: vi.fn(),
-    } as any;
-
-    dmCampaignExecutorService = {
-      processPendingDmTargets: vi.fn(),
-    } as any;
-
-    logger = {
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    } as any;
-
+    vi.clearAllMocks();
     processor = new CampaignProcessor(
-      campaignsService,
-      campaignExecutorService,
-      dmCampaignExecutorService,
-      logger,
+      campaignsService as unknown as OutreachCampaignsService,
+      campaignExecutorService as unknown as CampaignExecutorService,
+      dmCampaignExecutorService as unknown as DmCampaignExecutorService,
+      logger as unknown as LoggerService,
     );
   });
 
-  describe('instantiation', () => {
-    it('should be defined', () => {
-      expect(processor).toBeDefined();
-    });
-  });
-
   describe('process', () => {
-    it('should process active campaign successfully', async () => {
-      const campaignId = testId('fixture');
-      const organizationId = campaignId;
-
-      const jobData: CampaignProcessingJobData = {
-        campaignId,
-        organizationId,
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-1',
-        updateProgress: vi.fn(),
-      } as unknown as Job<CampaignProcessingJobData>;
-
-      const mockCampaign = {
-        _id: campaignId,
+    it('reloads the campaign with organization, active, and non-deleted scope', async () => {
+      const campaignId = testId('campaign');
+      const organizationId = testId('organization');
+      const campaign: CampaignRow = {
         campaignType: CampaignType.REPLY,
-        organization: organizationId,
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
         status: CampaignStatus.ACTIVE,
-        targets: [],
       };
 
-      vi.mocked(campaignsService.findOne).mockResolvedValue(
-        mockCampaign as any,
+      campaignsService.findOne.mockResolvedValue(campaign);
+      campaignExecutorService.processPendingTargets.mockResolvedValue({
+        failed: 0,
+        processed: 1,
+        skipped: 0,
+        successful: 1,
+      });
+
+      const result = await processor.process(
+        createJob({ campaignId, organizationId }),
       );
 
-      vi.mocked(
+      expect(campaignsService.findOne).toHaveBeenCalledWith({
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
+      });
+      expect(
         campaignExecutorService.processPendingTargets,
-      ).mockResolvedValue({
+      ).toHaveBeenCalledWith(campaign, 10);
+      expect(result).toMatchObject({
+        campaignId,
+        processed: 1,
+        successful: 1,
+      });
+    });
+
+    it('skips a paused campaign before generation or provider calls', async () => {
+      const campaignId = testId('campaign');
+      const organizationId = testId('organization');
+      campaignsService.findOne.mockResolvedValue({
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
+        status: CampaignStatus.PAUSED,
+      });
+
+      const result = await processor.process(
+        createJob({ campaignId, organizationId }, 'job-2'),
+      );
+
+      expect(result).toEqual({
+        campaignId,
         failed: 0,
         processed: 0,
-        skipped: 0,
+        skipped: 1,
         successful: 0,
-      } as any);
+      });
+      expect(
+        campaignExecutorService.processPendingTargets,
+      ).not.toHaveBeenCalled();
+      expect(
+        dmCampaignExecutorService.processPendingDmTargets,
+      ).not.toHaveBeenCalled();
+    });
 
-      vi.mocked(campaignsService.findOneById).mockResolvedValue(
-        mockCampaign as any,
+    it('skips a deleted campaign before reading targets', async () => {
+      const campaignId = testId('campaign');
+      const organizationId = testId('organization');
+      campaignsService.findOne.mockResolvedValue(null);
+
+      const result = await processor.process(
+        createJob({ campaignId, organizationId }, 'job-3'),
       );
 
-      const result = await processor.process(job);
-
-      expect(result).toHaveProperty('campaignId', campaignId);
-      expect(result).toHaveProperty('processed');
-      expect(result).toHaveProperty('successful');
-      expect(result).toHaveProperty('failed');
-      expect(campaignsService.findOne).toHaveBeenCalled();
+      expect(campaignsService.findOne).toHaveBeenCalledWith({
+        id: campaignId,
+        isDeleted: false,
+        organizationId,
+      });
+      expect(result.skipped).toBe(1);
+      expect(
+        campaignExecutorService.processPendingTargets,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should skip non-active campaign', async () => {
-      const campaignId = testId('fixture');
-      const organizationId = campaignId;
+    it('fails closed on a cross-organization job before reading targets', async () => {
+      const campaignId = testId('campaign');
+      const organizationId = testId('organization');
+      campaignsService.findOne.mockResolvedValue({
+        id: campaignId,
+        isDeleted: false,
+        organizationId: testId('other-org'),
+        status: CampaignStatus.ACTIVE,
+      });
 
-      const jobData: CampaignProcessingJobData = {
-        campaignId,
-        organizationId,
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-2',
-        updateProgress: vi.fn(),
-      } as unknown as Job<CampaignProcessingJobData>;
-
-      const mockCampaign = {
-        _id: campaignId,
-        status: CampaignStatus.PAUSED,
-      };
-
-      vi.mocked(campaignsService.findOne).mockResolvedValue(
-        mockCampaign as any,
+      const result = await processor.process(
+        createJob({ campaignId, organizationId }, 'job-4'),
       );
 
-      const result = await processor.process(job);
-
-      expect(result.skipped).toBe(0);
-      expect(result.processed).toBe(0);
+      expect(result.skipped).toBe(1);
+      expect(
+        campaignExecutorService.processPendingTargets,
+      ).not.toHaveBeenCalled();
+      expect(
+        dmCampaignExecutorService.processPendingDmTargets,
+      ).not.toHaveBeenCalled();
     });
 
-    it('should throw error if campaign not found', async () => {
-      const campaignId = testId('fixture');
-      const organizationId = campaignId;
-
-      const jobData: CampaignProcessingJobData = {
-        campaignId,
-        organizationId,
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-3',
-        updateProgress: vi.fn(),
-      } as unknown as Job<CampaignProcessingJobData>;
-
-      vi.mocked(campaignsService.findOne).mockResolvedValue(null);
-
-      await expect(processor.process(job)).rejects.toThrow();
-      expect(logger.error).toHaveBeenCalled();
-    });
-
-    it('should handle circuit breaker errors', async () => {
-      const campaignId = testId('fixture');
-      const organizationId = campaignId;
-
-      const jobData: CampaignProcessingJobData = {
-        campaignId,
-        organizationId,
-      };
-
-      const job = {
-        data: jobData,
-        id: 'job-4',
-        updateProgress: vi.fn(),
-      } as unknown as Job<CampaignProcessingJobData>;
-
-      vi.mocked(campaignsService.findOne).mockRejectedValue(
+    it('rethrows transient failures so retries preserve target-level claims', async () => {
+      const campaignId = testId('campaign');
+      const organizationId = testId('organization');
+      campaignsService.findOne.mockRejectedValue(
         new Error('Service unavailable'),
       );
 
-      await expect(processor.process(job)).rejects.toThrow();
+      await expect(
+        processor.process(createJob({ campaignId, organizationId }, 'job-5')),
+      ).rejects.toThrow('Service unavailable');
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          campaignId,
+          organizationId,
+          reason: 'campaign_processing_failed',
+        }),
+      );
     });
   });
 });
