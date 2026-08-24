@@ -18,6 +18,7 @@ type CampaignTargetRow = {
   id: string;
   isDeleted: boolean;
   organizationId: string;
+  scheduleVersion?: number;
   status: string;
 };
 
@@ -208,11 +209,29 @@ describe('CampaignTargetsService tenant persistence', () => {
     expect(prisma.campaignTarget.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
+          AND: [
+            {
+              status: {
+                in: [
+                  CampaignTargetStatus.PENDING,
+                  CampaignTargetStatus.SCHEDULED,
+                ],
+              },
+            },
+            {
+              OR: [
+                {
+                  scheduledAt: null,
+                  status: CampaignTargetStatus.PENDING,
+                },
+                { scheduledAt: { lte: expect.any(Date) } },
+              ],
+            },
+          ],
           campaign: activeParent,
           campaignId,
           isDeleted: false,
           organizationId,
-          status: CampaignTargetStatus.PENDING,
         }),
       }),
     );
@@ -231,11 +250,11 @@ describe('CampaignTargetsService tenant persistence', () => {
     expect(prisma.campaignTarget.updateMany).toHaveBeenCalledWith({
       data: { status: CampaignTargetStatus.PROCESSING },
       where: expect.objectContaining({
+        AND: expect.any(Array),
         campaign: activeParent,
         id: targetId,
         isDeleted: false,
         organizationId,
-        status: CampaignTargetStatus.PENDING,
       }),
     });
   });
@@ -397,6 +416,117 @@ describe('CampaignTargetsService tenant persistence', () => {
         isDeleted: false,
         organizationId,
       },
+    });
+  });
+
+  it('selects due SCHEDULED targets and excludes future or schedule-less ones', async () => {
+    const { prisma, service } = makeService();
+    const dueAt = new Date('2026-08-24T12:00:00.000Z');
+    prisma.campaignTarget.findMany.mockResolvedValue([
+      makeRow({ status: CampaignTargetStatus.SCHEDULED }),
+    ]);
+
+    await service.getPendingTargets(campaignId, organizationId, 10, {
+      now: dueAt,
+      scheduleVersion: 2,
+    });
+
+    expect(prisma.campaignTarget.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [
+            {
+              status: {
+                in: [
+                  CampaignTargetStatus.PENDING,
+                  CampaignTargetStatus.SCHEDULED,
+                ],
+              },
+            },
+            {
+              OR: [
+                {
+                  scheduledAt: null,
+                  status: CampaignTargetStatus.PENDING,
+                },
+                { scheduledAt: { lte: dueAt } },
+              ],
+            },
+          ],
+          scheduleVersion: 2,
+        }),
+      }),
+    );
+  });
+
+  it('claims a due SCHEDULED target and rejects early, stale, paused, and cancelled rows', async () => {
+    const { prisma, service } = makeService();
+    const dueAt = new Date('2026-08-24T12:00:00.000Z');
+    prisma.campaignTarget.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValue({ count: 0 });
+    prisma.campaignTarget.findFirst.mockResolvedValue(
+      makeRow({ status: CampaignTargetStatus.PROCESSING }),
+    );
+
+    const claimed = await service.claimForProcessing(targetId, organizationId, {
+      now: dueAt,
+      scheduleVersion: 1,
+    });
+    expect(claimed).not.toBeNull();
+
+    await expect(
+      service.claimForProcessing(targetId, organizationId, {
+        now: new Date('2026-08-24T11:59:59.000Z'),
+        scheduleVersion: 1,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      service.claimForProcessing(targetId, organizationId, {
+        now: dueAt,
+        scheduleVersion: 2,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it('reschedules an open target by bumping scheduleVersion and keeps cancel side-effect free for claims', async () => {
+    const { prisma, service } = makeService();
+    const future = new Date('2026-08-25T13:00:00.000Z');
+    prisma.campaignTarget.findFirst.mockResolvedValue(
+      makeRow({
+        scheduleVersion: 1,
+        status: CampaignTargetStatus.SCHEDULED,
+      }),
+    );
+    prisma.campaignTarget.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.scheduleTarget(targetId, organizationId, future, {
+      now: new Date('2026-08-24T12:00:00.000Z'),
+    });
+
+    expect(prisma.campaignTarget.updateMany).toHaveBeenCalledWith({
+      data: {
+        scheduledAt: future,
+        scheduleVersion: 2,
+        status: CampaignTargetStatus.SCHEDULED,
+      },
+      where: expect.objectContaining({
+        status: CampaignTargetStatus.SCHEDULED,
+      }),
+    });
+
+    prisma.campaignTarget.findFirst.mockResolvedValue(
+      makeRow({ status: CampaignTargetStatus.SCHEDULED }),
+    );
+    await service.cancelTarget(targetId, organizationId);
+    expect(prisma.campaignTarget.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        skipReason: 'manual_skip',
+        status: CampaignTargetStatus.SKIPPED,
+      }),
+      where: expect.objectContaining({
+        status: CampaignTargetStatus.SCHEDULED,
+      }),
     });
   });
 

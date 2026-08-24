@@ -33,7 +33,7 @@ describe('AGENT_CAMPAIGN_TOOLS', () => {
     );
   });
 
-  it('does not advertise Reddit, Instagram, or Scheduled Blast as executable', () => {
+  it('does not advertise Reddit or Instagram as executable', () => {
     const platformEnum = readStringEnum(
       createCampaign?.parameters.properties.platform,
     );
@@ -42,7 +42,7 @@ describe('AGENT_CAMPAIGN_TOOLS', () => {
     );
 
     expect(platformEnum).toEqual(['twitter']);
-    expect(typeEnum).not.toContain('scheduled');
+    expect(typeEnum).toContain('scheduled');
     expect(platformEnum).not.toContain('reddit');
     expect(platformEnum).not.toContain('instagram');
   });

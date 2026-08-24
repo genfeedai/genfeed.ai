@@ -4825,6 +4825,7 @@ model CampaignTarget {
   data            Json             @default("{}")
   externalId      String?
   scheduledAt     DateTime?
+  scheduleVersion Int              @default(1)
   processedAt     DateTime?
   replyExternalId String?
   replyText       String?

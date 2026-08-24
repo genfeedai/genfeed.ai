@@ -1,6 +1,7 @@
 export interface CampaignProcessingJobData {
   campaignId: string;
   organizationId: string;
+  scheduleVersion: number;
 }
 
 export interface CampaignProcessingResult {

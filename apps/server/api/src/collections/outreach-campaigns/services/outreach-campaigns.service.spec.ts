@@ -33,6 +33,9 @@ function createPrismaStub() {
     credential: {
       findFirst: vi.fn(),
     },
+    campaignTarget: {
+      updateMany: vi.fn(),
+    },
     outreachCampaign: {
       count: vi.fn(),
       create: vi.fn(),
@@ -191,7 +194,7 @@ describe('OutreachCampaignsService', () => {
     expect(prisma.outreachCampaign.create).not.toHaveBeenCalled();
   });
 
-  it('rejects Scheduled Blast creates before persistence', async () => {
+  it('rejects Scheduled Blast creates that omit a future schedule', async () => {
     const { prisma, service } = makeService();
 
     await expect(
@@ -206,10 +209,141 @@ describe('OutreachCampaignsService', () => {
       ),
     ).rejects.toMatchObject({
       response: expect.objectContaining({
-        code: 'outreach_capability.unavailable',
+        code: 'outreach_schedule.missing',
       }),
     });
     expect(prisma.outreachCampaign.create).not.toHaveBeenCalled();
+  });
+
+  it('persists a Scheduled Blast UTC due instant and display timezone', async () => {
+    const { prisma, service } = makeService();
+
+    prisma.credential.findFirst.mockResolvedValue({
+      id: 'credential-owned',
+      organizationId: 'org-owned',
+    });
+    prisma.outreachCampaign.create.mockResolvedValue({
+      campaignType: CampaignType.SCHEDULED_BLAST,
+      config: {
+        label: 'Launch',
+        schedule: {
+          dueAt: '2099-01-02T14:00:00.000Z',
+          localDateTime: '2099-01-02T09:00',
+          timezone: 'America/New_York',
+          version: 1,
+        },
+      },
+      id: 'campaign-1',
+      isDeleted: false,
+      organizationId: 'org-owned',
+      platform: CampaignPlatform.TWITTER,
+      status: 'draft',
+    });
+
+    await service.createScoped(
+      {
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        credentialId: 'credential-owned',
+        label: 'Launch',
+        platform: CampaignPlatform.TWITTER,
+        schedule: {
+          localDateTime: '2099-01-02T09:00',
+          timezone: 'America/New_York',
+        },
+      },
+      { organizationId: 'org-owned' },
+    );
+
+    expect(prisma.outreachCampaign.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        config: expect.objectContaining({
+          schedule: {
+            dueAt: '2099-01-02T14:00:00.000Z',
+            localDateTime: '2099-01-02T09:00',
+            timezone: 'America/New_York',
+            version: 1,
+          },
+        }),
+      }),
+    });
+  });
+
+  it('rejects starting a Scheduled Blast that has no due time', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findFirst.mockResolvedValue(
+      makeRow({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        config: {},
+        status: CampaignStatus.DRAFT,
+      }),
+    );
+
+    await expect(
+      service.start(campaignId, organizationId),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'outreach_schedule.missing',
+      }),
+    });
+    expect(prisma.outreachCampaign.updateMany).not.toHaveBeenCalled();
+    expect(prisma.campaignTarget.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('bumps schedule version and retargets open rows on reschedule', async () => {
+    const { prisma, service } = makeService();
+    prisma.outreachCampaign.findFirst.mockResolvedValue(
+      makeRow({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        config: {
+          schedule: {
+            dueAt: '2026-08-25T13:00:00.000Z',
+            localDateTime: '2026-08-25T09:00',
+            timezone: 'America/New_York',
+            version: 1,
+          },
+        },
+        status: CampaignStatus.DRAFT,
+      }),
+    );
+    prisma.outreachCampaign.updateMany.mockResolvedValue({ count: 1 });
+    prisma.campaignTarget.updateMany.mockResolvedValue({ count: 2 });
+
+    await service.patch(
+      campaignId,
+      {
+        schedule: {
+          localDateTime: '2099-01-02T09:00',
+          timezone: 'America/New_York',
+        },
+      },
+      organizationId,
+    );
+
+    expect(prisma.outreachCampaign.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          schedule: expect.objectContaining({
+            dueAt: '2099-01-02T14:00:00.000Z',
+            version: 2,
+          }),
+        }),
+      }),
+      where: expect.objectContaining({
+        id: campaignId,
+        organizationId,
+      }),
+    });
+    expect(prisma.campaignTarget.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        scheduleVersion: 2,
+        status: 'SCHEDULED',
+      }),
+      where: expect.objectContaining({
+        campaignId,
+        organizationId,
+      }),
+    });
   });
 
   it('rejects activating an unavailable historical campaign before status mutation', async () => {
@@ -405,8 +539,18 @@ describe('OutreachCampaignsService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 
-    const campaigns = await service.findActiveForDispatch(organizationId);
+    prisma.outreachCampaign.findMany.mockResolvedValue([
+      makeRow(),
+      makeRow({
+        campaignType: CampaignType.SCHEDULED_BLAST,
+        config: {},
+        id: 'scheduled-not-due',
+      }),
+    ]);
+
+    const campaigns = await service.findActiveForDispatch(organizationId, now);
     expect(campaigns).toHaveLength(1);
+    expect(campaigns[0]?.id).toBe(campaignId);
     expect(prisma.outreachCampaign.findMany).toHaveBeenCalledWith({
       where: {
         isDeleted: false,

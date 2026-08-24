@@ -15,6 +15,7 @@ import {
   CampaignAiConfig,
   type OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { readCampaignScheduleVersion } from '@api/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
@@ -141,6 +142,9 @@ export class CampaignExecutorService {
       const claimed = await this.campaignTargetsService.claimForProcessing(
         target.id.toString(),
         scope.organizationId,
+        {
+          scheduleVersion: readCampaignScheduleVersion(campaign.schedule),
+        },
       );
       if (!claimed) {
         return {
@@ -550,6 +554,9 @@ export class CampaignExecutorService {
           campaign.id.toString(),
           campaign.organizationId,
           limit,
+          {
+            scheduleVersion: readCampaignScheduleVersion(campaign.schedule),
+          },
         );
 
       for (const target of pendingTargets) {

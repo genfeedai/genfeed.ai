@@ -3,6 +3,16 @@ import { Type } from 'class-transformer';
 import { IsArray, IsDate, IsOptional, IsString } from 'class-validator';
 
 export class OutreachCampaignScheduleDto {
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Local wall-clock delivery time as YYYY-MM-DDTHH:mm. Required for Scheduled Blast.',
+    example: '2026-08-25T09:00',
+    required: false,
+  })
+  localDateTime?: string;
+
   @IsDate()
   @Type(() => Date)
   @IsOptional()

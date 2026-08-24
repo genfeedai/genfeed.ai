@@ -193,6 +193,15 @@ export class CreateCampaignTargetDto {
   })
   scheduledAt?: Date;
 
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({
+    default: 1,
+    description: 'Schedule version used to reject stale due-time claims',
+    required: false,
+  })
+  scheduleVersion?: number;
+
   @IsEnum(CampaignTargetStatus)
   @IsOptional()
   @ApiProperty({

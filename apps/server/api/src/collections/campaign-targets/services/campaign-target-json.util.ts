@@ -50,6 +50,7 @@ export type CampaignTargetColumnPatch = {
   replyText?: string | null;
   replyUrl?: string | null;
   retryCount?: number;
+  scheduleVersion?: number;
   scheduledAt?: Date | null;
   skipReason?: string | null;
   status?: string;
@@ -73,6 +74,7 @@ const CAMPAIGN_TARGET_COLUMN_KEYS = new Set<string>([
   'replyText',
   'replyUrl',
   'retryCount',
+  'scheduleVersion',
   'scheduledAt',
   'skipReason',
   'status',

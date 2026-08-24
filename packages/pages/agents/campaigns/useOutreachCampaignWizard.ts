@@ -10,6 +10,7 @@ import {
   ReplyLength,
   ReplyTone,
 } from '@genfeedai/enums';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { OutreachCampaignsService } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -50,6 +51,8 @@ export interface CampaignFormData {
   maxPerHour: number;
   maxPerDay: number;
   delayBetweenRepliesSeconds: number;
+  scheduledLocalDateTime: string;
+  timezone: string;
 }
 
 export function useOutreachCampaignWizard() {
@@ -85,8 +88,10 @@ export function useOutreachCampaignWizard() {
     maxPerHour: 10,
     minEngagement: 0,
     platform: CampaignPlatform.TWITTER,
+    scheduledLocalDateTime: '',
     subreddits: '',
     templateText: '',
+    timezone: getBrowserTimezone(),
     tone: ReplyTone.FRIENDLY,
     useAiGeneration: true,
   });
@@ -107,6 +112,10 @@ export function useOutreachCampaignWizard() {
     platform: formData.platform,
   });
   const isPairExecutable = isOutreachPairExecutable(pairEvaluation);
+  const isScheduleComplete =
+    formData.campaignType !== CampaignType.SCHEDULED_BLAST ||
+    (formData.scheduledLocalDateTime.trim().length > 0 &&
+      formData.timezone.trim().length > 0);
 
   const handleNext = useCallback(() => {
     if (!isPairExecutable) {
@@ -126,6 +135,13 @@ export function useOutreachCampaignWizard() {
   const handleSubmit = useCallback(async () => {
     if (!isPairExecutable) {
       notificationsService.error(pairEvaluation.ui.body);
+      return;
+    }
+
+    if (!isScheduleComplete) {
+      notificationsService.error(
+        'Scheduled Blast requires a future delivery time and timezone.',
+      );
       return;
     }
 
@@ -181,6 +197,13 @@ export function useOutreachCampaignWizard() {
         },
       };
 
+      if (formData.campaignType === CampaignType.SCHEDULED_BLAST) {
+        (campaignData as Record<string, unknown>).schedule = {
+          localDateTime: formData.scheduledLocalDateTime,
+          timezone: formData.timezone,
+        };
+      }
+
       // Add dmConfig for DM_OUTREACH campaigns
       if (formData.campaignType === CampaignType.DM_OUTREACH) {
         (campaignData as Record<string, unknown>).dmConfig = {
@@ -207,6 +230,7 @@ export function useOutreachCampaignWizard() {
     formData,
     getService,
     isPairExecutable,
+    isScheduleComplete,
     notificationsService,
     organizationId,
     pairEvaluation.ui.body,
@@ -226,6 +250,7 @@ export function useOutreachCampaignWizard() {
     handleNext,
     handleSubmit,
     isPairExecutable,
+    isScheduleComplete,
     isSubmitting,
     pairEvaluation,
     router,

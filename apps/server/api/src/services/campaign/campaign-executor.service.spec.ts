@@ -562,7 +562,7 @@ describe('CampaignExecutorService', () => {
   describe('previewReply', () => {
     it('rejects an unavailable pair before generation', async () => {
       const campaign = makeCampaign({
-        campaignType: CampaignType.SCHEDULED_BLAST,
+        platform: CampaignPlatform.INSTAGRAM,
       });
       const target = makeTarget();
 
@@ -627,6 +627,7 @@ describe('CampaignExecutorService', () => {
         campaignId,
         orgId,
         10,
+        { scheduleVersion: 1 },
       );
       expect(results.processed).toBe(2);
       expect(results.successful).toBe(2);

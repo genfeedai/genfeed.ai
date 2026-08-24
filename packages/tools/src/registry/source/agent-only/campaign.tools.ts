@@ -4,14 +4,14 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Create a campaign from conversation inputs (label, credentialId, platform, type, and optional settings). Only verified X public-reply and X DM pairs are executable.',
+      'Create a campaign from conversation inputs (label, credentialId, platform, type, and optional settings). Only verified X public-reply, X DM, and X Scheduled Blast pairs are executable.',
     name: 'create_campaign',
     parameters: {
       properties: {
         campaignType: {
           description:
-            'Campaign type. Only verified X public-reply and X DM types are executable.',
-          enum: ['manual', 'discovery', 'dm_outreach'],
+            'Campaign type. Only verified X public-reply, X DM, and X Scheduled Blast types are executable.',
+          enum: ['manual', 'discovery', 'dm_outreach', 'scheduled'],
           type: 'string',
         },
         credentialId: {
@@ -28,7 +28,7 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
         },
         platform: {
           description:
-            'Campaign platform. Only verified X public-reply and X DM pairs are executable.',
+            'Campaign platform. Only verified X public-reply, X DM, and X Scheduled Blast pairs are executable.',
           enum: ['twitter'],
           type: 'string',
         },

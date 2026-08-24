@@ -6,13 +6,23 @@ import '@testing-library/jest-dom/vitest';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
-    credentials: [],
+    credentials: [
+      {
+        externalHandle: 'genfeed',
+        id: 'cred-1',
+        platform: 'twitter',
+      },
+    ],
     organizationId: 'org-123',
   })),
 }));
 
+const postCampaign = vi.fn();
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+  useAuthedService: vi.fn(() => async () => ({
+    post: postCampaign,
+  })),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -24,6 +34,14 @@ vi.mock('next/navigation', () => ({
     get: vi.fn(() => null),
   })),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
@@ -37,6 +55,7 @@ vi.mock('@services/core/notifications.service', () => ({
 describe('OutreachCampaignWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    postCampaign.mockResolvedValue({ id: 'campaign-1' });
   });
 
   it('enables verified X pairs and exposes stable reasons for unavailable ones', async () => {
@@ -53,12 +72,9 @@ describe('OutreachCampaignWizard', () => {
     expect(twitter).not.toHaveAttribute('aria-disabled');
     expect(reddit).toHaveAttribute('aria-disabled', 'true');
     expect(instagram).toHaveAttribute('aria-disabled', 'true');
-    expect(scheduled).toHaveAttribute('aria-disabled', 'true');
+    expect(scheduled).not.toHaveAttribute('aria-disabled');
     expect(reddit).toHaveAccessibleDescription(
       /Reddit and Instagram outreach are not available yet/i,
-    );
-    expect(scheduled).toHaveAccessibleDescription(
-      /Scheduled Blast is not available/i,
     );
 
     await user.click(reddit);
@@ -92,5 +108,27 @@ describe('OutreachCampaignWizard', () => {
       'true',
     );
     expect(screen.getByRole('button', { name: /Next/i })).not.toBeDisabled();
+  });
+
+  it('requires a delivery time and timezone before creating a Scheduled Blast', async () => {
+    const user = userEvent.setup();
+    render(<OutreachCampaignWizard />);
+
+    await user.click(screen.getByRole('button', { name: /Scheduled Blast/i }));
+    expect(
+      screen.getByRole('button', { name: /Scheduled Blast/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(screen.getByRole('button', { name: /Next/i }));
+
+    expect(screen.getByText('Delivery time')).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: /Timezone/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: /Timezone/i }),
+    ).not.toBeDisabled();
+    expect(screen.getByLabelText('Date')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Next/i })).toBeDisabled();
   });
 });

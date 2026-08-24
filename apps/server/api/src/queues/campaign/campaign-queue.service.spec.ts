@@ -49,6 +49,7 @@ describe('CampaignQueueService', () => {
 
   const mockOutreachCampaignsService = {
     findActiveForDispatch: vi.fn(),
+    findOneById: vi.fn(),
   };
 
   const mockLogger = {
@@ -143,6 +144,7 @@ describe('CampaignQueueService', () => {
         {
           campaignId,
           organizationId,
+          scheduleVersion: 1,
         },
         expect.objectContaining({
           jobId: buildCampaignProcessingJobId(campaignId),

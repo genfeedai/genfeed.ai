@@ -31,6 +31,7 @@ export default function OutreachCampaignWizard() {
     handleNext,
     handleSubmit,
     isPairExecutable,
+    isScheduleComplete,
     isSubmitting,
     router,
   } = useOutreachCampaignWizard();
@@ -68,7 +69,13 @@ export default function OutreachCampaignWizard() {
             onHashtagsChange={(value) => handleChange('hashtags', value)}
             onKeywordsChange={(value) => handleChange('keywords', value)}
             onLabelChange={(value) => handleChange('label', value)}
+            onScheduledLocalDateTimeChange={(value) =>
+              handleChange('scheduledLocalDateTime', value)
+            }
             onSubredditsChange={(value) => handleChange('subreddits', value)}
+            onTimezoneChange={(value) => handleChange('timezone', value)}
+            scheduledLocalDateTime={formData.scheduledLocalDateTime}
+            timezone={formData.timezone}
           />
         );
 
@@ -141,6 +148,8 @@ export default function OutreachCampaignWizard() {
             maxPerDay={formData.maxPerDay}
             maxPerHour={formData.maxPerHour}
             platform={formData.platform}
+            scheduledLocalDateTime={formData.scheduledLocalDateTime}
+            timezone={formData.timezone}
             tone={formData.tone}
           />
         );
@@ -213,7 +222,8 @@ export default function OutreachCampaignWizard() {
               variant={ButtonVariant.DEFAULT}
               onClick={handleNext}
               isDisabled={
-                !isPairExecutable || (currentStep === 2 && !formData.label)
+                !isPairExecutable ||
+                (currentStep === 2 && (!formData.label || !isScheduleComplete))
               }
             />
           ) : (
@@ -228,6 +238,7 @@ export default function OutreachCampaignWizard() {
               isDisabled={
                 isSubmitting ||
                 !isPairExecutable ||
+                !isScheduleComplete ||
                 !formData.label ||
                 !formData.credential
               }

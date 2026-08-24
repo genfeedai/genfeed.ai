@@ -20,6 +20,7 @@ export const outreachCapabilityResultValues = [
 export const outreachCapabilityReasonValues = [
   'verified_x_public_reply',
   'verified_x_dm',
+  'verified_x_scheduled_blast',
   'scheduled_blast_unavailable',
   'platform_unavailable',
   'unknown_pair',
@@ -116,9 +117,9 @@ const VERIFIED_DM_UI = {
   headline: 'X DM is available',
 } as const;
 
-const SCHEDULED_BLAST_UI = {
-  body: 'Scheduled Blast is not available until its due-time lifecycle is verified.',
-  headline: 'Scheduled Blast is not available',
+const VERIFIED_SCHEDULED_BLAST_UI = {
+  body: 'X Scheduled Blast can be created, started, and dispatched at the saved due time.',
+  headline: 'Scheduled Blast is available',
 } as const;
 
 const PLATFORM_UNAVAILABLE_UI = {
@@ -175,16 +176,16 @@ function verifiedDm(
   });
 }
 
-function scheduledBlastUnavailable(
+function verifiedScheduledBlast(
   platform: CampaignPlatform,
   campaignType: CampaignType,
 ): OutreachCapabilityEvaluation {
   return evaluation({
     campaignType,
     platform,
-    reason: 'scheduled_blast_unavailable',
-    result: 'unavailable',
-    ui: SCHEDULED_BLAST_UI,
+    reason: 'verified_x_scheduled_blast',
+    result: 'executable',
+    ui: VERIFIED_SCHEDULED_BLAST_UI,
   });
 }
 
@@ -215,7 +216,7 @@ export const OUTREACH_CAPABILITY_MATRIX = {
       CampaignPlatform.TWITTER,
       CampaignType.DM_OUTREACH,
     ),
-    [CampaignType.SCHEDULED_BLAST]: scheduledBlastUnavailable(
+    [CampaignType.SCHEDULED_BLAST]: verifiedScheduledBlast(
       CampaignPlatform.TWITTER,
       CampaignType.SCHEDULED_BLAST,
     ),
