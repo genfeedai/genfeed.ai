@@ -1,5 +1,4 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -101,12 +100,6 @@ function createSignupProvisioningHarness() {
     findOne: vi.fn().mockResolvedValue(null),
     generateUniqueSlug: vi.fn().mockResolvedValue('default-organization'),
   };
-  const defaultRecurringContentService = {
-    ensureDefaultBundle: vi.fn().mockResolvedValue({
-      isConfigured: true,
-      items: [],
-    }),
-  };
   const membersService = {
     create: vi.fn().mockResolvedValue({
       id: MEMBER_ID,
@@ -148,7 +141,6 @@ function createSignupProvisioningHarness() {
     organizationsService as unknown as OrganizationsService,
     organizationSettingsService as unknown as OrganizationSettingsService,
     brandsService as unknown as BrandsService,
-    defaultRecurringContentService as unknown as DefaultRecurringContentService,
     membersService as unknown as MembersService,
     rolesService as unknown as RolesService,
     settingsService as unknown as SettingsService,

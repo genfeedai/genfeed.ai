@@ -70,6 +70,7 @@ export default function WorkflowsPage() {
       try {
         const service = await getWorkflowsService();
         const fetchedWorkflows = await service.findAllPages({
+          includeSystem: true,
           sort: 'createdAt: -1',
         });
 

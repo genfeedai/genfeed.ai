@@ -654,7 +654,7 @@ describe('DefaultRecurringContentService', () => {
     expect(transactionSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('re-enables existing disabled default workflows without creating duplicates', async () => {
+  it('does not re-enable paused default workflows unless the brand schedule is on', async () => {
     const { committed, prisma, transactionSpy } = createFakePrisma({
       brand: buildBrand(),
       initialWorkflows: CONTENT_TYPES.map((contentType) =>
@@ -690,7 +690,9 @@ describe('DefaultRecurringContentService', () => {
       newsletter: 1,
       post: 1,
     });
-    expect(committed.every((row) => row.isScheduleEnabled === true)).toBe(true);
+    expect(committed.every((row) => row.isScheduleEnabled === false)).toBe(
+      true,
+    );
     // All present in the bulk read, so no transaction is opened.
     expect(transactionSpy).not.toHaveBeenCalled();
     expect(updateSchedule).toHaveBeenCalledTimes(CONTENT_TYPES.length);

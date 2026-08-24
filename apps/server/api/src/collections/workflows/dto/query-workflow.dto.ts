@@ -42,6 +42,22 @@ export class WorkflowQueryDto extends BaseQueryDto {
   })
   readonly referencable?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === 'true' || value === true
+      ? true
+      : value === 'false' || value === false
+        ? false
+        : value,
+  )
+  @ApiProperty({
+    description:
+      'Include persisted system-workflow clones. Customer Automate omits this; Admin → Automation → Workflows sets it.',
+    required: false,
+  })
+  readonly includeSystem?: boolean;
+
   @IsOptional()
   @IsIn(['system-catalog'])
   @ApiProperty({

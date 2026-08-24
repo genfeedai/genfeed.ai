@@ -1,4 +1,5 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
+import type { IPaginationParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -14,8 +15,7 @@ import {
 import { useCloudSession } from '@/hooks/useCloudSession';
 
 const SEARCH_DEBOUNCE_MS = 300;
-/** HTTP lists cap at 100; the library has no pager yet so request the max. */
-export const WORKFLOW_LIBRARY_PAGE_SIZE = 100;
+export const WORKFLOW_LIBRARY_PAGE_SIZE = ITEMS_PER_PAGE;
 
 export function useWorkflowLibraryPage() {
   const { href } = useOrgUrl();
@@ -28,6 +28,13 @@ export function useWorkflowLibraryPage() {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<IPaginationParams>({
+    limit: WORKFLOW_LIBRARY_PAGE_SIZE,
+    page: 1,
+    pages: 1,
+    total: 0,
+  });
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -39,6 +46,7 @@ export function useWorkflowLibraryPage() {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
       setDebouncedSearch(searchInput);
+      setPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -57,13 +65,15 @@ export function useWorkflowLibraryPage() {
 
         const params: Record<string, unknown> = {
           limit: WORKFLOW_LIBRARY_PAGE_SIZE,
+          page,
         };
         if (debouncedSearch) params.search = debouncedSearch;
 
-        const data = await service.list(params);
+        const data = await service.listPage(params);
         if (signal.aborted) return;
 
-        setWorkflows(data);
+        setWorkflows(data.items);
+        setPagination(data.pagination);
       } catch (err) {
         if (signal.aborted) return;
         const message =
@@ -76,7 +86,7 @@ export function useWorkflowLibraryPage() {
         }
       }
     },
-    [getService, debouncedSearch],
+    [getService, debouncedSearch, page],
   );
 
   useEffect(() => {
@@ -252,5 +262,8 @@ export function useWorkflowLibraryPage() {
     selectedIds,
     toggleSelected,
     clearSelection,
+    page,
+    pagination,
+    setPage,
   };
 }

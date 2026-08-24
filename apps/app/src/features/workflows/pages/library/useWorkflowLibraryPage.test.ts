@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   isConnected: false,
   isCapable: false,
   serviceList: vi.fn(),
+  serviceListPage: vi.fn(),
   serviceDuplicate: vi.fn(),
   serviceRemove: vi.fn(),
   serviceUpdateSchedule: vi.fn(),
@@ -97,19 +98,27 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
       schedule: '0 9 * * 1',
       timezone: 'UTC',
     });
+    mocks.serviceListPage.mockImplementation(async (params?: unknown) => ({
+      items: await mocks.serviceList(params),
+      pagination: { limit: 15, page: 1, pages: 1, total: 2 },
+    }));
     mocks.getService.mockResolvedValue({
       list: mocks.serviceList,
+      listPage: mocks.serviceListPage,
       duplicate: mocks.serviceDuplicate,
       remove: mocks.serviceRemove,
       updateSchedule: mocks.serviceUpdateSchedule,
     });
   });
 
-  it('requests the maximum page of workflows so schedules are not hidden', async () => {
+  it('requests a paginated workflow page from the API', async () => {
     renderHook(() => useWorkflowLibraryPage());
 
-    await waitFor(() => expect(mocks.serviceList).toHaveBeenCalled());
-    expect(mocks.serviceList).toHaveBeenCalledWith({ limit: 100 });
+    await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
+    expect(mocks.serviceListPage).toHaveBeenCalledWith({
+      limit: 15,
+      page: 1,
+    });
   });
 
   it('calls updateSchedule with isScheduleEnabled=true when toggling on a workflow that has a schedule', async () => {
@@ -302,8 +311,13 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
     ]);
     mocks.serviceDuplicate.mockResolvedValue({ id: 'wf-copy' });
     mocks.serviceRemove.mockResolvedValue(undefined);
+    mocks.serviceListPage.mockImplementation(async (params?: unknown) => ({
+      items: await mocks.serviceList(params),
+      pagination: { limit: 15, page: 1, pages: 1, total: 1 },
+    }));
     mocks.getService.mockResolvedValue({
       list: mocks.serviceList,
+      listPage: mocks.serviceListPage,
       duplicate: mocks.serviceDuplicate,
       remove: mocks.serviceRemove,
       updateSchedule: mocks.serviceUpdateSchedule,

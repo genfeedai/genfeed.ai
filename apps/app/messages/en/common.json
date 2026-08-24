@@ -498,7 +498,10 @@
         "system": "System",
         "templates": "Templates",
         "title": "Workflows",
-        "updated": "Updated"
+        "updated": "Updated",
+        "next": "Next",
+        "pageStatus": "Page {page} of {pages}",
+        "previous": "Previous"
       },
       "schedule": {
         "actions": {

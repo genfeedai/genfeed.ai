@@ -139,8 +139,15 @@ describe('WorkflowCrudController', () => {
       expect(aggregateArg.where).toMatchObject({
         isDeleted: false,
         organizationId: mockUser.organizationId,
+        NOT: {
+          metadata: {
+            equals: 'system-workflow',
+            path: ['systemWorkflow', 'kind'],
+          },
+        },
       });
       expect(aggregateArg.where.OR).toBeUndefined();
+      expect(aggregateArg.where.userId).toBeUndefined();
     });
 
     it('should return all workflows for user', async () => {
@@ -159,6 +166,29 @@ describe('WorkflowCrudController', () => {
         mockWorkflowsService.findAll.mock.calls[
           mockWorkflowsService.findAll.mock.calls.length - 1
         ];
+      expect(aggregateArg.where.userId).toBe(mockUser.userId);
+      expect(aggregateArg.where.OR).toBeUndefined();
+      expect(aggregateArg.where.NOT).toEqual({
+        metadata: {
+          equals: 'system-workflow',
+          path: ['systemWorkflow', 'kind'],
+        },
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('includes organization-visible system workflows when includeSystem is set', async () => {
+      mockWorkflowsService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      });
+
+      await controller.findAll(mockRequest, mockUser, { includeSystem: true });
+
+      const [aggregateArg] =
+        mockWorkflowsService.findAll.mock.calls[
+          mockWorkflowsService.findAll.mock.calls.length - 1
+        ];
       expect(aggregateArg.where.OR).toEqual([
         { userId: mockUser.userId },
         {
@@ -168,7 +198,7 @@ describe('WorkflowCrudController', () => {
           },
         },
       ]);
-      expect(result).toBeDefined();
+      expect(aggregateArg.where.NOT).toBeUndefined();
     });
 
     it('should restrict the visible list to the requested brand', async () => {

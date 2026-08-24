@@ -9,7 +9,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
+import { buildWorkflowListWhere } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -141,29 +141,17 @@ export class WorkflowCrudController {
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    // `referencable=true` widens the list to every workflow in the org (used to
-    // seed workflow-reference pickers). Collapsed from the former
-    // `GET /workflows/referencable` route (#1354).
-    const where = query.referencable
-      ? {
-          ...(query.brandId ? { brandId: query.brandId } : {}),
-          isDeleted,
-          organizationId: user.organizationId,
-        }
-      : {
-          ...(query.brandId ? { brandId: query.brandId } : {}),
-          isDeleted,
-          organizationId: user.organizationId,
-          OR: [
-            { userId: user.userId ?? user.id },
-            {
-              metadata: {
-                equals: 'organization',
-                path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
-              },
-            },
-          ],
-        };
+    // `referencable=true` widens the list to every tenant workflow in the org
+    // (workflow-reference pickers). `includeSystem=true` is the admin list of
+    // persisted system-workflow clones. Customer Automate never sees those.
+    const where = buildWorkflowListWhere({
+      brandId: query.brandId,
+      includeSystem: query.includeSystem === true,
+      isDeleted,
+      organizationId: user.organizationId,
+      referencable: query.referencable === true,
+      userId: user.userId ?? user.id,
+    });
 
     const aggregate = {
       where,

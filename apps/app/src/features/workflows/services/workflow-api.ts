@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { WorkflowLifecycle } from '@genfeedai/enums';
+import type { IPaginationParams } from '@genfeedai/interfaces';
 import { getSystemWorkflowMetadata } from '@genfeedai/interfaces';
 import {
   deserializeCollection,
@@ -98,17 +99,37 @@ export class WorkflowApiService extends HTTPBaseService {
   // CRUD
   // ---------------------------------------------------------------------------
 
-  /** List all workflows for the current organization */
-  async list(params?: Record<string, unknown>): Promise<WorkflowSummary[]> {
+  /** List one page of workflows for the current organization */
+  async listPage(params?: Record<string, unknown>): Promise<{
+    items: WorkflowSummary[];
+    pagination: IPaginationParams;
+  }> {
     try {
       const response = await this.instance.get<JsonApiResponseDocument>('', {
         params,
       });
-      return deserializeCollection<WorkflowSummary>(response.data);
+      const items = deserializeCollection<WorkflowSummary>(response.data);
+      const pagination = response.data.links?.pagination;
+
+      return {
+        items,
+        pagination: {
+          limit: pagination?.limit ?? items.length,
+          page: pagination?.page ?? 1,
+          pages: pagination?.pages ?? 1,
+          total: pagination?.total ?? items.length,
+        },
+      };
     } catch (error) {
       logger.error('Failed to list workflows', { error });
       throw error;
     }
+  }
+
+  /** List workflows for the current organization */
+  async list(params?: Record<string, unknown>): Promise<WorkflowSummary[]> {
+    const page = await this.listPage(params);
+    return page.items;
   }
 
   /** Get a single workflow by ID */

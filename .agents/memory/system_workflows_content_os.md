@@ -19,6 +19,7 @@ topics: [workflows, automation, publishing, social, agent, messages]
 - Record workflow provenance on downstream content, messages, agent runs, and social actions.
 - New hard-coded content cron/action/publish paths need an explicit documented exception. Infrastructure maintenance can still use platform cron when it is not tenant/product automation.
 - UI, API, MCP, and agent controls should expose catalog list, install, inspect, duplicate, trigger, run status, and run history for eligible workflows.
+- Persisted system-workflow clones are an **admin** surface. The customer Automate library never lists them; customers install from Templates. See [system_workflows_admin_only.md](system_workflows_admin_only.md).
 
 **Canonical tracking:**
 - Epic #1011: Productize System Workflows
