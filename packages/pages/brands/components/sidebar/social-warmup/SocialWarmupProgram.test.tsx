@@ -1,4 +1,5 @@
 import {
+  LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
   YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
@@ -322,6 +323,36 @@ describe('SocialWarmupProgram', () => {
     });
   });
 
+  it('refreshes LinkedIn authorized signals from the shared enrollment UI', async () => {
+    hookState.data = createEnrollment({
+      blueprintId: LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID,
+      currentPhaseId: 'thoughtful-participation',
+    });
+
+    render(
+      <SocialWarmupProgram
+        connection={{
+          credentialId: 'credential-1',
+          platform: CredentialPlatform.LINKEDIN,
+        }}
+        health={{
+          ...health,
+          holdReason:
+            'linkedin publishing is held because profile warmup is warming.',
+          platform: CredentialPlatform.LINKEDIN,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Refresh signals' })[0],
+    );
+    await waitFor(() => {
+      expect(refreshAuthorizedSignals).toHaveBeenCalledWith('credential-1');
+    });
+  });
+
   it('lists unmet hold checks and keeps override available', () => {
     render(
       <SocialWarmupProgram
@@ -352,6 +383,24 @@ describe('SocialWarmupProgram', () => {
         ]),
       }),
     );
+  });
+
+  it('shows graduation copy that does not guarantee reach or safety', () => {
+    render(
+      <SocialWarmupProgram
+        connection={{
+          credentialId: 'credential-1',
+          platform: CredentialPlatform.TIKTOK,
+        }}
+        health={health}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Full blueprint' }));
+    expect(screen.getByText(/does not guarantee reach/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/does not guarantee reach/i).textContent,
+    ).not.toMatch(/guarantee of (reach|safety)/i);
   });
 
   it('still lists unresolved checks when a manual override is active', () => {

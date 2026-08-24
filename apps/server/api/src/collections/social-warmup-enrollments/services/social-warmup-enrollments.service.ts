@@ -22,12 +22,18 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
+import type { LinkedinAuthorizedSignalsSnapshot } from '@api-types/contracts/linkedin-authorized-signals.contract';
 import {
   getCurrentSocialWarmupBlueprint,
   resolveSocialWarmupBlueprint,
   type SocialWarmupBlueprint,
 } from '@api-types/contracts/social-warmup-blueprint.contract';
 import { getSocialWarmupEnrollmentRefusal } from '@api-types/contracts/social-warmup-capability.contract';
+import {
+  evaluateSocialWarmupJourney,
+  SOCIAL_WARMUP_TELEMETRY_EVENT,
+  sanitizeSocialWarmupTelemetry,
+} from '@api-types/contracts/social-warmup-journey.contract';
 import type { TikTokAuthorizedSignalsSnapshot } from '@api-types/contracts/tiktok-authorized-signals.contract';
 import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
 import type { YoutubeAuthorizedSignalsSnapshot } from '@api-types/contracts/youtube-authorized-signals.contract';
@@ -45,7 +51,8 @@ import type {
 } from '@genfeedai/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const enrollmentInclude = {
   events: {
@@ -60,7 +67,10 @@ const enrollmentInclude = {
 
 @Injectable()
 export class SocialWarmupEnrollmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly logger?: LoggerService,
+  ) {}
 
   async enrollScoped(
     dto: CreateSocialWarmupEnrollmentDto,
@@ -113,7 +123,18 @@ export class SocialWarmupEnrollmentsService {
         },
         include: enrollmentInclude,
       });
-      return this.hydrateEnrollment(created, credential);
+      const enrollment = await this.hydrateEnrollment(created, credential);
+      this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.enrolled, {
+        blueprintId: enrollment.blueprintId,
+        blueprintVersion: enrollment.blueprintVersion,
+        brandId: enrollment.brandId,
+        credentialId: enrollment.credentialId,
+        enrollmentId: enrollment.id,
+        organizationId: enrollment.organizationId,
+        platform,
+        state: enrollment.state,
+      });
+      return this.advanceEnrollmentJourney(enrollment, context);
     } catch (error) {
       if (!isEnrollmentUniqueViolation(error)) {
         throw error;
@@ -180,7 +201,8 @@ export class SocialWarmupEnrollmentsService {
     id: string,
     context: SocialWarmupScope,
   ): Promise<SocialWarmupEnrollmentDocument> {
-    return this.requireEnrollment(id, context);
+    const enrollment = await this.requireEnrollment(id, context);
+    return this.advanceEnrollmentJourney(enrollment, context);
   }
 
   async completeItemScoped(
@@ -230,7 +252,17 @@ export class SocialWarmupEnrollmentsService {
       staleAt: dto.staleAt,
       status: dto.status,
     });
-    return this.requireEnrollment(id, context);
+    this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.signalsRefreshed, {
+      brandId: enrollment.brandId,
+      credentialId: enrollment.credentialId,
+      enrollmentId: enrollment.id,
+      key: dto.key,
+      organizationId: enrollment.organizationId,
+      source: dto.source,
+      status: dto.status,
+    });
+    const next = await this.requireEnrollment(id, context);
+    return this.advanceEnrollmentJourney(next, context);
   }
 
   async syncPlatformSnapshot(
@@ -259,6 +291,46 @@ export class SocialWarmupEnrollmentsService {
         status: item.status,
       });
     }
+
+    this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.signalsRefreshed, {
+      brandId: enrollment.brandId,
+      credentialId: enrollment.credentialId,
+      enrollmentId: enrollment.id,
+      keys: params.evidence.map((item) => item.key),
+      organizationId: enrollment.organizationId,
+      statuses: params.evidence.map((item) => item.status),
+    });
+
+    if (!enrollment.blueprintId || !enrollment.blueprintVersion) {
+      return;
+    }
+
+    const latest = await this.prisma.socialWarmupEnrollment.findFirst({
+      include: enrollmentInclude,
+      where: scopedWhere(params.organizationId, {
+        brandId: enrollment.brandId,
+        id: enrollment.id,
+      }),
+    });
+    if (!latest?.blueprintId || !latest.startedAt) {
+      return;
+    }
+
+    const credential = await this.prisma.credential.findFirst({
+      where: scopedWhere(params.organizationId, {
+        brandId: enrollment.brandId,
+        id: enrollment.credentialId,
+      }),
+    });
+    const hydrated = await this.hydrateEnrollment(
+      latest,
+      credential ?? undefined,
+    );
+    await this.advanceEnrollmentJourney(hydrated, {
+      brandId: enrollment.brandId,
+      organizationId: enrollment.organizationId,
+      userId: enrollment.enrolledByUserId,
+    });
   }
 
   async syncTikTokAuthorizedSnapshot(params: {
@@ -297,6 +369,15 @@ export class SocialWarmupEnrollmentsService {
     await this.syncAuthorizedSnapshot(params);
   }
 
+  async syncLinkedinAuthorizedSnapshot(params: {
+    brandId: string;
+    credentialId: string;
+    organizationId: string;
+    snapshot: LinkedinAuthorizedSignalsSnapshot;
+  }): Promise<void> {
+    await this.syncAuthorizedSnapshot(params);
+  }
+
   private async syncAuthorizedSnapshot(params: {
     brandId: string;
     credentialId: string;
@@ -305,7 +386,8 @@ export class SocialWarmupEnrollmentsService {
       | TikTokAuthorizedSignalsSnapshot
       | InstagramAuthorizedSignalsSnapshot
       | TwitterAuthorizedSignalsSnapshot
-      | YoutubeAuthorizedSignalsSnapshot;
+      | YoutubeAuthorizedSignalsSnapshot
+      | LinkedinAuthorizedSignalsSnapshot;
   }): Promise<void> {
     await this.syncPlatformSnapshot({
       brandId: params.brandId,
@@ -373,7 +455,108 @@ export class SocialWarmupEnrollmentsService {
       }),
     });
 
-    return this.requireEnrollment(id, context);
+    this.emitTelemetry(
+      action === SocialWarmupEventAction.COMPLETED
+        ? SOCIAL_WARMUP_TELEMETRY_EVENT.checkCompleted
+        : SOCIAL_WARMUP_TELEMETRY_EVENT.checkReopened,
+      {
+        action,
+        actorUserId: context.userId,
+        enrollmentId: enrollment.id,
+        itemId,
+        organizationId: enrollment.organizationId,
+        provenance: provenance ?? item.provenance,
+      },
+    );
+
+    const next = await this.requireEnrollment(id, context);
+    return this.advanceEnrollmentJourney(next, context);
+  }
+
+  private async advanceEnrollmentJourney(
+    enrollment: SocialWarmupEnrollmentDocument,
+    _context: SocialWarmupScope,
+  ): Promise<SocialWarmupEnrollmentDocument> {
+    if (
+      !enrollment.blueprintId ||
+      !enrollment.blueprintVersion ||
+      !enrollment.startedAt
+    ) {
+      return enrollment;
+    }
+
+    let blueprint: SocialWarmupBlueprint;
+    try {
+      blueprint = resolveSocialWarmupBlueprint({
+        id: enrollment.blueprintId,
+        version: enrollment.blueprintVersion,
+      });
+    } catch {
+      return enrollment;
+    }
+
+    const evaluation = evaluateSocialWarmupJourney({
+      blueprint,
+      enrollment: {
+        completedItemIds: enrollment.completedItemIds,
+        hasPartialScopes: enrollment.hasPartialScopes,
+        isCredentialConnected: enrollment.isCredentialConnected,
+        reconnect: enrollment.reconnect,
+        signals: enrollment.signals,
+        startedAt: enrollment.startedAt,
+        state: enrollment.state,
+      },
+      platform: blueprint.platform,
+    });
+
+    const previousState = enrollment.state;
+    let nextState = previousState;
+    if (!enrollment.isCredentialConnected) {
+      nextState = SocialWarmupEnrollmentState.DISCONNECTED;
+    } else if (evaluation.isGraduated) {
+      nextState = SocialWarmupEnrollmentState.GRADUATED;
+    } else if (previousState === SocialWarmupEnrollmentState.GRADUATED) {
+      nextState = SocialWarmupEnrollmentState.IN_PROGRESS;
+    } else if (previousState === SocialWarmupEnrollmentState.DISCONNECTED) {
+      nextState = SocialWarmupEnrollmentState.IN_PROGRESS;
+    }
+
+    if (nextState === previousState) {
+      return enrollment;
+    }
+
+    await this.prisma.socialWarmupEnrollment.update({
+      data: { state: nextState },
+      where: scopedWhere(enrollment.organizationId, {
+        brandId: enrollment.brandId,
+        id: enrollment.id,
+      }),
+    });
+
+    this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.readinessTransition, {
+      enrollmentId: enrollment.id,
+      from: previousState,
+      organizationId: enrollment.organizationId,
+      surface: 'enrollment',
+      to: nextState,
+    });
+    if (nextState === SocialWarmupEnrollmentState.GRADUATED) {
+      this.emitTelemetry(SOCIAL_WARMUP_TELEMETRY_EVENT.graduated, {
+        blueprintId: enrollment.blueprintId,
+        elapsedDays: evaluation.elapsedDays,
+        enrollmentId: enrollment.id,
+        organizationId: enrollment.organizationId,
+      });
+    }
+
+    return {
+      ...enrollment,
+      state: nextState,
+    };
+  }
+
+  private emitTelemetry(event: string, payload: Record<string, unknown>): void {
+    this.logger?.log(event, sanitizeSocialWarmupTelemetry(payload));
   }
 
   private async requireEnrollment(
