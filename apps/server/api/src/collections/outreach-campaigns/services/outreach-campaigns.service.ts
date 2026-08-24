@@ -4,6 +4,10 @@ import type {
   CampaignRateLimits,
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import {
+  evaluateReplySlotReservation,
+  mergeReservedRateLimits,
+} from '@api/collections/outreach-campaigns/services/outreach-reply-slot.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
@@ -13,6 +17,22 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+const PRISMA_SERIALIZATION_FAILURE = 'P2034';
+const MAX_SERIALIZATION_RETRIES = 3;
+
+export type ReplySlotReservationResult = {
+  reserved: boolean;
+};
+
+function isPrismaSerializationFailure(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === PRISMA_SERIALIZATION_FAILURE
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Helper: defensively parse the `config` JSON column
@@ -490,63 +510,123 @@ export class OutreachCampaignsService {
   }
 
   /**
-   * Check if rate limit allows another reply
+   * Advisory preflight: both windows are normalized, neither counter is written.
+   * The provider path must still call `reserveReplySlot` immediately before delivery.
    */
-  async canReply(id: string, organizationId: string): Promise<boolean> {
+  async canReply(
+    id: string,
+    organizationId: string,
+    now: Date = new Date(),
+  ): Promise<boolean> {
     const campaign = await this.findOneById(id, organizationId);
 
     if (!campaign || campaign.status !== CampaignStatus.ACTIVE) {
       return false;
     }
 
-    const now = new Date();
-    const rateLimits = this.normalizeRateLimits(campaign.rateLimits);
-
-    if (!rateLimits.hourResetAt || now >= new Date(rateLimits.hourResetAt)) {
-      await this.resetHourlyCounter(id);
-      return true;
-    }
-
-    if (!rateLimits.dayResetAt || now >= new Date(rateLimits.dayResetAt)) {
-      await this.resetDailyCounter(id);
-      return true;
-    }
-
-    if (rateLimits.currentHourCount >= rateLimits.maxPerHour) {
-      return false;
-    }
-
-    if (rateLimits.currentDayCount >= rateLimits.maxPerDay) {
-      return false;
-    }
-
-    return true;
+    return evaluateReplySlotReservation(campaign.rateLimits, now).allowed;
   }
 
   /**
-   * Increment reply counters after a successful reply.
-   * Also bumps the hourly and daily rate-limit counters so `canReply` correctly
-   * enforces the configured limits.
+   * Atomically reserve one reply slot under campaign, organization, active, and
+   * non-deleted constraints. This is the final permission to call the provider.
+   * Consume-on-reserve: a granted slot is not released if the provider later fails.
+   */
+  async reserveReplySlot(
+    id: string,
+    organizationId: string,
+    now: Date = new Date(),
+  ): Promise<ReplySlotReservationResult> {
+    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+      try {
+        const reserved = await this.prisma.$transaction(
+          async (tx) => {
+            const row = await tx.outreachCampaign.findFirst({
+              where: scopedWhere(organizationId, {
+                id,
+                status: CampaignStatus.ACTIVE,
+              }),
+            });
+
+            if (!row) {
+              return false;
+            }
+
+            const doc = normalizeDoc(row as unknown as Record<string, unknown>);
+            const decision = evaluateReplySlotReservation(doc.rateLimits, now);
+
+            if (!decision.allowed) {
+              return false;
+            }
+
+            const cfg = parseConfig(
+              (row as unknown as Record<string, unknown>).config,
+            );
+            const updated = await tx.outreachCampaign.updateMany({
+              data: {
+                config: {
+                  ...cfg,
+                  rateLimits: mergeReservedRateLimits(
+                    doc.rateLimits,
+                    decision.next,
+                  ),
+                } as Prisma.InputJsonValue,
+                updatedAt: now,
+              },
+              where: scopedWhere(organizationId, {
+                id,
+                status: CampaignStatus.ACTIVE,
+              }),
+            });
+
+            return updated.count === 1;
+          },
+          { isolationLevel: 'Serializable' },
+        );
+
+        this.logger.log('OutreachCampaignsService reserveReplySlot', {
+          attempt: attempt + 1,
+          campaignId: id,
+          reserved,
+        });
+
+        return { reserved };
+      } catch (error: unknown) {
+        const isRetryable =
+          isPrismaSerializationFailure(error) &&
+          attempt < MAX_SERIALIZATION_RETRIES - 1;
+
+        if (!isRetryable) {
+          if (isPrismaSerializationFailure(error)) {
+            this.logger.warn(
+              'OutreachCampaignsService reserveReplySlot failed closed',
+              { attempt: attempt + 1, campaignId: id },
+            );
+            return { reserved: false };
+          }
+          throw error;
+        }
+
+        this.logger.warn('OutreachCampaignsService reserveReplySlot retrying', {
+          attempt: attempt + 1,
+          campaignId: id,
+        });
+      }
+    }
+
+    return { reserved: false };
+  }
+
+  /**
+   * Increment delivered-reply totals after a successful provider post.
+   * Rate-limit counters are owned by `reserveReplySlot` so a later increment
+   * cannot double-count the same attempt or reclaim a consumed slot.
    */
   async incrementReplyCounters(id: string): Promise<void> {
-    await this.updateCampaignConfig(id, (doc) => {
-      const rateLimits = this.normalizeRateLimits(doc.rateLimits);
-      const now = new Date();
-      const nextHour = new Date(now.getTime() + 3600 * 1000);
-      const nextDay = new Date(now.getTime() + 86400 * 1000);
-
-      return {
-        rateLimits: {
-          ...rateLimits,
-          currentDayCount: rateLimits.currentDayCount + 1,
-          currentHourCount: rateLimits.currentHourCount + 1,
-          dayResetAt: rateLimits.dayResetAt ?? nextDay,
-          hourResetAt: rateLimits.hourResetAt ?? nextHour,
-        },
-        totalReplies: (doc.totalReplies ?? 0) + 1,
-        totalSuccessful: (doc.totalSuccessful ?? 0) + 1,
-      };
-    });
+    await this.updateCampaignConfig(id, (doc) => ({
+      totalReplies: (doc.totalReplies ?? 0) + 1,
+      totalSuccessful: (doc.totalSuccessful ?? 0) + 1,
+    }));
   }
 
   /**
@@ -596,46 +676,6 @@ export class OutreachCampaignsService {
     await this.updateCampaignConfig(id, (doc) => ({
       totalTargets: ((doc.totalTargets as number) ?? 0) + _count,
     }));
-  }
-
-  /**
-   * Reset hourly rate limit counter and set the next reset window.
-   */
-  private async resetHourlyCounter(id: string): Promise<void> {
-    const now = new Date();
-    const nextHour = new Date(now.getTime() + 3600 * 1000);
-
-    await this.updateCampaignConfig(id, (doc) => {
-      const rateLimits = this.normalizeRateLimits(doc.rateLimits);
-
-      return {
-        rateLimits: {
-          ...rateLimits,
-          currentHourCount: 0,
-          hourResetAt: nextHour,
-        },
-      };
-    });
-  }
-
-  /**
-   * Reset daily rate limit counter and set the next reset window.
-   */
-  private async resetDailyCounter(id: string): Promise<void> {
-    const now = new Date();
-    const nextDay = new Date(now.getTime() + 86400 * 1000);
-
-    await this.updateCampaignConfig(id, (doc) => {
-      const rateLimits = this.normalizeRateLimits(doc.rateLimits);
-
-      return {
-        rateLimits: {
-          ...rateLimits,
-          currentDayCount: 0,
-          dayResetAt: nextDay,
-        },
-      };
-    });
   }
 
   /**
