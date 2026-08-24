@@ -16,6 +16,7 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import {
@@ -94,7 +95,10 @@ describe('AdsGatewayController', () => {
         { provide: CredentialsService, useValue: credentialsService },
         { provide: LoggerService, useValue: logger },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AdsGatewayController>(AdsGatewayController);
     vi.clearAllMocks();

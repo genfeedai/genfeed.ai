@@ -44,7 +44,7 @@ export const CINEMATIC_LEXICON: readonly CinematicTechnique[] = [
     'push-in',
     'A short, deliberate advance toward the subject that lands on a tighter frame.',
     'Use to underline a realization, threat, or emotional turn.',
-    ['slowly toward', 'moves toward him slowly', 'slow push'],
+    ['slowly toward', 'slow push'],
   ),
   technique(
     'camera-movement',
@@ -207,7 +207,7 @@ export const CINEMATIC_LEXICON: readonly CinematicTechnique[] = [
     'close-up',
     'Head and shoulders, or an object large enough to read emotion or texture.',
     'Use for dialogue beats, identity, and reaction.',
-    ['close on', 'closeup', 'close up', 'tight on her face'],
+    ['close on', 'closeup', 'close up', 'tight on'],
   ),
   technique(
     'framing-composition',
