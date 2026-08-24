@@ -45,7 +45,11 @@ const REFERENCE_INGREDIENTS_ENDPOINT = `${REFERENCE_CDN}/ingredients`;
 // non-batch. Use the `seedream-5-lite` key (no dot) so the provider registry's
 // owner/model matcher resolves it to the Replicate adapter.
 const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE;
-const NON_BATCH_REPLICATE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+// Recraft V4 stays on the #3467 `legacy_prompt_builder` exemption list, so
+// these credit/fan-out/output-arithmetic tests keep exercising the
+// promptBuilderService legacy path they were written to prove — unlike
+// Imagen, which #3467 onboarded onto model-aware brief compilation.
+const NON_BATCH_REPLICATE_MODEL = MODEL_KEYS.REPLICATE_RECRAFT_AI_RECRAFT_V4;
 const FAL_MODEL = MODEL_KEYS.FAL_NANO_BANANA_2;
 const SINGLE_OUTPUT_MODEL = MODEL_KEYS.LEONARDOAI;
 
@@ -720,6 +724,11 @@ describe('ImageGenerationService', () => {
 
   describe('generation brief compilation', () => {
     const fluxSchnell = MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
+    // #3467 onboarded Imagen (and 15 other families) onto model-aware brief
+    // compilation; these assert a second, independently-registered compiler
+    // behaves the same as FLUX Schnell (evidence persistence, redaction,
+    // unchanged credit fan-out) so the coverage isn't FLUX-Schnell-only.
+    const imagen4 = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
 
     it('compiles FLUX Schnell from the versioned brief and persists redacted evidence', async () => {
       const { service, promptBuilderService, replicateService, sharedService } =
@@ -808,6 +817,67 @@ describe('ImageGenerationService', () => {
           }),
         }),
       );
+    });
+
+    it('compiles Imagen 4 from the versioned brief and persists redacted evidence', async () => {
+      const { service, promptBuilderService, replicateService, sharedService } =
+        createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          height: 1080,
+          model: imagen4,
+          text: 'a sunset over the ocean',
+          width: 1920,
+        }),
+        buildRequest(),
+      );
+
+      expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+        imagen4,
+        {
+          aspect_ratio: '16:9',
+          output_format: 'jpg',
+          prompt: 'a sunset over the ocean',
+          safety_filter_level: 'block_only_high',
+        },
+      );
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          generationSource:
+            'generation-brief:v1:imagen-4-capability@1:imagen-image-compiler@1',
+          providerData: expect.objectContaining({
+            compilerId: 'imagen-image-compiler',
+            modelKey: imagen4,
+            profileId: 'imagen-4-capability',
+            status: 'compiled',
+          }),
+        }),
+      );
+      const providerData =
+        sharedService.createMediaDocuments.mock.calls[0]?.[1]?.providerData;
+      expect(providerData).not.toHaveProperty('prompt');
+      expect(JSON.stringify(providerData)).not.toContain(
+        'a sunset over the ocean',
+      );
+    });
+
+    it('keeps non-batch Imagen 4 credit fan-out unchanged', async () => {
+      const { service, creditsUtilsService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: imagen4, outputs: 2 }),
+        buildRequest({ creditsConfig: { deferred: true } }),
+      );
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(ORG, 20);
     });
   });
 

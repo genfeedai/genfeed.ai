@@ -1,0 +1,7 @@
+{
+  "aspect_ratio": "16:9",
+  "output_format": "jpg",
+  "output_quality": 80,
+  "prompt": "a sunset over the ocean",
+  "safety_tolerance": 2
+}
