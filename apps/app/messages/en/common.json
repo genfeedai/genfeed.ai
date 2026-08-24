@@ -402,12 +402,21 @@
       "title": "Edit Autopilot Policy",
       "topics": "Topics"
     },
+    "contentRuns": {
+      "allStatuses": "All statuses",
+      "emptyDescription": "Save a brief from Discover to start a content run. It will appear here with its variants, publish events, and analytics.",
+      "emptyTitle": "No content runs yet",
+      "goToDiscover": "Go to Discover",
+      "loadError": "Content runs could not be loaded.",
+      "selectBrand": "Select a brand to view content runs."
+    },
     "replies": {
       "actions": {
         "draft": "Draft",
         "refresh": "Refresh inbox",
         "send": "Send reply"
       },
+      "selectBrand": "Select a brand to view replies.",
       "description": "Choose how to respond — warm thanks, clear answers, or a light touch on trolls. Skip spam. Recent comments only.",
       "platform": {
         "label": "Platform",

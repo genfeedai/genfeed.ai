@@ -300,7 +300,7 @@ export default function RepliesPage() {
     return (
       <Container className="flex flex-col gap-6 py-6">
         <p className="text-sm text-muted-foreground">
-          Select a brand to view replies.
+          {translate('selectBrand')}
         </p>
       </Container>
     );

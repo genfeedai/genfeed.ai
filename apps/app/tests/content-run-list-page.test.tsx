@@ -26,6 +26,12 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('./next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@services/content/content-runs.service', () => ({
   ContentRunsService: {
     getInstance: vi.fn(),

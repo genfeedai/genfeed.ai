@@ -33,6 +33,7 @@ import {
 } from '@ui/primitives/select';
 import { CirclePlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 const ALL_STATUSES = 'all';
@@ -67,6 +68,7 @@ function getPublishCount(run: ContentRunRecord): number {
 }
 
 export default function ContentRunListPage() {
+  const translate = useTranslations('common.automation.contentRuns');
   const collectionScope = useCollectionScope();
   const { brandId, pageScope } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
@@ -111,7 +113,9 @@ export default function ContentRunListPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_STATUSES}>All statuses</SelectItem>
+              <SelectItem value={ALL_STATUSES}>
+                {translate('allStatuses')}
+              </SelectItem>
               {STATUS_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -125,14 +129,14 @@ export default function ContentRunListPage() {
       <Container>
         {pageScope === 'org' && !isBrandReady ? (
           <p className="mt-6 text-sm text-muted-foreground">
-            Select a brand to view content runs.
+            {translate('selectBrand')}
           </p>
         ) : null}
         {isError ? (
           <div className="mt-6">
             <Alert type={AlertCategory.ERROR}>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>Content runs could not be loaded.</span>
+                <span>{translate('loadError')}</span>
                 <Button
                   label="Retry"
                   onClick={() => {
@@ -174,21 +178,19 @@ export default function ContentRunListPage() {
                     <Sparkles className="size-5" />
                   </div>
                   <div className="mt-4 text-base font-semibold text-foreground">
-                    No content runs yet
+                    {translate('emptyTitle')}
                   </div>
                   <div className="mt-2 text-sm leading-6 text-foreground/68">
-                    Save a brief from Discover to start a content run. It will
-                    appear here with its variants, publish events, and
-                    analytics.
+                    {translate('emptyDescription')}
                   </div>
                   <Button
                     className="mt-5"
                     asChild
-                    label="Go to Discover"
+                    label={translate('goToDiscover')}
                     variant={ButtonVariant.SECONDARY}
                   >
                     <Link href={href(APP_ROUTES.DISCOVER.ROOT)}>
-                      Go to Discover
+                      {translate('goToDiscover')}
                     </Link>
                   </Button>
                 </div>
