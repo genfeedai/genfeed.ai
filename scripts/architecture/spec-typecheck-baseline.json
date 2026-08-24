@@ -2576,22 +2576,7 @@
       "message": "Type '\"video-generation\"' is not assignable to type 'ActivitySource'. Did you mean 'ActivitySource.VIDEO_GENERATION'?",
       "workspace": "api"
     },
-    {
-      "code": 1360,
-      "count": 1,
-      "file": "apps/server/api/src/services/ads-gateway/ads-gateway.service.spec.ts",
-      "fingerprint": "c4a9beba1d6f2fd08476",
-      "message": "Type '{ accessToken: string; adAccountId: string; }' does not satisfy the expected type 'AdsAdapterContext'.   Type '{ accessToken: string; adAccountId: string; }' is missing the following properties from type 'AdsAdapterContext': organizationId, credentialId",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 8,
-      "file": "apps/server/api/src/services/ads-gateway/ads-gateway.service.spec.ts",
-      "fingerprint": "89e33fa11763eab8d0bb",
-      "message": "Type '{ accessToken: string; adAccountId: string; }' is missing the following properties from type 'AdsAdapterContext': organizationId, credentialId",
-      "workspace": "api"
-    },
+
     {
       "code": 2349,
       "count": 1,

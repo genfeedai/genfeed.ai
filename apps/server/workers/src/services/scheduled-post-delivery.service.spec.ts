@@ -621,17 +621,17 @@ describe('ScheduledPostDeliveryService', () => {
 
   it('resolves credential via scalar FKs when relation aliases are undefined', async () => {
     mockSuccessfulPublisher(mocks, {
-      externalId: 'ghost-post-1',
+      externalId: 'tweet-scalar-1',
       externalShortcode: null,
-      platform: CredentialPlatform.GHOST,
-      url: 'https://example.ghost.io/ghost-post-1',
+      platform: CredentialPlatform.TWITTER,
+      url: 'https://x.com/example/status/tweet-scalar-1',
     });
     mocks.credentialsService.findOne.mockImplementation(
       (query: { id?: unknown }) =>
         query?.id === 'cred-scalar-1'
           ? Promise.resolve({
               id: 'cred-scalar-1',
-              platform: CredentialPlatform.GHOST,
+              platform: CredentialPlatform.TWITTER,
             })
           : Promise.resolve(null),
     );
@@ -639,7 +639,7 @@ describe('ScheduledPostDeliveryService', () => {
       brandId: 'brand-scalar-1',
       credentialId: 'cred-scalar-1',
       organizationId: 'org-scalar-1',
-      platform: CredentialPlatform.GHOST,
+      platform: CredentialPlatform.TWITTER,
       userId: 'user-scalar-1',
     });
 
@@ -657,7 +657,10 @@ describe('ScheduledPostDeliveryService', () => {
       mocks.publishEventWebhookService.emitLegacyPostFailed,
     ).not.toHaveBeenCalled();
     expect(result).toEqual(
-      expect.objectContaining({ success: true, externalId: 'ghost-post-1' }),
+      expect.objectContaining({
+        success: true,
+        externalId: 'tweet-scalar-1',
+      }),
     );
   });
 
