@@ -49,6 +49,7 @@ export function parseDesktopAssetUrl(rawUrl: string): string | null {
 
 export const DESKTOP_IPC_CHANNELS = {
   appBootstrap: 'desktop:app:bootstrap',
+  appDetectLocalTools: 'desktop:app:detectLocalTools',
   appEnableOfflineMode: 'desktop:app:enableOfflineMode',
   appGetDiagnostics: 'desktop:app:getDiagnostics',
   appOpenExternalPath: 'desktop:app:openExternalPath',
@@ -859,8 +860,17 @@ export interface IDesktopWorkflowRunResult {
 
 /* ─── Bridge (renderer ↔ main) ─── */
 
+export interface IDesktopLocalToolReadiness {
+  anyDetected: boolean;
+  claude: boolean;
+  codex: boolean;
+  detected: string[];
+  grok: boolean;
+}
+
 export interface IGenfeedDesktopBridge {
   app: {
+    detectLocalTools: () => Promise<IDesktopLocalToolReadiness>;
     enableOfflineMode: () => Promise<IDesktopBootstrap>;
     getDiagnostics: () => Promise<{
       isPackaged: boolean;

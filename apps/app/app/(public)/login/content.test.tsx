@@ -273,7 +273,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
-    expect(locationAssignMock).toHaveBeenCalledWith('/desktop/local');
+    expect(locationAssignMock).toHaveBeenCalledWith('/onboarding/providers');
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {

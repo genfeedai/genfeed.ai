@@ -1110,6 +1110,10 @@ async function routeBetterAuthRequest(
   }
 
   if (isDesktopOnboardingRoute) {
+    if (pathname === '/onboarding/providers') {
+      return NextResponse.next();
+    }
+
     return hasSession
       ? NextResponse.next()
       : redirectToLoginPreservingDestination(req);

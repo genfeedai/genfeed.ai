@@ -17,6 +17,14 @@ import {
 let OnboardingSetupLayout: typeof import('./layout').default;
 let isSignedIn = true;
 
+const navigationMocks = vi.hoisted(() => ({
+  pathname: '/onboarding/brand',
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => navigationMocks.pathname,
+}));
+
 const protectedAuthGateMock = vi.fn(
   ({ children }: { children: React.ReactNode }) =>
     isSignedIn ? (
@@ -75,6 +83,7 @@ describe('app/(onboarding)/layout.tsx', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     isSignedIn = true;
+    navigationMocks.pathname = '/onboarding/brand';
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
@@ -159,5 +168,21 @@ describe('app/(onboarding)/layout.tsx', () => {
     expect(screen.getByTestId('auth-gated')).toBeInTheDocument();
     expect(protectedAuthGateMock).toHaveBeenCalled();
     expect(screen.queryByTestId('child')).not.toBeInTheDocument();
+  });
+
+  it('lets desktop local /onboarding/providers render without the auth gate', () => {
+    isSignedIn = false;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    navigationMocks.pathname = '/onboarding/providers';
+
+    render(
+      <OnboardingSetupLayout>
+        <span data-testid="child">hello</span>
+      </OnboardingSetupLayout>,
+    );
+
+    expect(screen.queryByTestId('protected-auth-gate')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('auth-gated')).not.toBeInTheDocument();
+    expect(screen.getByTestId('child')).toHaveTextContent('hello');
   });
 });

@@ -269,7 +269,7 @@ export default function LoginBetterAuth({
     setIsStartingLocalMode(true);
     try {
       await bridge.app.enableOfflineMode();
-      window.location.assign('/desktop/local');
+      window.location.assign('/onboarding/providers');
     } catch (error) {
       setDesktopErrorMessage(
         error instanceof Error

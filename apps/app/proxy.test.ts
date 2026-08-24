@@ -1658,6 +1658,20 @@ describe('proxy', () => {
     expect(location.searchParams.get('callbackUrl')).toBe('/onboarding/brand');
   });
 
+  it('lets unsigned desktop local onboarding reach provider CLI checks', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeDesktopRequest('/onboarding/providers', { hasSession: false }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
   it('keeps the explicit desktop local surface reachable without a cloud session', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     vi.resetModules();

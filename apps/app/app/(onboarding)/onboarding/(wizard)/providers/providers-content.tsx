@@ -2,7 +2,9 @@
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/constants';
+import type { IDesktopLocalToolReadiness } from '@genfeedai/desktop-contracts';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -14,12 +16,15 @@ import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { UsersService } from '@services/organization/users.service';
 import { useRouter } from 'next/navigation';
 import { type MouseEvent, useEffect, useMemo, useState } from 'react';
+import { getDesktopBridge } from '@/lib/desktop/runtime';
 import {
   buildGenfeedCloudSignupUrl,
   buildOnboardingAccessSettingsPatch,
   ONBOARDING_STORAGE_KEYS,
 } from '@/lib/onboarding/onboarding-access.util';
-import ProvidersActionBar from './providers-action-bar';
+import ProvidersActionBar, {
+  type ProvidersAccessSurface,
+} from './providers-action-bar';
 import ProvidersServerList from './providers-server-list';
 import ProvidersStatusCard from './providers-status-card';
 import ProvidersToolList from './providers-tool-list';
@@ -134,27 +139,48 @@ export default function ProvidersContent() {
   );
   const [readiness, setReadiness] =
     useState<InstallReadinessResponse>(EMPTY_READINESS);
+  const [desktopLocalTools, setDesktopLocalTools] =
+    useState<IDesktopLocalToolReadiness | null>(null);
+  const [isDesktopLocal, setIsDesktopLocal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
+    const abortController = new AbortController();
 
     const loadReadiness = async () => {
       try {
+        if (isDesktopClient()) {
+          const bridge = getDesktopBridge();
+          if (bridge) {
+            const bootstrap = await bridge.app.getBootstrap();
+            if (abortController.signal.aborted) {
+              return;
+            }
+
+            if (bootstrap.isOfflineMode) {
+              setIsDesktopLocal(true);
+              const tools = await bridge.app.detectLocalTools();
+              if (!abortController.signal.aborted) {
+                setDesktopLocalTools(tools);
+              }
+              return;
+            }
+          }
+        }
+
         const token = await resolveAuthToken(getToken);
-        if (!token || cancelled) {
-          setLoading(false);
+        if (!token || abortController.signal.aborted) {
           return;
         }
 
         const service = OnboardingService.getInstance(token);
         const response = await service.getInstallReadiness();
 
-        if (!cancelled) {
+        if (!abortController.signal.aborted) {
           setReadiness(response);
         }
       } finally {
-        if (!cancelled) {
+        if (!abortController.signal.aborted) {
           setLoading(false);
         }
       }
@@ -163,7 +189,7 @@ export default function ProvidersContent() {
     void loadReadiness();
 
     return () => {
-      cancelled = true;
+      abortController.abort();
     };
   }, [getToken]);
 
@@ -188,21 +214,38 @@ export default function ProvidersContent() {
     [readiness.providers],
   );
 
-  const localToolRows = useMemo(
-    () => [
-      {
-        description: 'Recommended for local agent chat and task execution.',
-        enabled: readiness.localTools.codex,
-        key: 'Codex CLI',
-      },
+  const localToolRows = useMemo(() => {
+    const claude = desktopLocalTools?.claude ?? readiness.localTools.claude;
+    const codex = desktopLocalTools?.codex ?? readiness.localTools.codex;
+    const rows = [
       {
         description: 'Recommended for local agent chat and desktop workflows.',
-        enabled: readiness.localTools.claude,
+        enabled: claude,
         key: 'Claude CLI',
       },
-    ],
-    [readiness.localTools],
-  );
+      {
+        description: 'Recommended for local agent chat and task execution.',
+        enabled: codex,
+        key: 'Codex CLI',
+      },
+    ];
+
+    if (isDesktopLocal) {
+      rows.push({
+        description: 'Recommended for local Grok agent chat on this Mac.',
+        enabled: desktopLocalTools?.grok ?? false,
+        key: 'Grok CLI',
+      });
+    }
+
+    return rows;
+  }, [desktopLocalTools, isDesktopLocal, readiness.localTools]);
+
+  const accessSurface: ProvidersAccessSurface = isDesktopLocal
+    ? 'desktop-local'
+    : readiness.ui.showCredits
+      ? 'saas'
+      : 'self-hosted';
 
   const accessStatusLabel = useMemo(() => {
     if (loading) {
@@ -251,6 +294,10 @@ export default function ProvidersContent() {
     push(APP_ROUTES.SETTINGS.API_KEYS);
   };
 
+  const handleDesktopContinue = () => {
+    push('/desktop/local');
+  };
+
   const handleCloudContinue = async () => {
     setPendingMode('cloud');
     await persistAccessMode('cloud');
@@ -272,24 +319,31 @@ export default function ProvidersContent() {
       </h1>
 
       <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">
-        Genfeed uses the server-configured providers by default. Add your own
-        provider API keys only if you want to override hosted access, or switch
-        to Genfeed Cloud if you want the managed path instead.
+        {accessSurface === 'saas'
+          ? 'Use Genfeed Cloud for hosted generation, or bring your own provider keys if you want BYOK.'
+          : accessSurface === 'desktop-local'
+            ? 'Genfeed looks for Claude, Codex, and Grok CLIs on this Mac. Detected tools can run locally without a cloud session.'
+            : 'Genfeed uses the server-configured providers by default. Add your own provider API keys only if you want to override hosted access, or switch to Genfeed Cloud if you want the managed path instead.'}
       </p>
 
       <div className="space-y-5">
-        <ProvidersStatusCard accessStatusLabel={accessStatusLabel} />
+        {accessSurface === 'self-hosted' ? (
+          <ProvidersStatusCard accessStatusLabel={accessStatusLabel} />
+        ) : null}
 
-        {readiness.ui.showLocalTools ? (
+        {accessSurface === 'desktop-local' || readiness.ui.showLocalTools ? (
           <ProvidersToolList localToolRows={localToolRows} />
         ) : null}
 
-        <ProvidersServerList providerRows={providerRows} />
+        {accessSurface === 'self-hosted' ? (
+          <ProvidersServerList providerRows={providerRows} />
+        ) : null}
 
         <ProvidersActionBar
           loading={loading}
           pendingMode={pendingMode}
           selectedMode={readiness.access.selectedMode}
+          surface={accessSurface}
           onByokClick={(event) => {
             void handleByokClick(event);
           }}
@@ -299,7 +353,14 @@ export default function ProvidersContent() {
           onCloudContinue={() => {
             void handleCloudContinue();
           }}
-          onBack={() => push(APP_ROUTES.ONBOARDING.BRAND)}
+          onDesktopContinue={handleDesktopContinue}
+          onBack={() =>
+            push(
+              accessSurface === 'desktop-local'
+                ? '/login'
+                : APP_ROUTES.ONBOARDING.BRAND,
+            )
+          }
         />
       </div>
     </div>
