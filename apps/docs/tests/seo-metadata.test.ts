@@ -118,11 +118,12 @@ describe('docs SEO metadata', () => {
     expect(body).toContain('Sitemap: https://docs.genfeed.ai/sitemap.xml');
   });
 
-  it('lets rendered Swagger own the interactive API reference H1', () => {
+  it('keeps an authored H1 out of the Swagger-owned reference page', () => {
     const source = fs.readFileSync(apiReferencePath, 'utf8');
 
-    // The watchdog inspects the rendered DOM, where Swagger emits its document
-    // title as an H1. A manual MDX H1 would therefore produce two H1 elements.
+    // The 2026-08-24 watchdog recorded `API Reference` in the fetched DOM, then
+    // `Genfeed.ai API 0.1.66 OAS 3.0` as a second H1 after Swagger hydrated.
+    // Removing the authored MDX H1 leaves the rendered Swagger document H1.
     expect(source).toContain('<SwaggerUI />');
     expect(source.match(/^# /gm) ?? []).toHaveLength(0);
   });

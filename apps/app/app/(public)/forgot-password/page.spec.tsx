@@ -10,7 +10,7 @@ describe('forgot-password SEO metadata', () => {
       alternates: { canonical: 'https://app.genfeed.ai/forgot-password' },
       description:
         'Reset your Genfeed password securely and regain access to your content studio, brand assets, publishing tools, and workspace settings.',
-      title: 'Reset Your Genfeed Account Password',
+      title: 'Reset Your Account Password | Genfeed',
       twitter: { card: 'summary' },
     });
   });

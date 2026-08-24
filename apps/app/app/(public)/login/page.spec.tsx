@@ -11,7 +11,7 @@ describe('login SEO metadata', () => {
       description:
         'Sign in to Genfeed to access your content studio, brand assets, generation tools, publishing workflows, and team workspace.',
       robots: { follow: true, index: true },
-      title: 'Sign In to Your Genfeed Workspace',
+      title: 'Sign In to Your Workspace | Genfeed',
       twitter: { card: 'summary' },
     });
   });

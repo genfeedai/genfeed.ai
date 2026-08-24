@@ -11,7 +11,7 @@ describe('sign-up SEO metadata', () => {
       description:
         'Create your Genfeed workspace to generate on-brand content, review team output, schedule campaigns, and publish across every channel.',
       robots: { follow: true, index: true },
-      title: 'Create Your Genfeed Workspace Today',
+      title: 'Create Your Workspace | Genfeed',
       twitter: { card: 'summary' },
     });
   });
