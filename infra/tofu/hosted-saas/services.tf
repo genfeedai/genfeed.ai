@@ -8,6 +8,11 @@ locals {
     { name = "GENFEEDAI_MICROSERVICES_MCP_URL", value = "http://mcp.genfeed.internal:${local.services.mcp.port}" },
     { name = "GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL", value = "http://notifications.genfeed.internal:${local.services.notifications.port}" },
     { name = "GENFEEDAI_API_PUBLIC_URL", value = "https://${var.api_subdomain}.${var.domain}" },
+    # Public Better Auth issuer / JWKS base. Notifications is internet-facing and
+    # only receives an SSM allowlist; this URL is not a secret, so it is injected
+    # here for every task (including notifications) instead of being omitted and
+    # falling back to localhost JWKS.
+    { name = "BETTER_AUTH_URL", value = "https://${var.api_subdomain}.${var.domain}" },
     { name = "GENFEEDAI_API_URL", value = "http://api.genfeed.internal:${local.services.api.port}" },
     { name = "GENFEEDAI_MCP_PUBLIC_URL", value = "https://mcp.${var.domain}/mcp" },
     { name = "REDIS_URL", value = "rediss://${data.aws_elasticache_replication_group.current.primary_endpoint_address}:6379" },

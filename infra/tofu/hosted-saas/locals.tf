@@ -89,6 +89,8 @@ locals {
       "SENTRY_ENVIRONMENT",
       "VERCEL_WEBHOOK_SECRET",
     ])
+    # BETTER_AUTH_URL is plaintext in local.internal_env (public issuer URL).
+    # Do not add it here: ECS forbids the same name in environment and secrets.
     notifications = toset([
       "API_SECRET_KEY",
       "CHROMATIC_WEBHOOK_SECRET",
