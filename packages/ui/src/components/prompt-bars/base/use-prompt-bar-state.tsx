@@ -24,14 +24,14 @@ import {
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSpeechRecording } from '@genfeedai/hooks/media/use-speech-recording/use-speech-recording';
-import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
-import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
-import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
-import { usePromptBarModels } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
 import {
   resolveStudioGenerationCostModels,
   resolveStudioGenerationMeter,
 } from '@genfeedai/hooks/prompt-bar/resolve-studio-generation-meter/resolve-studio-generation-meter';
+import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
+import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
+import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
+import { usePromptBarModels } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
 import { usePromptBarPricing } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
 import { usePromptBarReferences } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
 import { usePromptBarSync } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
@@ -45,6 +45,7 @@ import type {
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import type { JSONContent } from '@tiptap/core';
 import {
   getConfigForCategoryType,
   getConfigForRoute,
@@ -105,6 +106,9 @@ type UsePromptBarStateParams = Pick<
   | 'showSuggestionsWhenEmpty'
   | 'maxSuggestions'
   | 'isDisabled'
+  | 'extraExtensions'
+  | 'onPromptDocumentChange'
+  | 'onPrepareSubmit'
 >;
 
 export function usePromptBarState({
@@ -147,6 +151,9 @@ export function usePromptBarState({
   onSuggestionSelect,
   showSuggestionsWhenEmpty = true,
   maxSuggestions = 3,
+  extraExtensions,
+  onPromptDocumentChange,
+  onPrepareSubmit,
 }: UsePromptBarStateParams) {
   const useSplitState = promptText !== undefined && promptConfig !== undefined;
   const isCollapsible = features.collapsible ?? true;
@@ -630,6 +637,16 @@ export function usePromptBarState({
     watchedFormat,
   ]);
 
+  const promptDocumentRef = useRef<JSONContent | null>(null);
+
+  const handlePromptDocumentChange = useCallback(
+    (document: JSONContent) => {
+      promptDocumentRef.current = document;
+      onPromptDocumentChange?.(document);
+    },
+    [onPromptDocumentChange],
+  );
+
   const handleSubmitForm = useCallback(
     (e?: FormEvent) => {
       e?.preventDefault();
@@ -639,14 +656,34 @@ export function usePromptBarState({
         !isGenerateDisabled &&
         !isGenerating
       ) {
+        if (onPrepareSubmit) {
+          const currentReferences = form.getValues('references') ?? [];
+          const prepared = onPrepareSubmit({
+            document: promptDocumentRef.current,
+            references: Array.isArray(currentReferences)
+              ? currentReferences
+              : [],
+            text: form.getValues('text') ?? '',
+          });
+          form.setValue('text', prepared.text, { shouldValidate: true });
+          form.setValue('references', prepared.references, {
+            shouldValidate: true,
+          });
+          for (const notice of prepared.notices ?? []) {
+            notificationsService.warning(notice);
+          }
+        }
         flushConfigChange();
         onSubmit();
       }
     },
     [
+      form,
       isGenerateBlocked,
       isGenerateDisabled,
       isGenerating,
+      notificationsService,
+      onPrepareSubmit,
       onSubmit,
       flushConfigChange,
     ],
@@ -750,6 +787,7 @@ export function usePromptBarState({
     iconButtonClass,
     isAdvancedControlsEnabled,
     isAdvancedMode,
+    extraExtensions,
     isAutoMode,
     isCollapsed,
     isCollapsible,
@@ -771,6 +809,7 @@ export function usePromptBarState({
     models,
     normalizedWatchedModels,
     onCancel,
+    onDocumentChange: handlePromptDocumentChange,
     openAttachedAssetsBrowser,
     openGallery: openGallery as unknown as (
       options: GalleryModalOptions,

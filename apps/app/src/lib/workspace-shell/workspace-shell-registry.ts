@@ -968,6 +968,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/settings',
       '/:orgSlug/:brandSlug/settings/kit',
+      '/:orgSlug/:brandSlug/settings/characters',
       '/:orgSlug/:brandSlug/settings/social',
       '/:orgSlug/:brandSlug/settings/links',
       '/:orgSlug/:brandSlug/settings/voice',

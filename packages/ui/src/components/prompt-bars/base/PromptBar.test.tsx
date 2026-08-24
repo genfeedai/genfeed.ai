@@ -46,7 +46,11 @@ const mockHandleCopy = vi.fn();
 const mockHandleUndo = vi.fn();
 const mockOpenGallery = vi.fn();
 const mockOpenUpload = vi.fn();
-const mockNotifications = { error: vi.fn(), success: vi.fn() };
+const mockNotifications = {
+  error: vi.fn(),
+  success: vi.fn(),
+  warning: vi.fn(),
+};
 const mockClipboard = { copy: vi.fn() };
 let collapsedViewProps: Record<string, unknown> | undefined;
 let expandedViewProps: Record<string, unknown> | undefined;
@@ -258,7 +262,7 @@ vi.mock('react-hook-form', () => ({
 vi.mock(
   '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView',
   () => ({
-    default: (props: { onExpand: () => void }) => {
+    default: (props: { extraExtensions?: unknown; onExpand: () => void }) => {
       collapsedViewProps = props;
       return (
         <div data-testid="collapsed-view">
@@ -471,6 +475,71 @@ describe('PromptBar', () => {
 
     expect(screen.queryByTestId('collapsed-view')).not.toBeInTheDocument();
     expect(screen.getByTestId('expanded-view')).toBeInTheDocument();
+  });
+
+  it('passes extraExtensions to collapsed and expanded prompt editors', () => {
+    const extraExtensions = [{ name: 'characterMention' }];
+    render(
+      <PromptBar
+        {...defaultProps}
+        extraExtensions={extraExtensions as never}
+        features={{ collapsible: true, dragDrop: false }}
+      />,
+    );
+
+    if (collapsedViewProps) {
+      expect(collapsedViewProps.extraExtensions).toBe(extraExtensions);
+    }
+
+    render(
+      <PromptBar
+        {...defaultProps}
+        extraExtensions={extraExtensions as never}
+        features={{ collapsible: false, dragDrop: false }}
+      />,
+    );
+    expect(expandedViewProps?.extraExtensions).toBe(extraExtensions);
+  });
+
+  it('merges prepared character references on submit', () => {
+    mockForm.getValues.mockImplementation((name: string) =>
+      name === 'references' ? ['img-0'] : 'walking',
+    );
+    const onPrepareSubmit = vi.fn(() => ({
+      notices: ['Ghost has no canonical reference image'],
+      references: ['img-0', 'img-anna'],
+      text: 'Anna walking',
+    }));
+    const mockOnSubmit = vi.fn();
+
+    render(
+      <PromptBar
+        {...defaultProps}
+        features={{ collapsible: false, dragDrop: false }}
+        onPrepareSubmit={onPrepareSubmit}
+        onSubmit={mockOnSubmit}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('submit-button'));
+
+    expect(onPrepareSubmit).toHaveBeenCalledWith({
+      document: null,
+      references: ['img-0'],
+      text: 'walking',
+    });
+    expect(mockForm.setValue).toHaveBeenCalledWith('text', 'Anna walking', {
+      shouldValidate: true,
+    });
+    expect(mockForm.setValue).toHaveBeenCalledWith(
+      'references',
+      ['img-0', 'img-anna'],
+      { shouldValidate: true },
+    );
+    expect(mockNotifications.warning).toHaveBeenCalledWith(
+      'Ghost has no canonical reference image',
+    );
+    expect(mockOnSubmit).toHaveBeenCalled();
   });
 
   it('should handle submit correctly', () => {

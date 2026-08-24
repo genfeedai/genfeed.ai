@@ -86,6 +86,7 @@ export * from './content/account-publishing-context.interface';
 export * from './content/agent-mention.interface';
 export * from './content/article.interface';
 export * from './content/article-extended.interface';
+export * from './content/character-sheet.interface';
 export * from './content/clip-draft-handoff.interface';
 export * from './content/clip-reference-frame.interface';
 export * from './content/clip-reference-generation.interface';

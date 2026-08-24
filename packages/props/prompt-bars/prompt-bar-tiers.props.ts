@@ -23,6 +23,7 @@ import type {
   PromptBarFeatures,
   UploadModalOptions,
 } from '@props/studio/prompt-bar.props';
+import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type {
   Dispatch,
   FormEvent,
@@ -128,6 +129,8 @@ export interface PromptBarEssentialsProps {
 
   avatars?: DropdownFieldOption[];
   voices?: DropdownFieldOption[];
+  extraExtensions?: readonly AnyExtension[];
+  onDocumentChange?: (document: JSONContent) => void;
 }
 
 /**

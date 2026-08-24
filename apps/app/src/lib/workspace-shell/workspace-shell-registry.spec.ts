@@ -175,6 +175,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/publish/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/skills', 'canvas'],
+    ['/:orgSlug/:brandSlug/settings/characters', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],

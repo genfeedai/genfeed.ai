@@ -49,12 +49,25 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
+const promptEditorProps: { extraExtensions?: unknown } = {};
+
 vi.mock('@ui/prompt-editor/PromptEditor', () => ({
-  default: ({ testId, value }: { testId?: string; value?: string }) => (
-    <div aria-label="Prompt" data-testid={testId} role="textbox" tabIndex={0}>
-      {value}
-    </div>
-  ),
+  default: ({
+    extraExtensions,
+    testId,
+    value,
+  }: {
+    extraExtensions?: unknown;
+    testId?: string;
+    value?: string;
+  }) => {
+    promptEditorProps.extraExtensions = extraExtensions;
+    return (
+      <div aria-label="Prompt" data-testid={testId} role="textbox" tabIndex={0}>
+        {value}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@ui/primitives/checkbox', () => ({
@@ -177,6 +190,18 @@ describe('PromptBarEssentials', () => {
     watchedModels: ['kling-v2'],
     watchedQuality: 'standard',
   };
+
+  it('forwards extraExtensions to PromptEditor', () => {
+    const extraExtensions = [{ name: 'characterMention' }];
+    render(
+      <PromptBarEssentials
+        {...defaultProps}
+        extraExtensions={extraExtensions as never}
+      />,
+    );
+
+    expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
+  });
 
   it('renders model controls before format controls without a separate mode toggle', () => {
     render(<PromptBarEssentials {...defaultProps} />);

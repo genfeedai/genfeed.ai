@@ -168,6 +168,9 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/kit')).toBe(
       '/settings/brands',
     );
+    expect(resolveOrganizationScopePath('/settings/characters')).toBe(
+      '/settings/brands',
+    );
     // Shared surfaces keep their path under org scope.
     expect(resolveOrganizationScopePath('/settings')).toBe('/settings');
     expect(resolveOrganizationScopePath('/settings/brands')).toBe(

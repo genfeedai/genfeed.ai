@@ -1,9 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ComposeCharacterSheetDto } from '@api/collections/personas/dto/compose-character-sheet.dto';
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
+import { CreatePersonaFromSheetDto } from '@api/collections/personas/dto/create-persona-from-sheet.dto';
 import { PersonasQueryDto } from '@api/collections/personas/dto/personas-query.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -111,15 +114,31 @@ export class PersonasController extends BaseCRUDController<
     return { mentions };
   }
 
+  @Post('sheet-prompt')
+  async composeSheetPrompt(
+    @CurrentUser() user: User,
+    @Body() body: ComposeCharacterSheetDto,
+  ): Promise<{ prompt: string }> {
+    if (!user.organizationId || !user.brandId) {
+      throw new BadRequestException({
+        detail:
+          'Organization and brand are required to compose a character sheet',
+        title: 'Bad Request',
+      });
+    }
+
+    return {
+      prompt: composeCharacterSheetPrompt({
+        description: body.description,
+        isNonHumanoid: body.isNonHumanoid,
+      }),
+    };
+  }
+
   @Post('from-sheet')
   async createFromSheet(
     @CurrentUser() user: User,
-    @Body()
-    body: {
-      assetId: string;
-      handle: string;
-      label: string;
-    },
+    @Body() body: CreatePersonaFromSheetDto,
   ) {
     if (!user.organizationId || !user.brandId) {
       throw new BadRequestException({

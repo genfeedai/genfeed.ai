@@ -146,6 +146,8 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
   generateLabel,
   avatars = [],
   voices = [],
+  extraExtensions,
+  onDocumentChange,
 }: PromptBarEssentialsProps) {
   const isCollapsible = features.collapsible ?? true;
   // Simple mode (Advanced Mode off) strips the bar to its essentials: type,
@@ -207,7 +209,9 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             'min-h-9 w-full px-2 py-2',
             isMinimalBar ? 'pr-4' : isCollapsible ? 'pr-24' : 'pr-12',
           )}
+          extraExtensions={extraExtensions}
           isDisabled={isDisabledState}
+          onDocumentChange={onDocumentChange}
           onSubmit={handleSubmitForm}
           onValueChange={handleEditorValueChange}
           placeholder={currentConfig.placeholder}

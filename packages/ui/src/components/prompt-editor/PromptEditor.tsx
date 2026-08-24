@@ -67,6 +67,7 @@ function PromptEditor({
           }),
           immediatelyRender: false,
         },
+    injectedEditor ? undefined : [extraExtensions],
   );
 
   const editor = injectedEditor ?? ownedEditor;

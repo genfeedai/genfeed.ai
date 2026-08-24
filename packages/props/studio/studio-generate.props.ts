@@ -5,6 +5,7 @@ import type {
   StudioGenerateType,
 } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
+import type { AnyExtension, JSONContent } from '@tiptap/core';
 
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioGenerateFilter = StudioGenerateType | 'all';
@@ -25,6 +26,7 @@ export interface StudioGenerateSettingsPopoverProps {
 
 export interface StudioGenerateComposerProps {
   attachedAssets: PromptBarAttachedAsset[];
+  extraExtensions?: readonly AnyExtension[];
   isDragActive?: boolean;
   isGenerating: boolean;
   isListening: boolean;
@@ -35,6 +37,7 @@ export interface StudioGenerateComposerProps {
   onAddFiles: (files: File[]) => void;
   onOpenLibrary: () => void;
   onPromptChange: (value: string) => void;
+  onPromptDocumentChange?: (document: JSONContent) => void;
   onRemoveAttachedAsset: (assetId: string) => void;
   onResetSettings: () => void;
   onSettingsChange: (patch: Partial<StudioGenerateSettings>) => void;

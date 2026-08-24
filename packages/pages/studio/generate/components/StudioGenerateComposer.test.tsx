@@ -18,6 +18,27 @@ vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
   default: () => <button type="button">Auto</button>,
 }));
 
+const promptEditorProps: { extraExtensions?: unknown } = {};
+
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: ({
+    extraExtensions,
+    testId,
+    value,
+  }: {
+    extraExtensions?: unknown;
+    testId?: string;
+    value?: string;
+  }) => {
+    promptEditorProps.extraExtensions = extraExtensions;
+    return (
+      <div aria-label="Prompt" data-testid={testId} role="textbox" tabIndex={0}>
+        {value}
+      </div>
+    );
+  },
+}));
+
 vi.mock('@pages/studio/generate/components/StudioGenerateTypeSelector', () => ({
   default: () => <button type="button">Image</button>,
 }));
@@ -40,6 +61,38 @@ const settings = {
 };
 
 describe('StudioGenerateComposer', () => {
+  it('applies studio extraExtensions to the prompt editor', () => {
+    const extraExtensions = [{ name: 'characterMention' }];
+    render(
+      <StudioGenerateComposer
+        attachedAssets={[]}
+        extraExtensions={extraExtensions as never}
+        isGenerating={false}
+        isLoadingModels={false}
+        isListening={false}
+        isTranscribing={false}
+        isUploading={false}
+        models={[]}
+        onAddFiles={vi.fn()}
+        onOpenLibrary={vi.fn()}
+        onPromptChange={vi.fn()}
+        onRemoveAttachedAsset={vi.fn()}
+        onResetSettings={vi.fn()}
+        onSettingsChange={vi.fn()}
+        onStartListening={vi.fn()}
+        onStopListening={vi.fn()}
+        onSubmit={vi.fn()}
+        onTypeChange={vi.fn()}
+        prompt="A product photo"
+        settings={settings}
+        shouldShowVoiceInput={false}
+        type="image"
+      />,
+    );
+
+    expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
+  });
+
   it('keeps Studio selectors grouped and adds Agent reference controls', () => {
     const onAddFiles = vi.fn();
     const onOpenLibrary = vi.fn();

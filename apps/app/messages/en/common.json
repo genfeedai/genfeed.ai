@@ -112,6 +112,49 @@
       "label": "Search settings",
       "placeholder": "Search settings…"
     },
+    "characters": {
+      "actions": {
+        "approve": "Approve",
+        "creating": "Creating…",
+        "discard": "Discard",
+        "generate": "Generate sheet",
+        "generating": "Generating…",
+        "regenerate": "Regenerate"
+      },
+      "candidate": {
+        "alt": "Generated character sheet",
+        "title": "Candidate sheet"
+      },
+      "create": {
+        "description": "Describe the character. We generate a canonical sheet, then you approve a name and handle.",
+        "title": "New character"
+      },
+      "empty": "No characters yet. Generate a sheet to create the first one.",
+      "errors": {
+        "approveFailed": "Could not create the character from this sheet.",
+        "brandUnavailable": "The selected brand is unavailable for this settings route.",
+        "generateFailed": "Could not generate a character sheet.",
+        "invalidHandle": "Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores.",
+        "loadFailed": "Could not load characters.",
+        "missingName": "Name and handle are required to approve a character."
+      },
+      "fields": {
+        "description": "Description",
+        "descriptionPlaceholder": "A tall woman in a red coat, silver hair, sharp eyes…",
+        "handle": "Handle",
+        "handlePlaceholder": "anna",
+        "name": "Name",
+        "namePlaceholder": "Anna",
+        "nonHumanoid": "Non-humanoid (include a side-profile view)",
+        "seed": "Seed (optional)"
+      },
+      "list": {
+        "title": "Characters"
+      },
+      "subtitle": "Named characters for Studio and Agent @-mentions.",
+      "success": "Character created.",
+      "title": "Characters"
+    },
     "profile": {
       "fields": {
         "email": "Email",

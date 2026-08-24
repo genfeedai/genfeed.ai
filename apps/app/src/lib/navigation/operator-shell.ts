@@ -220,6 +220,7 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   '/settings/interview',
   '/settings/harness',
   '/settings/kit',
+  '/settings/characters',
 ] as const;
 
 /**

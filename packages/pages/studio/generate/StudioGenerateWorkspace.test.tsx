@@ -74,9 +74,35 @@ const remixRun = {
   },
 } as BrandRemixRunView;
 
+const characterMentionMocks = vi.hoisted(() => ({
+  extraExtensions: [{ name: 'characterMention' }],
+  resolveSubmit: vi.fn(
+    ({
+      existingReferenceIds,
+      text,
+    }: {
+      existingReferenceIds: string[];
+      text: string;
+    }) => ({
+      notices: [],
+      referenceIds: [...existingReferenceIds, 'img-anna'],
+      text: text.replace('@anna', 'Anna'),
+    }),
+  ),
+}));
+
 vi.mock('@genfeedai/agent', () => ({
   runAgentApiEffect: vi.fn(),
   useAgentApiService: () => null,
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-studio-character-mentions', () => ({
+  useStudioCharacterMentions: () => ({
+    extraExtensions: characterMentionMocks.extraExtensions,
+    isLoading: false,
+    mentions: [],
+    resolveSubmit: characterMentionMocks.resolveSubmit,
+  }),
 }));
 
 vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
@@ -283,8 +309,12 @@ describe('StudioGenerateWorkspace', () => {
     render(<StudioGenerateWorkspace />);
 
     const initialProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      extraExtensions?: unknown;
       onPromptChange: (value: string) => void;
     };
+    expect(initialProps.extraExtensions).toBe(
+      characterMentionMocks.extraExtensions,
+    );
     act(() => initialProps.onPromptChange('Use this composition'));
 
     const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {
@@ -292,8 +322,29 @@ describe('StudioGenerateWorkspace', () => {
     };
     act(() => currentProps.onSubmit());
 
+    expect(characterMentionMocks.resolveSubmit).toHaveBeenCalled();
     expect(mocks.submit).toHaveBeenCalledWith('Use this composition', [
       'https://cdn.example/reference.png',
+      'img-anna',
+    ]);
+  });
+
+  it('serializes character mention display names and merges reference ids on generate', () => {
+    render(<StudioGenerateWorkspace />);
+
+    const initialProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      onPromptChange: (value: string) => void;
+    };
+    act(() => initialProps.onPromptChange('@anna walking'));
+
+    const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+      onSubmit: () => void;
+    };
+    act(() => currentProps.onSubmit());
+
+    expect(mocks.submit).toHaveBeenCalledWith('Anna walking', [
+      'https://cdn.example/reference.png',
+      'img-anna',
     ]);
   });
 

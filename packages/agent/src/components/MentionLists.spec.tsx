@@ -1,4 +1,5 @@
 import { BrandMentionList } from '@genfeedai/agent/components/BrandMentionList';
+import { CharacterMentionList } from '@genfeedai/agent/components/CharacterMentionList';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
 import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.service';
@@ -152,5 +153,53 @@ describe('TeamMentionList', () => {
     pressKey(ref, 'Enter');
 
     expect(command).toHaveBeenCalledWith(team[0]);
+  });
+});
+
+const characters = [
+  {
+    avatarIngredientId: 'img-1',
+    handle: 'anna',
+    hasReferenceImage: true,
+    id: 'p1',
+    label: 'Anna',
+  },
+  {
+    avatarIngredientId: null,
+    handle: 'ghost',
+    hasReferenceImage: false,
+    id: 'p2',
+    label: 'Ghost',
+  },
+];
+
+describe('CharacterMentionList', () => {
+  it('renders an empty state without a team section', () => {
+    render(<CharacterMentionList command={vi.fn()} items={[]} />);
+
+    expect(screen.getByText('No characters found')).toBeInTheDocument();
+    expect(screen.queryByText('No team members found')).not.toBeInTheDocument();
+  });
+
+  it('renders character labels and handles and invokes command on click', () => {
+    const command = vi.fn();
+    render(<CharacterMentionList command={command} items={characters} />);
+
+    expect(screen.getByText('Anna')).toBeInTheDocument();
+    expect(screen.getByText('@anna')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Ghost'));
+    expect(command).toHaveBeenCalledWith(characters[1]);
+  });
+
+  it('supports keyboard selection', () => {
+    const command = vi.fn();
+    const ref = createRef<MentionListHandle>();
+    render(
+      <CharacterMentionList command={command} items={characters} ref={ref} />,
+    );
+
+    expect(pressKey(ref, 'ArrowDown')).toBe(true);
+    expect(pressKey(ref, 'Enter')).toBe(true);
+    expect(command).toHaveBeenCalledWith(characters[1]);
   });
 });

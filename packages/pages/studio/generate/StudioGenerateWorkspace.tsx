@@ -5,6 +5,7 @@ import { runAgentApiEffect, useAgentApiService } from '@genfeedai/agent';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
+import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { AlertCategory, ComponentSize } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
@@ -30,6 +31,7 @@ import {
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { buildStudioRemixRunEdits } from '@pages/studio/generate/utils/studio-remix-run';
 import { NotificationsService } from '@services/core/notifications.service';
+import type { JSONContent } from '@tiptap/core';
 import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
@@ -55,6 +57,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const { brandId, settings: organizationSettings } = useBrand();
   const agentApiService = useAgentApiService();
+  const { extraExtensions, resolveSubmit: resolveCharacterMentions } =
+    useStudioCharacterMentions(agentApiService);
+  const promptDocumentRef = useRef<JSONContent | null>(null);
   const {
     applyTypeSettings,
     isHydrated,
@@ -267,14 +272,24 @@ export default function StudioGenerateWorkspace(): ReactElement {
       }
       return;
     }
-    void submit(prompt, referenceUrls);
+    const prepared = resolveCharacterMentions({
+      document: promptDocumentRef.current,
+      existingReferenceIds: referenceUrls,
+      text: prompt,
+    });
+    for (const notice of prepared.notices) {
+      notificationsService.warning(notice);
+    }
+    void submit(prepared.text, prepared.referenceIds);
   }, [
     isListening,
     isTranscribing,
     isUploading,
+    notificationsService,
     prompt,
     contentReferences,
     referenceUrls,
+    resolveCharacterMentions,
     remixRun,
     settings,
     startRemixRun,
@@ -427,6 +442,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
           >
             <StudioGenerateComposer
               attachedAssets={attachedAssets}
+              extraExtensions={extraExtensions}
               isDragActive={capabilities.hasReferences && dragState.isActive}
               isGenerating={isGenerating || remixStatus === 'working'}
               isListening={isListening}
@@ -437,6 +453,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
               onAddFiles={addFiles}
               onOpenLibrary={() => setIsContentLibraryOpen(true)}
               onPromptChange={setPrompt}
+              onPromptDocumentChange={(document) => {
+                promptDocumentRef.current = document;
+              }}
               onRemoveAttachedAsset={handleRemoveAttachedAsset}
               onResetSettings={resetSettings}
               onSettingsChange={updateSettings}

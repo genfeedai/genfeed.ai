@@ -161,6 +161,48 @@ describe('PersonasController', () => {
     });
   });
 
+  describe('composeSheetPrompt', () => {
+    it('returns the server-composed character sheet preset', async () => {
+      const result = await controller.composeSheetPrompt(mockUser as never, {
+        description: 'a tall woman in a red coat',
+        isNonHumanoid: false,
+      });
+
+      expect(result.prompt).toContain('CHARACTER REFERENCE SHEET PRESET');
+      expect(result.prompt).toContain(
+        '<<<CHARACTER_DESCRIPTION>>>a tall woman in a red coat<<<END_CHARACTER_DESCRIPTION>>>',
+      );
+    });
+  });
+
+  describe('createFromSheet', () => {
+    it('creates a persona from an approved sheet', async () => {
+      mockServiceMethods.createFromApprovedSheet.mockResolvedValue({
+        handle: 'anna',
+        id: personaId,
+        label: 'Anna',
+      });
+
+      const result = await controller.createFromSheet(mockUser as never, {
+        assetId: testId('asset'),
+        handle: 'anna',
+        label: 'Anna',
+      });
+
+      expect(mockServiceMethods.createFromApprovedSheet).toHaveBeenCalledWith({
+        assetId: testId('asset'),
+        brandId,
+        handle: 'anna',
+        label: 'Anna',
+        organizationId,
+        userId,
+      });
+      expect(result).toEqual({
+        data: { handle: 'anna', id: personaId, label: 'Anna' },
+      });
+    });
+  });
+
   describe('getMentions', () => {
     it('returns brand-scoped character mentions', async () => {
       mockServiceMethods.listCharacterMentions.mockResolvedValue([

@@ -31,6 +31,7 @@ import type {
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { PromptsService } from '@genfeedai/services/content/prompts.service';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
+import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type {
   Dispatch,
   DragEvent,
@@ -106,6 +107,17 @@ export interface PromptBarProps {
   onSuggestionSelect?: (item: PromptBarSuggestionItem) => void;
   showSuggestionsWhenEmpty?: boolean;
   maxSuggestions?: number;
+  extraExtensions?: readonly AnyExtension[];
+  onPromptDocumentChange?: (document: JSONContent) => void;
+  onPrepareSubmit?: (input: {
+    document: JSONContent | null;
+    references: string[];
+    text: string;
+  }) => {
+    notices?: string[];
+    references: string[];
+    text: string;
+  };
   /**
    * Optional notice rendered inside shared PromptBarShell (model gate, etc.).
    * Prefer this over floating alerts above the bar.

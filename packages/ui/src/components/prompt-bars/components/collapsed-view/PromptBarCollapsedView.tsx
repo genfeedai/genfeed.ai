@@ -58,6 +58,8 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   toggleVoice,
   isRecording,
   isProcessing,
+  extraExtensions,
+  onDocumentChange,
 }: PromptBarCollapsedViewProps) {
   const watchedText = useWatch({
     control: form.control,
@@ -147,7 +149,9 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             ariaLabel="Prompt"
             className="h-10 w-full pl-3 pr-12"
             editorClassName="py-2"
+            extraExtensions={extraExtensions}
             isDisabled={isDisabled}
+            onDocumentChange={onDocumentChange}
             onSubmit={submitCollapsedPrompt}
             onValueChange={updatePromptBarCollapsedView}
             placeholder={placeholder}
