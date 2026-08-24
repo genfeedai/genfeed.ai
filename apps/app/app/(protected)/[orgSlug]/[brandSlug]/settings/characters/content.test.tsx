@@ -28,8 +28,18 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock('next/image', () => ({
-  default: ({ alt, src }: { alt: string; src: string }) => (
-    <span data-src={src}>{alt}</span>
+  default: ({
+    alt,
+    src,
+    ...props
+  }: {
+    alt: string;
+    src: string;
+    'data-testid'?: string;
+  }) => (
+    <span data-src={src} data-testid={props['data-testid']}>
+      {alt}
+    </span>
   ),
 }));
 
