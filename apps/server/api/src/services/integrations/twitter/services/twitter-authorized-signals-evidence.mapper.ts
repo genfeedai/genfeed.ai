@@ -246,18 +246,20 @@ function buildUnavailableEvidence(
     };
   }
 
-  const fieldAvailability = Object.fromEntries(
-    fieldNamesForKey(key).map((field) => [
-      field,
-      reason === 'missing_scope' ? 'permission_limited' : 'unavailable',
-    ]),
+  const unavailableStatus: TwitterSignalFieldStatus =
+    reason === 'missing_scope' ? 'permission_limited' : 'unavailable';
+  const fieldAvailability = toFieldAvailability(
+    fieldNamesForKey(key).map(
+      (field): readonly [string, TwitterSignalFieldStatus] => [
+        field,
+        unavailableStatus,
+      ],
+    ),
   );
   const effectiveScope =
     isTwitterScopeOrTierError(error) && scope.missing.length === 0
       ? { granted: [], missing: requiredScopes, required: requiredScopes }
       : reportedScope;
-  const status =
-    reason === 'missing_scope' ? 'permission_limited' : 'unavailable';
   const common = {
     fieldAvailability,
     observedAt,
@@ -265,7 +267,7 @@ function buildUnavailableEvidence(
     reason,
     scope: effectiveScope,
     staleAt: null,
-    status,
+    status: unavailableStatus,
   };
 
   switch (key) {

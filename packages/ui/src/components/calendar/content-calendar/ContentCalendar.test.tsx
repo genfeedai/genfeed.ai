@@ -11,6 +11,13 @@ import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import type { CalendarOptions, EventInput } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 const calendarMocks = vi.hoisted(() => {
   const instances: Array<{
     destroy: ReturnType<typeof vi.fn>;

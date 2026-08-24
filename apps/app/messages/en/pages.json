@@ -315,8 +315,16 @@
       "missingSlot": "Missing slot",
       "monthDaySummary": "{missing} missing / {filled} filled",
       "newCadence": "New cadence",
+      "moveCardOnly": "Move card only",
+      "publishAgain": "Publish again",
+      "republishDescription": "Choose whether to only change where this sits on the calendar, or to publish again at the new time.",
+      "republishOutcomesBody": "Move card only keeps the live post as-is and does not publish. Publish again creates a new scheduled post at this time.",
+      "republishOutcomesTitle": "Two different outcomes",
+      "republishTitle": "Move the card or publish again?",
       "saveCadence": "Save cadence",
       "saveChanges": "Save changes",
+      "schedule": "Schedule",
+      "scheduleAt": "Schedule at {label}",
       "skip": "Skip",
       "write": "Write"
     },
@@ -399,6 +407,25 @@
       "shelvesGroup": "Shelves",
       "storageLabel": "Storage"
     }
+  },
+  "credentialPostingTimes": {
+    "add": "Add",
+    "empty": "No posting times yet.",
+    "help": "Day view uses these clock times as rows. You can still schedule outside them.",
+    "remove": "Remove",
+    "title": "Posting times"
+  },
+  "outreachCampaign": {
+    "deliveryTime": "Delivery time:",
+    "description": "Description:",
+    "maxPerDay": "Max/Day:",
+    "maxPerHour": "Max/Hour:",
+    "name": "Name:",
+    "platform": "Platform:",
+    "reviewTitle": "Review Your Campaign",
+    "timezone": "Timezone:",
+    "tone": "Tone:",
+    "type": "Type:"
   },
   "workflows": {
     "castPrompt": {

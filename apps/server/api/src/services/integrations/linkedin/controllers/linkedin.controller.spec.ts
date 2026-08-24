@@ -275,7 +275,7 @@ describe('LinkedInController', () => {
           accessToken: 'linkedin-token',
           credentialId: credId,
           force: true,
-          grantedScopes: 'openid profile w_member_social',
+          grantedScopes: ['openid', 'profile', 'w_member_social'],
           organizationId: orgId,
         },
       );

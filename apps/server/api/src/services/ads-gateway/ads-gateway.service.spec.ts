@@ -24,6 +24,8 @@ const makeAdapter = () => ({
 const mockCtx = {
   accessToken: 'tok',
   adAccountId: 'act_123',
+  credentialId: 'cred_123',
+  organizationId: 'org_123',
 } satisfies AdsAdapterContext;
 
 const buildInsights = (

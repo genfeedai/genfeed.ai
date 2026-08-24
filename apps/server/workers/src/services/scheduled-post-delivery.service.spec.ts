@@ -9,10 +9,13 @@ import {
 import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 
-const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness = {
+const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {
+  credentialId: string;
+} = {
   appReviewStatus: 'pass',
   callbackUrlStatus: 'pass',
   canSchedule: true,
+  credentialId: 'cred-1',
   diagnostics: [],
   isRetryable: false,
   permissionScopeStatus: 'pass',
@@ -22,7 +25,9 @@ const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness = {
   tokenFreshness: 'pass',
 };
 
-const BLOCKED_READINESS: IPublishingProviderReadiness = {
+const BLOCKED_READINESS: IPublishingProviderReadiness & {
+  credentialId: string;
+} = {
   ...PUBLISH_CAPABLE_READINESS,
   canSchedule: false,
   diagnostics: [
@@ -131,6 +136,7 @@ function createScheduledPost(
     brandId: 'brand-1',
     children: [],
     credentialId: 'cred-1',
+    description: 'Scheduled post caption',
     id: 'post-1',
     ingredients: [],
     organizationId: 'org-1',
@@ -195,6 +201,8 @@ describe('ScheduledPostDeliveryService', () => {
         executionState: TargetExecutionState.PUBLISHING,
         lastAttemptAt: expect.any(Date),
       }),
+      undefined,
+      undefined,
     );
     expect(
       mocks.schedulerPublishStateService.transitionPost.mock

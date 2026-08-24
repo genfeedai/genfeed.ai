@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CredentialPostingTimesEditor from './CredentialPostingTimesEditor';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const listPostingTimes = vi.fn();
 const addPostingTime = vi.fn();
 const removePostingTime = vi.fn();

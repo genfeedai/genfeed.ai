@@ -4,6 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 import CalendarRepublishDialog from './calendar-republish-dialog';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children, open }: { children: ReactNode; open: boolean }) =>
     open ? <div role="dialog">{children}</div> : null,

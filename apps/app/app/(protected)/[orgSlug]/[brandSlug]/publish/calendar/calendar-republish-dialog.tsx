@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { useTranslations } from 'next-intl';
 
 export const CALENDAR_MOVE_ACTION = 'calendar-move';
 export const CALENDAR_REPUBLISH_ACTION = 'republish';
@@ -23,6 +24,7 @@ export default function CalendarRepublishDialog({
   onChooseRepublish,
   pendingAction,
 }: CalendarRepublishDialogProps): React.JSX.Element {
+  const translate = useTranslations('pages.publish.calendar');
   const isPending = pendingAction !== null;
 
   return (
@@ -36,17 +38,15 @@ export default function CalendarRepublishDialog({
     >
       <DialogContent showCloseButton={!isPending}>
         <DialogHeader>
-          <DialogTitle>Move the card or publish again?</DialogTitle>
+          <DialogTitle>{translate('republishTitle')}</DialogTitle>
           <DialogDescription>
-            Choose whether to only change where this sits on the calendar, or to
-            publish again at the new time.
+            {translate('republishDescription')}
           </DialogDescription>
         </DialogHeader>
         <Alert>
-          <AlertTitle>Two different outcomes</AlertTitle>
+          <AlertTitle>{translate('republishOutcomesTitle')}</AlertTitle>
           <AlertDescription>
-            Move card only keeps the live post as-is and does not publish.
-            Publish again creates a new scheduled post at this time.
+            {translate('republishOutcomesBody')}
           </AlertDescription>
         </Alert>
         <DialogFooter className="gap-2 sm:justify-end">
@@ -56,7 +56,7 @@ export default function CalendarRepublishDialog({
             withWrapper={false}
             onClick={onCancel}
           >
-            Cancel
+            {translate('cancel')}
           </Button>
           <Button
             isDisabled={isPending}
@@ -65,7 +65,7 @@ export default function CalendarRepublishDialog({
             withWrapper={false}
             onClick={onChooseCardOnly}
           >
-            Move card only
+            {translate('moveCardOnly')}
           </Button>
           <Button
             isDisabled={isPending}
@@ -73,7 +73,7 @@ export default function CalendarRepublishDialog({
             withWrapper={false}
             onClick={onChooseRepublish}
           >
-            Publish again
+            {translate('publishAgain')}
           </Button>
         </DialogFooter>
       </DialogContent>
