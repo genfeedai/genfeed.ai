@@ -55,6 +55,17 @@ describe('system workflow catalog', () => {
     ).toBe(true);
   });
 
+  it('does not advertise unavailable X repository ingestion as installable or scheduled', () => {
+    expect(
+      getSystemWorkflowCatalogEntry('x-ads-inspiration-ingestion'),
+    ).toBeNull();
+    expect(
+      listInstallableSystemWorkflowCatalog().some(
+        (item) => item.canonicalId === 'x-ads-inspiration-ingestion',
+      ),
+    ).toBe(false);
+  });
+
   it('uses stable canonical ids without duplicates', () => {
     const ids = listSystemWorkflowCatalog().map((entry) => entry.canonicalId);
     expect(new Set(ids).size).toBe(ids.length);

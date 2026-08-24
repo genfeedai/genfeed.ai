@@ -20,4 +20,14 @@ describe('WorkflowsModule optional executor imports', () => {
     expect(source).toContain('VideosModule');
     expect(source).not.toContain('VideosCoreModule');
   });
+
+  it('#3395: imports XAdsRepositoryModule and registers XAdsInspirationWorkflowService as a provider so it is DI-constructible rather than resolving to undefined at runtime', () => {
+    expect(source).toContain(
+      "from '@api/services/x-ads-repository/x-ads-repository.module'",
+    );
+    expect(source).toMatch(/imports:\s*\[[\s\S]*XAdsRepositoryModule[\s\S]*\]/);
+    expect(source).toMatch(
+      /providers:\s*\[[\s\S]*XAdsInspirationWorkflowService[\s\S]*\]/,
+    );
+  });
 });

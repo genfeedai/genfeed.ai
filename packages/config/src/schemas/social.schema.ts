@@ -118,6 +118,14 @@ export const xAdsSchema = {
   X_ADS_CLIENT_ID: Joi.string().optional().allow(''),
   X_ADS_CLIENT_SECRET: Joi.string().optional().allow(''),
   X_ADS_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+  // Explicit operator attestations only. They do not enable the repository
+  // transport while its reviewed contract-fixture blocker remains in code.
+  X_ADS_REPOSITORY_COMMERCIAL_USE_APPROVED: Joi.string()
+    .valid('true', 'false')
+    .optional(),
+  X_ADS_REPOSITORY_ENTITLEMENT_CONFIRMED: Joi.string()
+    .valid('true', 'false')
+    .optional(),
 };
 
 /**

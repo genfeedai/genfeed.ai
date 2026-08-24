@@ -152,10 +152,13 @@ export class AgentAdsResearchToolHandler {
       };
     }
 
+    const brandContext = await this.resolveAdsBrandContext(params, ctx);
+
     const detail = await this.adsResearchService.getAdDetail(
       ctx.organizationId,
       {
         adAccountId: readOptionalString(params.adAccountId),
+        brandId: brandContext.brandId,
         channel: readAdsChannel(params.channel),
         credentialId: readOptionalString(params.credentialId),
         id: adId,

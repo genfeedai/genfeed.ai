@@ -5,6 +5,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { toPrismaCredentialPlatform } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
   AdsInsightsParams,
@@ -522,7 +523,7 @@ export class AdsGatewayController {
       isConnected: true,
       isDeleted: false,
       organizationId,
-      platform: mapAdsCredentialPlatform(platform),
+      platform: toPrismaCredentialPlatform(mapAdsCredentialPlatform(platform)),
     });
 
     if (!credential?.accessToken) {

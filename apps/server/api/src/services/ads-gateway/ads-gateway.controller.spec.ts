@@ -18,7 +18,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -159,7 +162,7 @@ describe('AdsGatewayController', () => {
           isConnected: true,
           isDeleted: false,
           organizationId: 'corg000000000000000000001',
-          platform: credentialPlatform,
+          platform: toPrismaCredentialPlatform(credentialPlatform),
         });
       },
     );
@@ -444,14 +447,14 @@ describe('AdsGatewayController', () => {
         isConnected: true,
         isDeleted: false,
         organizationId: 'corg000000000000000000001',
-        platform: CredentialPlatform.FACEBOOK,
+        platform: toPrismaCredentialPlatform(CredentialPlatform.FACEBOOK),
       });
       expect(credentialsService.findOne).toHaveBeenNthCalledWith(2, {
         id: credId2,
         isConnected: true,
         isDeleted: false,
         organizationId: 'corg000000000000000000001',
-        platform: CredentialPlatform.GOOGLE_ADS,
+        platform: toPrismaCredentialPlatform(CredentialPlatform.GOOGLE_ADS),
       });
     });
   });

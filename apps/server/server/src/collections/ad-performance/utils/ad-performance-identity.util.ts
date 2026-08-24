@@ -61,5 +61,25 @@ export const buildAdPerformanceIdentityKey = (
 
 export const buildAdPerformanceIdentityKeyFromData = (
   data: Record<string, unknown>,
-): string =>
-  buildAdPerformanceIdentityKey(resolveAdPerformanceIdentityFields(data));
+): string => {
+  const identity = resolveAdPerformanceIdentityFields(data);
+  const researchSource = readString(data.researchSource);
+  if (!researchSource) {
+    return buildAdPerformanceIdentityKey(identity);
+  }
+
+  return [
+    AD_PERFORMANCE_IDENTITY_KEY_VERSION,
+    'research',
+    researchSource,
+    readString(data.brandId) ?? '__organization__',
+    readString(data.researchSnapshotKey) ?? '',
+    identity.adPlatform ?? '',
+    identity.date ? identity.date.toISOString() : '',
+    identity.granularity ?? '',
+    identity.externalAccountId ?? '',
+    identity.externalCampaignId ?? '',
+    identity.externalAdSetId ?? '',
+    identity.externalAdId ?? '',
+  ].join('|');
+};

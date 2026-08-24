@@ -1,4 +1,4 @@
-export type NormalizedAdPlatform = 'google-ads' | 'meta';
+export type NormalizedAdPlatform = 'google-ads' | 'meta' | 'x_ads';
 
 export type NormalizedAdGranularity = 'account' | 'campaign' | 'adset' | 'ad';
 
@@ -52,6 +52,35 @@ export interface NormalizedAdPerformanceRecord {
   revenue?: number;
   roas?: number;
   spend: number;
+}
+
+export interface NormalizedXAdsRepositoryRecord
+  extends Omit<
+    NormalizedAdPerformanceRecord,
+    'clicks' | 'cpc' | 'cpm' | 'ctr' | 'currency' | 'impressions' | 'spend'
+  > {
+  advertiserHandle?: string;
+  advertiserName?: string;
+  clicks?: number;
+  cpc?: number;
+  cpm?: number;
+  creativeContent?: string;
+  creativeMediaUrls?: string[];
+  ctr?: number;
+  currency?: string;
+  estimatedReach?: number;
+  fundingEntity?: string;
+  impressions?: number;
+  isHalted?: boolean;
+  landingPageUrl?: string;
+  performanceScore: null;
+  presentationEndDate?: string;
+  presentationStartDate?: string;
+  reachEstimateMax?: number;
+  reachEstimateMin?: number;
+  spend?: number;
+  targetingCountries?: string[];
+  targetingCriteria?: string[];
 }
 
 export interface MetaAdAccountInput {
@@ -122,4 +151,27 @@ export interface GoogleAdsCampaignMetricsInput {
   ctr: number;
   date?: string;
   impressions: number;
+}
+
+/**
+ * Provider-neutral disclosure row. This is deliberately not the undocumented
+ * X CSV wire shape: production mapping remains disabled until reviewed,
+ * sanitized fixtures establish the real column contract.
+ */
+export interface XAdsRepositoryExportRowInput {
+  adId: string;
+  advertiserHandle?: string;
+  advertiserName?: string;
+  creativeContent?: string;
+  creativeMediaUrls?: string[];
+  externalAdvertiserId?: string;
+  fundingEntity?: string;
+  isHalted?: boolean;
+  landingPageUrl?: string;
+  presentationEndDate?: string;
+  presentationStartDate?: string;
+  reachEstimateMax?: number;
+  reachEstimateMin?: number;
+  targetingCountries?: string[];
+  targetingCriteria?: string[];
 }

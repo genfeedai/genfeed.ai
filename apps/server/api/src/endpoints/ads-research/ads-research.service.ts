@@ -6,7 +6,12 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { Platform, WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
+import {
+  Platform,
+  toPrismaCredentialPlatform,
+  WorkflowStatus,
+  WorkflowTrigger,
+} from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
   AdsPlatform,
@@ -34,6 +39,7 @@ import { AdPerformanceService } from '@server/collections/ad-performance/service
 interface DetailContext {
   source: Exclude<AdsResearchSource, 'all'>;
   id: string;
+  brandId?: string;
   platform?: AdsResearchPlatform;
   channel?: AdsChannel;
   credentialId?: string;
@@ -137,7 +143,11 @@ export class AdsResearchService {
     params: DetailContext,
   ): Promise<AdsResearchDetail> {
     if (params.source === 'public') {
-      const item = await this.getPublicAdDetail(organizationId, params.id);
+      const item = await this.getPublicAdDetail(
+        organizationId,
+        params.id,
+        params.brandId,
+      );
       if (!item) {
         throw new BadRequestException(`Public ad ${params.id} was not found`);
       }
@@ -173,6 +183,7 @@ export class AdsResearchService {
   ): Promise<AdPack> {
     const ad = await this.getAdDetail(organizationId, {
       adAccountId: input.adAccountId,
+      brandId: input.brandId,
       channel: input.channel,
       credentialId: input.credentialId,
       id: input.adId,
@@ -180,6 +191,8 @@ export class AdsResearchService {
       platform: input.platform,
       source: input.source,
     });
+
+    this.assertRemixAllowed(ad);
 
     const harnessNotes = await this.resolveAdHarnessNotes(
       organizationId,
@@ -202,6 +215,7 @@ export class AdsResearchService {
   ): Promise<AdsResearchWorkflowResult> {
     const ad = await this.getAdDetail(input.organizationId, {
       adAccountId: input.adAccountId,
+      brandId: input.brandId,
       channel: input.channel,
       credentialId: input.credentialId,
       id: input.adId,
@@ -209,6 +223,7 @@ export class AdsResearchService {
       platform: input.platform,
       source: input.source,
     });
+    this.assertRemixAllowed(ad);
     const harnessNotes = await this.resolveAdHarnessNotes(
       input.organizationId,
       input.brandId,
@@ -277,6 +292,7 @@ export class AdsResearchService {
 
     const detail = await this.getAdDetail(input.organizationId, {
       adAccountId: input.adAccountId,
+      brandId: input.brandId,
       channel: input.channel,
       credentialId: input.credentialId,
       id: input.adId,
@@ -346,9 +362,11 @@ export class AdsResearchService {
   ): Promise<AdsResearchItem[]> {
     const items = await this.adPerformanceService.findTopPerformers({
       adPlatform: filters.platform,
+      brandId: filters.brandId,
       industry: filters.industry,
       limit: filters.limit,
       metric: this.mapMetric(filters.metric),
+      organizationId,
       scope: 'public',
     });
 
@@ -360,13 +378,28 @@ export class AdsResearchService {
   private async getPublicAdDetail(
     organizationId: string,
     id: string,
+    brandId?: string,
   ): Promise<AdsResearchDetail | null> {
-    const item = await this.adPerformanceService.findPublicById(id);
+    const item = await this.adPerformanceService.findPublicById(
+      id,
+      organizationId,
+      brandId,
+    );
     if (!item) {
       return null;
     }
 
     const base = await this.mapPublicItem(organizationId, item);
+    if (base.usagePolicy === 'disclosure_only') {
+      return {
+        ...base,
+        creative: {
+          imageUrls: [],
+          videoUrls: [],
+        },
+      };
+    }
+
     return {
       ...base,
       creative: {
@@ -488,6 +521,35 @@ export class AdsResearchService {
     item: AdPerformanceDocument,
   ): Promise<AdsResearchItem> {
     const platform = this.normalizePlatform(String(item.adPlatform || 'meta'));
+    const isRepositoryDisclosure = item.researchSource === 'x_ads_repository';
+    if (isRepositoryDisclosure) {
+      const advertiserLabel =
+        (item.advertiserName as string | undefined) ||
+        (item.advertiserHandle as string | undefined) ||
+        'Advertiser';
+      const estimatedReach = this.toNumber(item.estimatedReach);
+
+      return {
+        channel: 'all',
+        explanation:
+          'Tenant-scoped X Ads Repository disclosure. Performance metrics are unavailable, and commercial remix use is disabled pending approval.',
+        id: String(item.id || item.externalAdId || ''),
+        imageUrls: [],
+        metricLabel: 'Estimated reach',
+        metricValue: estimatedReach,
+        metrics: {},
+        patternSummary: [],
+        platform,
+        source: 'public',
+        sourceId: String(item.externalAdId || item.id || ''),
+        sourceLabel: 'X Ads Repository disclosure',
+        status: item.campaignStatus as string | undefined,
+        title: `${advertiserLabel} disclosure`,
+        usagePolicy: 'disclosure_only',
+        videoUrls: [],
+      };
+    }
+
     const patterns = await this.getPatternSummary({
       industry: item.industry as string | undefined,
       organizationId,
@@ -547,6 +609,7 @@ export class AdsResearchService {
         (item.campaignName as string | undefined) ||
         (item.headlineText as string | undefined) ||
         'Top performing ad',
+      usagePolicy: 'remix_allowed',
       videoUrls,
     };
   }
@@ -653,6 +716,14 @@ export class AdsResearchService {
     });
     const formatted = harnessGenerationService.formatBrief(brief);
     return formatted || undefined;
+  }
+
+  private assertRemixAllowed(ad: AdsResearchDetail): void {
+    if (ad.usagePolicy === 'disclosure_only') {
+      throw new BadRequestException(
+        'X Ads Repository records are disclosure-only and cannot be remixed while commercial-use approval is unavailable',
+      );
+    }
   }
 
   private resolveHarnessGenerationService():
@@ -848,7 +919,9 @@ export class AdsResearchService {
       isConnected: true,
       isDeleted: false,
       organizationId,
-      platform: mapAdsCredentialPlatform(params.platform),
+      platform: toPrismaCredentialPlatform(
+        mapAdsCredentialPlatform(params.platform),
+      ),
     });
 
     if (!credential?.accessToken) {

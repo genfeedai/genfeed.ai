@@ -429,7 +429,10 @@ describe('AdPerformanceService', () => {
       await service.findTopPerformers({});
 
       expect(findMany).toHaveBeenCalledWith({
-        orderBy: [{ performanceScore: 'desc' }, { updatedAt: 'desc' }],
+        orderBy: [
+          { performanceScore: { nulls: 'last', sort: 'desc' } },
+          { updatedAt: 'desc' },
+        ],
         take: 10,
         where: expect.objectContaining({
           isDeleted: false,
@@ -505,7 +508,10 @@ describe('AdPerformanceService', () => {
 
       expect(findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          orderBy: [{ performanceScore: 'desc' }, { updatedAt: 'desc' }],
+          orderBy: [
+            { performanceScore: { nulls: 'last', sort: 'desc' } },
+            { updatedAt: 'desc' },
+          ],
           take: 500,
         }),
       );
@@ -545,7 +551,15 @@ describe('AdPerformanceService', () => {
       await service.findPublicById('perf-1');
 
       expect(findFirst).toHaveBeenCalledWith({
-        where: { id: 'perf-1', isDeleted: false, scope: 'public' },
+        where: {
+          id: 'perf-1',
+          isDeleted: false,
+          OR: [
+            { researchSource: null },
+            { researchSource: { not: 'x_ads_repository' } },
+          ],
+          scope: 'public',
+        },
       });
     });
 

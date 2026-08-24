@@ -41,6 +41,7 @@ import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collection
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
+import { XAdsInspirationWorkflowService } from '@api/collections/workflows/services/x-ads-inspiration-workflow.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
@@ -141,6 +142,8 @@ export class WorkflowEngineAdapterService {
     // relies on (e.g. AGENT_AUTOPILOT_SERVICE_INDEX, SOCIAL_INBOX_SERVICE_INDEX).
     @Optional()
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
+    @Optional()
+    private readonly xAdsInspirationWorkflowService?: XAdsInspirationWorkflowService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -213,6 +216,7 @@ export class WorkflowEngineAdapterService {
       this.trendNotificationWorkflowService,
       this.livestreamBotWorkflowService,
       this.winnerPromotionWorkflowService,
+      this.xAdsInspirationWorkflowService,
     );
     this.trendPublishRegistrar =
       new WorkflowTrendPublishExecutorRegistrarService(

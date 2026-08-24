@@ -2524,34 +2524,10 @@
     {
       "delegate": "adPerformance",
       "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "338fecde72e80d7e38a4",
-      "method": "findFirst",
-      "model": "AdPerformance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
       "fingerprint": "eabf7261866e87b7a58e",
       "method": "findMany",
       "model": "AdPerformance",
       "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "62c2b9467c1f49e6ebfa",
-      "method": "findMany",
-      "model": "AdPerformance",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
-      "fingerprint": "cb37401a52b223d28107",
-      "method": "findMany",
-      "model": "AdPerformance",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "contentPerformance",

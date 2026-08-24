@@ -2,6 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
+import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   AdsChannel,
   AdsResearchMetric,
@@ -9,10 +13,21 @@ import type {
   AdsResearchSource,
   AdsResearchTimeframe,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
 @AutoSwagger()
 @Controller('ads/research')
+@UseGuards(RolesGuard)
 export class AdsResearchController {
   constructor(private readonly adsResearchService: AdsResearchService) {}
 
@@ -32,9 +47,10 @@ export class AdsResearchController {
     @Query('adAccountId') adAccountId?: string,
     @Query('loginCustomerId') loginCustomerId?: string,
   ) {
+    const authorizedBrandId = this.resolveAuthorizedBrandId(user, brandId);
     return this.adsResearchService.listAds(user.organizationId, {
       adAccountId,
-      brandId,
+      brandId: authorizedBrandId,
       brandName,
       channel,
       credentialId,
@@ -58,9 +74,11 @@ export class AdsResearchController {
     @Query('credentialId') credentialId?: string,
     @Query('adAccountId') adAccountId?: string,
     @Query('loginCustomerId') loginCustomerId?: string,
+    @Query('brandId') brandId?: string,
   ) {
     return this.adsResearchService.getAdDetail(user.organizationId, {
       adAccountId,
+      brandId: this.resolveAuthorizedBrandId(user, brandId),
       channel,
       credentialId,
       id,
@@ -88,8 +106,10 @@ export class AdsResearchController {
       loginCustomerId?: string;
     },
   ) {
+    const brandId = this.resolveAuthorizedBrandId(user, body.brandId);
     return this.adsResearchService.generateAdPack(user.organizationId, {
       ...body,
+      brandId,
     });
   }
 
@@ -111,8 +131,10 @@ export class AdsResearchController {
       loginCustomerId?: string;
     },
   ) {
+    const brandId = this.resolveAuthorizedBrandId(user, body.brandId);
     return this.adsResearchService.createRemixWorkflow({
       ...body,
+      brandId,
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
@@ -139,10 +161,37 @@ export class AdsResearchController {
       createWorkflow?: boolean;
     },
   ) {
+    const brandId = this.resolveAuthorizedBrandId(user, body.brandId);
     return this.adsResearchService.prepareCampaignForReview({
       ...body,
+      brandId,
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
+  }
+
+  private resolveAuthorizedBrandId(
+    user: User,
+    requestedBrandId?: string,
+  ): string | undefined {
+    if (requestedBrandId && !isEntityId(requestedBrandId)) {
+      throw new BadRequestException('brandId is invalid');
+    }
+
+    const candidate = requestedBrandId ?? user.brandId;
+    if (!candidate) {
+      return undefined;
+    }
+
+    const authorized = CollectionFilterUtil.buildAuthorizedBrandFilter(
+      candidate,
+      user,
+      getIsSuperAdmin(user),
+    );
+    if (typeof authorized !== 'string') {
+      throw new ForbiddenException('An authenticated brand is required');
+    }
+
+    return authorized;
   }
 }

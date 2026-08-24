@@ -155,6 +155,7 @@ export interface ServerPrisma {
   adOptimizationConfig: PrismaClient['adOptimizationConfig'];
   adOptimizationRecommendation: PrismaClient['adOptimizationRecommendation'];
   adPerformance: PrismaClient['adPerformance'];
+  xAdWatchedAdvertiser: PrismaClient['xAdWatchedAdvertiser'];
   brand: PrismaClient['brand'];
   contentVersionPin: PrismaClient['contentVersionPin'];
   credential: PrismaClient['credential'];

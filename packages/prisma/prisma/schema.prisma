@@ -721,6 +721,7 @@ model Organization {
   adOptimizationAuditLogs       AdOptimizationAuditLog[]
   adOptimizationRecommendations AdOptimizationRecommendation[]
   adPerformances                AdPerformance[]
+  xAdWatchedAdvertisers         XAdWatchedAdvertiser[]
   outreachCampaigns             OutreachCampaign[]
   campaignTargets               CampaignTarget[]
   customers                     Customer[]
@@ -867,6 +868,7 @@ model Brand {
   adBulkUploadJobs           AdBulkUploadJob[]
   adCreativeMappings         AdCreativeMapping[]
   adPerformances             AdPerformance[]
+  xAdWatchedAdvertisers      XAdWatchedAdvertiser[]
   botActivities              BotActivity[]
   monitoredAccounts          MonitoredAccount[]
   socialSources              SocialSource[]
@@ -1346,6 +1348,7 @@ model Credential {
   slotReservations    SlotReservation[]
   adBulkUploadJobs    AdBulkUploadJob[]
   adPerformances      AdPerformance[]
+  xAdWatchedAdvertisers XAdWatchedAdvertiser[]
   monitoredAccounts   MonitoredAccount[]
   socialSources       SocialSource[]
   socialConversations SocialConversation[]
@@ -4565,6 +4568,11 @@ model AdPerformance {
   cpc                       Float?
   cpa                       Float?
   performanceScore          Float?
+  researchSource            String?
+  researchSnapshotKey       String?
+  researchSnapshotId        String?
+  researchFreshnessState    String?
+  researchObservedAt        DateTime?
   conversionRate            Float?
   dataConfidence            Float?
   spendBucket               String?
@@ -4582,7 +4590,40 @@ model AdPerformance {
   @@index([organizationId, isDeleted, date(sort: Desc)], map: "ad_performance_org_deleted_date_idx")
   @@index([organizationId, isDeleted, adPlatform, granularity, date(sort: Desc)], map: "ad_performance_org_deleted_platform_granularity_date_idx")
   @@index([credentialId, isDeleted, date(sort: Desc)], map: "ad_performance_credential_deleted_date_idx")
+  @@index([organizationId, researchSource, researchFreshnessState, researchSnapshotKey, isDeleted], map: "ad_performance_research_snapshot_visibility_idx")
   @@map("ad_performance")
+}
+
+/// Org/brand-scoped watchlist of competitor X advertisers polled through the
+/// X Ads (DSA transparency) repository. #3395.
+model XAdWatchedAdvertiser {
+  id                   String       @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  brandId              String?
+  brand                Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  credentialId         String?
+  credential           Credential?  @relation(fields: [credentialId], references: [id])
+  advertiserHandle     String
+  advertiserName       String?
+  externalAdvertiserId String?
+  freshnessState       String       @default("unavailable")
+  lastAttemptedAt      DateTime?
+  lastSuccessfulAt     DateTime?
+  lastIngestionStatus  String?
+  lastIngestionErrorCode String?
+  lastSnapshotId       String?
+  lastSnapshotRecordCount Int?
+  isDeleted            Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  // Exact brand-or-organization-fallback uniqueness is enforced by two raw
+  // partial indexes in the migration; Prisma cannot represent NULL predicates.
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "x_ad_watched_advertisers_org_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted], map: "x_ad_watched_advertisers_org_brand_deleted_idx")
+  @@index([isDeleted, lastAttemptedAt], map: "x_ad_watched_advertisers_deleted_last_attempted_idx")
+  @@map("x_ad_watched_advertisers")
 }
 
 // ═══════════════════════════════════════════════════════════════

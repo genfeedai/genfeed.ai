@@ -7,6 +7,10 @@ const CONTEXT: ToolExecutionContext = {
   organizationId: 'organization-1',
   userId: 'user-1',
 };
+const BRANDED_CONTEXT: ToolExecutionContext = {
+  ...CONTEXT,
+  brandId: 'brand-1',
+};
 
 function createAdsResearchService(overrides: Record<string, unknown> = {}) {
   return {
@@ -80,6 +84,47 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
       '/discover/ads/meta',
       '/discover/ads',
     ]);
+  });
+
+  it('passes the resolved context brand through list and detail reads', async () => {
+    const { adsResearchService, handler } = createHandler({
+      getAdDetail: vi.fn().mockResolvedValue({
+        channel: 'all',
+        creative: {},
+        id: 'public:x:ad-1',
+        metrics: {},
+        platform: 'x',
+        source: 'public',
+        sourceId: 'ad-1',
+        title: 'Disclosure',
+      }),
+      listAds: vi.fn().mockResolvedValue({
+        connectedAds: [],
+        filters: {},
+        publicAds: [],
+        summary: {
+          connectedCount: 0,
+          publicCount: 0,
+          reviewPolicy: 'manual',
+          selectedPlatform: 'x',
+        },
+      }),
+    });
+
+    await handler.listAdsResearch({}, BRANDED_CONTEXT);
+    await handler.getAdResearchDetail(
+      { adId: 'ad-1', source: 'public' },
+      BRANDED_CONTEXT,
+    );
+
+    expect(adsResearchService.listAds).toHaveBeenCalledWith(
+      'organization-1',
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+    expect(adsResearchService.getAdDetail).toHaveBeenCalledWith(
+      'organization-1',
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
   });
 
   it('points remix workflow CTAs at the automate workflows routes', async () => {
