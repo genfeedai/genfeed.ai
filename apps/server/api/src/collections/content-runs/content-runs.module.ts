@@ -2,11 +2,19 @@ import { AdCreativeMappingsModule } from '@api/collections/ad-creative-mappings/
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
+import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
+import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
+import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
+import { BrandRemixRunProviderDispatchService } from '@api/collections/content-runs/services/brand-remix-run-provider-dispatch.service';
+import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
+import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import {
   BRAND_REMIX_RUNTIME,
   systemBrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
+import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
@@ -55,6 +63,14 @@ import { Module } from '@nestjs/common';
     XAdsModule,
   ],
   providers: [
+    BrandRemixSourceResolverService,
+    BrandRemixRunPlanningService,
+    BrandRemixRunPersistenceService,
+    BrandRemixRunStateService,
+    BrandRemixRunProviderDispatchService,
+    BrandRemixRunExecutionService,
+    BrandRemixRunReviewService,
+    BrandRemixRunPaidDraftService,
     BrandRemixRunsService,
     ContentRunsService,
     ContentRunRecommendationsService,
