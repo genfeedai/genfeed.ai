@@ -362,7 +362,7 @@ describe('XAdsAdapter', () => {
   });
 
   describe('createCampaign', () => {
-    it('should always create the campaign PAUSED regardless of requested status', async () => {
+    it('should create the campaign with the explicit paused entity status', async () => {
       xAdsService.createCampaign.mockResolvedValue({
         createdAt: '2026-01-01T00:00:00Z',
         entityStatus: 'PAUSED',
@@ -376,7 +376,7 @@ describe('XAdsAdapter', () => {
         dailyBudget: 25,
         name: 'New Campaign',
         objective: 'ENGAGEMENTS',
-        status: 'ACTIVE',
+        status: 'PAUSED',
       });
 
       expect(result.id).toBe('new-cmp-id');
@@ -397,6 +397,23 @@ describe('XAdsAdapter', () => {
         'acct-123',
       );
     });
+
+    it.each(['ACTIVE', 'active', 'paused', 'DRAFT', ''])(
+      'should reject creation with status "%s" before the funding-instrument lookup',
+      async (status) => {
+        await expect(
+          adapter.createCampaign(mockCtx, {
+            name: 'Activating Campaign',
+            objective: 'ENGAGEMENTS',
+            status,
+          }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        // The billing surface is never touched, not even as a read.
+        expect(xAdsService.getFundingInstruments).not.toHaveBeenCalled();
+        expect(xAdsService.createCampaign).not.toHaveBeenCalled();
+      },
+    );
 
     it('should prefer an active provider funding instrument', async () => {
       xAdsService.getFundingInstruments.mockResolvedValue([

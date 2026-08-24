@@ -1,12 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
-import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -52,6 +53,7 @@ export class MetaAdsOptimizationController {
 
   @Get('recommendations')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async listRecommendations(
     @CurrentUser() user: User,
     @Query('status') status?: RecommendationStatus,
@@ -74,6 +76,7 @@ export class MetaAdsOptimizationController {
 
   @Patch('recommendations/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateRecommendation(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -103,6 +106,7 @@ export class MetaAdsOptimizationController {
 
   @Post('recommendations/:id/execute')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async executeRecommendation(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -189,6 +193,7 @@ export class MetaAdsOptimizationController {
 
   @Get('config')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getConfig(@CurrentUser() user: User) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -203,6 +208,7 @@ export class MetaAdsOptimizationController {
 
   @Patch('config')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateConfig(
     @CurrentUser() user: User,
     @Body() body: Partial<AdOptimizationConfigDocument>,
@@ -219,6 +225,7 @@ export class MetaAdsOptimizationController {
 
   @Get('audit-logs')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async listAuditLogs(
     @CurrentUser() user: User,
     @Query('limit') limit?: string,

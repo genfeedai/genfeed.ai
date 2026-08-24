@@ -1,11 +1,18 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
+import {
+  INVALID_CAMPAIGN_STATUS_MESSAGE,
+  isAcceptedCampaignStatus,
+} from '@api/services/ads-gateway/ads-campaign-status.util';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
-import { toPrismaCredentialPlatform } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole, toPrismaCredentialPlatform } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
   AdsInsightsParams,
@@ -28,12 +35,35 @@ import {
   Put,
   Query,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 
 const VALID_PLATFORMS: AdsPlatform[] = ['meta', 'google', 'tiktok', 'x'];
 
+/** Session roles allowed to read tenant ads analytics. */
+const ADS_READ_ROLES = [
+  MemberRole.OWNER,
+  MemberRole.ADMIN,
+  MemberRole.ANALYTICS,
+] as const;
+
+/** Session roles allowed to write paid-media drafts. */
+const ADS_WRITE_ROLES = [MemberRole.OWNER, MemberRole.ADMIN] as const;
+
+/**
+ * API-key scopes are cumulative with the role check above — `RolesGuard` still
+ * demands an active membership with an allowed role, so a scope can never
+ * substitute for one.
+ */
+const ADS_READ_SCOPES = [
+  ApiKeyScope.ANALYTICS_READ,
+  ApiKeyScope.ADMIN,
+] as const;
+const ADS_WRITE_SCOPES = [ApiKeyScope.ADMIN] as const;
+
 @AutoSwagger()
 @Controller('ads')
+@UseGuards(RolesGuard)
 export class AdsGatewayController {
   private readonly constructorName: string = String(this.constructor.name);
 
@@ -46,6 +76,8 @@ export class AdsGatewayController {
   // ─── Read Endpoints ──────────────────────────────────────────────────────
 
   @Get('compare')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async comparePlatforms(
     @CurrentUser() user: User,
     @Query('platforms') platformsStr: string,
@@ -101,6 +133,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/accounts')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async getAdAccounts(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -130,6 +164,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/campaigns')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async listCampaigns(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -160,6 +196,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/campaigns/:campaignId/insights')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async getCampaignInsights(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -198,6 +236,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/adsets/:adSetId/insights')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async getAdSetInsights(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -236,6 +276,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/ads/:adId/insights')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async getAdInsights(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -274,6 +316,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/top-performers')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async getTopPerformers(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -311,6 +355,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/adsets')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async listAdSets(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -342,6 +388,8 @@ export class AdsGatewayController {
   }
 
   @Get(':platform/ads')
+  @RolesDecorator(...ADS_READ_ROLES)
+  @RequiredScopes(...ADS_READ_SCOPES)
   async listAds(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -375,6 +423,8 @@ export class AdsGatewayController {
   // ─── Write Endpoints ──────────────────────────────────────────────────────
 
   @Post(':platform/campaigns')
+  @RolesDecorator(...ADS_WRITE_ROLES)
+  @RequiredScopes(...ADS_WRITE_SCOPES)
   async createCampaign(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -390,6 +440,7 @@ export class AdsGatewayController {
 
     const reqCtx = extractRequestContext(user);
     const validPlatform = this.validatePlatform(platform);
+    this.assertPausedOnlyStatus(body.status);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const { credentialId, adAccountId, loginCustomerId, ...input } = body;
     const accessToken = await this.resolveAccessToken(
@@ -409,6 +460,8 @@ export class AdsGatewayController {
   }
 
   @Put(':platform/campaigns/:campaignId')
+  @RolesDecorator(...ADS_WRITE_ROLES)
+  @RequiredScopes(...ADS_WRITE_SCOPES)
   async updateCampaign(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -425,6 +478,7 @@ export class AdsGatewayController {
 
     const reqCtx = extractRequestContext(user);
     const validPlatform = this.validatePlatform(platform);
+    this.assertPausedOnlyStatus(body.status);
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
     const { credentialId, adAccountId, loginCustomerId, ...input } = body;
     const accessToken = await this.resolveAccessToken(
@@ -444,6 +498,8 @@ export class AdsGatewayController {
   }
 
   @Post(':platform/adsets')
+  @RolesDecorator(...ADS_WRITE_ROLES)
+  @RequiredScopes(...ADS_WRITE_SCOPES)
   async createAdSet(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -478,6 +534,8 @@ export class AdsGatewayController {
   }
 
   @Post(':platform/ads')
+  @RolesDecorator(...ADS_WRITE_ROLES)
+  @RequiredScopes(...ADS_WRITE_SCOPES)
   async createAd(
     @CurrentUser() user: User,
     @Param('platform') platform: string,
@@ -546,6 +604,16 @@ export class AdsGatewayController {
       params.timeRange = { since: query.since, until: query.until };
 
     return params;
+  }
+
+  /**
+   * Runs before credential resolution and adapter lookup so an activating
+   * status never reaches a token, a provider, or a queue.
+   */
+  private assertPausedOnlyStatus(status: unknown): void {
+    if (!isAcceptedCampaignStatus(status)) {
+      throw new BadRequestException(INVALID_CAMPAIGN_STATUS_MESSAGE);
+    }
   }
 
   private validatePlatform(platform: string): AdsPlatform {

@@ -2,6 +2,7 @@ import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('TikTokAdsAdapter', () => {
@@ -29,6 +30,7 @@ describe('TikTokAdsAdapter', () => {
   const mockCtx: AdsAdapterContext = {
     accessToken: 'tk-token',
     adAccountId: 'acct-123',
+    credentialId: 'credential-1',
     organizationId: 'org-1',
   };
 
@@ -246,28 +248,87 @@ describe('TikTokAdsAdapter', () => {
   });
 
   describe('createCampaign', () => {
-    it('should create a campaign and return unified format', async () => {
+    it('should create a campaign with TikTok’s paused status and return unified format', async () => {
       tiktokAdsService.createCampaign.mockResolvedValue('new-cmp-id');
 
       const result = await adapter.createCampaign(mockCtx, {
         dailyBudget: 50,
         name: 'New Campaign',
         objective: 'TRAFFIC',
-        status: 'ENABLE',
+        status: 'PAUSED',
       });
 
       expect(result.id).toBe('new-cmp-id');
       expect(result.name).toBe('New Campaign');
       expect(result.platform).toBe('tiktok');
+      // TikTok's paused operation status is DISABLE, sent explicitly.
+      expect(result.status).toBe('DISABLE');
       expect(tiktokAdsService.createCampaign).toHaveBeenCalledWith(
         'tk-token',
         'acct-123',
         expect.objectContaining({
           budget: 50,
           budgetMode: 'BUDGET_MODE_DAY',
+          status: 'DISABLE',
         }),
       );
     });
+
+    it('should send the paused status even when the caller omits one', async () => {
+      tiktokAdsService.createCampaign.mockResolvedValue('new-cmp-id');
+
+      await adapter.createCampaign(mockCtx, {
+        name: 'New Campaign',
+        objective: 'TRAFFIC',
+      });
+
+      expect(tiktokAdsService.createCampaign).toHaveBeenCalledWith(
+        'tk-token',
+        'acct-123',
+        expect.objectContaining({ status: 'DISABLE' }),
+      );
+    });
+
+    it.each(['ENABLE', 'ACTIVE', 'paused', 'DISABLE', ''])(
+      'should reject creation with status "%s" without calling the provider',
+      async (status) => {
+        await expect(
+          adapter.createCampaign(mockCtx, {
+            name: 'Activating Campaign',
+            objective: 'TRAFFIC',
+            status,
+          }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        expect(tiktokAdsService.createCampaign).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('updateCampaign', () => {
+    it('should leave an omitted status omitted', async () => {
+      tiktokAdsService.updateCampaign.mockResolvedValue(undefined);
+
+      await adapter.updateCampaign(mockCtx, 'cmp-1', { name: 'Renamed' });
+
+      expect(tiktokAdsService.updateCampaign).toHaveBeenCalledWith(
+        'tk-token',
+        'acct-123',
+        'cmp-1',
+        expect.objectContaining({ status: undefined }),
+      );
+    });
+
+    it.each(['ENABLE', 'ACTIVE', 'paused'])(
+      'should reject an update with status "%s" without calling the provider',
+      async (status) => {
+        await expect(
+          adapter.updateCampaign(mockCtx, 'cmp-1', { status }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+
+        expect(tiktokAdsService.updateCampaign).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('listAdSets', () => {

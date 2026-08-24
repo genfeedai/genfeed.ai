@@ -1,4 +1,10 @@
 import {
+  INVALID_CAMPAIGN_STATUS_MESSAGE,
+  isAcceptedCampaignStatus,
+  resolveProviderCampaignStatus,
+  resolveProviderPausedStatus,
+} from '@api/services/ads-gateway/ads-campaign-status.util';
+import {
   type AdsInsightsDateRange,
   emptyUnifiedInsights,
   resolveAdsInsightsDateRange,
@@ -20,7 +26,7 @@ import type {
   UpdateCampaignInput,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TikTokAdsAdapter implements IAdsAdapter {
@@ -133,9 +139,15 @@ export class TikTokAdsAdapter implements IAdsAdapter {
     ctx: AdsAdapterContext,
     input: CreateCampaignInput,
   ): Promise<UnifiedCampaign> {
+    this.assertPausedOnlyStatus(input.status);
+
     const budgetMode = input.lifetimeBudget
       ? 'BUDGET_MODE_TOTAL'
       : 'BUDGET_MODE_DAY';
+
+    // TikTok has no PAUSED operation status — its paused value is `DISABLE`,
+    // and it is sent explicitly rather than left to a provider default.
+    const pausedStatus = resolveProviderPausedStatus(this.platform);
 
     const campaignId = await this.tiktokAdsService.createCampaign(
       ctx.accessToken,
@@ -145,7 +157,7 @@ export class TikTokAdsAdapter implements IAdsAdapter {
         budgetMode,
         campaignName: input.name,
         objectiveType: input.objective,
-        status: input.status,
+        status: pausedStatus,
       },
     );
 
@@ -156,7 +168,7 @@ export class TikTokAdsAdapter implements IAdsAdapter {
       name: input.name,
       objective: input.objective,
       platform: this.platform,
-      status: input.status || 'DISABLE',
+      status: pausedStatus,
     };
   }
 
@@ -165,6 +177,13 @@ export class TikTokAdsAdapter implements IAdsAdapter {
     campaignId: string,
     input: UpdateCampaignInput,
   ): Promise<UnifiedCampaign> {
+    this.assertPausedOnlyStatus(input.status);
+
+    const providerStatus = resolveProviderCampaignStatus(
+      this.platform,
+      input.status,
+    );
+
     await this.tiktokAdsService.updateCampaign(
       ctx.accessToken,
       ctx.adAccountId,
@@ -172,7 +191,7 @@ export class TikTokAdsAdapter implements IAdsAdapter {
       {
         budget: input.dailyBudget || input.lifetimeBudget,
         campaignName: input.name || '',
-        status: input.status,
+        status: providerStatus,
       },
     );
 
@@ -183,8 +202,18 @@ export class TikTokAdsAdapter implements IAdsAdapter {
       name: input.name || '',
       objective: '',
       platform: this.platform,
-      status: input.status || '',
+      status: providerStatus || '',
     };
+  }
+
+  /**
+   * Direct adapter callers bypass the gateway controller, so every write path
+   * re-asserts the paused-only contract before touching the provider.
+   */
+  private assertPausedOnlyStatus(status: unknown): void {
+    if (!isAcceptedCampaignStatus(status)) {
+      throw new BadRequestException(INVALID_CAMPAIGN_STATUS_MESSAGE);
+    }
   }
 
   async listAdSets(

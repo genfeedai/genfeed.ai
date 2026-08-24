@@ -1,13 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { AdBulkUploadService } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
-import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -60,6 +61,7 @@ export class MetaAdsBulkController {
 
   @Post('upload')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async createBulkUpload(
     @CurrentUser() user: User,
     @Body() body: CreateBulkUploadBody,
@@ -69,8 +71,15 @@ export class MetaAdsBulkController {
 
     const ctx = extractRequestContext(user);
 
+    // Resolved before anything is persisted or queued, so an unusable
+    // credential leaves no job row and no provider work behind.
+    const accessToken = await this.getAccessTokenFromCredential(
+      user,
+      body.credentialId,
+    );
+
     return this.adBulkUploadService.createBulkUpload({
-      accessToken: await this.getAccessTokenFromCredential(user),
+      accessToken,
       adAccountId: body.adAccountId,
       adSetId: body.adSetId,
       bodyCopies: body.bodyCopies,
@@ -89,6 +98,7 @@ export class MetaAdsBulkController {
 
   @Get('jobs')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async listJobs(
     @CurrentUser() user: User,
     @Query('status') status?: BulkUploadStatus,
@@ -109,6 +119,7 @@ export class MetaAdsBulkController {
 
   @Get('jobs/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.ANALYTICS)
+  @RequiredScopes(ApiKeyScope.ANALYTICS_READ, ApiKeyScope.ADMIN)
   async getJobStatus(@CurrentUser() user: User, @Param('id') id: string) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -128,6 +139,7 @@ export class MetaAdsBulkController {
 
   @Patch('jobs/:id')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
+  @RequiredScopes(ApiKeyScope.ADMIN)
   async updateJob(
     @CurrentUser() user: User,
     @Param('id') id: string,
@@ -153,15 +165,23 @@ export class MetaAdsBulkController {
     return { success: true };
   }
 
-  private async getAccessTokenFromCredential(user: User): Promise<string> {
+  /**
+   * Resolves the exact credential the caller named. Matching only on
+   * organization + platform would let a job persist one `credentialId` while
+   * spending through a different account's token.
+   */
+  private async getAccessTokenFromCredential(
+    user: User,
+    credentialId: string,
+  ): Promise<string> {
     const organizationId = user.organizationId as string;
-    const userId = (user.userId ?? user.id) as string;
 
     const credential = await this.credentialsService.findOne({
+      id: credentialId,
       isConnected: true,
+      isDeleted: false,
       organizationId: organizationId,
       platform: CredentialPlatform.FACEBOOK,
-      userId: userId,
     });
 
     if (!credential?.accessToken) {
