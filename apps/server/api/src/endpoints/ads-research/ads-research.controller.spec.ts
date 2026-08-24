@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -48,6 +49,10 @@ describe('AdsResearchController', () => {
               .fn()
               .mockResolvedValue({ campaignId: 'camp-1' }),
           },
+        },
+        {
+          provide: MembersService,
+          useValue: { find: vi.fn().mockResolvedValue([]), findOne: vi.fn() },
         },
       ],
     }).compile();

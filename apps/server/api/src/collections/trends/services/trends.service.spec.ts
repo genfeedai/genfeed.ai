@@ -17,6 +17,7 @@ import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -197,6 +198,12 @@ describe('TrendsService', () => {
         },
         {
           provide: LinkedInService,
+          useValue: {
+            getTrends: vi.fn(),
+          },
+        },
+        {
+          provide: TwitterService,
           useValue: {
             getTrends: vi.fn(),
           },

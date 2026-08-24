@@ -192,6 +192,7 @@ describe('AdPerformanceService', () => {
           ],
           adPlatform: 'x',
           isDeleted: false,
+          organizationId: 'org-1',
         },
       });
     });
@@ -326,6 +327,7 @@ describe('AdPerformanceService', () => {
           ],
           id: 'repository-ad',
           isDeleted: false,
+          organizationId: 'org-1',
         },
       });
     });

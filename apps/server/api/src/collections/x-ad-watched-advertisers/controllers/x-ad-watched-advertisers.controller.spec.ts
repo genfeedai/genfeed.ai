@@ -138,14 +138,33 @@ describe('XAdWatchedAdvertisersController identity gates', () => {
       expect(result.where).toMatchObject({ brandId });
     });
 
-    it('honors an explicit brandId query filter', () => {
-      const user = { organizationId } as unknown as User;
+    it('honors an explicit brandId when it matches the authenticated brand', () => {
+      const authenticatedBrandId = '550e8400-e29b-41d4-a716-446655440003';
+      const user = {
+        brandId: authenticatedBrandId,
+        organizationId,
+      } as unknown as User;
 
       const result = controller.buildFindAllQuery(user, {
-        brandId: 'brand-override',
+        brandId: authenticatedBrandId,
       } as never);
 
-      expect(result.where).toMatchObject({ brandId: 'brand-override' });
+      expect(result.where).toMatchObject({ brandId: authenticatedBrandId });
+    });
+
+    it('rejects an explicit brandId that is not the authenticated brand', () => {
+      const authenticatedBrandId = '550e8400-e29b-41d4-a716-446655440003';
+      const foreignBrandId = '550e8400-e29b-41d4-a716-446655440004';
+      const user = {
+        brandId: authenticatedBrandId,
+        organizationId,
+      } as unknown as User;
+
+      expect(() =>
+        controller.buildFindAllQuery(user, {
+          brandId: foreignBrandId,
+        } as never),
+      ).toThrow(ForbiddenException);
     });
 
     it('filters by advertiserHandle when provided', () => {
