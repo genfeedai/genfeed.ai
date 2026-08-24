@@ -1,7 +1,6 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
@@ -10,6 +9,11 @@ import {
 import type { IPost } from '@genfeedai/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
@@ -51,7 +55,13 @@ const EMPTY_COLLECTIONS: PublishContentCollections = {
 };
 
 export default function PublishContentLibrary() {
-  const { brandId, isReady, organizationId } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
+  const isFetchReady = isCollectionFetchReady({
+    brandId,
+    isReady,
+    organizationId,
+    pageScope,
+  });
   const { setFiltersNode, setIsRefreshing, setRefresh, setViewToggleNode } =
     usePostsLayout();
   const { href } = useOrgUrl();
@@ -85,9 +95,9 @@ export default function PublishContentLibrary() {
     isLoading,
     refetch,
   } = useQuery<PublishContentCollections>({
-    enabled: isReady && Boolean(brandId && organizationId),
+    enabled: isFetchReady,
     queryFn: async ({ signal }) => {
-      if (!brandId || !organizationId) {
+      if (!organizationId) {
         return EMPTY_COLLECTIONS;
       }
 
@@ -98,7 +108,7 @@ export default function PublishContentLibrary() {
           getPostsService(),
         ]);
       const collectionQuery = {
-        brandId: brandId,
+        ...toBrandListParams({ brandId }),
         organizationId: organizationId,
         sort: 'createdAt: -1',
       };
@@ -106,14 +116,7 @@ export default function PublishContentLibrary() {
       const [articles, newsletters, posts] = await Promise.all([
         articlesService.findAllPages(collectionQuery, signal),
         newslettersService.findAllPages(collectionQuery, signal),
-        postsService.findAllPages(
-          {
-            brandId,
-            organizationId,
-            sort: collectionQuery.sort,
-          },
-          signal,
-        ),
+        postsService.findAllPages(collectionQuery, signal),
       ]);
 
       return { articles, newsletters, posts };

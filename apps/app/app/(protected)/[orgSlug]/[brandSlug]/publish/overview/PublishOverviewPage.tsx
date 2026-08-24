@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
   BatchItemStatus,
@@ -10,6 +9,10 @@ import {
 } from '@genfeedai/enums';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isBrandResourceReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { BatchesService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -48,7 +51,9 @@ async function fetchPublicationTotal(
 
 export default function PublishOverviewPage() {
   const { href } = useOrgUrl();
-  const { brandId } = useBrand();
+  const collectionScope = useCollectionScope();
+  const { brandId } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
   );
@@ -65,7 +70,7 @@ export default function PublishOverviewPage() {
   });
 
   const { data: notPostedTotal = 0, isLoading: isNotPostedLoading } = useQuery({
-    enabled: Boolean(brandId),
+    enabled: isBrandReady,
     queryKey: ['publish-overview-not-posted-total', brandId],
     queryFn: () =>
       fetchPublicationTotal(
@@ -76,7 +81,7 @@ export default function PublishOverviewPage() {
   });
 
   const { data: publishedTotal = 0, isLoading: isPublishedLoading } = useQuery({
-    enabled: Boolean(brandId),
+    enabled: isBrandReady,
     queryKey: ['publish-overview-published-total', brandId],
     queryFn: () =>
       fetchPublicationTotal(

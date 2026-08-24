@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
@@ -12,6 +11,10 @@ import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -38,7 +41,7 @@ function openCreateArticleModal(): void {
 
 export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   const notificationsService = NotificationsService.getInstance();
-  const { brandId, organizationId } = useBrand();
+  const { brandId, organizationId } = useCollectionScope();
   const router = useRouter();
   const { href } = useOrgUrl();
   const pathname = usePathname();
@@ -93,7 +96,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
     try {
       const service = await getArticlesService();
       const query: IQueryParams = {
-        brandId: brandId,
+        ...toBrandListParams({ brandId }),
         limit: ITEMS_PER_PAGE,
         organizationId: organizationId,
         page: currentPage,

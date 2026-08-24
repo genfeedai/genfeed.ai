@@ -6,6 +6,11 @@ const mockGetTrendContent = vi.fn();
 const mockGetService = vi.fn();
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+  }),
   useBrandId: () => 'brand-1',
 }));
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AGENT_PROGRAM_TEMPLATES,
   APP_ROUTES,
@@ -10,6 +9,11 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { ICreateAgentCampaignDto } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import {
+  isBrandResourceReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -154,10 +158,12 @@ export default function AgentCampaignNewPage() {
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { brandId, isReady: isBrandReady } = useBrand();
+  const collectionScope = useCollectionScope();
+  const { brandId, pageScope } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
   const { strategies } = useAgentStrategies({
-    brandId,
-    enabled: isBrandReady && Boolean(brandId),
+    ...toBrandListParams({ brandId }),
+    enabled: isBrandReady,
   });
   const selectedTemplate = useMemo(
     () =>
@@ -210,7 +216,11 @@ export default function AgentCampaignNewPage() {
       event.preventDefault();
 
       if (!isBrandReady || !brandId) {
-        notificationsService.error('Wait for the selected brand to load');
+        notificationsService.error(
+          pageScope === 'org'
+            ? 'Select a brand to create a Program'
+            : 'Wait for the selected brand to load',
+        );
         return;
       }
       if (!form.label.trim()) {
@@ -284,6 +294,7 @@ export default function AgentCampaignNewPage() {
       href,
       isBrandReady,
       notificationsService,
+      pageScope,
       queryClient,
       router,
       selectedTemplate,
@@ -298,7 +309,7 @@ export default function AgentCampaignNewPage() {
         label="New Program"
       >
         <p className="text-sm text-muted-foreground">
-          {translate('loadingBrand')}
+          {translate(pageScope === 'org' ? 'selectBrand' : 'loadingBrand')}
         </p>
       </Container>
     );

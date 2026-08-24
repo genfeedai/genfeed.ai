@@ -28,6 +28,10 @@ import {
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { buildPostsCardActions } from '@pages/posts/list/components/PostsCardActions';
@@ -137,7 +141,14 @@ export function usePostsList({
   const platform = normalizePostsPlatform(platformParam);
   const platformFilter = platform !== 'all' ? platform : undefined;
 
-  const { brandId, organizationId, isReady, credentials } = useBrand();
+  const { credentials } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
+  const isFetchReady = isCollectionFetchReady({
+    brandId,
+    isReady,
+    organizationId,
+    pageScope,
+  });
 
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -305,7 +316,7 @@ export function usePostsList({
     refetch: refreshPosts,
     error: postsError,
   } = useQuery<PostsListResult>({
-    enabled: scope === PageScope.SUPERADMIN || isReady,
+    enabled: scope === PageScope.SUPERADMIN || isFetchReady,
     initialData:
       initialPosts != null
         ? {

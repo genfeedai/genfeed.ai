@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
@@ -10,6 +9,11 @@ import {
 } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AgentStrategiesService,
@@ -190,10 +194,15 @@ function AgentCard({
 
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
-  const { brandId, isReady: isBrandReady } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const { strategies, isLoading, refresh } = useAgentStrategies({
-    brandId,
-    enabled: isBrandReady && Boolean(brandId),
+    ...toBrandListParams({ brandId }),
+    enabled: isCollectionFetchReady({
+      brandId,
+      isReady,
+      organizationId,
+      pageScope,
+    }),
   });
   const notificationsService = NotificationsService.getInstance();
   const pathname = usePathname();

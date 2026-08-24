@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AI_ACTION_LABELS,
   AiActionType,
@@ -11,6 +10,7 @@ import {
   TrendDirection,
 } from '@genfeedai/enums';
 import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { InsightsOverviewProps } from '@props/analytics/insights.props';
 import { AiActionsService } from '@services/ai/ai-actions.service';
 import { logger } from '@services/core/logger.service';
@@ -47,8 +47,8 @@ const InsightsOverview = memo(function InsightsOverview({
   aiConfig,
 }: InsightsOverviewProps) {
   const router = useRouter();
-  const { selectedBrand } = useBrand();
-  const brandId = propBrandId || selectedBrand?.id;
+  const { brandId: scopedBrandId } = useCollectionScope();
+  const brandId = propBrandId || scopedBrandId;
 
   const {
     anomalies,

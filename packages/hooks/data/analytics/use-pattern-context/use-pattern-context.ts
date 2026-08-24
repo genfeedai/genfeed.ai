@@ -1,11 +1,11 @@
 'use client';
 
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { ICreativePattern } from '@genfeedai/interfaces';
 import type { PatternLabFilters } from '@genfeedai/props/analytics/performance-lab.props';
 import { CreativePatternsService } from '@genfeedai/services/analytics/creative-patterns.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useEffect, useState } from 'react';
 
 export interface UsePatternContextReturn {
@@ -17,7 +17,7 @@ export interface UsePatternContextReturn {
 export function usePatternContext(
   filters?: PatternLabFilters,
 ): UsePatternContextReturn {
-  const { brandId } = useBrand();
+  const { brandId } = useCollectionScope();
   const getCreativePatternsService = useAuthedService((token: string) =>
     CreativePatternsService.getInstance(token),
   );

@@ -30,7 +30,11 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-one', isReady: true }),
+  useBrand: () => ({
+    brandId: 'brand-one',
+    isReady: true,
+    organizationId: 'org-one',
+  }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
