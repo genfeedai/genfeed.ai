@@ -144,12 +144,16 @@ export function mergeStudioGenerateJobs(
       job.status === IngredientStatus.DRAFT ||
       job.status === IngredientStatus.PROCESSING;
 
-    merged.set(
-      job.id,
+    const mergedJob =
       storedIsPending && !liveIsPending
         ? { ...storedJob, ...job }
-        : { ...job, ...storedJob },
-    );
+        : { ...job, ...storedJob };
+
+    merged.set(job.id, {
+      ...mergedJob,
+      recipe: job.recipe ?? storedJob.recipe ?? mergedJob.recipe,
+      runId: job.runId ?? storedJob.runId ?? mergedJob.runId,
+    });
   }
 
   return Array.from(merged.values()).toSorted(

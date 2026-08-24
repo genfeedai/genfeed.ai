@@ -37,6 +37,8 @@ export interface UseStoryboardGenerationReturn {
 export type {
   StudioGenerateCapabilities,
   StudioGenerateJob,
+  StudioGenerateRecipe,
+  StudioGenerateRun,
   StudioGenerateSettings,
   StudioGenerateType,
   StudioGenerateTypeConfig,
