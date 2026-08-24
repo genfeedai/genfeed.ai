@@ -33,24 +33,22 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   assembleImageGenerationBrief,
   assertRedactedGenerationBriefEvidence,
-  compileFluxSchnellGenerationBrief,
   GenerationBriefCompileError,
   resolveImageGenerationBriefSupport,
   resolveImageGenerationFidelityMode,
   toRedactedGenerationBriefProviderData,
 } from '@api/services/generation-brief';
+import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
+import { getImageGenerationBriefRegistryEntry } from '@api/services/generation-brief/image-generation-brief-registry';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import type {
-  FluxSchnellDispatch,
-  GenerationBriefPersistedEvidence,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
-  buildFluxSchnellGenerationSource,
+  buildGenerationBriefCompileSource,
   buildGenerationBriefExemptionSource,
 } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
@@ -368,8 +366,9 @@ export class ImageGenerationService {
   }
 
   /**
-   * Compile a FLUX Schnell generation brief, or record an explicit exemption
-   * for every other image model.
+   * Compile a generation brief through the registered compiler for the
+   * requested model family, or record an explicit exemption for every model
+   * that has not been onboarded to model-aware compilation.
    */
   private compileImageGenerationBrief(params: {
     createImageDto: CreateImageDto;
@@ -381,7 +380,7 @@ export class ImageGenerationService {
     width: number;
   }): {
     brief?: ImageGenerationBrief;
-    dispatch?: FluxSchnellDispatch;
+    dispatch?: ImageGenerationBriefDispatch;
     evidence: GenerationBriefPersistedEvidence;
     generationSource: string;
   } {
@@ -399,6 +398,17 @@ export class ImageGenerationService {
         }),
         generationSource: buildGenerationBriefExemptionSource(support.reason),
       };
+    }
+
+    const entry = getImageGenerationBriefRegistryEntry(support.modelKey);
+    if (!entry) {
+      throw new HttpException(
+        {
+          detail: `No registered generation brief compiler for model "${support.modelKey}".`,
+          title: 'Generation brief compilation failed',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
 
     try {
@@ -431,8 +441,9 @@ export class ImageGenerationService {
         visualDirectionSource: 'user',
         width: params.width,
       });
-      const compiled = compileFluxSchnellGenerationBrief({
+      const compiled = entry.compile({
         brief,
+        modelKey: support.modelKey,
         seed: params.createImageDto.seed,
       });
 
@@ -440,7 +451,12 @@ export class ImageGenerationService {
         brief: compiled.brief,
         dispatch: compiled.dispatch,
         evidence: assertRedactedGenerationBriefEvidence(compiled.evidence),
-        generationSource: buildFluxSchnellGenerationSource(),
+        generationSource: buildGenerationBriefCompileSource({
+          compilerId: entry.compilerId,
+          compilerVersion: entry.compilerVersion,
+          profileId: entry.profileId,
+          profileVersion: entry.profileVersion,
+        }),
       };
     } catch (error: unknown) {
       if (error instanceof GenerationBriefCompileError) {
@@ -465,7 +481,7 @@ export class ImageGenerationService {
     brand: ImageGenerationResolvedBrand;
     brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
     briefEvidence: GenerationBriefPersistedEvidence;
-    compiledDispatch?: FluxSchnellDispatch;
+    compiledDispatch?: ImageGenerationBriefDispatch;
     createImageDto: CreateImageDto;
     generationSource: string;
     height: number;

@@ -1,0 +1,48 @@
+{
+  "constraints": [
+    {
+      "kind": "desired_outcome",
+      "required": false,
+      "value": "Keep the bottle label readable"
+    },
+    {
+      "kind": "avoid",
+      "required": false,
+      "value": "busy backgrounds"
+    }
+  ],
+  "fidelityMode": "guided",
+  "intent": {
+    "composition": "Centered product portrait",
+    "lighting": "soft window light",
+    "objective": "Create a launch image for the new bottle",
+    "requestedText": ["NEW"],
+    "scene": "sun-drenched ceramics studio",
+    "subjects": ["Reusable bottle"],
+    "visualDirection": "Clean editorial product photography"
+  },
+  "mediaKind": "image",
+  "output": {
+    "aspectRatio": "1:1",
+    "height": 1024,
+    "width": 1024
+  },
+  "provenance": [
+    {
+      "field": "intent.objective",
+      "source": "user"
+    },
+    {
+      "field": "intent.visualDirection",
+      "source": "brand"
+    }
+  ],
+  "references": [
+    {
+      "assetId": "asset_product_123",
+      "description": "Approved product packshot",
+      "role": "product"
+    }
+  ],
+  "version": 1
+}

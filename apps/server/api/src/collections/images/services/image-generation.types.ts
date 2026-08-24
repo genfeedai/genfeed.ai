@@ -4,12 +4,10 @@ import type { buildPromptBrandingFromBrand } from '@api/collections/brands/utils
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import type {
-  FluxSchnellDispatch,
-  GenerationBriefPersistedEvidence,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import type { ModelProvider } from '@genfeedai/enums';
 
 export type ImageGenerationProvider =
@@ -47,7 +45,7 @@ export interface ImageGenerationContext {
   brand: ImageGenerationResolvedBrand;
   brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
   briefEvidence?: GenerationBriefPersistedEvidence;
-  compiledDispatch?: FluxSchnellDispatch;
+  compiledDispatch?: ImageGenerationBriefDispatch;
   createImageDto: CreateImageDto;
   generationBrief?: ImageGenerationBrief;
   generationSource?: string;
@@ -89,7 +87,7 @@ export interface ImageGenerationCompletionPlan {
 
 export interface ImageGenerationProviderRequest {
   brandPromptBranding: ImageGenerationContext['brandPromptBranding'];
-  compiledDispatch?: FluxSchnellDispatch;
+  compiledDispatch?: ImageGenerationBriefDispatch;
   createImageDto: CreateImageDto;
   height: number;
   model: string;
