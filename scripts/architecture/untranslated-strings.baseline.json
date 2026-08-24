@@ -413,7 +413,7 @@
     "packages/pages/brands/components/sidebar/BrandIdentityVoiceField.tsx": 2,
     "packages/pages/brands/components/system-prompt/BrandDetailSystemPrompt.tsx": 1,
     "packages/pages/content-runs/detail/content-run-detail.tsx": 12,
-    "packages/pages/content-runs/list/content-run-list.tsx": 5,
+    "packages/pages/content-runs/list/content-run-list.tsx": 0,
     "packages/pages/ingredients/detail/ingredient-detail-cache-alert.tsx": 2,
     "packages/pages/ingredients/detail/ingredient-detail-not-found.tsx": 3,
     "packages/pages/ingredients/layout/ingredients-layout-toolbar.tsx": 1,
