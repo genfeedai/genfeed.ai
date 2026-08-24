@@ -11,6 +11,14 @@ vi.mock('next/image', () => ({
   ),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="status-dropdown" />,
 }));

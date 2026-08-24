@@ -12,6 +12,7 @@ import Badge from '@ui/display/badge/Badge';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 import { getIngredientShelf } from './ingredient-shelf.util';
 
@@ -107,6 +108,7 @@ export default function IngredientInspectorRail({
   hasHeading = true,
   ingredient,
 }: IngredientInspectorRailProps) {
+  const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
   const previewUrl = getIngredientPreviewUrl(ingredient);
   const dimensions =
@@ -156,7 +158,7 @@ export default function IngredientInspectorRail({
       <dl className="flex flex-col divide-y divide-foreground/6">
         <div className="flex items-baseline justify-between gap-3 py-1.5">
           <dt className="shrink-0 text-2xs uppercase tracking-[0.12em] text-foreground/35">
-            Type
+            {translate('type')}
           </dt>
           <dd className="min-w-0">
             <LibraryAssetTypeBadge category={ingredient.category} />
