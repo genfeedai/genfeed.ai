@@ -267,6 +267,7 @@ export class OrganizationsController extends BaseCRUDController<
       membershipOrgIds.map((orgId) =>
         this.organizationsService.findOne({
           id: orgId,
+          isDeleted: false,
         }),
       ),
     );
@@ -277,6 +278,7 @@ export class OrganizationsController extends BaseCRUDController<
         .filter((org): org is NonNullable<typeof org> => org !== null)
         .map(async (org) => {
           const brand = await this.brandsService.findOne({
+            isDeleted: false,
             organizationId: org.id,
           });
           return {

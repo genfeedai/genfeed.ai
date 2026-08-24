@@ -580,35 +580,18 @@ async function resolveBetterAuthJwtOrganizationIdFromLastUsed(
       where: {
         id: lastUsedOrganizationId,
         isDeleted: false,
-        OR: [
-          { userId },
-          {
-            members: {
-              some: {
-                isActive: true,
-                isDeleted: false,
-                userId,
-              },
-            },
+        members: {
+          some: {
+            isActive: true,
+            isDeleted: false,
+            userId,
           },
-        ],
+        },
       },
     });
     if (activeOrganization) {
       return activeOrganization.id;
     }
-  }
-
-  const ownerOrganization = await prisma.organization.findFirst({
-    orderBy: { createdAt: 'asc' },
-    select: { id: true },
-    where: {
-      isDeleted: false,
-      userId,
-    },
-  });
-  if (ownerOrganization) {
-    return ownerOrganization.id;
   }
 
   const membership = await prisma.member.findFirst({
