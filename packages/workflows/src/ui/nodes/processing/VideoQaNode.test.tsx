@@ -81,6 +81,31 @@ vi.mock('next/image', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations:
+    () => (key: string, values?: Record<string, string | number>) => {
+      const copy: Record<string, string> = {
+        connectVideo: 'Connect a video to inspect',
+        contactSheet: 'Render contact sheet',
+        contactSheetAlt: 'Video QA contact sheet',
+        duration: 'Duration: {value}',
+        fail: 'Fail',
+        inspect: 'Inspect video',
+        inspecting: 'Inspecting...',
+        loudness: '{value} LUFS',
+        loudnessNa: 'Loudness: n/a',
+        loudnessTarget: 'Loudness target (LUFS)',
+        pass: 'Pass',
+        resolutionFallback: 'Resolution: —',
+      };
+      const template = copy[key] ?? key;
+      if (!values) {
+        return template;
+      }
+      return template.replace('{value}', String(values.value));
+    },
+}));
+
 const defaultProps = {
   data: {
     expectedDurationSeconds: null,

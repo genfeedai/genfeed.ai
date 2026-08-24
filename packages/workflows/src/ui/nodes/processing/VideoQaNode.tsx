@@ -5,6 +5,7 @@ import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { LoaderCircle, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useWorkflowStore } from '../../stores/workflow';
@@ -29,6 +30,7 @@ function formatFailureTimestamp(failure: VideoQaFailure): string {
 }
 
 function VideoQaNodeComponent(props: NodeProps) {
+  const translate = useTranslations('pages.workflows.videoQa');
   const { id, data } = props;
   const nodeData = data as VideoQaNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
@@ -82,7 +84,7 @@ function VideoQaNodeComponent(props: NodeProps) {
       <div className="space-y-3">
         {!hasInputVideo && (
           <div className="text-xs text-muted-foreground text-center">
-            Connect a video to inspect
+            {translate('connectVideo')}
           </div>
         )}
 
@@ -91,7 +93,7 @@ function VideoQaNodeComponent(props: NodeProps) {
             className="text-xs text-muted-foreground"
             htmlFor={`video-qa-loudness-${id}`}
           >
-            Loudness target (LUFS)
+            {translate('loudnessTarget')}
           </Label>
           <Input
             className="nodrag h-8"
@@ -112,7 +114,7 @@ function VideoQaNodeComponent(props: NodeProps) {
             className="text-sm text-foreground cursor-pointer"
             htmlFor={`video-qa-contact-sheet-${id}`}
           >
-            Render contact sheet
+            {translate('contactSheet')}
           </Label>
         </div>
 
@@ -125,22 +127,28 @@ function VideoQaNodeComponent(props: NodeProps) {
                   : 'text-sm font-medium text-destructive'
               }
             >
-              {report.passed ? 'Pass' : 'Fail'}
+              {report.passed ? translate('pass') : translate('fail')}
             </div>
             <div className="text-xs text-muted-foreground space-y-0.5">
-              <div>Duration: {formatMetricSeconds(report.durationSeconds)}</div>
+              <div>
+                {translate('duration', {
+                  value: formatMetricSeconds(report.durationSeconds),
+                })}
+              </div>
               <div>
                 {report.width && report.height
                   ? `${report.width}×${report.height}`
-                  : 'Resolution: —'}
+                  : translate('resolutionFallback')}
                 {report.frameRate !== null
                   ? ` · ${report.frameRate.toFixed(2)} fps`
                   : ''}
               </div>
               <div>
                 {report.loudnessLufs !== null
-                  ? `${report.loudnessLufs.toFixed(1)} LUFS`
-                  : 'Loudness: n/a'}
+                  ? translate('loudness', {
+                      value: report.loudnessLufs.toFixed(1),
+                    })
+                  : translate('loudnessNa')}
               </div>
             </div>
             {report.failures.length > 0 && (
@@ -157,7 +165,7 @@ function VideoQaNodeComponent(props: NodeProps) {
             )}
             {report.contactSheetUrl && (
               <Image
-                alt="Video QA contact sheet"
+                alt={translate('contactSheetAlt')}
                 className="w-full rounded object-cover"
                 height={120}
                 src={report.contactSheetUrl}
@@ -179,7 +187,7 @@ function VideoQaNodeComponent(props: NodeProps) {
           ) : (
             <ShieldCheck className="size-4" />
           )}
-          {isProcessing ? 'Inspecting...' : 'Inspect video'}
+          {isProcessing ? translate('inspecting') : translate('inspect')}
         </Button>
       </div>
     </BaseNode>
