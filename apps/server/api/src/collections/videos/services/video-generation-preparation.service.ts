@@ -289,6 +289,7 @@ export class VideoGenerationPreparationService {
       configService: this.configService,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,
+      organizationId: resolved.user.organizationId,
       referenceIds: resolved.referenceIds,
     });
     if (!resolved.createVideoDto.endFrame) {
@@ -299,6 +300,7 @@ export class VideoGenerationPreparationService {
       configService: this.configService,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,
+      organizationId: resolved.user.organizationId,
       referenceIds: [resolved.createVideoDto.endFrame],
     });
     return { endFrameUrl: endFrameUrls[0], referenceImageUrls };

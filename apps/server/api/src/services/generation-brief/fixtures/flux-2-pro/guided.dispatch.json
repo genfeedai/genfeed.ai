@@ -1,0 +1,9 @@
+{
+  "aspect_ratio": "1:1",
+  "input_images": ["asset_product_123"],
+  "output_format": "jpg",
+  "output_quality": 80,
+  "prompt": "Create a launch image for the new bottle. Reusable bottle. sun-drenched ceramics studio. Centered product portrait. soft window light. Clean editorial product photography. Visible text: NEW. Keep the bottle label readable",
+  "safety_tolerance": 2,
+  "seed": 42
+}

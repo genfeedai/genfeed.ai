@@ -1,4 +1,5 @@
 import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
+import { INVALID_CAMPAIGN_STATUS_MESSAGE } from '@api/services/ads-gateway/ads-campaign-status.util';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -593,7 +594,7 @@ describe('XAdsAdapter', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
         expect((error as BadRequestException).getResponse()).toMatchObject({
-          detail: expect.stringContaining('paused'),
+          detail: INVALID_CAMPAIGN_STATUS_MESSAGE,
         });
       }
       expect(xAdsService.updateCampaign).not.toHaveBeenCalled();

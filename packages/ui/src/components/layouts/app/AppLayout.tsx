@@ -67,7 +67,7 @@ export default function AppLayout({
       <div
         ref={layoutRootRef}
         className={cn(
-          'ship-ui overflow-x-hidden bg-background',
+          'overflow-x-hidden bg-background',
           lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
         )}
         data-workspace-shell={isWorkspaceShell ? 'true' : undefined}

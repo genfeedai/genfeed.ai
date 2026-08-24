@@ -27,7 +27,9 @@ describe('character generation tool params (#3441)', () => {
       references: { maxItems: 8, type: 'array' },
     });
     expect(
-      String(generateVideo?.parameters.properties.imageUrl.description),
+      String(generateVideo?.parameters.properties.imageUrl.description)
+        .toLowerCase()
+        .replaceAll('-', ' '),
     ).toContain('start frame');
   });
 

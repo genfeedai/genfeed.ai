@@ -48,3 +48,13 @@ export interface ICalendarSlotFillResult {
   slot: ICalendarSlot;
   targetId: string;
 }
+
+export interface ICalendarSlotBulkGenerateResult {
+  completed: ICalendarSlot[];
+  completedCount: number;
+  id: string;
+  isCancelled: boolean;
+  isCreditsExhausted: boolean;
+  remainingCount: number;
+  remainingIdentityKeys: string[];
+}

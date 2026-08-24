@@ -30,6 +30,7 @@ import {
   type UnifiedAdAccountOption,
 } from '@services/ads/ads-research.service';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 
 const EMPTY_RESPONSE: AdsResearchResponse = {
@@ -92,6 +93,7 @@ export function useAdsResearchPageClient(
   initialPlatform: AdsResearchPlatform | 'all',
 ) {
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.adsResearch');
   const remixSurface = useOptionalDiscoverRemix();
   const surface = useOptionalResearchWorkSurface();
   const { brandId, credentials, isReady, selectedBrand } = useBrand();
@@ -438,7 +440,12 @@ export function useAdsResearchPageClient(
   };
 
   const openBrandRemix = () => {
-    if (!selectedAd || !remixSurface) {
+    if (!selectedAd) {
+      return;
+    }
+
+    if (!remixSurface) {
+      setActionError(translate('errors.remixUnavailable'));
       return;
     }
 

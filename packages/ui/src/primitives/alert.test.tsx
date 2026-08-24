@@ -10,7 +10,7 @@ describe('Alert', () => {
 
     const alert = screen.getByRole('alert');
 
-    expect(alert.className).toContain('ship-ui');
+    expect(alert.className).toContain('relative');
   });
 
   it('preserves the local info variant API on top of the shared package', () => {

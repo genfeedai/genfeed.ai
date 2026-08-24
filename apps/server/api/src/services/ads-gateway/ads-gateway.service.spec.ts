@@ -107,6 +107,40 @@ describe('AdsGatewayService', () => {
   // ── comparePlatforms ──────────────────────────────────────────────────────
 
   describe('comparePlatforms', () => {
+    it('fans the same validated insights params to every platform adapter', async () => {
+      metaAdapter.listCampaigns.mockResolvedValue([{ id: 'c1' }] as never);
+      googleAdapter.listCampaigns.mockResolvedValue([{ id: 'g1' }] as never);
+      metaAdapter.getCampaignInsights.mockResolvedValue(
+        buildInsights(10, 100, 5) as never,
+      );
+      googleAdapter.getCampaignInsights.mockResolvedValue(
+        buildInsights(20, 200, 10) as never,
+      );
+
+      const params = {
+        timeRange: { since: '2026-03-01', until: '2026-03-07' },
+      };
+
+      await service.comparePlatforms(
+        [
+          { ctx: mockCtx, platform: 'meta' },
+          { ctx: mockCtx, platform: 'google' },
+        ],
+        params,
+      );
+
+      expect(metaAdapter.getCampaignInsights).toHaveBeenCalledWith(
+        mockCtx,
+        'c1',
+        params,
+      );
+      expect(googleAdapter.getCampaignInsights).toHaveBeenCalledWith(
+        mockCtx,
+        'g1',
+        params,
+      );
+    });
+
     it('aggregates metrics across platforms', async () => {
       metaAdapter.listCampaigns.mockResolvedValue([{ id: 'c1' }] as never);
       metaAdapter.getCampaignInsights.mockResolvedValue(

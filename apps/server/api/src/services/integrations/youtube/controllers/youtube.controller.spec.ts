@@ -14,9 +14,11 @@ vi.mock('@api/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { YoutubeController } from '@api/services/integrations/youtube/controllers/youtube.controller';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -40,6 +42,9 @@ describe('YoutubeController', () => {
     getChannelDetails: ReturnType<typeof vi.fn>;
     getTrends: ReturnType<typeof vi.fn>;
     getVideoMetadata: ReturnType<typeof vi.fn>;
+  };
+  let youtubeAuthorizedSignalsService: {
+    refresh: ReturnType<typeof vi.fn>;
   };
 
   const mockRequest = {} as unknown as Request;
@@ -123,6 +128,9 @@ describe('YoutubeController', () => {
         viewCount: '1000',
       }),
     };
+    youtubeAuthorizedSignalsService = {
+      refresh: vi.fn().mockResolvedValue({ state: 'full' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [YoutubeController],
@@ -131,10 +139,17 @@ describe('YoutubeController', () => {
           provide: ConfigService,
           useValue: { get: vi.fn().mockReturnValue('mock-value') },
         },
-        { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        {
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+        },
         { provide: BrandsService, useValue: brandsService },
         { provide: CredentialsService, useValue: credentialsService },
         { provide: YoutubeService, useValue: youtubeService },
+        {
+          provide: YoutubeAuthorizedSignalsService,
+          useValue: youtubeAuthorizedSignalsService,
+        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -261,6 +276,17 @@ describe('YoutubeController', () => {
       );
     });
 
+    it('refreshes authorized warm-up signals after a successful connection', async () => {
+      await controller.verify(mockRequest, dto);
+      expect(youtubeAuthorizedSignalsService.refresh).toHaveBeenCalledWith({
+        accessToken: 'yt_access',
+        credentialId,
+        force: true,
+        grantedScopes: 'youtube',
+        organizationId: orgId,
+      });
+    });
+
     it('should still return credential even if channel details fail', async () => {
       youtubeService.getChannelDetails.mockRejectedValueOnce(
         new Error('API Error'),
@@ -277,6 +303,53 @@ describe('YoutubeController', () => {
         Record<string, unknown>,
       ];
       expect(patchCall[1].isDeleted).toBe(false);
+    });
+  });
+
+  describe('refreshAuthorizedSignals', () => {
+    it('returns the documented 404 when the credential is missing or cross-org', async () => {
+      youtubeAuthorizedSignalsService.refresh.mockRejectedValueOnce(
+        new NotFoundException('YouTube credential'),
+      );
+
+      await expect(
+        controller.refreshAuthorizedSignals(
+          mockRequest,
+          mockUser,
+          'missing-credential',
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(credentialsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('refreshes and returns only the caller organization credential', async () => {
+      credentialsService.findOne.mockResolvedValueOnce({
+        id: credentialId,
+        organizationId: orgId,
+        platform: 'youtube',
+      });
+
+      const result = await controller.refreshAuthorizedSignals(
+        mockRequest,
+        mockUser,
+        credentialId,
+      );
+
+      expect(youtubeAuthorizedSignalsService.refresh).toHaveBeenCalledWith({
+        credentialId,
+        organizationId: orgId,
+      });
+      expect(credentialsService.findOne).toHaveBeenCalledWith({
+        id: credentialId,
+        organizationId: orgId,
+        platform: 'youtube',
+      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: credentialId,
+          organizationId: orgId,
+        }),
+      );
     });
   });
 

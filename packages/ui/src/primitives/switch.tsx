@@ -1,4 +1,4 @@
-import { Switch as ShipSwitch } from '@shipshitdev/ui/primitives';
+import * as SwitchPrimitives from '@radix-ui/react-switch';
 import type {
   ChangeEvent,
   ComponentPropsWithoutRef,
@@ -8,7 +8,7 @@ import type {
 import { cn } from '../lib/utils';
 
 type SwitchBaseProps = Omit<
-  ComponentPropsWithoutRef<typeof ShipSwitch>,
+  ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>,
   'checked' | 'disabled' | 'onChange' | 'onCheckedChange'
 >;
 
@@ -25,26 +25,18 @@ export interface SwitchProps extends SwitchBaseProps {
 }
 
 /**
- * Ship Switch defaults use `bg-accent` for the ON track and
- * `bg-[var(--text-primary)]` for the OFF thumb. In Genfeed studio, `--accent`
- * is remapped to a hover *surface*, so stock colors collapse. Worse: if the
- * thumb’s `translate-x-*` utilities don’t land, the track is `items-center`
- * and the knob sits dead-center for both states — looks “stuck”.
- *
  * Force semantic track/thumb contrast + travel off parent `data-state` so
- * on/off always slides left ↔ right in both Light and Dark.
+ * on/off always slides left ↔ right in both Light and Dark. Do not center the
+ * thumb with flex — translate owns position.
  */
 const SWITCH_CONTRAST_CLASSNAME = cn(
-  // Track — left-align the thumb so translate (not flex centering) owns position
   'justify-start',
   'data-[state=unchecked]:!bg-muted-foreground data-[state=checked]:!bg-primary',
-  // Thumb motion (Ship renders one direct span child with its own data-state)
   'data-[state=unchecked]:[&>span]:!translate-x-0.5',
   'data-[state=checked]:[&>span]:!translate-x-4',
   'data-[state=unchecked]:[&>span]:!bg-background',
   'data-[state=checked]:[&>span]:!bg-primary-foreground',
   '[&>span]:!transition-transform [&>span]:!duration-200 [&>span]:!ease-out',
-  // Focus
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 );
 
@@ -63,9 +55,9 @@ function Switch({
 }: SwitchProps): ReactElement {
   const resolvedChecked = checked ?? isChecked ?? false;
   const switchElement = (
-    <ShipSwitch
+    <SwitchPrimitives.Root
       className={cn(
-        'ship-ui',
+        'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-50',
         SWITCH_CONTRAST_CLASSNAME,
         switchClassName,
         className,
@@ -80,7 +72,9 @@ function Switch({
         } as ChangeEvent<HTMLInputElement>);
       }}
       ref={ref}
-    />
+    >
+      <SwitchPrimitives.Thumb className="pointer-events-none block size-4 rounded-full shadow-lg ring-0 transition-transform" />
+    </SwitchPrimitives.Root>
   );
 
   if (!label && !description) {
@@ -110,6 +104,6 @@ function Switch({
     </div>
   );
 }
-Switch.displayName = ShipSwitch.displayName ?? 'Switch';
+Switch.displayName = SwitchPrimitives.Root.displayName ?? 'Switch';
 
 export { Switch };

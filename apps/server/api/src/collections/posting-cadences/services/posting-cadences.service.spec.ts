@@ -895,4 +895,191 @@ describe('PostingCadencesService', () => {
       apiKeyContext,
     );
   });
+
+  it('collapses overlapping cadences onto the oldest cadence', async () => {
+    const older = cadenceRow({
+      createdAt: new Date('2026-08-18T00:00:00.000Z'),
+      id: CADENCE_ID,
+    });
+    const newer = cadenceRow({
+      createdAt: new Date('2026-08-19T00:00:00.000Z'),
+      id: 'ccadence00002',
+    });
+    findMany.mockResolvedValue([newer, older]);
+
+    const slots = await service.listSlots(
+      ORG_ID,
+      BRAND_ID,
+      RANGE.startDate,
+      RANGE.endDate,
+    );
+    const noonSlots = slots.filter(
+      (slot) => slot.instant === '2026-08-20T10:00:00.000Z',
+    );
+
+    expect(noonSlots).toHaveLength(1);
+    expect(noonSlots[0]?.cadenceId).toBe(CADENCE_ID);
+    expect(noonSlots[0]?.identityKey).toBe(IDENTITY_KEY);
+  });
+
+  it('does not collapse overlapping cadences with a different credential or format', async () => {
+    findMany.mockResolvedValue([
+      cadenceRow(),
+      cadenceRow({
+        createdAt: new Date('2026-08-19T01:00:00.000Z'),
+        credentialId: 'ccredential02',
+        id: 'ccadence00002',
+      }),
+      cadenceRow({
+        createdAt: new Date('2026-08-19T02:00:00.000Z'),
+        format: PostCategory.POST,
+        id: 'ccadence00003',
+      }),
+    ]);
+
+    const slots = await service.listSlots(
+      ORG_ID,
+      BRAND_ID,
+      RANGE.startDate,
+      RANGE.endDate,
+    );
+    const noonSlots = slots.filter(
+      (slot) => slot.instant === '2026-08-20T10:00:00.000Z',
+    );
+
+    expect(noonSlots).toHaveLength(3);
+    expect(new Set(noonSlots.map((slot) => slot.cadenceId)).size).toBe(3);
+  });
+
+  it('returns the existing item when generate is repeated concurrently', async () => {
+    const rows = installStatefulReservations();
+    findFirst.mockResolvedValue(cadenceRow());
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: {},
+      description: 'Open-source AI OS',
+      label: 'Genfeed',
+      text: null,
+    });
+    modelsService.findOne.mockResolvedValue({ minCost: 1 });
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+      true,
+    );
+    llmDispatcherService.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: 'Hook: one identity, one item.' } }],
+    });
+    let finishRelease!: (value: {
+      id: string;
+      targets: { id: string }[];
+    }) => void;
+    const release = new Promise<{
+      id: string;
+      targets: { id: string }[];
+    }>((resolve) => {
+      finishRelease = resolve;
+    });
+    postGroupsService.create.mockReturnValue(release);
+
+    const first = service.generate(ORG_ID, USER_ID, IDENTITY_KEY);
+    await vi.waitFor(() => {
+      expect(postGroupsService.create).toHaveBeenCalledTimes(1);
+    });
+    await expect(
+      service.generate(ORG_ID, USER_ID, IDENTITY_KEY),
+    ).rejects.toThrow('already generating');
+
+    finishRelease({ id: 'release-once', targets: [{ id: 'post-once' }] });
+    await expect(first).resolves.toMatchObject({
+      releaseId: 'release-once',
+    });
+    postGroupsService.getOne.mockResolvedValue({
+      id: 'release-once',
+      targets: [{ id: 'post-once' }],
+    });
+    const replay = await service.generate(ORG_ID, USER_ID, IDENTITY_KEY);
+    expect(replay.releaseId).toBe('release-once');
+    expect(postGroupsService.create).toHaveBeenCalledTimes(1);
+    expect(rows.get(IDENTITY_KEY)?.state).toBe(CalendarSlotState.FILLED);
+  });
+
+  it('rejects bulk generate when the confirmed count does not match', async () => {
+    await expect(
+      service.generateBulk(ORG_ID, USER_ID, [IDENTITY_KEY], 2),
+    ).rejects.toThrow('Confirm 1 slots to generate them.');
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+  });
+
+  it('stops bulk generate after credit exhaustion and leaves remaining slots missing', async () => {
+    const secondIdentity = `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.REEL}|2026-08-20T12:00:00.000Z`;
+    const thirdIdentity = `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.REEL}|2026-08-20T14:00:00.000Z`;
+    const rows = installStatefulReservations();
+    findFirst.mockResolvedValue(cadenceRow());
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: {},
+      description: 'Open-source AI OS',
+      label: 'Genfeed',
+      text: null,
+    });
+    modelsService.findOne.mockResolvedValue({ minCost: 1 });
+    creditsUtilsService.checkOrganizationCreditsAvailable
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
+    llmDispatcherService.chatCompletion.mockResolvedValue({
+      choices: [{ message: { content: 'Hook: first slot filled.' } }],
+    });
+    postGroupsService.create.mockResolvedValue({
+      id: 'release-bulk-1',
+      targets: [{ id: 'post-bulk-1' }],
+    });
+
+    const result = await service.generateBulk(
+      ORG_ID,
+      USER_ID,
+      [IDENTITY_KEY, secondIdentity, thirdIdentity],
+      3,
+    );
+
+    expect(result.completedCount).toBe(1);
+    expect(result.remainingCount).toBe(2);
+    expect(result.isCreditsExhausted).toBe(true);
+    expect(result.remainingIdentityKeys).toEqual([
+      secondIdentity,
+      thirdIdentity,
+    ]);
+    expect(rows.get(IDENTITY_KEY)?.state).toBe(CalendarSlotState.FILLED);
+    expect(rows.get(secondIdentity)?.state).toBe(CalendarSlotState.MISSING);
+    expect(rows.get(thirdIdentity)).toBeUndefined();
+    expect(postGroupsService.create).toHaveBeenCalledTimes(1);
+    expect(result.completed[0]?.identityKey).toBe(IDENTITY_KEY);
+  });
+
+  it('stops bulk generate when the request is cancelled', async () => {
+    const secondIdentity = `${CADENCE_ID}|${CREDENTIAL_ID}|${PostCategory.REEL}|2026-08-20T12:00:00.000Z`;
+    installStatefulReservations();
+    findFirst.mockResolvedValue(cadenceRow());
+    postGroupsService.create.mockResolvedValue({
+      id: 'release-cancel',
+      targets: [{ id: 'post-cancel' }],
+    });
+    const abort = new AbortController();
+    abort.abort();
+
+    const result = await service.generateBulk(
+      ORG_ID,
+      USER_ID,
+      [IDENTITY_KEY, secondIdentity],
+      2,
+      undefined,
+      undefined,
+      abort.signal,
+    );
+
+    expect(result.completedCount).toBe(0);
+    expect(result.isCancelled).toBe(true);
+    expect(result.remainingIdentityKeys).toEqual([
+      IDENTITY_KEY,
+      secondIdentity,
+    ]);
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+  });
 });

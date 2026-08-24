@@ -1,0 +1,5 @@
+{
+  "output_format": "jpg",
+  "prompt": "a sunset over the ocean",
+  "safety_filter_level": "block_only_high"
+}

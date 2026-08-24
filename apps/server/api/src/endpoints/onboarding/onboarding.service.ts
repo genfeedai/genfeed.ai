@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -35,6 +36,7 @@ export class OnboardingService {
 
   constructor(
     private readonly loggerService: LoggerService,
+    private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
     private readonly userSetupService: UserSetupService,
@@ -60,11 +62,14 @@ export class OnboardingService {
     let userId = (user.userId ?? user.id)?.toString() ?? '';
 
     let dbUser = userId
-      ? await this.usersService.findOne({ id: userId }, [])
+      ? await this.usersService.findOne({ id: userId, isDeleted: false }, [])
       : null;
 
     if (!dbUser && user.id) {
-      dbUser = await this.usersService.findOne({ id: user.id }, []);
+      dbUser = await this.usersService.findOne(
+        { id: user.id, isDeleted: false },
+        [],
+      );
     }
 
     userId = this.getEntityId(dbUser) || userId;
@@ -78,28 +83,39 @@ export class OnboardingService {
       );
     }
 
-    let organizationId = user.organizationId?.toString() ?? '';
     let brandId: string | null = user.brandId?.toString() ?? null;
+    const members = await this.membersService.findActiveForUserAccess(userId);
+    const membershipOrgIds = [
+      ...new Set(
+        members
+          .map((member) => member.organizationId)
+          .filter((organizationId): organizationId is string =>
+            Boolean(organizationId),
+          ),
+      ),
+    ];
 
-    // Resolve the active org DB-first before provisioning (epic #735, Phase C):
-    // post-legacy auth provider, user.organizationId is no longer written, so fall back
-    // to User.lastUsedOrganizationId and then the user's owned org. Without this,
-    // every onboarding step would re-run initializeUserResources for a user who
-    // already has a workspace.
-    if (!organizationId) {
-      const lastUsedOrganizationId =
-        (
-          dbUser as { lastUsedOrganizationId?: string | null } | null
-        )?.lastUsedOrganizationId?.toString() ?? '';
+    const lastUsedOrganizationId =
+      (
+        dbUser as { lastUsedOrganizationId?: string | null } | null
+      )?.lastUsedOrganizationId?.toString() ?? '';
+    const sessionOrganizationId = user.organizationId?.toString() ?? '';
 
-      if (lastUsedOrganizationId) {
-        organizationId = lastUsedOrganizationId;
-      } else {
-        const ownedOrg = await this.organizationsService.findOne({
-          userId: userId,
-        });
-        organizationId = this.getEntityId(ownedOrg);
-      }
+    // Membership is the source of truth. A stale session / lastUsed org that
+    // the user no longer belongs to must not be persisted back onto identity.
+    let organizationId = '';
+    if (
+      sessionOrganizationId &&
+      membershipOrgIds.includes(sessionOrganizationId)
+    ) {
+      organizationId = sessionOrganizationId;
+    } else if (
+      lastUsedOrganizationId &&
+      membershipOrgIds.includes(lastUsedOrganizationId)
+    ) {
+      organizationId = lastUsedOrganizationId;
+    } else {
+      organizationId = membershipOrgIds[0] ?? '';
     }
 
     if (!organizationId) {
@@ -114,6 +130,16 @@ export class OnboardingService {
 
       organizationId = this.getEntityId(setupResult.organization);
       brandId = this.getEntityId(setupResult.brand) || null;
+    }
+
+    if (!organizationId) {
+      throw new HttpException(
+        {
+          detail: 'Unable to resolve an accessible organization for onboarding',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     try {
@@ -238,6 +264,7 @@ export class OnboardingService {
         // Check if org already has a prefix
         const org = await this.organizationsService.findOne({
           id: organizationId,
+          isDeleted: false,
         });
 
         if (!org) {

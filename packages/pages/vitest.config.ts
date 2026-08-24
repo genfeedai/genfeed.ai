@@ -67,6 +67,10 @@ export default defineConfig({
         replacement: path.resolve(packageSrc('api-types'), '$1'),
       },
       {
+        find: /^@app-tests\/(.*)$/,
+        replacement: path.resolve(appRoot, './tests/$1'),
+      },
+      {
         find: 'server-only',
         replacement: path.resolve(appRoot, './tests/server-only.stub.ts'),
       },

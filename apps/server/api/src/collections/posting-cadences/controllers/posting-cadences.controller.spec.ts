@@ -22,6 +22,7 @@ describe('PostingCadencesController', () => {
             book: vi.fn(),
             create: vi.fn(),
             generate: vi.fn(),
+            generateBulk: vi.fn(),
             list: vi.fn(),
             listSlots: vi.fn(),
             write: vi.fn(),
@@ -53,6 +54,12 @@ describe('PostingCadencesController', () => {
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,
         PostingCadencesController.prototype.write,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostingCadencesController.prototype.generateBulk,
       ),
     ).toEqual(MUTATION_SCOPES);
     expect(

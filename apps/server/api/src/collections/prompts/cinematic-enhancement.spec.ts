@@ -137,6 +137,15 @@ describe('cinematic enhancement', () => {
     expect(articlePrompt).toBe(ENHANCE_PROMPT_BASE);
   });
 
+  it('keeps subject pronouns out of lexicon aliases', () => {
+    for (const technique of CINEMATIC_LEXICON) {
+      for (const alias of technique.aliases) {
+        expect(alias.toLowerCase()).not.toMatch(/\bhim\b/);
+        expect(alias.toLowerCase()).not.toMatch(/\bher\b/);
+      }
+    }
+  });
+
   it('rewrites 10 naive prompts with at least one lexicon term and preserved subject', () => {
     const names = new Set(CINEMATIC_LEXICON.map((entry) => entry.name));
 
