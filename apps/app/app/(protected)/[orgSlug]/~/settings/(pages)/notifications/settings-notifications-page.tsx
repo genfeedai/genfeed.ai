@@ -1,8 +1,12 @@
 'use client';
 
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
+// biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ISetting } from '@genfeedai/interfaces';
+import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { User } from '@models/auth/user.model';
@@ -13,12 +17,6 @@ import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
-
-type ExtendedSettingPatch = Partial<ISetting> & {
-  isVideoNotificationsEmail?: boolean;
-};
 
 type WorkflowPreferenceLoadState = 'error' | 'loading' | 'ready';
 
@@ -69,7 +67,7 @@ export default function SettingsNotificationsPage() {
   }, [loadWorkflowPreference, workflowPreferenceLoadRequest]);
 
   const patchSettings = useCallback(
-    async (patch: ExtendedSettingPatch) => {
+    async (patch: Partial<ISetting>) => {
       if (!currentUser) {
         return false;
       }
@@ -127,13 +125,12 @@ export default function SettingsNotificationsPage() {
   }
 
   const isVideoNotificationsEmail =
-    (currentUser?.settings as ExtendedSettingPatch | undefined)
-      ?.isVideoNotificationsEmail ?? false;
+    currentUser?.settings?.isVideoNotificationsEmail ?? false;
 
   return (
     <div className="space-y-4">
       <Card
-        id="email-notifications"
+        id={PERSONAL_SETTINGS_ANCHOR.EMAIL_NOTIFICATIONS}
         label={translate('settings.profile.workflowEmail.cardTitle')}
         bodyClassName="gap-3 p-4"
       >
@@ -168,8 +165,9 @@ export default function SettingsNotificationsPage() {
             </Alert>
           ) : null}
           <Switch
-            label="Video Emails"
-            description="Send an email when a video generation completes or fails."
+            aria-label={translate('settings.profile.videoEmail.label')}
+            label={translate('settings.profile.videoEmail.label')}
+            description={translate('settings.profile.videoEmail.description')}
             isChecked={isVideoNotificationsEmail}
             isDisabled={isSaving}
             onChange={(e) =>

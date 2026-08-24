@@ -40,6 +40,7 @@
       ],
       "@/*": ["./src/*"],
       "@app/*": ["./app/*"],
+      "@app-tests/*": ["./tests/*"],
       "@cloud-types/*": ["../../packages/types/src/*"],
       "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../packages/agent/src/*"],

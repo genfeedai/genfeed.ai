@@ -9,14 +9,15 @@ import type {
   SettingsSearchHrefContext,
   SettingsSearchItem,
 } from '@genfeedai/props/ui/settings-search/settings-search.props';
+import { PERSONAL_SETTINGS_ANCHOR } from './personal-settings-anchor';
 import { buildSettingsMenuItems } from './settings-menu-items.config';
 
 const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Theme, language, and account profile',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#appearance`,
-    id: 'personal-section:appearance',
+    href: `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
+    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
     keywords: ['theme', 'dark', 'light', 'system', 'appearance'],
     label: 'Appearance',
     scope: SettingsSurface.PERSONAL,
@@ -24,8 +25,8 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'The language the app interface is shown in',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#language`,
-    id: 'personal-section:language',
+    href: `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
+    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
     keywords: ['locale', 'language', 'translation'],
     label: 'Language',
     scope: SettingsSurface.PERSONAL,
@@ -33,8 +34,8 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Show studio, workflow editor, and generation pages',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#features`,
-    id: 'personal-section:features',
+    href: `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
+    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
     keywords: ['advanced mode', 'features', 'studio', 'power user'],
     label: 'Advanced Mode',
     scope: SettingsSurface.PERSONAL,
@@ -43,7 +44,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     description: 'Workflow and video generation emails',
     group: 'Account',
     href: APP_ROUTES.SETTINGS.NOTIFICATIONS,
-    id: 'personal-section:email-notifications',
+    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.EMAIL_NOTIFICATIONS}`,
     keywords: ['email', 'notifications', 'workflow', 'video'],
     label: 'Email Notifications',
     scope: SettingsSurface.PERSONAL,
@@ -52,7 +53,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     description: 'Default chat model and generation priority',
     group: 'Account',
     href: APP_ROUTES.SETTINGS.CHAT,
-    id: 'personal-section:chat-defaults',
+    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.CHAT_DEFAULTS}`,
     keywords: [
       'chat',
       'model',
@@ -68,7 +69,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     description: 'Review every setup step',
     group: 'Account',
     href: APP_ROUTES.SETTINGS.PROGRESS,
-    id: 'personal-section:setup-checklist',
+    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.SETUP_CHECKLIST}`,
     keywords: ['setup', 'checklist', 'onboarding', 'progress'],
     label: 'Setup checklist',
     scope: SettingsSurface.PERSONAL,

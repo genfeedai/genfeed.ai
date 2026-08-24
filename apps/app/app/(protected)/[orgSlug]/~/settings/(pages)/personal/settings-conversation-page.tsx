@@ -1,5 +1,6 @@
 'use client';
 
+import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
@@ -310,7 +311,11 @@ export default function SettingsConversationPage({
         </Card>
       )}
 
-      <Card id="chat-defaults" label="Chat Defaults" bodyClassName="gap-3 p-4">
+      <Card
+        id={PERSONAL_SETTINGS_ANCHOR.CHAT_DEFAULTS}
+        label="Chat Defaults"
+        bodyClassName="gap-3 p-4"
+      >
         <div className="space-y-3">
           <div>
             <p className="text-sm font-medium">Default chat model</p>

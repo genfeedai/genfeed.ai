@@ -1,6 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { SETTINGS_SURFACE_LABELS, SettingsSurface } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
+import { PERSONAL_SETTINGS_ANCHOR } from './personal-settings-anchor';
 import {
   buildSettingsSearchCatalog,
   filterSettingsSearchCatalog,
@@ -27,6 +28,55 @@ describe('buildSettingsSearchCatalog', () => {
     );
     expect(catalog.some((item) => item.label === 'Models')).toBe(false);
     expect(catalog.some((item) => item.label === 'Profile')).toBe(false);
+  });
+
+  it('derives personal section links and ids from the shared anchors', () => {
+    const catalog = buildSettingsSearchCatalog({
+      isEnterprise: true,
+      scope: SettingsSurface.PERSONAL,
+    });
+
+    expect(
+      catalog.find(
+        (item) =>
+          item.id === `personal-section:${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
+      )?.href,
+    ).toBe(
+      `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
+    );
+    expect(
+      catalog.find(
+        (item) =>
+          item.id === `personal-section:${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
+      )?.href,
+    ).toBe(`${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`);
+    expect(
+      catalog.find(
+        (item) =>
+          item.id === `personal-section:${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
+      )?.href,
+    ).toBe(`${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`);
+    expect(
+      catalog.find(
+        (item) =>
+          item.id ===
+          `personal-section:${PERSONAL_SETTINGS_ANCHOR.EMAIL_NOTIFICATIONS}`,
+      )?.href,
+    ).toBe(APP_ROUTES.SETTINGS.NOTIFICATIONS);
+    expect(
+      catalog.find(
+        (item) =>
+          item.id ===
+          `personal-section:${PERSONAL_SETTINGS_ANCHOR.CHAT_DEFAULTS}`,
+      )?.href,
+    ).toBe(APP_ROUTES.SETTINGS.CHAT);
+    expect(
+      catalog.find(
+        (item) =>
+          item.id ===
+          `personal-section:${PERSONAL_SETTINGS_ANCHOR.SETUP_CHECKLIST}`,
+      )?.href,
+    ).toBe(APP_ROUTES.SETTINGS.PROGRESS);
   });
 
   it('keeps organization search inside organization settings', () => {

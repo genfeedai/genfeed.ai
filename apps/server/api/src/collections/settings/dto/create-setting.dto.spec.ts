@@ -57,5 +57,31 @@ describe('CreateSettingDto', () => {
       expect(themeErrors).toHaveLength(1);
       expect(themeErrors[0]?.constraints).toHaveProperty('isIn');
     });
+
+    it('accepts a boolean video email preference', async () => {
+      const dto = plainToInstance(CreateSettingDto, {
+        isVideoNotificationsEmail: true,
+      });
+      const errors = await validate(dto);
+
+      expect(
+        errors.filter(
+          (error) => error.property === 'isVideoNotificationsEmail',
+        ),
+      ).toEqual([]);
+    });
+
+    it('rejects a non-boolean video email preference', async () => {
+      const dto = plainToInstance(CreateSettingDto, {
+        isVideoNotificationsEmail: 'yes',
+      });
+      const errors = await validate(dto);
+      const videoEmailErrors = errors.filter(
+        (error) => error.property === 'isVideoNotificationsEmail',
+      );
+
+      expect(videoEmailErrors).toHaveLength(1);
+      expect(videoEmailErrors[0]?.constraints).toHaveProperty('isBoolean');
+    });
   });
 });
