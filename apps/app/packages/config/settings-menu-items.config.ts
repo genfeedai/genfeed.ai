@@ -65,7 +65,7 @@ export interface BuildSettingsMenuItemsParams {
  * - Org: Organization (who/what + Agents defaults) · Billing (money) ·
  *   Developer (keys/webhooks)
  * - Brand: Brand (public + identity) · Automation (how content runs)
- * - Personal: Account · Support
+ * - Personal: Account (Personal + Help). No Support header — one item is not a group.
  *
  * Naming / paths (deliberate):
  * - `/settings` is the canonical home for both organization and brand scopes.
@@ -87,7 +87,7 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
       solid: User,
     },
     {
-      group: 'Support',
+      group: 'Account',
       href: APP_ROUTES.SETTINGS.HELP,
       hrefScope: 'personal',
       label: 'Help',

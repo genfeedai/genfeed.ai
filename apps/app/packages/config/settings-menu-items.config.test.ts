@@ -21,8 +21,8 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
-    it('uses two meaningful groups: Account and Support', () => {
-      expect(items.map((item) => item.group)).toEqual(['Account', 'Support']);
+    it('keeps Help under Account so the Support header is not a one-item group', () => {
+      expect(items.map((item) => item.group)).toEqual(['Account', 'Account']);
     });
 
     it('marks the Personal root as exact-match so it does not highlight Help', () => {
