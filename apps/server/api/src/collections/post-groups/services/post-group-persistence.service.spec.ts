@@ -319,7 +319,14 @@ describe('PostGroupPersistenceService', () => {
           { createdAt: 'asc' },
           { id: 'asc' },
         ],
-        select: expect.objectContaining({ id: true, scheduledDate: true }),
+        select: expect.objectContaining({
+          id: true,
+          scheduledDate: true,
+          tags: expect.objectContaining({
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+            where: { isDeleted: false },
+          }),
+        }),
         where: {
           brandId: 'brand-1',
           isDeleted: false,
@@ -533,6 +540,27 @@ describe('PostGroupPersistenceService', () => {
     // One id-only window prefilter plus one hydration read per table.
     expect(prisma.postGroup.findMany).toHaveBeenCalledTimes(2);
     expect(prisma.post.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('projects firstTagColor from the first target post tags', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        tags: [
+          {
+            backgroundColor: '#ef4444',
+            id: 'tag-launch',
+            isDeleted: false,
+            label: 'Launch',
+            textColor: '#ffffff',
+          },
+        ],
+      }),
+    ]);
+
+    const result = await service.listReleaseGroups({ organizationId: 'org-1' });
+
+    expect(result.docs[0]?.firstTagColor).toBe('#ef4444');
   });
 
   it('skips the window prefilter and reads each table once for unwindowed lists', async () => {

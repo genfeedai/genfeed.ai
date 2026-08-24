@@ -298,6 +298,23 @@ describe('ContentCalendar', () => {
     expect(calendarMocks.instances[1]?.options.initialView).toBe('listWeek');
   });
 
+  it('paints each event with the color the host supplies', async () => {
+    render(
+      <ContentCalendar
+        items={[makeItem()]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#ef4444'}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    expect((latestOptions().events as EventInput[])[0]?.color).toBe('#ef4444');
+  });
+
   it('marks only eligible events as draggable', async () => {
     render(
       <ContentCalendar

@@ -7,7 +7,6 @@ import {
   withArtifactEditorReturn,
 } from '@genfeedai/constants';
 import {
-  ArticleStatus,
   ButtonSize,
   ButtonVariant,
   CalendarSlotState,
@@ -62,6 +61,7 @@ const CREATE_POST_AGENT_HREF = buildAgentPromptHref(
 );
 
 import CadenceFormSheet from './cadence-form-sheet';
+import { getContentCalendarEventColor } from './calendar-item-color.helper';
 import CalendarSlotDrawer from './calendar-slot-drawer';
 import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
@@ -77,13 +77,6 @@ import {
   releaseStatusBadge,
   releaseTargets,
 } from './release-status.helpers';
-
-const DEFAULT_COLOR = '#8b5cf6';
-const ARTICLE_STATUS_COLORS: Record<string, string> = {
-  [ArticleStatus.ARCHIVED]: '#ef4444',
-  [ArticleStatus.DRAFT]: '#6b7280',
-  [ArticleStatus.PUBLISHED]: '#10b981',
-};
 
 interface ArticleContentCalendarItem extends CalendarItem {
   article: IArticle;
@@ -104,10 +97,6 @@ type ContentCalendarItem =
   | ArticleContentCalendarItem
   | ReleaseContentCalendarItem
   | SlotContentCalendarItem;
-
-function getArticleColor(status: string): string {
-  return ARTICLE_STATUS_COLORS[status] ?? DEFAULT_COLOR;
-}
 
 function mutationErrorMessage(error: unknown): string {
   return error instanceof Error
@@ -403,17 +392,10 @@ export default function ContentCalendarPage(): React.JSX.Element {
     [setDateRange],
   );
 
-  const getEventColor = useCallback((item: ContentCalendarItem) => {
-    if (item.itemType === 'article') {
-      return getArticleColor(item.status);
-    }
-
-    if (item.itemType === 'slot') {
-      return '#64748b';
-    }
-
-    return DEFAULT_COLOR;
-  }, []);
+  const getEventColor = useCallback(
+    (item: ContentCalendarItem) => getContentCalendarEventColor(item),
+    [],
+  );
 
   const getEventBadge = useCallback(
     (item: ContentCalendarItem): CalendarEventBadge | null =>

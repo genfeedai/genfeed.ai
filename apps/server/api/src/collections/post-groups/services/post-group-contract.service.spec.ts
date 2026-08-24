@@ -94,6 +94,7 @@ describe('PostGroupContractService', () => {
     expect(service.toReleaseGroup(group, [target])).toEqual(
       expect.objectContaining({
         attachments: [],
+        firstTagColor: null,
         id: 'group-1',
         media: [{ assetId: 'asset-1', kind: 'image' }],
         status: ReleaseStatus.SCHEDULED,
@@ -124,6 +125,63 @@ describe('PostGroupContractService', () => {
         ],
       }),
     );
+  });
+
+  it('projects the first tag color from the first target post', () => {
+    const release = service.toReleaseGroup(makeGroup(), [
+      makeTarget({
+        tags: [
+          {
+            backgroundColor: '#ef4444',
+            id: 'tag-launch',
+            isDeleted: false,
+            label: 'Launch',
+            textColor: '#ffffff',
+          },
+          {
+            backgroundColor: '#22c55e',
+            id: 'tag-evergreen',
+            isDeleted: false,
+            label: 'Evergreen',
+            textColor: '#ffffff',
+          },
+        ],
+      }),
+      makeTarget({
+        id: 'target-2',
+        tags: [
+          {
+            backgroundColor: '#3b82f6',
+            id: 'tag-other',
+            isDeleted: false,
+            label: 'Other',
+            textColor: '#ffffff',
+          },
+        ],
+      }),
+    ]);
+
+    expect(release.firstTagColor).toBe('#ef4444');
+  });
+
+  it('leaves firstTagColor empty when the first target is untagged', () => {
+    const release = service.toReleaseGroup(makeGroup(), [
+      makeTarget(),
+      makeTarget({
+        id: 'target-2',
+        tags: [
+          {
+            backgroundColor: '#ef4444',
+            id: 'tag-launch',
+            isDeleted: false,
+            label: 'Launch',
+            textColor: '#ffffff',
+          },
+        ],
+      }),
+    ]);
+
+    expect(release.firstTagColor).toBeNull();
   });
 
   it('projects release status from targets instead of the persisted group value', () => {
