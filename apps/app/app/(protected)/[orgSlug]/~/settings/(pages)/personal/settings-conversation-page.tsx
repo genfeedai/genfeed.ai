@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   AGENT_CHAT_CAPABILITY,
@@ -15,6 +16,7 @@ import {
   toRouterPriority,
 } from '@genfeedai/enums';
 import type { IModel, ISetting } from '@genfeedai/interfaces';
+import { resolveOrgAllowlistedModels } from '@helpers/model-allowlist.helper';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
@@ -80,7 +82,10 @@ function isAgentChatRegistryModel(model: IModel): boolean {
   if (model.category !== ModelCategory.TEXT) {
     return false;
   }
-  if (model.isLegacy || model.isActive === false) {
+  // Keep inactive and fully retired keys out. Legacy/active-but-deprecated
+  // rows still load so the picker can offer a Legacy filter, matching the
+  // prompt-bar catalogue.
+  if (model.isActive === false) {
     return false;
   }
   if (isRetiredAgentChatModel(model.key)) {
@@ -93,7 +98,8 @@ function isAgentChatRegistryModel(model: IModel): boolean {
   return (
     capabilities.includes(AGENT_CHAT_CAPABILITY) ||
     recommended.includes(AGENT_CHAT_CAPABILITY) ||
-    model.provider === ModelProvider.OPENROUTER
+    model.provider === ModelProvider.OPENROUTER ||
+    model.isLegacy === true
   );
 }
 
@@ -103,6 +109,7 @@ export default function SettingsConversationPage({
   const { isLoaded } = useAuthUser();
   const { currentUser, mutateUser } = useCurrentUser();
   const { refresh, settings, updateSettings } = useOrganization();
+  const { organizationId, settingsLoading } = useBrand();
   const [generationPriority, setGenerationPriority] =
     useState<GenerationPriority>(GenerationPriority.BALANCED);
   const [defaultAgentModel, setDefaultAgentModel] = useState('');
@@ -243,18 +250,20 @@ export default function SettingsConversationPage({
     [defaultAgentModel, isAutoSelected],
   );
 
-  // An empty allowlist means unrestricted. A non-empty allowlist is always an
-  // intersection, even when no registry rows match — never broaden back to the
-  // full catalog. Auto remains available independently in the shared picker.
-  const enabledModelIds = settings?.enabledModelIds ?? [];
-  const pickerModels = useMemo(() => {
-    if (enabledModelIds.length === 0) {
-      return registryModels;
-    }
-
-    const enabled = new Set(enabledModelIds);
-    return registryModels.filter((model) => enabled.has(model.key));
-  }, [enabledModelIds, registryModels]);
+  const pickerModels = useMemo(
+    () =>
+      resolveOrgAllowlistedModels(registryModels, {
+        enabledModelIds: settings?.enabledModelIds,
+        isSettingsReady: !settingsLoading,
+        organizationId,
+      }),
+    [
+      organizationId,
+      registryModels,
+      settings?.enabledModelIds,
+      settingsLoading,
+    ],
+  );
 
   if (!isLoaded) {
     return (

@@ -20,12 +20,14 @@ const mocks = vi.hoisted(() => ({
   findAll: vi.fn(),
   getService: vi.fn(),
   mutateUser: vi.fn(),
+  organizationId: 'org-123',
   organizationSettings: {
     agentReplyStyle: 'CONCISE',
     enabledModelIds: ['anthropic/claude-sonnet-5'],
   },
   patchSettings: vi.fn(),
   refresh: vi.fn(),
+  settingsLoading: false,
   updateSettings: vi.fn(),
 }));
 
@@ -53,6 +55,13 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
     refresh: mocks.refresh,
     settings: mocks.organizationSettings,
     updateSettings: mocks.updateSettings,
+  })),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: vi.fn(() => ({
+    organizationId: mocks.organizationId,
+    settingsLoading: mocks.settingsLoading,
   })),
 }));
 
@@ -93,11 +102,16 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   }),
 }));
 
-function createRegistryModel(key: string, label: string) {
+function createRegistryModel(
+  key: string,
+  label: string,
+  extras: { id?: string; isLegacy?: boolean } = {},
+) {
   return {
     category: ModelCategory.TEXT,
+    id: extras.id ?? key,
     isActive: true,
-    isLegacy: false,
+    isLegacy: extras.isLegacy ?? false,
     key,
     label,
     provider: ModelProvider.OPENROUTER,
@@ -109,6 +123,8 @@ describe('SettingsConversationPage', () => {
     vi.clearAllMocks();
     mocks.currentUser.settings.defaultAgentModel = '';
     mocks.currentUser.settings.generationPriority = GenerationPriority.BALANCED;
+    mocks.organizationId = 'org-123';
+    mocks.settingsLoading = false;
     mocks.organizationSettings.agentReplyStyle = 'CONCISE';
     mocks.organizationSettings.enabledModelIds = ['anthropic/claude-sonnet-5'];
     mocks.findAll.mockResolvedValue([]);
@@ -146,6 +162,33 @@ describe('SettingsConversationPage', () => {
     });
     expect(screen.queryByText('Disallowed Model')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose Auto' })).toBeVisible();
+  });
+
+  it('honors the allowlist by model id, not only key, matching the prompt bar', async () => {
+    mocks.findAll.mockResolvedValue([
+      createRegistryModel('anthropic/claude-sonnet-5', 'Claude Sonnet 5', {
+        id: 'mdl_sonnet',
+      }),
+    ]);
+    mocks.organizationSettings.enabledModelIds = ['mdl_sonnet'];
+
+    render(<SettingsConversationPage />);
+
+    expect(await screen.findByText('Claude Sonnet 5')).toBeInTheDocument();
+  });
+
+  it('hides the catalog when the org allowlist is empty', async () => {
+    mocks.findAll.mockResolvedValue([
+      createRegistryModel('anthropic/claude-sonnet-5', 'Claude Sonnet 5'),
+    ]);
+    mocks.organizationSettings.enabledModelIds = [];
+
+    render(<SettingsConversationPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Choose Auto' })).toBeEnabled();
+    });
+    expect(screen.queryByText('Claude Sonnet 5')).not.toBeInTheDocument();
   });
 
   it('persists Auto as an empty string when clearing a removed override', async () => {
