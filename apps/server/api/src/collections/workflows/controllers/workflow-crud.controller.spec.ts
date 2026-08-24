@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
@@ -183,7 +184,9 @@ describe('WorkflowCrudController', () => {
         totalDocs: 0,
       });
 
-      await controller.findAll(mockRequest, mockUser, { includeSystem: true });
+      await controller.findAll(mockRequest, mockUser, {
+        includeSystem: true,
+      } as WorkflowQueryDto);
 
       const [aggregateArg] =
         mockWorkflowsService.findAll.mock.calls[

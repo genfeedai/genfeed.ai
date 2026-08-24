@@ -473,6 +473,24 @@
       "detail": {
         "loadingEditor": "Loading editor…"
       },
+      "executions": {
+        "actions": "Actions",
+        "duration": "Duration",
+        "emptyAction": "Go to Automations",
+        "emptyDescription": "Run a workflow to see execution history here",
+        "emptyTitle": "No executions yet",
+        "next": "Next",
+        "previous": "Previous",
+        "progress": "Progress",
+        "retry": "Retry",
+        "showing": "Showing {from}–{to}",
+        "started": "Started",
+        "status": "Status",
+        "title": "Execution History",
+        "trigger": "Trigger",
+        "viewDetails": "View Details",
+        "workflow": "Workflow"
+      },
       "library": {
         "autopilot": "Autopilot",
         "created": "Created",

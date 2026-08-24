@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useReducer } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionResult } from '@/features/workflows/services/workflow-api';
@@ -93,6 +94,7 @@ const EXECUTIONS_PER_PAGE = 20;
  */
 export default function WorkflowExecutionsPage() {
   const { href } = useOrgUrl();
+  const translate = useTranslations('common.automation.workflows.executions');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const [state, dispatch] = useReducer(executionsReducer, initialState);
   const { executions, workflowLabels, isLoading, error, offset, hasMore } =
@@ -212,7 +214,7 @@ export default function WorkflowExecutionsPage() {
             loadExecutions(controller.signal, offset);
           }}
         >
-          Retry
+          {translate('retry')}
         </Button>
       </div>
     );
@@ -220,22 +222,24 @@ export default function WorkflowExecutionsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <h1 className="sr-only">Execution History</h1>
+      <h1 className="sr-only">{translate('title')}</h1>
 
       {/* Content */}
       <main className="mx-auto max-w-7xl px-6 py-8">
         {executions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 text-6xl">📊</div>
-            <h2 className="mb-2 text-xl font-semibold">No executions yet</h2>
+            <h2 className="mb-2 text-xl font-semibold">
+              {translate('emptyTitle')}
+            </h2>
             <p className="mb-6 text-muted-foreground">
-              Run a workflow to see execution history here
+              {translate('emptyDescription')}
             </p>
             <Link
               href={href(APP_ROUTES.AUTOMATE.WORKFLOWS)}
               className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
             >
-              Go to Automations
+              {translate('emptyAction')}
             </Link>
           </div>
         ) : (
@@ -245,25 +249,25 @@ export default function WorkflowExecutionsPage() {
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Workflow
+                      {translate('workflow')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Trigger
+                      {translate('trigger')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Status
+                      {translate('status')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Progress
+                      {translate('progress')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Started
+                      {translate('started')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Duration
+                      {translate('duration')}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-left text-sm font-medium">
-                      Actions
+                      {translate('actions')}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -349,7 +353,7 @@ export default function WorkflowExecutionsPage() {
                             )}
                             className="text-sm text-primary hover:underline"
                           >
-                            View Details
+                            {translate('viewDetails')}
                           </Link>
                         </TableCell>
                       </TableRow>
@@ -371,10 +375,13 @@ export default function WorkflowExecutionsPage() {
                   })
                 }
               >
-                Previous
+                {translate('previous')}
               </Button>
               <span className="text-sm text-muted-foreground">
-                Showing {offset + 1}–{offset + executions.length}
+                {translate('showing', {
+                  from: offset + 1,
+                  to: offset + executions.length,
+                })}
               </span>
               <Button
                 variant={ButtonVariant.SECONDARY}
@@ -386,7 +393,7 @@ export default function WorkflowExecutionsPage() {
                   })
                 }
               >
-                Next
+                {translate('next')}
               </Button>
             </div>
           </>

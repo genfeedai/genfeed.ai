@@ -58,6 +58,17 @@ vi.mock('@/components/ui/client-formatted-date', () => ({
   ),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      emptyTitle: 'No executions yet',
+      retry: 'Retry',
+      title: 'Execution History',
+    };
+    return messages[key] ?? key;
+  },
+}));
+
 describe('WorkflowExecutionsPage', () => {
   beforeEach(() => {
     mocks.collectionScope = {
