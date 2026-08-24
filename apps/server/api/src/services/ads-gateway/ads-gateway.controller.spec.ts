@@ -19,6 +19,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { INVALID_ADS_INSIGHTS_DATE_RANGE_MESSAGE } from '@api/services/ads-gateway/ads-insights-range.util';
 import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
@@ -28,6 +29,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
+const FIXED_NOW = new Date('2026-08-19T12:00:00.000Z');
 
 describe('AdsGatewayController', () => {
   let controller: AdsGatewayController;
@@ -102,9 +105,15 @@ describe('AdsGatewayController', () => {
 
     controller = module.get<AdsGatewayController>(AdsGatewayController);
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
     // Re-stub after clearAllMocks
     adsGatewayService.getAdapter.mockReturnValue(mockAdapter);
     credentialsService.findOne.mockResolvedValue({ accessToken: 'token-abc' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('should be defined', () => {
@@ -256,7 +265,7 @@ describe('AdsGatewayController', () => {
   // ─── getCampaignInsights ─────────────────────────────────────────────────
 
   describe('getCampaignInsights', () => {
-    it('should pass datePreset when provided', async () => {
+    it('normalizes last_7d to one inclusive seven-day timeRange before the adapter', async () => {
       const mockInsights = { clicks: 1000, impressions: 50000 };
       mockAdapter.getCampaignInsights.mockResolvedValue(mockInsights);
 
@@ -272,7 +281,51 @@ describe('AdsGatewayController', () => {
       expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
         expect.anything(),
         'camp_1',
-        expect.objectContaining({ datePreset: 'last_7d' }),
+        {
+          timeRange: { since: '2026-08-12', until: '2026-08-18' },
+        },
+      );
+    });
+
+    it('normalizes today to one inclusive UTC day that is not reversed', async () => {
+      mockAdapter.getCampaignInsights.mockResolvedValue({});
+
+      await controller.getCampaignInsights(
+        mockUser,
+        'meta',
+        'camp_1',
+        validCredentialId,
+        validAdAccountId,
+        'today',
+      );
+
+      expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
+        expect.anything(),
+        'camp_1',
+        {
+          timeRange: { since: '2026-08-19', until: '2026-08-19' },
+        },
+      );
+    });
+
+    it('normalizes yesterday to the prior UTC calendar day', async () => {
+      mockAdapter.getCampaignInsights.mockResolvedValue({});
+
+      await controller.getCampaignInsights(
+        mockUser,
+        'meta',
+        'camp_1',
+        validCredentialId,
+        validAdAccountId,
+        'yesterday',
+      );
+
+      expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
+        expect.anything(),
+        'camp_1',
+        {
+          timeRange: { since: '2026-08-18', until: '2026-08-18' },
+        },
       );
     });
 
@@ -296,6 +349,126 @@ describe('AdsGatewayController', () => {
         expect.objectContaining({
           timeRange: { since: '2026-03-01', until: '2026-03-14' },
         }),
+      );
+    });
+
+    it('accepts a same-day custom range as one inclusive day', async () => {
+      mockAdapter.getCampaignInsights.mockResolvedValue({});
+
+      await controller.getCampaignInsights(
+        mockUser,
+        'meta',
+        'camp_1',
+        validCredentialId,
+        validAdAccountId,
+        undefined,
+        '2026-03-07',
+        '2026-03-07',
+      );
+
+      expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
+        expect.anything(),
+        'camp_1',
+        {
+          timeRange: { since: '2026-03-07', until: '2026-03-07' },
+        },
+      );
+    });
+  });
+
+  describe('insight date validation', () => {
+    async function expectRejectedBeforeAdapter(
+      action: () => Promise<unknown>,
+    ): Promise<void> {
+      await expect(action()).rejects.toThrow(BadRequestException);
+      await expect(action()).rejects.toThrow(
+        INVALID_ADS_INSIGHTS_DATE_RANGE_MESSAGE,
+      );
+      expect(credentialsService.findOne).not.toHaveBeenCalled();
+      expect(adsGatewayService.getAdapter).not.toHaveBeenCalled();
+      expect(mockAdapter.getCampaignInsights).not.toHaveBeenCalled();
+      expect(mockAdapter.getAdSetInsights).not.toHaveBeenCalled();
+      expect(mockAdapter.getAdInsights).not.toHaveBeenCalled();
+      expect(adsGatewayService.comparePlatforms).not.toHaveBeenCalled();
+    }
+
+    it.each([
+      ['unknown preset', 'last_quarter', undefined, undefined],
+      ['malformed since', undefined, 'not-a-date', '2026-03-07'],
+      ['non-calendar since', undefined, '2026-02-30', '2026-03-01'],
+      ['partial since', undefined, '2026-03-01', undefined],
+      ['partial until', undefined, undefined, '2026-03-07'],
+      ['reversed range', undefined, '2026-03-07', '2026-03-01'],
+      ['mixed preset and custom', 'last_7d', '2026-03-01', '2026-03-07'],
+    ] as const)(
+      'rejects %s on campaign insights before any adapter call',
+      async (_label, datePreset, since, until) => {
+        await expectRejectedBeforeAdapter(() =>
+          controller.getCampaignInsights(
+            mockUser,
+            'meta',
+            'camp_1',
+            validCredentialId,
+            validAdAccountId,
+            datePreset,
+            since,
+            until,
+          ),
+        );
+      },
+    );
+
+    it('rejects an unknown preset on ad set insights before any adapter call', async () => {
+      await expectRejectedBeforeAdapter(() =>
+        controller.getAdSetInsights(
+          mockUser,
+          'google',
+          'adset_1',
+          validCredentialId,
+          validAdAccountId,
+          'last_quarter',
+        ),
+      );
+    });
+
+    it('rejects a reversed custom range on ad insights before any adapter call', async () => {
+      await expectRejectedBeforeAdapter(() =>
+        controller.getAdInsights(
+          mockUser,
+          'meta',
+          'ad_1',
+          validCredentialId,
+          validAdAccountId,
+          undefined,
+          '2026-03-07',
+          '2026-03-01',
+        ),
+      );
+    });
+
+    it('rejects an unknown preset on compare before fan-out', async () => {
+      await expectRejectedBeforeAdapter(() =>
+        controller.comparePlatforms(
+          mockUser,
+          'meta,google',
+          `${validCredentialId},${testId('credential', 2)}`,
+          `${validAdAccountId},act_2`,
+          'last_quarter',
+        ),
+      );
+    });
+
+    it('rejects mixed preset and custom range on compare before fan-out', async () => {
+      await expectRejectedBeforeAdapter(() =>
+        controller.comparePlatforms(
+          mockUser,
+          'meta,google',
+          `${validCredentialId},${testId('credential', 2)}`,
+          `${validAdAccountId},act_2`,
+          'last_7d',
+          '2026-03-01',
+          '2026-03-07',
+        ),
       );
     });
   });
@@ -323,7 +496,7 @@ describe('AdsGatewayController', () => {
           adAccountId: validAdAccountId,
         }),
         'adset_1',
-        { datePreset: 'last_14d' },
+        { timeRange: { since: '2026-08-05', until: '2026-08-18' } },
       );
     });
 
@@ -339,24 +512,21 @@ describe('AdsGatewayController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should omit timeRange when only one bound is provided', async () => {
-      mockAdapter.getAdSetInsights.mockResolvedValue({});
+    it('rejects a partial custom range instead of dropping the bound', async () => {
+      await expect(
+        controller.getAdSetInsights(
+          mockUser,
+          'google',
+          'adset_1',
+          validCredentialId,
+          validAdAccountId,
+          undefined,
+          '2026-03-01',
+        ),
+      ).rejects.toThrow(INVALID_ADS_INSIGHTS_DATE_RANGE_MESSAGE);
 
-      await controller.getAdSetInsights(
-        mockUser,
-        'google',
-        'adset_1',
-        validCredentialId,
-        validAdAccountId,
-        undefined,
-        '2026-03-01',
-      );
-
-      expect(mockAdapter.getAdSetInsights).toHaveBeenCalledWith(
-        expect.anything(),
-        'adset_1',
-        {},
-      );
+      expect(mockAdapter.getAdSetInsights).not.toHaveBeenCalled();
+      expect(credentialsService.findOne).not.toHaveBeenCalled();
     });
   });
 
@@ -403,7 +573,7 @@ describe('AdsGatewayController', () => {
       expect(mockAdapter.getAdInsights).toHaveBeenCalledWith(
         expect.objectContaining({ loginCustomerId: '1112223334' }),
         'ad_1',
-        { datePreset: 'last_30d' },
+        { timeRange: { since: '2026-07-20', until: '2026-08-18' } },
       );
     });
   });
@@ -420,6 +590,52 @@ describe('AdsGatewayController', () => {
           `${validAdAccountId},act_2`,
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('fans one validated seven-day range to comparePlatforms', async () => {
+      const credId2 = testId('credential', 2);
+      credentialsService.findOne
+        .mockResolvedValueOnce({ accessToken: 'token-meta' })
+        .mockResolvedValueOnce({ accessToken: 'token-google' });
+      adsGatewayService.comparePlatforms.mockResolvedValue({ summary: {} });
+
+      await controller.comparePlatforms(
+        mockUser,
+        'meta,google',
+        `${validCredentialId},${credId2}`,
+        `${validAdAccountId},act_2`,
+        'last_7d',
+      );
+
+      expect(adsGatewayService.comparePlatforms).toHaveBeenCalledTimes(1);
+      expect(adsGatewayService.comparePlatforms).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ platform: 'meta' }),
+          expect.objectContaining({ platform: 'google' }),
+        ]),
+        { timeRange: { since: '2026-08-12', until: '2026-08-18' } },
+      );
+    });
+
+    it('fans one validated one-day range to comparePlatforms', async () => {
+      const credId2 = testId('credential', 2);
+      credentialsService.findOne
+        .mockResolvedValueOnce({ accessToken: 'token-meta' })
+        .mockResolvedValueOnce({ accessToken: 'token-google' });
+      adsGatewayService.comparePlatforms.mockResolvedValue({ summary: {} });
+
+      await controller.comparePlatforms(
+        mockUser,
+        'meta,google',
+        `${validCredentialId},${credId2}`,
+        `${validAdAccountId},act_2`,
+        'today',
+      );
+
+      expect(adsGatewayService.comparePlatforms).toHaveBeenCalledWith(
+        expect.anything(),
+        { timeRange: { since: '2026-08-19', until: '2026-08-19' } },
+      );
     });
 
     it('should call adsGatewayService.comparePlatforms with built contexts', async () => {
@@ -444,7 +660,7 @@ describe('AdsGatewayController', () => {
           expect.objectContaining({ platform: 'meta' }),
           expect.objectContaining({ platform: 'google' }),
         ]),
-        'last_30d',
+        { timeRange: { since: '2026-07-20', until: '2026-08-18' } },
       );
       expect(credentialsService.findOne).toHaveBeenNthCalledWith(1, {
         id: validCredentialId,
