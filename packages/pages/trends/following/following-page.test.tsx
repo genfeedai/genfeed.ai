@@ -67,6 +67,11 @@ vi.mock('next-intl', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+  }),
   useBrandId: () => 'brand-1',
 }));
 

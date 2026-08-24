@@ -1,6 +1,11 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { toBrandListParams, useCollectionScope } from './use-collection-scope';
+import {
+  isBrandResourceReady,
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from './use-collection-scope';
 
 const mocks = vi.hoisted(() => ({
   brandId: 'brand-fud',
@@ -51,5 +56,23 @@ describe('useCollectionScope', () => {
     expect(result.current.brandId).toBeUndefined();
     expect(result.current.pageScope).toBe('org');
     expect(toBrandListParams(result.current)).toEqual({});
+    expect(isCollectionFetchReady(result.current)).toBe(true);
+    expect(isBrandResourceReady(result.current)).toBe(false);
+  });
+
+  it('is not fetch-ready on a brand route until brandId is present', () => {
+    mocks.brandId = '';
+    mocks.pageScope = 'brand';
+
+    const { result } = renderHook(() => useCollectionScope());
+
+    expect(isCollectionFetchReady(result.current)).toBe(false);
+    expect(isBrandResourceReady(result.current)).toBe(false);
+  });
+
+  it('is brand-resource ready only when a brand is selected', () => {
+    const { result } = renderHook(() => useCollectionScope());
+
+    expect(isBrandResourceReady(result.current)).toBe(true);
   });
 });

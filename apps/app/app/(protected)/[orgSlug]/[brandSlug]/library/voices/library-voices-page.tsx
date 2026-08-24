@@ -16,6 +16,7 @@ import {
 } from '@helpers/voice/default-voice-ref.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Voice } from '@models/ingredients/voice.model';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
@@ -58,7 +59,8 @@ function LibraryVoicesContent() {
   const searchParamsString = searchParams.toString();
   const { closeUpload, openUpload } = useUploadModal();
   const { href } = useOrgUrl();
-  const { brandId, organizationId, refreshBrands, selectedBrand } = useBrand();
+  const { organizationId, refreshBrands, selectedBrand } = useBrand();
+  const { brandId } = useCollectionScope();
   const selectedBrandState = selectedBrand as SelectedBrandState | undefined;
   const { refresh: refreshSettings, settings } = useOrganization();
   const orgDefaultVoiceRef = settings?.defaultVoiceRef as

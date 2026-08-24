@@ -89,6 +89,7 @@
     "draftNotice": "New Programs start as drafts. Start the Program from its detail page after reviewing the team and budget.",
     "endDate": "End Date (optional)",
     "loadingBrand": "Loading the selected brand…",
+    "selectBrand": "Select a brand to continue.",
     "noAgentStrategies": "No agents available. Add an agent first.",
     "startDate": "Start Date *",
     "status": {
@@ -367,6 +368,7 @@
       "description": "Start from a proven role or configure a custom agent for the selected brand.",
       "library": "Agent library",
       "loadingBrand": "Loading the selected brand…",
+      "selectBrand": "Select a brand to continue.",
       "modeLabel": "Agent creation mode",
       "title": "Add agent"
     },

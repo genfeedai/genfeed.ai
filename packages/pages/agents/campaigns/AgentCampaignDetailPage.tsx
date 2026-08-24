@@ -1,11 +1,15 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import {
+  isCollectionFetchReady,
+  toBrandListParams,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
@@ -26,11 +30,17 @@ export default function AgentCampaignDetailPage() {
   const router = useRouter();
   const params = useParams();
   const campaignId = params.id as string;
-  const { brandId, isReady: isBrandReady, organizationId } = useBrand();
+  const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
+  const isFetchReady = isCollectionFetchReady({
+    brandId,
+    isReady,
+    organizationId,
+    pageScope,
+  });
   const { href } = useOrgUrl();
   const { isLoading: areAgentsLoading, strategies } = useAgentStrategies({
-    brandId,
-    enabled: isBrandReady && Boolean(brandId),
+    ...toBrandListParams({ brandId }),
+    enabled: isFetchReady,
   });
 
   const notificationsService = NotificationsService.getInstance();
@@ -50,7 +60,7 @@ export default function AgentCampaignDetailPage() {
 
   const loadCampaign = useCallback(
     async (refresh = false) => {
-      if (!isBrandReady || !brandId || !organizationId || !campaignId) {
+      if (!isFetchReady || !campaignId) {
         return;
       }
 
@@ -71,7 +81,11 @@ export default function AgentCampaignDetailPage() {
         const fetchedCampaign = await service.getById(campaignId);
         if (!isCurrentLoad()) return;
 
-        if (fetchedCampaign.brandId !== brandId) {
+        if (
+          pageScope === 'brand' &&
+          brandId &&
+          fetchedCampaign.brandId !== brandId
+        ) {
           setCampaign(null);
           setStatus(null);
           return;
@@ -102,21 +116,21 @@ export default function AgentCampaignDetailPage() {
       brandId,
       campaignId,
       getService,
-      isBrandReady,
+      isFetchReady,
       notificationsService,
-      organizationId,
+      pageScope,
     ],
   );
 
   useEffect(() => {
-    if (isBrandReady && brandId && organizationId && campaignId) {
+    if (isFetchReady && campaignId) {
       loadCampaign();
     }
 
     return () => {
       loadGenerationRef.current += 1;
     };
-  }, [brandId, campaignId, isBrandReady, loadCampaign, organizationId]);
+  }, [campaignId, isFetchReady, loadCampaign]);
 
   const handleExecute = useCallback(async () => {
     if (!campaignId) return;
@@ -163,15 +177,13 @@ export default function AgentCampaignDetailPage() {
     }
   }, [campaignId, getService, notificationsService, loadCampaign]);
 
-  const isChangingBrand = campaign !== null && campaign.brandId !== brandId;
+  const isChangingBrand =
+    pageScope === 'brand' &&
+    Boolean(brandId) &&
+    campaign !== null &&
+    campaign.brandId !== brandId;
 
-  if (
-    !isBrandReady ||
-    !brandId ||
-    !organizationId ||
-    isLoading ||
-    isChangingBrand
-  ) {
+  if (!isFetchReady || isLoading || isChangingBrand) {
     return (
       <Container
         label="Loading..."

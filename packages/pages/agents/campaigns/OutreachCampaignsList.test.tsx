@@ -5,6 +5,8 @@ import '@testing-library/jest-dom/vitest';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
+    brandId: 'brand-123',
+    isReady: true,
     organizationId: 'org-123',
   })),
 }));

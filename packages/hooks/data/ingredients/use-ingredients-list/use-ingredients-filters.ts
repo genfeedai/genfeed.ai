@@ -5,7 +5,6 @@ import {
   ingredientCategorySchema,
 } from '@genfeedai/client/schemas';
 import { useIngredientsContext } from '@genfeedai/contexts/content/ingredients-context/ingredients-context';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   IngredientCategory,
   IngredientFormat,
@@ -18,6 +17,7 @@ import {
   isAvatarVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -47,7 +47,7 @@ export function useIngredientsFilters({
   );
   const pathname = usePathname();
 
-  const { brandId, organizationId } = useBrand();
+  const { brandId, organizationId } = useCollectionScope();
   const { filters, query, setQuery, setIsRefreshing, onRefresh } =
     useIngredientsContext();
 

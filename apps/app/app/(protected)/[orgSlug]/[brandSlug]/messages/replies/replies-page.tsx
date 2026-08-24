@@ -12,6 +12,7 @@ import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -79,6 +80,7 @@ function intentBadgeVariant(
 
 export default function RepliesPage() {
   const translate = useTranslations('common.automation.replies');
+  const { brandId: scopedBrandId, pageScope } = useCollectionScope();
   const { brand, isLoading: isBrandLoading } = useBrandDetail();
   const getReplyBotService = useAuthedService((token: string) =>
     ReplyBotConfigsService.getInstance(token),
@@ -101,7 +103,7 @@ export default function RepliesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [inboxError, setInboxError] = useState<string | null>(null);
 
-  const brandId = brand?.id;
+  const brandId = scopedBrandId;
 
   const loadInbox = useCallback(async () => {
     if (!brandId) {
@@ -292,6 +294,16 @@ export default function RepliesPage() {
       );
       setIsConnecting(false);
     }
+  }
+
+  if (pageScope === 'org' && !brandId) {
+    return (
+      <Container className="flex flex-col gap-6 py-6">
+        <p className="text-sm text-muted-foreground">
+          Select a brand to view replies.
+        </p>
+      </Container>
+    );
   }
 
   if (isBrandLoading || !brandId) {

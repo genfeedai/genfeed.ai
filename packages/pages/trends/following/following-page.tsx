@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   ButtonSize,
@@ -18,6 +17,10 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import {
+  isBrandResourceReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
@@ -121,7 +124,9 @@ const PREFILLED_SOURCE_POST_REMIX_PLATFORMS = new Set<string>([
 
 export default function FollowingPage() {
   const translate = useTranslations('common.following');
-  const brandId = useBrandId();
+  const collectionScope = useCollectionScope();
+  const { brandId } = collectionScope;
+  const isBrandReady = isBrandResourceReady(collectionScope);
   const surface = useOptionalResearchWorkSurface();
   const remixSurface = useOptionalDiscoverRemix();
   const router = useRouter();
@@ -152,7 +157,7 @@ export default function FollowingPage() {
     isFetching,
     refetch,
   } = useQuery<SocialSourcesResponse>({
-    enabled: Boolean(brandId),
+    enabled: isBrandReady,
     initialData: EMPTY_FEED,
     queryFn: async () => {
       const service = await getSocialSourcesService();
@@ -514,7 +519,7 @@ export default function FollowingPage() {
       </Container>
 
       <FollowSourceModal
-        brandId={brandId}
+        brandId={brandId ?? ''}
         existingSources={data.sources}
         open={isFollowOpen}
         onOpenChange={setIsFollowOpen}

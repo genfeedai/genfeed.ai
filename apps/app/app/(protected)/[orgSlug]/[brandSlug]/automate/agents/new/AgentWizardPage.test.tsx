@@ -46,6 +46,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: (mocks.brands[0]?.id as string | undefined) ?? '',
     isReady: true,
+    organizationId: 'org-1',
     selectedBrand: mocks.brands[0] ?? null,
   }),
 }));

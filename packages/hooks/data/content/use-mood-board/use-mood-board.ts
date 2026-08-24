@@ -1,16 +1,16 @@
 'use client';
 
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IMoodBoard, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
 import { MoodBoardsService } from '@genfeedai/services/content/mood-boards.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 export function useMoodBoard() {
   const { isSignedIn } = useAuthIdentity();
-  const { brandId } = useBrand();
+  const { brandId } = useCollectionScope();
   const queryClient = useQueryClient();
 
   const getMoodBoardsService = useAuthedService((token: string) =>

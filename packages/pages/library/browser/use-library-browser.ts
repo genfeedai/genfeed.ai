@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { LIBRARY_QUERY_KEYS, type LibraryViewMode } from '@genfeedai/constants';
 import {
   IngredientCategory,
@@ -13,6 +12,7 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -64,7 +64,7 @@ export function useLibraryBrowser({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { brandId } = useBrand();
+  const { brandId } = useCollectionScope();
   const { openUpload } = useUploadModal();
 
   const urlCategories = useMemo(

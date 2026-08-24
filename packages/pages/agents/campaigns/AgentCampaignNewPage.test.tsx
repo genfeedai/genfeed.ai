@@ -11,7 +11,11 @@ const errorMock = vi.fn();
 const successMock = vi.fn();
 const useAgentStrategiesMock = vi.fn();
 const invalidateQueriesMock = vi.fn();
-let brandContext = { brandId: 'brand-one', isReady: true };
+let brandContext = {
+  brandId: 'brand-one',
+  isReady: true,
+  organizationId: 'org-one',
+};
 let searchParams = new URLSearchParams();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -155,7 +159,11 @@ vi.mock('@ui/primitives/checkbox', () => ({
 describe('AgentCampaignNewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    brandContext = { brandId: 'brand-one', isReady: true };
+    brandContext = {
+      brandId: 'brand-one',
+      isReady: true,
+      organizationId: 'org-one',
+    };
     searchParams = new URLSearchParams();
     useAgentStrategiesMock.mockReturnValue({
       strategies: [
@@ -182,13 +190,12 @@ describe('AgentCampaignNewPage', () => {
   });
 
   it('does not load an organization-wide roster before brand resolution', () => {
-    brandContext = { brandId: '', isReady: false };
+    brandContext = { brandId: '', isReady: false, organizationId: '' };
 
     render(<AgentCampaignNewPage />);
 
     expect(screen.getByText('Loading the selected brand…')).toBeInTheDocument();
     expect(useAgentStrategiesMock).toHaveBeenCalledWith({
-      brandId: '',
       enabled: false,
     });
   });

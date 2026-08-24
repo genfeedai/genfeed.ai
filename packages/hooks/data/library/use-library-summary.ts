@@ -1,11 +1,11 @@
 'use client';
 
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { ILibrarySummary } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface UseLibrarySummaryReturn {
@@ -24,7 +24,7 @@ export interface UseLibrarySummaryReturn {
  * `useWorkflowBuilder` for endpoints without a service wrapper.
  */
 export function useLibrarySummary(): UseLibrarySummaryReturn {
-  const { brandId, isReady } = useBrand();
+  const { brandId, isReady } = useCollectionScope();
   const { getToken } = useAuthIdentity();
   const [summary, setSummary] = useState<ILibrarySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);

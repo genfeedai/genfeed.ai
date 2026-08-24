@@ -1,10 +1,10 @@
 'use client';
 
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IDashboardLayout } from '@genfeedai/interfaces';
 import { DashboardLayoutsService } from '@genfeedai/services/content/dashboard-layouts.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
@@ -20,7 +20,7 @@ export function useDashboardLayout({
   pageKey = DEFAULT_PAGE_KEY,
 }: UseDashboardLayoutOptions = {}) {
   const { isSignedIn } = useAuthIdentity();
-  const { brandId: contextBrandId } = useBrand();
+  const { brandId: contextBrandId } = useCollectionScope();
   const brandId = providedBrandId ?? contextBrandId;
   const queryClient = useQueryClient();
 

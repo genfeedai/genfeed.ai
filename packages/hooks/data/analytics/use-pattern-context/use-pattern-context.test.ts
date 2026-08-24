@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const findAllMock = vi.fn();
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1' }),
+  useBrand: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+  }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({

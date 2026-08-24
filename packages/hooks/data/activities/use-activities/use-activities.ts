@@ -1,5 +1,4 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { PageScope } from '@genfeedai/enums';
 import type { IActivity } from '@genfeedai/interfaces';
 import type {
@@ -12,6 +11,7 @@ import { BrandsService } from '@genfeedai/services/social/brands.service';
 import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import { useQuery } from '@tanstack/react-query';
@@ -32,7 +32,7 @@ export function useActivities({
 }: ActivitiesOptions = {}): ActivitiesReturn {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuthIdentity();
   const { isSuperAdmin } = useAccessState();
-  const { brandId, organizationId } = useBrand();
+  const { brandId, organizationId } = useCollectionScope();
   const playwrightAuth = getPlaywrightAuthState();
   const isAuthReady = isAuthLoaded || playwrightAuth?.isLoaded === true;
   const hasAuthenticatedSession =

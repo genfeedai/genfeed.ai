@@ -1,6 +1,5 @@
 'use client';
 
-import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type {
   TrendItem,
   TrendsResponse,
@@ -8,6 +7,7 @@ import type {
 } from '@genfeedai/props/trends/trends-page.props';
 import { TrendsService } from '@genfeedai/services/social/trends.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -32,7 +32,7 @@ export interface UseTrendsReturn {
 export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
   const [selectedPlatform, setSelectedPlatform] =
     useState<string>(initialPlatform);
-  const brandId = useBrandId();
+  const { brandId } = useCollectionScope();
   const queryClient = useQueryClient();
 
   const getTrendsService = useAuthedService((token: string) =>

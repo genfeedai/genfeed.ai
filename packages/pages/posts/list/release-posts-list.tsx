@@ -1,7 +1,6 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   APP_ROUTES,
   ITEMS_PER_PAGE,
@@ -30,6 +29,7 @@ import {
 } from '@helpers/formatting/timezone/timezone.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentProps } from '@props/layout/content.props';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -131,7 +131,7 @@ export default function ReleasePostsList({
   sort,
 }: ReleasePostsListProps): React.JSX.Element {
   const translate = useTranslations('pages.posts.list');
-  const { brandId, isReady, organizationId } = useBrand();
+  const { brandId, isReady, organizationId } = useCollectionScope();
   const { href } = useOrgUrl();
   const pathname = usePathname();
   const router = useRouter();

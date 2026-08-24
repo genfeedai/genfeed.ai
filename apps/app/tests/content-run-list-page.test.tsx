@@ -8,6 +8,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const list = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'org-1',
+  }),
   useBrandId: () => 'brand-1',
 }));
 

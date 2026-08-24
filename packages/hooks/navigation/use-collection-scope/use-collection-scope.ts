@@ -42,3 +42,19 @@ export function toBrandListParams(scope: Pick<CollectionScope, 'brandId'>): {
 } {
   return scope.brandId ? { brandId: scope.brandId } : {};
 }
+
+/** True when a list fetch may run for the current org/brand URL. */
+export function isCollectionFetchReady(scope: CollectionScope): boolean {
+  if (!scope.isReady || !scope.organizationId) {
+    return false;
+  }
+  if (scope.pageScope === 'brand' && !scope.brandId) {
+    return false;
+  }
+  return true;
+}
+
+/** True when a brand-owned create/mutate (hire, new program, mood board) may run. */
+export function isBrandResourceReady(scope: CollectionScope): boolean {
+  return isCollectionFetchReady(scope) && Boolean(scope.brandId);
+}
