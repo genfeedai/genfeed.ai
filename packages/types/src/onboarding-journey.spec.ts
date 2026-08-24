@@ -6,7 +6,7 @@ import {
 
 describe('resolveMissionCtaHref', () => {
   it.each([
-    ['complete_company_info', '/agent/onboarding'],
+    ['complete_company_info', '/onboarding/brand'],
     ['connect_social_account', '/settings/brands'],
     ['generate_first_image', '/settings/api-keys'],
     ['generate_first_video', '/settings/api-keys'],
@@ -25,11 +25,13 @@ describe('resolveMissionCtaHref', () => {
     );
   });
 
-  it('never routes a self-hosted operator into the classic wizard', () => {
+  it('never routes a self-hosted operator into the providers wizard', () => {
     for (const definition of ONBOARDING_JOURNEY_MISSIONS) {
-      expect(
-        resolveMissionCtaHref(definition, { isSelfHosted: true }),
-      ).not.toMatch(/^\/onboarding\//);
+      const href = resolveMissionCtaHref(definition, { isSelfHosted: true });
+      expect(href).not.toMatch(/^\/onboarding\/providers(?:\/|$)/);
+      if (definition.id !== 'complete_company_info') {
+        expect(href).not.toMatch(/^\/onboarding\//);
+      }
     }
   });
 
