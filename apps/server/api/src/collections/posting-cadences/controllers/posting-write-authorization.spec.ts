@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const protectedHandlers = [
   PostingCadencesController.prototype.skip,
   PostingCadencesController.prototype.cancel,
+  PostingCadencesController.prototype.generateBulk,
   PostingCadencesController.prototype.update,
   PostingCadencesController.prototype.remove,
   PostingSetsController.prototype.create,

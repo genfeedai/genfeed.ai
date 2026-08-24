@@ -1,5 +1,4 @@
 import type { AdsAdapterContext } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
@@ -15,7 +14,6 @@ const mockCtx: AdsAdapterContext = {
 describe('MetaAdsAdapter', () => {
   let adapter: MetaAdsAdapter;
   let metaAdsService: vi.Mocked<MetaAdsService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,21 +30,18 @@ describe('MetaAdsAdapter', () => {
             getAdSetInsights: vi.fn(),
             getCampaignInsights: vi.fn(),
             getTopPerformers: vi.fn(),
+            listAdSets: vi.fn(),
+            listAds: vi.fn(),
             listCampaigns: vi.fn(),
             pauseCampaign: vi.fn(),
             updateCampaign: vi.fn(),
           },
-        },
-        {
-          provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
       ],
     }).compile();
 
     adapter = module.get(MetaAdsAdapter);
     metaAdsService = module.get(MetaAdsService);
-    loggerService = module.get(LoggerService);
   });
 
   afterEach(() => vi.clearAllMocks());
@@ -344,24 +339,179 @@ describe('MetaAdsAdapter', () => {
   // ── listAdSets ────────────────────────────────────────────────────────────
 
   describe('listAdSets', () => {
-    it('returns empty array and logs warning (not implemented)', async () => {
+    const providerError = new Error('Meta Graph ad-set listing failed');
+
+    it('maps provider ad sets one-for-one with Meta platform and campaign identity', async () => {
+      metaAdsService.listAdSets.mockResolvedValue([
+        {
+          campaignId: 'c1',
+          id: 'as1',
+          name: 'Ad Set One',
+          status: 'ACTIVE',
+        },
+        {
+          campaignId: 'c1',
+          id: 'as2',
+          name: 'Ad Set Two',
+          status: 'PAUSED',
+        },
+      ] as never);
+
       const result = await adapter.listAdSets(mockCtx, 'c1');
-      expect(result).toEqual([]);
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('not yet implemented'),
+
+      expect(metaAdsService.listAdSets).toHaveBeenCalledTimes(1);
+      expect(metaAdsService.listAdSets).toHaveBeenCalledWith(
+        mockCtx.accessToken,
+        mockCtx.adAccountId,
+        'c1',
       );
+      expect(result).toEqual([
+        {
+          campaignId: 'c1',
+          id: 'as1',
+          name: 'Ad Set One',
+          platform: 'meta',
+          status: 'ACTIVE',
+        },
+        {
+          campaignId: 'c1',
+          id: 'as2',
+          name: 'Ad Set Two',
+          platform: 'meta',
+          status: 'PAUSED',
+        },
+      ]);
+    });
+
+    it('returns an empty unified collection when the provider has no ad sets', async () => {
+      metaAdsService.listAdSets.mockResolvedValue([] as never);
+
+      const result = await adapter.listAdSets(mockCtx, 'c1');
+
+      expect(metaAdsService.listAdSets).toHaveBeenCalledTimes(1);
+      expect(metaAdsService.listAdSets).toHaveBeenCalledWith(
+        mockCtx.accessToken,
+        mockCtx.adAccountId,
+        'c1',
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('propagates the established provider error instead of a synthetic empty collection', async () => {
+      metaAdsService.listAdSets.mockRejectedValue(providerError);
+
+      await expect(adapter.listAdSets(mockCtx, 'c1')).rejects.toBe(
+        providerError,
+      );
+
+      expect(metaAdsService.listAdSets).toHaveBeenCalledTimes(1);
     });
   });
 
   // ── listAds ───────────────────────────────────────────────────────────────
 
   describe('listAds', () => {
-    it('returns empty array and logs warning (not implemented)', async () => {
-      const result = await adapter.listAds(mockCtx);
-      expect(result).toEqual([]);
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('not yet implemented'),
+    const providerError = new Error('Meta Graph ad listing failed');
+
+    it('scopes a filtered listing to the supplied ad set and maps parent identity', async () => {
+      metaAdsService.listAds.mockResolvedValue([
+        {
+          adSetId: 'as1',
+          id: 'ad1',
+          name: 'Ad One',
+          status: 'ACTIVE',
+        },
+        {
+          adSetId: 'as1',
+          id: 'ad2',
+          name: 'Ad Two',
+          status: 'PAUSED',
+        },
+      ] as never);
+
+      const result = await adapter.listAds(mockCtx, 'as1');
+
+      expect(metaAdsService.listAds).toHaveBeenCalledTimes(1);
+      expect(metaAdsService.listAds).toHaveBeenCalledWith(
+        mockCtx.accessToken,
+        mockCtx.adAccountId,
+        'as1',
       );
+      expect(result).toEqual([
+        {
+          adSetId: 'as1',
+          id: 'ad1',
+          name: 'Ad One',
+          platform: 'meta',
+          status: 'ACTIVE',
+        },
+        {
+          adSetId: 'as1',
+          id: 'ad2',
+          name: 'Ad Two',
+          platform: 'meta',
+          status: 'PAUSED',
+        },
+      ]);
+    });
+
+    it('preserves each provider-reported parent ad-set identifier when unfiltered', async () => {
+      metaAdsService.listAds.mockResolvedValue([
+        {
+          adSetId: 'as-a',
+          id: 'ad1',
+          name: 'Ad One',
+          status: 'ACTIVE',
+        },
+        {
+          adSetId: 'as-b',
+          id: 'ad2',
+          name: 'Ad Two',
+          status: 'PAUSED',
+        },
+      ] as never);
+
+      const result = await adapter.listAds(mockCtx);
+
+      expect(metaAdsService.listAds).toHaveBeenCalledTimes(1);
+      expect(metaAdsService.listAds).toHaveBeenCalledWith(
+        mockCtx.accessToken,
+        mockCtx.adAccountId,
+        undefined,
+      );
+      expect(result).toEqual([
+        {
+          adSetId: 'as-a',
+          id: 'ad1',
+          name: 'Ad One',
+          platform: 'meta',
+          status: 'ACTIVE',
+        },
+        {
+          adSetId: 'as-b',
+          id: 'ad2',
+          name: 'Ad Two',
+          platform: 'meta',
+          status: 'PAUSED',
+        },
+      ]);
+    });
+
+    it('returns an empty unified collection when the provider has no ads', async () => {
+      metaAdsService.listAds.mockResolvedValue([] as never);
+
+      const result = await adapter.listAds(mockCtx);
+
+      expect(metaAdsService.listAds).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([]);
+    });
+
+    it('propagates the established provider error instead of a synthetic empty collection', async () => {
+      metaAdsService.listAds.mockRejectedValue(providerError);
+
+      await expect(adapter.listAds(mockCtx)).rejects.toBe(providerError);
+
+      expect(metaAdsService.listAds).toHaveBeenCalledTimes(1);
     });
   });
 

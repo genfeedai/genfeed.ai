@@ -1,12 +1,19 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { MAX_CADENCE_WINDOW_OCCURRENCES } from '@api-types/contracts/cadence-expansion.contract';
 import { PostCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class BookCalendarSlotDto {
@@ -58,4 +65,33 @@ export class CancelCalendarSlotDto {
   @MaxLength(400)
   @ApiProperty()
   readonly identityKey!: string;
+}
+
+export class BulkGenerateCalendarSlotsDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  @ApiProperty({ required: false })
+  readonly brief?: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(MAX_CADENCE_WINDOW_OCCURRENCES)
+  @ApiProperty({
+    description: 'Confirmed count of unique identity keys to generate.',
+    maximum: MAX_CADENCE_WINDOW_OCCURRENCES,
+    minimum: 1,
+  })
+  readonly confirmedCount!: number;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_CADENCE_WINDOW_OCCURRENCES)
+  @IsString({ each: true })
+  @MaxLength(400, { each: true })
+  @ApiProperty({
+    description: 'Missing-slot identities the operator confirmed.',
+    type: [String],
+  })
+  readonly identityKeys!: string[];
 }

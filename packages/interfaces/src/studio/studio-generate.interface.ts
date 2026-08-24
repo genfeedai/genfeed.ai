@@ -129,6 +129,36 @@ export interface StudioGenerateSettings {
   voiceId?: string;
 }
 
+/**
+ * Client-side snapshot of the prompt payload that actually left Studio after
+ * `buildStudioPromptData`. Recipe display and Vary/Reprompt both read this so
+ * the operator sees and edits the enriched request, not the raw composer box.
+ */
+export interface StudioGenerateRecipe {
+  aspectRatio?: string;
+  blacklist: string[];
+  brandingMode: 'brand' | 'off';
+  camera?: string;
+  cameraMovement?: string;
+  duration?: number;
+  folder?: string;
+  isAudioEnabled: boolean;
+  lens?: string;
+  lighting?: string;
+  modelKey?: string;
+  mood?: string;
+  outputs: number;
+  promptTemplate?: string;
+  references: string[];
+  resolution?: string;
+  scene?: string;
+  speech?: string;
+  style?: string;
+  tags: string[];
+  text: string;
+  type: StudioGenerateType;
+}
+
 export interface StudioGenerateJob {
   createdAt: number;
   error?: string;
@@ -147,8 +177,25 @@ export interface StudioGenerateJob {
   ingredientId?: string;
   modelKey?: string;
   prompt: string;
+  /**
+   * Enriched prompt payload stamped at submit. Survives session rehydrate so
+   * the inspector can show what reached the provider, not the raw box.
+   */
+  recipe?: StudioGenerateRecipe;
+  /**
+   * Client-stamped id shared by every output of one submit. Absent on
+   * gallery rows that were generated outside this session.
+   */
+  runId?: string;
   status: IngredientStatus;
   type: StudioGenerateType;
   url?: string;
   width?: number;
+}
+
+/** One submit, possibly with N output cards. */
+export interface StudioGenerateRun {
+  createdAt: number;
+  id: string;
+  jobs: StudioGenerateJob[];
 }

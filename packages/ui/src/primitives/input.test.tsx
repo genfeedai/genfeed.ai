@@ -45,7 +45,7 @@ describe('Input', () => {
 
     expect(input).toBeDisabled();
     expect(input).not.toHaveAttribute('isDisabled');
-    expect(input.className).toContain('ship-ui');
+    expect(input.className).toContain('bg-background-tertiary');
   });
 
   it('does not forward isDisabled to the DOM for controlled inputs', () => {
@@ -55,6 +55,6 @@ describe('Input', () => {
 
     expect(input).toBeDisabled();
     expect(input).not.toHaveAttribute('isDisabled');
-    expect(input.className).toContain('ship-ui');
+    expect(input.className).toContain('bg-background-tertiary');
   });
 });

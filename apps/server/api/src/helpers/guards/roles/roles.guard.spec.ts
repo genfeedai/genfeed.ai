@@ -81,6 +81,7 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
+        isDeleted: false,
         organizationId: TOKEN_ORGANIZATION_ID,
         userId: USER_ID,
       }),
@@ -164,6 +165,7 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
+        isDeleted: false,
         organizationId: TOKEN_ORGANIZATION_ID,
         userId: USER_ID,
       }),
@@ -185,6 +187,7 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
+        isDeleted: false,
         organizationId: REQUEST_ORGANIZATION_ID,
         userId: USER_ID,
       }),
@@ -206,6 +209,7 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
+        isDeleted: false,
         organizationId: REQUEST_ORGANIZATION_ID,
         userId: USER_ID,
       }),

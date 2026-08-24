@@ -27,6 +27,7 @@ const useBrandMock = vi.fn();
 const createRemixWorkflowMock = vi.fn();
 const generateAdPackMock = vi.fn();
 const getAdsResearchServiceMock = vi.fn();
+const remixAvailability = vi.hoisted(() => ({ isAvailable: true }));
 const openRemixMock = vi.fn();
 const prepareCampaignForReviewMock = vi.fn();
 let useQueryCallIndex = 0;
@@ -164,9 +165,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import(
-    '../../../../tests/next-intl.stub'
-  );
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
@@ -183,7 +182,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
-  useOptionalDiscoverRemix: () => ({ openRemix: openRemixMock }),
+  useOptionalDiscoverRemix: () =>
+    remixAvailability.isAvailable ? { openRemix: openRemixMock } : null,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -417,6 +417,7 @@ import AdsResearchPageClient from './AdsResearchPageClient';
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    remixAvailability.isAvailable = true;
     useQueryCallIndex = 0;
     useQueryStates[0].data = resultsState;
     useQueryStates[0].error = null;
@@ -655,6 +656,21 @@ describe('AdsResearchPageClient', () => {
       adPerformanceId: 'public-1',
       kind: 'public_ad',
     });
+  });
+
+  it('shows an unavailable error when the remix provider is missing', () => {
+    remixAvailability.isAvailable = false;
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('The on-brand remix workflow is unavailable here.'),
+    ).toBeVisible();
   });
 
   it('shows empty, loading, error, and action failure states', async () => {

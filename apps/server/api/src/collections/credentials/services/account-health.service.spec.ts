@@ -1,6 +1,10 @@
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
+import {
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+} from '@api-types/contracts/social-warmup-blueprint.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -253,6 +257,28 @@ describe('AccountHealthService', () => {
       recentFailures: expect.any(Number),
     });
     expect(signalsJson).not.toContain('tiktokAuthorized');
+  });
+
+  it('holds publishing for incomplete required checks and names them', async () => {
+    prisma.socialWarmupEnrollment.findFirst.mockResolvedValueOnce({
+      blueprintId: TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
+      blueprintVersion: TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+      events: [],
+      signals: [],
+      startedAt: now,
+      state: 'ENROLLED',
+    });
+
+    const gate = await service.evaluateScheduledPublishGate({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      organizationId: 'org-1',
+    });
+
+    expect(gate.holdPublishing).toBe(true);
+    expect(gate.reason).toMatch(/required warm-up checks are incomplete/i);
+    expect(gate.reason).toMatch(/Use TikTok manually/i);
+    expect(gate.reason).toMatch(/does not guarantee reach or safety/i);
   });
 
   it('does not treat credential createdAt as native social-account age', async () => {

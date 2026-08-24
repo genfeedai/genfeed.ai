@@ -1,7 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Slot } from '@radix-ui/react-slot';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { Button as ShipButton } from '@shipshitdev/ui/primitives';
 import type {
   ButtonHTMLAttributes,
   ComponentPropsWithRef,
@@ -11,10 +10,8 @@ import type {
 } from 'react';
 import { cn } from '../lib/utils';
 import {
-  BUTTON_VARIANT_CONFIG,
   type ButtonStyleProps,
-  getMappedButtonSize,
-  getSizeOverrideClassName,
+  buttonVariants,
   resolveButtonVariant,
   TEXT_TRANSFORM_CLASSES,
 } from './button.variants';
@@ -146,7 +143,6 @@ function Button({
     textTransform ?? (size === ButtonSize.PUBLIC ? 'uppercase' : 'capitalize');
   const transformClass =
     TEXT_TRANSFORM_CLASSES[effectiveTextTransform] ?? 'capitalize';
-  const sizeClassName = getSizeOverrideClassName(size);
 
   const content = asChild ? (
     children
@@ -178,13 +174,12 @@ function Button({
         {content}
       </Comp>
     ) : (
-      <ShipButton
+      <Comp
         aria-label={ariaLabel}
-        asChild={asChild}
         className={cn(
           // Lucide defaults to 24px; buttons use 16px unless the icon sets size.
-          'ship-ui [&_svg:not([class*="size-"])]:size-4',
-          sizeClassName,
+          '[&_svg:not([class*="size-"])]:size-4',
+          buttonVariants({ size, variant: resolvedVariant }),
           transformClass,
           className,
         )}
@@ -192,13 +187,11 @@ function Button({
         onClick={onClick}
         onMouseDown={onMouseDown}
         ref={ref}
-        size={getMappedButtonSize(size)}
         type={type}
-        variant={BUTTON_VARIANT_CONFIG[resolvedVariant].shipVariant}
         {...props}
       >
         {content}
-      </ShipButton>
+      </Comp>
     );
 
   const wrappedButton = withWrapper ? (

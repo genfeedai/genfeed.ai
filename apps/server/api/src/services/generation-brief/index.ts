@@ -9,6 +9,19 @@ export { compileMinimaxH3GenerationBrief } from '@api/services/generation-brief/
 export type { CompilePrunaaiPVideoGenerationBriefInput } from '@api/services/generation-brief/compile-prunaai-p-video-generation-brief';
 export { compilePrunaaiPVideoGenerationBrief } from '@api/services/generation-brief/compile-prunaai-p-video-generation-brief';
 export { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
+export type {
+  ImageGenerationBriefCompileFn,
+  ImageGenerationBriefCompileInput,
+  ImageGenerationBriefCompileResult,
+  ImageGenerationBriefDispatch,
+  ImageGenerationBriefRegistryEntry,
+} from '@api/services/generation-brief/image-generation-brief-registry';
+export {
+  getImageGenerationBriefExemptionReason,
+  getImageGenerationBriefRegistryEntry,
+  IMAGE_GENERATION_BRIEF_EXEMPTIONS,
+  IMAGE_GENERATION_BRIEF_REGISTRY,
+} from '@api/services/generation-brief/image-generation-brief-registry';
 export {
   assertRedactedGenerationBriefEvidence,
   assertRedactedVideoGenerationBriefEvidence,

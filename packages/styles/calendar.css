@@ -335,6 +335,43 @@
   color: hsl(var(--muted-foreground));
 }
 
+/*
+ * Density states. Missing ghosts stay lighter than filled items so a two-hour
+ * cadence remains scannable; generating and failed keep their own weight.
+ */
+.fc .fc-event.gen-calendar-event-host--missing {
+  opacity: 0.72;
+}
+
+.fc .fc-event.gen-calendar-event-host--generating {
+  opacity: 0.9;
+}
+
+.fc .fc-event.gen-calendar-event-host--generate-failed {
+  opacity: 1;
+}
+
+.fc .fc-event:focus,
+.fc .fc-event:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+
+.fc .gen-calendar-event-actions-root,
+.fc .gen-calendar-event-actions {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.fc .fc-event:focus .gen-calendar-event-actions-root,
+.fc .fc-event:focus-within .gen-calendar-event-actions-root,
+.fc .fc-event:focus .gen-calendar-event-actions,
+.fc .fc-event:focus-within .gen-calendar-event-actions {
+  display: inline-flex;
+}
+
 /* List view */
 .fc .fc-list {
   border-color: hsl(var(--border));

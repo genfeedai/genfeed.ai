@@ -2,6 +2,8 @@ export { default as StudioGenerateWorkspace } from '@pages/studio/generate/Studi
 export type {
   StudioGenerateCapabilities,
   StudioGenerateJob,
+  StudioGenerateRecipe,
+  StudioGenerateRun,
   StudioGenerateSettings,
   StudioGenerateType,
   StudioGenerateTypeConfig,

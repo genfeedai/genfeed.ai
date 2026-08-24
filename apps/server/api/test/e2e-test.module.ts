@@ -80,6 +80,7 @@ import { HttpService } from '@nestjs/axios';
 import { DynamicModule, ExecutionContext, Module, Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import type { TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
@@ -561,10 +562,10 @@ export class TestDatabaseHelper {
 /**
  * Create a TestDatabaseHelper instance from a NestJS module
  */
-export const createTestDatabaseHelper = (moduleRef: {
-  get: (token: unknown) => unknown;
-}): TestDatabaseHelper => {
-  const prisma = moduleRef.get<PrismaService>(PrismaService);
+export const createTestDatabaseHelper = (
+  moduleRef: Pick<TestingModule, 'get'>,
+): TestDatabaseHelper => {
+  const prisma = moduleRef.get(PrismaService);
   return new TestDatabaseHelper(prisma);
 };
 

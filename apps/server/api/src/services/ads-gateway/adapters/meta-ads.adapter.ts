@@ -19,7 +19,6 @@ import type {
   UnifiedInsights,
   UpdateCampaignInput,
 } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
   MetaInsightsData,
@@ -31,10 +30,7 @@ import { MetaAdsService } from '@server/services/integrations/meta-ads/services/
 export class MetaAdsAdapter implements IAdsAdapter {
   readonly platform = 'meta' as const;
 
-  constructor(
-    private readonly metaAdsService: MetaAdsService,
-    private readonly logger: LoggerService,
-  ) {}
+  constructor(private readonly metaAdsService: MetaAdsService) {}
 
   async getAdAccounts(ctx: AdsAdapterContext): Promise<UnifiedAdAccount[]> {
     const accounts = await this.metaAdsService.getAdAccounts(ctx.accessToken);
@@ -186,13 +182,22 @@ export class MetaAdsAdapter implements IAdsAdapter {
   }
 
   async listAdSets(
-    _ctx: AdsAdapterContext,
-    _campaignId: string,
+    ctx: AdsAdapterContext,
+    campaignId: string,
   ): Promise<UnifiedAdSet[]> {
-    // Meta does not expose a direct listAdSets via our current service
-    // This would need MetaAdsService extension
-    this.logger.warn('MetaAdsAdapter.listAdSets: not yet implemented');
-    return [];
+    const adSets = await this.metaAdsService.listAdSets(
+      ctx.accessToken,
+      ctx.adAccountId,
+      campaignId,
+    );
+
+    return adSets.map((adSet) => ({
+      campaignId: adSet.campaignId ?? campaignId,
+      id: adSet.id,
+      name: adSet.name,
+      platform: this.platform,
+      status: adSet.status,
+    }));
   }
 
   async createAdSet(
@@ -242,11 +247,22 @@ export class MetaAdsAdapter implements IAdsAdapter {
   }
 
   async listAds(
-    _ctx: AdsAdapterContext,
-    _adSetId?: string,
+    ctx: AdsAdapterContext,
+    adSetId?: string,
   ): Promise<UnifiedAd[]> {
-    this.logger.warn('MetaAdsAdapter.listAds: not yet implemented');
-    return [];
+    const ads = await this.metaAdsService.listAds(
+      ctx.accessToken,
+      ctx.adAccountId,
+      adSetId,
+    );
+
+    return ads.map((ad) => ({
+      adSetId: ad.adSetId ?? adSetId ?? '',
+      id: ad.id,
+      name: ad.name,
+      platform: this.platform,
+      status: ad.status,
+    }));
   }
 
   async createAd(

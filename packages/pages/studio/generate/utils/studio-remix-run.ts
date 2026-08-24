@@ -9,6 +9,17 @@ import type {
   StudioGenerateType,
 } from '@pages/studio/generate/types';
 
+export const REMIX_MIN_DURATION_SECONDS = 1;
+export const REMIX_MAX_DURATION_SECONDS = 300;
+
+type RemixMediaType = Extract<StudioGenerateType, 'avatar' | 'image' | 'video'>;
+
+export type RemixDraftComposerState = {
+  prompt: string;
+  settings: Partial<StudioGenerateSettings>;
+  type: RemixMediaType | null;
+};
+
 /**
  * The durable identity union also carries the empty prefill shape, which does
  * not narrow through an `in` check. Parse through the contract schema so only
@@ -19,6 +30,46 @@ export function resolvePairedRemixIdentity(
 ): ReturnType<typeof pairedBrandRemixIdentitySchema.parse> | null {
   const parsed = pairedBrandRemixIdentitySchema.safeParse(identity);
   return parsed.success ? parsed.data : null;
+}
+
+export function clampRemixDurationSeconds(value: unknown): number | undefined {
+  const duration = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return undefined;
+  }
+
+  return Math.min(
+    REMIX_MAX_DURATION_SECONDS,
+    Math.max(REMIX_MIN_DURATION_SECONDS, Math.round(duration)),
+  );
+}
+
+export function getRemixDraftComposerState(
+  run: BrandRemixRunView,
+): RemixDraftComposerState {
+  const { output } = run.draft;
+  const prompt = run.draft.intent.objective;
+
+  if (output.kind === 'copy') {
+    return {
+      prompt,
+      settings: { outputs: output.count },
+      type: null,
+    };
+  }
+
+  return {
+    prompt,
+    settings: {
+      aspectRatio: output.aspectRatio,
+      duration:
+        'durationSeconds' in output
+          ? clampRemixDurationSeconds(output.durationSeconds)
+          : undefined,
+      outputs: output.count,
+    },
+    type: output.kind,
+  };
 }
 
 export function buildStudioRemixRunEdits(
@@ -35,6 +86,7 @@ export function buildStudioRemixRunEdits(
         ? type
         : run.draft.output.kind;
   const canonicalIdentity = resolvePairedRemixIdentity(run.draft.identity);
+  const durationSeconds = clampRemixDurationSeconds(settings.duration);
   return {
     fidelityMode: run.draft.fidelityMode,
     ...(outputKind === 'avatar' && canonicalIdentity
@@ -62,8 +114,8 @@ export function buildStudioRemixRunEdits(
             kind: outputKind,
             ...(outputKind === 'image'
               ? { durationSeconds: null }
-              : settings.duration
-                ? { durationSeconds: settings.duration }
+              : durationSeconds
+                ? { durationSeconds }
                 : {}),
           },
     references: [

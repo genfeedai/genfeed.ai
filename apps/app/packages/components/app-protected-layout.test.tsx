@@ -1004,6 +1004,23 @@ describe('AppProtectedLayout', () => {
     );
   });
 
+  it('disables catalog providers on org-empty focused onboarding routes', () => {
+    mockPathname.value = '/org-123/~/agent/onboarding';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(protectedProvidersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeElementsProvider: false,
+        includePromptBarProvider: false,
+      }),
+    );
+  });
+
   it('keeps the topbar frame on a canvas route while the shell body is still booting', () => {
     // No auth yet means no agent API service, so the shell body cannot mount.
     // Canvas routes still own the left rail, while the application keeps the

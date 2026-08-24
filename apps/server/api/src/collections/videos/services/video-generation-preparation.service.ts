@@ -206,7 +206,10 @@ export class VideoGenerationPreparationService {
       width,
     });
     const compiledDispatch = rawCompiledDispatch
-      ? await this.resolveCompiledDispatchReferenceUrls(rawCompiledDispatch)
+      ? await this.resolveCompiledDispatchReferenceUrls(
+          rawCompiledDispatch,
+          user.organizationId,
+        )
       : undefined;
 
     let promptParams: Record<string, unknown>;
@@ -439,6 +442,7 @@ export class VideoGenerationPreparationService {
 
   private async resolveCompiledDispatchReferenceUrls(
     dispatch: MinimaxH3Dispatch | PrunaaiPVideoDispatch,
+    organizationId: string,
   ): Promise<MinimaxH3Dispatch | PrunaaiPVideoDispatch> {
     const resolveUrl = async (
       referenceId: string,
@@ -449,6 +453,7 @@ export class VideoGenerationPreparationService {
         configService: this.configService,
         ingredientsService: this.ingredientsService,
         loggerService: this.loggerService,
+        organizationId,
         referenceId,
       });
       if (!url) {
@@ -505,6 +510,7 @@ export class VideoGenerationPreparationService {
       configService: this.configService,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,
+      organizationId: resolved.user.organizationId,
       referenceIds: resolved.referenceIds,
     });
     if (!resolved.createVideoDto.endFrame) {
@@ -515,6 +521,7 @@ export class VideoGenerationPreparationService {
       configService: this.configService,
       ingredientsService: this.ingredientsService,
       loggerService: this.loggerService,
+      organizationId: resolved.user.organizationId,
       referenceIds: [resolved.createVideoDto.endFrame],
     });
     return { endFrameUrl: endFrameUrls[0], referenceImageUrls };

@@ -61,7 +61,7 @@ describe('CampaignProcessor', () => {
       const campaignId = testId('campaign');
       const organizationId = testId('organization');
       const campaign: CampaignRow = {
-        campaignType: CampaignType.REPLY,
+        campaignType: CampaignType.MANUAL,
         id: campaignId,
         isDeleted: false,
         organizationId,

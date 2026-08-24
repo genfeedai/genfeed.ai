@@ -13,6 +13,10 @@ import {
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import {
+  type AdsInsightsDateQuery,
+  parseAdsInsightsQuery,
+} from '@api/services/ads-gateway/ads-insights-range.util';
+import {
   ApiKeyScope,
   MemberRole,
   toPrismaCredentialPlatform,
@@ -88,6 +92,8 @@ export class AdsGatewayController {
     @Query('credentialIds') credentialIdsStr: string,
     @Query('adAccountIds') adAccountIdsStr: string,
     @Query('datePreset') datePreset?: string,
+    @Query('since') since?: string,
+    @Query('until') until?: string,
     @Query('loginCustomerIds') loginCustomerIdsStr?: string,
   ) {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -111,6 +117,11 @@ export class AdsGatewayController {
     const validPlatforms = platforms.map((platform) =>
       this.validatePlatform(platform),
     );
+    const insightsParams = this.buildInsightsParams({
+      datePreset,
+      since,
+      until,
+    });
 
     const accessTokens = await Promise.all(
       validPlatforms.map((platform, index) =>
@@ -133,7 +144,7 @@ export class AdsGatewayController {
       platform,
     }));
 
-    return this.adsGatewayService.comparePlatforms(contexts, datePreset);
+    return this.adsGatewayService.comparePlatforms(contexts, insightsParams);
   }
 
   @Get(':platform/accounts')
@@ -218,6 +229,11 @@ export class AdsGatewayController {
 
     const reqCtx = extractRequestContext(user);
     const validPlatform = this.validatePlatform(platform);
+    const insightsParams = this.buildInsightsParams({
+      datePreset,
+      since,
+      until,
+    });
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
@@ -232,11 +248,7 @@ export class AdsGatewayController {
       organizationId: reqCtx.organizationId,
     });
 
-    return adapter.getCampaignInsights(
-      ctx,
-      campaignId,
-      this.buildInsightsParams({ datePreset, since, until }),
-    );
+    return adapter.getCampaignInsights(ctx, campaignId, insightsParams);
   }
 
   @Get(':platform/adsets/:adSetId/insights')
@@ -258,6 +270,11 @@ export class AdsGatewayController {
 
     const reqCtx = extractRequestContext(user);
     const validPlatform = this.validatePlatform(platform);
+    const insightsParams = this.buildInsightsParams({
+      datePreset,
+      since,
+      until,
+    });
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
@@ -272,11 +289,7 @@ export class AdsGatewayController {
       organizationId: reqCtx.organizationId,
     });
 
-    return adapter.getAdSetInsights(
-      ctx,
-      adSetId,
-      this.buildInsightsParams({ datePreset, since, until }),
-    );
+    return adapter.getAdSetInsights(ctx, adSetId, insightsParams);
   }
 
   @Get(':platform/ads/:adId/insights')
@@ -298,6 +311,11 @@ export class AdsGatewayController {
 
     const reqCtx = extractRequestContext(user);
     const validPlatform = this.validatePlatform(platform);
+    const insightsParams = this.buildInsightsParams({
+      datePreset,
+      since,
+      until,
+    });
     const accessToken = await this.resolveAccessToken(
       credentialId,
       reqCtx.organizationId,
@@ -312,11 +330,7 @@ export class AdsGatewayController {
       organizationId: reqCtx.organizationId,
     });
 
-    return adapter.getAdInsights(
-      ctx,
-      adId,
-      this.buildInsightsParams({ datePreset, since, until }),
-    );
+    return adapter.getAdInsights(ctx, adId, insightsParams);
   }
 
   @Get(':platform/top-performers')
@@ -597,17 +611,17 @@ export class AdsGatewayController {
     return EncryptionUtil.decrypt(credential.accessToken);
   }
 
-  private buildInsightsParams(query: {
-    datePreset?: string;
-    since?: string;
-    until?: string;
-  }): AdsInsightsParams {
-    const params: AdsInsightsParams = {};
-    if (query.datePreset) params.datePreset = query.datePreset;
-    if (query.since && query.until)
-      params.timeRange = { since: query.since, until: query.until };
+  /**
+   * Runs before credential resolution and adapter lookup so malformed,
+   * unknown, mixed, or reversed insight dates never reach a provider.
+   */
+  private buildInsightsParams(query: AdsInsightsDateQuery): AdsInsightsParams {
+    const parsed = parseAdsInsightsQuery(query);
+    if (!parsed.isValid) {
+      throw new BadRequestException(parsed.message);
+    }
 
-    return params;
+    return parsed.params;
   }
 
   /**

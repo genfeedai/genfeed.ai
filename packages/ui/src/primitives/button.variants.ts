@@ -1,9 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { buttonVariants as shipButtonVariants } from '@shipshitdev/ui/primitives';
+import { cva } from 'class-variance-authority';
 import { cn } from '../lib/utils';
 
 export type ButtonVariantConfig = {
-  shipVariant: 'default' | 'secondary' | 'destructive' | 'ghost' | 'link';
+  nativeVariant: 'default' | 'secondary' | 'destructive' | 'ghost' | 'link';
 };
 
 export type CanonicalButtonVariant =
@@ -18,12 +18,12 @@ export const BUTTON_VARIANT_CONFIG: Record<
   CanonicalButtonVariant,
   ButtonVariantConfig
 > = {
-  [ButtonVariant.DEFAULT]: { shipVariant: 'default' },
-  [ButtonVariant.DESTRUCTIVE]: { shipVariant: 'destructive' },
-  [ButtonVariant.GHOST]: { shipVariant: 'ghost' },
-  [ButtonVariant.LINK]: { shipVariant: 'link' },
-  [ButtonVariant.SECONDARY]: { shipVariant: 'secondary' },
-  [ButtonVariant.UNSTYLED]: { shipVariant: 'default' },
+  [ButtonVariant.DEFAULT]: { nativeVariant: 'default' },
+  [ButtonVariant.DESTRUCTIVE]: { nativeVariant: 'destructive' },
+  [ButtonVariant.GHOST]: { nativeVariant: 'ghost' },
+  [ButtonVariant.LINK]: { nativeVariant: 'link' },
+  [ButtonVariant.SECONDARY]: { nativeVariant: 'secondary' },
+  [ButtonVariant.UNSTYLED]: { nativeVariant: 'default' },
 };
 
 export function resolveButtonVariant(
@@ -77,6 +77,43 @@ export const TEXT_TRANSFORM_CLASSES: Record<string, string> = {
   uppercase: 'uppercase',
 };
 
+const nativeButtonVariants = cva(
+  'inline-flex items-center gap-2 whitespace-nowrap text-left text-[13px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  {
+    defaultVariants: {
+      size: 'default',
+      variant: 'default',
+    },
+    variants: {
+      size: {
+        default: 'h-8 px-3.5 py-1.5',
+        icon: 'h-8 w-8 justify-center',
+        'icon-lg': 'h-9 w-9 justify-center',
+        'icon-sm': 'h-7 w-7 justify-center',
+        'icon-xs': 'h-6 w-6 justify-center',
+        lg: 'h-9 px-4 text-[13px]',
+        md: 'h-8 px-3.5 py-1.5',
+        sm: 'h-7 px-2.5 text-xs',
+        xl: 'h-10 px-5 text-[14px]',
+        xs: 'h-6 px-2 text-[11px] gap-1',
+      },
+      variant: {
+        default:
+          'justify-center rounded-md bg-primary text-primary-foreground hover:bg-accent-hover shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]',
+        destructive:
+          'justify-center rounded-md bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25',
+        ghost:
+          'justify-start rounded-md bg-transparent text-muted-foreground hover:bg-hover hover:text-foreground',
+        link: 'justify-center text-foreground underline-offset-4 hover:underline',
+        outline:
+          'justify-center rounded-md bg-transparent border border-border text-foreground hover:bg-hover',
+        secondary:
+          'justify-center rounded-md bg-tertiary text-foreground border border-border hover:bg-hover',
+      },
+    },
+  },
+);
+
 export const buttonVariants = ({
   className,
   size = ButtonSize.DEFAULT,
@@ -89,10 +126,9 @@ export const buttonVariants = ({
   }
 
   return cn(
-    'ship-ui',
-    shipButtonVariants({
+    nativeButtonVariants({
       size: getMappedButtonSize(size),
-      variant: BUTTON_VARIANT_CONFIG[resolvedVariant].shipVariant,
+      variant: BUTTON_VARIANT_CONFIG[resolvedVariant].nativeVariant,
     }),
     getSizeOverrideClassName(size),
     className,

@@ -5,11 +5,10 @@ type WorkspaceSurfaceDensity = 'compact' | 'comfortable';
 export type WorkspaceSurfaceTone = 'default' | 'muted' | 'elevated' | 'card';
 
 const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
-  card: 'ship-ui rounded-card bg-card text-card-foreground shadow-border',
-  default: 'ship-ui rounded-card bg-card text-card-foreground shadow-border',
-  elevated:
-    'ship-ui rounded-card bg-card text-card-foreground shadow-border-strong',
-  muted: 'ship-ui rounded-card bg-card text-card-foreground shadow-border',
+  card: 'rounded-card bg-card text-card-foreground shadow-border',
+  default: 'rounded-card bg-card text-card-foreground shadow-border',
+  elevated: 'rounded-card bg-card text-card-foreground shadow-border-strong',
+  muted: 'rounded-card bg-card text-card-foreground shadow-border',
 };
 
 const HEADER_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
@@ -55,7 +54,7 @@ export function WorkspaceSurface({
       className={cn(
         framed
           ? FRAME_TONE_CLASSES[tone]
-          : 'ship-ui border-0 bg-transparent shadow-none',
+          : 'border-0 bg-transparent shadow-none',
         className,
       )}
     >

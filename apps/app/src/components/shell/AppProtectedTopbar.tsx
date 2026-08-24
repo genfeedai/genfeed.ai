@@ -239,7 +239,7 @@ function AppProtectedTopbarContent({
     : null;
 
   return (
-    <header className="ship-ui h-full w-full bg-transparent">
+    <header className="h-full w-full bg-transparent">
       {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
       <div
         data-testid="app-protected-topbar-inner"
