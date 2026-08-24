@@ -16,6 +16,7 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -67,7 +68,10 @@ describe('AdsGatewayController paused-only campaign writes', () => {
         { provide: CredentialsService, useValue: credentialsService },
         { provide: LoggerService, useValue: { log: vi.fn() } },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AdsGatewayController>(AdsGatewayController);
   });

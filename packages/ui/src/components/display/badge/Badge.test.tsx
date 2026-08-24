@@ -19,7 +19,7 @@ describe('Badge', () => {
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
     expect(rootElement).toHaveClass('rounded-full');
-    expect(rootElement).toHaveClass('ship-ui');
+    expect(rootElement).toHaveClass('inline-flex');
   });
 
   it('prefers explicit children over statusConfig label', () => {

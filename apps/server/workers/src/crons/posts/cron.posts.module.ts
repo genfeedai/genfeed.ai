@@ -21,6 +21,7 @@ import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
+import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
 import { ScheduledPostQueueService } from '@workers/services/scheduled-post-queue.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
@@ -42,6 +43,7 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     AgentArtifactReferenceService,
     CronPostsService,
     PostRepeatSchedulerService,
+    ScheduledPostDeliveryService,
     ScheduledPostExecutionGuardService,
     ScheduledPostQueueService,
     SystemWorkflowProvenanceService,

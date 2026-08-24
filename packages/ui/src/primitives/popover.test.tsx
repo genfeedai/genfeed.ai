@@ -6,10 +6,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { overlayMenuSurfaceClassName } from './field-control';
 import { Popover, PopoverContent, PopoverPanelContent } from './popover';
 
-vi.mock('@shipshitdev/ui/primitives', () => ({
-  Popover: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  PopoverAnchor: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  PopoverContent: ({
+vi.mock('@radix-ui/react-popover', () => ({
+  Anchor: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Content: ({
     children,
     className,
   }: {
@@ -20,7 +19,9 @@ vi.mock('@shipshitdev/ui/primitives', () => ({
       {children}
     </div>
   ),
-  PopoverTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Portal: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Root: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  Trigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 describe('Popover overlay surface', () => {

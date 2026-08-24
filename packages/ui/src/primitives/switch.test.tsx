@@ -22,7 +22,6 @@ describe('Switch', () => {
 
     const root = screen.getByRole('switch', { name: /public profile/i });
 
-    expect(root.className).toContain('ship-ui');
     expect(root.className).toContain('justify-start');
     expect(root.className).toContain(
       'data-[state=unchecked]:[&>span]:!translate-x-0.5',

@@ -541,14 +541,12 @@ test.describe('Discover prefilled remix handoff', () => {
       status: ContentRunStatus.COMPLETED,
     };
     let reads = 0;
+    let isReady = false;
     await authenticatedPage.route(
       '**/content-runs/run-restore-1/remix',
       async (route) => {
         reads += 1;
-        await fulfillJson(
-          route,
-          jsonApi(reads === 1 ? processingRun : readyRun),
-        );
+        await fulfillJson(route, jsonApi(isReady ? readyRun : processingRun));
       },
     );
 
@@ -560,6 +558,7 @@ test.describe('Discover prefilled remix handoff', () => {
     await expect(panel).toBeVisible();
     await expect(panel.getByText('variant-restored-1')).toBeVisible();
     await expect(panel.getByText('Processing')).toBeVisible();
+    isReady = true;
     await expect(
       panel.getByRole('button', { name: 'Send 1 to Review' }),
     ).toBeVisible({ timeout: 10_000 });

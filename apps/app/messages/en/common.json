@@ -772,6 +772,7 @@
         "copyPrompt": "Copy prompt",
         "openSource": "Open source",
         "remix": "Remix",
+        "remixUnavailable": "Remix unavailable",
         "sendToAgent": "Send to agent"
       },
       "metrics": {

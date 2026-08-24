@@ -4,6 +4,7 @@ export * from '@serializers/server/content/batch.serializer';
 export * from '@serializers/server/content/batch-interpolation.serializer';
 export * from '@serializers/server/content/bookmark.serializer';
 export * from '@serializers/server/content/calendar-slot.serializer';
+export * from '@serializers/server/content/calendar-slot-bulk-generate.serializer';
 export * from '@serializers/server/content/channel-target.serializer';
 export * from '@serializers/server/content/clip-generation-result.serializer';
 export * from '@serializers/server/content/clip-project.serializer';

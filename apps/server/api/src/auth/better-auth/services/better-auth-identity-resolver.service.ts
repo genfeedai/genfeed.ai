@@ -63,7 +63,10 @@ export class BetterAuthIdentityResolverService {
   private async resolveFromDatabase(
     userId: string,
   ): Promise<IBetterAuthResolvedIdentity> {
-    const user = await this.usersService.findOne({ id: userId }, []);
+    const user = await this.usersService.findOne(
+      { id: userId, isDeleted: false },
+      [],
+    );
     const userRecord = user as Record<string, unknown> | null | undefined;
     const resolvedUserId = getEntityId(userRecord);
 
@@ -81,7 +84,6 @@ export class BetterAuthIdentityResolverService {
       await this.membersService.findActiveForUserAccess(resolvedUserId);
 
     const organizationId = await this.resolveOrganizationId(
-      resolvedUserId,
       members,
       lastUsedOrganizationId,
     );
@@ -92,6 +94,11 @@ export class BetterAuthIdentityResolverService {
         userRecord,
       );
       if (provisioned) {
+        await this.persistActiveOrganizationIfStale(
+          resolvedUserId,
+          provisioned.organizationId,
+          lastUsedOrganizationId,
+        );
         return {
           brandId: provisioned.brandId,
           isSuperAdmin,
@@ -119,6 +126,12 @@ export class BetterAuthIdentityResolverService {
       ? await this.resolveBrandId(organizationId, members)
       : undefined;
 
+    await this.persistActiveOrganizationIfStale(
+      resolvedUserId,
+      organizationId,
+      lastUsedOrganizationId,
+    );
+
     return {
       brandId,
       isSuperAdmin,
@@ -129,11 +142,11 @@ export class BetterAuthIdentityResolverService {
 
   private async findAccessibleOrganizationId(
     candidate: string,
-    userId: string,
     members: MemberDocument[],
   ): Promise<string | undefined> {
     const organization = await this.organizationsService.findOne({
       id: candidate,
+      isDeleted: false,
     });
     const organizationId = getEntityId(
       organization as Record<string, unknown> | null | undefined,
@@ -145,24 +158,27 @@ export class BetterAuthIdentityResolverService {
     const isMember = members.some(
       (member) => getMemberOrganizationId(member) === organizationId,
     );
-    const isOwner =
-      getRecordId(organization as Record<string, unknown>, 'userId') === userId;
 
-    return isMember || isOwner ? organizationId : undefined;
+    // Ownership without an active membership is not enough: RolesGuard still
+    // 403s catalog and onboarding requests for that org. Recover via membership.
+    return isMember ? organizationId : undefined;
   }
 
   private async resolveOrganizationId(
-    userId: string,
     members: MemberDocument[],
     lastUsedOrganizationId?: string,
   ): Promise<string | undefined> {
-    // DB-authoritative active org (epic #735, Phase C): prefer the user's
-    // `lastUsedOrganizationId` (validated against live membership/ownership) so
-    // multi-org switching is honoured without any legacy auth provider identity.
-    if (lastUsedOrganizationId) {
+    // DB-authoritative active org (epic #735, Phase C): prefer lastUsed only
+    // when the user still has an active membership there. A stale session org
+    // must not ride into RolesGuard.
+    if (
+      lastUsedOrganizationId &&
+      members.some(
+        (member) => getMemberOrganizationId(member) === lastUsedOrganizationId,
+      )
+    ) {
       const accessibleOrgId = await this.findAccessibleOrganizationId(
         lastUsedOrganizationId,
-        userId,
         members,
       );
       if (accessibleOrgId) {
@@ -170,33 +186,39 @@ export class BetterAuthIdentityResolverService {
       }
     }
 
-    const ownerOrg = await this.organizationsService.findOne({
-      userId: userId,
-    });
-    const ownerOrgId = getEntityId(
-      ownerOrg as Record<string, unknown> | null | undefined,
-    );
-    if (ownerOrgId) {
-      return ownerOrgId;
-    }
-
     for (const member of members) {
       const memberOrgId = getMemberOrganizationId(member);
-      if (!memberOrgId) {
+      if (!memberOrgId || memberOrgId === lastUsedOrganizationId) {
         continue;
       }
-      const organization = await this.organizationsService.findOne({
-        id: memberOrgId,
-      });
-      const organizationId = getEntityId(
-        organization as Record<string, unknown> | null | undefined,
+      const accessibleOrgId = await this.findAccessibleOrganizationId(
+        memberOrgId,
+        members,
       );
-      if (organizationId) {
-        return organizationId;
+      if (accessibleOrgId) {
+        return accessibleOrgId;
       }
     }
 
     return undefined;
+  }
+
+  private async persistActiveOrganizationIfStale(
+    userId: string,
+    organizationId: string | undefined,
+    lastUsedOrganizationId?: string,
+  ): Promise<void> {
+    if (!organizationId || organizationId === lastUsedOrganizationId) {
+      return;
+    }
+
+    try {
+      await this.usersService.patch(userId, {
+        lastUsedOrganizationId: organizationId,
+      });
+    } catch {
+      // Auth must still succeed; the next request re-resolves from memberships.
+    }
   }
 
   private async resolveBrandId(
@@ -214,6 +236,7 @@ export class BetterAuthIdentityResolverService {
     if (lastUsedBrandId) {
       const lastUsedBrand = await this.brandsService.findOne({
         id: lastUsedBrandId,
+        isDeleted: false,
         organizationId: organizationId,
       });
       const brandId = getEntityId(
@@ -225,6 +248,7 @@ export class BetterAuthIdentityResolverService {
     }
 
     const firstBrand = await this.brandsService.findOne({
+      isDeleted: false,
       organizationId: organizationId,
     });
     return (

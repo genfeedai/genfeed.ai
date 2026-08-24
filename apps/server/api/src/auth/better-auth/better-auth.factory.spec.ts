@@ -80,44 +80,43 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
       where: {
         id: 'org_active',
         isDeleted: false,
-        OR: [
-          { userId: 'user_1' },
-          {
-            members: {
-              some: {
-                isActive: true,
-                isDeleted: false,
-                userId: 'user_1',
-              },
-            },
+        members: {
+          some: {
+            isActive: true,
+            isDeleted: false,
+            userId: 'user_1',
           },
-        ],
+        },
       },
     });
     expect(prisma.member.findFirst).not.toHaveBeenCalled();
   });
 
-  it('falls back to an owned organization when lastUsedOrganizationId is inaccessible', async () => {
+  it('falls back to an active membership when lastUsedOrganizationId is stale', async () => {
     const prisma = createPrismaMock();
     prisma.user.findFirst.mockResolvedValue({
       lastUsedOrganizationId: 'org_stale',
     });
-    prisma.organization.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: 'org_owner' });
+    prisma.organization.findFirst.mockResolvedValue(null);
+    prisma.member.findFirst.mockResolvedValue({
+      organizationId: 'org_member',
+    });
 
     await expect(
       resolveBetterAuthJwtOrganizationId(
         prisma as unknown as PrismaForBetterAuth,
         'user_2',
       ),
-    ).resolves.toBe('org_owner');
+    ).resolves.toBe('org_member');
 
-    expect(prisma.organization.findFirst).toHaveBeenLastCalledWith({
+    expect(prisma.organization.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.member.findFirst).toHaveBeenCalledWith({
       orderBy: { createdAt: 'asc' },
-      select: { id: true },
+      select: { organizationId: true },
       where: {
+        isActive: true,
         isDeleted: false,
+        organization: { isDeleted: false },
         userId: 'user_2',
       },
     });
@@ -128,7 +127,6 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
     prisma.user.findFirst.mockResolvedValue({
       lastUsedOrganizationId: null,
     });
-    prisma.organization.findFirst.mockResolvedValue(null);
     prisma.member.findFirst.mockResolvedValue({
       organizationId: 'org_member',
     });
@@ -140,6 +138,7 @@ describe('resolveBetterAuthJwtOrganizationId', () => {
       ),
     ).resolves.toBe('org_member');
 
+    expect(prisma.organization.findFirst).not.toHaveBeenCalled();
     expect(prisma.member.findFirst).toHaveBeenCalledWith({
       orderBy: { createdAt: 'asc' },
       select: { organizationId: true },

@@ -1,5 +1,5 @@
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
-import { Checkbox as ShipCheckbox } from '@shipshitdev/ui/primitives';
+import { Check } from 'lucide-react';
 import type {
   ChangeEvent,
   ComponentPropsWithoutRef,
@@ -12,7 +12,7 @@ import { useController } from 'react-hook-form';
 import { cn } from '../lib/utils';
 
 type CheckboxBaseProps = Omit<
-  ComponentPropsWithoutRef<typeof ShipCheckbox>,
+  ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>,
   'disabled' | 'name' | 'onChange' | 'onCheckedChange' | 'required'
 >;
 
@@ -62,7 +62,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
   const resolvedChecked = checked ?? isChecked;
 
   const checkbox = (
-    <ShipCheckbox
+    <CheckboxPrimitive.Root
       {...props}
       ref={(element) => {
         if (typeof externalRef === 'function') {
@@ -74,7 +74,10 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
         fieldRef?.(element);
       }}
       checked={resolvedChecked}
-      className={cn('ship-ui', className)}
+      className={cn(
+        'peer inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-border bg-transparent text-primary-foreground shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=unchecked]:hover:bg-hover',
+        className,
+      )}
       disabled={isDisabled ?? disabled}
       name={name}
       onBlur={(event) => {
@@ -93,7 +96,11 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
         }
       }}
       required={isRequired ?? required}
-    />
+    >
+      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
+        <Check size={12} strokeWidth={3} />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
   );
 
   if (!label) {
@@ -144,7 +151,6 @@ function Checkbox<T extends FieldValues = FieldValues>({
 
   return <CheckboxInner {...props} externalRef={ref} />;
 }
-Checkbox.displayName =
-  ShipCheckbox.displayName ?? CheckboxPrimitive.Root.displayName;
+Checkbox.displayName = CheckboxPrimitive.Root.displayName;
 
 export { Checkbox };

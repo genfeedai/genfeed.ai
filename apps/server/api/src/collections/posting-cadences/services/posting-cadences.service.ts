@@ -23,6 +23,7 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   buildSlotIdentityKey,
+  collapseOverlappingCadenceOccurrences,
   expandCadenceOccurrences,
   isWithinConsumptionTolerance,
   MAX_CADENCE_SPAN_DAYS,
@@ -53,6 +54,7 @@ import {
 } from '@genfeedai/enums';
 import type {
   ICalendarSlot,
+  ICalendarSlotBulkGenerateResult,
   ICalendarSlotFillResult,
   IPostingCadence,
 } from '@genfeedai/interfaces';
@@ -241,7 +243,14 @@ export class PostingCadencesService {
   ): Promise<ICalendarSlot[]> {
     const cadences = await this.list(organizationId, brandId);
     const range = { end: endDate, start: startDate };
-    const collapsed = new Map<string, ICalendarSlot>();
+    const projected: Array<{
+      cadenceCreatedAt: string;
+      cadenceId: string;
+      credentialId: string;
+      format: string;
+      instantUtc: string;
+      slot: ICalendarSlot;
+    }> = [];
 
     for (const cadence of cadences) {
       const expanded = expandCadenceOccurrences(
@@ -265,24 +274,26 @@ export class PostingCadencesService {
         continue;
       }
       for (const occurrence of expanded.occurrences) {
-        const collapseKey = [
-          cadence.credentialId,
-          cadence.format,
-          occurrence.instantUtc,
-        ].join('|');
-        if (collapsed.has(collapseKey)) {
-          continue;
-        }
-        collapsed.set(
-          collapseKey,
-          this.projectedSlot(
+        projected.push({
+          cadenceCreatedAt: cadence.createdAt,
+          cadenceId: cadence.id,
+          credentialId: cadence.credentialId,
+          format: cadence.format,
+          instantUtc: occurrence.instantUtc,
+          slot: this.projectedSlot(
             cadence,
             occurrence.identityKey,
             occurrence.instantUtc,
           ),
-        );
+        });
       }
     }
+    const collapsed = new Map(
+      collapseOverlappingCadenceOccurrences(projected).map((occurrence) => [
+        occurrence.slot.identityKey,
+        occurrence.slot,
+      ]),
+    );
 
     const reservations = await this.reservationDelegate().findMany({
       where: scopedWhere(organizationId, {
@@ -401,6 +412,87 @@ export class PostingCadencesService {
       false,
       apiKeyContext,
     );
+  }
+
+  async generateBulk(
+    organizationId: string,
+    userId: string,
+    identityKeys: string[],
+    confirmedCount: number,
+    brief?: string,
+    apiKeyContext?: ApiKeyPublishingContext,
+    signal?: AbortSignal,
+  ): Promise<ICalendarSlotBulkGenerateResult> {
+    const uniqueKeys: string[] = [];
+    const seen = new Set<string>();
+    for (const identityKey of identityKeys) {
+      if (seen.has(identityKey)) {
+        continue;
+      }
+      seen.add(identityKey);
+      uniqueKeys.push(identityKey);
+    }
+    if (confirmedCount !== uniqueKeys.length) {
+      throw new BadRequestException(
+        `Confirm ${uniqueKeys.length} slots to generate them.`,
+      );
+    }
+
+    const completed: ICalendarSlot[] = [];
+    let isCancelled = false;
+    let isCreditsExhausted = false;
+    let remainingIdentityKeys: string[] = [];
+
+    for (let index = 0; index < uniqueKeys.length; index += 1) {
+      if (signal?.aborted) {
+        isCancelled = true;
+        remainingIdentityKeys = uniqueKeys.slice(index);
+        break;
+      }
+
+      const identityKey = uniqueKeys[index];
+      if (!identityKey) {
+        continue;
+      }
+
+      try {
+        const result = await this.generate(
+          organizationId,
+          userId,
+          identityKey,
+          brief,
+          apiKeyContext,
+        );
+        completed.push({
+          ...result.slot,
+          generatedItemId: result.targetId,
+        });
+      } catch (error) {
+        if (error instanceof InsufficientCreditsException) {
+          isCreditsExhausted = true;
+          await this.restoreMissingAfterCreditExhaustion(
+            organizationId,
+            identityKey,
+          );
+          remainingIdentityKeys = uniqueKeys.slice(index);
+          break;
+        }
+        throw error;
+      }
+    }
+
+    return {
+      completed,
+      completedCount: completed.length,
+      id: createHash('sha256')
+        .update(uniqueKeys.join('\n'))
+        .digest('hex')
+        .slice(0, 24),
+      isCancelled,
+      isCreditsExhausted,
+      remainingCount: remainingIdentityKeys.length,
+      remainingIdentityKeys,
+    };
   }
 
   async write(
@@ -781,6 +873,26 @@ export class PostingCadencesService {
   ): Promise<ReservationRecord | null> {
     return this.reservationDelegate().findFirst({
       where: scopedWhere(organizationId, { identityKey }),
+    });
+  }
+
+  private async restoreMissingAfterCreditExhaustion(
+    organizationId: string,
+    identityKey: string,
+  ): Promise<void> {
+    await this.reservationDelegate().updateMany({
+      data: {
+        generatedItemId: null,
+        generatedItemType: null,
+        lastFailureReason: null,
+        state: CalendarSlotState.MISSING,
+      },
+      where: scopedWhere(organizationId, {
+        identityKey,
+        state: {
+          in: [CalendarSlotState.GENERATING, CalendarSlotState.GENERATE_FAILED],
+        },
+      }),
     });
   }
 

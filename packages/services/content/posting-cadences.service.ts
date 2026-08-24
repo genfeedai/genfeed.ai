@@ -1,5 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { ICalendarSlot, IPostingCadence } from '@genfeedai/interfaces';
+import type {
+  ICalendarSlot,
+  ICalendarSlotBulkGenerateResult,
+  IPostingCadence,
+} from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -94,6 +98,25 @@ export class PostingCadencesService extends HTTPBaseService {
       input,
     );
     return extractResource<ICalendarSlot>(response.data);
+  }
+
+  async generateBulk(
+    input: {
+      brief?: string;
+      confirmedCount: number;
+      identityKeys: string[];
+    },
+    signal?: AbortSignal,
+  ): Promise<ICalendarSlotBulkGenerateResult> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '/slots/generate-bulk',
+      input,
+      {
+        signal,
+        timeout: 10 * 60 * 1000,
+      },
+    );
+    return extractResource<ICalendarSlotBulkGenerateResult>(response.data);
   }
 
   async write(identityKey: string): Promise<ICalendarSlot> {

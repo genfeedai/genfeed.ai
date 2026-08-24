@@ -313,7 +313,7 @@ describe('AvatarVideoGenerationService', () => {
             source: 'catalog',
           },
         },
-      } as BrandDocument,
+      } as unknown as BrandDocument,
     );
 
     expect(resolved.photoUrl).toBe('https://cdn.example.com/brand-avatar.png');
@@ -353,7 +353,7 @@ describe('AvatarVideoGenerationService', () => {
       },
       {
         agentConfig: {},
-      } as BrandDocument,
+      } as unknown as BrandDocument,
     );
 
     expect(resolved.photoUrl).toBe('https://cdn.example.com/org-avatar.png');
@@ -376,7 +376,7 @@ describe('AvatarVideoGenerationService', () => {
         photoIngredientId: 'brand-avatar-1',
         text: 'Create the founder update',
       },
-      { agentConfig: {} } as BrandDocument,
+      { agentConfig: {} } as unknown as BrandDocument,
     );
 
     expect(resolved.photoIngredientId).toBe('brand-avatar-1');
@@ -399,7 +399,7 @@ describe('AvatarVideoGenerationService', () => {
         clonedVoiceId: 'voice-catalog-1',
         text: 'Create the founder update',
       },
-      { agentConfig: {} } as BrandDocument,
+      { agentConfig: {} } as unknown as BrandDocument,
     );
 
     expect(voicesService.findOne).toHaveBeenCalledWith({
@@ -646,7 +646,7 @@ describe('AvatarVideoGenerationService', () => {
         agentConfig: {
           defaultVoiceId: 'voice-clone-only',
         },
-      } as BrandDocument,
+      } as unknown as BrandDocument,
     );
 
     expect(voicesService.findOne).toHaveBeenCalledWith({

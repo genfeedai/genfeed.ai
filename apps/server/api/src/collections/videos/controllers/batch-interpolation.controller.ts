@@ -214,6 +214,7 @@ export class BatchInterpolationController {
             configService: this.configService,
             ingredientsService: this.ingredientsService,
             loggerService: this.loggerService,
+            organizationId: user.organizationId,
             referenceIds: [pair.startImageId],
           }),
           buildReferenceImageUrls({
@@ -221,6 +222,7 @@ export class BatchInterpolationController {
             configService: this.configService,
             ingredientsService: this.ingredientsService,
             loggerService: this.loggerService,
+            organizationId: user.organizationId,
             referenceIds: [pair.endImageId],
           }),
         ]);

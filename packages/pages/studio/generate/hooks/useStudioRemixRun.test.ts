@@ -2,6 +2,7 @@ import type {
   BrandRemixDraftEdits,
   BrandRemixRunView,
 } from '@api-types/contracts';
+import { ContentRunStatus } from '@genfeedai/enums';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -122,7 +123,7 @@ const run: BrandRemixRunView = {
     sourceId: 'reference-1',
     title: 'Proof-led hook',
   },
-  status: 'running',
+  status: ContentRunStatus.RUNNING,
   updatedAt: '2026-08-20T10:00:00.000Z',
   version: 1,
 };

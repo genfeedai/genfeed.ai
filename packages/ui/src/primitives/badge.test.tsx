@@ -11,7 +11,7 @@ describe('Badge', () => {
     const badge = screen.getByText('Ready');
 
     expect(badge.tagName).toBe('SPAN');
-    expect(badge.className).toContain('ship-ui');
+    expect(badge.className).toContain('inline-flex');
   });
 
   it('gives outline a slate tone so it is not bare white text', () => {

@@ -10,8 +10,20 @@ import {
   SelectItem,
 } from './select';
 
-vi.mock('@shipshitdev/ui/primitives', () => ({
-  Select: ({
+vi.mock('@radix-ui/react-select', () => ({
+  Content: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Group: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Icon: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Item: ({ children, value }: { children?: ReactNode; value: string }) => (
+    <span data-testid="select-item" data-value={value}>
+      {children}
+    </span>
+  ),
+  ItemIndicator: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  ItemText: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Label: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Portal: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Root: ({
     children,
     onValueChange,
     value,
@@ -30,23 +42,12 @@ vi.mock('@shipshitdev/ui/primitives', () => ({
       {children}
     </div>
   ),
-  SelectContent: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  SelectGroup: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  SelectItem: ({
-    children,
-    value,
-  }: {
-    children?: ReactNode;
-    value: string;
-  }) => (
-    <span data-testid="select-item" data-value={value}>
-      {children}
-    </span>
-  ),
-  SelectLabel: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  SelectSeparator: () => null,
-  SelectTrigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
-  SelectValue: () => null,
+  ScrollDownButton: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  ScrollUpButton: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Separator: () => null,
+  Trigger: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  Value: () => null,
+  Viewport: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 describe('Select empty values', () => {
