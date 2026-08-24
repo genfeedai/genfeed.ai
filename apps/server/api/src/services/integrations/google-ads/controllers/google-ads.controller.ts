@@ -74,6 +74,8 @@ export class GoogleAdsController {
       );
     }
 
+    this.googleAdsOAuthService.requireConfigured();
+
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
       user.userId ?? user.id,

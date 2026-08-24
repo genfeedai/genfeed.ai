@@ -10,6 +10,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
@@ -32,6 +33,7 @@ import {
   Param,
   Post,
   Req,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { TwitterApi, type TwitterApiOAuth2Init } from 'twitter-api-v2';
@@ -75,6 +77,8 @@ export class TwitterController {
       );
     }
 
+    const oauth = this.getOAuthConfig();
+
     try {
       const { credential, state } =
         await this.credentialsService.beginOAuthForBrand(
@@ -85,16 +89,12 @@ export class TwitterController {
         );
 
       const client = new TwitterApi({
-        clientId: this.configService.get('TWITTER_CLIENT_ID'),
-        clientSecret: this.configService.get('TWITTER_CLIENT_SECRET'),
+        clientId: oauth.clientId,
+        clientSecret: oauth.clientSecret,
       } as TwitterApiOAuth2Init);
 
-      const redirectUri = this.configService.get(
-        'TWITTER_REDIRECT_URI',
-      ) as string;
-
       const { url: authUrl, codeVerifier } = client.generateOAuth2AuthLink(
-        redirectUri,
+        oauth.redirectUri,
         {
           scope: [
             'tweet.read',
@@ -117,6 +117,9 @@ export class TwitterController {
         url: authUrl,
       });
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.loggerService.error(`${url} failed`, error);
       throw new HttpException(
         {
@@ -177,14 +180,11 @@ export class TwitterController {
         );
       }
 
+      const oauth = this.getOAuthConfig();
       const client = new TwitterApi({
-        clientId: this.configService.get('TWITTER_CLIENT_ID'),
-        clientSecret: this.configService.get('TWITTER_CLIENT_SECRET'),
+        clientId: oauth.clientId,
+        clientSecret: oauth.clientSecret,
       } as TwitterApiOAuth2Init);
-
-      const redirectUri = this.configService.get(
-        'TWITTER_REDIRECT_URI',
-      ) as string;
 
       const {
         client: loggedClient,
@@ -195,7 +195,7 @@ export class TwitterController {
       } = await client.loginWithOAuth2({
         code,
         codeVerifier,
-        redirectUri,
+        redirectUri: oauth.redirectUri,
       });
 
       // Get authenticated user profile
@@ -311,5 +311,26 @@ export class TwitterController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  private getOAuthConfig() {
+    const clientId = this.configService.get('TWITTER_CLIENT_ID');
+    const clientSecret = this.configService.get('TWITTER_CLIENT_SECRET');
+    const redirectUri = this.configService.get('TWITTER_REDIRECT_URI');
+
+    if (
+      !clientId ||
+      !clientSecret ||
+      !redirectUri ||
+      isUnconfiguredSecret(clientId) ||
+      isUnconfiguredSecret(clientSecret) ||
+      isUnconfiguredSecret(redirectUri)
+    ) {
+      throw new ServiceUnavailableException(
+        'X (Twitter) OAuth is not configured for this deployment.',
+      );
+    }
+
+    return { clientId, clientSecret, redirectUri };
   }
 }

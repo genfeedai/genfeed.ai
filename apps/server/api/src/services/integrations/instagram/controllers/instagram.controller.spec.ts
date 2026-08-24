@@ -28,6 +28,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { Request } from 'express';
 import { of, throwError } from 'rxjs';
 
@@ -52,17 +53,16 @@ describe('InstagramController', () => {
     refresh: ReturnType<typeof vi.fn>;
   };
 
+  const instagramConfig: Record<string, string> = {
+    INSTAGRAM_API_VERSION: 'v18.0',
+    INSTAGRAM_APP_ID: 'test_app_id',
+    INSTAGRAM_APP_SECRET: 'test_app_secret',
+    INSTAGRAM_GRAPH_URL: 'https://graph.facebook.com',
+    INSTAGRAM_REDIRECT_URI: 'https://app.genfeed.ai/oauth/instagram',
+  };
+
   const configMock = {
-    get: vi.fn((key: string) => {
-      const config: Record<string, string> = {
-        INSTAGRAM_API_VERSION: 'v18.0',
-        INSTAGRAM_APP_ID: 'test_app_id',
-        INSTAGRAM_APP_SECRET: 'test_app_secret',
-        INSTAGRAM_GRAPH_URL: 'https://graph.facebook.com',
-        INSTAGRAM_REDIRECT_URI: 'https://app.genfeed.ai/oauth/instagram',
-      };
-      return config[key];
-    }),
+    get: vi.fn((key: string) => instagramConfig[key]),
   } as unknown as ConfigService;
 
   const loggerMock = {
@@ -163,6 +163,30 @@ describe('InstagramController', () => {
       expect(data).toHaveProperty('url');
       expect(data.url).toContain('facebook.com');
       expect(data.url).toContain('oauth');
+    });
+
+    it('refuses to start OAuth when the app id is a placeholder', async () => {
+      brandsFindOneMock.mockResolvedValue({
+        id: brandOid,
+        organizationId: instagramOrganizationId,
+        userId: instagramUserId,
+      });
+      (configMock.get as ReturnType<typeof vi.fn>).mockImplementation(
+        (key: string) =>
+          ({
+            ...instagramConfig,
+            INSTAGRAM_APP_ID: 'PLACEHOLDER_NOT_CONFIGURED',
+          })[key],
+      );
+
+      await expect(
+        controller.connect(mockRequest, mockUser, { brandId: brandOid }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(credentialsBeginOAuthForBrandMock).not.toHaveBeenCalled();
+
+      (configMock.get as ReturnType<typeof vi.fn>).mockImplementation(
+        (key: string) => instagramConfig[key],
+      );
     });
 
     it('should return bad request for invalid brand', async () => {

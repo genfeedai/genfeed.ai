@@ -4,22 +4,22 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
 describe('FacebookService', () => {
   let service: FacebookService;
 
+  const facebookConfig: Record<string, string> = {
+    FACEBOOK_API_VERSION: 'v18.0',
+    FACEBOOK_APP_ID: 'test-app-id',
+    FACEBOOK_GRAPH_URL: 'https://graph.facebook.com',
+    FACEBOOK_REDIRECT_URI: 'https://genfeed.ai/auth/facebook/callback',
+  };
+
   const mockConfigService = {
-    get: vi.fn((key: string) => {
-      const config: Record<string, string> = {
-        FACEBOOK_API_VERSION: 'v18.0',
-        FACEBOOK_APP_ID: 'test-app-id',
-        FACEBOOK_GRAPH_URL: 'https://graph.facebook.com',
-        FACEBOOK_REDIRECT_URI: 'https://genfeed.ai/auth/facebook/callback',
-      };
-      return config[key] ?? null;
-    }),
+    get: vi.fn((key: string) => facebookConfig[key] ?? ''),
   };
 
   const mockCredentialsService = {
@@ -102,6 +102,24 @@ describe('FacebookService', () => {
       expect(url).toContain('publish_video');
       expect(url).toContain('ads_management');
       expect(url).toContain('ads_read');
+    });
+
+    it('refuses to start OAuth when the app id is a placeholder', () => {
+      mockConfigService.get.mockImplementation(
+        (key: string) =>
+          ({
+            ...facebookConfig,
+            FACEBOOK_APP_ID: 'PLACEHOLDER_NOT_CONFIGURED',
+          })[key] ?? '',
+      );
+
+      expect(() => service.generateAuthUrl('state')).toThrow(
+        ServiceUnavailableException,
+      );
+
+      mockConfigService.get.mockImplementation(
+        (key: string) => facebookConfig[key] ?? '',
+      );
     });
   });
 

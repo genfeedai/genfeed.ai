@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
   buildGrantedScopesCredentialPatch,
@@ -14,7 +15,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 interface FacebookPermission {
@@ -75,6 +76,16 @@ export class FacebookService {
   public generateAuthUrl(state: string): string {
     const clientId = this.configService.get('FACEBOOK_APP_ID');
     const redirectUri = this.configService.get('FACEBOOK_REDIRECT_URI');
+    if (
+      !clientId ||
+      !redirectUri ||
+      isUnconfiguredSecret(clientId) ||
+      isUnconfiguredSecret(redirectUri)
+    ) {
+      throw new ServiceUnavailableException(
+        'Facebook OAuth is not configured for this deployment.',
+      );
+    }
     // Organic publishing + Meta Marketing API (Meta Ads reuses this token).
     const scope = [
       'ads_management',

@@ -21,7 +21,9 @@ export {
 export {
   conditionalRequired,
   conditionalRequiredNumber,
+  isUnconfiguredSecret,
   SELF_HOSTED_REQUIRED,
+  UNCONFIGURED_SECRET_SENTINEL,
 } from './helpers';
 // Interfaces
 export type { IEnvConfig } from './interfaces/env-config.interface';
