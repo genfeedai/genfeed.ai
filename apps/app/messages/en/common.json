@@ -264,11 +264,6 @@
         "working": "Working…"
       },
       "title": "Your work stays on this Mac",
-      "unavailable": {
-        "description": "Sign in to Genfeed Cloud. On-device PGlite workspace and local generation are disabled for now.",
-        "eyebrow": "Coming soon",
-        "title": "Local workspace is not available yet"
-      },
       "useCloud": "Use Genfeed Cloud",
       "workspace": {
         "chooseFolder": "Choose folder",

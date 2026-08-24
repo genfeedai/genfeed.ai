@@ -1,5 +1,3 @@
-import { DESKTOP_LOCAL_WORKSPACE_ENABLED } from '@genfeedai/desktop-contracts';
-
 interface DesktopDataServiceSelection<TService> {
   cloudService: TService;
   hasCloudSession: boolean;
@@ -100,12 +98,6 @@ export function createUnwoundLocalRuntimeState(): UnwoundLocalRuntimeState {
     terminalService: null,
     workspaceService: null,
   };
-}
-
-export function shouldOpenDesktopLocalWorkspace(
-  persistedMode: string | null | undefined,
-): boolean {
-  return DESKTOP_LOCAL_WORKSPACE_ENABLED && persistedMode === 'local';
 }
 
 export async function unwindFailedLocalRuntimeAfterClose({

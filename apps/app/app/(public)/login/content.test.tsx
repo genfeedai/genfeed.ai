@@ -29,6 +29,11 @@ const desktopRuntimeMocks = vi.hoisted(() => ({
   unsubscribe: vi.fn(),
 }));
 
+const desktopLocalWorkspaceFlagMock = vi.hoisted(() => ({
+  isEnabled: true,
+  isReady: true,
+}));
+
 let desktopSessionChangeCallback: ((session: object | null) => void) | null =
   null;
 
@@ -43,6 +48,10 @@ vi.mock('@genfeedai/auth-client', () => ({
 
 vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
+}));
+
+vi.mock('@/lib/desktop/use-desktop-local-workspace-flag', () => ({
+  useDesktopLocalWorkspaceFlag: () => desktopLocalWorkspaceFlagMock,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -93,6 +102,8 @@ describe('LoginPage', () => {
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
     desktopRuntimeMocks.eventOrder.length = 0;
+    desktopLocalWorkspaceFlagMock.isEnabled = true;
+    desktopLocalWorkspaceFlagMock.isReady = true;
     desktopRuntimeMocks.enableOfflineMode.mockReset();
     desktopRuntimeMocks.enableOfflineMode.mockResolvedValue({});
     desktopRuntimeMocks.getDesktopBridge.mockReset();
@@ -194,10 +205,8 @@ describe('LoginPage', () => {
         screen.getByRole('button', { name: 'Sign in with Genfeed' }),
       ).toBeEnabled();
       expect(
-        screen.getByRole('button', {
-          name: 'Use a local workspace — coming soon',
-        }),
-      ).toBeDisabled();
+        screen.getByRole('button', { name: 'Use a local workspace' }),
+      ).toBeEnabled();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument();
       expect(
@@ -209,8 +218,10 @@ describe('LoginPage', () => {
     },
   );
 
-  it('keeps local workspace disabled as a coming-soon demand signal', () => {
+  it('keeps local workspace as a coming-soon demand signal when the PostHog flag is off', () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    desktopLocalWorkspaceFlagMock.isEnabled = false;
+    desktopLocalWorkspaceFlagMock.isReady = true;
     render(<LoginPage />);
 
     const localModeButton = screen.getByRole('button', {
@@ -224,6 +235,31 @@ describe('LoginPage', () => {
         'Local workspace is coming soon. Sign in with Genfeed Cloud.',
       ),
     ).toBeVisible();
+  });
+
+  it('starts local mode only after the user selects it', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    const locationAssignMock = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        assign: locationAssignMock,
+        origin: originalLocation.origin,
+      },
+      writable: true,
+    });
+    render(<LoginPage />);
+
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use a local workspace' }),
+    );
+
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
+    });
+    expect(locationAssignMock).toHaveBeenCalledWith('/desktop/local');
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {
@@ -240,7 +276,7 @@ describe('LoginPage', () => {
     expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
     expect(screen.getByText('Waiting for the browser...')).toBeVisible();
     const localModeButton = screen.getByRole('button', {
-      name: 'Use a local workspace — coming soon',
+      name: 'Use a local workspace',
     });
     expect(localModeButton).toBeDisabled();
     fireEvent.click(localModeButton);

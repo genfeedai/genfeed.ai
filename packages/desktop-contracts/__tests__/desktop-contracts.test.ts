@@ -4,15 +4,8 @@ import {
   DESKTOP_ASSET_PROTOCOL_HOST,
   DESKTOP_ASSET_PROTOCOL_SCHEME,
   DESKTOP_IPC_CHANNELS,
-  DESKTOP_LOCAL_WORKSPACE_ENABLED,
   parseDesktopAssetUrl,
 } from '../src/index';
-
-describe('DESKTOP_LOCAL_WORKSPACE_ENABLED', () => {
-  it('keeps local/PGlite workspace disabled until it is flipped on purpose', () => {
-    expect(DESKTOP_LOCAL_WORKSPACE_ENABLED).toBe(false);
-  });
-});
 
 describe('buildDesktopAssetUrl', () => {
   it('builds a genfeed-asset URL for a valid asset id', () => {

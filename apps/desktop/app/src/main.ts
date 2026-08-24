@@ -20,10 +20,7 @@ import type {
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkspaceCloudLinkInput,
 } from '@genfeedai/desktop-contracts';
-import {
-  DESKTOP_IPC_CHANNELS,
-  DESKTOP_LOCAL_WORKSPACE_ENABLED,
-} from '@genfeedai/desktop-contracts';
+import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
   app,
   BrowserWindow,
@@ -67,7 +64,6 @@ import {
   activateDesktopLocalMode,
   createUnwoundLocalRuntimeState,
   selectDesktopDataService,
-  shouldOpenDesktopLocalWorkspace,
   switchDesktopToCloud,
   type UnwoundLocalRuntimeState,
   unwindFailedLocalRuntimeAfterClose,
@@ -877,9 +873,8 @@ const createWindow = async (): Promise<void> => {
 
   try {
     await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
-    const prefersLocalWorkspace = shouldOpenDesktopLocalWorkspace(
-      desktopStore.getValueSync(OFFLINE_MODE_KEY),
-    );
+    const prefersLocalWorkspace =
+      desktopStore.getValueSync(OFFLINE_MODE_KEY) === 'local';
     const initialUrl = prefersLocalWorkspace
       ? new URL('/desktop/local', appShellService.appOrigin).toString()
       : appShellService.buildInitialUrl(sessionService.getSession());
@@ -1252,9 +1247,6 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
     async () => {
-      if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) {
-        throw new Error('Local workspace is coming soon.');
-      }
       await activateDesktopLocalMode(initializeLocalRuntime, () => {
         desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
       });
@@ -1854,9 +1846,7 @@ void app
     cloudService = new DesktopCloudService(environment, () =>
       sessionService.getSession(),
     );
-    isOfflineMode = shouldOpenDesktopLocalWorkspace(
-      desktopStore.getValueSync(OFFLINE_MODE_KEY),
-    );
+    isOfflineMode = desktopStore.getValueSync(OFFLINE_MODE_KEY) === 'local';
     if (isOfflineMode) {
       try {
         await initializeLocalRuntime();

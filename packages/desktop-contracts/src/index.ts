@@ -12,12 +12,6 @@ export const DESKTOP_HTTP_HEADERS = {
   version: 'x-genfeed-desktop-version',
 } as const;
 
-/**
- * Cloud sign-in is the shipped desktop path. Local/PGlite workspace stays a
- * visible coming-soon until this flag is flipped on purpose.
- */
-export const DESKTOP_LOCAL_WORKSPACE_ENABLED = false;
-
 const DESKTOP_ASSET_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 export function buildDesktopAssetUrl(assetId: string): string {

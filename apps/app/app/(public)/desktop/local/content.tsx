@@ -1,10 +1,9 @@
 'use client';
 
-import {
-  DESKTOP_LOCAL_WORKSPACE_ENABLED,
-  type IDesktopBootstrap,
-  type IDesktopGeneratedContent,
-  type IDesktopWorkspace,
+import type {
+  IDesktopBootstrap,
+  IDesktopGeneratedContent,
+  IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
@@ -16,6 +15,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
+import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -23,6 +23,8 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function LocalDesktopContent() {
   const translate = useTranslations('common.desktop.local');
+  const { isEnabled: isLocalWorkspaceEnabled, isReady: isLocalWorkspaceReady } =
+    useDesktopLocalWorkspaceFlag();
   const [bootstrap, setBootstrap] = useState<IDesktopBootstrap | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(true);
@@ -31,7 +33,7 @@ export default function LocalDesktopContent() {
 
   const loadLocalRuntime = useCallback(
     async (signal?: AbortSignal) => {
-      if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) {
+      if (!isLocalWorkspaceEnabled) {
         setIsBusy(false);
         return;
       }
@@ -56,14 +58,23 @@ export default function LocalDesktopContent() {
         if (!signal?.aborted) setIsBusy(false);
       }
     },
-    [translate],
+    [isLocalWorkspaceEnabled, translate],
   );
 
   useEffect(() => {
+    if (isLocalWorkspaceReady && !isLocalWorkspaceEnabled) {
+      window.location.assign('/login');
+      return;
+    }
+
+    if (!isLocalWorkspaceEnabled) {
+      return;
+    }
+
     const abortController = new AbortController();
     void loadLocalRuntime(abortController.signal);
     return () => abortController.abort();
-  }, [loadLocalRuntime]);
+  }, [isLocalWorkspaceEnabled, isLocalWorkspaceReady, loadLocalRuntime]);
 
   const refreshBootstrap = async (): Promise<void> => {
     const bridge = getDesktopBridge();
@@ -72,7 +83,6 @@ export default function LocalDesktopContent() {
   };
 
   const openWorkspace = async (): Promise<void> => {
-    if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) return;
     const bridge = getDesktopBridge();
     if (!bridge) return;
     setError(null);
@@ -140,42 +150,6 @@ export default function LocalDesktopContent() {
     ) ??
     bootstrap?.workspaces[0] ??
     null;
-
-  if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) {
-    return (
-      <main className="min-h-dvh bg-background px-6 pb-12 pt-16 text-foreground">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-          <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/45">
-                <HardDrive aria-hidden="true" className="size-4" />
-                {translate('unavailable.eyebrow')}
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight">
-                {translate('unavailable.title')}
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-foreground/60">
-                {translate('unavailable.description')}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant={ButtonVariant.GHOST}
-              onClick={() => void handleUseCloud()}
-            >
-              {translate('useCloud')}
-            </Button>
-          </header>
-          {error ? (
-            <Alert variant="destructive">
-              <AlertTitle>{translate('errors.title')}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-dvh bg-background px-6 pb-12 pt-16 text-foreground">

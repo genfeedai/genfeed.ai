@@ -1,7 +1,4 @@
-import {
-  DESKTOP_IPC_CHANNELS,
-  DESKTOP_LOCAL_WORKSPACE_ENABLED,
-} from '@genfeedai/desktop-contracts';
+import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
   type BrowserWindow,
   Menu,
@@ -19,11 +16,7 @@ export const buildDesktopMenu = (
     submenu: [
       {
         accelerator: 'CmdOrCtrl+O',
-        click: () => {
-          if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) return;
-          onOpenWorkspace();
-        },
-        enabled: DESKTOP_LOCAL_WORKSPACE_ENABLED,
+        click: onOpenWorkspace,
         label: 'Open Workspace',
       },
       { type: 'separator' },

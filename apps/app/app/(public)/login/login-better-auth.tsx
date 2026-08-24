@@ -2,7 +2,6 @@
 
 import { getSession, signIn } from '@genfeedai/auth-client';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { DESKTOP_LOCAL_WORKSPACE_ENABLED } from '@genfeedai/desktop-contracts';
 import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import Alert from '@ui/feedback/alert/Alert';
@@ -23,6 +22,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { getDesktopBridge } from '@/lib/desktop/runtime';
+import { useDesktopLocalWorkspaceFlag } from '@/lib/desktop/use-desktop-local-workspace-flag';
 
 import {
   getAuthCallbackURL,
@@ -133,6 +133,8 @@ export default function LoginBetterAuth({
   const [isWaitingForDesktopSession, setIsWaitingForDesktopSession] =
     useState(false);
   const [isStartingLocalMode, setIsStartingLocalMode] = useState(false);
+  const { isEnabled: isLocalWorkspaceEnabled, isReady: isLocalWorkspaceReady } =
+    useDesktopLocalWorkspaceFlag();
   const desktopSessionUnsubscribeRef = useRef<(() => void) | null>(null);
   const isWaitingForDesktopSessionRef = useRef(false);
   const callbackURL = getAuthCallbackURL(searchParams);
@@ -253,7 +255,7 @@ export default function LoginBetterAuth({
   }
 
   async function handleDesktopLocalMode() {
-    if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) {
+    if (!isLocalWorkspaceEnabled) {
       return;
     }
 
@@ -364,12 +366,6 @@ export default function LoginBetterAuth({
     }
   }
 
-  const localWorkspaceLabel = DESKTOP_LOCAL_WORKSPACE_ENABLED
-    ? isStartingLocalMode
-      ? 'Starting local workspace…'
-      : 'Use a local workspace'
-    : 'Use a local workspace — coming soon';
-
   if (isDesktop) {
     return (
       <AuthFormLayout
@@ -407,7 +403,7 @@ export default function LoginBetterAuth({
                 type="button"
                 variant={ButtonVariant.SECONDARY}
                 isDisabled={
-                  !DESKTOP_LOCAL_WORKSPACE_ENABLED ||
+                  !isLocalWorkspaceEnabled ||
                   !isDesktopBridgeAvailable ||
                   isStartingLocalMode ||
                   isWaitingForDesktopSession
@@ -416,7 +412,11 @@ export default function LoginBetterAuth({
                 withWrapper={false}
                 onClick={() => void handleDesktopLocalMode()}
               >
-                {localWorkspaceLabel}
+                {isStartingLocalMode
+                  ? 'Starting local workspace…'
+                  : isLocalWorkspaceEnabled
+                    ? 'Use a local workspace'
+                    : 'Use a local workspace — coming soon'}
               </Button>
             </>
           }
@@ -428,9 +428,11 @@ export default function LoginBetterAuth({
                 <p aria-live="polite">Waiting for the browser...</p>
               ) : null}
               <p>
-                {DESKTOP_LOCAL_WORKSPACE_ENABLED
+                {isLocalWorkspaceEnabled
                   ? 'Local mode keeps its database and workspace files on this Mac. It starts only when you choose it.'
-                  : 'Local workspace is coming soon. Sign in with Genfeed Cloud.'}
+                  : isLocalWorkspaceReady
+                    ? 'Local workspace is coming soon. Sign in with Genfeed Cloud.'
+                    : 'Checking whether local workspace is available…'}
               </p>
             </div>
           }

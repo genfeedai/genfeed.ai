@@ -15,6 +15,12 @@ export const APP_SWITCHER_FEATURE_FLAGS = {
 /** Replies API + UI gate. SaaS evaluates this in PostHog; Community defaults on. */
 export const REPLY_BOT_FEATURE_FLAG = 'reply_bot';
 
+/**
+ * Desktop local/PGlite workspace. SaaS evaluates this in PostHog (fail closed).
+ * Desktop/OSS shells without PostHog keep the local-mode slice available.
+ */
+export const DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG = 'desktop_local_workspace';
+
 export type AppSwitcherFeatureFlagApp = keyof typeof APP_SWITCHER_FEATURE_FLAGS;
 
 export type AppSwitcherFeatureFlagKey =

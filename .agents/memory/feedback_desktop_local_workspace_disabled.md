@@ -7,8 +7,8 @@ last_verified: 2026-08-24
 topics: [desktop, local-workspace, pglite]
 ---
 
-**Rule:** Genfeed Desktop ships cloud sign-in only. Keep the local workspace entry visible as a coming-soon demand signal, and keep it disabled. Login, `/desktop/local`, File → Open Workspace, persisted local mode, and `appEnableOfflineMode` must not start PGlite until `DESKTOP_LOCAL_WORKSPACE_ENABLED` is flipped on purpose.
+**Rule:** Desktop local/PGlite workspace is a PostHog-gated slice (`desktop_local_workspace`), not the full offline OS. SaaS fail-closes until PostHog returns true. Desktop/OSS shells without PostHog keep the working `/desktop/local` folder + BYOK surface. When the flag is off, keep a disabled demand-signal button on login — do not send people to an empty coming-soon page.
 
-**Why:** Local mode was wired as a live action, so clicking **Use a local workspace** opened the on-device PGlite screen. Cloud is the supported desktop path; the offline epic is still open.
+**Why:** Full offline Genfeed (embedded Nest API + Postgres) is still deferred on #2378. The PGlite/BYOK landing page already works. A hardcoded disable produced a void screen; PostHog is the rollout control.
 
-**How to apply:** The gate lives in `@genfeedai/desktop-contracts` as `DESKTOP_LOCAL_WORKSPACE_ENABLED`. Leave it `false`. Do not re-enable the login button, folder picker, or Electron boot restore without an explicit product ask to ship local workspace.
+**How to apply:** Gate login and `/desktop/local` with `useDesktopLocalWorkspaceFlag`. Flip the PostHog flag to ship or hide the slice without another deploy. Do not treat `/desktop/local` as the complete studio offline.
