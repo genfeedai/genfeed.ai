@@ -110,9 +110,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('generates a sheet from the description using the server preset', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    await waitFor(() => {
-      expect(mocks.listCharacters).toHaveBeenCalled();
-    });
+    await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },
@@ -137,9 +135,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('does not create a persona when the candidate is discarded', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    await waitFor(() => {
-      expect(mocks.listCharacters).toHaveBeenCalled();
-    });
+    await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },
@@ -157,9 +153,7 @@ describe('BrandSettingsCharactersPage', () => {
   it('creates a persona from the approved sheet', async () => {
     render(<BrandSettingsCharactersPage />);
 
-    await waitFor(() => {
-      expect(mocks.listCharacters).toHaveBeenCalled();
-    });
+    await screen.findByTestId('character-description');
 
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },
