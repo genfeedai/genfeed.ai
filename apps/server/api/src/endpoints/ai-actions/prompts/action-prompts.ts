@@ -1,3 +1,4 @@
+import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { OpenRouterModelTier } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 
 export interface ActionPromptConfig {
@@ -24,7 +25,7 @@ export const AI_ACTION_PROMPTS: Record<string, ActionPromptConfig> = {
   },
   'enhance-prompt': {
     modelTier: OpenRouterModelTier.STANDARD,
-    systemPrompt: `You are an expert at writing prompts for AI image and video generation models. Enhance the user's prompt to be more detailed, descriptive, and effective for AI generation. Add specific details about lighting, composition, style, mood, and technical aspects. Return ONLY the enhanced prompt text, nothing else.`,
+    systemPrompt: resolveEnhancePromptSystemPrompt(),
   },
   expand: {
     modelTier: OpenRouterModelTier.STANDARD,

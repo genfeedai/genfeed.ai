@@ -21,6 +21,10 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import {
+  isCinematicPromptCategory,
+  loadCinematicLexiconGuidance,
+} from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -463,6 +467,10 @@ export class PromptsOperationsController {
         userPrompt = promptString;
       }
 
+      const cinematicGuidance = isCinematicPromptCategory(normalizedType)
+        ? loadCinematicLexiconGuidance()
+        : '';
+
       const { input } = await this.promptBuilderService.buildPrompt(
         DEFAULT_MINI_TEXT_MODEL,
         {
@@ -471,6 +479,9 @@ export class PromptsOperationsController {
           prompt: userPrompt,
           promptTemplate: PromptTemplateKey.TEXT_ENHANCEMENT,
           systemPromptTemplate: systemPromptKey,
+          ...(cinematicGuidance
+            ? { systemPromptSuffix: cinematicGuidance }
+            : {}),
           temperature: 0.8,
         },
         user.organizationId,
