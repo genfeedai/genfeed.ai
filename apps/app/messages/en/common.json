@@ -106,6 +106,12 @@
     }
   },
   "settings": {
+    "search": {
+      "empty": "No settings found",
+      "hint": "⌘K",
+      "label": "Search settings",
+      "placeholder": "Search settings…"
+    },
     "profile": {
       "fields": {
         "email": "Email",

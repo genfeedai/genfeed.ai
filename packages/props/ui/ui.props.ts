@@ -42,6 +42,7 @@ export interface CardProps {
   icon?: ComponentType<{ className?: string }>;
   iconWrapperClassName?: string;
   iconClassName?: string;
+  id?: string;
   label?: ReactNode;
   description?: string;
   onClick?: () => void;

@@ -252,6 +252,9 @@ test.describe('Organization & Personal Settings — Interactions', () => {
       `${SETTINGS}/brands`,
       `${SETTINGS}/models/image`,
       `${SETTINGS}/elements/scenes`,
+      `${SETTINGS}/notifications`,
+      `${SETTINGS}/chat`,
+      `${SETTINGS}/progress`,
       `${SETTINGS}/help`,
     ];
 

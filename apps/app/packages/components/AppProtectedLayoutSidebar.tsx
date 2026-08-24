@@ -1,5 +1,6 @@
 'use client';
 
+import SettingsSearch from '@app-components/settings-search/SettingsSearch';
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
 import { AUTOMATE_LOGO_HREF } from '@app-config/automate-menu-items.config';
@@ -15,6 +16,7 @@ import {
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { SettingsSurface } from '@genfeedai/enums';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type {
   MenuSharedProps,
@@ -108,7 +110,7 @@ export default function AppProtectedLayoutSidebar({
   isSettingsRoute,
   isStudioRoute,
   isAutomateRoute,
-  settingsScope: _settingsScope = 'personal',
+  settingsScope = SettingsSurface.PERSONAL,
   adminMenuItems,
   analyticsMenuItems,
   libraryMenuItems,
@@ -270,6 +272,11 @@ export default function AppProtectedLayoutSidebar({
         showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
+        renderTopSlot={
+          isSettingsRoute
+            ? () => <SettingsSearch scope={settingsScope} />
+            : undefined
+        }
       />
     );
   }

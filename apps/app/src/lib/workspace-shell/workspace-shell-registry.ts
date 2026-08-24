@@ -409,14 +409,23 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
     surfaceKey: 'connect-genfeed-resolver',
     telemetryClass: 'management',
   }),
-  ...registerRoutes(['/settings', '/settings/help'], {
-    fallback: '/settings',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'personal',
-    surfaceKey: 'personal-settings',
-    telemetryClass: 'management',
-  }),
+  ...registerRoutes(
+    [
+      '/settings',
+      '/settings/chat',
+      '/settings/help',
+      '/settings/notifications',
+      '/settings/progress',
+    ],
+    {
+      fallback: '/settings',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      scope: 'personal',
+      surfaceKey: 'personal-settings',
+      telemetryClass: 'management',
+    },
+  ),
 ] as const;
 
 const ORGANIZATION_ROUTE_REGISTRATIONS = [
@@ -542,7 +551,10 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/~/settings',
       '/:orgSlug/~/settings/personal',
+      '/:orgSlug/~/settings/chat',
       '/:orgSlug/~/settings/help',
+      '/:orgSlug/~/settings/notifications',
+      '/:orgSlug/~/settings/progress',
       '/:orgSlug/~/settings/members',
       '/:orgSlug/~/settings/credits',
       '/:orgSlug/~/settings/subscription',

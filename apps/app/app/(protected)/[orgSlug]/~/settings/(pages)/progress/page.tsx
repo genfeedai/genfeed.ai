@@ -1,14 +1,14 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
-import SettingsProfilePage from './settings-profile-page';
+import SettingsProgressPage from '../personal/settings-progress-page';
 
-export const generateMetadata = createPageMetadata('Personal Settings');
+export const generateMetadata = createPageMetadata('Progress');
 
-export default function SettingsPersonalPage() {
+export default function SettingsProgress() {
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <SettingsProfilePage />
+      <SettingsProgressPage />
     </Suspense>
   );
 }
