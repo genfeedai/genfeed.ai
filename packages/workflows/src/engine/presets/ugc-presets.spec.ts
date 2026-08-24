@@ -149,6 +149,147 @@ describe('UgcPresets', () => {
     });
   });
 
+  describe('lanshu presenter-prompt vocabulary', () => {
+    const presenterCompileInput = {
+      action: 'presenter explaining a tip',
+      colorPalette: 'neutral daylight',
+      lighting: 'soft window light',
+      mood: 'helpful',
+      subject: 'creator at a desk',
+    };
+
+    it('settled closed-mouth tail: settled face and closed resting mouth', () => {
+      const blocks = composeUgcPromptBlocks({
+        hasStartFrameReference: false,
+        preset: UGC_PRESETS.ugc_selfie_handheld,
+      });
+      const compiled = compileUgcPrompt({
+        ...presenterCompileInput,
+        hasStartFrameReference: false,
+        presetId: 'ugc_selfie_handheld',
+      });
+
+      expect(blocks.microExpression).toMatch(/settled face/i);
+      expect(blocks.microExpression).toMatch(/closed,?\s*resting mouth/i);
+      expect(compiled).toContain(blocks.microExpression);
+    });
+
+    it('one gesture, one phrase: one physically plausible gesture ends before the tail hold', () => {
+      const blocks = composeUgcPromptBlocks({
+        hasStartFrameReference: false,
+        preset: UGC_PRESETS.ugc_tripod_vlog,
+      });
+
+      expect(blocks.microExpression).toMatch(
+        /exactly one physically plausible gesture/i,
+      );
+      expect(blocks.microExpression).toMatch(/one phrase/i);
+      expect(blocks.microExpression).toMatch(
+        /movement ends before a quiet tail hold/i,
+      );
+    });
+
+    it('hand discipline: hands below the collarbone, away from face and lens, or out of frame', () => {
+      const blocks = composeUgcPromptBlocks({
+        hasStartFrameReference: false,
+        preset: UGC_PRESETS.ugc_filmed_by_another,
+      });
+
+      expect(blocks.microExpression).toMatch(/hands below the collarbone/i);
+      expect(blocks.microExpression).toMatch(/away from the face and lens/i);
+      expect(blocks.microExpression).toMatch(/out of frame/i);
+    });
+
+    it('restrained realism: skin, hair, eye moisture, fabric, breathing, sparse bilateral blinking, restrained head motion', () => {
+      const blocks = composeUgcPromptBlocks({
+        hasStartFrameReference: false,
+        preset: UGC_PRESETS.ugc_selfie_handheld,
+      });
+      const compiled = compileUgcPrompt({
+        ...presenterCompileInput,
+        hasStartFrameReference: false,
+        presetId: 'ugc_selfie_handheld',
+      });
+
+      expect(blocks.microExpression).toMatch(/restrained realism/i);
+      expect(blocks.microExpression).toMatch(/\bskin\b/i);
+      expect(blocks.microExpression).toMatch(/\bhair\b/i);
+      expect(blocks.microExpression).toMatch(/eye moisture/i);
+      expect(blocks.microExpression).toMatch(/\bfabric\b/i);
+      expect(blocks.microExpression).toMatch(/\bbreathing\b/i);
+      expect(blocks.microExpression).toMatch(/sparse bilateral blinking/i);
+      expect(blocks.microExpression).toMatch(/restrained head motion/i);
+      expect(compiled).toContain(blocks.microExpression);
+    });
+
+    it('enumerated drift exclusion: each drift term is present, not implied', () => {
+      const driftTerms = [
+        'identity',
+        'face',
+        'glasses',
+        'hair',
+        'wardrobe',
+        'skin tone',
+        'background',
+        'camera',
+        'lighting',
+        'finger',
+        'hand',
+        'dialogue',
+        'text',
+        'logo',
+        'watermark',
+        'extra people',
+      ];
+
+      getAllUgcPresets().forEach((preset) => {
+        const blocks = composeUgcPromptBlocks({
+          hasStartFrameReference: false,
+          preset,
+        });
+
+        driftTerms.forEach((term) => {
+          expect(
+            blocks.identityLock,
+            `identity-lock missing drift term "${term}"`,
+          ).toMatch(new RegExp(term, 'i'));
+        });
+      });
+    });
+
+    it('anchor ordering: start-frame bind first, then visible anchors only, never inferred traits', () => {
+      const preset = UGC_PRESETS.ugc_tripod_vlog;
+      const blocks = composeUgcPromptBlocks({
+        hasStartFrameReference: true,
+        preset,
+      });
+      const compiled = compileUgcPrompt({
+        ...presenterCompileInput,
+        hasStartFrameReference: true,
+        presetId: preset.id,
+      });
+
+      expect(compiled.startsWith(blocks.identityLock)).toBe(true);
+      expect(blocks.identityLock).toMatch(
+        /start-frame reference image as the sole presenter and scene reference/i,
+      );
+
+      const bindAt = compiled.search(/sole presenter and scene reference/i);
+      const framingAt = compiled.indexOf(blocks.framingAnchor);
+      expect(bindAt).toBeGreaterThanOrEqual(0);
+      expect(framingAt).toBeGreaterThan(bindAt);
+
+      expect(blocks.framingAnchor).toMatch(/framing/i);
+      expect(blocks.framingAnchor).toMatch(/clothing/i);
+      expect(blocks.framingAnchor).toMatch(/accessories/i);
+      expect(blocks.framingAnchor).toMatch(/camera height/i);
+      expect(blocks.framingAnchor).toMatch(/\blight\b/i);
+      expect(blocks.framingAnchor).toMatch(/exposure/i);
+      expect(blocks.framingAnchor).toMatch(/white balance/i);
+      expect(blocks.framingAnchor).toMatch(/never inferred traits/i);
+    });
+  });
+
   describe('identity-lock-with-reference', () => {
     it('ties identity lock to the start-frame reference when one is present', () => {
       const preset = UGC_PRESETS.ugc_tripod_vlog;

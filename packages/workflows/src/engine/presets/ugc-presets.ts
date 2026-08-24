@@ -57,7 +57,7 @@ export const UGC_PRESET_IDS = [
 export type UgcPresetId = (typeof UGC_PRESET_IDS)[number];
 
 const MICRO_EXPRESSION_BLOCK =
-  'Natural talking-head pacing: a small eyebrow raise on key clauses, controlled pauses between thoughts, and brief facial stillness after each phrase. Tie exactly one physically plausible gesture to one phrase so the movement ends before a quiet tail hold. End the clip with a settled face and a closed, resting mouth. Keep hands below the collarbone, away from the face and lens, or out of frame. Restrained realism: natural skin, hair, eye moisture, fabric, breathing, sparse bilateral blinking, and small head motion.';
+  'Natural talking-head pacing: a small eyebrow raise on key clauses, controlled pauses between thoughts, and brief facial stillness after each phrase. Tie exactly one physically plausible gesture to one phrase so the movement ends before a quiet tail hold. End the clip with a settled face and a closed, resting mouth. Keep hands below the collarbone, away from the face and lens, or out of frame. Restrained realism: natural skin, hair, eye moisture, fabric, breathing, sparse bilateral blinking, and restrained head motion.';
 
 const IDENTITY_LOCK_BLOCK =
   'Identity lock: do not alter facial proportions, eye shape, or hairstyle; keep natural skin texture. Exclude drift in identity, face, glasses, hair, wardrobe, skin tone, background, camera, lighting, fingers, hands, dialogue, text, logo, watermark, or extra people.';
