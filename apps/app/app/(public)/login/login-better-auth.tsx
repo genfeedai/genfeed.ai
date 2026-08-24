@@ -2,6 +2,7 @@
 
 import { getSession, signIn } from '@genfeedai/auth-client';
 import { isDesktopClient } from '@genfeedai/config/deployment';
+import { DESKTOP_LOCAL_WORKSPACE_ENABLED } from '@genfeedai/desktop-contracts';
 import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import Alert from '@ui/feedback/alert/Alert';
@@ -252,6 +253,10 @@ export default function LoginBetterAuth({
   }
 
   async function handleDesktopLocalMode() {
+    if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) {
+      return;
+    }
+
     const bridge = getDesktopBridge();
     if (!bridge) {
       setDesktopErrorMessage(
@@ -359,6 +364,12 @@ export default function LoginBetterAuth({
     }
   }
 
+  const localWorkspaceLabel = DESKTOP_LOCAL_WORKSPACE_ENABLED
+    ? isStartingLocalMode
+      ? 'Starting local workspace…'
+      : 'Use a local workspace'
+    : 'Use a local workspace — coming soon';
+
   if (isDesktop) {
     return (
       <AuthFormLayout
@@ -396,6 +407,7 @@ export default function LoginBetterAuth({
                 type="button"
                 variant={ButtonVariant.SECONDARY}
                 isDisabled={
+                  !DESKTOP_LOCAL_WORKSPACE_ENABLED ||
                   !isDesktopBridgeAvailable ||
                   isStartingLocalMode ||
                   isWaitingForDesktopSession
@@ -404,9 +416,7 @@ export default function LoginBetterAuth({
                 withWrapper={false}
                 onClick={() => void handleDesktopLocalMode()}
               >
-                {isStartingLocalMode
-                  ? 'Starting local workspace…'
-                  : 'Use a local workspace'}
+                {localWorkspaceLabel}
               </Button>
             </>
           }
@@ -418,8 +428,9 @@ export default function LoginBetterAuth({
                 <p aria-live="polite">Waiting for the browser...</p>
               ) : null}
               <p>
-                Local mode keeps its database and workspace files on this Mac.
-                It starts only when you choose it.
+                {DESKTOP_LOCAL_WORKSPACE_ENABLED
+                  ? 'Local mode keeps its database and workspace files on this Mac. It starts only when you choose it.'
+                  : 'Local workspace is coming soon. Sign in with Genfeed Cloud.'}
               </p>
             </div>
           }

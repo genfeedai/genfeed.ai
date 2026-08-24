@@ -79,7 +79,8 @@ describe('desktop shell integrations', () => {
     openWorkspaceItem?.click?.();
     toggleSidebarItem?.click?.();
 
-    expect(openWorkspaceCalls).toBe(1);
+    expect(openWorkspaceItem?.enabled).toBe(false);
+    expect(openWorkspaceCalls).toBe(0);
     expect(window.webContents.sentChannels).toEqual([
       DESKTOP_IPC_CHANNELS.toggleSidebar,
     ]);

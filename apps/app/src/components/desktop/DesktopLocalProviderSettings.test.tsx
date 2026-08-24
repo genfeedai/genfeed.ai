@@ -286,7 +286,7 @@ describe('DesktopLocalProviderSettings', () => {
     expect(screen.queryByRole('button', { name: 'Test' })).toBeNull();
     expect(
       screen.getByRole('button', { name: 'Use a local workspace' }),
-    ).toBeEnabled();
+    ).toBeDisabled();
     expect(mocks.getProviderConfig).not.toHaveBeenCalled();
     expect(mocks.saveProviderConfig).not.toHaveBeenCalled();
     expect(mocks.testProviderConfig).not.toHaveBeenCalled();

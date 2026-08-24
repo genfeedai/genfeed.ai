@@ -194,8 +194,10 @@ describe('LoginPage', () => {
         screen.getByRole('button', { name: 'Sign in with Genfeed' }),
       ).toBeEnabled();
       expect(
-        screen.getByRole('button', { name: 'Use a local workspace' }),
-      ).toBeEnabled();
+        screen.getByRole('button', {
+          name: 'Use a local workspace — coming soon',
+        }),
+      ).toBeDisabled();
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument();
       expect(
@@ -207,29 +209,21 @@ describe('LoginPage', () => {
     },
   );
 
-  it('starts local mode only after the user selects it', async () => {
+  it('keeps local workspace disabled as a coming-soon demand signal', () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    const locationAssignMock = vi.fn();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: {
-        ...originalLocation,
-        assign: locationAssignMock,
-        origin: originalLocation.origin,
-      },
-      writable: true,
-    });
     render(<LoginPage />);
 
-    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Use a local workspace' }),
-    );
-
-    await waitFor(() => {
-      expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
+    const localModeButton = screen.getByRole('button', {
+      name: 'Use a local workspace — coming soon',
     });
-    expect(locationAssignMock).toHaveBeenCalledWith('/desktop/local');
+    expect(localModeButton).toBeDisabled();
+    fireEvent.click(localModeButton);
+    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'Local workspace is coming soon. Sign in with Genfeed Cloud.',
+      ),
+    ).toBeVisible();
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {
@@ -246,7 +240,7 @@ describe('LoginPage', () => {
     expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
     expect(screen.getByText('Waiting for the browser...')).toBeVisible();
     const localModeButton = screen.getByRole('button', {
-      name: 'Use a local workspace',
+      name: 'Use a local workspace — coming soon',
     });
     expect(localModeButton).toBeDisabled();
     fireEvent.click(localModeButton);

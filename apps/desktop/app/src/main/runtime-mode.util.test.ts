@@ -5,11 +5,18 @@ import {
   activateDesktopLocalMode,
   createUnwoundLocalRuntimeState,
   selectDesktopDataService,
+  shouldOpenDesktopLocalWorkspace,
   switchDesktopToCloud,
   unwindFailedLocalRuntimeAfterClose,
 } from './runtime-mode.util';
 
 describe('desktop runtime mode transitions', () => {
+  it('does not reopen a persisted local workspace while the feature is disabled', () => {
+    expect(shouldOpenDesktopLocalWorkspace('local')).toBe(false);
+    expect(shouldOpenDesktopLocalWorkspace('cloud')).toBe(false);
+    expect(shouldOpenDesktopLocalWorkspace(undefined)).toBe(false);
+  });
+
   it('does not persist local mode when runtime initialization fails', async () => {
     let persisted = false;
 

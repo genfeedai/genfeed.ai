@@ -1,6 +1,9 @@
 'use client';
 
-import type { DesktopGenerationProviderKind } from '@genfeedai/desktop-contracts';
+import {
+  DESKTOP_LOCAL_WORKSPACE_ENABLED,
+  type DesktopGenerationProviderKind,
+} from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
@@ -272,6 +275,7 @@ export default function DesktopLocalProviderSettings({
   };
 
   const handleStartLocalMode = async () => {
+    if (!DESKTOP_LOCAL_WORKSPACE_ENABLED) return;
     const bridge = getDesktopBridge();
     if (!bridge) return;
     dispatch({ type: 'SET_STATUS', payload: translate('status.starting') });
@@ -300,7 +304,7 @@ export default function DesktopLocalProviderSettings({
         </p>
         <Button
           className="mt-3 rounded px-2 py-1 text-xs"
-          disabled={isLocalMode === null}
+          isDisabled={!DESKTOP_LOCAL_WORKSPACE_ENABLED || isLocalMode === null}
           onClick={() => void handleStartLocalMode()}
           type="button"
           variant={ButtonVariant.UNSTYLED}
