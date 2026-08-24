@@ -1,5 +1,6 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
@@ -63,7 +64,10 @@ export default function WorkflowLibraryPage() {
     selectedIds,
     toggleSelected,
     clearSelection,
+    pagination,
+    setPage,
   } = useWorkflowLibraryPage();
+  const isDesktopShell = isDesktopClient();
   const [schedulingWorkflowId, setSchedulingWorkflowId] = useState<
     string | null
   >(null);
@@ -255,12 +259,15 @@ export default function WorkflowLibraryPage() {
                         {translate('library.system')}
                       </span>
                     ) : null}
-                    {isCapable && isConnected && workflow.cloudSync ? (
+                    {isDesktopShell &&
+                    isCapable &&
+                    isConnected &&
+                    workflow.cloudSync ? (
                       <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
                         <Cloud className="size-3" />
                         {translate('library.synced')}
                       </span>
-                    ) : isCapable && isConnected && !workflow.cloudSync ? (
+                    ) : isDesktopShell && isCapable && isConnected ? (
                       <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                         <CloudUpload className="size-3" />
                         {translate('library.local')}
@@ -355,6 +362,33 @@ export default function WorkflowLibraryPage() {
           })}
         </div>
       )}
+
+      {pagination.pages > 1 ? (
+        <div className="mt-4 flex items-center justify-between">
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            disabled={pagination.page <= 1}
+            onClick={() => setPage(Math.max(1, pagination.page - 1))}
+          >
+            {translate('library.previous')}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {translate('library.pageStatus', {
+              page: pagination.page,
+              pages: pagination.pages,
+            })}
+          </span>
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            disabled={pagination.page >= pagination.pages}
+            onClick={() =>
+              setPage(Math.min(pagination.pages, pagination.page + 1))
+            }
+          >
+            {translate('library.next')}
+          </Button>
+        </div>
+      ) : null}
 
       {schedulingWorkflowId ? (
         <WorkflowScheduleDialog
