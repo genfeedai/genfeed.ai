@@ -414,13 +414,8 @@ export function useAgentChatInput({
               ];
             },
           }),
-          command: ({
-            editor,
-            props,
-            range,
-          }: {
-            editor: Editor;
-            props: {
+          command: ({ editor, props, range }) => {
+            const mention = props as {
               displayName?: string;
               handle?: string;
               id: string;
@@ -428,17 +423,15 @@ export function useAgentChatInput({
               label?: string;
               role?: string;
             };
-            range: { from: number; to: number };
-          }) => {
-            if (props.role === 'Character') {
+            if (mention.role === 'Character') {
               editor
                 .chain()
                 .focus()
                 .insertContentAt(range, {
                   attrs: {
-                    handle: props.handle,
-                    id: props.id,
-                    label: props.label,
+                    handle: mention.handle,
+                    id: mention.id,
+                    label: mention.label,
                   },
                   type: 'characterMention',
                 })
@@ -450,10 +443,10 @@ export function useAgentChatInput({
               .focus()
               .insertContentAt(range, {
                 attrs: {
-                  displayName: props.displayName,
-                  isAgent: props.isAgent,
-                  role: props.role,
-                  userId: props.id,
+                  displayName: mention.displayName,
+                  isAgent: mention.isAgent,
+                  role: mention.role,
+                  userId: mention.id,
                 },
                 type: 'teamMention',
               })

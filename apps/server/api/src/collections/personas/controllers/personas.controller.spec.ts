@@ -8,6 +8,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PersonaStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const brandId = testId('brand');
@@ -253,7 +254,7 @@ describe('PersonasController', () => {
     });
 
     it('refuses to search another organization', () => {
-      expect(() =>
+      const call = () =>
         controller.buildFindAllQuery(
           mockUser as never,
           {
@@ -261,8 +262,18 @@ describe('PersonasController', () => {
             organizationId: testId('org', 9),
             q: 'an',
           } as never,
-        ),
-      ).toThrow(/Access denied to this organization/);
+        );
+
+      expect(call).toThrow(ForbiddenException);
+      try {
+        call();
+        expect.unreachable('expected a ForbiddenException');
+      } catch (error) {
+        expect((error as ForbiddenException).getResponse()).toEqual({
+          detail: 'Access denied to this organization',
+          title: 'Forbidden',
+        });
+      }
     });
   });
 });

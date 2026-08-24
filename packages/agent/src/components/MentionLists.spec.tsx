@@ -11,6 +11,11 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'empty' ? 'No characters found' : key,
+}));
+
 interface MentionListHandle {
   onKeyDown: (props: { event: KeyboardEvent }) => boolean;
 }

@@ -1,5 +1,6 @@
-import type { AnyExtension, EditorView } from '@tiptap/core';
+import type { AnyExtension } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
+import type { EditorView } from '@tiptap/pm/view';
 import StarterKit from '@tiptap/starter-kit';
 import { applyPromptEditorPasteText } from '@ui/prompt-editor/apply-prompt-editor-paste';
 import { normalizePromptEditorPasteText } from '@ui/prompt-editor/normalize-prompt-editor-paste';

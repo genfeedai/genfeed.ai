@@ -39,36 +39,31 @@ function PromptEditor({
 
   const handlePaste = useRef(createPromptEditorPasteHandler()).current;
 
-  const ownedEditor = useEditor(
-    injectedEditor
-      ? undefined
-      : {
-          content: initialContent ?? value ?? '',
-          editable: !isDisabled,
-          editorProps: {
-            attributes: {
-              'aria-label': ariaLabel,
-              'aria-multiline': 'true',
-              class: cn(
-                'prose prose-sm max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
-                editorClassName,
-              ),
-              role: 'textbox',
-            },
-            handlePaste: (view, event) => handlePaste(view, event),
-          },
-          extensions: createPromptEditorExtensions({
-            extraExtensions,
-            onEnter: () => {
-              onSubmitRef.current?.();
-              return true;
-            },
-            placeholder,
-          }),
-          immediatelyRender: false,
-        },
-    injectedEditor ? undefined : [extraExtensions],
-  );
+  const ownedEditor = useEditor({
+    content: initialContent ?? value ?? '',
+    editable: !isDisabled,
+    editorProps: {
+      attributes: {
+        'aria-label': ariaLabel,
+        'aria-multiline': 'true',
+        class: cn(
+          'prose prose-sm max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
+          editorClassName,
+        ),
+        role: 'textbox',
+      },
+      handlePaste: (view, event) => handlePaste(view, event),
+    },
+    extensions: createPromptEditorExtensions({
+      extraExtensions,
+      onEnter: () => {
+        onSubmitRef.current?.();
+        return true;
+      },
+      placeholder,
+    }),
+    immediatelyRender: false,
+  });
 
   const editor = injectedEditor ?? ownedEditor;
 

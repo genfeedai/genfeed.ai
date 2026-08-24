@@ -459,6 +459,8 @@ export class AdPerformanceService {
 
     if (this.isScalarTopPerformerMetric(metric)) {
       const metricWhere = this.buildScalarMetricWhere(where, metric, params);
+      // tenant-scope-ignore: global public benchmark rows are cross-org;
+      // tenant research rows are already pinned inside buildResearchVisibilityWhere
       const records = await this.prisma.adPerformance.findMany({
         orderBy: this.buildMetricOrderBy(metric),
         take: limit,
@@ -475,6 +477,8 @@ export class AdPerformanceService {
       ...where,
       performanceScore: { not: null },
     };
+    // tenant-scope-ignore: global public benchmark rows are cross-org;
+    // tenant research rows are already pinned inside buildResearchVisibilityWhere
     const jsonRecords = await this.prisma.adPerformance.findMany({
       orderBy: this.buildMetricOrderBy('performanceScore'),
       take: Math.max(limit, JSON_METRIC_CANDIDATE_LIMIT),

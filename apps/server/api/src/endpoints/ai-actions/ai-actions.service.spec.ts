@@ -230,8 +230,8 @@ describe('AiActionsService', () => {
       const systemMessage = callArgs.messages.find(
         (message: { role: string }) => message.role === 'system',
       );
-      expect(systemMessage.content).toContain('Cinematography vocabulary');
-      expect(systemMessage.content).toContain('high-angle shot');
+      expect(systemMessage?.content).toContain('Cinematography vocabulary');
+      expect(systemMessage?.content).toContain('high-angle shot');
     });
 
     it('omits cinematography lexicon guidance for text-only enhance-prompt categories', async () => {
@@ -253,7 +253,7 @@ describe('AiActionsService', () => {
       const systemMessage = callArgs.messages.find(
         (message: { role: string }) => message.role === 'system',
       );
-      expect(systemMessage.content).not.toContain('Cinematography vocabulary');
+      expect(systemMessage?.content).not.toContain('Cinematography vocabulary');
     });
 
     it('should handle empty response content', async () => {
