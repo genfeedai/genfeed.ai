@@ -168,7 +168,10 @@ function readGenerationScopeMap(): GenerationScopeMap {
             ? record.model.trim()
             : null,
         outputs,
-        priority: toRouterPriority(record.priority) ?? null,
+        priority:
+          typeof record.priority === 'string'
+            ? (toRouterPriority(record.priority) ?? null)
+            : null,
       };
     }
 
