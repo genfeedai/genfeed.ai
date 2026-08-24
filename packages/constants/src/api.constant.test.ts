@@ -17,4 +17,8 @@ describe('api.constant', () => {
   it('contains ACTIVITIES endpoint', () => {
     expect(API_ENDPOINTS.ACTIVITIES).toBe('/activities');
   });
+
+  it('contains PERSONAS endpoint', () => {
+    expect(API_ENDPOINTS.PERSONAS).toBe('/personas');
+  });
 });

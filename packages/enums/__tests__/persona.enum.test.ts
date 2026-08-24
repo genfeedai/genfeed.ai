@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   AvatarProvider,
+  isPersonaHandle,
   LoraStatus,
+  normalizePersonaHandle,
+  PERSONA_HANDLE_PATTERN,
   PersonaContentFormat,
   PersonaStatus,
 } from '../src/persona.enum';
@@ -16,6 +19,32 @@ describe('persona.enum', () => {
       expect(PersonaStatus.ACTIVE).toBe('ACTIVE');
       expect(PersonaStatus.INACTIVE).toBe('INACTIVE');
       expect(PersonaStatus.ARCHIVED).toBe('ARCHIVED');
+    });
+  });
+
+  describe('character handles', () => {
+    it('accepts lowercase URL-safe handles of 2–32 characters', () => {
+      expect(isPersonaHandle('an')).toBe(true);
+      expect(isPersonaHandle('anna')).toBe(true);
+      expect(isPersonaHandle('anna_01')).toBe(true);
+      expect(isPersonaHandle('red-jacket')).toBe(true);
+      expect(PERSONA_HANDLE_PATTERN.test('a'.repeat(32))).toBe(true);
+    });
+
+    it('rejects uppercase, spaces, short, and long handles', () => {
+      expect(isPersonaHandle('Anna')).toBe(false);
+      expect(isPersonaHandle('a')).toBe(false);
+      expect(isPersonaHandle('a'.repeat(33))).toBe(false);
+      expect(isPersonaHandle('anna doe')).toBe(false);
+      expect(isPersonaHandle('anna@')).toBe(false);
+    });
+
+    it('normalizes empty handles to null and lowercases the rest', () => {
+      expect(normalizePersonaHandle(undefined)).toBeNull();
+      expect(normalizePersonaHandle(null)).toBeNull();
+      expect(normalizePersonaHandle('')).toBeNull();
+      expect(normalizePersonaHandle('  ')).toBeNull();
+      expect(normalizePersonaHandle('Anna')).toBe('anna');
     });
   });
 

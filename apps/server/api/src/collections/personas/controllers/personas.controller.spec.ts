@@ -5,6 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { PersonaStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -155,6 +156,47 @@ describe('PersonasController', () => {
           memberIds: [memberId1],
         } as any),
       ).rejects.toThrow('DB error');
+    });
+  });
+
+  describe('buildFindAllQuery (mention suggestions)', () => {
+    it('scopes mentionable suggestions to the caller org/brand and active handles', () => {
+      const query = controller.buildFindAllQuery(
+        mockUser as never,
+        {
+          isMentionable: true,
+          q: 'an',
+        } as never,
+      );
+
+      expect(query.where).toMatchObject({
+        brandId,
+        handle: { not: null },
+        isDeleted: false,
+        organizationId,
+        status: PersonaStatus.ACTIVE,
+      });
+      expect(query.where).toEqual(
+        expect.objectContaining({
+          OR: [
+            { handle: { mode: 'insensitive', startsWith: 'an' } },
+            { label: { mode: 'insensitive', startsWith: 'an' } },
+          ],
+        }),
+      );
+    });
+
+    it('refuses to search another organization', () => {
+      expect(() =>
+        controller.buildFindAllQuery(
+          mockUser as never,
+          {
+            isMentionable: true,
+            organizationId: testId('org', 9),
+            q: 'an',
+          } as never,
+        ),
+      ).toThrow(/Access denied to this organization/);
     });
   });
 });

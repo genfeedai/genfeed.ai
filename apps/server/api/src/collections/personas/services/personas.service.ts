@@ -2,13 +2,48 @@ import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.d
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { isPersonaHandle, normalizePersonaHandle } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+function isPersonaHandleUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const record = error as {
+    code?: unknown;
+    meta?: { target?: unknown; constraint?: unknown };
+  };
+  if (record.code !== 'P2002') {
+    return false;
+  }
+  const target = record.meta?.target;
+  const constraint = record.meta?.constraint;
+  const haystack = [
+    ...(Array.isArray(target) ? target.map(String) : [String(target ?? '')]),
+    String(constraint ?? ''),
+  ]
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes('handle') || haystack.includes('org_brand_handle');
+}
+
+function rethrowHandleConflict(error: unknown, handle?: string | null): never {
+  if (isPersonaHandleUniqueViolation(error)) {
+    throw new ValidationException(
+      'A character with this handle already exists in this brand',
+      'handle',
+      handle,
+    );
+  }
+  throw error;
+}
 
 @Injectable()
 export class PersonasService extends BaseService<
@@ -32,7 +67,7 @@ export class PersonasService extends BaseService<
     return { ...config, ...record } as PersonaDocument;
   }
 
-  create(
+  async create(
     dto: CreatePersonaDto & {
       userId: string;
       organizationId: string;
@@ -65,6 +100,14 @@ export class PersonasService extends BaseService<
       triggerWord,
       ...rest
     } = dto;
+    const handle = normalizePersonaHandle(rest.handle);
+    if (handle !== null && !isPersonaHandle(handle)) {
+      throw new ValidationException(
+        'Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores',
+        'handle',
+        handle,
+      );
+    }
     const config = {
       ...(bio !== undefined ? { bio } : {}),
       ...(contentStrategy !== undefined ? { contentStrategy } : {}),
@@ -79,9 +122,44 @@ export class PersonasService extends BaseService<
     };
     const payload = {
       ...rest,
+      handle,
       ...(Object.keys(config).length > 0 ? { config } : {}),
     };
-    return super.create(payload as unknown as CreatePersonaDto, populate);
+    try {
+      return await super.create(
+        payload as unknown as CreatePersonaDto,
+        populate,
+      );
+    } catch (error: unknown) {
+      rethrowHandleConflict(error, handle);
+    }
+  }
+
+  async patch(
+    id: string,
+    updateDto: Partial<UpdatePersonaDto>,
+    populate: PopulateOption[] = [
+      PopulatePatterns.userMinimal,
+      PopulatePatterns.brandMinimal,
+    ],
+  ): Promise<PersonaDocument> {
+    const nextDto = { ...updateDto };
+    if ('handle' in nextDto) {
+      const handle = normalizePersonaHandle(nextDto.handle);
+      if (handle !== null && !isPersonaHandle(handle)) {
+        throw new ValidationException(
+          'Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores',
+          'handle',
+          handle,
+        );
+      }
+      nextDto.handle = handle;
+    }
+    try {
+      return await super.patch(id, nextDto, populate);
+    } catch (error: unknown) {
+      rethrowHandleConflict(error, nextDto.handle);
+    }
   }
 
   findOne(

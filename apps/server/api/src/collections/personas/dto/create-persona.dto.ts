@@ -1,17 +1,21 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AvatarProvider,
+  normalizePersonaHandle,
+  PERSONA_HANDLE_PATTERN,
   PersonaContentFormat,
   PersonaStatus,
   VoiceProvider,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
   IsOptional,
   IsString,
+  Matches,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -74,12 +78,23 @@ export class CreatePersonaDto {
   readonly label!: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' || value === null || value === undefined
+      ? normalizePersonaHandle(value)
+      : value,
+  )
+  @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsString()
+  @Matches(PERSONA_HANDLE_PATTERN, {
+    message:
+      'Handle must be 2–32 characters of lowercase letters, numbers, hyphens, or underscores',
+  })
   @ApiProperty({
-    description: 'Social handle',
+    description:
+      'Brand-unique character handle (lowercase [a-z0-9-_], 2–32 chars). Required only for @-mentionability.',
     required: false,
   })
-  readonly handle?: string;
+  readonly handle?: string | null;
 
   @IsOptional()
   @IsString()
