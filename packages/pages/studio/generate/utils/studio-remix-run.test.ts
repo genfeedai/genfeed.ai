@@ -1,7 +1,11 @@
 import type { BrandRemixRunView } from '@api-types/contracts';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 import { describe, expect, it } from 'vitest';
-import { buildStudioRemixRunEdits } from './studio-remix-run';
+import {
+  buildStudioRemixRunEdits,
+  clampRemixDurationSeconds,
+  getRemixDraftComposerState,
+} from './studio-remix-run';
 
 const run = {
   draft: {
@@ -34,6 +38,30 @@ const run = {
     target: { kind: 'organic', platform: 'tiktok' },
   },
 } as BrandRemixRunView;
+
+describe('clampRemixDurationSeconds', () => {
+  it('rounds and clamps remix duration to the declared 1–300 second bounds', () => {
+    expect(clampRemixDurationSeconds(5000)).toBe(300);
+    expect(clampRemixDurationSeconds(0.4)).toBe(1);
+    expect(clampRemixDurationSeconds('12.6')).toBe(13);
+    expect(clampRemixDurationSeconds('')).toBeUndefined();
+    expect(clampRemixDurationSeconds('abc')).toBeUndefined();
+  });
+});
+
+describe('getRemixDraftComposerState', () => {
+  it('restores authorized media settings from the current run draft', () => {
+    expect(getRemixDraftComposerState(run)).toEqual({
+      prompt: 'Original objective',
+      settings: {
+        aspectRatio: '9:16',
+        duration: 8,
+        outputs: 3,
+      },
+      type: 'video',
+    });
+  });
+});
 
 describe('buildStudioRemixRunEdits', () => {
   it('sends prompt settings and authorized reference ids back through the run contract', () => {
@@ -145,6 +173,35 @@ describe('buildStudioRemixRunEdits', () => {
         'image',
       ).identity,
     ).toEqual({ avatarAssetId: null, speechVoiceId: null });
+  });
+
+  it('clamps out-of-range duration before a revision call', () => {
+    expect(
+      buildStudioRemixRunEdits(
+        run,
+        'Keep the proof and sharpen the product reveal.',
+        {
+          ...getDefaultStudioGenerateSettings('video'),
+          duration: 5000.4,
+          outputs: 4,
+        },
+        'video',
+      ).output,
+    ).toMatchObject({ durationSeconds: 300 });
+  });
+
+  it('omits invalid duration instead of sending it to the revision contract', () => {
+    expect(
+      buildStudioRemixRunEdits(
+        run,
+        'Keep the proof and sharpen the product reveal.',
+        {
+          ...getDefaultStudioGenerateSettings('video'),
+          duration: Number.NaN,
+        },
+        'video',
+      ).output,
+    ).not.toHaveProperty('durationSeconds');
   });
 
   it('carries newly selected Library identities into the canonical recipe', () => {

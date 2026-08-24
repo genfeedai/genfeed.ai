@@ -14,6 +14,7 @@
       "title": "X Ads Repository disclosure"
     },
     "errors": {
+      "remixUnavailable": "The on-brand remix workflow is unavailable here.",
       "title": "Ads hub needs attention"
     },
     "reviewPolicy": "Launch plans require review. No external campaign objects are created from Ads Research."
@@ -129,12 +130,16 @@
       "preparePaidDraft": "Prepare paused Meta draft",
       "readinessTitle": "{state} run",
       "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+      "regionLabel": "Remix run",
       "review": {
         "open": "Open Review",
         "openPublishDrafts": "Open Publish drafts",
         "summaryMany": "Review batch {batchId} · {count} drafts",
         "summaryOne": "Review batch {batchId} · {count} draft"
-      }
+      },
+      "sendToReview": "Send {count} to Review",
+      "varyRecipe": "Vary recipe",
+      "waitingForAssetIds": "Waiting for durable asset ids"
     },
     "title": "Generate"
   },
@@ -307,6 +312,9 @@
   },
   "remixBrief": {
     "errors": {
+      "prepareFailed": "The on-brand remix brief could not be prepared.",
+      "saveFailed": "The on-brand remix brief could not be saved.",
+      "selectBrand": "Select a brand before preparing an on-brand remix.",
       "title": "Remix brief unavailable"
     },
     "identity": {

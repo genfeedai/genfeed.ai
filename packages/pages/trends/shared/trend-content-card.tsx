@@ -172,10 +172,20 @@ export default function TrendContentCard({
   const isPrefilledRemixPlatform = PREFILLED_ORGANIC_REMIX_PLATFORMS.has(
     item.platform,
   );
+  const hasDurableSourceReference = Boolean(item.sourceReferenceId);
   const opensPrefilledRemix =
     isPrefilledRemixPlatform &&
-    Boolean(item.sourceReferenceId) &&
+    hasDurableSourceReference &&
     Boolean(remixSurface);
+  const opensLegacyRemix =
+    hasDurableSourceReference &&
+    isSourcePostVariationPlatform(item.platform) &&
+    !opensPrefilledRemix;
+  const isRemixUnavailable =
+    isPrefilledRemixPlatform &&
+    hasDurableSourceReference &&
+    !remixSurface &&
+    !opensLegacyRemix;
 
   const handleSaveBrief = useCallback(async () => {
     if (!brandId) {
@@ -335,8 +345,7 @@ export default function TrendContentCard({
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
             />
-          ) : !isPrefilledRemixPlatform &&
-            isSourcePostVariationPlatform(item.platform) ? (
+          ) : opensLegacyRemix ? (
             <Button
               asChild
               className="min-w-0 flex-1 sm:flex-none"
@@ -349,6 +358,15 @@ export default function TrendContentCard({
                 {translate('actions.remix')}
               </Link>
             </Button>
+          ) : isRemixUnavailable ? (
+            <Button
+              className="min-w-0 flex-1 sm:flex-none"
+              icon={<Sparkles className="size-3.5" />}
+              isDisabled
+              label={translate('actions.remixUnavailable')}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+            />
           ) : null}
           {finding && onSelect ? (
             <Button
