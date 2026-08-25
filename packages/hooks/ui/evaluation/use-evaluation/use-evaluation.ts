@@ -4,7 +4,7 @@ import { EvaluationsService } from '@genfeedai/services/ai/evaluations.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSocketSubscription } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import { useSocketSubscriptions } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface UseEvaluationOptions {
@@ -140,7 +140,13 @@ export function useEvaluation({
     ? `/evaluations/${currentEvaluationIdRef.current}`
     : '';
 
-  useSocketSubscription(wsEvent, handleEvaluationUpdate);
+  const wsSubscriptions = useMemo(
+    () =>
+      wsEvent ? [{ event: wsEvent, handler: handleEvaluationUpdate }] : [],
+    [wsEvent, handleEvaluationUpdate],
+  );
+
+  useSocketSubscriptions(wsSubscriptions);
 
   /**
    * Trigger a new evaluation for the content

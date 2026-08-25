@@ -206,17 +206,6 @@ export class SocketManager {
   }
 
   /**
-   * Subscribe to multiple socket events at once
-   */
-  public subscribeMultiple<T = unknown>(
-    subscriptions: Array<{ event: string; handler: ISocketEventHandler<T> }>,
-  ): Array<() => void> {
-    return subscriptions.map(({ event, handler }) =>
-      this.subscribe(event, handler),
-    );
-  }
-
-  /**
    * Unsubscribe from a specific event
    */
   public unsubscribe<T = unknown>(

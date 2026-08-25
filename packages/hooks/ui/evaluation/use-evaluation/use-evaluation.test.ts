@@ -9,7 +9,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
-  useSocketSubscription: vi.fn(),
+  useSocketSubscriptions: vi.fn(),
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({

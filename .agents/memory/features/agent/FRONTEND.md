@@ -247,7 +247,6 @@ Singleton `SocketManager` per Better Auth session token.
   isConnected: () => boolean
   isReady: boolean
   subscribe: <T>(event, handler) => () => void  // returns unsubscriber
-  subscribeMultiple: <T>(subscriptions) => (() => void)[]
   unsubscribe: <T>(event, handler?) => void
 }
 ```
