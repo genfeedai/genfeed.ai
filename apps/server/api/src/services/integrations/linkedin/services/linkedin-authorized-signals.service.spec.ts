@@ -299,17 +299,17 @@ describe('LinkedInAuthorizedSignalsService', () => {
       value: { accountKind: 'member', canPublish: true },
     });
     expect(evidenceOf(snapshot, 'organization-page-snapshot')).toMatchObject({
-      reason: 'organization_page_selection_required',
+      reason: 'missing_scope',
       status: 'permission_limited',
     });
     expect(
       evidenceOf(snapshot, 'organization-publishing-capability-snapshot'),
     ).toMatchObject({
-      reason: 'organization_page_selection_required',
+      reason: 'missing_scope',
       status: 'permission_limited',
     });
     expect(evidenceOf(snapshot, 'owned-posts-snapshot')).toMatchObject({
-      reason: 'organization_page_selection_required',
+      reason: 'missing_scope',
       status: 'permission_limited',
     });
     expect(
