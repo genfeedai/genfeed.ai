@@ -1174,10 +1174,10 @@ export class LinkedInAuthorizedSignalsService {
   ): LinkedinAuthorizedSignalEvidence {
     const scope = this.buildScope(requiredScopes, grantedScopes);
     const reason: LinkedinAuthorizedSignalReason =
-      isLinkedinOrganizationSelectionError(error)
-        ? 'organization_page_selection_required'
-        : scope.missing.length > 0 || isLinkedinScopeError(error)
-          ? 'missing_scope'
+      scope.missing.length > 0 || isLinkedinScopeError(error)
+        ? 'missing_scope'
+        : isLinkedinOrganizationSelectionError(error)
+          ? 'organization_page_selection_required'
           : isLinkedinRateLimitError(error)
             ? 'rate_limited'
             : 'provider_error';
