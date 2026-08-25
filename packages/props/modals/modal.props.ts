@@ -26,7 +26,6 @@ import type {
   IElementStyle,
   IFolder,
   IFontFamily,
-  IImage,
   IIngredient,
   ILink,
   IMember,
@@ -48,6 +47,7 @@ import type { Training } from '@genfeedai/models/ai/training.model';
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { ContentProps } from '@props/layout/content.props';
+import type { GallerySelectItem } from '@props/modals/modal-gallery.props';
 import type React from 'react';
 import type { ReactNode } from 'react';
 import type { FieldArrayWithId, UseFormReturn } from 'react-hook-form';
@@ -114,7 +114,7 @@ export interface ModalVideoProps extends ModalSelectProps<IVideo> {
 export interface ModalGalleryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (items: (IAsset | IImage | IMusic | IVideo)[]) => void;
+  onSelect: (items: GallerySelectItem[]) => void;
   category: IngredientCategory;
   title?: string;
   selectedId?: string;

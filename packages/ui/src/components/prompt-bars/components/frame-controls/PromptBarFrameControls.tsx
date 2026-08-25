@@ -171,7 +171,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
 
   const setReferences = (
     assets: (IAsset | IImage)[],
-    source: 'brand' | 'ingredient',
+    source: 'brand' | 'ingredient' | '',
   ) => {
     onReferencesChange(assets);
     onReferenceSourceChange(source);

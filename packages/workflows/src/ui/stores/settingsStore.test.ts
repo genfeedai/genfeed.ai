@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SettingsSyncService } from '../provider/types';
+import { configureEdgeStyleMirror } from './edgeStyleMirror';
 import { configureSettingsSync, useSettingsStore } from './settingsStore';
 
 // jsdom here does not expose localStorage; the store guards writes in try/catch,
@@ -43,6 +44,7 @@ beforeEach(() => {
     recentModels: [],
     showMinimap: true,
   });
+  configureEdgeStyleMirror(undefined);
   configureSettingsSync(undefined);
   localStorage.clear();
 });

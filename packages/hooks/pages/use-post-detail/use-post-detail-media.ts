@@ -87,9 +87,7 @@ export function usePostDetailMedia({
         // An emptied selection arrives as `[]` and falls through the same path:
         // it patches, sets, and propagates empty ingredients like any other size.
         onSelect: async (selected: GallerySelectItem[]) => {
-          const ingredientsArray = selected as unknown as IIngredient[];
-
-          const uniqueIngredients = ingredientsArray.filter(
+          const uniqueIngredients = selected.filter(
             (ing, index, self) =>
               index === self.findIndex((i) => i.id === ing.id),
           );

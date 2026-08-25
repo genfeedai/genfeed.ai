@@ -2,6 +2,7 @@ import type { EdgeStyle, ProviderType } from '@genfeedai/types';
 import { ProviderTypeEnum } from '@genfeedai/types';
 import { create } from 'zustand';
 import type { SettingsSyncService } from '../provider/types';
+import { getEdgeStyleMirror } from './edgeStyleMirror';
 import { getWorkflowLogger } from './executionLogger';
 
 // =============================================================================
@@ -379,10 +380,12 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
 
     setEdgeStyle: (style) => {
       setAndPersist(() => ({ edgeStyle: style }));
-      // Dynamic import to avoid circular dependency
-      import('./workflow').then(({ useWorkflowStore }) => {
-        useWorkflowStore.getState().setEdgeStyle(style);
-      });
+      // Synchronous through the mirror registry. The previous dynamic import of
+      // './workflow' dodged the store cycle but left a floating promise: it
+      // force-loaded the whole graph just to restyle edges, and could resolve
+      // after a test environment had torn down, failing the run with an
+      // unhandled rejection.
+      getEdgeStyleMirror()(style);
     },
 
     setHasSeenWelcome: (seen) => {

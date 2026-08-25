@@ -5,11 +5,7 @@ import {
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
-import type {
-  IEditorProject,
-  IEditorTrack,
-  IIngredient,
-} from '@genfeedai/interfaces';
+import type { IEditorProject, IEditorTrack } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
@@ -215,7 +211,7 @@ export function useEditorPageContent(projectId: string) {
     openGallery({
       category: IngredientCategory.VIDEO,
       onSelect: (selected) => {
-        const video = selected?.[0] as IIngredient | undefined;
+        const video = selected?.[0];
         if (!video || !state.project) {
           return;
         }
@@ -267,7 +263,7 @@ export function useEditorPageContent(projectId: string) {
     openGallery({
       category: IngredientCategory.MUSIC,
       onSelect: (selected) => {
-        const audio = selected?.[0] as IIngredient | undefined;
+        const audio = selected?.[0];
         if (!audio || !state.project) {
           return;
         }

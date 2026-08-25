@@ -201,7 +201,7 @@ describe('UserDropdown', () => {
 
     expect(
       screen.getByRole('menuitem', { name: /Organization/i }),
-    ).toHaveAttribute('href', '/acme/~/settings');
+    ).toHaveAttribute('href', '/acme/~/settings/general');
     expect(screen.getByRole('menuitem', { name: /Brands/i })).toHaveAttribute(
       'href',
       '/acme/~/settings/brands',

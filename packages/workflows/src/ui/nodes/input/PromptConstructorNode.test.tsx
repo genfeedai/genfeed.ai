@@ -230,6 +230,45 @@ describe('PromptConstructorNode', () => {
     });
   });
 
+  it('leaves no deferred state update behind when the node unmounts', () => {
+    vi.useFakeTimers();
+
+    try {
+      const { unmount } = render(
+        <PromptConstructorNode
+          {...defaultProps}
+          data={{
+            ...defaultProps.data,
+            promptFormat: 'json',
+            template: '',
+          }}
+        />,
+      );
+
+      const textarea = screen.getByPlaceholderText('{"scene":"","camera":""}');
+      fireEvent.focus(textarea);
+      fireEvent.paste(textarea, {
+        clipboardData: { getData: () => '{"scene":"night"}' },
+      });
+      fireEvent.change(textarea, { target: { value: '{"scene":"night"}' } });
+      fireEvent.blur(textarea);
+
+      unmount();
+
+      // Both the paste reformat and the 200ms autocomplete close set state on a
+      // delay. Untracked, they fire into a torn-down tree — in CI that surfaced
+      // as `ReferenceError: window is not defined` after the suite had finished.
+      expect(vi.getTimerCount()).toBe(0);
+      expect(() =>
+        act(() => {
+          vi.runAllTimers();
+        }),
+      ).not.toThrow();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not pretty-print on every keystroke', () => {
     render(
       <PromptConstructorNode

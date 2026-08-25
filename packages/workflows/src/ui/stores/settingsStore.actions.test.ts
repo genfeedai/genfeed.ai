@@ -1,5 +1,6 @@
 import { ProviderTypeEnum } from '@genfeedai/types';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { configureEdgeStyleMirror } from './edgeStyleMirror';
 import { configureSettingsSync, useSettingsStore } from './settingsStore';
 
 const localStorageMock = (() => {
@@ -30,6 +31,7 @@ function readPersisted(): Record<string, unknown> {
 }
 
 beforeEach(() => {
+  configureEdgeStyleMirror(undefined);
   configureSettingsSync(undefined);
   localStorage.clear();
   useSettingsStore.setState({
@@ -189,6 +191,31 @@ describe('settingsStore — preferences', () => {
     expect(persisted.debugMode).toBe(true);
     expect(persisted.showMinimap).toBe(false);
     expect(persisted.hasSeenWelcome).toBe(true);
+  });
+
+  it('setEdgeStyle persists and mirrors to the canvas synchronously', () => {
+    const mirrored: string[] = [];
+    configureEdgeStyleMirror((style) => {
+      mirrored.push(style);
+    });
+
+    useSettingsStore.getState().setEdgeStyle('straight');
+
+    // Synchronous on purpose: a deferred mirror (the old dynamic import) can
+    // resolve after the test environment is torn down and surface as an
+    // unhandled rejection.
+    expect(mirrored).toEqual(['straight']);
+    expect(useSettingsStore.getState().edgeStyle).toBe('straight');
+    expect(readPersisted().edgeStyle).toBe('straight');
+  });
+
+  it('setEdgeStyle still persists when no canvas mirror is registered', () => {
+    configureEdgeStyleMirror(undefined);
+
+    expect(() =>
+      useSettingsStore.getState().setEdgeStyle('step'),
+    ).not.toThrow();
+    expect(readPersisted().edgeStyle).toBe('step');
   });
 
   it('preserves host-owned extensions in the storage key', () => {

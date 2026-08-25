@@ -1,6 +1,7 @@
 import { temporal } from 'zundo';
 import type { StateCreator } from 'zustand';
 import { create } from 'zustand';
+import { configureEdgeStyleMirror } from '../edgeStyleMirror';
 import { temporalStateEquals } from './helpers/equality';
 import { createChatSlice } from './slices/chatSlice';
 import { createEdgeSlice } from './slices/edgeSlice';
@@ -73,3 +74,10 @@ export const useWorkflowStore = create<WorkflowStore>()(
     }),
   }),
 );
+
+// Mirror settings-side edge-style changes into the live graph. Registered from
+// this side because the settings store cannot import the graph without closing
+// the settings -> workflow -> execution -> settings cycle.
+configureEdgeStyleMirror((style) => {
+  useWorkflowStore.getState().setEdgeStyle(style);
+});

@@ -3,6 +3,15 @@ import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
 import type { ComponentType, Dispatch, SetStateAction } from 'react';
 
 /**
+ * What the gallery modal hands back through `onSelect`: the ingredient kinds the
+ * gallery can list. Brand-level reference assets never travel this callback —
+ * they leave through `onSelectAccountReference`, which is typed `IAsset[]`.
+ *
+ * An empty array is the "nothing selected" signal; the modal never emits `null`.
+ */
+export type GallerySelectItem = IImage | IMusic | IVideo;
+
+/**
  * Props for ModalGalleryHeader component
  */
 export interface ModalGalleryHeaderProps {
@@ -56,7 +65,7 @@ export interface ModalGalleryFooterProps {
   selectedItem: string;
   isNoneAllowed: boolean;
   onClear: () => void;
-  onSelect: (items: (IAsset | IImage | IMusic | IVideo)[]) => void;
+  onSelect: (items: GallerySelectItem[]) => void;
   onSelectAccountReference?: (assets: IAsset[]) => void;
   onClose: () => void;
   onConfirm: () => void;
