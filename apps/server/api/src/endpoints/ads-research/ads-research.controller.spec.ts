@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MembersService } from '@api/collections/members/services/members.service';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -9,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AdsResearchController', () => {
   let controller: AdsResearchController;
+  let providerRegistry: { getReadiness: ReturnType<typeof vi.fn> };
   let service: {
     createRemixWorkflow: ReturnType<typeof vi.fn>;
     generateAdPack: ReturnType<typeof vi.fn>;
@@ -54,10 +56,34 @@ describe('AdsResearchController', () => {
           provide: MembersService,
           useValue: { find: vi.fn().mockResolvedValue([]), findOne: vi.fn() },
         },
+        {
+          provide: PaidCreativeProviderRegistry,
+          useValue: {
+            getReadiness: vi.fn().mockReturnValue([
+              {
+                available: true,
+                blockers: [],
+                documentationUrl: 'https://www.facebook.com/ads/library/',
+                platform: 'meta',
+                provider: 'meta_ads_library',
+                status: 'available',
+              },
+              {
+                available: false,
+                blockers: ['google_ads_transparency_contract_fixtures_missing'],
+                documentationUrl: 'https://adstransparency.google.com/',
+                platform: 'youtube',
+                provider: 'google_ads_transparency_center',
+                status: 'unavailable',
+              },
+            ]),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(AdsResearchController);
+    providerRegistry = module.get(PaidCreativeProviderRegistry);
     service = module.get(AdsResearchService);
   });
 
@@ -209,6 +235,32 @@ describe('AdsResearchController', () => {
           userId,
         }),
       );
+    });
+  });
+
+  describe('listWatchlistReadiness', () => {
+    it('reports every watched platform, including the blocked ones (#3537)', () => {
+      const result = controller.listWatchlistReadiness();
+
+      expect(providerRegistry.getReadiness).toHaveBeenCalled();
+      expect(result).toEqual([
+        {
+          available: true,
+          blockers: [],
+          documentationUrl: 'https://www.facebook.com/ads/library/',
+          platform: 'meta',
+          provider: 'meta_ads_library',
+          status: 'available',
+        },
+        {
+          available: false,
+          blockers: ['google_ads_transparency_contract_fixtures_missing'],
+          documentationUrl: 'https://adstransparency.google.com/',
+          platform: 'youtube',
+          provider: 'google_ads_transparency_center',
+          status: 'unavailable',
+        },
+      ]);
     });
   });
 });

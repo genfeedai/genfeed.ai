@@ -1,4 +1,4 @@
-export type NormalizedAdPlatform = 'google-ads' | 'meta' | 'x_ads';
+export type NormalizedAdPlatform = 'google-ads' | 'meta' | 'tiktok' | 'x_ads';
 
 export type NormalizedAdGranularity = 'account' | 'campaign' | 'adset' | 'ad';
 
@@ -54,11 +54,19 @@ export interface NormalizedAdPerformanceRecord {
   spend: number;
 }
 
-export interface NormalizedXAdsRepositoryRecord
+/**
+ * A creative observed in a public paid-transparency source (Meta Ad Library,
+ * TikTok Creative Center, Google Ads Transparency Center, X DSA Ads
+ * Repository). Every metric a transparency source does not disclose stays
+ * absent instead of being defaulted to zero, and `performanceScore: null`
+ * means explicitly unscored rather than poorly performing.
+ */
+export interface NormalizedPaidCreativeRecord
   extends Omit<
     NormalizedAdPerformanceRecord,
     'clicks' | 'cpc' | 'cpm' | 'ctr' | 'currency' | 'impressions' | 'spend'
   > {
+  adFormat?: string;
   advertiserHandle?: string;
   advertiserName?: string;
   clicks?: number;
@@ -66,6 +74,7 @@ export interface NormalizedXAdsRepositoryRecord
   cpm?: number;
   creativeContent?: string;
   creativeMediaUrls?: string[];
+  creativeType?: PaidCreativeType;
   ctr?: number;
   currency?: string;
   estimatedReach?: number;
@@ -174,4 +183,75 @@ export interface XAdsRepositoryExportRowInput {
   reachEstimateMin?: number;
   targetingCountries?: string[];
   targetingCriteria?: string[];
+}
+
+export type PaidCreativeType =
+  | 'carousel'
+  | 'image'
+  | 'post'
+  | 'text'
+  | 'unknown'
+  | 'video';
+
+/**
+ * Public paid-transparency sources we can read competitor creatives from.
+ * `youtube_ads_library` is deliberately absent: YouTube ads are Google Ads
+ * video creatives and are disclosed through the Google Ads Transparency
+ * Center, not through a separate YouTube archive.
+ */
+export type PaidCreativeProvider =
+  | 'google_ads_transparency_center'
+  | 'manual_paid_reference'
+  | 'meta_ads_library'
+  | 'tiktok_creative_center'
+  | 'x_ads_repository';
+
+/** Watchlist platform ids as the product spells them. */
+export type PaidCreativePlatform =
+  | 'google'
+  | 'meta'
+  | 'tiktok'
+  | 'x'
+  | 'youtube';
+
+/**
+ * Whether a provider's terms let a creative be used as remix input, or only
+ * be shown as a disclosure record. X's DSA repository is disclosure data
+ * about named advertisers and never feeds a remix.
+ */
+export type PaidCreativeUsagePolicy = 'disclosure_only' | 'remix_allowed';
+
+export interface MetaAdLibraryRowInput {
+  adArchiveId: string;
+  adFormat?: string;
+  bodyText?: string;
+  ctaText?: string;
+  creativeMediaUrls?: string[];
+  endDate?: string;
+  headlineText?: string;
+  isActive?: boolean;
+  landingPageUrl?: string;
+  pageId?: string;
+  pageName?: string;
+  publisherPlatforms?: string[];
+  reachEstimateMax?: number;
+  reachEstimateMin?: number;
+  startDate?: string;
+  targetingCountries?: string[];
+}
+
+export interface TikTokCreativeCenterRowInput {
+  adFormat?: string;
+  advertiserHandle?: string;
+  advertiserName?: string;
+  bodyText?: string;
+  ctaText?: string;
+  ctr?: number;
+  creativeMediaUrls?: string[];
+  endDate?: string;
+  id: string;
+  landingPageUrl?: string;
+  startDate?: string;
+  targetingCountries?: string[];
+  videoViews?: number;
 }

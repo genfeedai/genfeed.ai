@@ -237,6 +237,148 @@ describe('AdsResearchService', () => {
     expect(JSON.stringify(result)).not.toContain('raw.mp4');
   });
 
+  it('presents a Meta Ad Library snapshot as remixable creative, not a niche winner (#3537)', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(
+      buildPublicAd({
+        adPlatform: 'meta',
+        advertiserName: 'Nike',
+        bodyText: 'Run further this winter',
+        campaignName: null,
+        ctaText: 'Shop now',
+        estimatedReach: 4200,
+        headlineText: 'Winter running kit',
+        id: 'meta-research-ad',
+        imageUrls: ['https://media.example/meta.jpg'],
+        landingPageUrl: 'https://nike.example/winter',
+        researchSource: 'meta_ads_library',
+        scope: 'organization',
+        videoUrls: ['https://media.example/meta.mp4'],
+      }),
+    );
+
+    const result = await service.getAdDetail('org-1', {
+      id: 'meta-research-ad',
+      source: 'public',
+    });
+
+    expect(result).toMatchObject({
+      body: 'Run further this winter',
+      cta: 'Shop now',
+      headline: 'Winter running kit',
+      imageUrls: ['https://media.example/meta.jpg'],
+      landingPageUrl: 'https://nike.example/winter',
+      platform: 'meta',
+      previewUrl: 'https://media.example/meta.jpg',
+      sourceLabel: 'Meta Ad Library',
+      usagePolicy: 'remix_allowed',
+      videoUrls: ['https://media.example/meta.mp4'],
+    });
+    // The archive publishes creative, never spend or delivery. Reporting the
+    // fixture's performance numbers here would invent competitor metrics.
+    expect(result.metrics).toEqual({});
+    expect(result.metricLabel).toBe('Estimated reach');
+    expect(result.metricValue).toBe(4200);
+    expect(result.sourceLabel).not.toBe('Public niche winner');
+  });
+
+  it('maps a Google Transparency Center snapshot onto the google research platform (#3537)', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(
+      buildPublicAd({
+        // YouTube ads are Google Ads video creatives, so both watched
+        // platforms land on the same archive and the same stored ad platform.
+        adPlatform: 'google-ads',
+        advertiserName: 'Example Corp',
+        campaignName: null,
+        headlineText: null,
+        id: 'google-research-ad',
+        researchSource: 'google_ads_transparency_center',
+        scope: 'organization',
+      }),
+    );
+
+    const result = await service.getAdDetail('org-1', {
+      id: 'google-research-ad',
+      source: 'public',
+    });
+
+    expect(result).toMatchObject({
+      platform: 'google',
+      sourceLabel: 'Google Ads Transparency Center',
+      title: 'Example Corp ad',
+      usagePolicy: 'remix_allowed',
+    });
+  });
+
+  it('labels a TikTok Creative Center snapshot with its own archive (#3537)', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(
+      buildPublicAd({
+        adPlatform: 'tiktok_ads',
+        advertiserHandle: 'gymshark',
+        campaignName: null,
+        headlineText: null,
+        id: 'tiktok-research-ad',
+        researchSource: 'tiktok_creative_center',
+        scope: 'organization',
+      }),
+    );
+
+    const result = await service.getAdDetail('org-1', {
+      id: 'tiktok-research-ad',
+      source: 'public',
+    });
+
+    expect(result).toMatchObject({
+      platform: 'tiktok',
+      sourceLabel: 'TikTok Creative Center',
+      title: 'gymshark ad',
+      usagePolicy: 'remix_allowed',
+    });
+    // Undisclosed reach stays absent rather than becoming a confident zero.
+    expect(result.metricValue).toBeUndefined();
+  });
+
+  it('keeps the global public pool on its performance presentation', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(buildPublicAd());
+
+    const result = await service.getAdDetail('org-1', {
+      id: 'public-ad',
+      source: 'public',
+    });
+
+    expect(result).toMatchObject({
+      metricLabel: 'Performance score',
+      metricValue: 91,
+      sourceLabel: 'Public niche winner',
+      usagePolicy: 'remix_allowed',
+    });
+    expect(result.metrics).toMatchObject({ ctr: 0.04, roas: 3.4 });
+  });
+
+  it('allows remixing a Meta Ad Library reference the archive publishes for inspiration (#3537)', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(
+      buildPublicAd({
+        adPlatform: 'meta',
+        brandId: 'brand-1',
+        id: 'meta-research-ad',
+        researchSource: 'meta_ads_library',
+        scope: 'organization',
+      }),
+    );
+    harnessGenerationService.resolveBrief.mockResolvedValue({});
+    harnessGenerationService.formatBrief.mockReturnValue('');
+    workflowsService.createWorkflow.mockResolvedValue({ id: 'workflow-1' });
+
+    await service.createRemixWorkflow({
+      adId: 'meta-research-ad',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      source: 'public',
+      userId: 'user-1',
+    });
+
+    expect(workflowsService.createWorkflow).toHaveBeenCalled();
+  });
+
   it('carries the active brand through list and detail repository reads', async () => {
     adPerformanceService.findPublicById.mockResolvedValue(buildPublicAd());
 

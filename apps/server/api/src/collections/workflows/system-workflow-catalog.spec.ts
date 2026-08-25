@@ -76,15 +76,30 @@ describe('system workflow catalog', () => {
     ).toBe(true);
   });
 
-  it('does not advertise unavailable X repository ingestion as installable or scheduled', () => {
+  it('lists competitor ad research as an installable, schedule-enabled entry (#3537)', () => {
+    const entry = getSystemWorkflowCatalogEntry(
+      'paid-creative-research-ingestion',
+    );
+
+    expect(entry).toMatchObject({
+      canonicalId: 'paid-creative-research-ingestion',
+      family: 'paid-creative-research',
+      installable: true,
+      isScheduleEnabled: true,
+      schedule: '0 6 * * *',
+      sourceIssue: 3537,
+    });
+    expect(
+      listInstallableSystemWorkflowCatalog().some(
+        (item) => item.canonicalId === 'paid-creative-research-ingestion',
+      ),
+    ).toBe(true);
+  });
+
+  it('retires the X-only ingestion canonical id (#3537)', () => {
     expect(
       getSystemWorkflowCatalogEntry('x-ads-inspiration-ingestion'),
     ).toBeNull();
-    expect(
-      listInstallableSystemWorkflowCatalog().some(
-        (item) => item.canonicalId === 'x-ads-inspiration-ingestion',
-      ),
-    ).toBe(false);
   });
 
   it('uses stable canonical ids without duplicates', () => {

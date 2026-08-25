@@ -1100,7 +1100,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'warmupAccounts',
       'watchlists',
       'workflows',
-      'xAdWatchedAdvertisers',
+      'adWatchedAdvertisers',
     ],
     enumFields: {
       fontFamily: { enumType: 'FontFamily', isRequired: true },
@@ -1596,7 +1596,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'socialSources',
       'socialWarmupEnrollments',
       'tags',
-      'xAdWatchedAdvertisers',
+      'adWatchedAdvertisers',
     ],
     enumFields: {
       platform: { enumType: 'CredentialPlatform', isRequired: true },
@@ -3230,7 +3230,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'watchlists',
       'workflowExecutions',
       'workflows',
-      'xAdWatchedAdvertisers',
+      'adWatchedAdvertisers',
     ],
     enumFields: {
       accountType: { enumType: 'OrganizationCategory', isRequired: false },
@@ -5347,7 +5347,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {},
     relationIdFields: {},
   },
-  XAdWatchedAdvertiser: {
+  AdWatchedAdvertiser: {
     allFields: [
       'advertiserHandle',
       'advertiserName',
@@ -5368,6 +5368,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'lastSuccessfulAt',
       'organization',
       'organizationId',
+      'platform',
       'updatedAt',
     ],
     listFields: [],

@@ -1,5 +1,6 @@
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { ApifyAdsService } from '@api/services/integrations/apify/services/modules/apify-ads.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyInstagramService } from '@api/services/integrations/apify/services/modules/apify-instagram.service';
 import { ApifyPinterestService } from '@api/services/integrations/apify/services/modules/apify-pinterest.service';
@@ -12,8 +13,10 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(ApifyService, {
+  additionalExports: [ApifyAdsService],
   additionalImports: [HttpModule, ByokModule],
   additionalProviders: [
+    ApifyAdsService,
     ApifyBaseService,
     ApifyTikTokService,
     ApifyInstagramService,

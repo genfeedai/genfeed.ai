@@ -51,7 +51,7 @@ describe('AdPerformanceService', () => {
   let adPerformance: MockAdPerformanceDelegate;
   let transaction: ReturnType<typeof vi.fn>;
   let service: AdPerformanceService;
-  let xAdWatchedAdvertiser: MockWatchedAdvertiserDelegate;
+  let adWatchedAdvertiser: MockWatchedAdvertiserDelegate;
 
   beforeEach(() => {
     adPerformance = {
@@ -75,7 +75,7 @@ describe('AdPerformanceService', () => {
         ),
       ),
     };
-    xAdWatchedAdvertiser = {
+    adWatchedAdvertiser = {
       findFirst: vi.fn().mockResolvedValue({
         brandId: null,
         id: 'watch-1',
@@ -88,14 +88,14 @@ describe('AdPerformanceService', () => {
       async (
         callback: (client: {
           adPerformance: MockAdPerformanceDelegate;
-          xAdWatchedAdvertiser: MockWatchedAdvertiserDelegate;
+          adWatchedAdvertiser: MockWatchedAdvertiserDelegate;
         }) => Promise<unknown>,
-      ) => callback({ adPerformance, xAdWatchedAdvertiser }),
+      ) => callback({ adPerformance, adWatchedAdvertiser }),
     );
     service = new AdPerformanceService({
       $transaction: transaction,
       adPerformance,
-      xAdWatchedAdvertiser,
+      adWatchedAdvertiser,
     } as unknown as PrismaService);
   });
 
@@ -396,7 +396,7 @@ describe('AdPerformanceService', () => {
       expect(transaction).toHaveBeenCalledWith(expect.any(Function), {
         isolationLevel: 'Serializable',
       });
-      expect(xAdWatchedAdvertiser.updateMany).toHaveBeenCalledWith({
+      expect(adWatchedAdvertiser.updateMany).toHaveBeenCalledWith({
         data: expect.objectContaining({
           freshnessState: 'fresh',
           lastSnapshotId: 'snapshot-1',
@@ -436,7 +436,7 @@ describe('AdPerformanceService', () => {
           researchSource: 'x_ads_repository',
         },
       });
-      expect(xAdWatchedAdvertiser.updateMany).toHaveBeenCalledWith({
+      expect(adWatchedAdvertiser.updateMany).toHaveBeenCalledWith({
         data: expect.objectContaining({
           freshnessState: 'empty',
           lastSnapshotId: 'snapshot-empty',
@@ -448,7 +448,7 @@ describe('AdPerformanceService', () => {
     });
 
     it('rejects an older overlapping snapshot before it can overwrite or retire newer rows', async () => {
-      xAdWatchedAdvertiser.findFirst.mockResolvedValue({
+      adWatchedAdvertiser.findFirst.mockResolvedValue({
         brandId: null,
         id: 'watch-1',
         lastSnapshotId: 'snapshot-newer',
@@ -469,12 +469,12 @@ describe('AdPerformanceService', () => {
 
       expect(adPerformance.upsert).not.toHaveBeenCalled();
       expect(adPerformance.updateMany).not.toHaveBeenCalled();
-      expect(xAdWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
+      expect(adWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
     });
 
     it('rejects records outside the watched advertiser brand before writing', async () => {
       const observedAt = new Date('2026-08-23T10:00:00.000Z');
-      xAdWatchedAdvertiser.findFirst.mockResolvedValue({
+      adWatchedAdvertiser.findFirst.mockResolvedValue({
         brandId: 'brand-1',
         id: 'watch-1',
         lastSnapshotId: null,
@@ -509,11 +509,11 @@ describe('AdPerformanceService', () => {
 
       expect(adPerformance.upsert).not.toHaveBeenCalled();
       expect(adPerformance.updateMany).not.toHaveBeenCalled();
-      expect(xAdWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
+      expect(adWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
     });
 
     it('rejects an empty snapshot when its expected brand differs from the watch', async () => {
-      xAdWatchedAdvertiser.findFirst.mockResolvedValue({
+      adWatchedAdvertiser.findFirst.mockResolvedValue({
         brandId: 'brand-1',
         id: 'watch-1',
         lastSnapshotId: null,
@@ -536,7 +536,7 @@ describe('AdPerformanceService', () => {
 
       expect(adPerformance.upsert).not.toHaveBeenCalled();
       expect(adPerformance.updateMany).not.toHaveBeenCalled();
-      expect(xAdWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
+      expect(adWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
     });
 
     it('rolls the replacement back when retirement fails before watch freshness advances', async () => {
@@ -557,11 +557,15 @@ describe('AdPerformanceService', () => {
       ).rejects.toThrow('retirement failed');
 
       expect(transaction).toHaveBeenCalledTimes(1);
-      expect(xAdWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
+      expect(adWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
     });
 
     it('marks a failed source snapshot stale so reads hide it without destroying last-known data', async () => {
-      await service.markResearchSnapshotStale('org-1', 'watch-1');
+      await service.markResearchSnapshotStale(
+        'org-1',
+        'watch-1',
+        'x_ads_repository',
+      );
 
       expect(adPerformance.updateMany).toHaveBeenCalledWith({
         data: { researchFreshnessState: 'stale' },
@@ -570,6 +574,24 @@ describe('AdPerformanceService', () => {
           organizationId: 'org-1',
           researchSnapshotKey: 'watch-1',
           researchSource: 'x_ads_repository',
+        },
+      });
+    });
+
+    it('scopes the stale transition to the failing provider so a sibling platform snapshot on the same advertiser stays fresh (#3537)', async () => {
+      await service.markResearchSnapshotStale(
+        'org-1',
+        'watch-1',
+        'meta_ads_library',
+      );
+
+      expect(adPerformance.updateMany).toHaveBeenCalledWith({
+        data: { researchFreshnessState: 'stale' },
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+          researchSnapshotKey: 'watch-1',
+          researchSource: 'meta_ads_library',
         },
       });
     });

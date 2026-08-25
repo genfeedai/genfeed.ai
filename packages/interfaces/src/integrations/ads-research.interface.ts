@@ -162,3 +162,64 @@ export interface AdsResearchWorkflowResult {
   workflowDescription?: string;
   adPack: AdPack;
 }
+
+/**
+ * Platforms the competitor watchlist can poll. `youtube` is listed separately
+ * from `google` because operators think in terms of YouTube ads, even though
+ * both resolve to the Google Ads Transparency Center — YouTube has no archive
+ * of its own.
+ */
+export type AdWatchlistPlatform = AdsResearchPlatform | 'youtube';
+
+/**
+ * Freshness of the last archive poll for a watched competitor. `empty` means the
+ * archive answered with no live creative; `unavailable` means we could not look
+ * at all. They are never collapsed — an operator has to be able to tell "this
+ * advertiser stopped running ads" from "our provider is down".
+ */
+export type AdWatchedAdvertiserFreshnessState =
+  | 'empty'
+  | 'fresh'
+  | 'stale'
+  | 'unavailable';
+
+/**
+ * A competitor whose public ad-archive creative we poll on the organization's
+ * behalf. The `last*` fields are ingestion bookkeeping, surfaced so a silent
+ * provider failure is visible on the same screen as the creative it starved.
+ */
+export interface AdWatchedAdvertiser {
+  id: string;
+  advertiserHandle: string;
+  advertiserName?: string;
+  brandId?: string;
+  externalAdvertiserId?: string;
+  freshnessState: AdWatchedAdvertiserFreshnessState;
+  lastAttemptedAt?: string;
+  lastIngestionErrorCode?: string;
+  lastIngestionStatus?: string;
+  lastSnapshotRecordCount?: number;
+  lastSuccessfulAt?: string;
+  platform: AdWatchlistPlatform;
+}
+
+export interface CreateAdWatchedAdvertiserInput {
+  advertiserHandle: string;
+  advertiserName?: string;
+  brandId?: string;
+  platform: AdWatchlistPlatform;
+}
+
+/**
+ * Whether a competitor archive can be polled right now, and if not, the stable
+ * machine codes saying why. Surfaced verbatim so an empty result is never
+ * mistaken for "this competitor stopped advertising".
+ */
+export interface AdWatchlistPlatformReadiness {
+  available: boolean;
+  blockers: string[];
+  documentationUrl: string;
+  platform: AdWatchlistPlatform;
+  provider: string;
+  status: 'available' | 'unavailable';
+}

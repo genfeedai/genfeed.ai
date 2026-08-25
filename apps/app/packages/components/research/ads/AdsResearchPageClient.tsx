@@ -18,15 +18,23 @@ import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { Columns2, Funnel as Filter, Megaphone, Table } from 'lucide-react';
+import {
+  Columns2,
+  Eye,
+  Funnel as Filter,
+  Megaphone,
+  Table,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ChangeEvent } from 'react';
+import { type ChangeEvent, useState } from 'react';
 
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
 import { AdsResearchFilterPanel } from './AdsResearchFilterPanel';
+import { AdsResearchWatchlistPanel } from './AdsResearchWatchlistPanel';
 import { useAdsResearchPageClient } from './useAdsResearchPageClient';
+import { useAdsResearchWatchlist } from './useAdsResearchWatchlist';
 
 const SORT_OPTIONS = [
   { label: 'Score (High → Low)', value: 'score' },
@@ -113,6 +121,10 @@ export default function AdsResearchPageClient({
     viewType,
     setViewType,
   } = useAdsResearchPageClient(initialPlatform);
+  // Called after the research hook so the ads queries keep their identity;
+  // the watchlist is an independent concern layered on the same page.
+  const watchlist = useAdsResearchWatchlist();
+  const [showWatchlist, setShowWatchlist] = useState(false);
   const { pageItems, pagination } = useResearchPagination(allAds);
 
   const hasCredentials = credentialOptions.length > 0;
@@ -259,6 +271,16 @@ export default function AdsResearchPageClient({
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
                 variant={
+                  showWatchlist ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+                }
+                size={ButtonSize.SM}
+                icon={<Eye className="size-4" />}
+                onClick={() => setShowWatchlist(!showWatchlist)}
+              >
+                {translate('actions.watchCompetitors')}
+              </Button>
+              <Button
+                variant={
                   showFilters ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
                 }
                 size={ButtonSize.SM}
@@ -289,6 +311,22 @@ export default function AdsResearchPageClient({
               </div>
             </div>
           </div>
+
+          {showWatchlist ? (
+            <AdsResearchWatchlistPanel
+              advertisers={watchlist.advertisers}
+              isAdding={watchlist.isAdding}
+              isLoading={watchlist.isLoading}
+              readiness={watchlist.readiness}
+              onAdd={watchlist.addAdvertiser}
+              onRemove={watchlist.removeAdvertiser}
+              {...(watchlist.addError ? { addError: watchlist.addError } : {})}
+              {...(watchlist.busyId ? { busyId: watchlist.busyId } : {})}
+              {...(watchlist.loadError
+                ? { loadError: watchlist.loadError }
+                : {})}
+            />
+          ) : null}
 
           {showFilters ? (
             <AdsResearchFilterPanel

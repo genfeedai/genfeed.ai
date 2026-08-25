@@ -10,6 +10,7 @@ import { AuthModule } from '@api/auth/auth.module';
 import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { AdWatchedAdvertisersModule } from '@api/collections/ad-watched-advertisers/ad-watched-advertisers.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
@@ -115,7 +116,6 @@ import { VotesModule } from '@api/collections/votes/votes.module';
 import { WatchlistsModule } from '@api/collections/watchlists/watchlists.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { XAdWatchedAdvertisersModule } from '@api/collections/x-ad-watched-advertisers/x-ad-watched-advertisers.module';
 import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identity.interceptor';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
@@ -368,7 +368,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     VoicesModule,
     VotesModule,
     WatchlistsModule,
-    XAdWatchedAdvertisersModule,
+    AdWatchedAdvertisersModule,
 
     // Workflow & Tasks
     WorkflowExecutionsModule,

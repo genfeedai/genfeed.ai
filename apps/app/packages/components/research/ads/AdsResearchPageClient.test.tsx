@@ -190,6 +190,20 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getAdsResearchServiceMock,
 }));
 
+// The watchlist owns its own queries. Mocked whole rather than left to the
+// positional `useQuery` stub below, which binds call order to the three
+// research queries and would silently reassign them.
+vi.mock('./useAdsResearchWatchlist', () => ({
+  useAdsResearchWatchlist: () => ({
+    addAdvertiser: vi.fn(),
+    advertisers: [],
+    isAdding: false,
+    isLoading: false,
+    readiness: [],
+    removeAdvertiser: vi.fn(),
+  }),
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => useQueryStates[useQueryCallIndex++ % useQueryStates.length],
   useQueryClient: () => ({
@@ -815,6 +829,19 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens the competitor watchlist from the Ads toolbar (#3537)', () => {
+    render(<AdsResearchPageClient />);
+
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Competitors' }));
+
+    expect(screen.getByText('Watched competitors')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Advertiser handle or page name'),
     ).toBeInTheDocument();
   });
 });

@@ -1,10 +1,16 @@
 import type {
   TrendPaidCreativeMetadata,
+  TrendPaidCreativeProvider,
+  TrendPaidCreativeType,
   TrendSourceClassification,
   TrendSourceConfidence,
   TrendSourceIntendedUse,
   TrendSourceKind,
 } from '@api/collections/trends/interfaces/trend.interfaces';
+import {
+  isPaidCreativeResearchSource,
+  resolvePaidCreativeSourceLabel,
+} from '@genfeedai/integrations/ads';
 
 export const DEFAULT_SOURCE_FRESHNESS_WINDOW_DAYS_BY_KIND: Record<
   TrendSourceKind,
@@ -65,6 +71,63 @@ export function buildPublicPlatformReferenceClassification(input: {
 
   if (!normalized) {
     throw new Error('Failed to build public platform source classification');
+  }
+
+  return normalized;
+}
+
+/**
+ * Describe one competitor creative pulled from a public ad archive.
+ *
+ * The label always comes from the archive that published the creative, never
+ * from the watched platform, so a YouTube watch reads as the Google Ads
+ * Transparency Center — the only place those video ads are published.
+ * Confidence is `high` because an archive snapshot is a direct observation of
+ * what is running; it says nothing about how the ad performed, which is why
+ * no engagement signals are synthesized here.
+ */
+export function buildPaidCreativeReferenceClassification(input: {
+  adFormat?: string;
+  capturedAt: Date | string;
+  creativeType?: TrendPaidCreativeType;
+  freshnessWindowDays?: number;
+  hook?: string;
+  platform: string;
+  provider: TrendPaidCreativeProvider;
+  sourceAuthor?: string;
+  sourceTimestamp?: Date | string;
+  sourceTopic: string;
+}): TrendSourceClassification {
+  const collectedAt = readTimestamp(input.capturedAt);
+
+  if (!collectedAt) {
+    throw new Error('Failed to build paid creative source classification');
+  }
+
+  const normalized = normalizeTrendSourceClassification({
+    capturedAt: collectedAt,
+    confidence: 'high',
+    freshnessWindowDays: input.freshnessWindowDays,
+    intendedUse: 'paid_creative_analysis',
+    platform: input.platform,
+    sourceAuthor: input.sourceAuthor,
+    sourceKind: 'paid_creative_reference',
+    sourceLabel: resolvePaidCreativeSourceLabel(input.provider),
+    sourceTimestamp: input.sourceTimestamp,
+    sourceTopic: input.sourceTopic,
+    value: {
+      paidCreative: {
+        ...(input.adFormat ? { adFormat: input.adFormat } : {}),
+        collectedAt,
+        ...(input.creativeType ? { creativeType: input.creativeType } : {}),
+        ...(input.hook ? { hook: input.hook } : {}),
+        provider: input.provider,
+      },
+    },
+  });
+
+  if (!normalized) {
+    throw new Error('Failed to build paid creative source classification');
   }
 
   return normalized;
@@ -170,10 +233,21 @@ function readSourceKind(value: unknown): TrendSourceKind | undefined {
     : undefined;
 }
 
+/**
+ * Paid creative metadata is only meaningful when it names an archive we
+ * actually ingest. A record attributed to anything else is dropped rather than
+ * carried forward, so no prompt pack can cite a provider that never ran.
+ */
 function readPaidCreative(
   value: unknown,
 ): TrendPaidCreativeMetadata | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  return isPaidCreativeResearchSource(readString(record.provider))
     ? (value as TrendPaidCreativeMetadata)
     : undefined;
 }

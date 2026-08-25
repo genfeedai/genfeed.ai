@@ -1,3 +1,5 @@
+import type { PaidCreativeProvider } from '@genfeedai/integrations/ads';
+
 export interface TrendData {
   platform: string;
   topic: string;
@@ -56,12 +58,14 @@ export type TrendSourceKind =
   | 'paid_creative_reference'
   | 'public_platform_reference';
 
-export type TrendPaidCreativeProvider =
-  | 'google_ads_transparency_center'
-  | 'manual_paid_reference'
-  | 'meta_ads_library'
-  | 'tiktok_creative_center'
-  | 'youtube_ads_library';
+/**
+ * The archives paid-creative ingestion actually reads, re-exported from the
+ * shared contract so a trend classification and an `AdPerformance` research
+ * snapshot can never name providers differently. There is no YouTube ad
+ * archive: YouTube video ads are Google Ads creatives and appear in the Google
+ * Ads Transparency Center.
+ */
+export type TrendPaidCreativeProvider = PaidCreativeProvider;
 
 export type TrendPaidCreativeType =
   | 'carousel'
