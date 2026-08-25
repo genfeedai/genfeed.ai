@@ -90,6 +90,7 @@ export interface NormalizedPaidCreativeRecord
   spend?: number;
   targetingCountries?: string[];
   targetingCriteria?: string[];
+  usagePolicy: PaidCreativeUsagePolicy;
 }
 
 export interface MetaAdAccountInput {

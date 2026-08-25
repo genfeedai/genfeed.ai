@@ -1,4 +1,7 @@
-import { resolvePaidCreativeType } from './paid-creative';
+import {
+  resolvePaidCreativeType,
+  resolvePaidCreativeUsagePolicy,
+} from './paid-creative';
 import type {
   NormalizedPaidCreativeRecord,
   TikTokCreativeCenterRowInput,
@@ -57,5 +60,6 @@ export function normalizeTikTokCreativeCenterRecord(
     spend: undefined,
     targetingCountries: row.targetingCountries,
     targetingCriteria: undefined,
+    usagePolicy: resolvePaidCreativeUsagePolicy('tiktok_creative_center'),
   };
 }

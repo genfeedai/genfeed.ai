@@ -39,6 +39,7 @@ describe('x ads repository mappers', () => {
       granularity: 'ad',
       performanceScore: null,
       platform: 'x_ads',
+      usagePolicy: 'disclosure_only',
     });
 
     const record = normalizeXAdsRepositoryExportRecord({ adId: 'ad_1' });

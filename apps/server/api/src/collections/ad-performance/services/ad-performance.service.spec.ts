@@ -1,4 +1,5 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PAID_CREATIVE_RESEARCH_SOURCES } from '@genfeedai/integrations/ads';
 import type { AdPerformance } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +16,8 @@ type MockWatchedAdvertiserDelegate = {
   findFirst: ReturnType<typeof vi.fn>;
   updateMany: ReturnType<typeof vi.fn>;
 };
+
+const TENANT_RESEARCH_SOURCES = [...PAID_CREATIVE_RESEARCH_SOURCES];
 
 const buildRecord = (
   overrides: Partial<AdPerformance> & { data?: Record<string, unknown> } = {},
@@ -168,7 +171,7 @@ describe('AdPerformanceService', () => {
                   organizationId: 'org-1',
                   performanceScore: null,
                   researchFreshnessState: 'fresh',
-                  researchSource: 'x_ads_repository',
+                  researchSource: { in: TENANT_RESEARCH_SOURCES },
                   scope: 'organization',
                 },
               ],
@@ -178,7 +181,7 @@ describe('AdPerformanceService', () => {
             {
               OR: [
                 { researchSource: null },
-                { researchSource: { not: 'x_ads_repository' } },
+                { researchSource: { notIn: TENANT_RESEARCH_SOURCES } },
               ],
               scope: 'public',
             },
@@ -186,7 +189,7 @@ describe('AdPerformanceService', () => {
               OR: [{ brandId: 'brand-1' }, { brandId: null }],
               organizationId: 'org-1',
               researchFreshnessState: 'fresh',
-              researchSource: 'x_ads_repository',
+              researchSource: { in: TENANT_RESEARCH_SOURCES },
               scope: 'organization',
             },
           ],
@@ -214,14 +217,14 @@ describe('AdPerformanceService', () => {
               {
                 OR: [
                   { researchSource: null },
-                  { researchSource: { not: 'x_ads_repository' } },
+                  { researchSource: { notIn: TENANT_RESEARCH_SOURCES } },
                 ],
                 scope: 'public',
               },
               expect.objectContaining({
                 brandId: null,
                 organizationId: 'org-1',
-                researchSource: 'x_ads_repository',
+                researchSource: { in: TENANT_RESEARCH_SOURCES },
               }),
             ],
           }),
@@ -290,7 +293,7 @@ describe('AdPerformanceService', () => {
         where: {
           OR: [
             { researchSource: null },
-            { researchSource: { not: 'x_ads_repository' } },
+            { researchSource: { notIn: TENANT_RESEARCH_SOURCES } },
           ],
           id: 'public-ad',
           isDeleted: false,
@@ -316,7 +319,7 @@ describe('AdPerformanceService', () => {
             {
               OR: [
                 { researchSource: null },
-                { researchSource: { not: 'x_ads_repository' } },
+                { researchSource: { notIn: TENANT_RESEARCH_SOURCES } },
               ],
               scope: 'public',
             },
@@ -324,7 +327,7 @@ describe('AdPerformanceService', () => {
               OR: [{ brandId: 'brand-1' }, { brandId: null }],
               organizationId: 'org-1',
               researchFreshnessState: 'fresh',
-              researchSource: 'x_ads_repository',
+              researchSource: { in: TENANT_RESEARCH_SOURCES },
               scope: 'organization',
             },
           ],
