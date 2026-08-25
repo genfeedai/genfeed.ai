@@ -109,7 +109,7 @@ export class AdminFleetPublishingService {
             platformId = await this.twitterService.uploadMedia(
               organizationId,
               brandId,
-              ingredient.cdnUrl,
+              [ingredient.cdnUrl],
               caption || '',
               'image/jpeg',
             );

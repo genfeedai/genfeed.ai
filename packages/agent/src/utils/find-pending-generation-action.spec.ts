@@ -84,4 +84,31 @@ describe('findPendingGenerationAction', () => {
 
     expect(action?.id).toBe('generation-current');
   });
+
+  it('keeps an image thread on the image card when a later video card is pending', () => {
+    const action = findPendingGenerationAction(
+      [
+        message('message-image', [
+          {
+            generationType: 'image',
+            id: 'generation-image',
+            title: 'Generate Image',
+            type: 'generation_action_card',
+          },
+        ]),
+        message('message-video', [
+          {
+            generationType: 'video',
+            id: 'generation-video',
+            title: 'Generate Video',
+            type: 'generation_action_card',
+          },
+        ]),
+      ],
+      'thread-1',
+      'image',
+    );
+
+    expect(action?.id).toBe('generation-image');
+  });
 });

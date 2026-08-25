@@ -36,7 +36,6 @@ import { usePromptBarPricing } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-
 import { usePromptBarReferences } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
 import { usePromptBarSync } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type {
   GalleryModalOptions,
   PromptBarAttachedAsset,
@@ -610,9 +609,7 @@ export function usePromptBarState({
       format: watchedFormat,
       maxSelectableItems: supportsMultipleReferences ? maxReferenceCount : 1,
       onSelect: (selection) => {
-        handleReferenceSelect(
-          selection as IAsset | IImage | IAsset[] | IImage[] | null,
-        );
+        handleReferenceSelect(selection);
       },
       onSelectAccountReference: handleSelectAccountReference,
       selectedReferences: references.reduce<string[]>((acc, reference) => {

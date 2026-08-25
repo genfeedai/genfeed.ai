@@ -485,7 +485,7 @@ export function useModalBrand(
 
       openUpload({
         category,
-        onConfirm: () => {
+        onComplete: () => {
           void refreshBrand();
           onConfirm?.(true);
         },

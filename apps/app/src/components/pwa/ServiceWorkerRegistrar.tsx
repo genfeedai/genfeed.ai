@@ -45,7 +45,7 @@ export default function ServiceWorkerRegistrar() {
     }
 
     void navigator.serviceWorker
-      .register(SERVICE_WORKER_URL, { scope: '/' })
+      .register(SERVICE_WORKER_URL, { scope: '/' }) // classic script, not `{ type: 'module' }`
       .catch((error: unknown) => {
         if (isIgnorableServiceWorkerError(error)) {
           return;

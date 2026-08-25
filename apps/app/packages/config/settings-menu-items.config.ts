@@ -72,7 +72,8 @@ export interface BuildSettingsMenuItemsParams {
  * - Personal: Account (Personal, Notifications, Chat, Progress, Help).
  *
  * Naming / paths (deliberate):
- * - `/settings` is the canonical home for both organization and brand scopes.
+ * - Settings is a shell. Personal home is `/settings/personal`. Org home is
+ *   `/:orgSlug/~/settings/general`. Brand home stays `/:org/:brand/settings`.
  * - Org sidebar label is **General** (workspace defaults).
  * - Brand sidebar label is **Profile** (public brand identity).
  * - Org **Agents** is agent/automation governance (not legal ToS). Route stays
@@ -83,7 +84,7 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
   return [
     {
       group: 'Account',
-      href: APP_ROUTES.SETTINGS.ROOT,
+      href: APP_ROUTES.SETTINGS.PERSONAL,
       hrefScope: 'personal',
       isExactMatch: true,
       label: 'Personal',
@@ -132,7 +133,7 @@ function buildOrganizationMenuItems(
   return [
     {
       group: 'Organization',
-      href: APP_ROUTES.SETTINGS.ROOT,
+      href: APP_ROUTES.SETTINGS.GENERAL,
       hrefScope: 'organization',
       isExactMatch: true,
       label: 'General',

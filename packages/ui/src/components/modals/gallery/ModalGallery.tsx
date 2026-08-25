@@ -117,7 +117,7 @@ export default function ModalGallery({
 
   const handleItemSelectWithVideo = (item: IAsset | IImage) => {
     if (category === IngredientCategory.VIDEO) {
-      onSelect(item);
+      onSelect([item]);
       handleClose();
     } else if (
       category === IngredientCategory.IMAGE &&
@@ -126,7 +126,7 @@ export default function ModalGallery({
     ) {
       // Immediate selection only for new single image selection (e.g., banner selection)
       // If there are pre-selected references, let user confirm their change
-      onSelect(item);
+      onSelect([item]);
       handleClose();
     } else {
       handleItemSelect(item);
@@ -139,7 +139,7 @@ export default function ModalGallery({
         ? items.find((i) => i.id === selectedItem)
         : null;
 
-      onSelect(item ?? null);
+      onSelect(item ? [item] : null);
       handleClose();
     }
   };

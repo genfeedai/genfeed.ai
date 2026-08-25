@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonVariant, ComponentSize, ViewType } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  ViewType,
+} from '@genfeedai/enums';
 import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -8,6 +13,10 @@ import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import {
+  SHELL_ICON_BUTTON_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
 import {
   categoriesFromAssetTypeIds,
   selectedAssetTypeIds,
@@ -19,11 +28,15 @@ import { LIBRARY_TYPE_CHIPS } from './library-browser.config';
 
 const VIEW_OPTIONS = [
   {
-    icon: <LayoutGrid className="size-4" />,
+    icon: <LayoutGrid className={SHELL_ICON_CLASS} />,
     label: 'Contact sheet',
     type: ViewType.GRID,
   },
-  { icon: <Rows3 className="size-4" />, label: 'List', type: ViewType.LIST },
+  {
+    icon: <Rows3 className={SHELL_ICON_CLASS} />,
+    label: 'List',
+    type: ViewType.LIST,
+  },
 ];
 
 const TYPE_OPTIONS = LIBRARY_TYPE_CHIPS.map((chip) => ({
@@ -113,14 +126,22 @@ export default function LibraryBrowserToolbar({
           size={ComponentSize.SM}
         />
 
-        <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
-
-        <Button
-          icon={<Upload />}
-          onClick={onUpload}
-          tooltip="Upload"
-          variant={ButtonVariant.SECONDARY}
-        />
+        <div
+          className="flex items-center gap-1"
+          data-testid="library-toolbar-icon-actions"
+        >
+          <ButtonRefresh isRefreshing={isRefreshing} onClick={onRefresh} />
+          <Button
+            ariaLabel="Upload"
+            className={SHELL_ICON_BUTTON_CLASS}
+            icon={<Upload className={SHELL_ICON_CLASS} />}
+            onClick={onUpload}
+            size={ButtonSize.ICON}
+            tooltip="Upload"
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        </div>
       </div>
     </div>
   );

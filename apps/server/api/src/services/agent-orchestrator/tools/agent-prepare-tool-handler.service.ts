@@ -1,3 +1,4 @@
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -11,6 +12,11 @@ import {
 } from '@api/services/agent-orchestrator/constants/agent-next-step-destinations.constant';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  generationTypeLockError,
+  resolveLockedGenerationType,
+  type ThreadGenerationType,
+} from '@api/services/agent-orchestrator/utils/thread-generation-type.util';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
 import type {
   AgentClipRunIdentity,
@@ -45,18 +51,35 @@ export class AgentPrepareToolHandler {
     private readonly voicesService?: VoicesService,
     @Optional()
     private readonly externalVoiceCatalogService?: ExternalVoiceCatalogService,
+    @Optional()
+    private readonly agentMessagesService?: AgentMessagesService,
   ) {}
-  prepareGeneration(params: Record<string, unknown>): AgentToolResult {
-    const generationType = params.generationType as 'image' | 'video';
+  async prepareGeneration(
+    params: Record<string, unknown>,
+    ctx?: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const generationType = params.generationType as ThreadGenerationType;
     const prompt = params.prompt as string | undefined;
     const model = params.model as string | undefined;
     const aspectRatio = params.aspectRatio as string | undefined;
     const duration = params.duration as number | undefined;
 
-    if (!generationType || !prompt) {
+    if ((generationType !== 'image' && generationType !== 'video') || !prompt) {
       return {
         creditsUsed: 0,
         error: 'generationType and prompt are required',
+        success: false,
+      };
+    }
+
+    const lockError = generationTypeLockError(
+      generationType,
+      await this.readLockedGenerationType(ctx),
+    );
+    if (lockError) {
+      return {
+        creditsUsed: 0,
+        error: lockError,
         success: false,
       };
     }
@@ -84,6 +107,24 @@ export class AgentPrepareToolHandler {
       ],
       success: true,
     };
+  }
+
+  private async readLockedGenerationType(
+    ctx?: ToolExecutionContext,
+  ): Promise<ThreadGenerationType | null> {
+    if (!ctx?.threadId || !ctx.organizationId || !this.agentMessagesService) {
+      return null;
+    }
+
+    const messages = await this.agentMessagesService.getRecentMessages(
+      ctx.threadId,
+      50,
+      ctx.organizationId,
+    );
+
+    return resolveLockedGenerationType(
+      messages.map((message) => message.metadata),
+    );
   }
 
   async prepareWorkflowTrigger(

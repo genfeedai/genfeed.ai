@@ -1141,14 +1141,13 @@ export class TwitterService {
 
   /**
    * Upload media (image or video) to Twitter
-   * Supports single media or carousel (up to 4 images)
-   * @param mediaUrl Single URL or array of URLs for carousel
+   * @param mediaUrls Carousel URLs; a single medium is `[url]` (max 4 images)
    * @returns The tweet ID
    */
   public async uploadMedia(
     organizationId: string,
     brandId: string,
-    mediaUrl: string | string[],
+    mediaUrls: string[],
     caption: string,
     mediaType: 'image/jpeg' | 'video/mp4' = 'video/mp4',
     quoteTweetId?: string,
@@ -1163,9 +1162,6 @@ export class TwitterService {
       // OAuth 2.0: single bearer token
       const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
       const userClient = new TwitterApi(decryptedAccessToken);
-
-      // Handle single or multiple media URLs
-      const mediaUrls = Array.isArray(mediaUrl) ? mediaUrl : [mediaUrl];
 
       // Twitter allows max 4 images in a tweet
       if (mediaUrls.length > 4) {

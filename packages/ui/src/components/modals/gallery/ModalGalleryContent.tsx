@@ -40,8 +40,7 @@ export default function ModalGalleryContent({
   onMusicPlayPause,
 }: ModalGalleryContentProps) {
   const { openUpload } = useUploadModal({
-    onConfirm: () => {
-      // Refresh gallery after upload
+    onComplete: () => {
       window.location.reload();
     },
   });

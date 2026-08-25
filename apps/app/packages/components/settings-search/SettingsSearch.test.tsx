@@ -41,52 +41,47 @@ vi.mock('next-intl', () => ({
   },
 }));
 
-vi.mock('@ui/primitives/command', () => ({
-  Command: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  CommandEmpty: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  CommandGroup: ({
-    children,
-    heading,
-  }: {
-    children: ReactNode;
-    heading?: ReactNode;
-  }) => (
-    <section>
-      {heading ? <h2>{heading}</h2> : null}
-      {children}
-    </section>
-  ),
-  CommandInput: ({
-    onValueChange,
+vi.mock('@ui/primitives/input', () => ({
+  Input: ({
+    inputRef,
+    onChange,
+    onFocus,
     placeholder,
     value,
   }: {
-    onValueChange?: (value: string) => void;
+    inputRef?: { current: HTMLInputElement | null };
+    onChange?: (event: { target: { value: string } }) => void;
+    onFocus?: () => void;
     placeholder?: string;
     value?: string;
   }) => (
     <input
+      ref={(element) => {
+        if (inputRef) {
+          inputRef.current = element;
+        }
+      }}
       aria-label="Search settings"
       placeholder={placeholder}
       value={value}
-      onChange={(event) => onValueChange?.(event.target.value)}
-      onFocus={() => onValueChange?.(value ?? '')}
+      onChange={(event) => onChange?.(event)}
+      onFocus={onFocus}
     />
   ),
-  CommandItem: ({
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
     children,
-    onSelect,
+    onClick,
   }: {
     children: ReactNode;
-    onSelect?: () => void;
+    onClick?: () => void;
   }) => (
-    <button type="button" onClick={() => onSelect?.()}>
+    <button type="button" onClick={onClick}>
       {children}
     </button>
   ),
-  CommandList: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 vi.mock('@ui/primitives/popover', () => ({

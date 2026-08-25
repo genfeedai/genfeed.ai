@@ -232,7 +232,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Prepare an image or video generation and return an interactive action card so the user can review and adjust parameters (model, aspect ratio, duration, prompt) before generating. Always use this instead of generate_image or generate_video when it is in the tool schema, including simple requests like "generate a cat image". Never call generate_image, generate_video, or a vendor-prefixed name such as default_api.generate_image.',
+      'Prepare an image or video generation and return an interactive action card so the user can review and adjust parameters (model, aspect ratio, duration, prompt) before generating. Always use this instead of generate_image or generate_video when it is in the tool schema, including simple requests like "generate a cat image". Never call generate_image, generate_video, or a vendor-prefixed name such as default_api.generate_image. A thread is image or video, not both — if this conversation already prepared the other type, tell the user to start a new chat instead of calling this tool.',
     name: 'prepare_generation',
     parameters: {
       properties: {

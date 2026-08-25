@@ -12,9 +12,7 @@ type UsePromptBarDragDropParams = {
   currentConfig: MediaConfig;
   endFrame: IAsset | IImage | null;
   form: UseFormReturn<PromptTextareaSchema>;
-  handleReferenceSelect: (
-    selection: IAsset | IImage | IAsset[] | IImage[] | null,
-  ) => void;
+  handleReferenceSelect: (selection: (IAsset | IImage)[] | null) => void;
   isDisabledState: boolean;
   isOnlyImagenModels: boolean;
   maxReferenceCount: number;
@@ -149,9 +147,10 @@ export function usePromptBarDragDrop({
       }
 
       if (!supportsMultipleReferences) {
-        handleReferenceSelect(
-          uploadedReferences[uploadedReferences.length - 1],
-        );
+        const lastUploaded = uploadedReferences[uploadedReferences.length - 1];
+        if (lastUploaded) {
+          handleReferenceSelect([lastUploaded]);
+        }
         triggerConfigChange();
         return;
       }
@@ -166,7 +165,7 @@ export function usePromptBarDragDrop({
         ...uploadedReferences,
       ].slice(0, maxReferenceCount);
 
-      handleReferenceSelect(mergedReferences as IAsset[] | IImage[]);
+      handleReferenceSelect(mergedReferences);
       triggerConfigChange();
     },
     [

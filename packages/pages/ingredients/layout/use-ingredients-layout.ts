@@ -313,7 +313,7 @@ export function useIngredientsLayout({
     const singularType = parseIngredientCategory(singular) ?? singular;
     openUpload({
       category: singularType,
-      onConfirm: () => handleRefresh(),
+      onComplete: () => handleRefresh(),
       parentId: brandId,
       parentModel: 'Brand',
     });

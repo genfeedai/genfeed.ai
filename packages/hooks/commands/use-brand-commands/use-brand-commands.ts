@@ -38,7 +38,7 @@ export function useBrandCommands({
   onBrandSwitch,
   enabled = true,
 }: UseBrandCommandsOptions): void {
-  const { registerCommands, unregisterCommand } = useCommandPalette();
+  const { registerCommands, unregisterCommands } = useCommandPalette();
 
   useEffect(() => {
     if (!enabled || !brands || brands.length === 0) {
@@ -55,11 +55,8 @@ export function useBrandCommands({
     // Register all commands
     registerCommands(commands);
 
-    // Cleanup: unregister commands when brands change or component unmounts
     return () => {
-      commands.forEach((cmd) => {
-        unregisterCommand(cmd.id);
-      });
+      unregisterCommands(commands.map((cmd) => cmd.id));
     };
   }, [
     brands,
@@ -67,6 +64,6 @@ export function useBrandCommands({
     onBrandSwitch,
     enabled,
     registerCommands,
-    unregisterCommand,
+    unregisterCommands,
   ]);
 }

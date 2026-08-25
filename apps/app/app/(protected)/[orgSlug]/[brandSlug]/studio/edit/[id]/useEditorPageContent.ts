@@ -215,11 +215,10 @@ export function useEditorPageContent(projectId: string) {
     openGallery({
       category: IngredientCategory.VIDEO,
       onSelect: (selected) => {
-        if (!selected || Array.isArray(selected) || !state.project) {
+        const video = selected?.[0] as IIngredient | undefined;
+        if (!video || !state.project) {
           return;
         }
-
-        const video = selected as unknown as IIngredient;
 
         const videoUrl = `${EnvironmentService.ingredientsEndpoint}/videos/${video.id}`;
         const duration = video.metadataDuration || 10;
@@ -268,11 +267,10 @@ export function useEditorPageContent(projectId: string) {
     openGallery({
       category: IngredientCategory.MUSIC,
       onSelect: (selected) => {
-        if (!selected || Array.isArray(selected) || !state.project) {
+        const audio = selected?.[0] as IIngredient | undefined;
+        if (!audio || !state.project) {
           return;
         }
-
-        const audio = selected as unknown as IIngredient;
 
         const audioUrl = `${EnvironmentService.ingredientsEndpoint}/sounds/${audio.id}`;
         const duration = audio.metadataDuration || 60;

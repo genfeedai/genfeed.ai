@@ -37,20 +37,29 @@ describe('CommandPaletteService', () => {
     CommandPaletteService.clearCommands();
   });
 
-  describe('registerCommand', () => {
+  describe('registerCommands', () => {
     it('registers a command and increments count', () => {
-      CommandPaletteService.registerCommand(makeCommand('cmd-1', 'Test'));
+      CommandPaletteService.registerCommands([makeCommand('cmd-1', 'Test')]);
       expect(CommandPaletteService.getCommandCount()).toBe(1);
     });
 
+    it('does not info-log routine registration', () => {
+      CommandPaletteService.registerCommands([makeCommand('cmd-1', 'Test')]);
+      expect(logger.info).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith('Commands registered', {
+        commandIds: ['cmd-1'],
+        count: 1,
+      });
+    });
+
     it('does not register duplicate command ids', () => {
-      CommandPaletteService.registerCommand(makeCommand('dup', 'First'));
-      CommandPaletteService.registerCommand(makeCommand('dup', 'Second'));
+      CommandPaletteService.registerCommands([makeCommand('dup', 'First')]);
+      CommandPaletteService.registerCommands([makeCommand('dup', 'Second')]);
       expect(CommandPaletteService.getCommandCount()).toBe(1);
     });
   });
 
-  describe('registerCommands', () => {
+  describe('registerCommands batch', () => {
     it('registers multiple commands at once', () => {
       CommandPaletteService.registerCommands([
         makeCommand('a', 'Alpha'),
@@ -68,7 +77,7 @@ describe('CommandPaletteService', () => {
     });
 
     it('returns only newly registered ids when some already exist', () => {
-      CommandPaletteService.registerCommand(makeCommand('a', 'Alpha'));
+      CommandPaletteService.registerCommands([makeCommand('a', 'Alpha')]);
       const registeredIds = CommandPaletteService.registerCommands([
         makeCommand('a', 'Alpha Again'),
         makeCommand('b', 'Beta'),
@@ -78,7 +87,7 @@ describe('CommandPaletteService', () => {
     });
   });
 
-  describe('unregisterCommands', () => {
+  describe('unregisterCommands batch', () => {
     it('removes all given commands', () => {
       CommandPaletteService.registerCommands([
         makeCommand('a', 'Alpha'),
@@ -89,7 +98,7 @@ describe('CommandPaletteService', () => {
     });
 
     it('does not throw for unknown command ids', () => {
-      CommandPaletteService.registerCommand(makeCommand('keep', 'Keep'));
+      CommandPaletteService.registerCommands([makeCommand('keep', 'Keep')]);
       expect(() =>
         CommandPaletteService.unregisterCommands(['ghost', 'keep']),
       ).not.toThrow();
@@ -124,16 +133,16 @@ describe('CommandPaletteService', () => {
     });
   });
 
-  describe('unregisterCommand', () => {
+  describe('unregisterCommands', () => {
     it('removes a registered command', () => {
-      CommandPaletteService.registerCommand(makeCommand('rm', 'Remove Me'));
-      CommandPaletteService.unregisterCommand('rm');
+      CommandPaletteService.registerCommands([makeCommand('rm', 'Remove Me')]);
+      CommandPaletteService.unregisterCommands(['rm']);
       expect(CommandPaletteService.getCommandCount()).toBe(0);
     });
 
     it('is a no-op for unknown command ids', () => {
-      CommandPaletteService.registerCommand(makeCommand('keep', 'Keep'));
-      CommandPaletteService.unregisterCommand('nonexistent');
+      CommandPaletteService.registerCommands([makeCommand('keep', 'Keep')]);
+      CommandPaletteService.unregisterCommands(['nonexistent']);
       expect(CommandPaletteService.getCommandCount()).toBe(1);
     });
   });
@@ -162,9 +171,9 @@ describe('CommandPaletteService', () => {
     });
 
     it('excludes commands whose condition() returns false', () => {
-      CommandPaletteService.registerCommand(
+      CommandPaletteService.registerCommands([
         makeCommand('hidden', 'Hidden Command', { condition: () => false }),
-      );
+      ]);
       const results = CommandPaletteService.searchCommands('hidden');
       expect(results.map((r) => r.id)).not.toContain('hidden');
     });
@@ -186,9 +195,9 @@ describe('CommandPaletteService', () => {
   describe('executeCommand', () => {
     it('calls the command action', async () => {
       const action = vi.fn();
-      CommandPaletteService.registerCommand(
+      CommandPaletteService.registerCommands([
         makeCommand('exec', 'Execute Me', { action }),
-      );
+      ]);
       await CommandPaletteService.executeCommand('exec');
       expect(action).toHaveBeenCalledOnce();
     });
@@ -201,9 +210,9 @@ describe('CommandPaletteService', () => {
 
     it('throws when command action throws', async () => {
       const action = vi.fn().mockRejectedValue(new Error('action failed'));
-      CommandPaletteService.registerCommand(
+      CommandPaletteService.registerCommands([
         makeCommand('fail-cmd', 'Fail', { action }),
-      );
+      ]);
       await expect(
         CommandPaletteService.executeCommand('fail-cmd'),
       ).rejects.toThrow('action failed');
@@ -216,9 +225,9 @@ describe('CommandPaletteService', () => {
     });
 
     it('returns correct count after multiple registrations', () => {
-      CommandPaletteService.registerCommand(makeCommand('c1', 'One'));
-      CommandPaletteService.registerCommand(makeCommand('c2', 'Two'));
-      CommandPaletteService.registerCommand(makeCommand('c3', 'Three'));
+      CommandPaletteService.registerCommands([makeCommand('c1', 'One')]);
+      CommandPaletteService.registerCommands([makeCommand('c2', 'Two')]);
+      CommandPaletteService.registerCommands([makeCommand('c3', 'Three')]);
       expect(CommandPaletteService.getCommandCount()).toBe(3);
     });
   });

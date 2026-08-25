@@ -198,7 +198,7 @@ export class TwitterPublisherService extends BasePublisherService {
     const externalId = await this.twitterService.uploadMedia(
       organizationId,
       brandId,
-      mediaInfo.isCarousel ? mediaInfo.mediaUrls : mediaInfo.mediaUrls[0],
+      mediaInfo.isCarousel ? mediaInfo.mediaUrls : [mediaInfo.mediaUrls[0]],
       post.description, // Will be converted to plain text in uploadMedia
       mediaInfo.isImagePost ? 'image/jpeg' : 'video/mp4',
       post.quoteTweetId, // Quote tweet support

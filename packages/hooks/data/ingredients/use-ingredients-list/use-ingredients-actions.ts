@@ -425,7 +425,7 @@ export function useIngredientsActions({
       if (modalId === ModalEnum.UPLOAD) {
         openUpload({
           category: singularType,
-          onConfirm: () => findAllIngredientsByCategory(true),
+          onComplete: () => findAllIngredientsByCategory(true),
           parentId:
             scope === PageScope.SUPERADMIN ? undefined : (brandId ?? undefined),
           parentModel: scope === PageScope.SUPERADMIN ? undefined : 'Brand',

@@ -22,7 +22,6 @@ export interface IAssetSelectionContextType {
   currentFormat: IFormat | null;
   isGenerating: boolean;
   generatedAssetId: string | null;
-  generatedAssetIds: string[];
   generationQueue: IGenerationItem[];
   activeGenerations: IGenerationItem[];
   selectedCanonicalAsset: CanonicalAssetSelection | null;
@@ -31,7 +30,6 @@ export interface IAssetSelectionContextType {
   setIsGenerating: (generating: boolean) => void;
   setCurrentFormat: (format: IFormat | null) => void;
   setGeneratedAssetId: (id: string | null) => void;
-  setGeneratedAssetIds: (ids: string[]) => void;
   addToGenerationQueue: (item: IGenerationItem) => void;
   updateGenerationStatus: (
     id: string,

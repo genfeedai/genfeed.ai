@@ -301,18 +301,17 @@ vi.mock('@services/core/command-palette.service', () => ({
     executeCommand: vi.fn(),
     getAllCommands: vi.fn(() => []),
     getRecentCommands: vi.fn(() => []),
-    registerCommand: vi.fn(),
     registerCommands: vi.fn((commands: { id: string }[]): string[] =>
-      commands.map((command) => command.id),
+      commands.map((item) => item.id),
     ),
     searchCommands: vi.fn(() => []),
-    unregisterCommand: vi.fn(),
     unregisterCommands: vi.fn(),
   },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
+    debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
   },

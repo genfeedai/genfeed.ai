@@ -182,14 +182,12 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     );
   };
 
-  const handleReferenceSelect = (
-    asset: IAsset | IImage | (IAsset | IImage)[],
-  ) => {
-    if (Array.isArray(asset)) {
-      setReferences(asset, 'brand');
-    } else {
-      setReferences([asset], 'ingredient');
+  const handleReferenceSelect = (assets: (IAsset | IImage)[] | null) => {
+    if (!assets || assets.length === 0) {
+      setReferences([], '');
+      return;
     }
+    setReferences(assets, 'ingredient');
   };
 
   const clearReferences = (e: MouseEvent) => {
@@ -233,8 +231,8 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
       category: IngredientCategory.IMAGE,
       format: watchedFormat,
       maxSelectableItems: 1,
-      onSelect: (asset) => {
-        const selectedAsset = Array.isArray(asset) ? asset[0] : asset;
+      onSelect: (assets) => {
+        const selectedAsset = assets?.[0];
         if (selectedAsset?.id) {
           onEndFrameChange(selectedAsset);
           form.setValue('endFrame', selectedAsset.id, { shouldValidate: true });
@@ -246,7 +244,8 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     });
   };
 
-  const handleUploadConfirm = (ingredient?: IImage | IAsset) => {
+  const handleUploadComplete = (ingredients: (IImage | IAsset)[]) => {
+    const ingredient = ingredients[0];
     if (!ingredient) {
       return;
     }
@@ -347,7 +346,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
             category: IngredientCategory.IMAGE,
             height: watchedHeight,
             isMultiple: false,
-            onConfirm: handleUploadConfirm,
+            onComplete: handleUploadComplete,
             width: watchedWidth,
           });
         }}

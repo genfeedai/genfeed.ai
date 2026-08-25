@@ -371,6 +371,11 @@ export const APP_ROUTES = {
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
     PUBLISHING: '/settings/publishing',
+    /**
+     * Organization settings home. Bare `/:orgSlug/~/settings` redirects here
+     * the same way Workspace ROOT redirects to Overview.
+     */
+    GENERAL: '/settings/general',
     ROOT: '/settings',
     /**
      * Brand-scoped social + ad OAuth connect surface (Facebook → Meta Ads,
@@ -446,8 +451,37 @@ export const APP_ROUTE_TEMPLATES = {
   BRAND_SETTINGS: '/:orgSlug/:brandSlug/settings',
   ORGANIZATION: '/:orgSlug/~',
   ORGANIZATION_SETTINGS: '/:orgSlug/~/settings',
-  PERSONAL_SETTINGS: APP_ROUTES.SETTINGS.ROOT,
+  PERSONAL_SETTINGS: APP_ROUTES.SETTINGS.PERSONAL,
 } as const;
+
+/**
+ * Personal settings live on the unscoped `/settings/*` shell. These child
+ * segments must not be rewritten onto `/:orgSlug/~/settings/*`.
+ */
+export const PERSONAL_SETTINGS_CHILD_SEGMENTS = [
+  'personal',
+  'notifications',
+  'chat',
+  'progress',
+  'help',
+] as const;
+
+export function isPersonalSettingsPath(pathname: string): boolean {
+  if (pathname === APP_ROUTES.SETTINGS.ROOT) {
+    return true;
+  }
+
+  if (!pathname.startsWith(`${APP_ROUTES.SETTINGS.ROOT}/`)) {
+    return false;
+  }
+
+  const segment =
+    pathname.slice(APP_ROUTES.SETTINGS.ROOT.length + 1).split('/')[0] ?? '';
+
+  return (PERSONAL_SETTINGS_CHILD_SEGMENTS as readonly string[]).includes(
+    segment,
+  );
+}
 
 export const LEGACY_APP_ROUTES = {
   /**
@@ -584,6 +618,57 @@ export function createOrganizationAppRoute(
   path: string = APP_ROUTES.ROOT,
 ): string {
   return `/${orgSlug}/~${normalizeScopedRoutePath(path)}`;
+}
+
+const BRAND_ONLY_SETTINGS_PREFIXES = [
+  APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
+  APP_ROUTES.SETTINGS.PUBLISHING,
+  APP_ROUTES.SETTINGS.SKILLS,
+  APP_ROUTES.SETTINGS.SOCIAL,
+  APP_ROUTES.SETTINGS.LINKS,
+  '/settings/voice',
+  '/settings/interview',
+  '/settings/harness',
+  '/settings/kit',
+  '/settings/characters',
+] as const;
+
+function workspaceSurfacePath(pathname: string): string {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length < 3) {
+    return APP_ROUTES.WORKSPACE.OVERVIEW;
+  }
+
+  const rest = `/${parts.slice(2).join('/')}`;
+  return rest === '/overview' ? APP_ROUTES.WORKSPACE.OVERVIEW : rest;
+}
+
+function toOrganizationScopePath(brandScopedPath: string): string {
+  const path = brandScopedPath.startsWith('/')
+    ? brandScopedPath
+    : `/${brandScopedPath}`;
+
+  for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
+    if (path === prefix || path.startsWith(`${prefix}/`)) {
+      return APP_ROUTES.SETTINGS.BRANDS;
+    }
+  }
+
+  return path;
+}
+
+/**
+ * Client-side org switch keeps the current app surface. Brand-only settings
+ * fall back to the org brands hub so the destination is never a 404.
+ */
+export function getOrgSwitchHref(
+  nextOrgSlug: string,
+  pathname: string,
+): string {
+  return createOrganizationAppRoute(
+    nextOrgSlug,
+    toOrganizationScopePath(workspaceSurfacePath(pathname)),
+  );
 }
 
 /**

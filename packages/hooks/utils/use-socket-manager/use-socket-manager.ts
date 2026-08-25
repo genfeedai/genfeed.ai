@@ -128,17 +128,6 @@ export function useSocketManager(
     [],
   );
 
-  const subscribeMultiple = useCallback(
-    <T = unknown>(subscriptions: SocketSubscription<T>[]) => {
-      if (socketManagerRef.current) {
-        return socketManagerRef.current.subscribeMultiple(subscriptions);
-      }
-
-      return [] as (() => void)[];
-    },
-    [],
-  );
-
   const unsubscribe = useCallback(
     <T = unknown>(event: string, handler?: ISocketEventHandler<T>) => {
       if (socketManagerRef.current) {
@@ -181,59 +170,35 @@ export function useSocketManager(
     isConnected,
     isReady,
     subscribe,
-    subscribeMultiple,
     unsubscribe,
   };
 }
 
 /**
- * Hook for simple single event socket subscription
- */
-export const useSocketSubscription = <T = unknown>(
-  event: string,
-  handler: ISocketEventHandler<T>,
-  options: UseSocketManagerOptions = {},
-) => {
-  const { subscribe, getSocketManager, isReady } = useSocketManager(options);
-
-  useEffect(() => {
-    if (!event || !handler || !isReady) {
-      return;
-    }
-
-    const dispose = subscribe<T>(event, handler);
-
-    return () => {
-      dispose();
-    };
-  }, [event, handler, subscribe, isReady]);
-
-  return { getSocketManager };
-};
-
-/**
- * Hook for multiple socket subscriptions
+ * Hook for socket subscriptions. Pass a memoized array — a single event
+ * subscribes as `[{ event, handler }]`.
  */
 export const useSocketSubscriptions = <T = unknown>(
   subscriptions: SocketSubscription<T>[],
   options: UseSocketManagerOptions = {},
 ) => {
-  const { subscribeMultiple, getSocketManager, isReady } =
-    useSocketManager(options);
+  const { subscribe, getSocketManager, isReady } = useSocketManager(options);
 
   useEffect(() => {
     if (subscriptions.length === 0 || !isReady) {
       return;
     }
 
-    const disposers = subscribeMultiple<T>(subscriptions);
+    const disposers = subscriptions.map(({ event, handler }) =>
+      subscribe<T>(event, handler),
+    );
 
     return () => {
-      disposers.forEach((dispose: () => void) => {
+      disposers.forEach((dispose) => {
         dispose();
       });
     };
-  }, [subscriptions, subscribeMultiple, isReady]);
+  }, [subscriptions, subscribe, isReady]);
 
   return { getSocketManager };
 };

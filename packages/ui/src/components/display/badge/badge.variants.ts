@@ -11,7 +11,7 @@ import { cva } from 'class-variance-authority';
  * - validated/operational (green) - use based on context
  */
 export const badgeVariants = cva(
-  'rounded-full gap-2 px-2.5 py-0.5 text-xs font-medium normal-case tracking-normal shadow-none whitespace-nowrap',
+  'rounded-full border gap-2 px-2.5 py-0.5 text-xs font-medium normal-case tracking-normal shadow-none whitespace-nowrap',
   {
     defaultVariants: {
       size: 'default',

@@ -8,6 +8,8 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   createPlatformHomeRoute,
+  getOrgSwitchHref,
+  isPersonalSettingsPath,
   LEGACY_APP_ROUTES,
   parseScopedAppPath,
   resolveArtifactEditorBackHref,
@@ -153,13 +155,39 @@ describe('routes.constant', () => {
   });
 
   it('documents canonical settings route templates', () => {
-    expect(APP_ROUTE_TEMPLATES.PERSONAL_SETTINGS).toBe('/settings');
+    expect(APP_ROUTE_TEMPLATES.PERSONAL_SETTINGS).toBe('/settings/personal');
     expect(APP_ROUTE_TEMPLATES.ORGANIZATION_SETTINGS).toBe(
       '/:orgSlug/~/settings',
     );
     expect(APP_ROUTE_TEMPLATES.BRAND_SETTINGS).toBe(
       '/:orgSlug/:brandSlug/settings',
     );
+    expect(APP_ROUTES.SETTINGS.GENERAL).toBe('/settings/general');
+    expect(APP_ROUTES.SETTINGS.PERSONAL).toBe('/settings/personal');
+  });
+
+  it('keeps the current surface when switching organizations', () => {
+    expect(getOrgSwitchHref('bravo', '/alpha/moonrise/library/assets')).toBe(
+      '/bravo/~/library/assets',
+    );
+    expect(getOrgSwitchHref('bravo', '/alpha/~/agent/new')).toBe(
+      '/bravo/~/agent/new',
+    );
+    expect(
+      getOrgSwitchHref('bravo', '/alpha/moonrise/settings/publishing'),
+    ).toBe('/bravo/~/settings/brands');
+  });
+
+  it('keeps personal settings children on the unscoped /settings shell', () => {
+    expect(isPersonalSettingsPath('/settings')).toBe(true);
+    expect(isPersonalSettingsPath('/settings/personal')).toBe(true);
+    expect(isPersonalSettingsPath('/settings/notifications')).toBe(true);
+    expect(isPersonalSettingsPath('/settings/chat')).toBe(true);
+    expect(isPersonalSettingsPath('/settings/progress')).toBe(true);
+    expect(isPersonalSettingsPath('/settings/help')).toBe(true);
+    expect(isPersonalSettingsPath('/settings/members')).toBe(false);
+    expect(isPersonalSettingsPath('/settings/general')).toBe(false);
+    expect(isPersonalSettingsPath('/genfeed/~/settings')).toBe(false);
   });
 
   it('builds brand platform home paths and platform query filters', () => {

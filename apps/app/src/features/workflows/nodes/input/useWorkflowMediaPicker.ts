@@ -46,9 +46,8 @@ export function useWorkflowMediaPicker(
       openGallery({
         category: getWorkflowMediaPickerCategory(kind),
         maxSelectableItems: 1,
-        onSelect: (item) => {
-          const selected = Array.isArray(item) ? (item[0] ?? null) : item;
-          onPick(toWorkflowMediaSelection(selected, kind, source));
+        onSelect: (items) => {
+          onPick(toWorkflowMediaSelection(items?.[0] ?? null, kind, source));
         },
         selectedId: selectedItemId ?? undefined,
         title:

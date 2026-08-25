@@ -7,6 +7,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   LEGACY_APP_ROUTES,
+  PERSONAL_SETTINGS_CHILD_SEGMENTS,
 } from '@genfeedai/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
@@ -462,10 +463,26 @@ const config = createAppNextConfig({
       ),
     },
     {
-      destination: APP_ROUTES.SETTINGS.ROOT,
-      permanent: false,
-      source: APP_ROUTES.SETTINGS.PERSONAL,
+      destination: APP_ROUTES.SETTINGS.PERSONAL,
+      permanent: true,
+      source: APP_ROUTES.SETTINGS.ROOT,
     },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.SETTINGS.GENERAL,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.SETTINGS.ROOT),
+    },
+    ...PERSONAL_SETTINGS_CHILD_SEGMENTS.map((segment) => ({
+      destination: `${APP_ROUTES.SETTINGS.ROOT}/${segment}`,
+      permanent: false,
+      source: createOrganizationAppRoute(
+        ':orgSlug',
+        `${APP_ROUTES.SETTINGS.ROOT}/${segment}`,
+      ),
+    })),
     {
       destination: APP_ROUTES.STUDIO.GENERATE,
       permanent: false,

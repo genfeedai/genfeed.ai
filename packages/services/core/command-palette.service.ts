@@ -17,45 +17,27 @@ class CommandPaletteServiceClass {
   }
 
   /**
-   * Register a single command
-   */
-  registerCommand(command: ICommand, skipLog: boolean = false): void {
-    if (this.commands.has(command.id)) {
-      logger.warn('Command already registered', {
-        commandId: command.id,
-      });
-
-      return;
-    }
-
-    this.commands.set(command.id, command);
-
-    if (!skipLog) {
-      logger.info('Command registered', { commandId: command.id });
-    }
-  }
-
-  /**
-   * Register multiple commands
+   * Register commands.
    *
-   * Returns the ids that were actually registered (already-registered ids
-   * are skipped) so callers can unregister exactly what they own on cleanup.
+   * Returns the ids that were actually added (already-registered ids are
+   * skipped) so callers can unregister exactly what they own on cleanup.
    */
-  registerCommands(commands: ICommand[]): string[] {
+  registerCommands(commands: readonly ICommand[]): string[] {
     const registeredIds: string[] = [];
     const skippedIds: string[] = [];
 
-    commands.forEach((command) => {
-      if (this.commands.has(command.id)) {
-        skippedIds.push(command.id);
-      } else {
-        this.commands.set(command.id, command);
-        registeredIds.push(command.id);
+    for (const next of commands) {
+      if (this.commands.has(next.id)) {
+        skippedIds.push(next.id);
+        continue;
       }
-    });
+
+      this.commands.set(next.id, next);
+      registeredIds.push(next.id);
+    }
 
     if (registeredIds.length > 0) {
-      logger.info('Commands registered', {
+      logger.debug('Commands registered', {
         commandIds: registeredIds,
         count: registeredIds.length,
       });
@@ -72,44 +54,29 @@ class CommandPaletteServiceClass {
   }
 
   /**
-   * Unregister a command
+   * Unregister command ids. Missing ids are a no-op.
    */
-  unregisterCommand(commandId: string): void {
-    if (!this.commands.has(commandId)) {
-      logger.error('Command not found for unregistration', {
-        commandId,
-      });
-      return;
-    }
-
-    this.commands.delete(commandId);
-    logger.info('Command unregistered', { commandId });
-  }
-
-  /**
-   * Unregister multiple commands
-   */
-  unregisterCommands(commandIds: string[]): void {
+  unregisterCommands(commandIds: readonly string[]): void {
     const removedIds: string[] = [];
     const missingIds: string[] = [];
 
-    commandIds.forEach((commandId) => {
-      if (this.commands.delete(commandId)) {
-        removedIds.push(commandId);
+    for (const id of commandIds) {
+      if (this.commands.delete(id)) {
+        removedIds.push(id);
       } else {
-        missingIds.push(commandId);
+        missingIds.push(id);
       }
-    });
+    }
 
     if (removedIds.length > 0) {
-      logger.info('Commands unregistered', {
+      logger.debug('Commands unregistered', {
         commandIds: removedIds,
         count: removedIds.length,
       });
     }
 
     if (missingIds.length > 0) {
-      logger.error('Commands not found for unregistration', {
+      logger.debug('Commands not found for unregistration', {
         commandIds: missingIds,
         count: missingIds.length,
       });
@@ -332,7 +299,7 @@ class CommandPaletteServiceClass {
    */
   clearCommands(): void {
     this.commands.clear();
-    logger.info('All commands cleared');
+    logger.debug('All commands cleared');
   }
 
   /**

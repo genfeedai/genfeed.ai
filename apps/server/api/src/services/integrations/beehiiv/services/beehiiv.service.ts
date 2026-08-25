@@ -103,9 +103,10 @@ export class BeehiivService {
   }
 
   /**
-   * Create a subscriber in a publication
+   * Create a subscriber in a publication. Private 1:1 HTTP helper — product
+   * callers use {@link createSubscribers}.
    */
-  async createSubscriber(
+  private async createSubscriber(
     apiKey: string,
     publicationId: string,
     email: string,

@@ -655,7 +655,7 @@ export class AiInfluencerService {
           const tweetId = await this.twitterService.uploadMedia(
             organizationId,
             brandId,
-            imageUrl,
+            [imageUrl],
             caption,
             'image/jpeg',
           );

@@ -1,23 +1,22 @@
 'use client';
 
-import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommandPaletteContext } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { logger } from '@genfeedai/services/core/logger.service';
 import { Settings } from 'lucide-react';
 import { useEffect } from 'react';
 
 export interface UseAdminCommandRegistrationOptions {
   isLoaded: boolean;
   isSuperAdmin: boolean;
-  registerCommand: (command: ICommand) => void;
-  unregisterCommand: (commandId: string) => void;
+  registerCommands: ICommandPaletteContext['registerCommands'];
+  unregisterCommands: ICommandPaletteContext['unregisterCommands'];
 }
 
 export function useAdminCommandRegistration({
   isLoaded,
   isSuperAdmin,
-  registerCommand,
-  unregisterCommand,
+  registerCommands,
+  unregisterCommands,
 }: UseAdminCommandRegistrationOptions): void {
   useEffect(() => {
     if (!isLoaded) {
@@ -25,27 +24,28 @@ export function useAdminCommandRegistration({
     }
 
     if (isSuperAdmin) {
-      registerCommand({
-        action: () => {
-          window.location.href = EnvironmentService.apps.admin;
+      registerCommands([
+        {
+          action: () => {
+            window.location.href = EnvironmentService.apps.admin;
+          },
+          category: 'navigation',
+          condition: () => EnvironmentService.currentApp !== 'admin',
+          description: 'Govern accounts',
+          icon: Settings,
+          id: 'nav-admin',
+          keywords: ['admin', 'govern', 'accounts', 'management'],
+          label: 'Go to Admin',
+          priority: 9,
         },
-        category: 'navigation',
-        condition: () => EnvironmentService.currentApp !== 'admin',
-        description: 'Govern accounts',
-        icon: Settings,
-        id: 'nav-admin',
-        keywords: ['admin', 'govern', 'accounts', 'management'],
-        label: 'Go to Admin',
-        priority: 9,
-      });
-      logger.info('Admin command registered');
+      ]);
 
       // Cleanup: only unregister when admin loses superAdmin status
       return () => {
-        unregisterCommand('nav-admin');
+        unregisterCommands(['nav-admin']);
       };
     }
 
     // Non-admin users: do nothing (command was never registered)
-  }, [isLoaded, isSuperAdmin, registerCommand, unregisterCommand]);
+  }, [isLoaded, isSuperAdmin, registerCommands, unregisterCommands]);
 }

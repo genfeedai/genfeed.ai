@@ -84,9 +84,7 @@ export function usePostDetailMedia({
         category: ingredientCategory,
         format,
         maxSelectableItems,
-        onSelect: async (
-          selected: GallerySelectItem | GallerySelectItem[] | null,
-        ) => {
+        onSelect: async (selected: GallerySelectItem[] | null) => {
           if (!selected) {
             setIsSavingIngredients(true);
             try {
@@ -110,9 +108,7 @@ export function usePostDetailMedia({
             return;
           }
 
-          const ingredientsArray = (Array.isArray(selected)
-            ? selected
-            : [selected]) as unknown as IIngredient[];
+          const ingredientsArray = selected as unknown as IIngredient[];
 
           const uniqueIngredients = ingredientsArray.filter(
             (ing, index, self) =>

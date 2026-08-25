@@ -152,7 +152,7 @@ function LibraryVoicesContent() {
       category: 'voice',
       isMultiple: false,
       maxFiles: 1,
-      onConfirm: () => {
+      onComplete: () => {
         closeUpload();
         refreshVoices().catch((error) => {
           logger.error('Failed to refresh voices after clone', error);

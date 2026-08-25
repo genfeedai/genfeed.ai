@@ -93,4 +93,33 @@ describe('LibraryBrowserToolbar', () => {
       IngredientCategory.VIDEO_EDIT,
     ]);
   });
+
+  it('keeps ghost icon actions together after the bordered controls', () => {
+    render(
+      <LibraryBrowserToolbar
+        categories={[]}
+        isRefreshing={false}
+        onCategoriesChange={vi.fn()}
+        onClearCategories={vi.fn()}
+        onRefresh={vi.fn()}
+        onSearchChange={vi.fn()}
+        onSortChange={vi.fn()}
+        onUpload={vi.fn()}
+        onViewModeChange={vi.fn()}
+        search=""
+        sort="createdAt: -1"
+        sortOptions={[{ label: 'Newest first', value: 'createdAt: -1' }]}
+        viewMode="list"
+      />,
+    );
+
+    const iconActions = screen.getByTestId('library-toolbar-icon-actions');
+    const rightCluster = iconActions.parentElement;
+
+    expect(iconActions).toContainElement(screen.getByTestId('refresh-button'));
+    expect(iconActions).toContainElement(
+      screen.getByRole('button', { name: 'Upload' }),
+    );
+    expect(rightCluster?.lastElementChild).toBe(iconActions);
+  });
 });

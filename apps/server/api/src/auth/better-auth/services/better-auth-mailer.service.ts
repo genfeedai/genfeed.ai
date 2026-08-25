@@ -92,18 +92,38 @@ export class BetterAuthMailerService {
     const html = this.buildMagicLinkHtml(actionUrl, purpose);
 
     const linkId = buildAuthLinkCorrelationId(token);
-    await this.notificationsService.deliverEmail({
-      html,
-      idempotencyKey: `auth/magic-link/${linkId}`,
-      subject,
-      to: email,
-    });
+    const emailDomain = email.split('@')[1] ?? 'unknown';
+    try {
+      await this.notificationsService.deliverEmail({
+        html,
+        idempotencyKey: `auth/magic-link/${linkId}`,
+        subject,
+        to: email,
+      });
+    } catch (error) {
+      // Development stores the plaintext token in `auth_tokens.identifier` so
+      // operators can finish sign-in without a working mailer. Swallow the
+      // provider failure so Better Auth still reports success; never log the
+      // action URL or token.
+      if (this.configService.isDevelopment) {
+        this.logger.warn(
+          'Magic-link email delivery failed in development; token is stored',
+          {
+            ...this.context,
+            emailDomain,
+            linkId,
+          },
+        );
+        return;
+      }
+      throw error;
+    }
 
     // Log delivery without the recipient address (PII) — just the domain — and
     // without the action URL, which carries the bearer token.
     this.logger.log('Magic-link email accepted', {
       ...this.context,
-      emailDomain: email.split('@')[1] ?? 'unknown',
+      emailDomain,
       linkId,
     });
   }

@@ -4,20 +4,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useAgentThreadCommands } from './use-agent-thread-commands';
 
-const registerCommand = vi.fn();
-const unregisterCommand = vi.fn();
+const registerCommands = vi.fn();
+const unregisterCommands = vi.fn();
 
 vi.mock('@hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: () => ({
-    registerCommand,
-    unregisterCommand,
+    registerCommands,
+    unregisterCommands,
   }),
 }));
 
 describe('useAgentThreadCommands', () => {
   afterEach(() => {
-    registerCommand.mockReset();
-    unregisterCommand.mockReset();
+    registerCommands.mockReset();
+    unregisterCommands.mockReset();
   });
 
   it('registers thread commands on first render', () => {
@@ -28,13 +28,29 @@ describe('useAgentThreadCommands', () => {
       }),
     );
 
-    expect(registerCommand).toHaveBeenCalledTimes(1);
-    expect(registerCommand).toHaveBeenCalledWith(
+    expect(registerCommands).toHaveBeenCalledTimes(1);
+    expect(registerCommands).toHaveBeenCalledWith([
       expect.objectContaining({
         id: 'agent-thread-thread-1',
         label: 'First thread',
       }),
+    ]);
+  });
+
+  it('registers a hydrated thread list in one batch', () => {
+    renderHook(() =>
+      useAgentThreadCommands({
+        onNavigate: vi.fn(),
+        threads: [
+          { id: 'thread-1', title: 'First thread' },
+          { id: 'thread-2', title: 'Second thread' },
+          { id: 'thread-3', title: 'Third thread' },
+        ],
+      }),
     );
+
+    expect(registerCommands).toHaveBeenCalledTimes(1);
+    expect(registerCommands.mock.calls[0]?.[0]).toHaveLength(3);
   });
 
   it('does not register commands for malformed thread ids', () => {
@@ -49,12 +65,12 @@ describe('useAgentThreadCommands', () => {
       }),
     );
 
-    expect(registerCommand).toHaveBeenCalledTimes(1);
-    expect(registerCommand).toHaveBeenCalledWith(
+    expect(registerCommands).toHaveBeenCalledTimes(1);
+    expect(registerCommands).toHaveBeenCalledWith([
       expect.objectContaining({
         id: 'agent-thread-thread-1',
       }),
-    );
+    ]);
   });
 
   it('does not churn commands when the thread ids and labels are unchanged', () => {
@@ -75,15 +91,15 @@ describe('useAgentThreadCommands', () => {
       },
     );
 
-    registerCommand.mockClear();
-    unregisterCommand.mockClear();
+    registerCommands.mockClear();
+    unregisterCommands.mockClear();
 
     rerender({
       threads: [{ id: 'thread-1', title: 'First thread' }],
     });
 
-    expect(registerCommand).not.toHaveBeenCalled();
-    expect(unregisterCommand).not.toHaveBeenCalled();
+    expect(registerCommands).not.toHaveBeenCalled();
+    expect(unregisterCommands).not.toHaveBeenCalled();
   });
 
   it('updates only the changed thread command', () => {
@@ -104,22 +120,21 @@ describe('useAgentThreadCommands', () => {
       },
     );
 
-    registerCommand.mockClear();
-    unregisterCommand.mockClear();
+    registerCommands.mockClear();
+    unregisterCommands.mockClear();
 
     rerender({
       threads: [{ id: 'thread-1', title: 'Renamed thread' }],
     });
 
-    expect(unregisterCommand).toHaveBeenCalledTimes(1);
-    expect(unregisterCommand).toHaveBeenCalledWith('agent-thread-thread-1');
-    expect(registerCommand).toHaveBeenCalledTimes(1);
-    expect(registerCommand).toHaveBeenCalledWith(
+    expect(unregisterCommands).toHaveBeenCalledWith(['agent-thread-thread-1']);
+    expect(registerCommands).toHaveBeenCalledTimes(1);
+    expect(registerCommands).toHaveBeenCalledWith([
       expect.objectContaining({
         id: 'agent-thread-thread-1',
         label: 'Renamed thread',
       }),
-    );
+    ]);
   });
 
   it('unregisters only removed threads', () => {
@@ -143,15 +158,14 @@ describe('useAgentThreadCommands', () => {
       },
     );
 
-    registerCommand.mockClear();
-    unregisterCommand.mockClear();
+    registerCommands.mockClear();
+    unregisterCommands.mockClear();
 
     rerender({
       threads: [{ id: 'thread-2', title: 'Second thread' }],
     });
 
-    expect(unregisterCommand).toHaveBeenCalledTimes(1);
-    expect(unregisterCommand).toHaveBeenCalledWith('agent-thread-thread-1');
-    expect(registerCommand).not.toHaveBeenCalled();
+    expect(unregisterCommands).toHaveBeenCalledWith(['agent-thread-thread-1']);
+    expect(registerCommands).not.toHaveBeenCalled();
   });
 });

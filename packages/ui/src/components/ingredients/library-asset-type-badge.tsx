@@ -16,11 +16,7 @@ export default function LibraryAssetTypeBadge({
   const assetType = getLibraryAssetType(category);
 
   return (
-    <Badge
-      className="border"
-      size={ComponentSize.SM}
-      variant={assetType?.badgeVariant ?? 'slate'}
-    >
+    <Badge size={ComponentSize.SM} variant={assetType?.badgeVariant ?? 'slate'}>
       {assetType?.label ?? formatEnumLabel(category) ?? category}
     </Badge>
   );

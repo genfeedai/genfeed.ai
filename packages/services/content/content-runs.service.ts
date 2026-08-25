@@ -58,7 +58,7 @@ export interface ContentRunRecord {
   input?: Record<string, unknown>;
   organizationId: string;
   output?: unknown;
-  publish?: ContentRunPublishContext | ContentRunPublishContext[];
+  publish?: ContentRunPublishContext;
   recommendations?: ContentRunRecommendation[];
   skillSlug?: string;
   source?: string;
