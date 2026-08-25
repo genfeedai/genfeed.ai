@@ -34,6 +34,16 @@ export interface ApifyDatasetItem {
   [key: string]: unknown;
 }
 
+/**
+ * An Apify account (hosted token or a single organization's BYOK token) that
+ * exhausted its plan usage. Every further call fails identically until the
+ * owner raises the limit, so calls are held off until `suspendedUntilMs`.
+ */
+export interface ApifyAccountLimitSuspension {
+  reason: string;
+  suspendedUntilMs: number;
+}
+
 export interface ApifyDatasetResponse<T = ApifyDatasetItem> {
   data: T[];
 }
