@@ -10,12 +10,14 @@ import {
 } from '@ui/primitives';
 import { Switch } from '@ui/primitives/switch';
 
+import type { EnabledModelOption } from './resolve-enabled-model-options';
+
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
 
 type AdvancedRoutingCardProps = {
   allowAdvancedOverrides: boolean;
-  enabledModelIds: string[];
   generationModelOverride: string;
+  modelOptions: EnabledModelOption[];
   isSaving: boolean;
   onAllowAdvancedOverridesChange: (checked: boolean) => void;
   onGenerationModelOverrideChange: (value: string) => void;
@@ -27,8 +29,8 @@ type AdvancedRoutingCardProps = {
 
 export default function AdvancedRoutingCard({
   allowAdvancedOverrides,
-  enabledModelIds,
   generationModelOverride,
+  modelOptions,
   isSaving,
   onAllowAdvancedOverridesChange,
   onGenerationModelOverrideChange,
@@ -67,9 +69,9 @@ export default function AdvancedRoutingCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {enabledModelIds.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
+                  {modelOptions.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -91,9 +93,9 @@ export default function AdvancedRoutingCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {enabledModelIds.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
+                  {modelOptions.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -115,9 +117,9 @@ export default function AdvancedRoutingCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {enabledModelIds.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
+                  {modelOptions.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
