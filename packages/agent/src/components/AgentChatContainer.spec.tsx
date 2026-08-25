@@ -344,7 +344,12 @@ type StoreState = {
   setIsLoadingOlderMessages: ReturnType<typeof vi.fn>;
   stream: {
     activeToolCalls: [];
-    pendingUiActions: [];
+    pendingUiActions: Array<{
+      generationType?: 'image' | 'video';
+      id: string;
+      title: string;
+      type: string;
+    }>;
     streamingContent: string;
     streamingReasoning: string;
   };
@@ -534,6 +539,7 @@ describe('AgentChatContainer', () => {
     storeState.messages = [buildAssistantMessage()];
     storeState.messagesCursor = null;
     storeState.runStartedAt = null;
+    storeState.stream.pendingUiActions = [];
     storeState.stream.streamingContent = '';
     storeState.threads = [];
     storeState.isGenerating = false;
@@ -642,6 +648,62 @@ describe('AgentChatContainer', () => {
     const input = screen.getByTestId('chat-input');
     expect(card.compareDocumentPosition(input)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('docks Generate Image on an image thread even when a later video card is pending', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.stream.pendingUiActions = [
+      {
+        generationType: 'video',
+        id: 'generation-video',
+        title: 'Generate Video',
+        type: 'generation_action_card',
+      },
+    ];
+    storeState.messages = [
+      {
+        content: 'Configure the image before generation.',
+        createdAt: '2026-08-18T09:32:00.000Z',
+        id: 'generation-message-image',
+        metadata: {
+          uiActions: [
+            {
+              generationType: 'image',
+              id: 'generation-image',
+              title: 'Generate Image',
+              type: 'generation_action_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+      {
+        content: 'I prepared the next step below.',
+        createdAt: '2026-08-19T08:43:00.000Z',
+        id: 'generation-message-video',
+        metadata: {
+          uiActions: [
+            {
+              generationType: 'video',
+              id: 'generation-video',
+              title: 'Generate Video',
+              type: 'generation_action_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ];
+
+    render(<AgentChatContainer apiService={apiService as never} />);
+
+    expect(screen.getByTestId('composer-generation-card').textContent).toBe(
+      'Generate Image',
     );
   });
 

@@ -465,7 +465,7 @@ export class AgentToolExecutorService {
         return this.dashboardHandler.getDashboardLayout(params, ctx);
 
       case AgentToolName.PREPARE_GENERATION:
-        return this.prepareHandler.prepareGeneration(params);
+        return this.prepareHandler.prepareGeneration(params, ctx);
 
       case AgentToolName.PREPARE_WORKFLOW_TRIGGER:
         return this.prepareHandler.prepareWorkflowTrigger(params, ctx);

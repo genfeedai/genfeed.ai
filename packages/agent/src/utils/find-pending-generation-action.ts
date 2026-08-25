@@ -2,6 +2,7 @@ import type {
   AgentChatMessage,
   AgentUiAction,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type { ThreadGenerationType } from '@genfeedai/agent/utils/thread-generation-type';
 
 function readResolvedGenerationActionId(action: AgentUiAction): string | null {
   const sourceActionId = action.data?.sourceGenerationActionId;
@@ -18,6 +19,7 @@ function readResolvedGenerationActionId(action: AgentUiAction): string | null {
 export function findPendingGenerationAction(
   messages: AgentChatMessage[],
   threadId?: string | null,
+  generationType?: ThreadGenerationType | null,
 ): AgentUiAction | null {
   const resolvedActionIds = new Set<string>();
 
@@ -48,7 +50,8 @@ export function findPendingGenerationAction(
 
       if (
         action.type === 'generation_action_card' &&
-        !resolvedActionIds.has(action.id)
+        !resolvedActionIds.has(action.id) &&
+        (generationType == null || action.generationType === generationType)
       ) {
         return action;
       }

@@ -31,6 +31,7 @@ import {
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
+import { resolveThreadGenerationType } from '@genfeedai/agent/utils/thread-generation-type';
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   AlertCategory,
@@ -388,13 +389,31 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
+  const threadGenerationType = useMemo(
+    () => resolveThreadGenerationType(messages, activeThreadId),
+    [activeThreadId, messages],
+  );
   const resolvedGenerationAction = useMemo(
     () =>
       [...container.streamState.pendingUiActions]
         .reverse()
-        .find((action) => action.type === 'generation_action_card') ??
-      findPendingGenerationAction(messages, activeThreadId),
-    [activeThreadId, container.streamState.pendingUiActions, messages],
+        .find(
+          (action) =>
+            action.type === 'generation_action_card' &&
+            (threadGenerationType == null ||
+              action.generationType === threadGenerationType),
+        ) ??
+      findPendingGenerationAction(
+        messages,
+        activeThreadId,
+        threadGenerationType,
+      ),
+    [
+      activeThreadId,
+      container.streamState.pendingUiActions,
+      messages,
+      threadGenerationType,
+    ],
   );
 
   // Hold the card across the hand-off gap.
@@ -406,6 +425,14 @@ export function AgentChatContainer({
   // the user had typed or picked in it — which is why a chosen model appeared
   // to snap back to Auto. Retain the last action for the same thread instead.
   if (stickyGenerationActionRef.current?.threadId !== activeThreadId) {
+    stickyGenerationActionRef.current = null;
+  }
+  if (
+    stickyGenerationActionRef.current &&
+    threadGenerationType &&
+    stickyGenerationActionRef.current.action.generationType !==
+      threadGenerationType
+  ) {
     stickyGenerationActionRef.current = null;
   }
   if (resolvedGenerationAction) {
