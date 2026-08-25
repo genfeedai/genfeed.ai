@@ -1,6 +1,22 @@
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
+import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import type { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
+
+function buildParams(
+  overrides: Partial<DispatchVideoGenerationParams> = {},
+): DispatchVideoGenerationParams {
+  return {
+    height: 1920,
+    model: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+    prompt: 'a dog running on the beach',
+    promptParams: {
+      prompt: 'a dog running on the beach',
+    },
+    width: 1080,
+    ...overrides,
+  };
+}
 
 describe('HiggsFieldVideoGenerationProviderAdapter', () => {
   function buildAdapter(higgsFieldService: Partial<HiggsFieldService>) {
@@ -25,12 +41,7 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
     it('throws when no source imageUrl is provided', async () => {
       const adapter = buildAdapter({});
 
-      await expect(
-        adapter.generate({
-          model: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
-          prompt: 'a dog running on the beach',
-        }),
-      ).rejects.toThrow(
+      await expect(adapter.generate(buildParams())).rejects.toThrow(
         'Higgsfield video generation requires a source imageUrl',
       );
     });
@@ -47,15 +58,13 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
         waitForCompletion,
       });
 
-      const result = await adapter.generate({
-        duration: 5,
-        height: 1920,
-        imageUrl: 'https://cdn.test/start.png',
-        model: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
-        organizationId: 'org-1',
-        prompt: 'a dog running on the beach',
-        width: 1080,
-      });
+      const result = await adapter.generate(
+        buildParams({
+          duration: 5,
+          imageUrl: 'https://cdn.test/start.png',
+          organizationId: 'org-1',
+        }),
+      );
 
       expect(generateImageToVideo).toHaveBeenCalledWith({
         aspectRatio: '9:16',
