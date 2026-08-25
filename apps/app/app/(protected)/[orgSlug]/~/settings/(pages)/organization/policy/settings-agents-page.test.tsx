@@ -199,7 +199,7 @@ describe('SettingsAgentsPage', () => {
 
     expect(screen.getByText('Autonomous Agent Policy')).toBeInTheDocument();
     expect(screen.getByText('Advanced Routing')).toBeInTheDocument();
-    expect(screen.getByText('Brand-Level Profiles')).toBeInTheDocument();
+    expect(screen.queryByText('Brand-Level Profiles')).toBeNull();
     expect(
       screen.queryByRole('button', { name: /save agent policy/i }),
     ).toBeNull();

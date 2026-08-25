@@ -12,7 +12,6 @@ import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { useQuery } from '@tanstack/react-query';
-import Card from '@ui/card/Card';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
 import AdvancedRoutingCard from './advanced-routing-card';
@@ -292,12 +291,6 @@ export default function SettingsAgentsPage() {
         }
         reviewModelOverride={reviewModelOverride}
         thinkingModelOverride={thinkingModelOverride}
-      />
-
-      <Card
-        label="Brand-Level Profiles"
-        description="Persona, voice, strategy, and platform overrides now live on each brand detail page instead of generic settings."
-        bodyClassName="gap-3 p-4"
       />
     </div>
   );
