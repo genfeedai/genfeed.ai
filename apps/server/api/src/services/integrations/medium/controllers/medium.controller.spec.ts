@@ -233,6 +233,7 @@ describe('MediumController', () => {
         organizationId,
         brandId,
         'draft',
+        undefined,
       );
       expect(result).toEqual({
         data: { id: 'medium-post-id' },

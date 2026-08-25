@@ -407,6 +407,7 @@ describe('analytics ingestion to dashboard smoke path', () => {
       organizationId,
       brandId,
       'yt-video-123',
+      undefined,
     );
     expect(postSummary).toMatchObject({
       platforms: {
