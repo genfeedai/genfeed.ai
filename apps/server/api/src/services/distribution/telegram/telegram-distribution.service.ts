@@ -263,7 +263,12 @@ export class TelegramDistributionService {
     brandId?: string,
     credentialId?: string,
   ): Promise<string> {
-    // Try org-specific credential first (brand-scoped token)
+    if (credentialId && !brandId) {
+      throw new Error(
+        'A brand is required when selecting a Telegram credential',
+      );
+    }
+
     if (brandId) {
       const credential = await this.credentialsService.resolveBrandAccount({
         brandId,
@@ -275,6 +280,8 @@ export class TelegramDistributionService {
       if (credential?.accessToken) {
         return EncryptionUtil.decrypt(credential.accessToken);
       }
+
+      throw new Error('Telegram credential not found for this brand');
     }
 
     // Fall back to org-level credential

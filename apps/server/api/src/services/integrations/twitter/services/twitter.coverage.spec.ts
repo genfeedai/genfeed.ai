@@ -116,6 +116,7 @@ const makeCredential = (overrides: Record<string, unknown> = {}) => ({
 describe('TwitterService (coverage)', () => {
   let service: TwitterService;
   let credentialsService: {
+    findBrandAccounts: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     resolveBrandAccount: ReturnType<typeof vi.fn>;
@@ -132,6 +133,10 @@ describe('TwitterService (coverage)', () => {
     vi.clearAllMocks();
 
     credentialsService = {
+      findBrandAccounts: vi.fn(async () => {
+        const credential = await credentialsService.findOne();
+        return credential ? [credential] : [];
+      }),
       findOne: vi.fn().mockResolvedValue(null),
       patch: vi.fn().mockResolvedValue(makeCredential()),
       // Multi-account resolution routes through `resolveBrandAccount`; the double

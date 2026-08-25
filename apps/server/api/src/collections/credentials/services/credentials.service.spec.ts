@@ -564,7 +564,11 @@ describe('CredentialsService', () => {
         service.updateExternalProfile('pending-1', orgId, {
           handle: 'nameless',
         }),
-      ).rejects.toThrow(/did not identify which account/);
+      ).rejects.toMatchObject({
+        response: {
+          detail: expect.stringContaining('did not identify which account'),
+        },
+      });
 
       expect(prisma.credential.update).not.toHaveBeenCalled();
     });
@@ -815,7 +819,13 @@ describe('CredentialsService', () => {
 
   describe('updateExternalProfile', () => {
     beforeEach(() => {
-      prisma.credential.findFirst.mockResolvedValue({ id: 'existing-id' });
+      prisma.credential.findFirst.mockResolvedValue({
+        brandId,
+        externalId: 'provider-1',
+        id: 'existing-id',
+        organizationId: orgId,
+        platform: 'TWITTER',
+      });
     });
 
     it('uploads a provider avatar to S3 and persists public identity', async () => {

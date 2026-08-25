@@ -44,6 +44,7 @@ describe('InstagramSocialAdapter', () => {
         postId: 'media_123',
         text: 'Great post!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.postComment).toHaveBeenCalledWith(
@@ -67,6 +68,7 @@ describe('InstagramSocialAdapter', () => {
         recipientId: 'user789',
         text: 'Hey!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.sendCommentReplyDm).toHaveBeenCalledWith(
@@ -99,6 +101,7 @@ describe('InstagramSocialAdapter', () => {
         postId: 'media_123',
         text: 'Great post!',
         userId: 'legacy-user',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.postComment).toHaveBeenCalledWith(
@@ -119,6 +122,7 @@ describe('InstagramSocialAdapter', () => {
           postId: 'media_123',
           text: 'Great post!',
           userId: 'legacy-user',
+          workflowRunId: 'workflow-run-1',
         }),
       ).rejects.toThrow('brandId is required for Instagram reply publishing');
     });
@@ -132,6 +136,7 @@ describe('InstagramSocialAdapter', () => {
         recipientId: 'user789',
         text: 'Hey!',
         userId: 'legacy-user',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.sendCommentReplyDm).toHaveBeenCalledWith(
@@ -154,6 +159,7 @@ describe('InstagramSocialAdapter', () => {
         recipientId: 'user789',
         text: 'Hey!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(result.messageId).toMatch(/^ig_dm_\d+$/);

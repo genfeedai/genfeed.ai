@@ -17,7 +17,6 @@ import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
-  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import {
   buildGrantedScopesCredentialPatch,
@@ -378,24 +377,21 @@ export class TwitterService {
     brandId: string,
     credentialId?: string,
   ): Promise<CredentialDocument | null> {
-    const platform =
-      toPrismaCredentialPlatform(CredentialPlatform.TWITTER) ??
-      CredentialPlatform.TWITTER;
-
     if (credentialId) {
-      return this.credentialsService.findOne({
-        id: credentialId,
+      return this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        isDisconnectedIncluded: true,
         organizationId,
-        platform,
+        platform: CredentialPlatform.TWITTER,
       });
     }
 
-    const accounts = await this.credentialsService.find({
-      brandId,
-      isDeleted: false,
+    const accounts = await this.credentialsService.findBrandAccounts(
       organizationId,
-      platform,
-    });
+      brandId,
+      CredentialPlatform.TWITTER,
+    );
 
     if (accounts.length > 1) {
       throw new Error(

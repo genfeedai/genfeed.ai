@@ -410,7 +410,10 @@ export class CredentialsService extends BaseService<
         return null;
       }
 
-      if (named.brandId !== brandId || named.platform !== platform) {
+      if (
+        named.brandId !== brandId ||
+        fromPrismaCredentialPlatform(named.platform) !== platform
+      ) {
         this.logger.warn(
           `${CredentialsService.name} credential ${credentialId} does not belong to this brand on ${platform}`,
           { brandId, credentialId, organizationId, platform },

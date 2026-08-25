@@ -24,6 +24,7 @@ import {
 } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -45,9 +46,14 @@ function makeTwitterCredential(
 
 describe('TwitterService', () => {
   let service: TwitterService;
+  let credentialsResolveMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     const credentialsMock = {
+      findBrandAccounts: vi.fn(async () => {
+        const credential = await credentialsMock.findOne();
+        return credential ? [credential] : [];
+      }),
       findOne: vi.fn().mockResolvedValue(null),
       // Multi-account resolution routes through `resolveBrandAccount`; the double
       // answers with whatever `findOne` is primed to return so the existing
@@ -56,6 +62,7 @@ describe('TwitterService', () => {
         credentialsMock.findOne(options),
       ),
     };
+    credentialsResolveMock = credentialsMock.resolveBrandAccount;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -82,6 +89,20 @@ describe('TwitterService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('resolves an explicit X credential within the requested brand', async () => {
+    await expect(
+      service.refreshToken('org-1', 'brand-1', 'credential-1'),
+    ).rejects.toThrow('Twitter credential not found');
+
+    expect(credentialsResolveMock).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+      isDisconnectedIncluded: true,
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+    });
   });
 
   describe('resolveTwitterReplySettings', () => {
