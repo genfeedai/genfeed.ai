@@ -26,6 +26,7 @@ import {
 import {
   generationBriefExemptionReasonSchema,
   generationBriefOmittedSignalSchema,
+  generationBriefSurfaceSchema,
 } from './generation-brief-compiler.contract';
 import {
   MINIMAX_H3_CAPABILITY_PROFILE_ID,
@@ -45,6 +46,7 @@ export const MINIMAX_H3_COMPILER_VERSION = 1;
 
 export {
   generationBriefExemptionReasonSchema as videoGenerationBriefExemptionReasonSchema,
+  generationBriefSurfaceSchema as videoGenerationBriefSurfaceSchema,
 };
 
 const aspectRatioSchema = z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/);
@@ -118,6 +120,7 @@ export const prunaaiPVideoCompileEvidenceSchema = z
     profileVersion: z.literal(PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION),
     referenceAssetIds: z.array(z.string().trim().min(1).max(255)).max(20),
     status: z.literal('compiled'),
+    surface: generationBriefSurfaceSchema.optional(),
   })
   .strict();
 
@@ -136,6 +139,7 @@ export const minimaxH3CompileEvidenceSchema = z
     profileVersion: z.literal(MINIMAX_H3_CAPABILITY_PROFILE_VERSION),
     referenceAssetIds: z.array(z.string().trim().min(1).max(255)).max(20),
     status: z.literal('compiled'),
+    surface: generationBriefSurfaceSchema.optional(),
   })
   .strict();
 
@@ -148,6 +152,7 @@ export const videoGenerationBriefExemptionEvidenceSchema = z
     profileVersion: z.null(),
     reason: generationBriefExemptionReasonSchema,
     status: z.literal('exempted'),
+    surface: generationBriefSurfaceSchema.optional(),
   })
   .strict();
 

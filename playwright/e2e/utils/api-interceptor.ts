@@ -1,3 +1,4 @@
+import type { IngredientCategory } from '@genfeedai/enums';
 import type { Page, Route } from '@playwright/test';
 import {
   createPlaywrightApiRoutePattern,
@@ -39,6 +40,7 @@ interface MockOrganization {
 interface MockIngredient {
   id: string;
   type: string;
+  category: IngredientCategory;
   status: string;
   url: string;
   createdAt: string;
@@ -66,6 +68,8 @@ interface MockBrand {
   createdAt: string;
   updatedAt: string;
   isFleetEnabled: boolean;
+  organizationId: string;
+  organization: MockOrganization;
 }
 
 interface MockOrganizationSettings {
@@ -183,6 +187,17 @@ export function generateMockBrand(
     label: 'Brand 1',
     links: [],
     name: 'Brand 1',
+    // The real IBrand contract always nests a full organization relation
+    // (packages/interfaces/src/organization/brand.interface.ts). Without it,
+    // getBrandOrganizationSlug() in brand-context.helpers.ts can never resolve
+    // a slug, which permanently fails any page's org/brand scope-match guard
+    // (nightly full tier, #2982).
+    organization: generateMockOrganization({
+      id: 'mock-org-id-e2e-test',
+      name: 'Test Organization',
+      slug: 'test-org',
+    }),
+    organizationId: 'mock-org-id-e2e-test',
     scope: 'private',
     slug: 'brand-1',
     updatedAt: new Date().toISOString(),
@@ -220,6 +235,7 @@ export function generateMockIngredient(
 ): MockIngredient {
   const baseId = `mock-${type}-${Date.now()}`;
   return {
+    category: type.toUpperCase() as IngredientCategory,
     createdAt: new Date().toISOString(),
     id: baseId,
     status: 'completed',

@@ -4,6 +4,7 @@ import { EMPTY_STATES } from '@genfeedai/constants';
 import {
   ButtonVariant,
   ComponentSize,
+  categoryToString,
   formatEnumLabel,
   IngredientCategory,
   type IngredientFormat,
@@ -236,6 +237,15 @@ export default function IngredientsListContent({
         return <SkeletonList count={6} />;
       }
 
+      // `IngredientSound` maps over its items and renders nothing at all for an
+      // empty list, so an empty music or voice library used to be a blank pane.
+      // Mirror the media grid and say so.
+      if (filteredIngredients.length === 0) {
+        return (
+          <p className="text-sm text-foreground/45">{`No ${categoryToString(singularType)} yet`}</p>
+        );
+      }
+
       return (
         <IngredientSound
           ingredients={filteredIngredients}
@@ -320,6 +330,7 @@ export default function IngredientsListContent({
     onDeleteIngredient,
     onPublishIngredient,
     selectedIngredientIds,
+    singularType,
     tableActions,
     type,
   ]);

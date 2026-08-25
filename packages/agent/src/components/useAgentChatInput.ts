@@ -35,7 +35,6 @@ import {
   readConversationComposerDraft,
   writeConversationComposerContentReferences,
   writeConversationComposerDocument,
-  writeConversationComposerFocusIntent,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
@@ -500,21 +499,9 @@ export function useAgentChatInput({
       );
       setActionFeedback(null);
     };
-    const focusHandler = () => {
-      writeConversationComposerFocusIntent(draftScopeKey, true);
-    };
-    const blurHandler = ({ event }: { event: FocusEvent }) => {
-      if (event.relatedTarget) {
-        writeConversationComposerFocusIntent(draftScopeKey, false);
-      }
-    };
     editor.on('update', updateHandler);
-    editor.on('focus', focusHandler);
-    editor.on('blur', blurHandler);
     return () => {
       editor.off('update', updateHandler);
-      editor.off('focus', focusHandler);
-      editor.off('blur', blurHandler);
     };
   }, [draftScopeKey, editor]);
 
@@ -547,10 +534,8 @@ export function useAgentChatInput({
         : nextReferences,
     );
 
-    if (!draft.hasFocusIntent) {
-      return;
-    }
-
+    // Autofocus on every mount and scope change (new conversation, thread
+    // switch) — typing should never require clicking the composer first.
     const focusFrame = window.requestAnimationFrame(() => {
       if (!editor.isDestroyed) {
         editor.commands.focus('end');

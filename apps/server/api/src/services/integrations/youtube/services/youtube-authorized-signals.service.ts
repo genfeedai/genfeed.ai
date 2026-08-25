@@ -447,12 +447,20 @@ export class YoutubeAuthorizedSignalsService {
       );
     }
 
-    const selected = channelResult.error
-      ? { channel: undefined, reason: undefined }
-      : this.selectChannel(
-          channelResult.value?.channels ?? [],
-          credential.externalId,
-        );
+    let selected: {
+      channel?: YoutubeChannelNode;
+      reason?: YoutubeAuthorizedSignalReason;
+    };
+    if (!hasYoutubeDataScope(grantedScopes)) {
+      selected = { reason: 'missing_scope' };
+    } else if (channelResult.error) {
+      selected = {};
+    } else {
+      selected = this.selectChannel(
+        channelResult.value?.channels ?? [],
+        credential.externalId,
+      );
+    }
     if (
       !selected.channel &&
       isYoutubeChannelSelectionError(channelResult.error)
@@ -904,7 +912,7 @@ export class YoutubeAuthorizedSignalsService {
         result.error,
         previousSnapshot,
         observedAt,
-        selected.reason,
+        hasYoutubeDataScope(grantedScopes) ? selected.reason : 'missing_scope',
       );
     }
 

@@ -2,6 +2,7 @@ import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dt
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { runVideoGenerationBrief } from '@api/services/generation-brief';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import {
@@ -77,43 +78,74 @@ export class GenerateVideoTask {
         'GenerateVideoTask',
       );
 
+      const compiled = runVideoGenerationBrief({
+        durationSeconds: config.duration,
+        height: 1080,
+        model: config.model,
+        objective: config.prompt,
+        seed: config.seed,
+        surface: 'schedule',
+        visualDirection: config.style,
+        width: 1920,
+      });
+      // An exempt model has no compiler, so it keeps the operator's raw prompt.
+      const compiledConfig: GenerateVideoConfig = {
+        ...config,
+        prompt: compiled.dispatch?.prompt ?? config.prompt,
+      };
+
       let generatedUrl: string;
       let externalId: string;
 
       // Route to appropriate AI service based on model
       switch (config.model) {
         case VideoTaskModel.KLINGAI:
-          externalId = await this.generateWithKlingAI(config, organizationId);
+          externalId = await this.generateWithKlingAI(
+            compiledConfig,
+            organizationId,
+          );
           generatedUrl = externalId;
           break;
 
         case VideoTaskModel.HEDRA:
         case VideoTaskModel.VEO3:
-          externalId = await this.generateWithVeo3(config, organizationId);
+          externalId = await this.generateWithVeo3(
+            compiledConfig,
+            organizationId,
+          );
           generatedUrl = externalId;
           break;
 
         case VideoTaskModel.RUNWAY:
         case VideoTaskModel.REPLICATE:
-          externalId = await this.generateWithReplicate(config, organizationId);
+          externalId = await this.generateWithReplicate(
+            compiledConfig,
+            organizationId,
+          );
           generatedUrl = externalId;
           break;
 
         case VideoTaskModel.FAL:
-          generatedUrl = await this.generateWithFal(config, organizationId);
+          generatedUrl = await this.generateWithFal(
+            compiledConfig,
+            organizationId,
+          );
           externalId = generatedUrl;
           break;
 
         case VideoTaskModel.HIGGSFIELD:
           externalId = await this.generateWithHiggsField(
-            config,
+            compiledConfig,
             organizationId,
           );
           generatedUrl = externalId;
           break;
 
         case VideoTaskModel.COMFYUI:
-          externalId = await this.generateWithComfyUI(config, organizationId);
+          externalId = await this.generateWithComfyUI(
+            compiledConfig,
+            organizationId,
+          );
           generatedUrl = externalId;
           break;
 

@@ -412,7 +412,7 @@ export class AgentOrchestratorStreamLoopService {
 
           toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
 
-          await maybeUpdateThreadTitle({
+          const appliedThreadTitle = await maybeUpdateThreadTitle({
             agentThreadsService: this.agentThreadsService,
             context,
             seedTitle: seedTitle ?? '',
@@ -542,6 +542,9 @@ export class AgentOrchestratorStreamLoopService {
               durationMs: runDurationMs,
               runStartedAt,
               threadId,
+              ...(appliedThreadTitle
+                ? { threadTitle: appliedThreadTitle }
+                : {}),
               toolCalls: toolRoundState.toolCalls,
             }),
           );

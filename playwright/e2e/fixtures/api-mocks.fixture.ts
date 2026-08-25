@@ -1,4 +1,4 @@
-import { PostStatus } from '@genfeedai/enums';
+import { IngredientCategory, PostStatus } from '@genfeedai/enums';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {
@@ -3623,31 +3623,84 @@ export async function mockLibraryData(page: Page): Promise<void> {
   await page.route('**/api.genfeed.ai/v1/captions**', fulfillCaptions);
   await page.route('**/v1/captions**', fulfillCaptions);
 
-  await page.route('**/api.genfeed.ai/v1/ingredients**', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: [
-            {
-              attributes: {
-                createdAt: new Date().toISOString(),
-                name: 'Product Photo',
-                type: 'image',
-                url: 'https://cdn.genfeed.ai/mock/ingredient.jpg',
-              },
-              id: 'ingredient-1',
-              type: 'ingredients',
-            },
-          ],
-          meta: { page: 1, pageSize: 10, totalCount: 1 },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
+  // The Library browser filters on one unified `/ingredients` endpoint and puts
+  // the asset type on the query string (`categories=MUSIC`). A fixture that
+  // answered every request with the same photo made `/library/music` render an
+  // image row, so honour the category axis the way the API does.
+  const libraryIngredients = [
+    {
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-image-1',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/ingredient.jpg',
+      metadataLabel: 'Product Photo',
+    },
+    {
+      category: IngredientCategory.VIDEO,
+      id: 'ingredient-video-1',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/clip.mp4',
+      metadataLabel: 'Launch Teaser',
+    },
+    {
+      category: IngredientCategory.GIF,
+      id: 'ingredient-gif-1',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/loop.gif',
+      metadataLabel: 'Reaction Loop',
+    },
+    {
+      category: IngredientCategory.MUSIC,
+      id: 'ingredient-music-1',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/theme.mp3',
+      metadataLabel: 'Ambient Loop',
+    },
+    {
+      category: IngredientCategory.VOICE,
+      id: 'ingredient-voice-1',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/narrator.wav',
+      metadataLabel: 'Narrator Take',
+    },
+  ];
+
+  const fulfillIngredients = async (route: Route): Promise<void> => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
       return;
     }
-    await route.continue();
-  });
+
+    const searchParams = new URL(route.request().url()).searchParams;
+    const requestedCategories = new Set(
+      [...searchParams.getAll('categories'), ...searchParams.getAll('category')]
+        .flatMap((value) => value.split(','))
+        .map((value) => value.trim().toUpperCase())
+        .filter(Boolean),
+    );
+
+    const matched =
+      requestedCategories.size === 0
+        ? libraryIngredients
+        : libraryIngredients.filter((ingredient) =>
+            requestedCategories.has(ingredient.category),
+          );
+
+    await route.fulfill({
+      body: JSON.stringify({
+        data: matched.map(({ id, ...attributes }) => ({
+          attributes: {
+            ...attributes,
+            createdAt: new Date().toISOString(),
+            status: 'UPLOADED',
+          },
+          id,
+          type: 'ingredients',
+        })),
+        meta: { page: 1, pageSize: 10, totalCount: matched.length },
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  };
+
+  await page.route('**/api.genfeed.ai/v1/ingredients**', fulfillIngredients);
+  await page.route('**/v1/ingredients**', fulfillIngredients);
 
   await page.route('**/api.genfeed.ai/v1/scenes**', async (route) => {
     if (route.request().method() === 'GET') {

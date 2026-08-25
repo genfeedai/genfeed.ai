@@ -3,8 +3,13 @@ import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 /**
- * Page Object Model for the shipped 3-step onboarding wizard
+ * Page Object Model for the onboarding wizard screens
  * (brand → providers → summary) plus the success screen.
+ *
+ * On web the wizard is agent-first: brand is the only screen a cloud operator
+ * is walked through, and continuing from it hands off to the
+ * `/agent/onboarding` conversation. Providers and summary stay reachable as
+ * their own destinations, so specs enter that tail directly via `goto()`.
  *
  * @module onboarding.page
  */
@@ -84,6 +89,17 @@ export class OnboardingPage {
       new RegExp(`/onboarding/${stepPath}(?:[/?#]|$)`),
     );
     await this.waitForStep(stepNumber);
+  }
+
+  /**
+   * The brand step hands web operators to the agent conversation. The org
+   * slug is part of the canonical href, so match the suffix rather than a
+   * fixed path.
+   */
+  async assertAgentHandoff(): Promise<void> {
+    await expect(this.page).toHaveURL(
+      new RegExp(`${APP_ROUTES.AGENT.ONBOARDING}(?:[/?#]|$)`),
+    );
   }
 
   async fillBrand(data: {

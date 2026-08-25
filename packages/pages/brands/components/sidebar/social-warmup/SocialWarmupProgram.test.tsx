@@ -14,6 +14,7 @@ import type {
   ISocialWarmupEnrollment,
 } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialWarmupProgram from './SocialWarmupProgram';
 
@@ -23,6 +24,7 @@ const reopenItem = vi.fn();
 const refresh = vi.fn();
 const refreshAuthorizedSignals = vi.fn();
 const resolveAuthToken = vi.fn(async () => 'token-123');
+const servicesPlatform = vi.fn();
 
 let hookState: {
   completeItem: typeof completeItem;
@@ -60,6 +62,10 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 
 vi.mock('@services/external/services.service', () => ({
   ServicesService: class {
+    constructor(platform: string) {
+      servicesPlatform(platform);
+    }
+
     refreshAuthorizedSignals = refreshAuthorizedSignals;
   },
 }));
@@ -319,6 +325,9 @@ describe('SocialWarmupProgram', () => {
       screen.getAllByRole('button', { name: 'Refresh signals' })[0],
     );
     await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith(
+        resolveOAuthServicePath(CredentialPlatform.YOUTUBE),
+      );
       expect(refreshAuthorizedSignals).toHaveBeenCalledWith('credential-1');
     });
   });

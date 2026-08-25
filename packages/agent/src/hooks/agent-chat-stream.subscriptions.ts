@@ -256,6 +256,11 @@ export function attachAgentStreamSubscriptions(
             : {}),
           pendingInputCount: 0,
           runStatus: 'completed',
+          // A first-run generated title lands with the same event that ends
+          // the stream — no refetch needed for the sidebar to rename.
+          ...(payload.threadTitle?.trim()
+            ? { title: payload.threadTitle.trim() }
+            : {}),
         });
         if (deps.isThreadVisible(payload.threadId)) {
           deps.finalizeStream(assistantMessage);

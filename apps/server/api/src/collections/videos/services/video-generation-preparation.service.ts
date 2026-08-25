@@ -39,13 +39,8 @@ import {
 } from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import {
-  assembleVideoGenerationBrief,
-  assertRedactedVideoGenerationBriefEvidence,
-  compileMinimaxH3GenerationBrief,
-  compilePrunaaiPVideoGenerationBrief,
   GenerationBriefCompileError,
-  resolveVideoGenerationBriefSupport,
-  resolveVideoGenerationFidelityMode,
+  runVideoGenerationBrief,
   toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -56,12 +51,6 @@ import type {
   MinimaxH3Dispatch,
   PrunaaiPVideoDispatch,
   VideoGenerationBriefPersistedEvidence,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
-import {
-  buildMinimaxH3GenerationSource,
-  buildPrunaaiPVideoGenerationSource,
-  buildVideoGenerationBriefExemptionSource,
-  PRUNAAI_P_VIDEO_COMPILER_ID,
 } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   IngredientCategory,
@@ -352,80 +341,41 @@ export class VideoGenerationPreparationService {
     evidence: VideoGenerationBriefPersistedEvidence;
     generationSource: string;
   } {
-    const support = resolveVideoGenerationBriefSupport(params.model);
-    if (support.kind === 'exempt') {
-      return {
-        evidence: assertRedactedVideoGenerationBriefEvidence({
-          compilerId: null,
-          compilerVersion: null,
-          modelKey: support.modelKey,
-          profileId: null,
-          profileVersion: null,
-          reason: support.reason,
-          status: 'exempted',
-        }),
-        generationSource: buildVideoGenerationBriefExemptionSource(
-          support.reason,
-        ),
-      };
-    }
+    const composition = [
+      params.createVideoDto.camera,
+      params.createVideoDto.lens,
+    ]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join(', ');
+    const avoid = [
+      ...(params.createVideoDto.blacklist ?? []),
+      ...(params.createVideoDto.negativePrompt
+        ? [params.createVideoDto.negativePrompt]
+        : []),
+    ];
 
     try {
-      const fidelityMode = resolveVideoGenerationFidelityMode({
-        brandingMode: params.createVideoDto.brandingMode,
-        isBrandingEnabled: params.createVideoDto.isBrandingEnabled,
-      });
-      const composition = [
-        params.createVideoDto.camera,
-        params.createVideoDto.lens,
-      ]
-        .filter((value): value is string => Boolean(value?.trim()))
-        .join(', ');
-      const avoid = [
-        ...(params.createVideoDto.blacklist ?? []),
-        ...(params.createVideoDto.negativePrompt
-          ? [params.createVideoDto.negativePrompt]
-          : []),
-      ];
-      const brief = assembleVideoGenerationBrief({
+      return runVideoGenerationBrief({
         audioDirection: params.createVideoDto.speech,
         avoid,
+        brandingMode: params.createVideoDto.brandingMode,
         composition,
         durationSeconds: params.createVideoDto.duration,
         endFrameId: params.createVideoDto.endFrame,
-        fidelityMode,
         height: params.height,
+        isBrandingEnabled: params.createVideoDto.isBrandingEnabled,
         lighting: params.createVideoDto.lighting,
+        model: params.model,
         motion: params.createVideoDto.cameraMovement,
         objective: params.promptOriginalText,
         referenceIds: params.referenceIds,
         scene: params.createVideoDto.scene,
+        seed: params.createVideoDto.seed,
+        surface: 'studio',
         visualDirection:
           params.createVideoDto.style || params.createVideoDto.mood,
-        visualDirectionSource: 'user',
         width: params.width,
       });
-
-      const isPrunaaiPVideo =
-        support.compilerId === PRUNAAI_P_VIDEO_COMPILER_ID;
-      const compiled = isPrunaaiPVideo
-        ? compilePrunaaiPVideoGenerationBrief({
-            brief,
-            seed: params.createVideoDto.seed,
-          })
-        : compileMinimaxH3GenerationBrief({
-            brief,
-            seed: params.createVideoDto.seed,
-          });
-
-      return {
-        brief: compiled.brief,
-        dispatch: compiled.dispatch,
-        evidence: assertRedactedVideoGenerationBriefEvidence(compiled.evidence),
-        generationSource: isPrunaaiPVideo
-          ? buildPrunaaiPVideoGenerationSource()
-          : buildMinimaxH3GenerationSource(),
-      };
     } catch (error: unknown) {
       if (error instanceof GenerationBriefCompileError) {
         throw new HttpException(

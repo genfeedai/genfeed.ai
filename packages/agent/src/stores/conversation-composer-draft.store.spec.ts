@@ -5,7 +5,6 @@ import {
   writeConversationComposerAttachments,
   writeConversationComposerContentReferences,
   writeConversationComposerDocument,
-  writeConversationComposerFocusIntent,
 } from './conversation-composer-draft.store';
 
 describe('conversation composer draft persistence', () => {
@@ -13,7 +12,7 @@ describe('conversation composer draft persistence', () => {
     sessionStorage.clear();
   });
 
-  it('restores document, attachments, content references, and focus by scoped key', () => {
+  it('restores document, attachments, and content references by scoped key', () => {
     const scopeKey = 'acme:thread-1:4';
     const document = {
       content: [
@@ -44,7 +43,6 @@ describe('conversation composer draft persistence', () => {
         thumbnailUrl: 'https://cdn.example/launch.jpg',
       },
     ]);
-    writeConversationComposerFocusIntent(scopeKey, true);
 
     expect(readConversationComposerDraft(scopeKey)).toMatchObject({
       attachments: [expect.objectContaining({ ingredientId: 'ingredient-1' })],
@@ -55,7 +53,6 @@ describe('conversation composer draft persistence', () => {
         }),
       ],
       document,
-      hasFocusIntent: true,
       plainText: 'Draft',
     });
   });

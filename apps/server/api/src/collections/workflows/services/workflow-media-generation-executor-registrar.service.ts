@@ -1,5 +1,6 @@
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { runImageGenerationBrief } from '@api/services/generation-brief';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -55,25 +56,53 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             (reference): reference is string => typeof reference === 'string',
           )
         : undefined;
-      const { input } = await promptBuilderService.buildPrompt(
-        model as string,
-        {
-          height: typeof params.height === 'number' ? params.height : undefined,
-          modelCategory: ModelCategory.IMAGE,
-          negativePrompt:
-            typeof params.negativePrompt === 'string'
-              ? params.negativePrompt
-              : undefined,
-          prompt: typeof params.prompt === 'string' ? params.prompt : '',
-          references,
-          seed: typeof params.seed === 'number' ? params.seed : undefined,
-          strength:
-            typeof params.strength === 'number' ? params.strength : undefined,
-          style: typeof params.style === 'string' ? params.style : undefined,
-          width: typeof params.width === 'number' ? params.width : undefined,
-        },
-        undefined,
-      );
+      const prompt = typeof params.prompt === 'string' ? params.prompt : '';
+      const height = typeof params.height === 'number' ? params.height : 1080;
+      const width = typeof params.width === 'number' ? params.width : 1920;
+      const compiled = runImageGenerationBrief({
+        height,
+        model: model as string,
+        objective: prompt,
+        referenceIds: [],
+        seed: typeof params.seed === 'number' ? params.seed : undefined,
+        surface: 'workflow',
+        visualDirection:
+          typeof params.style === 'string' ? params.style : undefined,
+        width,
+      });
+      const compiledInput = compiled.dispatch
+        ? {
+            ...compiled.dispatch,
+            ...(references?.[0] ? { image: references[0] } : {}),
+            ...(typeof params.strength === 'number'
+              ? { strength: params.strength }
+              : {}),
+          }
+        : undefined;
+      const { input } = compiledInput
+        ? { input: compiledInput }
+        : await promptBuilderService.buildPrompt(
+            model as string,
+            {
+              height,
+              modelCategory: ModelCategory.IMAGE,
+              negativePrompt:
+                typeof params.negativePrompt === 'string'
+                  ? params.negativePrompt
+                  : undefined,
+              prompt,
+              references,
+              seed: typeof params.seed === 'number' ? params.seed : undefined,
+              strength:
+                typeof params.strength === 'number'
+                  ? params.strength
+                  : undefined,
+              style:
+                typeof params.style === 'string' ? params.style : undefined,
+              width,
+            },
+            undefined,
+          );
       const brandId = this.helper.requireBrandId(params.brandId, 'imageGen');
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
         output: {
