@@ -40,9 +40,7 @@ export function buildArticlePageTitle(articleTitle: string): string {
 
 export async function generateStaticParams(): Promise<{ slug: string }[]> {
   try {
-    const articles = await PublicService.getInstance().findPublicArticles({
-      limit: 200,
-      page: 1,
+    const articles = await PublicService.getInstance().findAllPublicArticles({
       sortBy: 'publishedAt',
       sortOrder: 'desc',
     });

@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE } from '@genfeedai/constants';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -16,6 +17,14 @@ import {
 } from '@services/core/json-api';
 
 type ModelConstructor<T> = new (partial: Partial<T>) => T;
+
+/**
+ * Ceiling on the number of pages `findAllPublicArticles` will walk. At
+ * `MAX_PAGE_SIZE` per page this covers 5,000 published articles, which is far
+ * beyond the current corpus while still bounding a build-time crawl if the API
+ * ever stops honouring the page cursor.
+ */
+const MAX_PUBLIC_ARTICLE_PAGES = 50;
 
 export class PublicService extends HTTPBaseService {
   private static classInstance?: PublicService;
@@ -138,6 +147,35 @@ export class PublicService extends HTTPBaseService {
 
   public async findPublicArticles(query?: IQueryParams): Promise<Article[]> {
     return this.fetchMany('articles', Article, query);
+  }
+
+  /**
+   * Every published article, for SEO surfaces (sitemap, static params) that need
+   * the whole corpus. `BaseQueryDto` declares `@Max(100)` on `limit`, so a single
+   * oversized request is rejected with a 400 by the API's ValidationPipe — and
+   * `fetchMany` swallows that into an empty array, which silently drops every
+   * article from the sitemap. Walk pages at the cap instead.
+   */
+  public async findAllPublicArticles(
+    query?: Omit<IQueryParams, 'limit' | 'page'>,
+  ): Promise<Article[]> {
+    const articles: Article[] = [];
+
+    for (let page = 1; page <= MAX_PUBLIC_ARTICLE_PAGES; page += 1) {
+      const pageArticles = await this.findPublicArticles({
+        ...query,
+        limit: MAX_PAGE_SIZE,
+        page,
+      });
+
+      articles.push(...pageArticles);
+
+      if (pageArticles.length < MAX_PAGE_SIZE) {
+        break;
+      }
+    }
+
+    return articles;
   }
 
   public async getPublicArticle(id: string): Promise<Article | null> {
