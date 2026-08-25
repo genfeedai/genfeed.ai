@@ -7,7 +7,6 @@ import {
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
-import type { IImage, IVideo } from '@genfeedai/interfaces';
 import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
 import MergeProgressPanel from '@pages/studio/storyboard/components/MergeProgressPanel';
 import MergeSettingsPanel from '@pages/studio/storyboard/components/MergeSettingsPanel';
@@ -110,7 +109,7 @@ export default function StoryboardWorkspace() {
       format,
       maxSelectableItems: 20,
       onSelect: (selected) => {
-        addSceneImages((selected ?? []) as unknown as IImage[]);
+        addSceneImages(selected ?? []);
       },
       title: 'Add images to storyboard',
     });
@@ -122,7 +121,7 @@ export default function StoryboardWorkspace() {
       format,
       maxSelectableItems: 10,
       onSelect: (selected) => {
-        addMergeVideos((selected ?? []) as unknown as IVideo[]);
+        addMergeVideos(selected ?? []);
       },
       title: 'Select videos to merge',
     });

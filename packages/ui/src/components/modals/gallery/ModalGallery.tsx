@@ -6,8 +6,9 @@ import {
   ModalEnum,
 } from '@genfeedai/enums';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { IAsset, IImage } from '@genfeedai/interfaces';
+import type { IImage } from '@genfeedai/interfaces';
 import type { ModalGalleryProps } from '@genfeedai/props/modals/modal.props';
+import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import { PagesService } from '@genfeedai/services/content/pages.service';
 import { useModalGallery } from '@ui/modals/gallery/hooks/useModalGallery';
 import ModalGalleryContent from '@ui/modals/gallery/ModalGalleryContent';
@@ -115,7 +116,7 @@ export default function ModalGallery({
     setSelectedItems(selectedIds);
   };
 
-  const handleItemSelectWithVideo = (item: IAsset | IImage) => {
+  const handleItemSelectWithVideo = (item: GallerySelectItem) => {
     if (category === IngredientCategory.VIDEO) {
       onSelect([item]);
       handleClose();
@@ -139,7 +140,7 @@ export default function ModalGallery({
         ? items.find((i) => i.id === selectedItem)
         : null;
 
-      onSelect(item ? [item] : null);
+      onSelect(item ? [item] : []);
       handleClose();
     }
   };

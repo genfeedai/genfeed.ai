@@ -20,6 +20,7 @@ import type {
   ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
+import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import {
   scheduleModalGlobalSideEffectCleanup,
@@ -36,10 +37,7 @@ import {
 import GlobalModalsRenderer from './GlobalModalsRenderer';
 import { useGlobalModalsState } from './useGlobalModalsState';
 
-export interface GallerySelectItem {
-  id: string;
-  [key: string]: unknown;
-}
+export type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 
 export interface GlobalModalsContextValue {
   publishIngredient: IIngredient | null;

@@ -19,7 +19,6 @@ import {
   LazyPostMetadataOverlay,
 } from '@ui/lazy/modal/LazyModal';
 import { ModalUpgradePrompt } from '@ui/modals';
-import type { GallerySelectItem } from './global-modals.provider';
 import type { useGlobalModalsState } from './useGlobalModalsState';
 
 type GlobalModalsRendererProps = ReturnType<typeof useGlobalModalsState>;
@@ -141,7 +140,7 @@ export default function GlobalModalsRenderer({
           selectedReferences={galleryConfig.selectedReferences}
           onClose={closeGallery}
           onSelect={(items) => {
-            galleryConfig.onSelect(items as GallerySelectItem[]);
+            galleryConfig.onSelect(items);
             closeGallery();
           }}
         />

@@ -8,7 +8,6 @@ import {
   IngredientFormat,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IImage } from '@genfeedai/interfaces';
 import type { FrameSequenceSelectorProps } from '@genfeedai/props/studio/frame-sequence.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -58,10 +57,7 @@ export default function FrameSequenceSelector({
           (f) => !existingIds.has(f.id),
         );
         if (uniqueNewFrames.length > 0) {
-          onFramesChange([
-            ...frames,
-            ...(uniqueNewFrames as unknown as IImage[]),
-          ]);
+          onFramesChange([...frames, ...uniqueNewFrames]);
         }
       },
       selectedReferences: frames.map((f) => f.id),
