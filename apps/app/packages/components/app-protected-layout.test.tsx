@@ -313,6 +313,7 @@ vi.mock('@services/core/command-palette.service', () => ({
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
+    debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
   },

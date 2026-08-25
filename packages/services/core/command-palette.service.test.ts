@@ -43,6 +43,14 @@ describe('CommandPaletteService', () => {
       expect(CommandPaletteService.getCommandCount()).toBe(1);
     });
 
+    it('does not info-log routine registration', () => {
+      CommandPaletteService.registerCommand(makeCommand('cmd-1', 'Test'));
+      expect(logger.info).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith('Command registered', {
+        commandId: 'cmd-1',
+      });
+    });
+
     it('does not register duplicate command ids', () => {
       CommandPaletteService.registerCommand(makeCommand('dup', 'First'));
       CommandPaletteService.registerCommand(makeCommand('dup', 'Second'));

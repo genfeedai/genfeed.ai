@@ -139,7 +139,7 @@ function PromptBarProviderContent({
       }
 
       if (currentFetchId !== fetchIdRef.current) {
-        logger.info('PromptBar fetch superseded, discarding stale results', {
+        logger.debug('PromptBar fetch superseded, discarding stale results', {
           currentFetchId: fetchIdRef.current,
           fetchId: currentFetchId,
         });
@@ -154,7 +154,7 @@ function PromptBarProviderContent({
       const trainingsData = results[3] as ITraining[];
       const tagsData = results[4] as ITag[];
 
-      logger.info('PromptBar data loaded', {
+      logger.debug('PromptBar data loaded', {
         enabledModelIds: orgSettings?.enabledModelIds?.length ?? 'N/A',
         fontFamilies: fontFamiliesData.length,
         models: modelsData.length,

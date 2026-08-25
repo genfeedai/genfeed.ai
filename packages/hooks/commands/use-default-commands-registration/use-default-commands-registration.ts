@@ -19,7 +19,7 @@ export function useDefaultCommandsRegistration(): void {
     try {
       registeredCommandIds = registerDefaultCommands(orgSlug, brandSlug);
 
-      logger.info('Command palette initialized with default commands');
+      logger.debug('Command palette initialized with default commands');
     } catch (error) {
       logger.warn('Failed to initialize command palette', { error });
     }

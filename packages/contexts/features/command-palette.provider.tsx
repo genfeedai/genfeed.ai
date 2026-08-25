@@ -181,6 +181,15 @@ export function CommandPaletteProvider({
     }));
   }, []);
 
+  const unregisterCommands = useCallback((commandIds: string[]) => {
+    CommandPaletteService.unregisterCommands(commandIds);
+    const allCommands = CommandPaletteService.getAllCommands();
+    setState((prev) => ({
+      ...prev,
+      commands: allCommands,
+    }));
+  }, []);
+
   const value: ICommandPaletteContext = {
     close,
     executeCommand,
@@ -193,6 +202,7 @@ export function CommandPaletteProvider({
     state,
     toggle,
     unregisterCommand,
+    unregisterCommands,
   };
 
   return (

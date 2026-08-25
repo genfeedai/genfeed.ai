@@ -21,6 +21,7 @@ const mockContext = {
   },
   toggle: vi.fn(),
   unregisterCommand: vi.fn(),
+  unregisterCommands: vi.fn(),
 };
 
 let mockContextValue: typeof mockContext | null = mockContext;

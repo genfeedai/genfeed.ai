@@ -4,12 +4,12 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockRegisterCommands = vi.fn();
-const mockUnregisterCommand = vi.fn();
+const mockUnregisterCommands = vi.fn();
 
 vi.mock('@hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: vi.fn(() => ({
     registerCommands: mockRegisterCommands,
-    unregisterCommand: mockUnregisterCommand,
+    unregisterCommands: mockUnregisterCommands,
   })),
 }));
 

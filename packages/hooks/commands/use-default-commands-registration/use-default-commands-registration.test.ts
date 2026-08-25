@@ -66,7 +66,7 @@ describe('useDefaultCommandsRegistration', () => {
       );
     });
 
-    expect(logger.info).toHaveBeenCalledWith(
+    expect(logger.debug).toHaveBeenCalledWith(
       'Command palette initialized with default commands',
     );
   });

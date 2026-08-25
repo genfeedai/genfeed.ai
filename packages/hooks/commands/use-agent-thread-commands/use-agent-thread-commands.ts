@@ -31,7 +31,7 @@ export function useAgentThreadCommands({
   onNavigate,
   enabled = true,
 }: UseAgentThreadCommandsOptions): void {
-  const { registerCommand, unregisterCommand } = useCommandPalette();
+  const { registerCommands, unregisterCommands } = useCommandPalette();
 
   const previousCommandsRef = useRef<Map<string, ICommand>>(new Map());
 
@@ -58,8 +58,8 @@ export function useAgentThreadCommands({
     const previousCommands = previousCommandsRef.current;
 
     if (!enabled || commands.length === 0) {
-      for (const commandId of previousCommands.keys()) {
-        unregisterCommand(commandId);
+      if (previousCommands.size > 0) {
+        unregisterCommands([...previousCommands.keys()]);
       }
 
       previousCommandsRef.current = new Map();
@@ -69,10 +69,12 @@ export function useAgentThreadCommands({
     const nextCommands = new Map(
       commands.map((command) => [command.id, command]),
     );
+    const removedIds: string[] = [];
+    const nextToRegister: ICommand[] = [];
 
     for (const commandId of previousCommands.keys()) {
       if (!nextCommands.has(commandId)) {
-        unregisterCommand(commandId);
+        removedIds.push(commandId);
       }
     }
 
@@ -80,7 +82,7 @@ export function useAgentThreadCommands({
       const previousCommand = previousCommands.get(commandId);
 
       if (!previousCommand) {
-        registerCommand(command);
+        nextToRegister.push(command);
         continue;
       }
 
@@ -89,21 +91,30 @@ export function useAgentThreadCommands({
         previousCommand.description !== command.description ||
         previousCommand.keywords?.join('|') !== command.keywords?.join('|')
       ) {
-        unregisterCommand(commandId);
-        registerCommand(command);
+        removedIds.push(commandId);
+        nextToRegister.push(command);
       }
     }
 
+    if (removedIds.length > 0) {
+      unregisterCommands(removedIds);
+    }
+
+    if (nextToRegister.length > 0) {
+      registerCommands(nextToRegister);
+    }
+
     previousCommandsRef.current = nextCommands;
-  }, [commands, enabled, registerCommand, unregisterCommand]);
+  }, [commands, enabled, registerCommands, unregisterCommands]);
 
   useEffect(() => {
     return () => {
-      for (const commandId of previousCommandsRef.current.keys()) {
-        unregisterCommand(commandId);
+      const registeredIds = [...previousCommandsRef.current.keys()];
+      if (registeredIds.length > 0) {
+        unregisterCommands(registeredIds);
       }
 
       previousCommandsRef.current = new Map();
     };
-  }, [unregisterCommand]);
+  }, [unregisterCommands]);
 }

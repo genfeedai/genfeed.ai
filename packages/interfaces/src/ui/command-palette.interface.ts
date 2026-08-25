@@ -53,6 +53,7 @@ export interface ICommandPaletteContext {
   registerCommand: (command: ICommand) => void;
   unregisterCommand: (commandId: string) => void;
   registerCommands: (commands: ICommand[]) => void;
+  unregisterCommands: (commandIds: string[]) => void;
   selectNext: () => void;
   selectPrevious: () => void;
 }

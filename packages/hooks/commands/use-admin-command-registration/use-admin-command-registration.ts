@@ -2,7 +2,6 @@
 
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { logger } from '@genfeedai/services/core/logger.service';
 import { Settings } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -38,7 +37,6 @@ export function useAdminCommandRegistration({
         label: 'Go to Admin',
         priority: 9,
       });
-      logger.info('Admin command registered');
 
       // Cleanup: only unregister when admin loses superAdmin status
       return () => {
