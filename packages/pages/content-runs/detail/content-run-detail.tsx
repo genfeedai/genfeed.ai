@@ -99,20 +99,10 @@ function getBriefTitle(brief?: ContentRunBrief): string {
   return brief?.angle ?? brief?.hypothesis ?? brief?.sourceId ?? 'Untitled run';
 }
 
-function normalizePublishContexts(
-  publish?: ContentRunRecord['publish'],
-): ContentRunPublishContext[] {
-  if (!publish) {
-    return [];
-  }
-
-  return Array.isArray(publish) ? publish : [publish];
-}
-
 function getTimelineSteps(run: ContentRunRecord): TimelineStep[] {
   const hasBrief = Boolean(run.brief);
   const hasVariants = Boolean(run.variants?.length);
-  const hasPublish = Boolean(normalizePublishContexts(run.publish).length);
+  const hasPublish = Boolean(run.publish);
   const hasAnalytics = Boolean(run.analyticsSummary);
   const hasRecommendations = Boolean(run.recommendations?.length);
   const hasError = Boolean(run.error);
@@ -304,45 +294,33 @@ function VariantsSection({ variants }: { variants?: ContentRunVariant[] }) {
   );
 }
 
-function PublishSection({
-  publish,
-}: {
-  publish?: ContentRunRecord['publish'];
-}) {
-  const contexts = normalizePublishContexts(publish);
-
-  if (contexts.length === 0) {
+function PublishSection({ publish }: { publish?: ContentRunPublishContext }) {
+  if (!publish) {
     return <EmptyState label="No publish context has been captured yet." />;
   }
 
   return (
     <div className="grid gap-3">
-      {contexts.map((context, index) => (
-        <Panel
-          as="article"
-          key={`${context.variantId ?? context.platform ?? 'publish'}-${index}`}
-          className="p-4"
-        >
-          <dl>
-            <DetailRow label="Platform" value={context.platform} />
-            <DetailRow label="Channel" value={context.channel} />
-            <DetailRow label="Variant" value={context.variantId} />
-            <DetailRow label="Experiment" value={context.experimentId} />
-            <DetailRow
-              label="Scheduled"
-              value={formatDateTime(context.scheduledFor)}
-            />
-            <DetailRow
-              label="Published"
-              value={formatDateTime(context.publishedAt)}
-            />
-            <DetailRow
-              label="Posts"
-              value={context.postIds?.length ? context.postIds.join(', ') : '-'}
-            />
-          </dl>
-        </Panel>
-      ))}
+      <Panel as="article" className="p-4">
+        <dl>
+          <DetailRow label="Platform" value={publish.platform} />
+          <DetailRow label="Channel" value={publish.channel} />
+          <DetailRow label="Variant" value={publish.variantId} />
+          <DetailRow label="Experiment" value={publish.experimentId} />
+          <DetailRow
+            label="Scheduled"
+            value={formatDateTime(publish.scheduledFor)}
+          />
+          <DetailRow
+            label="Published"
+            value={formatDateTime(publish.publishedAt)}
+          />
+          <DetailRow
+            label="Posts"
+            value={publish.postIds?.length ? publish.postIds.join(', ') : '-'}
+          />
+        </dl>
+      </Panel>
     </div>
   );
 }
