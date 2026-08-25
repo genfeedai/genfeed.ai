@@ -1190,24 +1190,14 @@ describe('WorkflowEngineAdapterService', () => {
         await imageWorkflowService.executeWorkflow(hydratedWorkflow);
 
       expect(result.status).toBe('completed');
-      expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        'qwen/qwen-image',
-        expect.objectContaining({
-          modelCategory: 'image',
-          prompt: expect.stringContaining('bedroom'),
-          references: ['https://example.com/source-room.jpg'],
-          strength: 0.32,
-          style: 'sale-ready cleanup with subtle realistic furnishing',
-        }),
-        undefined,
-      );
+      expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
       expect(replicateService.runModel).toHaveBeenCalledWith(
         'qwen/qwen-image',
-        {
+        expect.objectContaining({
           image: 'https://example.com/source-room.jpg',
-          prompt: 'resolved staging prompt',
+          prompt: expect.stringContaining('bedroom'),
           strength: 0.32,
-        },
+        }),
       );
     });
 

@@ -33,6 +33,25 @@ export const generationBriefExemptionReasonSchema = z.enum(
   generationBriefExemptionReasonValues,
 );
 
+/**
+ * Every surface that can originate a generation-brief compile/exempt request
+ * (#3469). `studio` also covers surfaces that proxy into Studio's own
+ * `/v1/images` and `/v1/videos` entry points over an internal HTTP call
+ * (MCP generation actions, the agent conversational tool) rather than
+ * calling the brief pipeline directly.
+ */
+export const generationBriefSurfaceValues = [
+  'studio',
+  'workflow',
+  'agent_skill',
+  'telegram_bot',
+  'schedule',
+] as const;
+
+export const generationBriefSurfaceSchema = z.enum(
+  generationBriefSurfaceValues,
+);
+
 const generationBriefCompilerIdSchema = z.string().trim().min(1).max(255);
 const generationBriefCompilerVersionSchema = z.number().int().positive();
 
@@ -93,6 +112,7 @@ export const generationBriefCompileEvidenceSchema = z
     profileVersion: generationBriefCompilerVersionSchema,
     referenceAssetIds: z.array(z.string().trim().min(1).max(255)).max(20),
     status: z.literal('compiled'),
+    surface: generationBriefSurfaceSchema.optional(),
   })
   .strict();
 
@@ -105,6 +125,7 @@ export const generationBriefExemptionEvidenceSchema = z
     profileVersion: z.null(),
     reason: generationBriefExemptionReasonSchema,
     status: z.literal('exempted'),
+    surface: generationBriefSurfaceSchema.optional(),
   })
   .strict();
 
@@ -140,6 +161,9 @@ export const fluxSchnellCompileResultSchema = z
 
 export type GenerationBriefExemptionReason = z.infer<
   typeof generationBriefExemptionReasonSchema
+>;
+export type GenerationBriefSurface = z.infer<
+  typeof generationBriefSurfaceSchema
 >;
 export type GenerationBriefSupport = z.infer<
   typeof generationBriefSupportSchema

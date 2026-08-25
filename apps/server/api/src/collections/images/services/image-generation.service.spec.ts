@@ -820,6 +820,7 @@ describe('ImageGenerationService', () => {
             modelKey: NON_BATCH_REPLICATE_MODEL,
             reason: 'legacy_prompt_builder',
             status: 'exempted',
+            surface: 'studio',
           }),
         }),
       );
@@ -861,6 +862,7 @@ describe('ImageGenerationService', () => {
             modelKey: imagen4,
             profileId: 'imagen-4-capability',
             status: 'compiled',
+            surface: 'studio',
           }),
         }),
       );

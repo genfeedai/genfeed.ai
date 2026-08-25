@@ -673,6 +673,7 @@ describe('VideoGenerationService', () => {
         modelKey: COMPILED_MODEL_PRUNAAI,
         profileId: 'prunaai-p-video-capability',
         status: 'compiled',
+        surface: 'studio',
       });
     });
 
@@ -690,6 +691,7 @@ describe('VideoGenerationService', () => {
         profileId: null,
         reason: 'legacy_prompt_builder',
         status: 'exempted',
+        surface: 'studio',
       });
     });
 

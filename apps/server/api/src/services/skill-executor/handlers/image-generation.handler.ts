@@ -1,6 +1,7 @@
 import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { runImageGenerationBrief } from '@api/services/generation-brief';
 import type {
   GeneratedContent,
   SkillExecutionContext,
@@ -60,6 +61,17 @@ export class ImageGenerationHandler implements SkillHandler {
 
     const width = typeof params.width === 'number' ? params.width : 1024;
     const height = typeof params.height === 'number' ? params.height : 1024;
+    const compiled = runImageGenerationBrief({
+      height,
+      model,
+      objective: prompt,
+      surface: 'agent_skill',
+      width,
+    });
+    const compiledPrompt =
+      typeof compiled.dispatch?.prompt === 'string'
+        ? compiled.dispatch.prompt
+        : prompt;
 
     let imageUrl = '';
     let fallbackUsed = false;
@@ -73,13 +85,18 @@ export class ImageGenerationHandler implements SkillHandler {
 
       if (provider.source === 'managed') {
         imageUrl = await this.generateManagedImage(provider, {
-          input: { height, prompt, style: 'photorealistic', width },
+          input: {
+            height,
+            prompt: compiledPrompt,
+            style: 'photorealistic',
+            width,
+          },
           model: 'leonardo-image',
           provider: ManagedInferenceProvider.LEONARDO,
         });
       } else {
         const result = await this.leonardoAIService.generateImage(
-          prompt,
+          compiledPrompt,
           { height, style: 'photorealistic', width },
           provider.apiKey,
         );
@@ -101,7 +118,7 @@ export class ImageGenerationHandler implements SkillHandler {
             ? 'google/imagen-4'
             : 'stability-ai/sdxl:latest';
         const input = {
-          prompt,
+          prompt: compiledPrompt,
           resolution: `${width}:${height}`,
         };
 
@@ -131,7 +148,7 @@ export class ImageGenerationHandler implements SkillHandler {
             ? 'fal-ai/flux-pro'
             : 'fal-ai/flux/dev';
 
-        const input = { image_size: { height, width }, prompt };
+        const input = { image_size: { height, width }, prompt: compiledPrompt };
 
         if (falProvider.source === 'managed') {
           imageUrl = await this.generateManagedImage(falProvider, {
@@ -157,7 +174,7 @@ export class ImageGenerationHandler implements SkillHandler {
           ByokProvider.FAL,
         );
 
-        const input = { image_size: { height, width }, prompt };
+        const input = { image_size: { height, width }, prompt: compiledPrompt };
 
         if (provider.source === 'managed') {
           imageUrl = await this.generateManagedImage(provider, {
@@ -182,7 +199,10 @@ export class ImageGenerationHandler implements SkillHandler {
             ByokProvider.REPLICATE,
           );
 
-        const input = { prompt, resolution: `${width}:${height}` };
+        const input = {
+          prompt: compiledPrompt,
+          resolution: `${width}:${height}`,
+        };
 
         imageUrl =
           repProvider.source === 'managed'
