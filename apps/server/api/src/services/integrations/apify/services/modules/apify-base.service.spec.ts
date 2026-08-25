@@ -1,15 +1,32 @@
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
+
+const ACCOUNT_LIMIT_ERROR = {
+  isAxiosError: true,
+  message: 'Request failed with status code 403',
+  name: 'AxiosError',
+  response: {
+    data: {
+      error: {
+        message: 'Monthly usage hard limit exceeded',
+        type: 'platform-feature-disabled',
+      },
+    },
+    status: 403,
+  },
+};
 
 describe('ApifyBaseService', () => {
   let service: ApifyBaseService;
   let httpService: Record<string, ReturnType<typeof vi.fn>>;
   let configService: Record<string, ReturnType<typeof vi.fn>>;
   let byokFactory: Record<string, ReturnType<typeof vi.fn>>;
+  let runBudget: Record<string, ReturnType<typeof vi.fn>>;
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -35,6 +52,10 @@ describe('ApifyBaseService', () => {
       }),
     };
 
+    runBudget = {
+      consumeRun: vi.fn().mockResolvedValue({ isAllowed: true }),
+    };
+
     loggerService = {
       error: vi.fn(),
       log: vi.fn(),
@@ -45,6 +66,7 @@ describe('ApifyBaseService', () => {
       configService as unknown as ConfigService,
       loggerService as unknown as LoggerService,
       httpService as unknown as HttpService,
+      runBudget as unknown as ApifyRunBudgetService,
       byokFactory as unknown as ByokProviderFactoryService,
     );
   });
@@ -310,21 +332,6 @@ describe('ApifyBaseService', () => {
   // ─── Account-limit circuit breaker ───────────────────────────────────────
 
   describe('Apify account usage limit', () => {
-    const ACCOUNT_LIMIT_ERROR = {
-      isAxiosError: true,
-      message: 'Request failed with status code 403',
-      name: 'AxiosError',
-      response: {
-        data: {
-          error: {
-            message: 'Monthly usage hard limit exceeded',
-            type: 'platform-feature-disabled',
-          },
-        },
-        status: 403,
-      },
-    };
-
     let nowSpy: ReturnType<typeof vi.spyOn>;
     let now: number;
 
@@ -453,6 +460,60 @@ describe('ApifyBaseService', () => {
         /Apify/i,
       );
       expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Apify run budget', () => {
+    it('does not call Apify when the run budget is exhausted', async () => {
+      runBudget.consumeRun.mockResolvedValue({
+        isAllowed: false,
+        reason: 'hourly run budget exhausted',
+        retryAfterMs: 60000,
+      });
+
+      await expect(service.runActor('test/actor', {})).rejects.toThrow(
+        /run budget/i,
+      );
+      expect(httpService.post).not.toHaveBeenCalled();
+    });
+
+    it('spends budget against the byok scope for a byok organization', async () => {
+      byokFactory.resolveProvider.mockResolvedValue({
+        apiKey: 'byok-key',
+        source: 'byok',
+      });
+      httpService.post.mockReturnValue(
+        of({ data: { data: { defaultDatasetId: 'ds-1', id: 'run-1' } } }),
+      );
+      httpService.get.mockReturnValue(
+        of({ data: { data: { status: 'SUCCEEDED' } } }),
+      );
+
+      await service.runActorForOrg('org-1', 'test/actor', {});
+
+      expect(runBudget.consumeRun).toHaveBeenCalledWith(
+        'byok:org-1',
+        'test/actor',
+      );
+    });
+
+    it('skips the budget entirely when no token is configured', async () => {
+      configService.get.mockReturnValue(undefined);
+
+      await expect(service.runActor('test/actor', {})).resolves.toEqual([]);
+      expect(runBudget.consumeRun).not.toHaveBeenCalled();
+    });
+
+    it('does not spend budget while the account-limit suspension is active', async () => {
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      runBudget.consumeRun.mockClear();
+
+      await expect(service.runActor('test/actor', {})).rejects.toThrow(
+        /Apify/i,
+      );
+      expect(runBudget.consumeRun).not.toHaveBeenCalled();
     });
   });
 });
