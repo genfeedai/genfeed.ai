@@ -180,6 +180,18 @@ describe('AdsResearchWatchlistPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('uses the singular label for one captured creative (#3537)', () => {
+    renderPanel({
+      advertisers: advertisers.map((advertiser) =>
+        advertiser.id === 'watched-1'
+          ? { ...advertiser, lastSnapshotRecordCount: 1 }
+          : advertiser,
+      ),
+    });
+
+    expect(screen.getByText('1 creative')).toBeInTheDocument();
+  });
+
   it('falls back to the raw blocker code when it has no wording yet (#3537)', () => {
     renderPanel({
       readiness: [

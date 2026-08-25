@@ -30,7 +30,7 @@
     "reviewPolicy": "Launch plans require review. No external campaign objects are created from Ads Research.",
     "watchlist": {
       "archivesUnavailable": "Archives we cannot poll yet",
-      "creatives": "{count} creatives",
+      "creatives": "{count, plural, one {# creative} other {# creatives}}",
       "description": "We poll each competitor's public ad archive and file what is running into this page, ready to remix. Archives publish the creative only, so spend and delivery numbers stay unavailable.",
       "empty": "No competitors watched yet. Add one above to start collecting their live ads.",
       "loading": "Loading watched competitors…",
