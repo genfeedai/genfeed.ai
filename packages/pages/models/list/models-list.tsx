@@ -153,6 +153,7 @@ export default function ModelsList({
         isLoading={isLoading}
         columns={columns}
         actions={actions}
+        onRowClick={handleViewDetails}
         getRowKey={(model: IModel) => model.id}
         emptyLabel="No models found"
         emptyState={

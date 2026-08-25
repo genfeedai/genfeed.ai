@@ -25,6 +25,7 @@ function renderColumn(
   header: string,
   model: IModel,
   isAdminScope = false,
+  onOpenDetails: (model: IModel) => void = vi.fn(),
 ): void {
   const columns = buildModelsTableColumns({
     handleAdminToggle: vi.fn(),
@@ -32,6 +33,7 @@ function renderColumn(
     isAdminScope,
     isModelEnabled: () => true,
     isOnlyDefaultInCategory: () => false,
+    onOpenDetails,
     togglingModelId: null,
   });
   const column = columns.find((entry) => entry.header === header);
@@ -49,6 +51,7 @@ describe('buildModelsTableColumns', () => {
       isAdminScope: false,
       isModelEnabled: () => true,
       isOnlyDefaultInCategory: () => false,
+      onOpenDetails: vi.fn(),
       togglingModelId: null,
     });
 
@@ -73,5 +76,20 @@ describe('buildModelsTableColumns', () => {
     renderColumn('Cost', buildModel({ costTier: undefined }));
 
     expect(screen.getAllByText('—')).toHaveLength(2);
+  });
+
+  it('opens model details from the label', () => {
+    const onOpenDetails = vi.fn();
+    renderColumn(
+      'Label',
+      buildModel({ label: 'Flux Dev' }),
+      false,
+      onOpenDetails,
+    );
+
+    screen.getByRole('button', { name: 'View details for Flux Dev' }).click();
+    expect(onOpenDetails).toHaveBeenCalledWith(
+      expect.objectContaining({ label: 'Flux Dev' }),
+    );
   });
 });
