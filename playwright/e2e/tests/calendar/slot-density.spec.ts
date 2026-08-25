@@ -173,10 +173,18 @@ test.describe('Calendar — slot density', () => {
       authenticatedPage.getByRole('button', { name: /Generate missing \(2\)/ }),
     ).toBeVisible({ timeout: 15_000 });
 
-    await calendar.switchToMonthView().catch(() => {});
+    // The month switcher is always part of the calendar header, so a failure to
+    // reach month view is the finding — not something to swallow and rediscover
+    // as a missing-density timeout further down.
+    await calendar.switchToMonthView();
 
+    // A day aggregate prints its density twice: once as the event title and
+    // once as the muted badge. Pin the badge so the assertion stays single.
     await expect(
-      authenticatedPage.getByText(/2 missing \/ 0 filled/),
+      authenticatedPage
+        .locator('.gen-calendar-event-badge')
+        .filter({ hasText: /2 missing \/ 0 filled/ })
+        .first(),
     ).toBeVisible({ timeout: 15_000 });
   });
 });
