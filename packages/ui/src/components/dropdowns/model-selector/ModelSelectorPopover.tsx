@@ -323,9 +323,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     const rankedSections: ModelSelectorSection[] = [
       { heading: 'Favorites', key: 'favorites', options: favoriteOptions },
       { heading: 'Recent', key: 'recent', options: recentOptions },
-    ].filter(
-      (section): section is ModelSelectorSection => section.options.length > 0,
-    );
+    ].filter((section) => section.options.length > 0);
 
     if (effectiveCategoryId === MODEL_FILTER_ALL && sourceGroups.length > 0) {
       const sourceSections = orderedSourceGroups.map((sourceGroup) => ({
@@ -352,10 +350,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           key: 'catalog',
           options: ungroupedOptions,
         },
-      ].filter(
-        (section): section is ModelSelectorSection =>
-          section.options.length > 0,
-      );
+      ].filter((section) => section.options.length > 0);
     }
 
     const activeCategoryLabel = categoryFilters.find(
@@ -372,9 +367,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         key: 'catalog',
         options: remainingOptions,
       },
-    ].filter(
-      (section): section is ModelSelectorSection => section.options.length > 0,
-    );
+    ].filter((section) => section.options.length > 0);
   }, [
     catalogOptions,
     categoryFilters,

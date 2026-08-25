@@ -2,7 +2,10 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { ModelSelectorFilterPillsProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
+import type {
+  ModelSelectorFilter,
+  ModelSelectorFilterPillsProps,
+} from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Button } from '@ui/primitives/button';
 import { memo } from 'react';
 
