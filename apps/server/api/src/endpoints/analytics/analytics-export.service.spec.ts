@@ -83,7 +83,10 @@ describe('AnalyticsExportService', () => {
             id: 'post-1',
             brandId: 'brand-1',
             createdAt: new Date(),
-            credential: { platform: CredentialPlatform.YOUTUBE },
+            credential: {
+              id: 'credential-youtube-1',
+              platform: CredentialPlatform.YOUTUBE,
+            },
             label: 'Test Post',
             metadata: { label: 'Video Title' },
             organizationId: 'org-1',
@@ -171,6 +174,7 @@ describe('AnalyticsExportService', () => {
         orgId,
         brandId,
         'youtube-123',
+        'credential-youtube-1',
       );
       expect(result).toContain('1000');
     });
@@ -242,7 +246,12 @@ describe('AnalyticsExportService', () => {
       });
 
       expect(mockPostsService.findAll).toHaveBeenCalledWith(
-        { where: { status: 'published', organizationId: orgId } },
+        {
+          include: {
+            credential: { select: { id: true, platform: true } },
+          },
+          where: { status: 'published', organizationId: orgId },
+        },
         {
           limit: 5000,
           page: 1,
@@ -258,7 +267,12 @@ describe('AnalyticsExportService', () => {
       await service.exportData('csv', ['id', 'title']);
 
       expect(mockPostsService.findAll).toHaveBeenCalledWith(
-        { where: { status: 'published' } },
+        {
+          include: {
+            credential: { select: { id: true, platform: true } },
+          },
+          where: { status: 'published' },
+        },
         {
           limit: 5000,
           page: 1,
@@ -282,6 +296,9 @@ describe('AnalyticsExportService', () => {
 
       expect(mockPostsService.findAll).toHaveBeenCalledWith(
         {
+          include: {
+            credential: { select: { id: true, platform: true } },
+          },
           where: {
             brandId: 'brand-1',
             organizationId: 'org-1',

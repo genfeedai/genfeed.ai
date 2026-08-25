@@ -454,11 +454,10 @@ describe('FacebookPublisherService', () => {
       });
 
       it('should return failed result when credential not found', async () => {
-        const context = createPublishContext(
-          mockImagePost,
-          {},
-          undefined as unknown as CredentialDocument,
-        );
+        const context = {
+          ...createPublishContext(mockImagePost),
+          credential: undefined as unknown as CredentialDocument,
+        };
 
         const result = await service.publish(context);
 
