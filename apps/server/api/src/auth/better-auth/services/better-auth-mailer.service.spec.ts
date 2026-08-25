@@ -283,7 +283,7 @@ describe('BetterAuthMailerService', () => {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
       isDevelopment: false,
     };
-    const logger = { log: vi.fn() };
+    const logger = { log: vi.fn(), warn: vi.fn() };
     const service = new BetterAuthMailerService(
       configService as never,
       notificationsService as never,
@@ -299,6 +299,49 @@ describe('BetterAuthMailerService', () => {
     ).rejects.toBe(deliveryError);
 
     expect(logger.log).not.toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('swallows magic-link delivery failure in development so the stored token remains usable', async () => {
+    const deliveryError = new Error('Auth email delivery failed');
+    const notificationsService = {
+      deliverEmail: vi.fn().mockRejectedValue(deliveryError),
+    };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: true,
+    };
+    const logger = { log: vi.fn(), warn: vi.fn() };
+    const service = new BetterAuthMailerService(
+      configService as never,
+      notificationsService as never,
+      logger as never,
+    );
+    const secret = 'dev-magic-secret-c1a9';
+    const url = `https://api.genfeed.ai/v1/auth/magic-link/verify?token=${secret}&callbackURL=https%3A%2F%2Fapp.genfeed.localhost%2F`;
+
+    await expect(
+      service.sendMagicLink({
+        email: 'user@example.com',
+        token: secret,
+        url,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(logger.log).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Magic-link email delivery failed in development; token is stored',
+      {
+        emailDomain: 'example.com',
+        linkId: expect.stringMatching(LINK_ID_PATTERN),
+        service: 'BetterAuthMailerService',
+      },
+    );
+    const logged = JSON.stringify(logger.warn.mock.calls);
+    expect(logged).not.toContain(secret);
+    expect(logged).not.toContain('magic-link/verify');
+    expect(logged).not.toContain('user@example.com');
   });
 });
 
