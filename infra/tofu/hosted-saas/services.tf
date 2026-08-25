@@ -8,6 +8,10 @@ locals {
     { name = "GENFEEDAI_MICROSERVICES_MCP_URL", value = "http://mcp.genfeed.internal:${local.services.mcp.port}" },
     { name = "GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL", value = "http://notifications.genfeed.internal:${local.services.notifications.port}" },
     { name = "GENFEEDAI_API_PUBLIC_URL", value = "https://${var.api_subdomain}.${var.domain}" },
+    # Browser-facing auth, billing, OAuth, and email actions belong on the app
+    # shell. Own this public value here so a stale recursive SSM parameter cannot
+    # send production users to a retired app origin.
+    { name = "GENFEEDAI_APP_URL", value = "https://app.${var.domain}" },
     # Public Better Auth issuer / JWKS base. Notifications is internet-facing and
     # only receives an SSM allowlist; this URL is not a secret, so it is injected
     # here for every task (including notifications) instead of being omitted and
