@@ -102,12 +102,17 @@ export class ThreadsService {
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // Token repair has to find the row even after a failed refresh
+      // flipped `isConnected` off.
+      isDisconnectedIncluded: true,
+      organizationId,
       platform: CredentialPlatform.THREADS,
     });
 
@@ -177,15 +182,24 @@ export class ThreadsService {
    * Create a media container for a text-only post
    * Step 1 of the two-step publishing process
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async createTextContainer(
     organizationId: string,
     brandId: string,
     text: string,
     replyToId?: string,
+    credentialId?: string,
   ): Promise<{ containerId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getCredential(organizationId, brandId);
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const decryptedAccessToken = EncryptionUtil.decrypt(
       this.requireString(credential.accessToken, 'Threads access token'),
     );
@@ -227,6 +241,10 @@ export class ThreadsService {
    * Create a media container for an image post
    * Step 1 of the two-step publishing process
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async createImageContainer(
     organizationId: string,
     brandId: string,
@@ -234,10 +252,15 @@ export class ThreadsService {
     text?: string,
     replyToId?: string,
     options: { altText?: string; isCarouselItem?: boolean } = {},
+    credentialId?: string,
   ): Promise<{ containerId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getCredential(organizationId, brandId);
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const decryptedAccessToken = EncryptionUtil.decrypt(
       this.requireString(credential.accessToken, 'Threads access token'),
     );
@@ -290,6 +313,10 @@ export class ThreadsService {
    * Create a media container for a video post
    * Step 1 of the two-step publishing process
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async createVideoContainer(
     organizationId: string,
     brandId: string,
@@ -297,10 +324,15 @@ export class ThreadsService {
     text?: string,
     replyToId?: string,
     options: { altText?: string; isCarouselItem?: boolean } = {},
+    credentialId?: string,
   ): Promise<{ containerId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getCredential(organizationId, brandId);
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const decryptedAccessToken = EncryptionUtil.decrypt(
       this.requireString(credential.accessToken, 'Threads access token'),
     );
@@ -352,12 +384,17 @@ export class ThreadsService {
   /**
    * Create a carousel container from previously-created item containers.
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async createCarouselContainer(
     organizationId: string,
     brandId: string,
     childrenContainerIds: string[],
     text?: string,
     replyToId?: string,
+    credentialId?: string,
   ): Promise<{ containerId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -365,7 +402,11 @@ export class ThreadsService {
       throw new Error('Threads carousels require between 2 and 20 media items');
     }
 
-    const credential = await this.getCredential(organizationId, brandId);
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const decryptedAccessToken = EncryptionUtil.decrypt(
       this.requireString(credential.accessToken, 'Threads access token'),
     );
@@ -410,14 +451,23 @@ export class ThreadsService {
    * Publish a media container
    * Step 2 of the two-step publishing process
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async publishContainer(
     organizationId: string,
     brandId: string,
     containerId: string,
+    credentialId?: string,
   ): Promise<{ threadId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getCredential(organizationId, brandId);
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const decryptedAccessToken = EncryptionUtil.decrypt(
       this.requireString(credential.accessToken, 'Threads access token'),
     );
@@ -452,14 +502,23 @@ export class ThreadsService {
   /**
    * Check the status of a media container
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async getContainerStatus(
     organizationId: string,
     brandId: string,
     containerId: string,
+    credentialId?: string,
   ): Promise<{ status: ThreadsContainerStatus; errorMessage?: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getCredential(organizationId, brandId);
+    const credential = await this.getCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const decryptedAccessToken = EncryptionUtil.decrypt(
       this.requireString(credential.accessToken, 'Threads access token'),
     );
@@ -492,11 +551,16 @@ export class ThreadsService {
   /**
    * Publish a text-only thread (convenience method combining create + publish)
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async publishText(
     organizationId: string,
     brandId: string,
     text: string,
     replyToId?: string,
+    credentialId?: string,
   ): Promise<{ threadId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -512,6 +576,7 @@ export class ThreadsService {
         brandId,
         text,
         replyToId,
+        credentialId,
       );
 
       // Step 2: Publish container
@@ -519,6 +584,7 @@ export class ThreadsService {
         organizationId,
         brandId,
         containerId,
+        credentialId,
       );
 
       this.loggerService.log(`${url} succeeded`, { threadId });
@@ -533,12 +599,17 @@ export class ThreadsService {
   /**
    * Publish an image thread (convenience method combining create + publish)
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async publishImage(
     organizationId: string,
     brandId: string,
     imageUrl: string,
     text?: string,
     replyToId?: string,
+    credentialId?: string,
   ): Promise<{ threadId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -555,6 +626,8 @@ export class ThreadsService {
         imageUrl,
         text,
         replyToId,
+        undefined, // options
+        credentialId,
       );
 
       // Step 2: Publish container
@@ -562,6 +635,7 @@ export class ThreadsService {
         organizationId,
         brandId,
         containerId,
+        credentialId,
       );
 
       this.loggerService.log(`${url} succeeded`, { threadId });
@@ -576,12 +650,17 @@ export class ThreadsService {
   /**
    * Publish a video thread (convenience method combining create + publish)
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async publishVideo(
     organizationId: string,
     brandId: string,
     videoUrl: string,
     text?: string,
     replyToId?: string,
+    credentialId?: string,
   ): Promise<{ threadId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -596,14 +675,24 @@ export class ThreadsService {
         videoUrl,
         text,
         replyToId,
+        undefined, // options
+        credentialId,
       );
 
-      await this.waitForContainerReady(organizationId, brandId, containerId);
+      await this.waitForContainerReady(
+        organizationId,
+        brandId,
+        containerId,
+        undefined, // maxAttempts
+        undefined, // delayMs
+        credentialId,
+      );
 
       const { threadId } = await this.publishContainer(
         organizationId,
         brandId,
         containerId,
+        credentialId,
       );
 
       this.loggerService.log(`${url} succeeded`, { threadId });
@@ -618,12 +707,17 @@ export class ThreadsService {
   /**
    * Publish a carousel thread with image and/or video media items.
    */
+  /**
+   * @param credentialId - which connected Threads account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async publishCarousel(
     organizationId: string,
     brandId: string,
     mediaItems: ThreadsCarouselMediaItem[],
     text?: string,
     replyToId?: string,
+    credentialId?: string,
   ): Promise<{ threadId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -649,6 +743,7 @@ export class ThreadsService {
                 undefined,
                 undefined,
                 { altText: item.altText, isCarouselItem: true },
+                credentialId,
               )
             : await this.createImageContainer(
                 organizationId,
@@ -657,6 +752,7 @@ export class ThreadsService {
                 undefined,
                 undefined,
                 { altText: item.altText, isCarouselItem: true },
+                credentialId,
               );
 
         if (item.mediaType === ThreadsMediaType.VIDEO) {
@@ -664,6 +760,9 @@ export class ThreadsService {
             organizationId,
             brandId,
             containerId,
+            undefined, // maxAttempts
+            undefined, // delayMs
+            credentialId,
           );
         }
 
@@ -676,12 +775,14 @@ export class ThreadsService {
         itemContainerIds,
         text,
         replyToId,
+        credentialId,
       );
 
       const { threadId } = await this.publishContainer(
         organizationId,
         brandId,
         containerId,
+        credentialId,
       );
 
       this.loggerService.log(`${url} succeeded`, { threadId });
@@ -793,12 +894,14 @@ export class ThreadsService {
     containerId: string,
     maxAttempts: number = 30,
     delayMs: number = 2000,
+    credentialId?: string,
   ): Promise<void> {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const { errorMessage, status } = await this.getContainerStatus(
         organizationId,
         brandId,
         containerId,
+        credentialId,
       );
 
       if (
@@ -822,28 +925,23 @@ export class ThreadsService {
   }
 
   /**
-   * Helper to get credential and validate it exists
+   * Resolve the Threads account to act as, and validate it can be used.
+   *
+   * An explicit `credentialId` is exact; without one the brand's connected
+   * account answers, and a brand running several of them gets the resolver's
+   * ambiguity warning rather than a silent pick.
    */
   private async getCredential(
     organizationId: string,
     brandId: string,
     credentialId?: string,
   ): Promise<CredentialDocument> {
-    const credential = await this.credentialsService.findOne(
-      credentialId
-        ? {
-            id: credentialId,
-            isDeleted: false,
-            organizationId,
-            platform: CredentialPlatform.THREADS,
-          }
-        : {
-            brandId,
-            isDeleted: false,
-            organizationId,
-            platform: CredentialPlatform.THREADS,
-          },
-    );
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      organizationId,
+      platform: CredentialPlatform.THREADS,
+    });
 
     if (!credential) {
       throw new Error('Threads credential not found');

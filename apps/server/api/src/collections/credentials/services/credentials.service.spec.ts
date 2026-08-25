@@ -42,8 +42,13 @@ describe('CredentialsService', () => {
           Promise.resolve({ id: 'new-id', ...args.data }),
         ),
         findFirst: vi.fn().mockResolvedValue(null),
-        update: vi.fn((args: { data: Record<string, unknown> }) =>
-          Promise.resolve({ id: 'existing-id', ...args.data }),
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn(
+          (args: { data: Record<string, unknown>; where?: { id?: string } }) =>
+            Promise.resolve({
+              id: args.where?.id ?? 'existing-id',
+              ...args.data,
+            }),
         ),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
@@ -254,9 +259,9 @@ describe('CredentialsService', () => {
     });
   });
 
-  describe('upsertForBrand', () => {
-    it('encrypts secrets when creating a new credential', async () => {
-      await service.upsertForBrand(
+  describe('createPendingForBrand', () => {
+    it('encrypts secrets when creating the pending credential', async () => {
+      await service.createPendingForBrand(
         { id: brandId, organizationId: orgId },
         'u1',
         'twitter' as never,
@@ -272,7 +277,7 @@ describe('CredentialsService', () => {
     });
 
     it('writes canonical credential relation IDs', async () => {
-      await service.upsertForBrand(
+      await service.createPendingForBrand(
         { id: brandId, organizationId: orgId },
         'u1',
         'twitter' as never,
@@ -295,7 +300,7 @@ describe('CredentialsService', () => {
     });
 
     it('does not let provider fields override credential ownership or platform', async () => {
-      await service.upsertForBrand(
+      await service.createPendingForBrand(
         { id: brandId, organizationId: orgId },
         'u1',
         'twitter' as never,
@@ -321,7 +326,7 @@ describe('CredentialsService', () => {
 
     it('fails closed rather than writing an unresolvable foreign key', async () => {
       await expect(
-        service.upsertForBrand(
+        service.createPendingForBrand(
           { id: brandId } as never,
           'u1',
           'twitter' as never,
@@ -330,6 +335,370 @@ describe('CredentialsService', () => {
       ).rejects.toThrow(/organization/);
 
       expect(prisma.credential.create).not.toHaveBeenCalled();
+    });
+
+    it('always creates an unidentified, unconnected row', async () => {
+      await service.createPendingForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        'twitter' as never,
+        { isConnected: true, externalId: 'guessed-id' } as never,
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        unknown
+      >;
+
+      expect(data.externalId).toBeNull();
+      expect(data.isConnected).toBe(false);
+    });
+
+    it('never reads a connected credential to reuse at connect time', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        externalId: 'live-account',
+        id: 'live-credential',
+        isConnected: true,
+        organizationId: orgId,
+        platform: 'TWITTER',
+      });
+
+      await service.createPendingForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        'twitter' as never,
+      );
+
+      expect(prisma.credential.create).toHaveBeenCalledOnce();
+      expect(prisma.credential.update).not.toHaveBeenCalled();
+    });
+
+    it('reaps only the caller own abandoned attempts for this brand and platform', async () => {
+      await service.createPendingForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        'twitter' as never,
+      );
+
+      expect(prisma.credential.updateMany).toHaveBeenCalledWith({
+        data: { isDeleted: true, oauthState: null },
+        where: {
+          brandId,
+          externalId: null,
+          isConnected: false,
+          isDeleted: false,
+          organizationId: orgId,
+          platform: 'TWITTER',
+          updatedAt: { lt: expect.any(Date) },
+          userId: 'u1',
+        },
+      });
+    });
+  });
+
+  describe('findConnectedAccounts', () => {
+    it('returns every live connected account on a platform, oldest first', async () => {
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          createdAt: '2026-02-01T00:00:00.000Z',
+          externalId: 'account-b',
+          id: 'cred-b',
+          platform: 'TWITTER',
+        },
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: 'account-a',
+          id: 'cred-a',
+          platform: 'TWITTER',
+        },
+      ]);
+
+      const accounts = await service.findConnectedAccounts(
+        orgId,
+        brandId,
+        'twitter' as never,
+      );
+
+      expect(accounts.map((account) => account.id)).toEqual([
+        'cred-a',
+        'cred-b',
+      ]);
+      expect(prisma.credential.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId,
+            isConnected: true,
+            isDeleted: false,
+            organizationId: orgId,
+            platform: 'TWITTER',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('resolveBrandAccount', () => {
+    it('returns the named account without listing the platform', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        brandId,
+        id: 'cred-b',
+        organizationId: orgId,
+        platform: 'TWITTER',
+      });
+
+      const account = await service.resolveBrandAccount({
+        brandId,
+        credentialId: 'cred-b',
+        organizationId: orgId,
+        platform: 'twitter' as never,
+      });
+
+      expect(account?.id).toBe('cred-b');
+      // An explicit id is the whole point of multi-account addressing: the
+      // brand-wide list must never be consulted, or a sibling could win.
+      expect(prisma.credential.findMany).not.toHaveBeenCalled();
+    });
+
+    it('refuses a named account that belongs to another brand or platform', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        brandId: 'another-brand',
+        id: 'cred-x',
+        organizationId: orgId,
+        platform: 'TWITTER',
+      });
+
+      const account = await service.resolveBrandAccount({
+        brandId,
+        credentialId: 'cred-x',
+        organizationId: orgId,
+        platform: 'twitter' as never,
+      });
+
+      expect(account).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('does not belong'),
+        expect.objectContaining({ credentialId: 'cred-x' }),
+      );
+    });
+
+    it('resolves the brand default when only one account is connected', async () => {
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          id: 'cred-a',
+          platform: 'TWITTER',
+        },
+      ]);
+
+      const account = await service.resolveBrandAccount({
+        brandId,
+        organizationId: orgId,
+        platform: 'twitter' as never,
+      });
+
+      expect(account?.id).toBe('cred-a');
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('picks the oldest account and warns when the brand holds several', async () => {
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          createdAt: '2026-02-01T00:00:00.000Z',
+          id: 'cred-b',
+          platform: 'TWITTER',
+        },
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          id: 'cred-a',
+          platform: 'TWITTER',
+        },
+      ]);
+
+      const account = await service.resolveBrandAccount({
+        brandId,
+        organizationId: orgId,
+        platform: 'twitter' as never,
+      });
+
+      // Deterministic rather than "whatever the database returned first", and
+      // loud enough that the implicit pick shows up in operator logs.
+      expect(account?.id).toBe('cred-a');
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('2 twitter accounts'),
+        expect.objectContaining({ brandId, credentialId: 'cred-a' }),
+      );
+    });
+
+    it('returns null when the brand has no connected account', async () => {
+      prisma.credential.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.resolveBrandAccount({
+          brandId,
+          organizationId: orgId,
+          platform: 'twitter' as never,
+        }),
+      ).resolves.toBeNull();
+    });
+  });
+
+  describe('account identity reconciliation', () => {
+    const pendingCredential = {
+      accessToken: 'fresh-token',
+      brandId,
+      externalId: null,
+      id: 'pending-1',
+      isConnected: false,
+      organizationId: orgId,
+      platform: 'TWITTER',
+    };
+
+    function loadPendingCredential(): void {
+      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
+    }
+
+    it('rejects a connection the provider never identified', async () => {
+      loadPendingCredential();
+
+      await expect(
+        service.updateExternalProfile('pending-1', orgId, {
+          handle: 'nameless',
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          detail: expect.stringContaining('did not identify which account'),
+        },
+      });
+
+      expect(prisma.credential.update).not.toHaveBeenCalled();
+    });
+
+    it('claims the identity when the brand holds no account with it', async () => {
+      loadPendingCredential();
+      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
+
+      await service.updateExternalProfile('pending-1', orgId, {
+        handle: 'second_account',
+        id: 'account-2',
+      });
+
+      const patched = prisma.credential.update.mock.calls.at(-1)?.[0] as {
+        data: Record<string, unknown>;
+        where: Record<string, unknown>;
+      };
+
+      expect(patched.where).toEqual({ id: 'pending-1' });
+      expect(patched.data).toEqual(
+        expect.objectContaining({
+          externalId: 'account-2',
+          isConnected: true,
+          isDeleted: false,
+          oauthState: null,
+        }),
+      );
+    });
+
+    it('merges into the incumbent and retires the pending row on reconnect', async () => {
+      loadPendingCredential();
+      prisma.credential.findFirst.mockResolvedValueOnce({ id: 'incumbent-1' });
+
+      await service.updateExternalProfile('pending-1', orgId, {
+        handle: 'same_account',
+        id: 'account-1',
+      });
+
+      const [survivorUpdate, retirementUpdate] =
+        prisma.credential.update.mock.calls.map(
+          (call) =>
+            call[0] as { data: Record<string, unknown>; where: unknown },
+        );
+
+      expect(survivorUpdate.where).toEqual({ id: 'incumbent-1' });
+      expect(survivorUpdate.data).toEqual(
+        expect.objectContaining({
+          accessToken: 'fresh-token',
+          externalId: 'account-1',
+          isConnected: true,
+          isDeleted: false,
+        }),
+      );
+
+      expect(retirementUpdate.where).toEqual({ id: 'pending-1' });
+      expect(retirementUpdate.data).toEqual({
+        isConnected: false,
+        isDeleted: true,
+        oauthState: null,
+      });
+    });
+
+    it('folds into the winner when a concurrent verify claimed the identity first', async () => {
+      loadPendingCredential();
+      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent yet
+      prisma.credential.update.mockRejectedValueOnce(
+        Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+      );
+      prisma.credential.findFirst.mockResolvedValueOnce({ id: 'winner-1' }); // retry finds it
+
+      const survivor = await service.updateExternalProfile('pending-1', orgId, {
+        id: 'account-1',
+      });
+
+      expect(survivor.id).toBe('winner-1');
+      expect(prisma.credential.update.mock.calls.at(-1)?.[0]).toEqual({
+        data: { isConnected: false, isDeleted: true, oauthState: null },
+        where: { id: 'pending-1' },
+      });
+    });
+
+    it('rethrows a unique violation when no winner can be found', async () => {
+      loadPendingCredential();
+      prisma.credential.findFirst.mockResolvedValueOnce(null);
+      prisma.credential.update.mockRejectedValueOnce(
+        Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+      );
+      prisma.credential.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.updateExternalProfile('pending-1', orgId, { id: 'account-1' }),
+      ).rejects.toThrow(/Unique constraint failed/);
+    });
+
+    it('reconnects a soft-deleted account without treating it as an incumbent', async () => {
+      loadPendingCredential();
+      prisma.credential.findFirst.mockResolvedValueOnce(null); // soft-deleted row excluded
+
+      await service.updateExternalProfile('pending-1', orgId, {
+        id: 'account-1',
+      });
+
+      const incumbentLookup = prisma.credential.findFirst.mock.calls.find(
+        (call) =>
+          (call[0] as { where?: Record<string, unknown> })?.where
+            ?.externalId === 'account-1',
+      )?.[0] as { where: Record<string, unknown> };
+
+      expect(incumbentLookup.where.isDeleted).toBe(false);
+    });
+
+    it('applies the connection payload before identity is settled', async () => {
+      loadPendingCredential(); // updateExternalProfile reads the pending row
+      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
+
+      await service.connectAccount(
+        'pending-1',
+        orgId,
+        { id: 'account-1' },
+        { accessToken: 'exchanged-token' },
+      );
+
+      const tokenUpdate = prisma.credential.update.mock.calls[0][0] as {
+        data: Record<string, string>;
+      };
+
+      expect(crypto.decrypt(tokenUpdate.data.accessToken)).toBe(
+        'exchanged-token',
+      );
+      expect(tokenUpdate.data.oauthState).toBeNull();
     });
   });
 
@@ -451,7 +820,13 @@ describe('CredentialsService', () => {
 
   describe('updateExternalProfile', () => {
     beforeEach(() => {
-      prisma.credential.findFirst.mockResolvedValue({ id: 'existing-id' });
+      prisma.credential.findFirst.mockResolvedValue({
+        brandId,
+        externalId: 'provider-1',
+        id: 'existing-id',
+        organizationId: orgId,
+        platform: 'TWITTER',
+      });
     });
 
     it('uploads a provider avatar to S3 and persists public identity', async () => {

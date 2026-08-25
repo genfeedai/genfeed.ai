@@ -117,12 +117,16 @@ export class AdminFleetPublishingService {
             break;
 
           case 'facebook': {
-            // Facebook requires pageId and pageAccessToken
-            const fbCredential = await this.credentialsService.findOne({
-              brandId: EntityIdUtil.toValidId(brandId)!,
-              organizationId: EntityIdUtil.toValidId(organizationId)!,
-              platform: CredentialPlatform.FACEBOOK,
-            });
+            // Facebook requires pageId and pageAccessToken.
+            // `platforms` names platforms, not accounts, so a brand holding
+            // several Facebook pages publishes as its default one here — the
+            // resolver logs which accounts were passed over.
+            const fbCredential =
+              await this.credentialsService.resolveBrandAccount({
+                brandId: EntityIdUtil.toValidId(brandId)!,
+                organizationId: EntityIdUtil.toValidId(organizationId)!,
+                platform: CredentialPlatform.FACEBOOK,
+              });
 
             if (!fbCredential?.accessToken || !fbCredential?.externalId) {
               throw new Error('Facebook credential not found');

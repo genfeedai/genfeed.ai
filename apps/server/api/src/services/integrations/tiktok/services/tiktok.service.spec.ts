@@ -84,6 +84,12 @@ describe('TiktokService', () => {
     }),
     mergeWarmupSignals: vi.fn().mockResolvedValue(undefined),
     patch: vi.fn().mockResolvedValue({}),
+    // The service resolves its account through the multi-account resolver;
+    // the double answers with whatever `findOne` is primed to return so the
+    // existing single-account cases keep describing one connected account.
+    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+      (credentialsMock.findOne as vi.Mock)(options),
+    ),
   } as unknown as CredentialsService;
 
   const loggerMock = {
@@ -163,6 +169,56 @@ describe('TiktokService', () => {
 
       expect(res.data.post_id).toEqual('post-123');
       expect(httpService.post).toHaveBeenCalled();
+    });
+
+    it('uploads as the account named by credentialId', async () => {
+      // A brand with two TikTok accounts publishes as the one the post belongs
+      // to, never as whichever account happens to be the brand default.
+      const mockPost = buildMockPost({ label: 'Test video' });
+
+      const getValidCredential = vi
+        .spyOn(service, 'getValidCredential')
+        .mockResolvedValue({
+          accessToken: 'test-token',
+        } as unknown as import('@api/collections/credentials/entities/credential.entity').CredentialEntity);
+
+      vi.spyOn(service, 'getCreatorInfo').mockResolvedValue({
+        comment_disabled: false,
+        creator_avatar_url: '',
+        creator_nickname: 'Test',
+        creator_username: 'test',
+        duet_disabled: false,
+        max_video_post_duration_sec: 600,
+        privacy_level_options: ['SELF_ONLY'],
+        stitch_disabled: false,
+      });
+
+      (httpService.post as vi.Mock).mockReturnValue(
+        of({
+          data: { data: { publish_id: 'test-id' } },
+          status: 200,
+        }),
+      );
+
+      vi.spyOn(service, 'getPublishStatus').mockResolvedValue({
+        publicly_available_post_id: ['post-123'],
+        status: 'PUBLISH_COMPLETE',
+      } as unknown as import('@genfeedai/interfaces').ITikTokPublishStatusData);
+
+      await service.uploadVideo(
+        'org-id',
+        'account-id',
+        'http://video.url',
+        mockPost,
+        {},
+        'credential-42',
+      );
+
+      expect(getValidCredential).toHaveBeenCalledWith(
+        'org-id',
+        'account-id',
+        'credential-42',
+      );
     });
 
     it('throws on non-200 response', async () => {

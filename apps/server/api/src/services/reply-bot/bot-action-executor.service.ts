@@ -94,6 +94,8 @@ export class BotActionExecutorService {
         brandId,
         text,
         options?.inReplyToTweetId,
+        {},
+        credential.id,
       );
     }
 
@@ -328,6 +330,7 @@ export class BotActionExecutorService {
         credential.brandId,
         targetContent.id,
         replyText,
+        credential.id,
       );
 
       this.loggerService.log(`${url} success`, {
@@ -381,6 +384,7 @@ export class BotActionExecutorService {
         credential.brandId,
         targetContent.id,
         replyText,
+        credential.id,
       );
 
       this.loggerService.log(`${url} success`, {
@@ -492,6 +496,7 @@ export class BotActionExecutorService {
         credential.brandId,
         recipientUserId,
         message,
+        credential.id,
       );
 
       this.loggerService.log(`${url} success`, {

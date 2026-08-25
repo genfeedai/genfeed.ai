@@ -114,7 +114,15 @@ export class AnalyticsExportService {
       matchStage.publicationDate = this.getPublicationDateFilter(scope);
     }
 
-    const aggregate = { where: matchStage };
+    // The credential relation is what carries the publishing platform and the
+    // account identity; without an explicit include the rows come back with no
+    // credential at all.
+    const aggregate = {
+      include: {
+        credential: { select: { id: true, platform: true } },
+      },
+      where: matchStage,
+    };
 
     const result = await this.postsService.findAll(aggregate, {
       limit: MAX_ANALYTICS_EXPORT_ROWS,
@@ -236,6 +244,7 @@ export class AnalyticsExportService {
                 post.organizationId,
                 post.brandId,
                 post.externalId,
+                post.credential.id,
               );
               statsMap.set(post.id, stats);
             } catch (error) {
@@ -268,6 +277,7 @@ export class AnalyticsExportService {
     organizationId: string,
     brandId: string,
     externalId: string,
+    credentialId: string,
   ): Promise<PlatformStats> {
     switch (platform) {
       case CredentialPlatform.YOUTUBE:
@@ -275,18 +285,21 @@ export class AnalyticsExportService {
           organizationId,
           brandId,
           externalId,
+          credentialId,
         );
       case CredentialPlatform.TIKTOK:
         return this.tiktokService.getMediaAnalytics(
           organizationId,
           brandId,
           externalId,
+          credentialId,
         );
       case CredentialPlatform.INSTAGRAM:
         return this.instagramService.getMediaAnalytics(
           organizationId,
           brandId,
           externalId,
+          credentialId,
         );
       case CredentialPlatform.TWITTER:
         return this.twitterService.getMediaAnalytics(externalId);
@@ -295,6 +308,7 @@ export class AnalyticsExportService {
           organizationId,
           brandId,
           externalId,
+          credentialId,
         );
       default:
         return Promise.resolve({ comments: 0, likes: 0, views: 0 });

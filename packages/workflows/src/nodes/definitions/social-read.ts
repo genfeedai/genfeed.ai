@@ -21,6 +21,11 @@ export interface SocialReadNodeData extends BaseNodeData {
   query: string;
   /** Optional username for timeline mode (defaults to connected account) */
   username: string;
+  /**
+   * Which connected account to read as. A brand may hold several accounts on
+   * one platform; empty reads as the brand's default account.
+   */
+  credentialId: string;
   /** Max posts to return */
   limit: number;
   /** Output: structured posts JSON string */
@@ -33,6 +38,7 @@ export interface SocialReadNodeData extends BaseNodeData {
 
 export const DEFAULT_SOCIAL_READ_DATA: Partial<SocialReadNodeData> = {
   count: null,
+  credentialId: '',
   label: 'Read posts',
   limit: 20,
   mode: 'timeline',

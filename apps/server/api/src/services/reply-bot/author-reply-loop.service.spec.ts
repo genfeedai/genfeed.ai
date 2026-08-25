@@ -8,7 +8,7 @@ describe('AuthorReplyLoopService', () => {
       findFirst: vi.fn(),
       update: vi.fn(),
     },
-    credential: { findFirst: vi.fn() },
+    credential: { findMany: vi.fn() },
     processedTweet: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const logger = { log: vi.fn(), warn: vi.fn() };
@@ -63,7 +63,7 @@ describe('AuthorReplyLoopService', () => {
 
   it('creates a comment_responder config when none exists', async () => {
     replyBotConfigsService.find.mockResolvedValue([]);
-    prisma.credential.findFirst.mockResolvedValue({ id: 'cred-1' });
+    prisma.credential.findMany.mockResolvedValue([{ id: 'cred-1' }]);
     replyBotConfigsService.create.mockResolvedValue({
       id: 'bot-1',
       isActive: true,
@@ -302,7 +302,7 @@ describe('AuthorReplyLoopService', () => {
 
   it('rejects YouTube send without a YouTube credential', async () => {
     replyBotConfigsService.find.mockResolvedValue([]);
-    prisma.credential.findFirst.mockResolvedValue(null);
+    prisma.credential.findMany.mockResolvedValue([]);
 
     await expect(
       service.sendReply({
@@ -317,6 +317,72 @@ describe('AuthorReplyLoopService', () => {
         userId: 'user-1',
       }),
     ).rejects.toThrow(/YouTube credential/i);
+  });
+
+  it('refuses to guess an account when the brand holds several on the platform', async () => {
+    replyBotConfigsService.find.mockResolvedValue([]);
+    // Two live X accounts and nothing in the config saying which one speaks:
+    // replying as the wrong brand account is worse than not replying.
+    prisma.credential.findMany.mockResolvedValue([
+      { id: 'cred-1' },
+      { id: 'cred-2' },
+    ]);
+
+    await expect(
+      service.ensureAuthorResponder({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    ).rejects.toThrow(/X\/Twitter credential/i);
+
+    expect(replyBotConfigsService.create).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('refusing to guess'),
+      expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
+    );
+  });
+
+  it('sends replies from the account the bot config names, not the first row', async () => {
+    replyBotConfigsService.find.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        config: { credentialId: 'x-cred-2' },
+        id: 'bot-1',
+        platform: 'twitter',
+        type: 'comment_responder',
+      },
+    ]);
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: '',
+      id: 'x-cred-2',
+      platform: 'twitter',
+      username: 'brandx_labs',
+    });
+    botActionExecutorService.postReply.mockResolvedValue({
+      contentId: 'x-reply-2',
+      contentUrl: 'https://x.com/brandx_labs/status/x-reply-2',
+      success: true,
+    });
+
+    await service.sendReply({
+      brandId: 'brand-1',
+      commentAuthor: 'viewer',
+      commentId: 'c1',
+      commentText: 'Nice one',
+      organizationId: 'org-1',
+      parentPostId: 'p1',
+      platform: 'twitter',
+      replyText: 'Thanks!',
+      userId: 'user-1',
+    });
+
+    // Named account wins outright — the ambiguous multi-account fallback is
+    // never consulted.
+    expect(credentialsService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'x-cred-2' }),
+    );
+    expect(prisma.credential.findMany).not.toHaveBeenCalled();
   });
 
   describe('findResponderOwnerUserId', () => {

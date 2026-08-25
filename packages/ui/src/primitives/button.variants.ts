@@ -61,12 +61,6 @@ export function getSizeOverrideClassName(size?: ButtonSize | null) {
     return 'h-10 px-5 text-sm uppercase tracking-[0.18em]';
   }
 
-  if (size === ButtonSize.ICON) {
-    // Ghost (and other) variants set justify-start for labeled buttons.
-    // Icon-only controls must win and keep the glyph centered in the square.
-    return 'justify-center';
-  }
-
   return '';
 }
 
@@ -109,7 +103,7 @@ const nativeButtonVariants = cva(
         destructive:
           'justify-center rounded-md bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25',
         ghost:
-          'justify-start rounded-md bg-transparent text-muted-foreground hover:bg-hover hover:text-foreground',
+          'rounded-md bg-transparent text-muted-foreground hover:bg-hover hover:text-foreground',
         link: 'justify-center text-foreground underline-offset-4 hover:underline',
         outline:
           'justify-center rounded-md bg-transparent border border-border text-foreground hover:bg-hover',
@@ -117,6 +111,13 @@ const nativeButtonVariants = cva(
           'justify-center rounded-md bg-tertiary text-foreground border border-border hover:bg-hover',
       },
     },
+    compoundVariants: [
+      {
+        className: 'justify-start',
+        size: ['default', 'lg', 'md', 'sm', 'xl', 'xs'],
+        variant: 'ghost',
+      },
+    ],
   },
 );
 

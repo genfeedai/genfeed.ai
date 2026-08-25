@@ -5,7 +5,6 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn(() => 'test') },
 }));
 
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
@@ -21,7 +20,6 @@ describe('SnapchatPublisherService', () => {
     createMedia: ReturnType<typeof vi.fn>;
     publishStory: ReturnType<typeof vi.fn>;
   };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
   let logger: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -71,7 +69,6 @@ describe('SnapchatPublisherService', () => {
       createMedia: vi.fn().mockResolvedValue('media-id-123'),
       publishStory: vi.fn().mockResolvedValue('snap-story-456'),
     };
-    credentialsService = { findOne: vi.fn().mockResolvedValue(mockCredential) };
     logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -85,7 +82,6 @@ describe('SnapchatPublisherService', () => {
           },
         },
         { provide: SnapchatService, useValue: snapchatService },
-        { provide: CredentialsService, useValue: credentialsService },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -149,9 +145,37 @@ describe('SnapchatPublisherService', () => {
       expect(result.externalId).toBe('snap-story-456');
     });
 
+    it('should publish as the account on the context, not a sibling account', async () => {
+      const secondAccount = {
+        id: 'second-account-id',
+        accessToken: 'encrypted-snap-token-2',
+        externalId: 'snap-ad-account-002',
+        platform: CredentialPlatform.SNAPCHAT,
+      };
+
+      await service.publish(
+        makeContext({ credential: secondAccount as never }),
+      );
+
+      expect(snapchatService.createMedia).toHaveBeenCalledWith(
+        expect.any(String),
+        'snap-ad-account-002',
+        expect.any(String),
+        expect.any(String),
+        'IMAGE',
+      );
+      expect(snapchatService.publishStory).toHaveBeenCalledWith(
+        expect.any(String),
+        'snap-ad-account-002',
+        'media-id-123',
+        expect.any(String),
+      );
+    });
+
     it('should return failed result when credential is missing', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-      const result = await service.publish(makeContext());
+      const result = await service.publish(
+        makeContext({ credential: undefined as never }),
+      );
       expect(result.success).toBe(false);
     });
 

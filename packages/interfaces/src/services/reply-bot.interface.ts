@@ -9,6 +9,12 @@ import type {
  * Credential data for platform authentication
  */
 export interface IReplyBotCredentialData {
+  /**
+   * The credential row this data was loaded from. A brand may hold several
+   * accounts on one platform, so downstream calls carry this id to act as the
+   * same account the bot was configured with rather than the brand's default.
+   */
+  id?: string;
   accessToken: string;
   accessTokenSecret?: string;
   refreshToken?: string;

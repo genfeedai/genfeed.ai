@@ -29,6 +29,10 @@ describe('WordpressController', () => {
       organizationId: 'organization-id',
       userId: 'user-id',
     }),
+    connectAccount: vi.fn().mockResolvedValue({
+      id: 'credential-id',
+      isConnected: true,
+    }),
     patch: vi.fn().mockResolvedValue({
       id: 'credential-id',
       isConnected: true,
@@ -110,13 +114,13 @@ describe('WordpressController', () => {
       expect(wordpressService.exchangeCodeForToken).toHaveBeenCalledWith(
         'auth-code-123',
       );
-      expect(credentialsService.patch).toHaveBeenCalledWith(
+      expect(credentialsService.connectAccount).toHaveBeenCalledWith(
         'credential-id',
+        'organization-id',
         expect.objectContaining({
-          accessToken: 'wp-token',
-          externalId: 'site-1',
-          oauthState: null,
+          id: 'site-1',
         }),
+        { accessToken: 'wp-token' },
       );
       expect(result).toEqual({ id: 'credential-id', isConnected: true });
     });

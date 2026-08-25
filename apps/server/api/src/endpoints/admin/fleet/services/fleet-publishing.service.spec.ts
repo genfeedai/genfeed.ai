@@ -37,7 +37,10 @@ describe('AdminFleetPublishingService', () => {
         { provide: InstagramService, useValue: instagramService },
         { provide: TwitterService, useValue: twitterService },
         { provide: FacebookService, useValue: { uploadImage: vi.fn() } },
-        { provide: CredentialsService, useValue: { findOne: vi.fn() } },
+        {
+          provide: CredentialsService,
+          useValue: { findOne: vi.fn(), resolveBrandAccount: vi.fn() },
+        },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
       ],
     }).compile();

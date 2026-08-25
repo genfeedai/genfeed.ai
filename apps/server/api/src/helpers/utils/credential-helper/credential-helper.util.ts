@@ -12,6 +12,11 @@ export interface GetCredentialOptions {
   organizationId: string;
   brandId: string;
   platform: CredentialPlatform;
+  /**
+   * Which of the brand's accounts on this platform to act as. Omitted resolves
+   * the brand's default account and logs the ones passed over.
+   */
+  credentialId?: string;
 }
 
 /**
@@ -28,11 +33,12 @@ export class CredentialHelper {
     credentialsService: CredentialsService,
     options: GetCredentialOptions,
   ): Promise<CredentialWithToken> {
-    const { organizationId, brandId, platform } = options;
+    const { organizationId, brandId, credentialId, platform } = options;
 
-    const credential = await credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
+    const credential = await credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      organizationId,
       platform,
     });
 
@@ -60,11 +66,12 @@ export class CredentialHelper {
     credentialsService: CredentialsService,
     options: GetCredentialOptions,
   ): Promise<CredentialDocument> {
-    const { organizationId, brandId, platform } = options;
+    const { organizationId, brandId, credentialId, platform } = options;
 
-    const credential = await credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
+    const credential = await credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      organizationId,
       platform,
     });
 
@@ -79,13 +86,14 @@ export class CredentialHelper {
    * Build standard credential query with organization, brand, and platform.
    */
   static buildQuery(options: GetCredentialOptions): Record<string, unknown> {
-    const { organizationId, brandId, platform } = options;
+    const { organizationId, brandId, credentialId, platform } = options;
 
     return {
       brandId,
       isDeleted: false,
       organizationId,
       platform,
+      ...(credentialId ? { id: credentialId } : {}),
     };
   }
 }

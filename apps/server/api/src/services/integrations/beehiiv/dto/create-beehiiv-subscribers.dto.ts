@@ -17,6 +17,14 @@ export class CreateBeehiivSubscribersDto {
   @MinLength(1)
   readonly brandId!: string;
 
+  @ApiPropertyOptional({
+    description:
+      "Which of the brand's connected Beehiiv publications to add to; omitted uses the brand's default account",
+  })
+  @IsOptional()
+  @IsString()
+  readonly credentialId?: string;
+
   @ApiProperty({
     description: 'Subscriber addresses to add to the connected publication',
     example: ['reader@example.com'],

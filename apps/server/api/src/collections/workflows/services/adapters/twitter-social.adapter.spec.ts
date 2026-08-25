@@ -22,6 +22,7 @@ describe('TwitterSocialAdapter', () => {
   };
   let mockCredentialsService: {
     findOne: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
   let mockLogger: {
     debug: ReturnType<typeof vi.fn>;
@@ -44,6 +45,7 @@ describe('TwitterSocialAdapter', () => {
     };
     mockCredentialsService = {
       findOne: vi.fn().mockResolvedValue(null),
+      resolveBrandAccount: vi.fn().mockResolvedValue(null),
     };
     mockLogger = {
       debug: vi.fn(),
@@ -75,6 +77,8 @@ describe('TwitterSocialAdapter', () => {
         'brand1',
         'user456',
         'Hello!',
+        undefined,
+        undefined,
       );
       expect(result.messageId).toBeDefined();
     });
@@ -99,6 +103,9 @@ describe('TwitterSocialAdapter', () => {
         ['https://example.com/image.jpg'],
         'Nice tweet!',
         'image/jpeg',
+        undefined,
+        {},
+        undefined,
       );
       expect(result.replyId).toBe('tweet_123');
       expect(result.replyUrl).toContain('tweet_123');
@@ -120,9 +127,35 @@ describe('TwitterSocialAdapter', () => {
         'brand1',
         'Nice tweet!',
         'tweet_original',
+        {},
+        undefined,
       );
       expect(result.replyId).toBe('tweet_reply_456');
       expect(result.replyUrl).toContain('tweet_reply_456');
+    });
+
+    it('should reply as the named account when the brand holds several', async () => {
+      const publisher = adapter.createReplyPublisher();
+
+      await publisher({
+        brandId: 'brand1',
+        credentialId: 'credential-second-account',
+        organizationId: organizationId,
+        platform: 'twitter',
+        postId: 'tweet_original',
+        text: 'Nice tweet!',
+        userId: 'user1',
+        workflowRunId: 'workflow-run-1',
+      });
+
+      expect(mockTwitterService.postTweet).toHaveBeenCalledWith(
+        organizationId,
+        'brand1',
+        'Nice tweet!',
+        'tweet_original',
+        {},
+        'credential-second-account',
+      );
     });
   });
 
@@ -185,6 +218,34 @@ describe('TwitterSocialAdapter', () => {
       });
 
       expect(result).toBeNull();
+    });
+
+    it('should watch the named account when the brand holds several', async () => {
+      mockCredentialsService.resolveBrandAccount.mockResolvedValue({
+        externalHandle: 'second_account',
+      });
+      mockTwitterService.searchRecentTweets.mockResolvedValue([]);
+
+      const checker = adapter.createMentionChecker();
+      await checker({
+        brandId: 'brand1',
+        credentialId: 'credential-second-account',
+        lastMentionId: null,
+        organizationId: organizationId,
+        platform: 'twitter',
+      });
+
+      expect(mockCredentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId: 'brand1',
+        credentialId: 'credential-second-account',
+        organizationId: organizationId,
+        platform: 'twitter',
+      });
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockTwitterService.searchRecentTweets).toHaveBeenCalledWith(
+        '@second_account',
+        expect.anything(),
+      );
     });
   });
 
@@ -502,6 +563,7 @@ describe('TwitterSocialAdapter', () => {
         'explicit-brand',
         'user456',
         'Hello!',
+        undefined,
       );
     });
 

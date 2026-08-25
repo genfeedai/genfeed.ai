@@ -1360,6 +1360,11 @@ model Credential {
 
   @@index([oauthTokenHash])
   @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
+  @@index([brandId, platform, isDeleted, isConnected, createdAt], map: "credentials_brand_platform_connected_idx")
+  // Account identity is (brandId, platform, externalId). The partial unique index
+  // "credentials_brand_platform_external_key" and the pending-reap index live in
+  // 20260825120000_credential_multi_account_identity — Prisma cannot express a
+  // partial index, so they are SQL-only.
   @@map("credentials")
 }
 

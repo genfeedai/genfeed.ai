@@ -194,22 +194,27 @@ export class InstagramService {
     return expiresAtMs <= Date.now() + INSTAGRAM_TOKEN_REFRESH_BUFFER_MS;
   }
 
+  /**
+   * Resolve the Instagram account this call acts as.
+   *
+   * `credentialId` names the account explicitly — that is the shape every
+   * publish path uses, because a brand may hold several Instagram accounts and
+   * the post already knows which one it belongs to. Without one the brand's
+   * default account answers, and the resolver logs the ambiguity.
+   */
   private async findCredential(
     organizationId: string,
     brandId: string,
     credentialId?: string,
   ): Promise<CredentialDocument | null> {
-    return credentialId
-      ? this.credentialsService.findOne({
-          id: credentialId,
-          organizationId,
-          platform: CredentialPlatform.INSTAGRAM,
-        })
-      : this.credentialsService.findOne({
-          brandId,
-          organizationId,
-          platform: CredentialPlatform.INSTAGRAM,
-        });
+    return this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // Token repair runs through here; a lapsed account still has to be found.
+      isDisconnectedIncluded: true,
+      organizationId,
+      platform: CredentialPlatform.INSTAGRAM,
+    });
   }
 
   public async getValidCredential(
@@ -272,11 +277,16 @@ export class InstagramService {
   public async getInstagramPages(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<InstagramPageResponse[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
@@ -604,11 +614,16 @@ export class InstagramService {
     brandId: string,
     recipientId: string,
     message: string,
+    credentialId?: string,
   ): Promise<string | undefined> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const externalId = requireString(credential.externalId, 'externalId');
 
@@ -634,16 +649,25 @@ export class InstagramService {
     }
   }
 
+  /**
+   * @param credentialId - which connected Instagram account posts this. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async uploadImage(
     organizationId: string,
     brandId: string,
     imageUrl: string,
     caption: string,
     hashtags?: string[],
+    credentialId?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getValidCredential(organizationId, brandId);
+    const credential = await this.getValidCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const externalId = requireString(credential.externalId, 'externalId');
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
@@ -697,6 +721,9 @@ export class InstagramService {
    * Reels are the recommended way to post videos since VIDEO media type is deprecated
    * @param isShareToFeedSelected Whether to share the reel to main feed (default: true)
    */
+  /**
+   * @param credentialId - which connected Instagram account posts this reel.
+   */
   public async uploadReel(
     organizationId: string,
     brandId: string,
@@ -705,10 +732,15 @@ export class InstagramService {
     coverImageUrl?: string,
     hashtags?: string[],
     isShareToFeedSelected: boolean = true,
+    credentialId?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getValidCredential(organizationId, brandId);
+    const credential = await this.getValidCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const externalId = requireString(credential.externalId, 'externalId');
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
@@ -766,16 +798,24 @@ export class InstagramService {
     }
   }
 
+  /**
+   * @param credentialId - which connected Instagram account posts this carousel.
+   */
   public async uploadCarousel(
     organizationId: string,
     brandId: string,
     mediaUrls: string[],
     caption: string,
     hashtags?: string[],
+    credentialId?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.getValidCredential(organizationId, brandId);
+    const credential = await this.getValidCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const externalId = requireString(credential.externalId, 'externalId');
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
@@ -961,16 +1001,25 @@ export class InstagramService {
    * @param text The comment text
    * @returns The comment ID
    */
+  /**
+   * @param credentialId - the account that owns the media being replied to. A
+   *   comment posted as a sibling account is a different account's comment.
+   */
   public async postComment(
     organizationId: string,
     brandId: string,
     mediaId: string,
     text: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       // Decrypt access token before use
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -1010,6 +1059,7 @@ export class InstagramService {
     organizationId: string,
     brandId: string,
     mediaId: string,
+    credentialId?: string,
   ): Promise<{
     views: number;
     likes: number;
@@ -1024,7 +1074,11 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       // Decrypt access token before use
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -1106,11 +1160,16 @@ export class InstagramService {
     brandId: string,
     commentId: string,
     text: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );
@@ -1145,11 +1204,16 @@ export class InstagramService {
     brandId: string,
     mediaId: string,
     limit = 25,
+    credentialId?: string,
   ): Promise<InstagramMediaComment[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );
@@ -1190,11 +1254,16 @@ export class InstagramService {
     organizationId: string,
     brandId: string,
     limit = 25,
+    credentialId?: string,
   ): Promise<InstagramConversationThread[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );

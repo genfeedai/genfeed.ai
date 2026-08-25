@@ -22,12 +22,17 @@ export class YoutubeCommentsService {
   private async getAuthenticatedChannelContext(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<{
     auth: YoutubeRequestAuth;
     channelId: string;
   }> {
     const auth = asYoutubeRequestAuth(
-      await this.authService.refreshToken(organizationId, brandId),
+      await this.authService.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      ),
     );
 
     const channelResponse = await this.youtubeAPI.channels.list({
@@ -55,6 +60,7 @@ export class YoutubeCommentsService {
       maxResults?: number;
       pageToken?: string;
     } = {},
+    credentialId?: string,
   ): Promise<{
     comments: YoutubeChannelComment[];
     nextPageToken?: string;
@@ -65,6 +71,7 @@ export class YoutubeCommentsService {
       const { auth, channelId } = await this.getAuthenticatedChannelContext(
         organizationId,
         brandId,
+        credentialId,
       );
 
       const response = await this.youtubeAPI.commentThreads.list({
@@ -128,11 +135,16 @@ export class YoutubeCommentsService {
    * @param text The comment text
    * @returns The comment ID
    */
+  /**
+   * @param credentialId - which connected YouTube channel this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   async postComment(
     organizationId: string,
     brandId: string,
     videoId: string,
     text: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} postComment`;
 
@@ -145,6 +157,7 @@ export class YoutubeCommentsService {
       const { auth, channelId } = await this.getAuthenticatedChannelContext(
         organizationId,
         brandId,
+        credentialId,
       );
 
       // Post the comment using commentThreads.insert
@@ -187,6 +200,7 @@ export class YoutubeCommentsService {
     brandId: string,
     parentCommentId: string,
     text: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} replyToComment`;
 
@@ -197,7 +211,11 @@ export class YoutubeCommentsService {
       });
 
       const auth = asYoutubeRequestAuth(
-        await this.authService.refreshToken(organizationId, brandId),
+        await this.authService.refreshToken(
+          organizationId,
+          brandId,
+          credentialId,
+        ),
       );
 
       const response = await this.youtubeAPI.comments.insert({
@@ -234,6 +252,7 @@ export class YoutubeCommentsService {
     brandId: string,
     videoId: string,
     maxResults = 25,
+    credentialId?: string,
   ): Promise<
     Array<{
       authorAvatarUrl?: string;
@@ -250,7 +269,11 @@ export class YoutubeCommentsService {
 
     try {
       const auth = asYoutubeRequestAuth(
-        await this.authService.refreshToken(organizationId, brandId),
+        await this.authService.refreshToken(
+          organizationId,
+          brandId,
+          credentialId,
+        ),
       );
       const response = await this.youtubeAPI.commentThreads.list({
         auth,
@@ -313,6 +336,7 @@ export class YoutubeCommentsService {
     brandId: string,
     parentCommentId: string,
     text: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} postCommentReply`;
 
@@ -323,7 +347,11 @@ export class YoutubeCommentsService {
       });
 
       const auth = asYoutubeRequestAuth(
-        await this.authService.refreshToken(organizationId, brandId),
+        await this.authService.refreshToken(
+          organizationId,
+          brandId,
+          credentialId,
+        ),
       );
       const response = await this.youtubeAPI.comments.insert({
         auth,

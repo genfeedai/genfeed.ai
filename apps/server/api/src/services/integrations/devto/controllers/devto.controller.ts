@@ -82,16 +82,22 @@ export class DevtoController {
         });
       }
 
-      const credential = await this.credentialsService.upsertForBrand(
+      const pending = await this.credentialsService.createPendingForBrand(
         brand,
         user.userId ?? user.id,
         CredentialPlatform.DEV_TO,
+        { accessToken: body.apiKey },
+      );
+
+      // Identity reconciliation decides reconnect vs. additional account, so a
+      // brand can hold more than one dev.to author.
+      const credential = await this.credentialsService.updateExternalProfile(
+        pending.id,
+        brand.organizationId,
         {
-          accessToken: body.apiKey,
-          externalHandle: devtoUser.username,
-          externalId: String(devtoUser.id),
-          externalName: devtoUser.name,
-          isConnected: true,
+          handle: devtoUser.username,
+          id: String(devtoUser.id),
+          name: devtoUser.name,
         },
       );
 
@@ -121,6 +127,7 @@ export class DevtoController {
     @Query('published') published?: string,
     @Query('tags') tags?: string,
     @Query('canonicalUrl') canonicalUrl?: string,
+    @Query('credentialId') credentialId?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -147,6 +154,7 @@ export class DevtoController {
         brandId,
         {
           canonicalUrl,
+          credentialId,
           published: published !== 'false',
           tags: parsedTags,
         },

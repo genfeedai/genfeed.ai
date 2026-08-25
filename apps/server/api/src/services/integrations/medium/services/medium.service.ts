@@ -128,15 +128,16 @@ export class MediumService {
     organizationId: string,
     brandId: string,
     publishStatus: 'public' | 'draft' | 'unlisted' = 'public',
+    credentialId?: string,
   ): Promise<MediumPost> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       // Get Medium credentials
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        isConnected: true,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        organizationId,
         platform: CredentialPlatform.MEDIUM,
       });
 
@@ -216,15 +217,17 @@ export class MediumService {
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<unknown> {
-    const queryCredentials = {
+    const credentials = await this.credentialsService.resolveBrandAccount({
       brandId,
-      isDeleted: false,
+      credentialId,
+      // Token repair has to find the row even after a failed refresh
+      // flipped `isConnected` off.
+      isDisconnectedIncluded: true,
       organizationId,
       platform: CredentialPlatform.MEDIUM,
-    };
-
-    const credentials = await this.credentialsService.findOne(queryCredentials);
+    });
 
     if (!credentials) {
       throw new Error('Medium credential not found');

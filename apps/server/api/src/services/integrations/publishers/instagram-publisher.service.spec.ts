@@ -281,6 +281,8 @@ describe('InstagramPublisherService', () => {
           mockBrandId.toString(),
           expect.stringContaining('/images/'),
           expect.any(String),
+          undefined,
+          mockCredential.id,
         );
       });
 
@@ -327,6 +329,7 @@ describe('InstagramPublisherService', () => {
           undefined, // coverImageUrl
           undefined, // hashtags
           true, // isShareToFeedSelected
+          mockCredential.id,
         );
       });
 
@@ -352,6 +355,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           undefined,
           false,
+          mockCredential.id,
         );
       });
 
@@ -375,6 +379,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           undefined,
           true,
+          mockCredential.id,
         );
       });
 
@@ -400,6 +405,7 @@ describe('InstagramPublisherService', () => {
           undefined,
           undefined,
           false,
+          mockCredential.id,
         );
       });
     });
@@ -425,6 +431,8 @@ describe('InstagramPublisherService', () => {
           mockBrandId.toString(),
           expect.arrayContaining([expect.stringContaining('/images/')]),
           expect.any(String),
+          undefined,
+          mockCredential.id,
         );
       });
     });

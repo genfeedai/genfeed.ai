@@ -47,6 +47,12 @@ describe('SnapchatService', () => {
     credentialsService = {
       findOne: vi.fn(),
       patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsService.findOne(options),
+      ),
     } as unknown as vi.Mocked<CredentialsService>;
 
     loggerService = {

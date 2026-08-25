@@ -131,12 +131,16 @@ export class WorkflowSocialExecutorRegistrarService {
           (await twitterService.resolveBrandUserAccessToken(
             params.organizationId,
             params.brandId,
+            params.credentialId,
           )) ?? undefined;
 
         if (!username && credentialsService) {
-          const credential = await credentialsService.findOne({
+          // The handle has to come from the same account the token does,
+          // otherwise a brand with two X accounts reads one account's timeline
+          // through the other account's credentials.
+          const credential = await credentialsService.resolveBrandAccount({
             brandId: params.brandId,
-            isDeleted: false,
+            credentialId: params.credentialId,
             organizationId: params.organizationId,
             platform: CredentialPlatform.TWITTER,
           });

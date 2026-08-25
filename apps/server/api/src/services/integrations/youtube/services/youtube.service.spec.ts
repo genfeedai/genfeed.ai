@@ -81,7 +81,11 @@ describe('YoutubeService', () => {
 
   it('should delegate refresh token', async () => {
     await service.refreshToken('org', 'brand');
-    expect(authService.refreshToken).toHaveBeenCalledWith('org', 'brand');
+    expect(authService.refreshToken).toHaveBeenCalledWith(
+      'org',
+      'brand',
+      undefined,
+    );
   });
 
   it('should delegate upload operations', async () => {

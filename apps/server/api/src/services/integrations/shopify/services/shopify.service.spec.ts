@@ -15,7 +15,10 @@ import { of, throwError } from 'rxjs';
 describe('ShopifyService', () => {
   let service: ShopifyService;
   let configService: { get: ReturnType<typeof vi.fn> };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -45,7 +48,15 @@ describe('ShopifyService', () => {
       }),
     };
 
-    credentialsService = { findOne: vi.fn() };
+    credentialsService = {
+      findOne: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsService.findOne(options),
+      ),
+    };
 
     loggerService = {
       error: vi.fn(),

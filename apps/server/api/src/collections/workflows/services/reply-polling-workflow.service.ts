@@ -262,7 +262,11 @@ export class ReplyPollingWorkflowService {
       accessTokenSecret: credential.accessTokenSecret
         ? EncryptionUtil.decrypt(credential.accessTokenSecret)
         : undefined,
+      brandId: credential.brandId ?? undefined,
       externalId: credential.externalId ?? undefined,
+      // The bot speaks as this exact account, not as the brand's default one.
+      id: credential.id,
+      organizationId: target.organizationId,
       platform: credential.platform as ReplyBotPlatform,
       refreshToken: credential.refreshToken
         ? EncryptionUtil.decrypt(credential.refreshToken)

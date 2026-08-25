@@ -24,7 +24,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 const mockOrgId = testId('org');
 const mockUserId = testId('user');
 const mockBrandId = testId('brand');
-const mockBrand = { id: mockBrandId, name: 'TestBrand' };
+const mockBrand = {
+  id: mockBrandId,
+  name: 'TestBrand',
+  organizationId: mockOrgId,
+};
 
 const mockUser = {
   brandId: mockBrandId,
@@ -39,7 +43,6 @@ describe('GhostController', () => {
   let ghostService: vi.Mocked<GhostService>;
   let brandsService: vi.Mocked<BrandsService>;
   let credentialsService: vi.Mocked<CredentialsService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -58,7 +61,12 @@ describe('GhostController', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { upsertForBrand: vi.fn() },
+          useValue: {
+            createPendingForBrand: vi
+              .fn()
+              .mockResolvedValue({ id: 'pending-credential-id' }),
+            updateExternalProfile: vi.fn(),
+          },
         },
         {
           provide: LoggerService,
@@ -71,7 +79,6 @@ describe('GhostController', () => {
     ghostService = module.get(GhostService);
     brandsService = module.get(BrandsService);
     credentialsService = module.get(CredentialsService);
-    loggerService = module.get(LoggerService);
   });
 
   afterEach(() => vi.clearAllMocks());
@@ -113,7 +120,7 @@ describe('GhostController', () => {
         id: 'cred1',
         platform: CredentialPlatform.GHOST,
       };
-      credentialsService.upsertForBrand.mockResolvedValue(
+      credentialsService.updateExternalProfile.mockResolvedValue(
         mockCredential as never,
       );
 
@@ -123,11 +130,20 @@ describe('GhostController', () => {
         validBody.ghostUrl,
         validBody.apiKey,
       );
-      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
+      expect(credentialsService.createPendingForBrand).toHaveBeenCalledWith(
         mockBrand,
         mockUserId,
         CredentialPlatform.GHOST,
-        expect.objectContaining({ accessToken: validBody.apiKey }),
+        { accessToken: validBody.apiKey },
+      );
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        'pending-credential-id',
+        mockOrgId,
+        {
+          handle: validBody.ghostUrl,
+          id: validBody.ghostUrl,
+          name: 'My Ghost Blog',
+        },
       );
       expect(serializeSingle).toHaveBeenCalled();
       expect(result).toMatchObject({ data: mockCredential });

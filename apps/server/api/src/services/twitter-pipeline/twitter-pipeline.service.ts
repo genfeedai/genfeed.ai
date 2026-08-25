@@ -38,6 +38,7 @@ export class TwitterPipelineService {
     accessTokenSecret: string | null;
     externalHandle: string | null;
     externalId: string | null;
+    id: string;
     refreshToken: string | null;
   }): IReplyBotCredentialData | null {
     return toReplyBotCredentialData({
@@ -45,6 +46,7 @@ export class TwitterPipelineService {
       accessTokenSecret: credential.accessTokenSecret ?? undefined,
       externalHandle: credential.externalHandle ?? undefined,
       externalId: credential.externalId ?? undefined,
+      id: credential.id,
       refreshToken: credential.refreshToken ?? undefined,
     });
   }
@@ -125,6 +127,8 @@ export class TwitterPipelineService {
       type: 'reply' | 'quote' | 'original' | 'repost';
       text: string;
       targetTweetId?: string;
+      /** Which of the brand's X accounts publishes this. */
+      credentialId?: string;
     },
   ): Promise<ITwitterPublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -152,8 +156,9 @@ export class TwitterPipelineService {
           trigger: WorkflowExecutionTrigger.API,
         },
         async () => {
-          const credential = await this.credentialsService.findOne({
-            brandId: brandId,
+          const credential = await this.credentialsService.resolveBrandAccount({
+            brandId,
+            credentialId: request.credentialId,
             organizationId: orgId,
             platform: CredentialPlatform.TWITTER,
           });

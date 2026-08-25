@@ -51,6 +51,10 @@ describe('ShopifyController', () => {
       organizationId: 'organization-id',
       userId: 'user-id',
     }),
+    connectAccount: vi.fn().mockResolvedValue({
+      id: 'credential-id',
+      isConnected: true,
+    }),
     patch: vi.fn().mockResolvedValue({
       id: 'credential-id',
       isConnected: true,
@@ -146,12 +150,15 @@ describe('ShopifyController', () => {
         state: 'opaque-oauth-state',
       });
 
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
         'credential-id',
-        expect.objectContaining({
-          accessToken: 'shpua_abc123',
-          oauthState: null,
-        }),
+        'organization-id',
+        {
+          handle: 'myshop.myshopify.com',
+          id: 'myshop.myshopify.com',
+          name: 'myshop.myshopify.com',
+        },
+        { accessToken: 'shpua_abc123' },
       );
       expect(result).toEqual({ id: 'credential-id', isConnected: true });
     });

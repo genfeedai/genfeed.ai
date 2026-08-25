@@ -48,6 +48,11 @@ export type DmSender = (params: {
   userId: string;
   /** The brand ID associated with this action. Use this instead of userId for brand-scoped operations. */
   brandId?: string;
+  /**
+   * Which of the brand's accounts on this platform sends the message. A brand
+   * may hold several; omitted sends as the brand's default account.
+   */
+  credentialId?: string;
   conversationId?: string;
   idempotencyKey?: string;
   platform: DmPlatform;
@@ -131,6 +136,7 @@ export class SendDmExecutor extends BaseExecutor {
     const result = await this.sender({
       brandId: node.config.brandId as string | undefined,
       conversationId,
+      credentialId: node.config.credentialId as string | undefined,
       idempotencyKey,
       mediaUrl,
       organizationId: context.organizationId,

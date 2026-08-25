@@ -288,9 +288,9 @@ export class SourcePostsService {
   ): Promise<SourcePostDraftActionResult> {
     const sourcePost = await this.findOneScoped(id, context);
     const platform = normalizeCredentialPlatform(sourcePost.platform);
-    const credential = await this.credentialsService.findOne({
+    const credential = await this.credentialsService.resolveBrandAccount({
       brandId: context.brandId,
-      isConnected: true,
+      credentialId: input.credentialId,
       organizationId: context.organizationId,
       platform,
     });

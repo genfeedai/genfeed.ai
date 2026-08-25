@@ -88,6 +88,7 @@ export class YoutubeMetadataService {
     organizationId: string,
     brandId: string,
     videoId: string,
+    credentialId?: string,
   ): Promise<{
     privacyStatus: 'public' | 'private' | 'unlisted';
     publishAt?: string;
@@ -99,7 +100,11 @@ export class YoutubeMetadataService {
       this.loggerService.log(`${url} started`);
 
       const auth = asYoutubeRequestAuth(
-        await this.youtubeAuthService.refreshToken(organizationId, brandId),
+        await this.youtubeAuthService.refreshToken(
+          organizationId,
+          brandId,
+          credentialId,
+        ),
       );
 
       const response = await this.youtubeAPI.videos.list({

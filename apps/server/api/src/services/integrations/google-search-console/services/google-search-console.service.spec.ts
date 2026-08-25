@@ -18,6 +18,7 @@ describe('GoogleSearchConsoleService', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
   let httpService: vi.Mocked<HttpService>;
   let oauthService: {
@@ -32,6 +33,12 @@ describe('GoogleSearchConsoleService', () => {
         refreshToken: 'encrypted-refresh-token',
       }),
       patch: vi.fn().mockResolvedValue({ id: 'credential-id' }),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsService.findOne(options),
+      ),
     };
     oauthService = {
       refreshAccessToken: vi.fn().mockResolvedValue({

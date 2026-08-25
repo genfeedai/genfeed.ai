@@ -30,6 +30,7 @@ describe('GoogleSearchConsoleController', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
+    connectAccount: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
@@ -56,6 +57,7 @@ describe('GoogleSearchConsoleController', () => {
     userId: 'user-id',
   };
   const credential = {
+    organizationId: 'org-id',
     id: 'credential-id',
     accessToken: 'encrypted-access-token',
     platform: 'google_search_console',
@@ -70,6 +72,9 @@ describe('GoogleSearchConsoleController', () => {
         credential,
         state: 'opaque-oauth-state',
       }),
+      connectAccount: vi
+        .fn()
+        .mockResolvedValue({ ...credential, isConnected: true }),
       findOne: vi.fn().mockResolvedValue(credential),
       findPendingOAuthCredential: vi.fn().mockResolvedValue(credential),
       patch: vi.fn().mockResolvedValue({ ...credential, isConnected: true }),
@@ -172,13 +177,15 @@ describe('GoogleSearchConsoleController', () => {
       'auth-code',
     );
     expect(gscService.listSites).toHaveBeenCalledWith('access-token');
-    expect(credentialsService.patch).toHaveBeenCalledWith(
+    expect(credentialsService.connectAccount).toHaveBeenCalledWith(
       'credential-id',
+      'org-id',
+      expect.objectContaining({
+        handle: 'https://genfeed.ai/',
+        id: 'https://genfeed.ai/',
+      }),
       expect.objectContaining({
         accessToken: 'access-token',
-        externalHandle: 'https://genfeed.ai/',
-        externalId: 'https://genfeed.ai/',
-        isConnected: true,
         refreshToken: 'refresh-token',
       }),
     );

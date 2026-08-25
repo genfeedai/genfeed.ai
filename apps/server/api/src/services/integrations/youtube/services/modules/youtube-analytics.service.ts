@@ -44,6 +44,7 @@ export class YoutubeAnalyticsService {
     organizationId: string,
     brandId: string,
     authOrSkipRefresh?: OAuth2Client | boolean | unknown,
+    credentialId?: string,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -55,7 +56,11 @@ export class YoutubeAnalyticsService {
           { organizationId },
         );
         auth = asYoutubeRequestAuth(
-          await this.authService.refreshToken(organizationId, brandId),
+          await this.authService.refreshToken(
+            organizationId,
+            brandId,
+            credentialId,
+          ),
         );
       } else if (authOrSkipRefresh) {
         this.loggerService.log(`${url} started with per-request auth`, {
@@ -65,7 +70,11 @@ export class YoutubeAnalyticsService {
       } else {
         this.loggerService.log(`${url} started`, { organizationId });
         auth = asYoutubeRequestAuth(
-          await this.authService.refreshToken(organizationId, brandId),
+          await this.authService.refreshToken(
+            organizationId,
+            brandId,
+            credentialId,
+          ),
         );
       }
 
@@ -122,10 +131,14 @@ export class YoutubeAnalyticsService {
     organizationId: string,
     brandId: string,
     videoId: string,
+    credentialId?: string,
   ) {
-    const results = await this.getMediaAnalyticsBatch(organizationId, brandId, [
-      videoId,
-    ]);
+    const results = await this.getMediaAnalyticsBatch(
+      organizationId,
+      brandId,
+      [videoId],
+      credentialId,
+    );
 
     const result = results.get(videoId);
     if (!result) {
@@ -139,6 +152,7 @@ export class YoutubeAnalyticsService {
     organizationId: string,
     brandId: string,
     videoIds: string[],
+    credentialId?: string,
   ): Promise<Map<string, IYouTubeVideoStats>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -152,7 +166,11 @@ export class YoutubeAnalyticsService {
 
     try {
       const auth = asYoutubeRequestAuth(
-        await this.authService.refreshToken(organizationId, brandId),
+        await this.authService.refreshToken(
+          organizationId,
+          brandId,
+          credentialId,
+        ),
       );
 
       const videoData = await this.youtubeAPI.videos.list({

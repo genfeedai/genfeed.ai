@@ -25,6 +25,7 @@ describe('YoutubeAuthService', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
   let configService: { get: ReturnType<typeof vi.fn> };
   let loggerService: {
@@ -54,6 +55,12 @@ describe('YoutubeAuthService', () => {
     credentialsService = {
       findOne: vi.fn().mockResolvedValue(mockCredential),
       patch: vi.fn().mockResolvedValue(undefined),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsService.findOne(options),
+      ),
     };
 
     configService = {
@@ -110,9 +117,11 @@ describe('YoutubeAuthService', () => {
     const result = await service.refreshToken(orgId, brandId);
 
     expect(result).toBe(mockOAuthClient);
-    expect(credentialsService.findOne).toHaveBeenCalledWith(
+    // Token repair resolves the brand's account and has to see rows a failed
+    // refresh already disconnected.
+    expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith(
       expect.objectContaining({
-        isDeleted: false,
+        isDisconnectedIncluded: true,
         platform: 'youtube',
       }),
     );
@@ -121,6 +130,20 @@ describe('YoutubeAuthService', () => {
     );
     expect(mockOAuthClient.setCredentials).toHaveBeenCalledWith({
       refresh_token: expect.any(String),
+    });
+  });
+
+  it('refreshes the account named by credentialId', async () => {
+    // A brand may hold several YouTube channels; token repair addresses the
+    // named one instead of whichever happens to be the brand default.
+    await service.refreshToken(orgId, brandId, 'credential-2');
+
+    expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+      brandId,
+      credentialId: 'credential-2',
+      isDisconnectedIncluded: true,
+      organizationId: orgId,
+      platform: 'youtube',
     });
   });
 

@@ -33,6 +33,7 @@ export class TwitterBrandOAuthProvider implements SourceTimelineProvider {
     const token = await this.twitterService.resolveBrandUserAccessToken(
       context.organizationId,
       context.brandId,
+      context.credentialId,
     );
     return Boolean(token);
   }
@@ -50,6 +51,7 @@ export class TwitterBrandOAuthProvider implements SourceTimelineProvider {
     const accessToken = await this.twitterService.resolveBrandUserAccessToken(
       context.organizationId,
       context.brandId,
+      context.credentialId,
     );
     if (!accessToken) {
       throw new Error('No brand X OAuth token available');
@@ -82,6 +84,7 @@ export class TwitterBrandOAuthProvider implements SourceTimelineProvider {
     }
     const tweet = await this.twitterService.getTweetById(reference.postId, {
       brandId: context.brandId,
+      credentialId: context.credentialId,
       organizationId: context.organizationId,
     });
 

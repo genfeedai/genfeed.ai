@@ -1649,30 +1649,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
-      "fingerprint": "1b11230b771ede95fbbb",
-      "message": "Argument of type '{ brandId: string; organizationId: string; platform: \"instagram\"; postId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ brandId: string; organizationId: string; platform: \"instagram\"; postId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
-      "fingerprint": "e0d42f8f9e6ba1cdbfb1",
-      "message": "Argument of type '{ organizationId: string; platform: \"instagram\"; postId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ organizationId: string; platform: \"instagram\"; postId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: ReplyPlatform; postId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
-      "fingerprint": "e70bb3b762232c2d6879",
-      "message": "Argument of type '{ brandId: string; organizationId: string; platform: \"instagram\"; recipientId: string; text: string; userId: string; }' is not assignable to parameter of type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: DmPlatform; recipientId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.   Property 'workflowRunId' is missing in type '{ brandId: string; organizationId: string; platform: \"instagram\"; recipientId: string; text: string; userId: string; }' but required in type '{ organizationId: string; userId: string; brandId?: string | undefined; conversationId?: string | undefined; idempotencyKey?: string | undefined; platform: DmPlatform; recipientId: string; text: string; workflowRunId: string; mediaUrl?: string | undefined; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2741,
       "count": 1,
       "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",

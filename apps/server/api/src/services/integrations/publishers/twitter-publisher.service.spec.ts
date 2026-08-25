@@ -445,6 +445,7 @@ describe('TwitterPublisherService', () => {
           'image/jpeg',
           undefined,
           { replyPolicy: 'mentioned' },
+          mockCredential.id,
         );
       });
 
@@ -469,6 +470,7 @@ describe('TwitterPublisherService', () => {
           'image/jpeg',
           undefined,
           {},
+          mockCredential.id,
         );
       });
 
@@ -493,6 +495,7 @@ describe('TwitterPublisherService', () => {
           'video/mp4',
           undefined,
           {},
+          mockCredential.id,
         );
       });
 
@@ -518,6 +521,7 @@ describe('TwitterPublisherService', () => {
           'image/jpeg',
           undefined,
           {},
+          mockCredential.id,
         );
       });
 
@@ -545,6 +549,7 @@ describe('TwitterPublisherService', () => {
           'image/jpeg',
           undefined,
           {},
+          mockCredential.id,
         );
       });
     });

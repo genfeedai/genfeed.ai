@@ -30,6 +30,11 @@ export type CommentChecker = (params: {
   organizationId: string;
   platform: CommentTriggerPlatform;
   brandId?: string;
+  /**
+   * Which of the brand's accounts on this platform to watch. A brand may hold
+   * several; omitted watches the brand's default account.
+   */
+  credentialId?: string;
   contentIds: string[];
   keywords: string[];
   excludeKeywords: string[];
@@ -108,6 +113,7 @@ export class CommentTriggerExecutor extends BaseExecutor {
     const result = await this.checker({
       brandId,
       contentIds,
+      credentialId: node.config.credentialId as string | undefined,
       excludeKeywords,
       keywords,
       lastCommentId,

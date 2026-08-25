@@ -105,7 +105,11 @@ describe('FanvuePublisherService', () => {
     it('should refresh token before publishing', async () => {
       await service.publish(makeContext());
 
-      expect(fanvueService.refreshToken).toHaveBeenCalledWith(orgId, brandId);
+      expect(fanvueService.refreshToken).toHaveBeenCalledWith(
+        orgId,
+        brandId,
+        mockCredential.id,
+      );
     });
 
     it('should create post with sanitized description', async () => {
@@ -116,6 +120,7 @@ describe('FanvuePublisherService', () => {
         brandId,
         expect.any(String),
         undefined,
+        mockCredential.id,
       );
     });
 
@@ -143,6 +148,7 @@ describe('FanvuePublisherService', () => {
         brandId,
         expect.any(String),
         ['media-uuid-1'],
+        mockCredential.id,
       );
     });
 

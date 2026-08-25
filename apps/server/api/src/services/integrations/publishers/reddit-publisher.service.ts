@@ -119,6 +119,7 @@ export class RedditPublisherService extends BasePublisherService {
           undefined, // No self-text for link posts
           mediaInfo.mediaUrls[0],
           flairId,
+          credential.id,
         );
 
         // If there's a description, add it as the first comment
@@ -129,6 +130,7 @@ export class RedditPublisherService extends BasePublisherService {
               brandId,
               externalId,
               description,
+              credential.id,
             );
           } catch (commentError: unknown) {
             // Non-critical: post succeeded, comment failed
@@ -148,6 +150,7 @@ export class RedditPublisherService extends BasePublisherService {
           description || undefined,
           undefined, // No link URL for text posts
           flairId,
+          credential.id,
         );
       }
 
@@ -206,6 +209,8 @@ export class RedditPublisherService extends BasePublisherService {
           brandId,
           parentExternalId,
           text,
+          // Comments go out as the account that submitted the parent post.
+          context.credential.id,
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

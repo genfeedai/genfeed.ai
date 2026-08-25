@@ -98,6 +98,7 @@ export class YouTubePublisherService extends BasePublisherService {
         mediaInfo.ingredientIds[0],
         post,
         context.settings,
+        credential.id,
       );
 
       if (!externalId) {
@@ -153,6 +154,8 @@ export class YouTubePublisherService extends BasePublisherService {
           brandId,
           parentExternalId,
           text,
+          // Comments go out as the channel that uploaded the video.
+          context.credential.id,
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

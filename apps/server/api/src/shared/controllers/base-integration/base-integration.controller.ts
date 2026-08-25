@@ -158,42 +158,25 @@ export abstract class BaseIntegrationController {
   }
 
   /**
-   * Get or create a pending credential for the brand
+   * Provision a pending credential for an in-flight connection.
    *
-   * @param brand - The brand document
-   * @param initialData - Initial credential data
-   * @returns The credential (existing or newly created)
+   * Always a new row. A brand may already hold accounts on this platform, and
+   * which one the operator is about to authorize is not known until the
+   * provider callback returns — so reusing a live row here would overwrite a
+   * working account's tokens on the strength of a guess. Identity is settled
+   * afterwards by `CredentialsService.updateExternalProfile`.
    */
-  protected async getOrCreateCredential(
+  protected createPendingCredential(
     brand: IntegrationBrand,
     userId: string,
     initialData: Record<string, unknown> = {},
   ) {
-    // Scalar FK first: `brand.organization` is only present when the brand was
-    // loaded with the relation included, and an `undefined` filter value is
-    // dropped by `normalizeWhere` — which would look up (and hand back) a
-    // credential belonging to another organization.
-    const { id: brandId, organizationId } = brand;
-
-    const credentialFilter = {
-      brandId,
-      organizationId,
-      platform: this.platform,
-    };
-
-    const existingCredential =
-      await this.credentialsService.findOne(credentialFilter);
-
-    if (existingCredential) {
-      return existingCredential;
-    }
-
-    await this.credentialsService.upsertForBrand(brand, userId, this.platform, {
-      isConnected: false,
-      ...initialData,
-    });
-
-    return this.credentialsService.findOne(credentialFilter);
+    return this.credentialsService.createPendingForBrand(
+      brand,
+      userId,
+      this.platform,
+      initialData,
+    );
   }
 
   /**
@@ -237,20 +220,16 @@ export abstract class BaseIntegrationController {
       this.assertOAuthUrlIsConfigured(oauthResult.url);
 
       // Save credential with OAuth tokens if provided
-      if (oauthResult.oauthToken || oauthResult.oauthTokenSecret) {
-        await this.credentialsService.upsertForBrand(
-          brand,
-          user.userId ?? user.id,
-          this.platform,
-          {
-            isConnected: false,
-            oauthToken: oauthResult.oauthToken,
-            oauthTokenSecret: oauthResult.oauthTokenSecret,
-          },
-        );
-      } else {
-        await this.getOrCreateCredential(brand, user.userId ?? user.id);
-      }
+      await this.createPendingCredential(
+        brand,
+        user.userId ?? user.id,
+        oauthResult.oauthToken || oauthResult.oauthTokenSecret
+          ? {
+              oauthToken: oauthResult.oauthToken,
+              oauthTokenSecret: oauthResult.oauthTokenSecret,
+            }
+          : {},
+      );
 
       return oauthResult;
     } catch (error: unknown) {
@@ -310,29 +289,39 @@ export abstract class BaseIntegrationController {
   }
 
   /**
-   * Update credential with verified OAuth tokens
+   * Settle a pending credential with verified OAuth tokens.
    *
-   * @param credentialId - The credential string ID
+   * Routes through `connectAccount` so the provider's account id decides whether
+   * this refreshes the brand's existing account on this platform or becomes an
+   * additional one. Never patch `externalId` onto a credential directly.
+   *
+   * @param credentialId - The pending credential string ID
+   * @param organizationId - Tenant that owns the credential
    * @param verifyResult - OAuth verification result
-   * @returns Updated credential
+   * @returns The surviving credential for this account identity
    */
   protected updateCredentialWithTokens(
     credentialId: string,
+    organizationId: string,
     verifyResult: OAuthVerifyResult,
   ) {
-    return this.credentialsService.patch(credentialId, {
-      accessToken: verifyResult.accessToken,
-      accessTokenSecret: verifyResult.accessSecret,
-      externalHandle: verifyResult.externalHandle,
-      externalId: verifyResult.externalId,
-      isConnected: true,
-      isDeleted: false, // Reactivate if previously disconnected
-      oauthToken: undefined, // Clear temporary tokens
-      oauthTokenSecret: undefined,
-      refreshToken: verifyResult.refreshToken,
-      refreshTokenExpiry: verifyResult.expiryDate
-        ? new Date(verifyResult.expiryDate)
-        : undefined,
-    });
+    return this.credentialsService.connectAccount(
+      credentialId,
+      organizationId,
+      {
+        handle: verifyResult.externalHandle,
+        id: verifyResult.externalId,
+      },
+      {
+        accessToken: verifyResult.accessToken,
+        accessTokenSecret: verifyResult.accessSecret,
+        oauthToken: null, // Clear temporary tokens
+        oauthTokenSecret: null,
+        refreshToken: verifyResult.refreshToken,
+        refreshTokenExpiry: verifyResult.expiryDate
+          ? new Date(verifyResult.expiryDate)
+          : undefined,
+      },
+    );
   }
 }

@@ -24,6 +24,7 @@ describe('DiscordController', () => {
 
   const mockCredentialsService = {
     beginOAuthForBrand: vi.fn(),
+    connectAccount: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
   };
@@ -119,6 +120,7 @@ describe('DiscordController', () => {
       const credentialId = 'test-object-id';
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
         id: credentialId,
+        organizationId: orgId,
       });
       mockDiscordService.exchangeCodeForToken.mockResolvedValue({
         access_token: 'access-token',
@@ -131,7 +133,7 @@ describe('DiscordController', () => {
         id: '123456',
         username: 'testuser',
       });
-      mockCredentialsService.patch.mockResolvedValue({
+      mockCredentialsService.connectAccount.mockResolvedValue({
         id: credentialId,
         isConnected: true,
       });
@@ -156,13 +158,19 @@ describe('DiscordController', () => {
       expect(mockDiscordService.getUserInfo).toHaveBeenCalledWith(
         'access-token',
       );
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
         credentialId,
+        orgId,
+        expect.objectContaining({
+          avatarUrl:
+            'https://cdn.discordapp.com/avatars/123456/avatar-hash.png',
+          handle: 'testuser',
+          id: '123456',
+          name: 'Test User',
+        }),
         expect.objectContaining({
           accessToken: 'access-token',
-          externalHandle: 'testuser',
-          externalId: '123456',
-          isConnected: true,
+          refreshToken: 'refresh-token',
         }),
       );
       expect(result).toEqual({ id: credentialId, isConnected: true });
@@ -180,6 +188,7 @@ describe('DiscordController', () => {
       const credId = 'test-object-id';
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
         id: credId,
+        organizationId: orgId,
       });
       mockDiscordService.exchangeCodeForToken.mockResolvedValue({
         access_token: 'token',
@@ -191,15 +200,17 @@ describe('DiscordController', () => {
         id: '999',
         username: 'user',
       });
-      mockCredentialsService.patch.mockResolvedValue({ id: credId });
+      mockCredentialsService.connectAccount.mockResolvedValue({ id: credId });
 
       await controller.verify({} as never, user, 'code', 'state');
 
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
         credId,
+        orgId,
         expect.objectContaining({
-          externalAvatar: 'https://cdn.discordapp.com/avatars/999/abc123.png',
+          avatarUrl: 'https://cdn.discordapp.com/avatars/999/abc123.png',
         }),
+        expect.any(Object),
       );
     });
   });

@@ -43,6 +43,7 @@ describe('MediumController', () => {
   };
   const credentialsService = {
     beginOAuthForBrand: vi.fn(),
+    connectAccount: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
   };
@@ -141,7 +142,7 @@ describe('MediumController', () => {
         id: 'medium-profile-id',
         username: 'publisher',
       });
-      credentialsService.patch.mockResolvedValue({
+      credentialsService.connectAccount.mockResolvedValue({
         id: 'credential-id',
         isConnected: true,
       });
@@ -155,19 +156,19 @@ describe('MediumController', () => {
       expect(
         credentialsService.findPendingOAuthCredential,
       ).toHaveBeenCalledWith('opaque-oauth-state', CredentialPlatform.MEDIUM);
-      expect(credentialsService.patch).toHaveBeenCalledWith(
+      expect(credentialsService.connectAccount).toHaveBeenCalledWith(
         'credential-id',
+        organizationId,
+        expect.objectContaining({
+          handle: 'publisher',
+          id: 'medium-profile-id',
+        }),
         expect.objectContaining({
           accessToken: 'medium-access-token',
-          externalHandle: 'publisher',
-          externalId: 'medium-profile-id',
-          isConnected: true,
-          isDeleted: false,
-          oauthState: null,
           refreshToken: 'medium-refresh-token',
         }),
       );
-      const update = credentialsService.patch.mock.calls[0]?.[1] as {
+      const update = credentialsService.connectAccount.mock.calls[0]?.[3] as {
         accessTokenExpiry?: Date;
       };
       expect(update.accessTokenExpiry?.getTime()).toBeGreaterThanOrEqual(
@@ -224,6 +225,7 @@ describe('MediumController', () => {
         'article-id',
         brandId,
         'draft',
+        undefined,
       );
 
       expect(mediumService.publishArticle).toHaveBeenCalledWith(

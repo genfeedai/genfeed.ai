@@ -4,7 +4,6 @@
  */
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
@@ -31,7 +30,6 @@ describe('PinterestPublisherService', () => {
   let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let pinterestService: vi.Mocked<PinterestService>;
-  let credentialsService: vi.Mocked<CredentialsService>;
 
   // Test IDs
   const mockOrganizationId = testId('org');
@@ -119,9 +117,10 @@ describe('PinterestPublisherService', () => {
   const createPublishContext = (
     post: PostEntity,
     settings: ChannelTargetSettings = {},
+    credential: CredentialDocument = mockCredential,
   ): PublishContext => ({
     brandId: mockBrandId.toString(),
-    credential: mockCredential,
+    credential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
@@ -162,12 +161,6 @@ describe('PinterestPublisherService', () => {
             createPin: vi.fn(),
           },
         },
-        {
-          provide: CredentialsService,
-          useValue: {
-            findOne: vi.fn(),
-          },
-        },
       ],
     }).compile();
 
@@ -177,9 +170,6 @@ describe('PinterestPublisherService', () => {
     pinterestService = module.get(
       PinterestService,
     ) as vi.Mocked<PinterestService>;
-    credentialsService = module.get(
-      CredentialsService,
-    ) as vi.Mocked<CredentialsService>;
   });
 
   afterEach(() => {
@@ -303,12 +293,6 @@ describe('PinterestPublisherService', () => {
   });
 
   describe('publish', () => {
-    beforeEach(() => {
-      credentialsService.findOne.mockResolvedValue(
-        mockCredential as unknown as CredentialDocument,
-      );
-    });
-
     describe('image posts', () => {
       it('should publish a single image successfully', async () => {
         const context = createPublishContext(mockImagePost);
@@ -435,10 +419,37 @@ describe('PinterestPublisherService', () => {
     });
 
     describe('credential handling', () => {
-      it('should return failed result when credential not found', async () => {
-        const context = createPublishContext(mockImagePost);
+      it('should pin as the account on the context, not a sibling account', async () => {
+        // A brand with two Pinterest accounts must pin to the board of the
+        // account the post was scheduled for.
+        const secondAccount = {
+          ...mockCredential,
+          id: testId('credential-2'),
+          accessToken: 'encrypted-access-token-2',
+          externalId: 'board-987654321',
+        } as unknown as CredentialDocument;
 
-        credentialsService.findOne.mockResolvedValue(null);
+        pinterestService.createPin.mockResolvedValue('pin-1');
+
+        await service.publish(
+          createPublishContext(mockImagePost, {}, secondAccount),
+        );
+
+        expect(pinterestService.createPin).toHaveBeenCalledWith(
+          'decrypted-encrypted-access-token-2',
+          'board-987654321',
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+        );
+      });
+
+      it('should return failed result when credential not found', async () => {
+        const context = {
+          ...createPublishContext(mockImagePost),
+          credential: undefined as unknown as CredentialDocument,
+        };
 
         const result = await service.publish(context);
 
@@ -447,9 +458,7 @@ describe('PinterestPublisherService', () => {
       });
 
       it('should return failed result when credential has no access token', async () => {
-        const context = createPublishContext(mockImagePost);
-
-        credentialsService.findOne.mockResolvedValue({
+        const context = createPublishContext(mockImagePost, {}, {
           ...mockCredential,
           accessToken: null,
         } as unknown as CredentialDocument);
@@ -461,9 +470,7 @@ describe('PinterestPublisherService', () => {
       });
 
       it('should return failed result when credential has no board ID', async () => {
-        const context = createPublishContext(mockImagePost);
-
-        credentialsService.findOne.mockResolvedValue({
+        const context = createPublishContext(mockImagePost, {}, {
           ...mockCredential,
           externalId: null,
         } as unknown as CredentialDocument);
@@ -515,12 +522,6 @@ describe('PinterestPublisherService', () => {
   });
 
   describe('logging', () => {
-    beforeEach(() => {
-      credentialsService.findOne.mockResolvedValue(
-        mockCredential as unknown as CredentialDocument,
-      );
-    });
-
     it('should log publish attempt', async () => {
       const context = createPublishContext(mockImagePost);
 

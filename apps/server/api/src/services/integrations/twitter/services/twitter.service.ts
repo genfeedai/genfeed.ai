@@ -17,7 +17,6 @@ import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
-  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import {
   buildGrantedScopesCredentialPatch,
@@ -364,27 +363,43 @@ export class TwitterService {
     return true;
   }
 
+  /**
+   * Resolve the X account to act as.
+   *
+   * An explicit `credentialId` is exact. Without one the brand-wide fallback
+   * only holds while the brand has a single X account — a brand running several
+   * accounts has no "the" credential, and posting or refreshing tokens from a
+   * guessed one would hit the wrong audience under the wrong identity. That
+   * case throws so the caller passes a credentialId instead.
+   */
   private async findTwitterCredential(
     organizationId: string,
     brandId: string,
     credentialId?: string,
   ): Promise<CredentialDocument | null> {
-    const platform =
-      toPrismaCredentialPlatform(CredentialPlatform.TWITTER) ??
-      CredentialPlatform.TWITTER;
+    if (credentialId) {
+      return this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        isDisconnectedIncluded: true,
+        organizationId,
+        platform: CredentialPlatform.TWITTER,
+      });
+    }
 
-    return credentialId
-      ? this.credentialsService.findOne({
-          id: credentialId,
-          organizationId,
-          platform,
-        })
-      : this.credentialsService.findOne({
-          brandId,
-          isDeleted: false,
-          organizationId,
-          platform,
-        });
+    const accounts = await this.credentialsService.findBrandAccounts(
+      organizationId,
+      brandId,
+      CredentialPlatform.TWITTER,
+    );
+
+    if (accounts.length > 1) {
+      throw new Error(
+        `Brand ${brandId} has ${accounts.length} connected X accounts; pass an explicit credentialId`,
+      );
+    }
+
+    return accounts[0] ?? null;
   }
 
   public async refreshToken(
@@ -529,11 +544,17 @@ export class TwitterService {
   public async resolveBrandUserAccessToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<string | null> {
     try {
-      const credentials = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credentials = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        // The connectedness check below is this method's own; keeping the
+        // lookup wide preserves it rather than turning a disconnected
+        // account into "no account at all".
+        isDisconnectedIncluded: true,
+        organizationId,
         platform: CredentialPlatform.TWITTER,
       });
       if (!credentials?.accessToken || credentials.isConnected === false) {
@@ -977,9 +998,14 @@ export class TwitterService {
     organizationId: string,
     brandId: string,
     options: { limit?: number; sinceId?: string } = {},
+    credentialId?: string,
   ): Promise<TwitterInboxTweet[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.refreshToken(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const accessToken = EncryptionUtil.decrypt(
       requireString(credential.accessToken, 'accessToken'),
     );
@@ -1024,8 +1050,13 @@ export class TwitterService {
     brandId: string,
     tweetId: string,
     options: { limit?: number; sinceId?: string } = {},
+    credentialId?: string,
   ): Promise<TwitterInboxTweet[]> {
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.refreshToken(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const accessToken = EncryptionUtil.decrypt(
       requireString(credential.accessToken, 'accessToken'),
     );
@@ -1064,9 +1095,14 @@ export class TwitterService {
     organizationId: string,
     brandId: string,
     options: { limit?: number; paginationToken?: string } = {},
+    credentialId?: string,
   ): Promise<TwitterDirectMessageListing> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.refreshToken(
+      organizationId,
+      brandId,
+      credentialId,
+    );
     const accessToken = EncryptionUtil.decrypt(
       requireString(credential.accessToken, 'accessToken'),
     );
@@ -1117,11 +1153,16 @@ export class TwitterService {
     brandId: string,
     recipientId: string,
     message: string,
+    credentialId?: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const accessToken = requireString(credential.accessToken, 'accessToken');
 
       // OAuth 2.0: single bearer token
@@ -1152,11 +1193,16 @@ export class TwitterService {
     mediaType: 'image/jpeg' | 'video/mp4' = 'video/mp4',
     quoteTweetId?: string,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const accessToken = requireString(credential.accessToken, 'accessToken');
 
       // OAuth 2.0: single bearer token
@@ -1243,11 +1289,16 @@ export class TwitterService {
     text: string,
     inReplyToTweetId?: string,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<string> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const accessToken = requireString(credential.accessToken, 'accessToken');
 
       const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
@@ -1292,6 +1343,7 @@ export class TwitterService {
     tweetId: string,
     options: {
       brandId?: string;
+      credentialId?: string;
       organizationId?: string;
     } = {},
   ): Promise<{
@@ -1312,6 +1364,7 @@ export class TwitterService {
         const credential = await this.refreshToken(
           options.organizationId,
           options.brandId,
+          options.credentialId,
         );
         const accessToken = requireString(
           credential.accessToken,
@@ -1361,10 +1414,15 @@ export class TwitterService {
     organizationId: string,
     brandId: string,
     tweetId: string,
+    credentialId?: string,
   ): Promise<{ reposted: boolean; tweetId: string }> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       const accessToken = requireString(credential.accessToken, 'accessToken');
       const userClient = new TwitterApi(EncryptionUtil.decrypt(accessToken));
 

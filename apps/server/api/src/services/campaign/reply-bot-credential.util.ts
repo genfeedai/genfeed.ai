@@ -63,6 +63,7 @@ export function toReplyBotCredentialData(
     accessTokenSecret: decryptOptionalString(credential.accessTokenSecret),
     brandId: options.brandId ?? readOptionalString(credential.brandId),
     externalId: readOptionalString(credential.externalId),
+    id: readOptionalString(credential.id),
     organizationId:
       options.organizationId ?? readOptionalString(credential.organizationId),
     platform: readOptionalPlatform(credential.platform, options.platform),

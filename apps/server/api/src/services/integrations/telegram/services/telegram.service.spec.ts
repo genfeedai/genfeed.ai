@@ -19,10 +19,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TelegramService', () => {
   let service: TelegramService;
-  let credentialsService: CredentialsService;
 
   const mockCredentialsService = {
+    connectAccount: vi.fn(),
     create: vi.fn(),
+    createPendingForBrand: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
   };
@@ -69,7 +70,6 @@ describe('TelegramService', () => {
     }).compile();
 
     service = module.get<TelegramService>(TelegramService);
-    credentialsService = module.get<CredentialsService>(CredentialsService);
   });
 
   it('should be defined', () => {
@@ -85,9 +85,11 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
-      mockCredentialsService.findOne.mockResolvedValue(null);
+      mockCredentialsService.createPendingForBrand.mockResolvedValue({
+        id: 'pending-credential-id',
+      });
       const newCredential = { id: 'test-object-id', isConnected: true };
-      mockCredentialsService.create.mockResolvedValue(newCredential);
+      mockCredentialsService.connectAccount.mockResolvedValue(newCredential);
 
       const result = await service.verifyAndSaveAuth(
         orgId,
@@ -97,10 +99,14 @@ describe('TelegramService', () => {
       );
 
       expect(result).toEqual(newCredential);
-      expect(mockCredentialsService.create).toHaveBeenCalledWith(
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
+        'pending-credential-id',
+        orgId,
         expect.objectContaining({
-          externalHandle: 'johndoe',
-          externalId: '123456',
+          handle: 'johndoe',
+          id: '123456',
+        }),
+        expect.objectContaining({
           isConnected: true,
         }),
       );
@@ -111,11 +117,11 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
       const existingId = 'test-object-id';
-      mockCredentialsService.findOne.mockResolvedValue({
-        id: existingId,
+      mockCredentialsService.createPendingForBrand.mockResolvedValue({
+        id: 'pending-credential-id',
       });
       const updated = { id: existingId, isConnected: true };
-      mockCredentialsService.patch.mockResolvedValue(updated);
+      mockCredentialsService.connectAccount.mockResolvedValue(updated);
 
       const result = await service.verifyAndSaveAuth(
         orgId,
@@ -125,8 +131,10 @@ describe('TelegramService', () => {
       );
 
       expect(result).toEqual(updated);
-      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
-        existingId,
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
+        'pending-credential-id',
+        orgId,
+        expect.objectContaining({ id: '123456' }),
         expect.objectContaining({ isConnected: true }),
       );
     });
@@ -174,15 +182,20 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
-      mockCredentialsService.findOne.mockResolvedValue(null);
-      mockCredentialsService.create.mockResolvedValue({ id: 'new' });
+      mockCredentialsService.createPendingForBrand.mockResolvedValue({
+        id: 'pending-credential-id',
+      });
+      mockCredentialsService.connectAccount.mockResolvedValue({ id: 'new' });
 
       await service.verifyAndSaveAuth(orgId, brandId, userId, validAuthData);
 
-      expect(mockCredentialsService.create).toHaveBeenCalledWith(
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
+        'pending-credential-id',
+        orgId,
         expect.objectContaining({
-          externalName: 'John Doe',
+          name: 'John Doe',
         }),
+        expect.any(Object),
       );
     });
 
@@ -190,7 +203,7 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
-      mockCredentialsService.findOne.mockRejectedValue(
+      mockCredentialsService.createPendingForBrand.mockRejectedValue(
         new Error('DB connection lost'),
       );
 

@@ -9,6 +9,7 @@ export type { Distribution } from '@genfeedai/prisma';
 export interface DistributionDocument extends Distribution {
   caption?: string;
   chatId?: string;
+  credentialId?: string;
   contentType?: DistributionContentType | string;
   mediaUrl?: string;
   platform: DistributionPlatform | string | null;

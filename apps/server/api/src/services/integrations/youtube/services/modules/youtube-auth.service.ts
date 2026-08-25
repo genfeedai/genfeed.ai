@@ -20,18 +20,23 @@ export class YoutubeAuthService {
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * @param credentialId - which connected YouTube channel this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<OAuth2Client> {
-    const queryCredentials = {
+    const credentials = await this.credentialsService.resolveBrandAccount({
       brandId,
-      isDeleted: false,
+      credentialId,
+      // A failed refresh flips isConnected off; the retry still has to find it.
+      isDisconnectedIncluded: true,
       organizationId,
       platform: CredentialPlatform.YOUTUBE,
-    };
-
-    const credentials = await this.credentialsService.findOne(queryCredentials);
+    });
 
     if (!credentials) {
       throw new Error('Youtube credential not found');

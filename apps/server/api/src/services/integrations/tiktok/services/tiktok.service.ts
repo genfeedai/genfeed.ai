@@ -141,18 +141,27 @@ export class TiktokService {
     return true;
   }
 
+  /**
+   * Resolve the TikTok account this call acts as.
+   *
+   * `credentialId` names the account explicitly — that is the shape every
+   * publish path uses, because a brand may hold several TikTok accounts and the
+   * post already knows which one it belongs to. Without one the brand's default
+   * account answers, and the resolver logs the ambiguity.
+   */
   private async findCredential(
     organizationId: string,
     brandId: string,
     credentialId?: string,
   ): Promise<CredentialDocument | null> {
-    return credentialId
-      ? this.credentialsService.findOne({ id: credentialId })
-      : this.credentialsService.findOne({
-          brandId: brandId,
-          organizationId: organizationId,
-          platform: CredentialPlatform.TIKTOK,
-        });
+    return this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // Token repair runs through here; a lapsed account still has to be found.
+      isDisconnectedIncluded: true,
+      organizationId,
+      platform: CredentialPlatform.TIKTOK,
+    });
   }
 
   private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
@@ -722,18 +731,27 @@ export class TiktokService {
     }
   }
 
+  /**
+   * @param credentialId - which connected TikTok account publishes this. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async uploadVideo(
     organizationId: string,
     brandId: string,
     videoUrl: string,
     post: PostEntity,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<ITikTokPublishResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       this.loggerService.log(`${url} started`, { videoUrl });
 
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('TikTok credential not found or invalid');
@@ -790,6 +808,9 @@ export class TiktokService {
     }
   }
 
+  /**
+   * @param credentialId - which connected TikTok account publishes this carousel.
+   */
   public async uploadImage(
     organizationId: string,
     brandId: string,
@@ -797,6 +818,7 @@ export class TiktokService {
     post: PostEntity,
     draftMode = false,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<ITikTokPublishResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -812,7 +834,11 @@ export class TiktokService {
         throw new Error('Maximum 35 images allowed per post');
       }
 
-      const credential = await this.getValidCredential(organizationId, brandId);
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('TikTok credential not found or invalid');
@@ -971,12 +997,17 @@ export class TiktokService {
     organizationId: string,
     brandId: string,
     mediaId: string,
+    credentialId?: string,
   ): Promise<ITikTokMediaAnalytics> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let credential: CredentialDocument | CredentialEntity | null = null;
 
     try {
-      credential = await this.getValidCredential(organizationId, brandId);
+      credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential.accessToken) {
         throw new Error('TikTok credential not found');

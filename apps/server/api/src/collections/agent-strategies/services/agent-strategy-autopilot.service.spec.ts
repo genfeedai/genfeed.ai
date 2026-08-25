@@ -2,11 +2,8 @@ import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies
 import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
-import {
-  AgentAutonomyMode,
-  Platform,
-  toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
+import { AgentAutonomyMode, Platform } from '@genfeedai/enums';
 
 describe('AgentStrategyAutopilotService', () => {
   // Distinct ids per entity: the autopilot helpers read the Prisma scalar `id`,
@@ -109,13 +106,18 @@ describe('AgentStrategyAutopilotService', () => {
     const evaluationsOperationsService = {
       evaluateImage: vi.fn(),
     };
-    const credentialsService = {
-      findOne: vi.fn().mockResolvedValue({
-        id: credentialId,
-        // Rows come back with the Prisma casing; the post created from this
-        // credential has to land back in lowercase product language.
-        platform: toPrismaCredentialPlatform(Platform.TWITTER),
-      }),
+    // Auto-publish addresses accounts, not platforms: the fan-out service is
+    // the only thing that knows how many accounts a brand holds on a platform.
+    const postAccountFanoutService = {
+      resolveTargets: vi.fn().mockImplementation(
+        async (input: { caption: string }): Promise<PostAccountTarget[]> => [
+          {
+            caption: input.caption,
+            credentialId,
+            platform: Platform.TWITTER,
+          },
+        ],
+      ),
     };
     const postsService = {
       create: vi.fn().mockResolvedValue({ id: postId }),
@@ -172,8 +174,8 @@ describe('AgentStrategyAutopilotService', () => {
       contentGatewayService as never,
       optimizersService as never,
       evaluationsOperationsService as never,
-      credentialsService as never,
       postsService as never,
+      postAccountFanoutService as never,
       batchGenerationService as never,
       logger as never,
     );
@@ -191,10 +193,10 @@ describe('AgentStrategyAutopilotService', () => {
       agentStrategiesService,
       batchGenerationService,
       contentGatewayService,
-      credentialsService,
       evaluationsOperationsService,
       opportunitiesService,
       optimizersService,
+      postAccountFanoutService,
       postsService,
       reportsService,
       service,
@@ -566,7 +568,7 @@ describe('AgentStrategyAutopilotService', () => {
   it('falls back to the manual review queue when auto-publish cannot find a credential', async () => {
     const deps = createService();
 
-    deps.credentialsService.findOne.mockResolvedValue(null);
+    deps.postAccountFanoutService.resolveTargets.mockResolvedValue([]);
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
         id: opportunityId,
@@ -699,15 +701,11 @@ describe('AgentStrategyAutopilotService', () => {
     });
 
     expect(result.contentGenerated).toBe(1);
-    expect(deps.credentialsService.findOne).toHaveBeenCalledWith(
+    expect(deps.postAccountFanoutService.resolveTargets).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId,
-        isConnected: true,
-        isDeleted: false,
         organizationId,
-        // Lookup crosses into the credentials table, so the query must carry
-        // the Prisma casing, not the lowercase product id on the opportunity.
-        platform: toPrismaCredentialPlatform(Platform.TWITTER),
+        platforms: [Platform.TWITTER],
       }),
     );
     expect(deps.postsService.create).not.toHaveBeenCalled();
@@ -727,5 +725,97 @@ describe('AgentStrategyAutopilotService', () => {
     expect(
       deps.batchGenerationService.createManualReviewBatch,
     ).not.toHaveBeenCalled();
+  });
+
+  it('publishes one post per connected account, sharing a single group', async () => {
+    const deps = createService();
+
+    // Two X accounts on the same brand. Auto-publish is a fan-out, not a
+    // lookup, and the siblings carry distinct bodies because platforms
+    // suppress identical text posted across related accounts.
+    deps.postAccountFanoutService.resolveTargets.mockResolvedValue([
+      {
+        caption: 'Strong post draft',
+        credentialId,
+        platform: Platform.TWITTER,
+      },
+      {
+        caption: 'Strong post draft, rephrased',
+        credentialId: 'credential-id-2',
+        platform: Platform.TWITTER,
+      },
+    ]);
+
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'AI hooks',
+      },
+    ]);
+
+    deps.contentGatewayService.processManualRequest.mockResolvedValue({
+      posts: [
+        {
+          description: 'Strong post draft',
+          id: draftId,
+          targetAttachments: [],
+          targetSettings: { generation: { metadata: {} } },
+        },
+      ],
+      runs: ['run-1'],
+    });
+
+    deps.optimizersService.analyzeContent.mockResolvedValue({
+      breakdown: {
+        clarity: 85,
+        engagement: 84,
+        platformOptimization: 82,
+        readability: 86,
+      },
+      metadata: { hasCallToAction: true },
+      overallScore: 88,
+    });
+
+    await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    // The draft becomes the first account's post; the second is a new row.
+    expect(deps.postsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({ credentialId, platform: Platform.TWITTER }),
+    );
+    expect(deps.postsService.create).toHaveBeenCalledTimes(1);
+    expect(deps.postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'credential-id-2',
+        description: 'Strong post draft, rephrased',
+        platform: Platform.TWITTER,
+      }),
+    );
+
+    // The draft is patched more than once during a run; only the publish call
+    // carries a credential, and it is the one that has to share the group.
+    const publishPatch = deps.postsService.patch.mock.calls
+      .map(
+        (call: unknown[]) =>
+          call[1] as { credentialId?: string; groupId?: string },
+      )
+      .find((payload) => payload?.credentialId === credentialId);
+    const createdPost = deps.postsService.create.mock.calls[0]?.[0] as {
+      groupId?: string;
+    };
+
+    expect(publishPatch?.groupId).toEqual(expect.any(String));
+    expect(createdPost?.groupId).toBe(publishPatch?.groupId);
   });
 });

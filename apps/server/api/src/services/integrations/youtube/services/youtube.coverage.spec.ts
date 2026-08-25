@@ -214,6 +214,7 @@ describe('YoutubeService — extended coverage', () => {
         'org',
         'brand',
         ['vid-a', 'vid-b'],
+        undefined,
       );
       expect(result).toBe(expected);
     });
@@ -227,6 +228,7 @@ describe('YoutubeService — extended coverage', () => {
         'org',
         'brand',
         [],
+        undefined,
       );
     });
 
@@ -303,6 +305,7 @@ describe('YoutubeService — extended coverage', () => {
         'brand',
         'vid-99',
         'Hello world',
+        undefined,
       );
       expect(result).toBe(expected);
     });

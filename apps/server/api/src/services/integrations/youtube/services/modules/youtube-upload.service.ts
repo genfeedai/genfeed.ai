@@ -49,19 +49,28 @@ export class YoutubeUploadService {
     );
   }
 
+  /**
+   * @param credentialId - which connected YouTube channel this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   async uploadVideo(
     organizationId: string,
     brandId: string,
     videoId: string,
     post: PostEntity,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} uploadVideo ${videoId}`;
 
     try {
       this.loggerService.log(`${url} started`);
 
-      const auth = await this.authService.refreshToken(organizationId, brandId);
+      const auth = await this.authService.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       const downloadJob = await this.fileQueueService.processFile({
         ingredientId: videoId,

@@ -75,6 +75,11 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
             'Optional organization-owned brand ID. Otherwise the selected brand is used.',
           type: 'string',
         },
+        credentialId: {
+          description:
+            "Optional ID of the brand's connected Instagram account to read as. Otherwise the brand's first connected account is used.",
+          type: 'string',
+        },
         mode: {
           default: 'inspired_by',
           description:
@@ -123,6 +128,11 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
         brandId: {
           description:
             'Optional organization-owned brand ID. Otherwise the selected brand is used.',
+          type: 'string',
+        },
+        credentialId: {
+          description:
+            "Optional ID of the brand's connected Instagram account to read as. Otherwise the brand's first connected account is used.",
           type: 'string',
         },
         limit: {
@@ -234,6 +244,11 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
         brandId: {
           description:
             'Optional organization-owned brand ID. Otherwise the selected brand is used.',
+          type: 'string',
+        },
+        credentialId: {
+          description:
+            "Optional ID of the brand's connected Instagram account to read as. Otherwise the brand's first connected account is used.",
           type: 'string',
         },
         hashtags: {

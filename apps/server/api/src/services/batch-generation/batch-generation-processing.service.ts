@@ -390,13 +390,19 @@ export class BatchGenerationProcessingService {
           fromPrismaCredentialPlatform(platformForCredential) ??
           (platformRaw ? toPostPlatform(platformRaw) : undefined);
 
-        // Prefer a connected brand credential for the item platform so drafts
-        // land on a real target. credentialId remains nullable for untargeted
-        // drafts when no matching credential exists.
+        // Pre-target the draft only when the answer is unambiguous. A brand may
+        // hold several accounts on one platform, and a batch item carries no
+        // account of its own — picking whichever row the database returned
+        // first would silently commit the draft to an account the operator
+        // never chose. Two or more accounts leaves credentialId null; the
+        // review queue is where the account gets picked. Fanning out here would
+        // multiply the queue instead, which is the publish path's job.
         let credentialId: string | null = null;
         if (platformForCredential) {
-          const credential = await this.prisma.credential.findFirst({
+          const credentials = await this.prisma.credential.findMany({
+            orderBy: { createdAt: 'asc' },
             select: { id: true },
+            take: 2,
             where: scopedWhere(orgId, {
               brandId: batchRecord.brandId,
               isConnected: true,
@@ -404,7 +410,8 @@ export class BatchGenerationProcessingService {
               platform: platformForCredential,
             }),
           });
-          credentialId = credential?.id ?? null;
+          credentialId =
+            credentials.length === 1 ? (credentials[0]?.id ?? null) : null;
         }
 
         const post = await this.postsService.create({

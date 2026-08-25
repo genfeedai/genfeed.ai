@@ -128,22 +128,24 @@ export class DiscordController {
       tokenData.access_token,
     );
 
-    // Update credential with tokens and user info
-    const updatedCredential = await this.credentialsService.patch(
+    // Tokens and identity in one call: identity decides whether this is a
+    // reconnect of an account the brand already has or an additional one.
+    const updatedCredential = await this.credentialsService.connectAccount(
       credential.id,
+      credential.organizationId,
+      {
+        avatarUrl: userInfo.avatar
+          ? `https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png`
+          : undefined,
+        handle: userInfo.username,
+        id: userInfo.id,
+        name: userInfo.global_name || userInfo.username,
+      },
       {
         accessToken: tokenData.access_token,
         accessTokenExpiry: tokenData.expires_in
           ? new Date(Date.now() + tokenData.expires_in * 1000)
           : undefined,
-        externalAvatar: userInfo.avatar
-          ? `https://cdn.discordapp.com/avatars/${userInfo.id}/${userInfo.avatar}.png`
-          : undefined,
-        externalHandle: userInfo.username,
-        externalId: userInfo.id,
-        externalName: userInfo.global_name || userInfo.username,
-        isConnected: true,
-        oauthState: null, // Clear state after successful verification
         refreshToken: tokenData.refresh_token,
       },
     );

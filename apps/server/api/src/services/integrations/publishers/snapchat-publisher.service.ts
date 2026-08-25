@@ -1,5 +1,4 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
@@ -28,7 +27,6 @@ export class SnapchatPublisherService extends BasePublisherService {
     protected readonly configService: ConfigService,
     protected readonly logger: LoggerService,
     private readonly snapchatService: SnapchatService,
-    private readonly credentialsService: CredentialsService,
   ) {
     super(configService, logger);
   }
@@ -58,7 +56,7 @@ export class SnapchatPublisherService extends BasePublisherService {
 
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { post, credential, organizationId, brandId } = context;
+    const { post, credential } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
     this.logPublishAttempt(context, mediaInfo);
@@ -73,11 +71,10 @@ export class SnapchatPublisherService extends BasePublisherService {
     }
 
     try {
-      const snapchatCredential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
-        platform: CredentialPlatform.SNAPCHAT,
-      });
+      // The account this post was scheduled for, already resolved by the
+      // publish pipeline. Re-resolving it from brand + platform would hand the
+      // post to a sibling account the moment the brand connects a second one.
+      const snapchatCredential = credential;
 
       if (!snapchatCredential?.accessToken || !snapchatCredential?.externalId) {
         this.logger.error(

@@ -203,6 +203,9 @@ export class TwitterPublisherService extends BasePublisherService {
       mediaInfo.isImagePost ? 'image/jpeg' : 'video/mp4',
       post.quoteTweetId, // Quote tweet support
       context.settings,
+      // Publish as the account this post was dispatched for, not whichever
+      // account the brand happens to list first.
+      context.credential.id,
     );
 
     return externalId;

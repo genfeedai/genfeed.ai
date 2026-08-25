@@ -31,6 +31,13 @@ export interface MentionTriggerOutput {
 export type MentionChecker = (params: {
   organizationId: string;
   platform: MentionTriggerPlatform;
+  /** Brand whose connected account this trigger watches. */
+  brandId?: string;
+  /**
+   * Which of the brand's accounts on this platform to watch. A brand may hold
+   * several; omitted watches the brand's default account.
+   */
+  credentialId?: string;
   keywords?: string[];
   excludeKeywords?: string[];
   lastMentionId: string | null;
@@ -106,6 +113,8 @@ export class MentionTriggerExecutor extends BaseExecutor {
     );
 
     const result = await this.checker({
+      brandId: node.config.brandId as string | undefined,
+      credentialId: node.config.credentialId as string | undefined,
       excludeKeywords,
       keywords,
       lastMentionId,

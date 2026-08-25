@@ -144,6 +144,12 @@ export interface ExportPostData {
   updatedAt: Date;
   externalId?: string;
   credential: {
+    /**
+     * Which of the brand's accounts published this post. A brand may hold
+     * several accounts on one platform, so stats have to be fetched as the
+     * publishing account rather than as the brand default.
+     */
+    id: string;
     platform: CredentialPlatform;
   };
   ingredient: {

@@ -4,7 +4,6 @@
  */
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
@@ -32,7 +31,6 @@ describe('FacebookPublisherService', () => {
   let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let facebookService: vi.Mocked<FacebookService>;
-  let credentialsService: vi.Mocked<CredentialsService>;
   let postsService: vi.Mocked<PostsService>;
 
   // Test IDs
@@ -128,9 +126,10 @@ describe('FacebookPublisherService', () => {
   const createPublishContext = (
     post: PostEntity,
     settings: ChannelTargetSettings = {},
+    credential: CredentialDocument = mockCredential,
   ): PublishContext => ({
     brandId: mockBrandId.toString(),
-    credential: mockCredential,
+    credential,
     organization: mockOrganization,
     organizationId: mockOrganizationId.toString(),
     post,
@@ -170,12 +169,6 @@ describe('FacebookPublisherService', () => {
           },
         },
         {
-          provide: CredentialsService,
-          useValue: {
-            findOne: vi.fn(),
-          },
-        },
-        {
           provide: PostsService,
           useValue: {
             patch: vi.fn(),
@@ -188,9 +181,6 @@ describe('FacebookPublisherService', () => {
     _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     facebookService = module.get(FacebookService) as vi.Mocked<FacebookService>;
-    credentialsService = module.get(
-      CredentialsService,
-    ) as vi.Mocked<CredentialsService>;
     postsService = module.get(PostsService) as vi.Mocked<PostsService>;
   });
 
@@ -260,7 +250,6 @@ describe('FacebookPublisherService', () => {
 
   describe('publish', () => {
     beforeEach(() => {
-      credentialsService.findOne.mockResolvedValue(mockCredential);
       facebookService.getUserPages.mockResolvedValue([mockPageResponse]);
     });
 
@@ -390,6 +379,8 @@ describe('FacebookPublisherService', () => {
           expect.stringContaining('/videos/'),
           mockVideoPost.label,
           expect.any(String),
+          mockCredential.externalId,
+          mockCredential.id,
         );
       });
 
@@ -411,6 +402,8 @@ describe('FacebookPublisherService', () => {
           expect.any(String),
           '',
           expect.any(String),
+          mockCredential.externalId,
+          mockCredential.id,
         );
       });
     });
@@ -427,10 +420,44 @@ describe('FacebookPublisherService', () => {
     });
 
     describe('credential handling', () => {
-      it('should return failed result when credential not found', async () => {
-        const context = createPublishContext(mockImagePost);
+      it('should post as the page on the context, not a sibling account', async () => {
+        // Two Facebook pages under one brand: the post goes to the page whose
+        // credential the publish pipeline resolved, and the page access token
+        // is fetched for that same credential id.
+        const secondPageId = 'page-987654321';
+        const secondAccount = {
+          ...mockCredential,
+          id: testId('credential-2'),
+          externalId: secondPageId,
+        } as unknown as CredentialDocument;
 
-        credentialsService.findOne.mockResolvedValue(null);
+        facebookService.getUserPages.mockResolvedValue([
+          { accessToken: 'second-page-token', id: secondPageId },
+        ]);
+        facebookService.uploadImage.mockResolvedValue('fb-post-2');
+
+        await service.publish(
+          createPublishContext(mockImagePost, {}, secondAccount),
+        );
+
+        expect(facebookService.getUserPages).toHaveBeenCalledWith(
+          mockOrganizationId.toString(),
+          mockBrandId.toString(),
+          secondAccount.id,
+        );
+        expect(facebookService.uploadImage).toHaveBeenCalledWith(
+          secondPageId,
+          'second-page-token',
+          expect.any(String),
+          expect.any(String),
+        );
+      });
+
+      it('should return failed result when credential not found', async () => {
+        const context = {
+          ...createPublishContext(mockImagePost),
+          credential: undefined as unknown as CredentialDocument,
+        };
 
         const result = await service.publish(context);
 
@@ -439,9 +466,7 @@ describe('FacebookPublisherService', () => {
       });
 
       it('should return failed result when credential has no access token', async () => {
-        const context = createPublishContext(mockImagePost);
-
-        credentialsService.findOne.mockResolvedValue({
+        const context = createPublishContext(mockImagePost, {}, {
           ...mockCredential,
           accessToken: null,
         } as unknown as CredentialDocument);
@@ -766,7 +791,6 @@ describe('FacebookPublisherService', () => {
 
   describe('logging', () => {
     beforeEach(() => {
-      credentialsService.findOne.mockResolvedValue(mockCredential);
       facebookService.getUserPages.mockResolvedValue([mockPageResponse]);
     });
 

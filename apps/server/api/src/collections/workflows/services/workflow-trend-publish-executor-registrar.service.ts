@@ -1,5 +1,6 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { randomUUID } from 'node:crypto';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
@@ -12,12 +13,10 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
   ActivitySource,
-  fromPrismaCredentialPlatform,
   Platform,
   PostCategory,
   PostVisibility,
   TargetExecutionState,
-  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import { buildTrendDigestHtml } from '@genfeedai/helpers';
 import type {
@@ -54,7 +53,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     private readonly prismaService?: PrismaService,
     private readonly creditsUtilsService?: CreditsUtilsService,
     private readonly postsService?: PostsService,
-    private readonly credentialsService?: CredentialsService,
+    private readonly postAccountFanoutService?: PostAccountFanoutService,
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {}
 
@@ -396,7 +395,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
 
   private registerPublishExecutor(engine: WorkflowEngine): void {
     const postsService = this.postsService;
-    const credentialsService = this.credentialsService;
+    const fanoutService = this.postAccountFanoutService;
     const executor = createPublishExecutor(
       async ({
         brandId,
@@ -410,7 +409,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         userId,
         workflowId,
       }) => {
-        if (!postsService || !credentialsService) {
+        if (!postsService || !fanoutService) {
           return {
             platforms,
             postIds: [],
@@ -423,40 +422,29 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         const publishedPlatforms: SocialPlatform[] = [];
         const ingredients = this.helper.extractPublishIngredientIds(media);
 
-        for (const platform of platforms) {
-          const prismaPlatform = toPrismaCredentialPlatform(platform);
-          if (!prismaPlatform) {
-            continue;
-          }
-          const credential = await credentialsService.findOne({
-            brandId: brandId,
-            isConnected: true,
-            organizationId: organizationId,
-            platform: prismaPlatform,
-          });
+        // A brand may hold several accounts on one platform, so a publish node
+        // expands into one post per connected account. They share a groupId so
+        // downstream review and notifications still see a single batch.
+        const targets = await fanoutService.resolveTargets({
+          brandId,
+          caption,
+          organizationId,
+          platforms,
+        });
+        const groupId = randomUUID();
 
-          if (!credential) {
-            continue;
-          }
-          const domainPlatform = fromPrismaCredentialPlatform(
-            String(credential.platform ?? ''),
-          );
-          if (!domainPlatform) {
-            throw new Error(
-              `Unknown credential platform: ${String(credential.platform ?? '')}`,
-            );
-          }
-
+        for (const target of targets) {
           const post = await postsService.create({
             brandId: brandId,
             category:
               ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
-            credentialId: credential.id,
-            description: caption,
+            credentialId: target.credentialId,
+            description: target.caption,
+            groupId,
             ingredients,
-            label: this.helper.buildPostLabel(caption),
+            label: this.helper.buildPostLabel(target.caption),
             organizationId: organizationId,
-            platform: domainPlatform,
+            platform: target.platform,
             scheduledDate: scheduledFor ?? undefined,
             targetExecutionState: scheduledFor
               ? TargetExecutionState.SCHEDULED
@@ -466,7 +454,11 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           });
 
           postIds.push(post.id.toString());
-          publishedPlatforms.push(platform);
+
+          const publishedPlatform = target.platform as SocialPlatform;
+          if (!publishedPlatforms.includes(publishedPlatform)) {
+            publishedPlatforms.push(publishedPlatform);
+          }
         }
 
         if (triggerSeoOptimization && !scheduledFor && postIds.length > 0) {

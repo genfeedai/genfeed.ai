@@ -116,6 +116,7 @@ export class TikTokPublisherService extends BasePublisherService {
           post,
           isDraft,
           context.settings,
+          credential.id,
         );
       } else {
         // Video upload
@@ -125,6 +126,7 @@ export class TikTokPublisherService extends BasePublisherService {
           mediaInfo.mediaUrls[0],
           post,
           context.settings,
+          credential.id,
         );
       }
 

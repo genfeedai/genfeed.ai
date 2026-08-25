@@ -48,6 +48,7 @@ describe('ThreadsService (coverage)', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
   let httpService: {
     get: ReturnType<typeof vi.fn>;
@@ -59,6 +60,17 @@ describe('ThreadsService (coverage)', () => {
   };
 
   beforeEach(async () => {
+    const credentialsMock = {
+      findOne: vi.fn(),
+      patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsMock.findOne(options),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ThreadsService,
@@ -68,7 +80,7 @@ describe('ThreadsService (coverage)', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { findOne: vi.fn(), patch: vi.fn() },
+          useValue: credentialsMock,
         },
         {
           provide: LoggerService,
@@ -597,6 +609,7 @@ describe('ThreadsService (coverage)', () => {
         'brand-1',
         'Hello Threads!',
         undefined,
+        undefined,
       );
       expect(service.publishContainer).toHaveBeenCalledWith(
         'org-1',
@@ -621,6 +634,7 @@ describe('ThreadsService (coverage)', () => {
         'brand-1',
         'Reply post',
         'parent-1',
+        undefined,
       );
     });
 
@@ -653,6 +667,7 @@ describe('ThreadsService (coverage)', () => {
         'https://example.com/img.jpg',
         'Optional caption',
         'reply-to-1',
+        undefined,
       );
 
       expect(service.createImageContainer).toHaveBeenCalledWith(
@@ -661,6 +676,8 @@ describe('ThreadsService (coverage)', () => {
         'https://example.com/img.jpg',
         'Optional caption',
         'reply-to-1',
+        undefined,
+        undefined,
       );
       expect(result).toEqual({ threadId: 'image-thread-1' });
     });
@@ -919,8 +936,8 @@ describe('ThreadsService (coverage)', () => {
         'cred-override',
       );
 
-      expect(credentialsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'cred-override' }),
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId: 'cred-override' }),
       );
     });
 

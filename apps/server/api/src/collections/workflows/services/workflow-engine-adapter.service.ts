@@ -7,6 +7,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
@@ -147,6 +148,8 @@ export class WorkflowEngineAdapterService {
     private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
     @Optional()
     private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
+    @Optional()
+    private readonly postAccountFanoutService?: PostAccountFanoutService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -207,6 +210,7 @@ export class WorkflowEngineAdapterService {
       this.newslettersService,
       this.openRouterService,
       this.sourcePostsService,
+      this.postAccountFanoutService,
     );
     const automationRegistrar = new WorkflowAutomationExecutorRegistrarService(
       helper,
@@ -234,7 +238,7 @@ export class WorkflowEngineAdapterService {
         this.prismaService,
         this.creditsUtilsService,
         this.postsService,
-        this.credentialsService,
+        this.postAccountFanoutService,
         this.workflowExecutionQueueService,
       );
 

@@ -44,6 +44,7 @@ describe('InstagramSocialAdapter', () => {
         postId: 'media_123',
         text: 'Great post!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.postComment).toHaveBeenCalledWith(
@@ -51,6 +52,7 @@ describe('InstagramSocialAdapter', () => {
         'brand1',
         'media_123',
         'Great post!',
+        undefined,
       );
       expect(result.replyId).toBe('comment_123');
     });
@@ -66,6 +68,7 @@ describe('InstagramSocialAdapter', () => {
         recipientId: 'user789',
         text: 'Hey!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.sendCommentReplyDm).toHaveBeenCalledWith(
@@ -73,6 +76,7 @@ describe('InstagramSocialAdapter', () => {
         'brand1',
         'user789',
         'Hey!',
+        undefined,
       );
       expect(result.messageId).toBe('msg_456');
     });
@@ -97,6 +101,7 @@ describe('InstagramSocialAdapter', () => {
         postId: 'media_123',
         text: 'Great post!',
         userId: 'legacy-user',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.postComment).toHaveBeenCalledWith(
@@ -104,6 +109,7 @@ describe('InstagramSocialAdapter', () => {
         'explicit-brand',
         'media_123',
         'Great post!',
+        undefined,
       );
     });
 
@@ -116,6 +122,7 @@ describe('InstagramSocialAdapter', () => {
           postId: 'media_123',
           text: 'Great post!',
           userId: 'legacy-user',
+          workflowRunId: 'workflow-run-1',
         }),
       ).rejects.toThrow('brandId is required for Instagram reply publishing');
     });
@@ -129,6 +136,7 @@ describe('InstagramSocialAdapter', () => {
         recipientId: 'user789',
         text: 'Hey!',
         userId: 'legacy-user',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(mockInstagramService.sendCommentReplyDm).toHaveBeenCalledWith(
@@ -136,6 +144,7 @@ describe('InstagramSocialAdapter', () => {
         'explicit-brand',
         'user789',
         'Hey!',
+        undefined,
       );
     });
 
@@ -150,6 +159,7 @@ describe('InstagramSocialAdapter', () => {
         recipientId: 'user789',
         text: 'Hey!',
         userId: 'brand1',
+        workflowRunId: 'workflow-run-1',
       });
 
       expect(result.messageId).toMatch(/^ig_dm_\d+$/);

@@ -100,14 +100,19 @@ export class WordpressService {
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<{ isValid: boolean }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       // WordPress.com tokens are long-lived and do not expire.
       // Verify the credential exists and is valid by making a test API call.
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        // Validation is what decides whether this account is connected, so
+        // it has to be able to read a row that currently says it is not.
+        isDisconnectedIncluded: true,
+        organizationId,
         platform: CredentialPlatform.WORDPRESS,
       });
 

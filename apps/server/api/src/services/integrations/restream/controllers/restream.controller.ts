@@ -163,18 +163,19 @@ export class RestreamController {
       tokenData.access_token,
     );
 
-    const updatedCredential = await credentialsService.patch(
+    const updatedCredential = await credentialsService.connectAccount(
       requireRelationId(credential.id, 'id', 'Restream credential'),
+      organizationId,
+      {
+        handle: profile.username,
+        id: profile.id,
+        name: profile.username || 'Restream',
+      },
       {
         accessToken: tokenData.access_token,
         accessTokenExpiry: tokenData.expires_in
           ? new Date(Date.now() + tokenData.expires_in * 1000)
           : undefined,
-        externalHandle: profile.username,
-        externalId: profile.id,
-        externalName: profile.username || 'Restream',
-        isConnected: true,
-        oauthState: null,
         refreshToken: tokenData.refresh_token,
       },
     );

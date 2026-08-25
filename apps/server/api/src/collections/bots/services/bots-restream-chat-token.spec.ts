@@ -9,7 +9,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
 
   it('returns fresh access token without calling refresh', async () => {
     const credentialsService = {
-      findOne: vi.fn().mockResolvedValue({
+      resolveBrandAccount: vi.fn().mockResolvedValue({
         accessToken: 'fresh-access',
         accessTokenExpiry: new Date(Date.now() + 3_600_000),
         id: 'cred-fresh',
@@ -44,7 +44,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
 
   it('refreshes when access token is expired and persists the new token', async () => {
     const credentialsService = {
-      findOne: vi.fn().mockResolvedValue({
+      resolveBrandAccount: vi.fn().mockResolvedValue({
         accessToken: 'stale-access',
         accessTokenExpiry: new Date(Date.now() - 60_000),
         id: 'cred-stale',
@@ -90,7 +90,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
 
   it('auto-binds brand RESTREAM credential when restreamCredentialId is missing', async () => {
     const credentialsService = {
-      findOne: vi.fn().mockResolvedValue({
+      resolveBrandAccount: vi.fn().mockResolvedValue({
         accessToken: 'brand-access',
         accessTokenExpiry: new Date(Date.now() + 3_600_000),
         id: 'cred-brand',
@@ -124,7 +124,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
     const token = await service.resolveRestreamAccessToken(bot);
 
     expect(token).toBe('brand-access');
-    expect(credentialsService.findOne).toHaveBeenCalledWith(
+    expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         platform: 'restream',
@@ -143,7 +143,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
 
   it('forceRefresh refreshes even when expiry is still in the future', async () => {
     const credentialsService = {
-      findOne: vi.fn().mockResolvedValue({
+      resolveBrandAccount: vi.fn().mockResolvedValue({
         accessToken: 'maybe-revoked',
         accessTokenExpiry: new Date(Date.now() + 3_600_000),
         id: 'cred-force',

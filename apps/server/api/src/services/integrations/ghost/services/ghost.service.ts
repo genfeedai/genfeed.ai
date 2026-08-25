@@ -199,13 +199,18 @@ export class GhostService {
   public async getCredentialApiKey(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<{ apiKey: string; ghostUrl: string } | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        // API-key platforms never flip `isConnected` through a refresh, and
+        // the lookup this replaced never filtered on it either.
+        isDisconnectedIncluded: true,
+        organizationId,
         platform: CredentialPlatform.GHOST,
       });
 

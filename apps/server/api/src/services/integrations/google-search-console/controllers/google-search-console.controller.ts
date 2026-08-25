@@ -147,20 +147,21 @@ export class GoogleSearchConsoleController {
       );
     }
 
-    const updatedCredential = await this.credentialsService.patch(
+    const updatedCredential = await this.credentialsService.connectAccount(
       credential.id,
+      credential.organizationId,
+      {
+        handle: primarySite.siteUrl || 'Google Search Console',
+        // The verified property URL is this connection's account identity — a
+        // brand may hold several properties, each its own credential.
+        id: primarySite.siteUrl,
+        name: primarySite.permissionLevel || 'Google Search Console property',
+      },
       {
         accessToken: tokens.accessToken,
         accessTokenExpiry: tokens.expiresIn
           ? new Date(Date.now() + tokens.expiresIn * 1000)
           : undefined,
-        externalHandle: primarySite?.siteUrl || 'Google Search Console',
-        externalId: primarySite?.siteUrl,
-        externalName:
-          primarySite?.permissionLevel || 'Google Search Console property',
-        isConnected: true,
-        isDeleted: false,
-        oauthState: null,
         refreshToken: tokens.refreshToken,
       },
     );
@@ -173,8 +174,13 @@ export class GoogleSearchConsoleController {
     @Req() request: Request,
     @CurrentUser() user: User,
     @Query('brandId') brandId?: string,
+    @Query('credentialId') credentialId?: string,
   ) {
-    const accessToken = await this.getAccessTokenFromCredential(user, brandId);
+    const accessToken = await this.getAccessTokenFromCredential(
+      user,
+      brandId,
+      credentialId,
+    );
     const sites = await this.googleSearchConsoleService.listSites(accessToken);
 
     return serializeCollection(request, GoogleSearchConsoleSiteSerializer, {
@@ -193,6 +199,7 @@ export class GoogleSearchConsoleController {
     @Query('rowLimit') rowLimit?: string,
     @Query('startRow') startRow?: string,
     @Query('brandId') brandId?: string,
+    @Query('credentialId') credentialId?: string,
   ) {
     if (!siteUrl || !startDate || !endDate) {
       throw new HttpException(
@@ -204,7 +211,11 @@ export class GoogleSearchConsoleController {
       );
     }
 
-    const accessToken = await this.getAccessTokenFromCredential(user, brandId);
+    const accessToken = await this.getAccessTokenFromCredential(
+      user,
+      brandId,
+      credentialId,
+    );
     const result = await this.googleSearchConsoleService.getSearchAnalytics(
       accessToken,
       {
@@ -241,12 +252,19 @@ export class GoogleSearchConsoleController {
     return dimensions.length ? dimensions : DEFAULT_GSC_DIMENSIONS;
   }
 
+  /**
+   * A brand may hold several Search Console accounts. `credentialId` names the
+   * one to read as; without it the first connected account for this user and
+   * brand answers, which is only unambiguous while there is exactly one.
+   */
   private async getAccessTokenFromCredential(
     user: User,
     brandId?: string,
+    credentialId?: string,
   ): Promise<string> {
     const credential = await this.credentialsService.findOne({
       ...(brandId ? { brandId: brandId } : {}),
+      ...(credentialId ? { id: credentialId } : {}),
       isConnected: true,
       organizationId: user.organizationId,
       platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,

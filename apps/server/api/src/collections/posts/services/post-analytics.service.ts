@@ -376,6 +376,10 @@ export class PostAnalyticsService extends BaseService<
         brandId,
         externalId,
         url,
+        // The post already knows which of the brand's accounts published it.
+        // Without this the platform service would resolve the brand default
+        // and report a sibling account's numbers on this post.
+        credential.id,
       );
 
       if (analytics) {
@@ -461,22 +465,53 @@ export class PostAnalyticsService extends BaseService<
     brandId: string,
     externalId: string,
     url: string,
+    credentialId: string,
   ): Promise<IPlatformAnalyticsTotals | null> {
     switch (platform) {
       case CREDENTIAL_PLATFORM.YOUTUBE:
-        return this.getYoutubeAnalytics(organizationId, brandId, externalId);
+        return this.getYoutubeAnalytics(
+          organizationId,
+          brandId,
+          externalId,
+          credentialId,
+        );
       case CREDENTIAL_PLATFORM.TIKTOK:
-        return this.getTiktokAnalytics(organizationId, brandId, externalId);
+        return this.getTiktokAnalytics(
+          organizationId,
+          brandId,
+          externalId,
+          credentialId,
+        );
       case CREDENTIAL_PLATFORM.INSTAGRAM:
-        return this.getInstagramAnalytics(organizationId, brandId, externalId);
+        return this.getInstagramAnalytics(
+          organizationId,
+          brandId,
+          externalId,
+          credentialId,
+        );
       case CREDENTIAL_PLATFORM.TWITTER:
         return this.getTwitterAnalytics(externalId);
       case CREDENTIAL_PLATFORM.PINTEREST:
-        return this.getPinterestAnalytics(organizationId, brandId, externalId);
+        return this.getPinterestAnalytics(
+          organizationId,
+          brandId,
+          externalId,
+          credentialId,
+        );
       case CREDENTIAL_PLATFORM.LINKEDIN:
-        return this.getLinkedInAnalytics(organizationId, brandId, externalId);
+        return this.getLinkedInAnalytics(
+          organizationId,
+          brandId,
+          externalId,
+          credentialId,
+        );
       case CREDENTIAL_PLATFORM.MASTODON:
-        return this.getMastodonAnalytics(organizationId, brandId, externalId);
+        return this.getMastodonAnalytics(
+          organizationId,
+          brandId,
+          externalId,
+          credentialId,
+        );
       default:
         this.logger.warn(`${url} unsupported platform: ${platform}`);
         return Promise.resolve(null);
@@ -487,6 +522,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     videoId: string,
+    credentialId: string,
   ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
@@ -494,6 +530,7 @@ export class PostAnalyticsService extends BaseService<
         organizationId,
         brandId,
         videoId,
+        credentialId,
       );
       return {
         totalComments: stats.comments,
@@ -512,6 +549,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     videoId: string,
+    credentialId: string,
   ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
@@ -519,6 +557,7 @@ export class PostAnalyticsService extends BaseService<
         organizationId,
         brandId,
         videoId,
+        credentialId,
       );
       return {
         totalComments: stats.comments,
@@ -537,6 +576,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     mediaId: string,
+    credentialId: string,
   ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
@@ -544,6 +584,7 @@ export class PostAnalyticsService extends BaseService<
         organizationId,
         brandId,
         mediaId,
+        credentialId,
       );
 
       return {
@@ -583,6 +624,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     pinId: string,
+    credentialId: string,
   ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
@@ -590,6 +632,7 @@ export class PostAnalyticsService extends BaseService<
         organizationId,
         brandId,
         pinId,
+        credentialId,
       );
       return {
         totalComments: stats.comments,
@@ -919,6 +962,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     shareId: string,
+    credentialId: string,
   ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       if (!this.linkedInService) {
@@ -929,6 +973,7 @@ export class PostAnalyticsService extends BaseService<
         organizationId,
         brandId,
         shareId,
+        credentialId,
       );
       return {
         totalComments: stats.comments,
@@ -947,6 +992,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     statusId: string,
+    credentialId: string,
   ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       if (!this.mastodonService) {
@@ -957,6 +1003,7 @@ export class PostAnalyticsService extends BaseService<
         organizationId,
         brandId,
         statusId,
+        credentialId,
       );
       return {
         totalComments: stats.comments,

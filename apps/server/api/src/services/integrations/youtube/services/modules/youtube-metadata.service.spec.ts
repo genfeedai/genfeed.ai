@@ -189,7 +189,11 @@ describe('YoutubeMetadataService', () => {
       publishAt: undefined,
       uploadStatus: 'processed',
     });
-    expect(authService.refreshToken).toHaveBeenCalledWith('org-1', 'brand-1');
+    expect(authService.refreshToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      undefined,
+    );
   });
 
   it('should throw when video not found in getVideoStatus', async () => {

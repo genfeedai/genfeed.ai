@@ -2,7 +2,6 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((v: string) => `dec:${v}`) },
 }));
 
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
@@ -16,7 +15,6 @@ import { Test, type TestingModule } from '@nestjs/testing';
 describe('GhostPublisherService', () => {
   let service: GhostPublisherService;
   let ghostService: { createPost: ReturnType<typeof vi.fn> };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
   let logger: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -68,7 +66,6 @@ describe('GhostPublisherService', () => {
         url: 'https://myblog.ghost.io/p/ghost-post-123',
       }),
     };
-    credentialsService = { findOne: vi.fn().mockResolvedValue(mockCredential) };
     logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -82,7 +79,6 @@ describe('GhostPublisherService', () => {
           },
         },
         { provide: GhostService, useValue: ghostService },
-        { provide: CredentialsService, useValue: credentialsService },
         { provide: LoggerService, useValue: logger },
       ],
     }).compile();
@@ -125,9 +121,32 @@ describe('GhostPublisherService', () => {
       );
     });
 
+    it('should publish as the account on the context, not a sibling account', async () => {
+      const secondAccount = {
+        id: 'second-account-id',
+        accessToken: 'encrypted-token-2',
+        externalHandle: 'https://second.ghost.io',
+        platform: CredentialPlatform.GHOST,
+      };
+
+      await service.publish(
+        makeContext({ credential: secondAccount as never }),
+      );
+
+      expect(ghostService.createPost).toHaveBeenCalledWith(
+        'https://second.ghost.io',
+        'dec:encrypted-token-2',
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        undefined,
+      );
+    });
+
     it('should return failed result when credential is missing', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-      const result = await service.publish(makeContext());
+      const result = await service.publish(
+        makeContext({ credential: undefined as never }),
+      );
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/credential/i);
     });

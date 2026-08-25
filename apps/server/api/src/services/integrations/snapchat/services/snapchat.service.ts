@@ -85,6 +85,7 @@ export class SnapchatService {
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<{
     accessToken: string;
     refreshToken?: string;
@@ -92,9 +93,13 @@ export class SnapchatService {
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        // Token repair has to find the row even after a failed refresh
+        // flipped `isConnected` off.
+        isDisconnectedIncluded: true,
+        organizationId,
         platform: CredentialPlatform.SNAPCHAT,
       });
 

@@ -329,6 +329,7 @@ describe('TikTokPublisherService', () => {
           expect.stringContaining('/videos/'),
           mockVideoPost,
           {},
+          mockCredential.id,
         );
       });
 
@@ -394,6 +395,7 @@ describe('TikTokPublisherService', () => {
           mockCarouselPost,
           undefined,
           {},
+          mockCredential.id,
         );
       });
 
@@ -420,6 +422,7 @@ describe('TikTokPublisherService', () => {
           mockCarouselPost,
           true,
           {},
+          mockCredential.id,
         );
       });
 

@@ -58,6 +58,7 @@ describe('RedditService (coverage)', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
   let httpService: {
     get: ReturnType<typeof vi.fn>;
@@ -70,6 +71,12 @@ describe('RedditService (coverage)', () => {
     credentialsService = {
       findOne: vi.fn().mockResolvedValue(null),
       patch: vi.fn().mockResolvedValue(makeCredential()),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsService.findOne(options),
+      ),
     };
 
     httpService = {

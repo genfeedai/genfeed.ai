@@ -41,6 +41,11 @@ interface DevtoPublishOptions {
   published?: boolean;
   tags?: string[];
   canonicalUrl?: string;
+  /**
+   * Which of the brand's dev.to accounts publishes this. A brand may hold
+   * several; omitted publishes as the brand's default account.
+   */
+  credentialId?: string;
 }
 
 @Injectable()
@@ -100,10 +105,14 @@ export class DevtoService {
     options: DevtoPublishOptions = {},
   ): Promise<DevtoArticle> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { published = true, tags = [], canonicalUrl } = options;
+    const { published = true, tags = [], canonicalUrl, credentialId } = options;
 
     try {
-      const apiKey = await this.getDecryptedApiKey(organizationId, brandId);
+      const apiKey = await this.getDecryptedApiKey(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       const article = await this.articlesService.findOne({ id: articleId });
 
@@ -166,12 +175,17 @@ export class DevtoService {
   async getDecryptedApiKey(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // API-key platforms never flip `isConnected` through a refresh, and
+      // the lookup this replaced never filtered on it either.
+      isDisconnectedIncluded: true,
+      organizationId,
       platform: CredentialPlatform.DEV_TO,
     });
 

@@ -5,6 +5,7 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -15,6 +16,7 @@ import {
   CredentialPlatform,
   FileInputType,
   fromPrismaCredentialPlatform,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -23,6 +25,37 @@ import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 const OAUTH_STATE_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Columns that describe *this connection* rather than *this account*. When a
+ * reconnect resolves to an account the brand already holds, these move onto the
+ * incumbent row; everything else it owns — label, description, posting times,
+ * warm-up state, tags, and every row that foreign-keys to its id — stays put.
+ */
+const CARRIED_CONNECTION_COLUMNS = [
+  'accessToken',
+  'accessTokenExpiry',
+  'accessTokenSecret',
+  'grantedScopes',
+  'grantedScopesCapturedAt',
+  'oauthToken',
+  'oauthTokenHash',
+  'oauthTokenSecret',
+  'refreshToken',
+  'refreshTokenExpiry',
+  'userId',
+  'username',
+] as const;
+
+/** Postgres reports a partial-unique collision as Prisma error P2002. */
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
+
 type CredentialUpsertFields = Partial<
   Omit<
     CreateCredentialDto,
@@ -49,6 +82,24 @@ export interface OAuthCredentialScope {
   organizationId: string;
   userId?: string;
 }
+
+/**
+ * How a brand-scoped caller names the account it acts as. `credentialId` is
+ * optional only so pre-multi-account call sites keep compiling; every caller
+ * that can know the account SHOULD pass it.
+ */
+export type ResolveBrandAccountOptions = {
+  brandId: string;
+  credentialId?: string | null;
+  /**
+   * Include accounts whose connection has lapsed. Token-repair paths need this
+   * — a refresh that failed flips `isConnected` off, and the next attempt still
+   * has to find the row it is trying to repair. Publishing paths leave it off.
+   */
+  isDisconnectedIncluded?: boolean;
+  organizationId: string;
+  platform: CredentialPlatform;
+};
 
 export type PendingOAuthCredential = CredentialDocument & {
   brandId: string;
@@ -209,7 +260,18 @@ export class CredentialsService extends BaseService<
     );
   }
 
-  async upsertForBrand(
+  /**
+   * Provision a fresh, unidentified credential for an in-flight connection.
+   *
+   * Connect deliberately does not look at the accounts this brand already holds
+   * on the platform. Which account is being authorized is decided later, inside
+   * the provider's own consent screen, so any row chosen here would be a guess —
+   * and the old guess ("the one existing row") overwrote a working account's
+   * tokens before the operator had even chosen, including when they abandoned
+   * the consent screen. Identity is resolved after the callback, by
+   * `updateExternalProfile`.
+   */
+  async createPendingForBrand(
     brand: {
       id: string;
       organizationId: string;
@@ -217,7 +279,7 @@ export class CredentialsService extends BaseService<
     },
     userId: string,
     platform: CredentialPlatform,
-    fields: CredentialUpsertFields,
+    fields: CredentialUpsertFields = {},
   ): Promise<CredentialDocument> {
     const brandId = requireCredentialRelationId(brand.id, 'brandId');
     const organizationId = requireCredentialRelationId(
@@ -226,28 +288,176 @@ export class CredentialsService extends BaseService<
     );
     const credentialUserId = requireCredentialRelationId(userId, 'userId');
 
-    const existing = await this.findOne({
+    await this.reapStalePendingCredentials(
       brandId,
+      organizationId,
+      credentialUserId,
+      platform,
+    );
+
+    return this.create({
+      ...fields,
+      brandId,
+      externalId: null,
+      isConnected: false,
+      isDeleted: false,
+      organizationId,
+      platform,
+      userId: credentialUserId,
+    } as unknown as CreateCredentialDto);
+  }
+
+  /**
+   * Retire the caller's own abandoned connect attempts for this brand and
+   * platform so they cannot accumulate. Only rows that never reached the
+   * provider callback qualify: unidentified, unconnected, and older than the
+   * OAuth state TTL.
+   */
+  private async reapStalePendingCredentials(
+    brandId: string,
+    organizationId: string,
+    userId: string,
+    platform: CredentialPlatform,
+  ): Promise<void> {
+    const prismaPlatform = toPrismaCredentialPlatform(platform);
+
+    if (!prismaPlatform) {
+      return;
+    }
+
+    await this.prisma.credential.updateMany({
+      data: { isDeleted: true, oauthState: null },
+      where: {
+        brandId,
+        externalId: null,
+        isConnected: false,
+        isDeleted: false,
+        organizationId,
+        platform: prismaPlatform,
+        updatedAt: { lt: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
+        userId,
+      },
+    });
+  }
+
+  /**
+   * Every live connected account this brand holds on a platform, oldest first.
+   *
+   * Callers that act *as* an account take an explicit credential id. Callers
+   * that publish *for* a brand fan out over this list — resolving a single
+   * account from brand + platform alone is a silent wrong-account defect once a
+   * brand runs more than one.
+   */
+  async findConnectedAccounts(
+    organizationId: string,
+    brandId: string,
+    platform: CredentialPlatform,
+  ): Promise<CredentialDocument[]> {
+    const accounts = await this.find({
+      brandId,
+      isConnected: true,
       organizationId,
       platform,
     });
 
-    const credentialData = {
-      ...fields,
+    return CredentialsService.oldestFirst(accounts);
+  }
+
+  /**
+   * Oldest first — the tie-break that makes "the brand's default account"
+   * deterministic instead of "whatever row the database returned".
+   */
+  private static oldestFirst(
+    accounts: CredentialDocument[],
+  ): CredentialDocument[] {
+    return [...accounts].sort(
+      (first, second) =>
+        new Date(first.createdAt ?? 0).getTime() -
+        new Date(second.createdAt ?? 0).getTime(),
+    );
+  }
+
+  /**
+   * The one account a brand-scoped operation should act as on a platform.
+   *
+   * An explicit `credentialId` always wins and is verified to belong to this
+   * brand and platform — an id from another brand, tenant, or platform resolves
+   * to nothing rather than to a neighbour's account. Without one this falls
+   * back to the brand's *oldest* connected account so the choice is at least
+   * deterministic, and warns whenever that fallback had more than one row to
+   * choose from: an implicit pick is a wrong-account defect waiting for the
+   * brand to connect its second handle.
+   *
+   * Callers that already hold the account — publishers reading
+   * `PublishContext.credential`, anything addressing a credential by id — must
+   * use it directly instead of calling this.
+   */
+  async resolveBrandAccount(
+    options: ResolveBrandAccountOptions,
+  ): Promise<CredentialDocument | null> {
+    const {
       brandId,
+      credentialId,
+      isDisconnectedIncluded = false,
       organizationId,
       platform,
-      userId: credentialUserId,
-    };
+    } = options;
 
-    if (existing) {
-      return this.patch(existing.id, {
-        ...credentialData,
-        isDeleted: false,
-      });
+    if (credentialId) {
+      const named = await this.findOne({ id: credentialId, organizationId });
+
+      if (!named) {
+        return null;
+      }
+
+      if (
+        named.brandId !== brandId ||
+        fromPrismaCredentialPlatform(named.platform) !== platform
+      ) {
+        this.logger.warn(
+          `${CredentialsService.name} credential ${credentialId} does not belong to this brand on ${platform}`,
+          { brandId, credentialId, organizationId, platform },
+        );
+        return null;
+      }
+
+      return named;
     }
 
-    return this.create(credentialData as unknown as CreateCredentialDto);
+    const accounts = isDisconnectedIncluded
+      ? await this.findBrandAccounts(organizationId, brandId, platform)
+      : await this.findConnectedAccounts(organizationId, brandId, platform);
+
+    const account = accounts[0] ?? null;
+
+    if (accounts.length > 1 && account) {
+      this.logger.warn(
+        `${CredentialsService.name} resolved a brand default because no credential id was supplied and the brand holds ${accounts.length} ${platform} accounts`,
+        {
+          brandId,
+          credentialId: account.id,
+          organizationId,
+          platform,
+        },
+      );
+    }
+
+    return account;
+  }
+
+  /**
+   * Every live account row this brand holds on a platform, connected or not,
+   * oldest first. Reconnect and token-repair paths read this; publishing reads
+   * `findConnectedAccounts`.
+   */
+  async findBrandAccounts(
+    organizationId: string,
+    brandId: string,
+    platform: CredentialPlatform,
+  ): Promise<CredentialDocument[]> {
+    const accounts = await this.find({ brandId, organizationId, platform });
+
+    return CredentialsService.oldestFirst(accounts);
   }
 
   /**
@@ -266,10 +476,12 @@ export class CredentialsService extends BaseService<
     fields: CredentialUpsertFields = {},
   ): Promise<{ credential: CredentialDocument; state: string }> {
     const state = randomBytes(32).toString('base64url');
-    const credential = await this.upsertForBrand(brand, userId, platform, {
-      ...fields,
-      oauthState: state,
-    });
+    const credential = await this.createPendingForBrand(
+      brand,
+      userId,
+      platform,
+      { ...fields, oauthState: state },
+    );
 
     return { credential, state };
   }
@@ -373,9 +585,43 @@ export class CredentialsService extends BaseService<
   }
 
   /**
-   * Persist public provider identity and mirror its avatar into Genfeed-owned
-   * storage. OAuth remains successful when avatar import fails; in that case
-   * the previous S3 avatar is preserved and the UI uses its fallback.
+   * Persist an exchanged connection and settle which account it belongs to.
+   *
+   * One call rather than two so a verify cannot write tokens under one step and
+   * identity under another, leaving a connected-but-unidentifiable row behind
+   * when the second step fails.
+   */
+  async connectAccount(
+    credentialId: string,
+    organizationId: string,
+    profile: ExternalCredentialProfile,
+    connection: Record<string, unknown> = {},
+  ): Promise<CredentialDocument> {
+    if (Object.keys(connection).length > 0) {
+      await this.patch(credentialId, {
+        ...connection,
+        isConnected: true,
+        isDeleted: false,
+        oauthState: null,
+      });
+    }
+
+    return this.updateExternalProfile(credentialId, organizationId, profile);
+  }
+
+  /**
+   * Persist public provider identity, mirror its avatar into Genfeed-owned
+   * storage, and reconcile the row against the accounts this brand already
+   * holds on the platform.
+   *
+   * This is the only place `externalId` is written, which makes it the only
+   * safe moment to settle account identity: the provider has just told us
+   * *which* account was authorized, something connect could not know. A brand
+   * may hold many accounts on one platform, so the answer decides whether this
+   * connection is a reconnect of an existing account or a new one.
+   *
+   * OAuth remains successful when avatar import fails; in that case the
+   * previous S3 avatar is preserved and the UI uses its fallback.
    */
   async updateExternalProfile(
     credentialId: string,
@@ -430,10 +676,135 @@ export class CredentialsService extends BaseService<
       }
     }
 
-    if (Object.keys(update).length === 0) {
-      return credential;
+    const externalId =
+      update.externalId ?? (credential.externalId as string | null) ?? null;
+
+    if (!externalId) {
+      // Persisting an unidentifiable account would recreate the ambiguity this
+      // whole flow exists to remove: nothing downstream could tell it apart
+      // from its siblings, and the next reconnect could not find it.
+      throw new ValidationException(
+        'The provider did not identify which account was authorized, so the connection was not saved. Please try connecting again.',
+        'externalId',
+      );
     }
 
-    return this.patch(credential.id, update);
+    return this.reconcileConnectedAccount(credential, externalId, update);
+  }
+
+  /**
+   * Settle `(brandId, platform, externalId)` into exactly one live credential.
+   *
+   * Same identity as an existing account → the incumbent survives with the new
+   * connection merged in, so its id, posts, schedules, and warm-up history are
+   * untouched and a reconnect stays idempotent. New identity → this row becomes
+   * an additional account alongside its siblings.
+   */
+  private async reconcileConnectedAccount(
+    credential: CredentialDocument,
+    externalId: string,
+    profileUpdate: Record<string, string>,
+  ): Promise<CredentialDocument> {
+    const brandId = credential.brandId as string | null | undefined;
+    const prismaPlatform = toPrismaCredentialPlatform(
+      credential.platform as CredentialPlatform,
+    );
+
+    const claimIdentity = (): Promise<CredentialDocument> =>
+      this.patch(credential.id, {
+        ...profileUpdate,
+        externalId,
+        isConnected: true,
+        isDeleted: false,
+        oauthState: null,
+      });
+
+    if (!brandId || !prismaPlatform) {
+      // No brand or no persisted platform means no sibling set to reconcile
+      // against — there is nothing this row could collide with.
+      return claimIdentity();
+    }
+
+    const mergeIntoIncumbent = async (): Promise<CredentialDocument | null> =>
+      this.prisma.$transaction(async (tx) => {
+        const incumbent = await tx.credential.findFirst({
+          select: { id: true },
+          where: {
+            brandId,
+            externalId,
+            id: { not: credential.id },
+            isDeleted: false,
+            platform: prismaPlatform,
+          },
+        });
+
+        if (!incumbent) {
+          return null;
+        }
+
+        const survivor = await tx.credential.update({
+          data: {
+            ...this.carriedConnectionColumns(credential),
+            ...profileUpdate,
+            externalId,
+            isConnected: true,
+            isDeleted: false,
+            oauthState: null,
+          },
+          where: { id: incumbent.id },
+        });
+
+        // The just-authorized row has handed over everything that matters.
+        // Retire it softly — a foreign key may already point at it.
+        await tx.credential.update({
+          data: { isConnected: false, isDeleted: true, oauthState: null },
+          where: { id: credential.id },
+        });
+
+        return this.normalizeDocument(survivor);
+      });
+
+    const merged = await mergeIntoIncumbent();
+
+    if (merged) {
+      return merged;
+    }
+
+    try {
+      return await claimIdentity();
+    } catch (error: unknown) {
+      if (!isUniqueConstraintViolation(error)) {
+        throw error;
+      }
+
+      // A concurrent verify — a double-clicked consent, or a provider that
+      // delivered its callback twice — claimed this identity first. Fold into
+      // the winner rather than leaving the operator with a failed reconnect.
+      const survivor = await mergeIntoIncumbent();
+
+      if (!survivor) {
+        throw error;
+      }
+
+      return survivor;
+    }
+  }
+
+  /** Connection-bearing columns to move onto a surviving incumbent row. */
+  private carriedConnectionColumns(
+    credential: CredentialDocument,
+  ): Record<string, unknown> {
+    const source = credential as unknown as Record<string, unknown>;
+
+    return CARRIED_CONNECTION_COLUMNS.reduce<Record<string, unknown>>(
+      (carried, column) => {
+        if (source[column] !== undefined) {
+          carried[column] = source[column];
+        }
+
+        return carried;
+      },
+      {},
+    );
   }
 }

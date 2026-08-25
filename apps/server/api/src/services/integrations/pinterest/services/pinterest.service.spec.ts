@@ -22,6 +22,12 @@ describe('PinterestService', () => {
   const credentialsServiceMock = {
     findOne: vi.fn(),
     patch: vi.fn(),
+    // Multi-account resolution routes through `resolveBrandAccount`; the double
+    // answers with whatever `findOne` is primed to return so the existing
+    // single-account cases keep describing one connected account.
+    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+      (credentialsServiceMock.findOne as vi.Mock)(options),
+    ),
   } as unknown as CredentialsService;
 
   beforeEach(async () => {
@@ -160,8 +166,11 @@ describe('PinterestService', () => {
 
       const result = await service.getMediaAnalytics('org', 'brand', 'pin-1');
 
-      expect(credentialsServiceMock.findOne).toHaveBeenCalledWith({
+      // Analytics reads act as the brand's account, resolved through the
+      // multi-account resolver rather than a direct brand/platform lookup.
+      expect(credentialsServiceMock.resolveBrandAccount).toHaveBeenCalledWith({
         brandId: 'brand',
+        credentialId: undefined,
         organizationId: 'org',
         platform: 'pinterest',
       });

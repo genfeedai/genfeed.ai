@@ -77,7 +77,16 @@ describe('DevtoService', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { findOne: credentialsFindOneMock },
+          useValue: {
+            findOne: credentialsFindOneMock,
+            // Multi-account resolution routes through `resolveBrandAccount`;
+            // the double answers with whatever `findOne` is primed to return
+            // so the existing cases keep describing one connected account.
+            resolveBrandAccount: vi.fn(
+              (options: { credentialId?: string | null }) =>
+                credentialsFindOneMock(options),
+            ),
+          },
         },
         {
           provide: ArticlesService,

@@ -356,6 +356,7 @@ export class SocialInboxActionService {
         conversation.brandId,
         parentCommentId,
         text,
+        conversation.credentialId ?? undefined,
       );
 
       return {
@@ -376,6 +377,7 @@ export class SocialInboxActionService {
         conversation.brandId,
         parentCommentId,
         text,
+        conversation.credentialId ?? undefined,
       );
 
       return {
@@ -413,6 +415,7 @@ export class SocialInboxActionService {
       conversation.brandId,
       recipientId,
       input.text,
+      conversation.credentialId ?? undefined,
     );
 
     return { messageId: messageId ?? `instagram_dm_${Date.now()}` };

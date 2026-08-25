@@ -137,19 +137,21 @@ export class GoogleAdsController {
     );
     const primaryCustomer = customers[0];
 
-    const updatedCredential = await this.credentialsService.patch(
+    // The customer id is the account identity — one brand may manage several
+    // Google Ads customers.
+    const updatedCredential = await this.credentialsService.connectAccount(
       credential.id,
+      credential.organizationId,
+      {
+        handle: primaryCustomer?.descriptiveName || 'Google Ads',
+        id: primaryCustomer?.id,
+        name: primaryCustomer?.descriptiveName || 'Google Ads',
+      },
       {
         accessToken: tokens.accessToken,
         accessTokenExpiry: tokens.expiresIn
           ? new Date(Date.now() + tokens.expiresIn * 1000)
           : undefined,
-        externalHandle: primaryCustomer?.descriptiveName || 'Google Ads',
-        externalId: primaryCustomer?.id,
-        externalName: primaryCustomer?.descriptiveName || 'Google Ads',
-        isConnected: true,
-        isDeleted: false,
-        oauthState: null,
         refreshToken: tokens.refreshToken,
       },
     );

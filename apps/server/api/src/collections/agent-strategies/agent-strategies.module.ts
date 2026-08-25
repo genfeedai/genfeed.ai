@@ -18,6 +18,7 @@ import { ContentPerformanceModule } from '@api/collections/content-performance/c
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
 import { OptimizersModule } from '@api/collections/optimizers/optimizers.module';
+import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fanout.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
@@ -41,6 +42,7 @@ import { Module } from '@nestjs/common';
     CredentialsCoreModule,
     EvaluationsModule,
     OptimizersModule,
+    PostAccountFanoutModule,
     PostsCoreModule,
     TrendsModule,
   ],

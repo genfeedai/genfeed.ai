@@ -39,13 +39,21 @@ export class RedditService {
     return `${this.oauthUrl}?${params.toString()}`;
   }
 
+  /**
+   * @param credentialId - which connected Reddit account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<CredentialDocument> {
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // A failed refresh flips isConnected off; the retry still has to find it.
+      isDisconnectedIncluded: true,
+      organizationId,
       platform: CredentialPlatform.REDDIT,
     });
 
@@ -90,11 +98,20 @@ export class RedditService {
     });
   }
 
+  /**
+   * @param credentialId - which connected Reddit account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async getAccountDetails(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<unknown> {
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.refreshToken(
+      organizationId,
+      brandId,
+      credentialId,
+    );
 
     // Decrypt access token before use
     const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -122,13 +139,22 @@ export class RedditService {
    * @param text The comment text
    * @returns The comment ID
    */
+  /**
+   * @param credentialId - which connected Reddit account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async postComment(
     organizationId: string,
     brandId: string,
     thingId: string,
     text: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.refreshToken(
+      organizationId,
+      brandId,
+      credentialId,
+    );
 
     // Decrypt access token before use
     const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -161,6 +187,10 @@ export class RedditService {
     return { commentId };
   }
 
+  /**
+   * @param credentialId - which connected Reddit account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async submitPost(
     organizationId: string,
     brandId: string,
@@ -169,8 +199,13 @@ export class RedditService {
     text?: string,
     url?: string,
     flairId?: string,
+    credentialId?: string,
   ): Promise<string> {
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.refreshToken(
+      organizationId,
+      brandId,
+      credentialId,
+    );
 
     // Decrypt access token before use
     const decryptedAccessToken = EncryptionUtil.decrypt(
