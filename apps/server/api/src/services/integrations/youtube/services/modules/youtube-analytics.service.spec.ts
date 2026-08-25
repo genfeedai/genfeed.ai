@@ -115,7 +115,11 @@ describe('YoutubeAnalyticsService', () => {
         title: 'Test Channel',
       }),
     );
-    expect(authService.refreshToken).toHaveBeenCalledWith('org-1', 'brand-1');
+    expect(authService.refreshToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      undefined,
+    );
   });
 
   it('should throw when no channel items returned', async () => {
@@ -193,7 +197,11 @@ describe('YoutubeAnalyticsService', () => {
 
     await service.getChannelDetails('org-1', 'brand-1', true);
 
-    expect(authService.refreshToken).toHaveBeenCalledWith('org-1', 'brand-1');
+    expect(authService.refreshToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      undefined,
+    );
   });
 
   // --- getMediaAnalytics ---

@@ -77,7 +77,11 @@ describe('YoutubeCommentsService', () => {
       );
 
       expect(result).toEqual({ commentId: 'comment_abc123' });
-      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(orgId, brandId);
+      expect(mockAuthService.refreshToken).toHaveBeenCalledWith(
+        orgId,
+        brandId,
+        undefined,
+      );
     });
 
     it('should throw when channel ID is not found', async () => {

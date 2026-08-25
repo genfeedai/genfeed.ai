@@ -608,6 +608,7 @@ describe('ThreadsService (coverage)', () => {
         'brand-1',
         'Hello Threads!',
         undefined,
+        undefined,
       );
       expect(service.publishContainer).toHaveBeenCalledWith(
         'org-1',
@@ -632,6 +633,7 @@ describe('ThreadsService (coverage)', () => {
         'brand-1',
         'Reply post',
         'parent-1',
+        undefined,
       );
     });
 
@@ -664,6 +666,8 @@ describe('ThreadsService (coverage)', () => {
         'https://example.com/img.jpg',
         'Optional caption',
         'reply-to-1',
+        undefined,
+        undefined,
       );
 
       expect(service.createImageContainer).toHaveBeenCalledWith(

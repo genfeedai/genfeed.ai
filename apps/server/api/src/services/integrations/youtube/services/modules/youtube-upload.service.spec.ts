@@ -130,7 +130,11 @@ describe('YoutubeUploadService', () => {
     const result = await service.uploadVideo(orgId, brandId, videoId, post);
 
     expect(result).toBe('yt-uploaded-123');
-    expect(authService.refreshToken).toHaveBeenCalledWith(orgId, brandId);
+    expect(authService.refreshToken).toHaveBeenCalledWith(
+      orgId,
+      brandId,
+      undefined,
+    );
     expect(fileQueueService.processFile).toHaveBeenCalled();
     expect(fileQueueService.waitForJob).toHaveBeenCalledWith('job-123', 30_000);
     expect(mockVideosInsert.mock.calls[0]?.[0]).toEqual(

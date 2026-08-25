@@ -241,6 +241,7 @@ describe('ThreadsService', () => {
         'org-1',
         'brand-1',
         'container-video-1',
+        undefined,
       );
       expect(service.publishContainer).toHaveBeenCalledWith(
         'org-1',
@@ -293,6 +294,7 @@ describe('ThreadsService', () => {
         undefined,
         undefined,
         { altText: undefined, isCarouselItem: true },
+        undefined,
       );
       expect(service.createVideoContainer).toHaveBeenCalledWith(
         'org-1',

@@ -225,6 +225,7 @@ describe('MediumController', () => {
         'article-id',
         brandId,
         'draft',
+        undefined,
       );
 
       expect(mediumService.publishArticle).toHaveBeenCalledWith(

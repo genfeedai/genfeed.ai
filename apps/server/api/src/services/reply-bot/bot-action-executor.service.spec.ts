@@ -179,6 +179,7 @@ describe('BotActionExecutorService', () => {
         'brand-1',
         'media-123',
         'Nice post!',
+        undefined,
       );
     });
 
@@ -236,6 +237,7 @@ describe('BotActionExecutorService', () => {
         'brand-1',
         'comment-123',
         'Thanks for watching!',
+        undefined,
       );
     });
 
@@ -289,6 +291,8 @@ describe('BotActionExecutorService', () => {
         'brand-1',
         'Thanks!',
         'content-123',
+        {},
+        undefined,
       );
       expect(MockTwitterApi).not.toHaveBeenCalled();
     });
@@ -395,6 +399,8 @@ describe('BotActionExecutorService', () => {
         'brand-1',
         'Hello X',
         undefined,
+        {},
+        undefined,
       );
       expect(MockTwitterApi).not.toHaveBeenCalled();
     });
@@ -470,6 +476,7 @@ describe('BotActionExecutorService', () => {
         'brand-1',
         'recipient-1',
         'Hello!',
+        undefined,
       );
     });
 

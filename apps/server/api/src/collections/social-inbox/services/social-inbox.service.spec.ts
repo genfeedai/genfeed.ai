@@ -1197,6 +1197,7 @@ describe('SocialInboxService', () => {
       'brand-1',
       'comment-1',
       'Try this answer',
+      'credential-1',
     );
     expect(sent).toMatchObject({
       actionProvenance: {
@@ -1924,6 +1925,7 @@ describe('SocialInboxService', () => {
         'org-1',
         'brand-1',
         { limit: 50, sinceId: cursor },
+        'credential-x',
       );
       expect(context.logger.warn).toHaveBeenCalledWith(
         'Social inbox provider poll failed',
@@ -2078,12 +2080,14 @@ describe('SocialInboxService', () => {
         'org-1',
         'brand-1',
         { limit: 25 },
+        'credential-x',
       );
       expect(context.twitterService.listDirectMessages).toHaveBeenNthCalledWith(
         2,
         'org-1',
         'brand-1',
         { limit: 25, paginationToken: 'x-dm-next-1' },
+        'credential-x',
       );
       expect(
         context.messages.map((message) => message.externalMessageId),
@@ -2128,6 +2132,7 @@ describe('SocialInboxService', () => {
         'org-1',
         'brand-1',
         { limit: 25 },
+        'credential-x',
       );
       expect(
         context.twitterService.listDirectMessages,
@@ -2135,6 +2140,7 @@ describe('SocialInboxService', () => {
         'org-1',
         'brand-1',
         expect.objectContaining({ paginationToken: 'x-dm-2' }),
+        'credential-x',
       );
     });
   });
