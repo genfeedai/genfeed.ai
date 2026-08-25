@@ -23,7 +23,7 @@ describe('PromptEditor', () => {
     render(
       <PromptEditor editor={injectedEditor} onValueChange={onValueChange} />,
     );
-    await screen.findByRole('textbox', { name: 'Prompt' });
+    await screen.findByTestId('prompt-editor');
 
     injectedEditor.commands.insertContent('hello world');
 
