@@ -58,10 +58,27 @@ export class HealthController {
     };
   }
 
+  /**
+   * Readiness, including any peer dependency the service cannot currently
+   * reach. A degraded peer still answers 200 on purpose (#3565): recycling a
+   * task that is otherwise serving traffic turns a transient DNS gap into a
+   * restart loop. The contributor hook is synchronous and reads cached state,
+   * so this probe never issues its own network calls.
+   */
   @Public()
   @Get('ready')
   ready(): HealthResponse {
-    return this.buildResponse('ready');
+    const readiness = this.contributor?.getReadiness?.();
+
+    if (!readiness) {
+      return this.buildResponse('ready');
+    }
+
+    const response = this.buildResponse(readiness.status);
+
+    return readiness.degradedDependencies?.length
+      ? { ...response, degradedDependencies: readiness.degradedDependencies }
+      : response;
   }
 
   @Public()

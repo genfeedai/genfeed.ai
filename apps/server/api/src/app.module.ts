@@ -189,6 +189,7 @@ import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module
 import { YoutubeUploadCompletionModule } from '@api/services/integrations/youtube/youtube-upload-completion.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
+import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PreflightModule } from '@api/services/preflight/preflight.module';
@@ -209,7 +210,11 @@ import { CiTriageWebhookModule } from '@api/webhooks/ci-triage/ci-triage-webhook
 import { AgentWorkflowsModule } from '@api/workflows/agent-workflows.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
-import { HealthModule } from '@libs/health/health.module';
+import { HealthController } from '@libs/health/health.controller';
+import {
+  HEALTH_CONTRIBUTOR,
+  type HealthContributor,
+} from '@libs/health/health-contributor.interface';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
@@ -219,7 +224,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
-  controllers: [],
+  // HealthController is registered here rather than through the global
+  // HealthModule so it can inject this app's HEALTH_CONTRIBUTOR, which
+  // reports peer microservices the API currently cannot reach (#3565).
+  controllers: [HealthController],
   imports: [
     // Core Infrastructure
     ConfigModule,
@@ -307,7 +315,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     FontFamiliesModule,
     GifsModule,
     HarnessProfilesModule,
-    HealthModule,
     HookRemixModule,
     ImagesModule,
     GoalsModule,
@@ -520,6 +527,16 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_INTERCEPTOR,
       useClass: TenantContextInterceptor,
+    },
+    {
+      inject: [MicroservicesService],
+      provide: HEALTH_CONTRIBUTOR,
+      useFactory: (
+        microservicesService: MicroservicesService,
+      ): HealthContributor => ({
+        getHealthDetails: () => microservicesService.getHealthDetails(),
+        getReadiness: () => microservicesService.getReadiness(),
+      }),
     },
   ],
 })
