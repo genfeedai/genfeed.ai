@@ -86,6 +86,17 @@ describe('OAUTH_CONNECT_PLATFORMS X Ads tile', () => {
 });
 
 describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
+  it('omits Reddit while Genfeed lacks approved Reddit Data API access', () => {
+    expect(
+      OAUTH_CONNECT_PLATFORMS.some(
+        (p) => p.platform === CredentialPlatform.REDDIT,
+      ),
+    ).toBe(false);
+    expect(
+      groupOAuthConnectPlatforms().some((group) => group.id === 'communities'),
+    ).toBe(false);
+  });
+
   it('omits Fanvue, which has no OAuth connect route', () => {
     expect(
       OAUTH_CONNECT_PLATFORMS.some(

@@ -4,7 +4,6 @@ import {
   GoogleColorIcon,
   InstagramIcon,
   LinkedinIcon,
-  RedditIcon,
   ThreadsIcon,
   TiktokIcon,
   XTwitterIcon,
@@ -81,9 +80,11 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
  * Platforms with a brand OAuth `POST services/{path}/connect` endpoint that the
  * settings Connect button actually calls.
  *
- * Not listed (service helpers exist, but no UI-compatible connect route yet):
- * Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only),
- * Fanvue (no OAuth connect route — the tile only ever offered a dead button).
+ * Not listed:
+ * - Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only),
+ *   and Fanvue do not have a UI-compatible OAuth connect route.
+ * - Reddit has a route, but Genfeed does not have approved Reddit Data API
+ *   access, so exposing it would send customers into a non-functional flow.
  *
  * Ads notes:
  * - Meta Ads reuses Facebook OAuth (ads_management scopes on FACEBOOK).
@@ -149,13 +150,6 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     label: 'Restream',
     platform: CredentialPlatform.RESTREAM,
     servicePath: 'restream',
-  },
-  {
-    category: 'communities',
-    Icon: RedditIcon,
-    iconClassName: 'text-orange-500',
-    label: 'Reddit',
-    platform: CredentialPlatform.REDDIT,
   },
   {
     category: 'ads',

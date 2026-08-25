@@ -9,6 +9,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -25,9 +26,13 @@ import {
   HttpStatus,
   Post,
   Req,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
+
+const REDDIT_OAUTH_PLACEHOLDER_PATTERN =
+  /(?:^|[_-])TODO(?:[_-]|$)|your_reddit_client_(?:id|secret)/i;
 
 @AutoSwagger()
 @Controller('services/reddit')
@@ -68,6 +73,8 @@ export class RedditController {
         HttpStatus.FORBIDDEN,
       );
     }
+
+    this.getOAuthConfig();
 
     try {
       const { state } = await this.credentialsService.beginOAuthForBrand(
@@ -123,19 +130,7 @@ export class RedditController {
       }
 
       const { organizationId } = existingCredential;
-      const clientId = this.configService.get('REDDIT_CLIENT_ID');
-      const clientSecret = this.configService.get('REDDIT_CLIENT_SECRET');
-      const redirectUri = this.configService.get('REDDIT_REDIRECT_URI');
-
-      if (!clientId || !clientSecret || !redirectUri) {
-        throw new HttpException(
-          {
-            detail: 'Reddit OAuth credentials are not configured',
-            title: 'Configuration error',
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+      const { clientId, clientSecret, redirectUri } = this.getOAuthConfig();
 
       const auth = Buffer.from(`${clientId}:${clientSecret}`).toString(
         'base64',
@@ -209,5 +204,32 @@ export class RedditController {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  private getOAuthConfig(): {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+  } {
+    const clientId = this.configService.get('REDDIT_CLIENT_ID');
+    const clientSecret = this.configService.get('REDDIT_CLIENT_SECRET');
+    const redirectUri = this.configService.get('REDDIT_REDIRECT_URI');
+
+    if (
+      !clientId ||
+      !clientSecret ||
+      !redirectUri ||
+      [clientId, clientSecret, redirectUri].some(
+        (value) =>
+          isUnconfiguredSecret(value) ||
+          REDDIT_OAUTH_PLACEHOLDER_PATTERN.test(value),
+      )
+    ) {
+      throw new ServiceUnavailableException(
+        'Reddit OAuth is not configured for this deployment.',
+      );
+    }
+
+    return { clientId, clientSecret, redirectUri };
   }
 }

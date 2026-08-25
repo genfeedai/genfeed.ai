@@ -15,7 +15,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { HttpException } from '@nestjs/common';
+import { HttpException, ServiceUnavailableException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { of } from 'rxjs';
@@ -34,6 +34,7 @@ describe('RedditController', () => {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
   };
+  let configService: { get: ReturnType<typeof vi.fn> };
 
   const mockRequest = {} as unknown as Request;
   const brandId = 'test-object-id';
@@ -95,13 +96,24 @@ describe('RedditController', () => {
       get: vi.fn(),
       post: vi.fn(),
     };
+    configService = {
+      get: vi.fn((key: string) => {
+        const config: Record<string, string> = {
+          REDDIT_CLIENT_ID: 'reddit-client-id',
+          REDDIT_CLIENT_SECRET: 'reddit-client-secret',
+          REDDIT_REDIRECT_URI: 'https://app.genfeed.ai/oauth/reddit',
+          REDDIT_USER_AGENT: 'genfeed:app:v1',
+        };
+        return config[key];
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RedditController],
       providers: [
         {
           provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue('mock-value') },
+          useValue: configService,
         },
         { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
         { provide: BrandsService, useValue: brandsService },
@@ -143,6 +155,23 @@ describe('RedditController', () => {
       await expect(
         controller.connect(mockRequest, mockUser, dto),
       ).rejects.toThrow(HttpException);
+    });
+
+    it('refuses a placeholder client ID before creating pending OAuth state', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'REDDIT_CLIENT_ID'
+          ? '⚠️_TODO_your_reddit_client_id'
+          : {
+              REDDIT_CLIENT_SECRET: 'reddit-client-secret',
+              REDDIT_REDIRECT_URI: 'https://app.genfeed.ai/oauth/reddit',
+            }[key],
+      );
+
+      await expect(
+        controller.connect(mockRequest, mockUser, dto),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
+      expect(redditService.generateAuthUrl).not.toHaveBeenCalled();
     });
 
     it('should not expose tenant IDs in OAuth state', async () => {
