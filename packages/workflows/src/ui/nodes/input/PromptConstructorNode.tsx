@@ -45,6 +45,26 @@ function PromptConstructorNodeComponent(props: NodeProps) {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Deferred work that must not outlive the node: both callbacks below set state
+  // after a delay, so an unmount inside that window would touch a dead tree.
+  const closeAutocompleteTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const pasteReformatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (closeAutocompleteTimeoutRef.current) {
+        clearTimeout(closeAutocompleteTimeoutRef.current);
+      }
+      if (pasteReformatTimeoutRef.current) {
+        clearTimeout(pasteReformatTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Sync from props when not actively editing
   useEffect(() => {
     if (!isEditingRef.current) {
@@ -196,7 +216,14 @@ function PromptConstructorNodeComponent(props: NodeProps) {
         template: localTemplate,
       });
     }
-    setTimeout(() => closeAutocomplete(), 200);
+    // Held so a blur immediately followed by unmount cannot close a gone popover.
+    if (closeAutocompleteTimeoutRef.current) {
+      clearTimeout(closeAutocompleteTimeoutRef.current);
+    }
+    closeAutocompleteTimeoutRef.current = setTimeout(() => {
+      closeAutocompleteTimeoutRef.current = null;
+      closeAutocomplete();
+    }, 200);
   }, [
     closeAutocomplete,
     commitJsonTemplate,
@@ -233,7 +260,12 @@ function PromptConstructorNodeComponent(props: NodeProps) {
       }
 
       const pasted = event.clipboardData.getData('text');
-      window.setTimeout(() => {
+      if (pasteReformatTimeoutRef.current) {
+        clearTimeout(pasteReformatTimeoutRef.current);
+      }
+      // Deferred a tick so the textarea holds the pasted text before reformatting.
+      pasteReformatTimeoutRef.current = setTimeout(() => {
+        pasteReformatTimeoutRef.current = null;
         const nextValue = textareaRef.current?.value || pasted;
         const parsed = parsePromptJson(nextValue);
         if (parsed.isValid) {
