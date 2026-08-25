@@ -13,6 +13,10 @@ vi.mock('@server/services/integrations/fal/services/fal.service', () => ({
   FalService: class {},
 }));
 
+vi.mock('@api/services/integrations/higgsfield/higgsfield.service', () => ({
+  HiggsFieldService: class {},
+}));
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw new HttpException(response, 400);
@@ -50,6 +54,7 @@ import { ImageGenerationProviderRegistryService } from '@api/collections/images/
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
@@ -72,6 +77,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -237,6 +243,7 @@ describe('ImagesOperationsController', () => {
         ImageGenerationProviderDispatchService,
         ImageGenerationProviderRegistryService,
         ImageGenerationService,
+        HiggsFieldImageGenerationProviderAdapter,
         KlingAiImageGenerationProviderAdapter,
         LeonardoImageGenerationProviderAdapter,
         ReplicateImageGenerationProviderAdapter,
@@ -322,6 +329,13 @@ describe('ImagesOperationsController', () => {
             generateImage: vi.fn().mockResolvedValue({
               imageBuffer: mockFrameBuffer,
             }),
+          },
+        },
+        {
+          provide: HiggsFieldService,
+          useValue: {
+            generateTextToImage: vi.fn(),
+            waitForImageCompletion: vi.fn(),
           },
         },
         {

@@ -29,6 +29,7 @@ import { VideosController } from '@api/collections/videos/controllers/videos.con
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -44,6 +45,7 @@ import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { ByokService } from '@api/services/byok/byok.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -400,6 +402,17 @@ describe('VideosController', () => {
           },
         },
         {
+          provide: HiggsFieldService,
+          useValue: {
+            generateImageToVideo: vi
+              .fn()
+              .mockResolvedValue({ requestId: 'higgsfield-req-1' }),
+            waitForCompletion: vi
+              .fn()
+              .mockResolvedValue({ videoUrl: 'https://cdn.test/video.mp4' }),
+          },
+        },
+        {
           provide: VideoMusicOrchestrationService,
           useValue: {
             addMusicToVideo: vi.fn().mockResolvedValue(undefined),
@@ -410,6 +423,7 @@ describe('VideosController', () => {
         // above. This catches constructor-dependency regressions that the
         // previous `new VideoGenerationService(...)` pattern silently missed.
         FalVideoGenerationProviderAdapter,
+        HiggsFieldVideoGenerationProviderAdapter,
         KlingAiVideoGenerationProviderAdapter,
         ReplicateVideoGenerationProviderAdapter,
         VideoGenerationCompletionService,
