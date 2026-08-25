@@ -3,13 +3,13 @@ import { useBrandCommands } from '@hooks/commands/use-brand-commands/use-brand-c
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockRegisterCommands = vi.fn();
-const mockUnregisterCommands = vi.fn();
+const mockRegisterCommand = vi.fn();
+const mockUnregisterCommand = vi.fn();
 
 vi.mock('@hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: vi.fn(() => ({
-    registerCommands: mockRegisterCommands,
-    unregisterCommands: mockUnregisterCommands,
+    registerCommand: mockRegisterCommand,
+    unregisterCommand: mockUnregisterCommand,
   })),
 }));
 
@@ -37,7 +37,7 @@ describe('useBrandCommands', () => {
       }),
     );
 
-    expect(mockRegisterCommands).toHaveBeenCalled();
+    expect(mockRegisterCommand).toHaveBeenCalled();
   });
 
   it('does not register commands when disabled', () => {
@@ -50,7 +50,7 @@ describe('useBrandCommands', () => {
       }),
     );
 
-    expect(mockRegisterCommands).not.toHaveBeenCalled();
+    expect(mockRegisterCommand).not.toHaveBeenCalled();
   });
 
   it('does not register commands when no brands', () => {
@@ -62,6 +62,6 @@ describe('useBrandCommands', () => {
       }),
     );
 
-    expect(mockRegisterCommands).not.toHaveBeenCalled();
+    expect(mockRegisterCommand).not.toHaveBeenCalled();
   });
 });

@@ -301,13 +301,11 @@ vi.mock('@services/core/command-palette.service', () => ({
     executeCommand: vi.fn(),
     getAllCommands: vi.fn(() => []),
     getRecentCommands: vi.fn(() => []),
-    registerCommand: vi.fn(),
-    registerCommands: vi.fn((commands: { id: string }[]): string[] =>
-      commands.map((command) => command.id),
+    registerCommand: vi.fn((command: { id: string } | { id: string }[]) =>
+      (Array.isArray(command) ? command : [command]).map((item) => item.id),
     ),
     searchCommands: vi.fn(() => []),
     unregisterCommand: vi.fn(),
-    unregisterCommands: vi.fn(),
   },
 }));
 

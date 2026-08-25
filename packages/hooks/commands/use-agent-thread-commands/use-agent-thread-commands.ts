@@ -31,7 +31,7 @@ export function useAgentThreadCommands({
   onNavigate,
   enabled = true,
 }: UseAgentThreadCommandsOptions): void {
-  const { registerCommands, unregisterCommands } = useCommandPalette();
+  const { registerCommand, unregisterCommand } = useCommandPalette();
 
   const previousCommandsRef = useRef<Map<string, ICommand>>(new Map());
 
@@ -59,7 +59,7 @@ export function useAgentThreadCommands({
 
     if (!enabled || commands.length === 0) {
       if (previousCommands.size > 0) {
-        unregisterCommands([...previousCommands.keys()]);
+        unregisterCommand([...previousCommands.keys()]);
       }
 
       previousCommandsRef.current = new Map();
@@ -97,24 +97,24 @@ export function useAgentThreadCommands({
     }
 
     if (removedIds.length > 0) {
-      unregisterCommands(removedIds);
+      unregisterCommand(removedIds);
     }
 
     if (nextToRegister.length > 0) {
-      registerCommands(nextToRegister);
+      registerCommand(nextToRegister);
     }
 
     previousCommandsRef.current = nextCommands;
-  }, [commands, enabled, registerCommands, unregisterCommands]);
+  }, [commands, enabled, registerCommand, unregisterCommand]);
 
   useEffect(() => {
     return () => {
       const registeredIds = [...previousCommandsRef.current.keys()];
       if (registeredIds.length > 0) {
-        unregisterCommands(registeredIds);
+        unregisterCommand(registeredIds);
       }
 
       previousCommandsRef.current = new Map();
     };
-  }, [unregisterCommands]);
+  }, [unregisterCommand]);
 }

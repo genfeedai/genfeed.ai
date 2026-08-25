@@ -8,7 +8,6 @@ const mockContext = {
   executeCommand: vi.fn(),
   open: vi.fn(),
   registerCommand: vi.fn(),
-  registerCommands: vi.fn(),
   selectNext: vi.fn(),
   selectPrevious: vi.fn(),
   setQuery: vi.fn(),
@@ -21,7 +20,6 @@ const mockContext = {
   },
   toggle: vi.fn(),
   unregisterCommand: vi.fn(),
-  unregisterCommands: vi.fn(),
 };
 
 let mockContextValue: typeof mockContext | null = mockContext;
@@ -145,12 +143,6 @@ describe('useCommandPalette', () => {
 
       expect(typeof result.current.unregisterCommand).toBe('function');
     });
-
-    it('provides registerCommands method for batch registration', () => {
-      const { result } = renderHook(() => useCommandPalette());
-
-      expect(typeof result.current.registerCommands).toBe('function');
-    });
   });
 
   describe('Navigation Methods', () => {
@@ -179,7 +171,6 @@ describe('useCommandPalette', () => {
       expect(result.current).toHaveProperty('executeCommand');
       expect(result.current).toHaveProperty('registerCommand');
       expect(result.current).toHaveProperty('unregisterCommand');
-      expect(result.current).toHaveProperty('registerCommands');
       expect(result.current).toHaveProperty('selectNext');
       expect(result.current).toHaveProperty('selectPrevious');
     });

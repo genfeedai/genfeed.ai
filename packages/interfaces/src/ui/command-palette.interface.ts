@@ -50,10 +50,8 @@ export interface ICommandPaletteContext {
   toggle: () => void;
   setQuery: (query: string) => void;
   executeCommand: (commandId: string) => void;
-  registerCommand: (command: ICommand) => void;
-  unregisterCommand: (commandId: string) => void;
-  registerCommands: (commands: ICommand[]) => void;
-  unregisterCommands: (commandIds: string[]) => void;
+  registerCommand: (command: ICommand | readonly ICommand[]) => string[];
+  unregisterCommand: (commandId: string | readonly string[]) => void;
   selectNext: () => void;
   selectPrevious: () => void;
 }

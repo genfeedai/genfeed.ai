@@ -14,7 +14,7 @@ vi.mock('@genfeedai/services/core/commands.registry', () => ({
 
 vi.mock('@genfeedai/services/core/command-palette.service', () => ({
   CommandPaletteService: {
-    unregisterCommands: vi.fn(),
+    unregisterCommand: vi.fn(),
   },
 }));
 
@@ -110,8 +110,8 @@ describe('useDefaultCommandsRegistration', () => {
 
     unmount();
 
-    expect(CommandPaletteService.unregisterCommands).toHaveBeenCalledTimes(1);
-    expect(CommandPaletteService.unregisterCommands).toHaveBeenCalledWith(
+    expect(CommandPaletteService.unregisterCommand).toHaveBeenCalledTimes(1);
+    expect(CommandPaletteService.unregisterCommand).toHaveBeenCalledWith(
       DEFAULT_COMMAND_IDS,
     );
   });
@@ -126,7 +126,7 @@ describe('useDefaultCommandsRegistration', () => {
     });
 
     first.unmount();
-    expect(CommandPaletteService.unregisterCommands).toHaveBeenCalledWith(
+    expect(CommandPaletteService.unregisterCommand).toHaveBeenCalledWith(
       DEFAULT_COMMAND_IDS,
     );
 
@@ -138,7 +138,7 @@ describe('useDefaultCommandsRegistration', () => {
     // Every registration is paired with a cleanup — nothing left behind
     // to collide with, so the service never warns.
     second.unmount();
-    expect(CommandPaletteService.unregisterCommands).toHaveBeenCalledTimes(2);
+    expect(CommandPaletteService.unregisterCommand).toHaveBeenCalledTimes(2);
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
@@ -168,7 +168,7 @@ describe('useDefaultCommandsRegistration', () => {
       );
     });
 
-    expect(CommandPaletteService.unregisterCommands).toHaveBeenCalledWith(
+    expect(CommandPaletteService.unregisterCommand).toHaveBeenCalledWith(
       DEFAULT_COMMAND_IDS,
     );
   });
@@ -193,6 +193,6 @@ describe('useDefaultCommandsRegistration', () => {
 
     unmount();
 
-    expect(CommandPaletteService.unregisterCommands).not.toHaveBeenCalled();
+    expect(CommandPaletteService.unregisterCommand).not.toHaveBeenCalled();
   });
 });

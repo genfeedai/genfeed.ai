@@ -17,42 +17,25 @@ class CommandPaletteServiceClass {
   }
 
   /**
-   * Register a single command
-   */
-  registerCommand(command: ICommand, skipLog: boolean = false): void {
-    if (this.commands.has(command.id)) {
-      logger.warn('Command already registered', {
-        commandId: command.id,
-      });
-
-      return;
-    }
-
-    this.commands.set(command.id, command);
-
-    if (!skipLog) {
-      logger.debug('Command registered', { commandId: command.id });
-    }
-  }
-
-  /**
-   * Register multiple commands
+   * Register one command or a batch.
    *
-   * Returns the ids that were actually registered (already-registered ids
-   * are skipped) so callers can unregister exactly what they own on cleanup.
+   * Returns the ids that were actually added (already-registered ids are
+   * skipped) so callers can unregister exactly what they own on cleanup.
    */
-  registerCommands(commands: ICommand[]): string[] {
+  registerCommand(command: ICommand | readonly ICommand[]): string[] {
+    const commands = Array.isArray(command) ? command : [command];
     const registeredIds: string[] = [];
     const skippedIds: string[] = [];
 
-    commands.forEach((command) => {
-      if (this.commands.has(command.id)) {
-        skippedIds.push(command.id);
-      } else {
-        this.commands.set(command.id, command);
-        registeredIds.push(command.id);
+    for (const next of commands) {
+      if (this.commands.has(next.id)) {
+        skippedIds.push(next.id);
+        continue;
       }
-    });
+
+      this.commands.set(next.id, next);
+      registeredIds.push(next.id);
+    }
 
     if (registeredIds.length > 0) {
       logger.debug('Commands registered', {
@@ -72,34 +55,20 @@ class CommandPaletteServiceClass {
   }
 
   /**
-   * Unregister a command
+   * Unregister one command id or a batch. Missing ids are a no-op.
    */
-  unregisterCommand(commandId: string): void {
-    if (!this.commands.has(commandId)) {
-      logger.debug('Command not found for unregistration', {
-        commandId,
-      });
-      return;
-    }
-
-    this.commands.delete(commandId);
-    logger.debug('Command unregistered', { commandId });
-  }
-
-  /**
-   * Unregister multiple commands
-   */
-  unregisterCommands(commandIds: string[]): void {
+  unregisterCommand(commandId: string | readonly string[]): void {
+    const commandIds = typeof commandId === 'string' ? [commandId] : commandId;
     const removedIds: string[] = [];
     const missingIds: string[] = [];
 
-    commandIds.forEach((commandId) => {
-      if (this.commands.delete(commandId)) {
-        removedIds.push(commandId);
+    for (const id of commandIds) {
+      if (this.commands.delete(id)) {
+        removedIds.push(id);
       } else {
-        missingIds.push(commandId);
+        missingIds.push(id);
       }
-    });
+    }
 
     if (removedIds.length > 0) {
       logger.debug('Commands unregistered', {

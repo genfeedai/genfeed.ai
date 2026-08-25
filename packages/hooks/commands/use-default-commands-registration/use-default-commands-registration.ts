@@ -30,7 +30,7 @@ export function useDefaultCommandsRegistration(): void {
     // emits "Commands already registered" warnings.
     return () => {
       if (registeredCommandIds.length > 0) {
-        CommandPaletteService.unregisterCommands(registeredCommandIds);
+        CommandPaletteService.unregisterCommand(registeredCommandIds);
       }
     };
   }, [orgSlug, brandSlug]);

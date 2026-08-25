@@ -154,55 +154,42 @@ export function CommandPaletteProvider({
     }));
   }, []);
 
-  const registerCommand = useCallback((command: ICommand) => {
-    CommandPaletteService.registerCommand(command);
-    const commands = CommandPaletteService.getAllCommands();
-    setState((prev) => ({
-      ...prev,
-      commands,
-    }));
-  }, []);
+  const registerCommand = useCallback(
+    (command: ICommand | readonly ICommand[]) => {
+      const registeredIds = CommandPaletteService.registerCommand(command);
+      const commands = CommandPaletteService.getAllCommands();
+      setState((prev) => ({
+        ...prev,
+        commands,
+      }));
+      return registeredIds;
+    },
+    [],
+  );
 
-  const unregisterCommand = useCallback((commandId: string) => {
-    CommandPaletteService.unregisterCommand(commandId);
-    const commands = CommandPaletteService.getAllCommands();
-    setState((prev) => ({
-      ...prev,
-      commands,
-    }));
-  }, []);
-
-  const registerCommands = useCallback((commands: ICommand[]) => {
-    CommandPaletteService.registerCommands(commands);
-    const allCommands = CommandPaletteService.getAllCommands();
-    setState((prev) => ({
-      ...prev,
-      commands: allCommands,
-    }));
-  }, []);
-
-  const unregisterCommands = useCallback((commandIds: string[]) => {
-    CommandPaletteService.unregisterCommands(commandIds);
-    const allCommands = CommandPaletteService.getAllCommands();
-    setState((prev) => ({
-      ...prev,
-      commands: allCommands,
-    }));
-  }, []);
+  const unregisterCommand = useCallback(
+    (commandId: string | readonly string[]) => {
+      CommandPaletteService.unregisterCommand(commandId);
+      const commands = CommandPaletteService.getAllCommands();
+      setState((prev) => ({
+        ...prev,
+        commands,
+      }));
+    },
+    [],
+  );
 
   const value: ICommandPaletteContext = {
     close,
     executeCommand,
     open,
     registerCommand,
-    registerCommands,
     selectNext,
     selectPrevious,
     setQuery,
     state,
     toggle,
     unregisterCommand,
-    unregisterCommands,
   };
 
   return (
