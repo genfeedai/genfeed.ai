@@ -6,13 +6,16 @@ import { brandPath } from '../../utils/app-chrome';
 /**
  * Onboarding Flow E2E Tests
  *
- * Covers the shipped 3-step wizard: brand → providers → summary.
+ * Web onboarding is agent-first: brand is the only wizard screen a cloud
+ * operator is walked through, and continuing from it hands off to the
+ * `/agent/onboarding` conversation. Providers and summary remain reachable as
+ * their own destinations for Desktop and for operators who come back to them.
  * All API calls are mocked via onboarding.fixture.ts.
  */
 
 test.describe('Onboarding Flow', () => {
   test.describe('Happy Path (Full Flow)', () => {
-    test('should complete all 3 steps from the brand start', async ({
+    test('should hand off to the agent after brand, then finish the wizard tail', async ({
       onboardingPage,
     }) => {
       const page = new OnboardingPage(onboardingPage);
@@ -25,10 +28,12 @@ test.describe('Onboarding Flow', () => {
       await page.clickContinue();
       await onboardingPage.waitForLoadState('domcontentloaded');
 
-      await page.waitForStep(2);
-      await expect(onboardingPage).toHaveURL(
-        /\/onboarding\/providers(?:[/?#]|$)/,
-      );
+      await page.assertAgentHandoff();
+
+      // Completing brand first is what unlocks `/workspace` at the end of this
+      // spec — the guard gates on that step, not on the whole wizard.
+      await page.goto('providers');
+      await page.assertOnStep(2);
 
       await page.continueWithServerDefaults();
       await page.assertOnStep(3);
@@ -77,7 +82,7 @@ test.describe('Onboarding Flow', () => {
       await expect(page.continueButton).toBeDisabled();
     });
 
-    test('should continue to providers with brand and organization', async ({
+    test('should hand off to the agent with brand and organization', async ({
       onboardingPage,
     }) => {
       const page = new OnboardingPage(onboardingPage);
@@ -89,7 +94,7 @@ test.describe('Onboarding Flow', () => {
       });
       await page.clickContinue();
 
-      await expect(onboardingPage).toHaveURL(/\/onboarding\/providers/);
+      await page.assertAgentHandoff();
     });
 
     test('should allow skipping brand setup', async ({ onboardingPage }) => {
@@ -97,8 +102,10 @@ test.describe('Onboarding Flow', () => {
       await page.waitForStep(1);
       await page.skipStep();
 
+      // Skip completes the brand gate rather than abandoning it, so web lands
+      // on the agent handoff and Desktop on the next wizard screen.
       await expect(onboardingPage).toHaveURL(
-        /\/onboarding\/(providers|success|summary)|\/workspace|^https?:\/\/[^/]+\/?$/,
+        /\/agent\/onboarding|\/onboarding\/(providers|success|summary)|\/workspace|^https?:\/\/[^/]+\/?$/,
       );
     });
   });

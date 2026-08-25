@@ -1,5 +1,10 @@
 import { APP_ROUTES } from '@genfeedai/constants';
-import { type BrowserContext, test as base, type Page } from '@playwright/test';
+import {
+  type BrowserContext,
+  test as base,
+  type Page,
+  type Request,
+} from '@playwright/test';
 import {
   generateMockApiUser,
   generateMockBrand,
@@ -26,10 +31,18 @@ import { setupStrictNetworkGuard } from '../utils/network-guard';
 
 interface OnboardingFixtures {
   /**
-   * A page with mocked authentication for an onboarding user
-   * (isOnboardingCompleted = false, onboardingStepsCompleted = [])
+   * A page with mocked authentication for an onboarding user that starts at
+   * `onboardingStepsCompleted: []` and *remembers* every step the app saves.
+   * A stateless mock re-served an empty step list after the brand step, so
+   * `OnboardingGuard` bounced the agent handoff straight back to
+   * `/onboarding/brand` — the shipped app never does that.
    */
   onboardingPage: Page;
+}
+
+/** Per-page onboarding progress recorded from the app's own PATCH calls. */
+interface OnboardingProgressState {
+  completedSteps: string[];
 }
 
 // ----------------------------------------------------------------------------
@@ -47,7 +60,7 @@ const MOCK_SESSION = {
 // Onboarding-Specific Mock Data
 // ----------------------------------------------------------------------------
 
-function generateOnboardingMockUser() {
+function generateOnboardingMockUser(completedSteps: readonly string[] = []) {
   return {
     ...generateMockUser({
       email: 'onboarding@genfeed.ai',
@@ -58,9 +71,36 @@ function generateOnboardingMockUser() {
     avatar: null,
     handle: '',
     isOnboardingCompleted: false,
-    onboardingStepsCompleted: [],
+    onboardingStepsCompleted: [...completedSteps],
     onboardingType: null,
   };
+}
+
+/**
+ * Reads the step list off an onboarding PATCH. The request has no body on
+ * some calls, and `postDataJSON()` throws rather than returning null there.
+ */
+function readCompletedSteps(request: Request): string[] | null {
+  let body: unknown;
+
+  try {
+    body = request.postDataJSON();
+  } catch {
+    return null;
+  }
+
+  if (!body || typeof body !== 'object') {
+    return null;
+  }
+
+  const steps = (body as { onboardingStepsCompleted?: unknown })
+    .onboardingStepsCompleted;
+
+  if (!Array.isArray(steps)) {
+    return null;
+  }
+
+  return steps.filter((step): step is string => typeof step === 'string');
 }
 
 const MOCK_BRAND_SCRAPE_RESPONSE = {
@@ -78,7 +118,7 @@ const MOCK_BRAND_SCRAPE_RESPONSE = {
   success: true,
 };
 
-function buildOnboardingBootstrapPayload() {
+function buildOnboardingBootstrapPayload(completedSteps: readonly string[]) {
   const organization = generateMockOrganization({
     id: MOCK_SESSION.organizationId,
     name: 'Test Organization',
@@ -106,6 +146,7 @@ function buildOnboardingBootstrapPayload() {
     currentUser: generateMockApiUser({
       id: MOCK_SESSION.userId,
       isOnboardingCompleted: false,
+      onboardingStepsCompleted: [...completedSteps],
     }),
     fleetCapabilities: generateMockFleetCapabilities(),
     settings: generateMockOrganizationSettings(),
@@ -160,9 +201,10 @@ async function setupBetterAuthMocksForOnboarding(page: Page): Promise<void> {
   });
 }
 
-async function setupOnboardingApiMocks(page: Page): Promise<void> {
-  const mockUser = generateOnboardingMockUser();
-
+async function setupOnboardingApiMocks(
+  page: Page,
+  state: OnboardingProgressState,
+): Promise<void> {
   // --- Onboarding-specific routes (registered BEFORE generic setupApiMocks) ---
 
   // POST /onboarding/account-type
@@ -214,8 +256,19 @@ async function setupOnboardingApiMocks(page: Page): Promise<void> {
     const method = route.request().method();
 
     if (method === 'PATCH' || method === 'PUT') {
+      const savedSteps = readCompletedSteps(route.request());
+
+      if (savedSteps) {
+        state.completedSteps = savedSteps;
+      }
+
       await route.fulfill({
-        body: JSON.stringify({ success: true }),
+        body: JSON.stringify({
+          isOnboardingCompleted: false,
+          onboardingStepsCompleted: state.completedSteps,
+          onboardingType: null,
+          success: true,
+        }),
         contentType: 'application/json',
         status: 200,
       });
@@ -225,7 +278,7 @@ async function setupOnboardingApiMocks(page: Page): Promise<void> {
     await route.fulfill({
       body: JSON.stringify({
         isOnboardingCompleted: false,
-        onboardingStepsCompleted: [],
+        onboardingStepsCompleted: state.completedSteps,
         onboardingType: null,
       }),
       contentType: 'application/json',
@@ -236,6 +289,7 @@ async function setupOnboardingApiMocks(page: Page): Promise<void> {
   // PATCH /users/me
   await page.route('**/api.genfeed.ai/*/users/me', async (route) => {
     const method = route.request().method();
+    const mockUser = generateOnboardingMockUser(state.completedSteps);
 
     if (method === 'PATCH' || method === 'PUT') {
       await route.fulfill({
@@ -443,6 +497,10 @@ export const test = base.extend<OnboardingFixtures>({
   onboardingPage: async ({ page, context }, runFixture) => {
     const networkGuard = await setupStrictNetworkGuard(page);
 
+    // Per-page, so a test that walks the flow cannot leak completed steps into
+    // the next one.
+    const progressState: OnboardingProgressState = { completedSteps: [] };
+
     // Set up authentication cookies
     await setupAuthCookies(context);
 
@@ -453,13 +511,15 @@ export const test = base.extend<OnboardingFixtures>({
     await setupBetterAuthMocksForOnboarding(page);
 
     // Set up onboarding-specific API mocks FIRST (higher priority)
-    await setupOnboardingApiMocks(page);
+    await setupOnboardingApiMocks(page, progressState);
 
     // Set up generic API mocks (lower priority fallback)
     await setupApiMocks(page, {
       '**/auth/bootstrap**': async (route) => {
         await route.fulfill({
-          body: JSON.stringify(buildOnboardingBootstrapPayload()),
+          body: JSON.stringify(
+            buildOnboardingBootstrapPayload(progressState.completedSteps),
+          ),
           contentType: 'application/json',
           status: 200,
         });

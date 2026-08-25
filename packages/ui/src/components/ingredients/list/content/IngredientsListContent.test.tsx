@@ -127,6 +127,16 @@ const videoIngredient = {
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
 
+const musicIngredient = {
+  category: IngredientCategory.MUSIC,
+  createdAt: new Date().toISOString(),
+  id: 'music-1',
+  ingredientUrl: 'https://cdn.genfeed.ai/mock/theme.mp3',
+  metadataLabel: 'Opening Theme',
+  status: 'GENERATED',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
 describe('IngredientsListContent', () => {
   it('renders avatar rows in the table view', () => {
     renderContent();
@@ -185,6 +195,27 @@ describe('IngredientsListContent', () => {
       baseIngredient,
     );
     expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
+  it('names the empty audio library instead of rendering a blank pane', () => {
+    renderContent({
+      filteredIngredients: [],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+    });
+
+    expect(screen.getByText('No music yet')).toBeInTheDocument();
+  });
+
+  it('still lists audio ingredients when the library has some', () => {
+    renderContent({
+      filteredIngredients: [musicIngredient],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+    });
+
+    expect(screen.getByText('Opening Theme')).toBeInTheDocument();
+    expect(screen.queryByText('No music yet')).toBeNull();
   });
 });
 

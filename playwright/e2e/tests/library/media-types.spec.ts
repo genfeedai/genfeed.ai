@@ -99,9 +99,14 @@ test.describe('Library Media Types', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.MUSIC));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
+      // Every Library destination renders the same asset list and puts the type
+      // on the query string, so a music route lists its tracks as rows rather
+      // than as the standalone sound player. `Ambient Loop` is the MUSIC entry
+      // the library fixture serves for `categories=MUSIC`.
+      // @see .agents/memory/feedback_library_information_architecture.md
       await expect(
         authenticatedPage
-          .getByTestId('ingredient-sound-item')
+          .getByText('Ambient Loop')
           .or(
             authenticatedPage.getByText(
               /no (music|tracks|results found)|could not be loaded/i,

@@ -75,62 +75,35 @@ test.describe('Content Library', () => {
   });
 
   test.describe('Navigation', () => {
-    test('should navigate between library sections', async ({
+    // Destinations live in the nav; asset type is a filter chip on the browser
+    // toolbar and never a tab, so navigation is asserted through the sidebar
+    // places rather than through type routes.
+    // @see .agents/memory/feedback_library_information_architecture.md
+    test('should navigate between library destinations', async ({
       authenticatedPage,
     }) => {
       await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      // Navigate to assets
-      const assetsLink = authenticatedPage.locator(
-        'a[href*="library/videos"],' +
-          ' button:has-text("Assets"),' +
-          ' [data-testid="assets-tab"]',
+      const rail = authenticatedPage.getByTestId('desktop-sidebar-rail');
+
+      await rail.getByRole('link', { name: 'Recent' }).click();
+      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${APP_ROUTES.LIBRARY.RECENT}(?:[/?#]|$)`),
       );
-      const hasLink = await assetsLink
-        .first()
-        .isVisible()
-        .catch(() => false);
 
-      if (hasLink) {
-        await assetsLink.first().click();
-        await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/videos/);
-      }
-
-      // Navigate to mood board
-      const moodBoardLink = authenticatedPage.locator(
-        'a[href*="library/moodboard"],' +
-          ' button:has-text("Mood board"),' +
-          ' [data-testid="moodboard-tab"]',
+      await rail.getByRole('link', { name: 'Starred' }).click();
+      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${APP_ROUTES.LIBRARY.STARRED}(?:[/?#]|$)`),
       );
-      const hasMoodBoardLink = await moodBoardLink
-        .first()
-        .isVisible()
-        .catch(() => false);
 
-      if (hasMoodBoardLink) {
-        await moodBoardLink.first().click();
-        await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/moodboard/);
-      }
-
-      // Navigate to avatars
-      const avatarsLink = authenticatedPage.locator(
-        'a[href*="library/avatars"],' +
-          ' button:has-text("Avatars"),' +
-          ' [data-testid="avatars-tab"]',
+      await rail.getByRole('link', { name: 'All assets' }).click();
+      await authenticatedPage.waitForLoadState('domcontentloaded');
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`${APP_ROUTES.LIBRARY.ASSETS}(?:[/?#]|$)`),
       );
-      const hasAvatarsLink = await avatarsLink
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      if (hasAvatarsLink) {
-        await avatarsLink.first().click();
-        await authenticatedPage.waitForLoadState('domcontentloaded');
-        await expect(authenticatedPage).toHaveURL(/avatars/);
-      }
     });
   });
 
