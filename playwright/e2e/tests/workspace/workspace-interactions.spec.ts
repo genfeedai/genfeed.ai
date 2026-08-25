@@ -120,9 +120,9 @@ test.describe('Workspace — deep interactions', () => {
       authenticatedPage.getByTestId('workspace-new-task'),
     ).toHaveCount(0);
 
-    const primaryAction = authenticatedPage.getByTestId(
-      'sidebar-primary-action',
-    );
+    const primaryAction = authenticatedPage.getByRole('button', {
+      name: 'New Task',
+    });
     await expect(primaryAction).toBeVisible();
     await primaryAction.click();
     await expect(authenticatedPage.getByRole('dialog')).toBeVisible();

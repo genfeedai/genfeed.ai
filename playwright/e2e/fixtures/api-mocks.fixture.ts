@@ -1,4 +1,4 @@
-import { PostStatus } from '@genfeedai/enums';
+import { IngredientCategory, PostStatus } from '@genfeedai/enums';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {
@@ -3630,6 +3630,7 @@ export async function mockLibraryData(page: Page): Promise<void> {
           data: [
             {
               attributes: {
+                category: IngredientCategory.IMAGE,
                 createdAt: new Date().toISOString(),
                 name: 'Product Photo',
                 type: 'image',

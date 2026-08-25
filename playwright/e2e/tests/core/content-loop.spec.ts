@@ -153,9 +153,14 @@ test.describe('Core Content Loop', () => {
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);
     await postsPage.gotoCalendar();
-    await expect(
-      authenticatedPage.getByRole('heading', { name: 'Calendar' }),
-    ).toBeVisible();
+    // Calendar's <h1> is deliberately sr-only under
+    // ADR-CONVERSATION-SHELL-CONTRACTS v3.2 — the topbar breadcrumb owns
+    // visible page identity. Assert the breadcrumb, matching the Overview
+    // check earlier in this file (nightly full tier, #2982).
+    const calendarBreadcrumb = authenticatedPage.getByRole('navigation', {
+      name: 'Breadcrumb',
+    });
+    await expect(calendarBreadcrumb).toContainText('Calendar');
 
     await analyticsPage.goto();
     await expect(analyticsPage.mainContent).toBeVisible();
