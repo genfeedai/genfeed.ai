@@ -491,11 +491,13 @@ describe('EditorPageContent', () => {
       }),
     );
     act(() => {
-      mocks.openGallery.mock.calls.at(-1)?.[0].onSelect({
-        id: 'video-2',
-        metadataDuration: 4,
-        thumbnailUrl: 'video-thumb.jpg',
-      });
+      mocks.openGallery.mock.calls.at(-1)?.[0].onSelect([
+        {
+          id: 'video-2',
+          metadataDuration: 4,
+          thumbnailUrl: 'video-thumb.jpg',
+        },
+      ]);
     });
 
     await waitFor(() => expect(screen.getByText('dirty:true')).toBeVisible());
@@ -514,10 +516,12 @@ describe('EditorPageContent', () => {
       }),
     );
     act(() => {
-      mocks.openGallery.mock.calls.at(-1)?.[0].onSelect({
-        id: 'audio-1',
-        metadataDuration: 8,
-      });
+      mocks.openGallery.mock.calls.at(-1)?.[0].onSelect([
+        {
+          id: 'audio-1',
+          metadataDuration: 8,
+        },
+      ]);
     });
 
     await waitFor(() => expect(screen.getByText('dirty:true')).toBeVisible());
