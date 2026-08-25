@@ -68,9 +68,7 @@ export function usePromptBarReferences(
   const hasInitializedReferencesRef = useRef(false);
 
   const handleReferenceSelect = useCallback(
-    (selection: (IAsset | IImage)[] | null) => {
-      const selectedArray = selection ?? [];
-
+    (selectedArray: (IAsset | IImage)[]) => {
       if (
         currentModelCategory === ModelCategory.VIDEO &&
         selectedArray.length > 0

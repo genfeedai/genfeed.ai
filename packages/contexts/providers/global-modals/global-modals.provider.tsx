@@ -69,7 +69,7 @@ export interface GlobalModalsContextValue {
   closeUpload: () => void;
   openGallery: (config: {
     category: IngredientCategory;
-    onSelect: (items: GallerySelectItem[] | null) => void;
+    onSelect: (items: GallerySelectItem[]) => void;
     title?: string;
     selectedId?: string;
     format?: string;

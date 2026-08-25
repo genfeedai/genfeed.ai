@@ -211,7 +211,7 @@ describe('usePostDetailMedia', () => {
     const options = mockOpenGallery.mock.calls[0][0] as GalleryOptions;
 
     await act(async () => {
-      await options.onSelect(null);
+      await options.onSelect([]);
     });
 
     expect(mockServicePatch).toHaveBeenCalledWith('post-1', {
@@ -230,7 +230,7 @@ describe('usePostDetailMedia', () => {
     const options = mockOpenGallery.mock.calls[0][0] as GalleryOptions;
 
     await act(async () => {
-      await options.onSelect(null);
+      await options.onSelect([]);
     });
 
     expect(mockHandleUpdateChild).toHaveBeenCalledWith('child-1', {

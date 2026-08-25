@@ -182,8 +182,8 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     );
   };
 
-  const handleReferenceSelect = (assets: (IAsset | IImage)[] | null) => {
-    if (!assets || assets.length === 0) {
+  const handleReferenceSelect = (assets: (IAsset | IImage)[]) => {
+    if (assets.length === 0) {
       setReferences([], '');
       return;
     }
@@ -232,7 +232,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
       format: watchedFormat,
       maxSelectableItems: 1,
       onSelect: (assets) => {
-        const selectedAsset = assets?.[0];
+        const selectedAsset = assets[0];
         if (selectedAsset?.id) {
           onEndFrameChange(selectedAsset);
           form.setValue('endFrame', selectedAsset.id, { shouldValidate: true });

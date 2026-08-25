@@ -56,7 +56,7 @@ export interface ModalGalleryFooterProps {
   selectedItem: string;
   isNoneAllowed: boolean;
   onClear: () => void;
-  onSelect: (items: (IAsset | IImage | IMusic | IVideo)[] | null) => void;
+  onSelect: (items: (IAsset | IImage | IMusic | IVideo)[]) => void;
   onSelectAccountReference?: (assets: IAsset[]) => void;
   onClose: () => void;
   onConfirm: () => void;

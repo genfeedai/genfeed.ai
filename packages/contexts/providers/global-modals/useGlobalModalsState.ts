@@ -88,7 +88,7 @@ export function useGlobalModalsState() {
   const [galleryConfig, setGalleryConfig] = useState<{
     isOpen: boolean;
     category: IngredientCategory;
-    onSelect: (items: GallerySelectItem[] | null) => void;
+    onSelect: (items: GallerySelectItem[]) => void;
     title?: string;
     selectedId?: string;
     format?: string;
@@ -243,7 +243,7 @@ export function useGlobalModalsState() {
   const openGallery = useCallback(
     (config: {
       category: IngredientCategory;
-      onSelect: (items: GallerySelectItem[] | null) => void;
+      onSelect: (items: GallerySelectItem[]) => void;
       title?: string;
       selectedId?: string;
       format?: string;

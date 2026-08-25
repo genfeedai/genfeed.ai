@@ -247,7 +247,7 @@ describe('ModalGalleryFooter', () => {
     expect(screen.getByText('Clear')).toBeInTheDocument();
   });
 
-  it('calls onSelect with null when music clear is clicked', async () => {
+  it('calls onSelect with an empty array when music clear is clicked', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     render(
@@ -260,7 +260,7 @@ describe('ModalGalleryFooter', () => {
     );
     const clearButton = screen.getByText('Clear');
     await user.click(clearButton);
-    expect(onSelect).toHaveBeenCalledWith(null);
+    expect(onSelect).toHaveBeenCalledWith([]);
   });
 
   it('calls onConfirm when music confirm is clicked', async () => {

@@ -75,32 +75,30 @@ export function useNodeActions() {
   const duplicateNode = useWorkflowStore(selectDuplicateNode);
   const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
 
-  const deleteNode = useCallback(
-    (nodeId: string) => {
-      removeNode(nodeId);
+  const deleteNodes = useCallback(
+    (nodeIds: string[]) => {
+      for (const nodeId of nodeIds) {
+        removeNode(nodeId);
+      }
     },
     [removeNode],
   );
 
-  const duplicate = useCallback(
-    (nodeId: string) => {
-      return duplicateNode(nodeId);
+  const duplicateNodes = useCallback(
+    (nodeIds: string[]) => {
+      const newIds: string[] = [];
+      for (const nodeId of nodeIds) {
+        const newId = duplicateNode(nodeId);
+        if (newId) {
+          newIds.push(newId);
+        }
+      }
+      return newIds;
     },
     [duplicateNode],
   );
 
-  const copyNode = useCallback(
-    (nodeId: string) => {
-      const node = nodes.find((n) => n.id === nodeId);
-      if (node) {
-        // Copy the node and any edges between copied nodes (just one node here)
-        setClipboard({ edges: [], isCut: false, nodes: [node] });
-      }
-    },
-    [nodes],
-  );
-
-  const copyMultipleNodes = useCallback(
+  const copyNodes = useCallback(
     (nodeIds: string[]) => {
       const nodeSet = new Set(nodeIds);
       const nodesToCopy = nodes.filter((n) => nodeSet.has(n.id));
@@ -115,18 +113,7 @@ export function useNodeActions() {
     [nodes, edges],
   );
 
-  const cutNode = useCallback(
-    (nodeId: string) => {
-      const node = nodes.find((n) => n.id === nodeId);
-      if (node) {
-        setClipboard({ edges: [], isCut: true, nodes: [node] });
-        removeNode(nodeId);
-      }
-    },
-    [nodes, removeNode],
-  );
-
-  const cutMultipleNodes = useCallback(
+  const cutNodes = useCallback(
     (nodeIds: string[]) => {
       const nodeSet = new Set(nodeIds);
       const nodesToCut = nodes.filter((n) => nodeSet.has(n.id));
@@ -141,29 +128,6 @@ export function useNodeActions() {
       }
     },
     [nodes, edges, removeNode],
-  );
-
-  const deleteMultipleNodes = useCallback(
-    (nodeIds: string[]) => {
-      for (const nodeId of nodeIds) {
-        removeNode(nodeId);
-      }
-    },
-    [removeNode],
-  );
-
-  const duplicateMultipleNodes = useCallback(
-    (nodeIds: string[]) => {
-      const newIds: string[] = [];
-      for (const nodeId of nodeIds) {
-        const newId = duplicateNode(nodeId);
-        if (newId) {
-          newIds.push(newId);
-        }
-      }
-      return newIds;
-    },
-    [duplicateNode],
   );
 
   /**
@@ -217,14 +181,10 @@ export function useNodeActions() {
 
   return {
     clipboard,
-    copyMultipleNodes,
-    copyNode,
-    cutMultipleNodes,
-    cutNode,
-    deleteMultipleNodes,
-    deleteNode,
-    duplicate,
-    duplicateMultipleNodes,
+    copyNodes,
+    cutNodes,
+    deleteNodes,
+    duplicateNodes,
     getPasteData,
     pasteNodes,
   };
