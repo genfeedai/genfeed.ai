@@ -302,6 +302,7 @@ describe('ThreadsPublisherService', () => {
     it('should publish media children as replies', async () => {
       const context = {
         brandId: 'brand-1',
+        credential: { id: 'credential-threads-1' },
         organizationId: 'org-1',
         postId: 'post-1',
       } as never;
@@ -332,13 +333,14 @@ describe('ThreadsPublisherService', () => {
         'https://assets.test/videos/video-1',
         'Video reply',
         'parent-thread-id',
-        undefined,
+        'credential-threads-1',
       );
     });
 
     it('should publish TEXT children as replies in order', async () => {
       const context = {
         brandId: 'brand-1',
+        credential: { id: 'credential-threads-1' },
         organizationId: 'org-1',
         postId: 'post-1',
       } as never;
@@ -376,7 +378,7 @@ describe('ThreadsPublisherService', () => {
         'brand-1',
         'First reply',
         'parent-thread-id',
-        undefined,
+        'credential-threads-1',
       );
       // Second call should reply to previous reply (chain)
       expect(mockThreadsService.publishText).toHaveBeenCalledWith(
@@ -384,7 +386,7 @@ describe('ThreadsPublisherService', () => {
         'brand-1',
         'Second reply',
         'reply-1',
-        undefined,
+        'credential-threads-1',
       );
       expect(mockPostsService.patch).toHaveBeenCalledTimes(2);
     });
@@ -392,6 +394,7 @@ describe('ThreadsPublisherService', () => {
     it('should mark child as failed when publishText fails', async () => {
       const context = {
         brandId: 'brand-1',
+        credential: { id: 'credential-threads-1' },
         organizationId: 'org-1',
         postId: 'post-1',
       } as never;

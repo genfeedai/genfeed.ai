@@ -247,6 +247,7 @@ describe('ThreadsService', () => {
         'org-1',
         'brand-1',
         'container-video-1',
+        undefined,
       );
       expect(result).toEqual({ threadId: 'thread-video-1' });
     });
@@ -303,6 +304,7 @@ describe('ThreadsService', () => {
         undefined,
         undefined,
         { altText: undefined, isCarouselItem: true },
+        undefined,
       );
       expect(service.createCarouselContainer).toHaveBeenCalledWith(
         'org-1',
@@ -310,6 +312,7 @@ describe('ThreadsService', () => {
         ['item-image-1', 'item-video-1'],
         'Carousel caption',
         'reply-1',
+        undefined,
       );
       expect(result).toEqual({ threadId: 'thread-carousel-1' });
     });
