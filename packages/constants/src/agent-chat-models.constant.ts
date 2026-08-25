@@ -26,6 +26,12 @@ export interface AgentChatModel {
   creditCostPerRound: number;
   costTier: CostTier;
   description: string;
+  /**
+   * Every route this key can pick costs $0, so billing zero credits is exact.
+   * Declared, never inferred from a zero `pricing`: an uncurated definition is
+   * also zero-priced, and treating that as free is how a round goes unbilled.
+   */
+  isFree?: boolean;
   isReasoning?: boolean;
   /** Self-hosted models run on our own fleet: platform cost, never per-user. */
   isSelfHosted?: boolean;
@@ -137,6 +143,8 @@ export const LLM_DEFAULTS = {
 interface AgentChatModelDefinition {
   brandSlug: string;
   description: string;
+  /** See {@link AgentChatModel.isFree} — only a $0-constrained route may set it. */
+  isFree?: boolean;
   isReasoning?: boolean;
   isSelfHosted?: boolean;
   key: AgentChatModelKey;
@@ -148,6 +156,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
   {
     brandSlug: 'openrouter',
     description: 'Free tier — $0 chat, rate-limited by OpenRouter',
+    isFree: true,
     key: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
     label: 'Auto (Free)',
     pricing: { completionPerMillion: 0, promptPerMillion: 0 },
@@ -261,11 +270,11 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
 
 export const AGENT_CHAT_MODELS: AgentChatModel[] =
   AGENT_CHAT_MODEL_DEFINITIONS.map((definition) => {
-    const isZeroPriced =
-      definition.pricing.promptPerMillion === 0 &&
-      definition.pricing.completionPerMillion === 0;
+    // Self-hosted rounds bill the platform, declared-free rounds bill nobody.
+    // Everything else goes through the pricing formula, whose 1-credit floor
+    // catches a definition that shipped without prices instead of gifting it.
     const creditCostPerRound =
-      definition.isSelfHosted || isZeroPriced
+      definition.isSelfHosted || definition.isFree
         ? 0
         : calculateAgentRoundCredits(definition.pricing);
 
