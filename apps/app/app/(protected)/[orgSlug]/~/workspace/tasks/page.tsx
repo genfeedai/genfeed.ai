@@ -1,4 +1,4 @@
 export {
   default,
   generateMetadata,
-} from '../../../../[brandSlug]/workspace/tasks/page';
+} from '../../../[brandSlug]/workspace/tasks/page';

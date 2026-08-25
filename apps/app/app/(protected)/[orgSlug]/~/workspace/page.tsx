@@ -1,1 +1,1 @@
-export { default } from '../../../[brandSlug]/workspace/page';
+export { default } from '../../[brandSlug]/workspace/page';

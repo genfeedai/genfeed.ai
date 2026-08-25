@@ -1,1 +1,1 @@
-export { default } from '../../../../[brandSlug]/workspace/tasks/layout';
+export { default } from '../../../[brandSlug]/workspace/tasks/layout';
