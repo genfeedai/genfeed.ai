@@ -26,7 +26,7 @@ import { Injectable } from '@nestjs/common';
 export class ApifyRunBudgetService {
   /**
    * Conservative enough to stay inside the entry-level Apify plan: the audit in
-   * #3572 measured ~1,100 run attempts/day, roughly 7x what the plan sustains.
+   * #3574 measured ~1,100 run attempts/day, roughly 7x what the plan sustains.
    */
   private static readonly DEFAULT_MAX_RUNS_PER_HOUR = 25;
   private static readonly DEFAULT_MAX_RUNS_PER_DAY = 150;
