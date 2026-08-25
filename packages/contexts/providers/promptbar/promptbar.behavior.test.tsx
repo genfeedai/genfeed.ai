@@ -27,10 +27,16 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
     useAuthedServiceMock(factory),
 }));
 
+// The provider logs from inside the catalog `try`, so a double that omits the
+// level it calls throws a TypeError the catch swallows — every picker then
+// reports an empty catalog instead of a failed one. Mirror the real logger's
+// full surface (debug/error/info/warn) rather than the levels used today.
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
+    debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
