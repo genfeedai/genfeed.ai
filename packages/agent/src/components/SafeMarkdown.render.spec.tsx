@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { SafeMarkdown } from './SafeMarkdown';
 
 describe('SafeMarkdown rendering', () => {
@@ -38,6 +38,24 @@ describe('SafeMarkdown rendering', () => {
     expect(screen.getByText('first item')).toBeInTheDocument();
     expect(screen.getByText('ordered two')).toBeInTheDocument();
     expect(screen.getByText('const x = 1;')).toBeInTheDocument();
+  });
+
+  it('copies a code block to the clipboard from its copy button', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(
+      <SafeMarkdown content={['```ts', 'const x = 1;', '```'].join('\n')} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy code block' }));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('const x = 1;\n');
+    });
   });
 
   it('renders safe links with a hardened rel and strips unsafe hrefs', () => {
