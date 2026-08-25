@@ -305,9 +305,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let articleRoutes: MetadataRoute.Sitemap = [];
   try {
-    const articles = await PublicService.getInstance().findPublicArticles({
-      limit: 200,
-      page: 1,
+    const articles = await PublicService.getInstance().findAllPublicArticles({
       sortBy: 'publishedAt',
       sortOrder: 'desc',
     });

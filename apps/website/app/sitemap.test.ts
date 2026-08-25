@@ -2,16 +2,16 @@ import { launchArticleSlugs } from '@data/launch-articles.data';
 import type { Article } from '@models/content/article.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const findPublicArticles = vi.fn<() => Promise<Article[]>>();
+const findAllPublicArticles = vi.fn<() => Promise<Article[]>>();
 
 vi.mock('@services/external/public.service', () => ({
-  PublicService: { getInstance: () => ({ findPublicArticles }) },
+  PublicService: { getInstance: () => ({ findAllPublicArticles }) },
 }));
 
 const { default: sitemap, dynamic } = await import('./sitemap');
 
 beforeEach(() => {
-  findPublicArticles.mockReset();
+  findAllPublicArticles.mockReset();
 });
 
 describe('website sitemap', () => {
@@ -20,7 +20,7 @@ describe('website sitemap', () => {
   });
 
   it('keeps every launch article discoverable when the article API is unavailable', async () => {
-    findPublicArticles.mockRejectedValue(new Error('API unavailable'));
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
 
     const routes = await sitemap();
     const urls = new Set(routes.map((route) => route.url));
@@ -32,7 +32,7 @@ describe('website sitemap', () => {
   });
 
   it('merges API articles with launch fallbacks without duplicate URLs', async () => {
-    findPublicArticles.mockResolvedValue([
+    findAllPublicArticles.mockResolvedValue([
       {
         slug: launchArticleSlugs[0],
         updatedAt: '2026-08-17T00:00:00.000Z',

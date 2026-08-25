@@ -3,7 +3,7 @@ import {
   type MetricDatum,
   PutMetricDataCommand,
 } from '@aws-sdk/client-cloudwatch';
-import { ALL_QUEUE_NAMES } from '@genfeedai/queue-contracts';
+import { ALL_QUEUE_NAMES, hasQueueConsumer } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
@@ -207,7 +207,14 @@ export class QueueMetricsService implements OnModuleDestroy {
   private async publishAggregateMetrics(
     snapshots: OperationalQueueSnapshot[],
   ): Promise<void> {
-    const totals = snapshots.reduce<AggregateQueueSnapshot>(
+    // A queue nobody drains is a missing consumer, not an incident. Feeding one
+    // into the aggregate MAX pins `OldestWaitingAgeSeconds` at the age of its
+    // oldest job forever, which latches the alarm and destroys its ability to
+    // report a real backlog. Alert on the queues a worker actually serves.
+    const alertingSnapshots = snapshots.filter((snapshot) =>
+      hasQueueConsumer(snapshot.queueName),
+    );
+    const totals = alertingSnapshots.reduce<AggregateQueueSnapshot>(
       (aggregate, snapshot) => ({
         failedEvents: aggregate.failedEvents + snapshot.failedEvents,
         oldestWaitingAgeSeconds: Math.max(
@@ -229,6 +236,7 @@ export class QueueMetricsService implements OnModuleDestroy {
       new PutMetricDataCommand({
         MetricData: [
           ...this.buildMetricData(totals),
+          ...this.buildPerQueueBacklogMetrics(snapshots),
           ...this.buildPerQueueStalledMetrics(snapshots),
         ],
         Namespace: METRIC_NAMESPACE,
@@ -280,6 +288,42 @@ export class QueueMetricsService implements OnModuleDestroy {
       Dimensions: dimensions,
       StorageResolution: 60,
     }));
+  }
+
+  /**
+   * Aggregate metrics answer "is something stuck" but never "which queue". That
+   * gap is why the 2026-08-10 oldest-waiting alarm could not be triaged from
+   * CloudWatch at all. Emit a `Queue`-dimensioned datum for every queue holding
+   * work so the offender is named on the dashboard.
+   */
+  private buildPerQueueBacklogMetrics(
+    snapshots: OperationalQueueSnapshot[],
+  ): MetricDatum[] {
+    return snapshots
+      .filter((snapshot) => snapshot.waiting > 0)
+      .flatMap((snapshot) => {
+        const dimensions = [
+          { Name: 'Service', Value: 'workers' },
+          { Name: 'Queue', Value: snapshot.queueName },
+        ];
+
+        return [
+          {
+            Dimensions: dimensions,
+            MetricName: 'WaitingJobs',
+            StorageResolution: 60,
+            Unit: 'Count',
+            Value: snapshot.waiting,
+          },
+          {
+            Dimensions: dimensions,
+            MetricName: 'OldestWaitingAgeSeconds',
+            StorageResolution: 60,
+            Unit: 'Seconds',
+            Value: snapshot.oldestWaitingAgeSeconds,
+          },
+        ];
+      });
   }
 
   private buildPerQueueStalledMetrics(

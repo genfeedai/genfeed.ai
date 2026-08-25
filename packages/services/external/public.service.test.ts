@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE } from '@genfeedai/constants';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { Post } from '@genfeedai/models/content/post.model';
@@ -101,6 +102,50 @@ describe('PublicService', () => {
         expect(result[0]).toBeInstanceOf(Model);
       },
     );
+
+    describe('findAllPublicArticles', () => {
+      it('never asks for more than the API accepts', async () => {
+        http.get.mockResolvedValue(axiosResponse(collectionDocument([])));
+
+        await service.findAllPublicArticles({ sortBy: 'publishedAt' });
+
+        for (const call of http.get.mock.calls) {
+          expect(call[1]?.params?.limit).toBeLessThanOrEqual(MAX_PAGE_SIZE);
+        }
+      });
+
+      it('walks pages until a short page ends the corpus', async () => {
+        const fullPage = Array.from({ length: MAX_PAGE_SIZE }, (_, index) => ({
+          id: `article_${index}`,
+        }));
+
+        http.get
+          .mockResolvedValueOnce(axiosResponse(collectionDocument(fullPage)))
+          .mockResolvedValueOnce(
+            axiosResponse(collectionDocument([{ id: 'article_last' }])),
+          );
+
+        const result = await service.findAllPublicArticles();
+
+        expect(http.get).toHaveBeenCalledTimes(2);
+        expect(http.get).toHaveBeenNthCalledWith(1, 'articles', {
+          params: { limit: MAX_PAGE_SIZE, page: 1 },
+        });
+        expect(http.get).toHaveBeenNthCalledWith(2, 'articles', {
+          params: { limit: MAX_PAGE_SIZE, page: 2 },
+        });
+        expect(result).toHaveLength(MAX_PAGE_SIZE + 1);
+      });
+
+      it('stops after one request when the first page is short', async () => {
+        http.get.mockResolvedValue(
+          axiosResponse(collectionDocument([{ id: 'article_1' }])),
+        );
+
+        await expect(service.findAllPublicArticles()).resolves.toHaveLength(1);
+        expect(http.get).toHaveBeenCalledTimes(1);
+      });
+    });
 
     it('collections resolve to [] when the request fails', async () => {
       http.get.mockRejectedValue(new Error('network'));

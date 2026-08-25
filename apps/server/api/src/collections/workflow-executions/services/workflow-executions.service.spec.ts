@@ -418,6 +418,32 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.update).not.toHaveBeenCalled();
   });
 
+  it('casts every interpolated parameter so postgres can infer its type', async () => {
+    const { prisma, service } = makeService();
+    prisma.$queryRaw.mockResolvedValue([{ id: 'execution-1', progress: 50 }]);
+
+    await service.updateNodeResult('execution-1', {
+      nodeId: 'node-1',
+      nodeType: 'input',
+      status: SharedWorkflowExecutionStatus.COMPLETED,
+    });
+
+    // Postgres cannot infer the type of a bare parameter inside `concat()` or an
+    // `INSERT ... SELECT` select-list, and answers 42P18. Every placeholder in the
+    // tagged template must therefore be followed immediately by an explicit cast.
+    const query = prisma.$queryRaw.mock.calls[0]?.[0] as readonly string[];
+    const uncastParameterIndexes = query
+      .slice(1)
+      .reduce<number[]>((indexes, chunk, index) => {
+        if (!chunk.trimStart().startsWith('::')) {
+          indexes.push(index + 1);
+        }
+        return indexes;
+      }, []);
+
+    expect(uncastParameterIndexes).toEqual([]);
+  });
+
   it('reads scalar runtime state for delay resume ETA updates', async () => {
     const { prisma, service } = makeService();
     const startedAt = new Date('2026-06-29T00:00:00.000Z');

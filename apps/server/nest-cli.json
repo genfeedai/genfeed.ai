@@ -254,6 +254,21 @@
       "sourceRoot": "workers/src",
       "type": "application"
     },
+    "workers-default-queue-drain": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "workers/default-queue-drain.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "workers/tsconfig.app.json"
+      },
+      "entryFile": "maintenance/default-queue-drain.entrypoint",
+      "root": "workers",
+      "sourceRoot": "workers/src",
+      "type": "application"
+    },
     "workers-fal-model-sync": {
       "compilerOptions": {
         "builder": {

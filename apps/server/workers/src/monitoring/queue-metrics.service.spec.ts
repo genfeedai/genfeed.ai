@@ -161,12 +161,12 @@ describe('QueueMetricsService', () => {
     const now = Date.parse('2026-08-12T00:00:00.000Z');
     vi.spyOn(Date, 'now').mockReturnValue(now);
     mockGetJobCounts.mockImplementation(async (name: string) =>
-      name === 'default'
+      name === 'post-publish'
         ? { active: 7, delayed: 6, failed: 5, waiting: 4 }
         : { active: 0, delayed: 0, failed: 0, waiting: 0 },
     );
     mockGetJobs.mockImplementation(async (name: string) =>
-      name === 'default'
+      name === 'post-publish'
         ? [{ data: { secret: 'must-not-leak' }, timestamp: now - 90_000 }]
         : [],
     );
@@ -174,7 +174,8 @@ describe('QueueMetricsService', () => {
     await service.publishQueueMetrics();
 
     const snapshotCall = mockRedisPublisher.set.mock.calls.find(
-      ([key]) => key === 'genfeed:monitoring:queue-health:snapshot:default',
+      ([key]) =>
+        key === 'genfeed:monitoring:queue-health:snapshot:post-publish',
     );
     expect(snapshotCall).toBeDefined();
     const persisted = JSON.parse(String(snapshotCall?.[1]));
@@ -184,7 +185,7 @@ describe('QueueMetricsService', () => {
       delayed: 6,
       failed: 5,
       oldestWaitingAgeSeconds: 90,
-      queueName: 'default',
+      queueName: 'post-publish',
       stalledEvents: 1,
       stalledJobIds: ['job-stalled-1'],
       waiting: 4,
@@ -196,12 +197,12 @@ describe('QueueMetricsService', () => {
     const now = Date.parse('2026-08-12T00:00:00.000Z');
     vi.spyOn(Date, 'now').mockReturnValue(now);
     mockGetJobCounts.mockImplementation(async (name: string) =>
-      name === 'default'
+      name === 'post-publish'
         ? { active: 1, delayed: 2, failed: 26, waiting: 101 }
         : { active: 0, delayed: 0, failed: 0, waiting: 0 },
     );
     mockGetJobs.mockImplementation(async (name: string) =>
-      name === 'default' ? [{ timestamp: now - 901_000 }] : [],
+      name === 'post-publish' ? [{ timestamp: now - 901_000 }] : [],
     );
 
     await service.publishQueueMetrics();
@@ -219,7 +220,7 @@ describe('QueueMetricsService', () => {
           { actual: 26, kind: 'failed', threshold: 25 },
         ]),
         kind: 'breach',
-        snapshot: expect.objectContaining({ queueName: 'default' }),
+        snapshot: expect.objectContaining({ queueName: 'post-publish' }),
       }),
     );
   });
@@ -230,10 +231,10 @@ describe('QueueMetricsService', () => {
       active: 0,
       delayed: 0,
       failed: 0,
-      waiting: name === 'default' ? 101 : 0,
+      waiting: name === 'post-publish' ? 101 : 0,
     }));
     mockRedisPublisher.hgetall.mockImplementation(async (key: string) =>
-      key.endsWith(':default')
+      key.endsWith(':post-publish')
         ? {
             alerted: '1',
             breachStartedAt: String(now - 10_000),
@@ -253,7 +254,7 @@ describe('QueueMetricsService', () => {
       active: 0,
       delayed: 0,
       failed: 0,
-      waiting: name === 'default' ? 101 : 0,
+      waiting: name === 'post-publish' ? 101 : 0,
     }));
     mockRedisPublisher.set.mockImplementation(async (key: string) =>
       key.includes(':alert:breach:') ? null : 'OK',
@@ -274,7 +275,7 @@ describe('QueueMetricsService', () => {
     });
     mockGetJobs.mockResolvedValue([]);
     mockRedisPublisher.hgetall.mockImplementation(async (key: string) =>
-      key.endsWith(':default')
+      key.endsWith(':post-publish')
         ? {
             alerted: '1',
             breachStartedAt: String(incidentStartedAt),
@@ -292,7 +293,7 @@ describe('QueueMetricsService', () => {
         breaches: [],
         incidentStartedAt: new Date(incidentStartedAt).toISOString(),
         kind: 'recovery',
-        snapshot: expect.objectContaining({ queueName: 'default' }),
+        snapshot: expect.objectContaining({ queueName: 'post-publish' }),
       }),
     );
   });
@@ -302,10 +303,11 @@ describe('QueueMetricsService', () => {
       active: 0,
       delayed: 0,
       failed: 0,
-      waiting: name === 'default' || name === 'analytics-twitter' ? 101 : 0,
+      waiting:
+        name === 'post-publish' || name === 'analytics-twitter' ? 101 : 0,
     }));
     mockAlertNotifier.notify.mockImplementation(async (notification) => {
-      if (notification.snapshot.queueName === 'default') {
+      if (notification.snapshot.queueName === 'post-publish') {
         throw new Error('transport unavailable');
       }
     });
@@ -315,7 +317,7 @@ describe('QueueMetricsService', () => {
     expect(mockAlertNotifier.notify).toHaveBeenCalledTimes(2);
     expect(mockCloudWatchSend).toHaveBeenCalledTimes(1);
     expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('default'),
+      expect.stringContaining('post-publish'),
       expect.any(Error),
       expect.any(Object),
     );
@@ -323,7 +325,7 @@ describe('QueueMetricsService', () => {
 
   it('publishes successful snapshots when one queue collection fails', async () => {
     mockGetJobCounts.mockImplementation(async (name: string) => {
-      if (name === 'default') {
+      if (name === 'post-publish') {
         throw new Error('queue unavailable');
       }
       return { active: 0, delayed: 0, failed: 0, waiting: 0 };
@@ -368,9 +370,60 @@ describe('QueueMetricsService', () => {
     ).toBe(true);
   });
 
+  it('keeps an unconsumed queue out of the aggregate alarm metrics but names it per-queue', async () => {
+    const now = Date.parse('2026-08-12T00:00:00.000Z');
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    // `default` has producers and no @Processor, so its backlog only grows. Feeding
+    // it into the aggregate MAX is what latched
+    // `genfeed-production-queues-oldest-waiting` on 2026-08-10 with no way back to OK.
+    mockGetJobCounts.mockImplementation(async (name: string) =>
+      name === 'default'
+        ? { active: 0, delayed: 0, failed: 0, waiting: 345 }
+        : { active: 0, delayed: 0, failed: 0, waiting: 0 },
+    );
+    mockGetJobs.mockImplementation(async (name: string) =>
+      name === 'default' ? [{ timestamp: now - 6_005_399_000 }] : [],
+    );
+
+    await service.publishQueueMetrics();
+
+    expect(mockAlertNotifier.notify).not.toHaveBeenCalled();
+
+    const command = mockCloudWatchSend.mock.calls[0]?.[0] as {
+      input: {
+        MetricData: Array<{
+          Dimensions: Array<{ Name: string; Value: string }>;
+          MetricName: string;
+          Value: number;
+        }>;
+      };
+    };
+    const aggregateOldest = command.input.MetricData.find(
+      (metric) =>
+        metric.MetricName === 'OldestWaitingAgeSeconds' &&
+        !metric.Dimensions.some((dimension) => dimension.Name === 'Queue'),
+    );
+    expect(aggregateOldest?.Value).toBe(0);
+
+    // The gap still has to be visible, just not as an unrecoverable alarm.
+    const perQueue = command.input.MetricData.filter((metric) =>
+      metric.Dimensions.some(
+        (dimension) =>
+          dimension.Name === 'Queue' && dimension.Value === 'default',
+      ),
+    );
+    expect(
+      perQueue.find((metric) => metric.MetricName === 'WaitingJobs')?.Value,
+    ).toBe(345);
+    expect(
+      perQueue.find((metric) => metric.MetricName === 'OldestWaitingAgeSeconds')
+        ?.Value,
+    ).toBe(6_005_399);
+  });
+
   it('logs and publishes per-queue stall telemetry without job payloads', async () => {
     mockGetJobs.mockImplementation(async (name: string) =>
-      name === 'default'
+      name === 'post-publish'
         ? [{ data: { secret: 'must-not-leak' }, timestamp: Date.now() }]
         : [],
     );
@@ -407,7 +460,7 @@ describe('QueueMetricsService', () => {
       'BullMQ job stalled',
       expect.objectContaining({
         jobId: 'job-stalled-1',
-        queueName: 'default',
+        queueName: 'post-publish',
       }),
     );
     const stallContexts = mockLogger.warn.mock.calls
