@@ -1,5 +1,10 @@
 import process from 'node:process';
 import { ConfigService } from '@libs/config/config.service';
+import type {
+  DegradedDependency,
+  HealthContributor,
+  ReadinessSnapshot,
+} from '@libs/health/health-contributor.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildIoRedisClientOptions,
@@ -31,11 +36,17 @@ type MicroserviceUrlKey =
   | 'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL';
 
 @Injectable()
-export class MicroservicesService implements OnModuleInit {
+export class MicroservicesService implements OnModuleInit, HealthContributor {
   private readonly constructorName: string = String(this.constructor.name);
   private static readonly REDIS_CONNECT_TIMEOUT_MS = 5_000;
   private redisClient: Redis | null = null;
   private servicesConfig!: Map<string, { url: string; required: boolean }>;
+  /**
+   * Peers we currently cannot reach, keyed by service name. Written by every
+   * health check (boot verification, `/health/detailed`, and each real use) and
+   * read by the readiness probe, which must not do I/O of its own.
+   */
+  private readonly degradedDependencies = new Map<string, DegradedDependency>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -50,7 +61,9 @@ export class MicroservicesService implements OnModuleInit {
     // Initialize Redis
     await this.initializeRedis();
 
-    // Then verify required services
+    // Then verify required services. Peer microservices are checked but never
+    // fatal (#3565) — only Redis can still reject here, and a process without a
+    // broker cannot serve anything, so that one stays a hard boot dependency.
     try {
       await this.verifyRequiredServices();
     } catch {
@@ -223,12 +236,15 @@ export class MicroservicesService implements OnModuleInit {
         `${this.constructorName} checkServiceHealth: ${name} is healthy (${responseTime}ms)`,
       );
 
-      return {
+      const health: ServiceHealth = {
         name,
         responseTime,
         status: 'healthy',
         url,
       };
+      this.recordDependencyState(health);
+
+      return health;
     } catch (error: unknown) {
       const responseTime = Date.now() - startTime;
       const err = error as Error & {
@@ -249,14 +265,72 @@ export class MicroservicesService implements OnModuleInit {
         errorDetails,
       );
 
-      return {
+      const health: ServiceHealth = {
         error: errorMessage,
         name,
         responseTime,
         status: 'unhealthy',
         url,
       };
+      this.recordDependencyState(health);
+
+      return health;
     }
+  }
+
+  /**
+   * Single choke point for degraded-peer bookkeeping: every health check —
+   * boot verification, `/health/detailed`, and each real use — funnels through
+   * `checkServiceHealth`, so the registry both sets and clears here.
+   */
+  private recordDependencyState(health: ServiceHealth): void {
+    if (health.status === 'healthy') {
+      if (this.degradedDependencies.delete(health.name)) {
+        this.loggerService.log(
+          `${this.constructorName} recordDependencyState: ${health.name} recovered — clearing degraded mark`,
+        );
+      }
+      return;
+    }
+
+    const existing = this.degradedDependencies.get(health.name);
+
+    this.degradedDependencies.set(health.name, {
+      error: health.error,
+      name: health.name,
+      // Keep the first failure of the current streak so operators can see how
+      // long the peer has been unreachable, not just when we last retried.
+      since: existing?.since ?? new Date().toISOString(),
+      url: health.url,
+    });
+  }
+
+  getDegradedDependencies(): DegradedDependency[] {
+    return Array.from(this.degradedDependencies.values());
+  }
+
+  /**
+   * Cached, I/O-free readiness view for the probe. A degraded peer reports
+   * `degraded` and still answers 200 (#3565) — recycling a task that is
+   * otherwise serving traffic turns a transient DNS gap into a restart loop.
+   */
+  getReadiness(): ReadinessSnapshot {
+    const degradedDependencies = this.getDegradedDependencies();
+
+    return degradedDependencies.length === 0
+      ? { status: 'ready' }
+      : { degradedDependencies, status: 'degraded' };
+  }
+
+  /** `HealthContributor` hook — `/health/detailed` actively re-checks peers. */
+  async getHealthDetails(): Promise<Record<string, unknown>> {
+    const { redis, services } = await this.getHealthStatus();
+
+    return {
+      degradedDependencies: this.getDegradedDependencies(),
+      redis,
+      services,
+    };
   }
 
   async checkAllServices(): Promise<ServiceHealth[]> {
@@ -344,10 +418,14 @@ export class MicroservicesService implements OnModuleInit {
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
-        // Final attempt failed in production
-        const message = `Required services are not available after ${maxRetries} attempts: ${serviceNames}`;
-        this.loggerService.error(message, {
-          error: url,
+        // Final attempt failed in production. Boot anyway (#3565): an ECS cold
+        // start can leave a peer unregistered in Cloud Map for longer than the
+        // retry budget, and killing the process only burns a task launch before
+        // the identical retry succeeds. The peers stay marked degraded, each
+        // one is resolved again on first real use, and readiness reports it.
+        const message = `Required services are not available after ${maxRetries} attempts: ${serviceNames}. Continuing startup with these dependencies marked degraded.`;
+        this.loggerService.warn(message, {
+          caller: url,
           unhealthyServices: unhealthyServices.map((s) => ({
             error: s.error,
             name: s.name,
@@ -355,7 +433,7 @@ export class MicroservicesService implements OnModuleInit {
             url: s.url,
           })),
         });
-        throw new HttpException(message, HttpStatus.SERVICE_UNAVAILABLE);
+        return;
       }
     }
   }
@@ -386,8 +464,11 @@ export class MicroservicesService implements OnModuleInit {
         const nodeEnv = this.configService.get('NODE_ENV') || 'development';
 
         if (nodeEnv === 'production') {
-          throw new Error(
+          // Fail this request with a clear status — the peer is resolved per
+          // call, so a later request can still succeed once it registers.
+          throw new HttpException(
             'Notifications service is required but not available',
+            HttpStatus.SERVICE_UNAVAILABLE,
           );
         } else {
           this.loggerService.warn(
@@ -463,7 +544,10 @@ export class MicroservicesService implements OnModuleInit {
         const nodeEnv = this.configService.get('NODE_ENV') || 'development';
 
         if (nodeEnv === 'production') {
-          throw new Error('Files service is required but not available');
+          throw new HttpException(
+            'Files service is required but not available',
+            HttpStatus.SERVICE_UNAVAILABLE,
+          );
         } else {
           this.loggerService.warn(
             `${url} files service unhealthy in development`,
