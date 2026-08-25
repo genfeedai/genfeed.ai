@@ -157,7 +157,7 @@ export default function IngredientsListContent({
           }
 
           return (
-            <Badge className="border" size={ComponentSize.SM} variant="slate">
+            <Badge size={ComponentSize.SM} variant="slate">
               {label}
             </Badge>
           );

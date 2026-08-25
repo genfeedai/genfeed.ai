@@ -12,6 +12,7 @@ describe('LibraryAssetTypeBadge', () => {
     expect(
       screen.getByText('Video').closest('[class*="bg-purple-500/20"]'),
     ).not.toBeNull();
+    expect(screen.getByText('Video').className).toContain('border');
     expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
 
     rerender(

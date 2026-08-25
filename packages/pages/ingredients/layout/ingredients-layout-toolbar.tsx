@@ -1,7 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, PageScope } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/enums';
 import type {
   IFilters,
   IFiltersState,
@@ -10,6 +10,10 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import {
+  SHELL_ICON_BUTTON_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui-constants/shell-chrome.constant';
 import { ExternalLink, Upload } from 'lucide-react';
 import Link from 'next/link';
 
@@ -44,8 +48,6 @@ export default function IngredientsLayoutToolbar({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
-
         <FiltersButton
           filters={filters}
           visibleFilters={config.visibleFilters}
@@ -53,28 +55,35 @@ export default function IngredientsLayoutToolbar({
           onFiltersChange={onFiltersChange}
         />
 
-        {scope !== PageScope.SUPERADMIN && config.showUpload && (
-          <Button
-            tooltip="Upload"
-            icon={<Upload />}
-            variant={ButtonVariant.SECONDARY}
-            onClick={onUpload}
-          />
-        )}
-
         {/* Moodboard lives under Library → Moodboard in the nav — no
             duplicate toolbar shortcut here. */}
 
         {/* One-off generation is Agent-first — the standalone Studio
             image/video/avatar/music prompt bars are retired. */}
-        {scope !== PageScope.SUPERADMIN && config.showGenerateLink && (
+        {scope !== PageScope.SUPERADMIN && config.showGenerateLink ? (
           <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
             <Link href={href(APP_ROUTES.AGENT.NEW)}>
               <ExternalLink />
               Generate
             </Link>
           </PrimitiveButton>
-        )}
+        ) : null}
+
+        <div className="flex items-center gap-1">
+          <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
+          {scope !== PageScope.SUPERADMIN && config.showUpload ? (
+            <Button
+              ariaLabel="Upload"
+              className={SHELL_ICON_BUTTON_CLASS}
+              icon={<Upload className={SHELL_ICON_CLASS} />}
+              onClick={onUpload}
+              size={ButtonSize.ICON}
+              tooltip="Upload"
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );
