@@ -8,6 +8,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   createPlatformHomeRoute,
+  getOrgSwitchHref,
   isPersonalSettingsPath,
   LEGACY_APP_ROUTES,
   parseScopedAppPath,
@@ -163,6 +164,18 @@ describe('routes.constant', () => {
     );
     expect(APP_ROUTES.SETTINGS.GENERAL).toBe('/settings/general');
     expect(APP_ROUTES.SETTINGS.PERSONAL).toBe('/settings/personal');
+  });
+
+  it('keeps the current surface when switching organizations', () => {
+    expect(getOrgSwitchHref('bravo', '/alpha/moonrise/library/assets')).toBe(
+      '/bravo/~/library/assets',
+    );
+    expect(getOrgSwitchHref('bravo', '/alpha/~/agent/new')).toBe(
+      '/bravo/~/agent/new',
+    );
+    expect(
+      getOrgSwitchHref('bravo', '/alpha/moonrise/settings/publishing'),
+    ).toBe('/bravo/~/settings/brands');
   });
 
   it('keeps personal settings children on the unscoped /settings shell', () => {

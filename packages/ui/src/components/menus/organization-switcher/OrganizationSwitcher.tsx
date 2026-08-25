@@ -1,6 +1,10 @@
 'use client';
 
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+  getOrgSwitchHref,
+} from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -20,7 +24,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronDown, Settings } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
 
 import { useCreateOrganizationModal } from './use-create-organization-modal';
@@ -49,6 +53,7 @@ type SwitcherAction =
   | { type: 'ORGS_LOADED'; orgs: OrgEntry[] }
   | { type: 'LOAD_FAILED' }
   | { type: 'SWITCH_START' }
+  | { type: 'SWITCH_DONE' }
   | { type: 'SWITCH_FAILED' };
 
 const INITIAL_SWITCHER_STATE: SwitcherState = {
@@ -74,6 +79,8 @@ function switcherReducer(
       };
     case 'SWITCH_START':
       return { ...state, isSwitching: true };
+    case 'SWITCH_DONE':
+      return { ...state, isSwitching: false };
     case 'SWITCH_FAILED':
       return {
         ...state,
@@ -93,6 +100,8 @@ export default function OrganizationSwitcher({
   );
   const { isSubscriptionActive } = useSubscription();
   const params = useParams<{ orgSlug?: string }>();
+  const pathname = usePathname() ?? APP_ROUTES.ROOT;
+  const { push } = useRouter();
   const currentOrgSlug =
     typeof params?.orgSlug === 'string' ? params.orgSlug : undefined;
 
@@ -163,17 +172,16 @@ export default function OrganizationSwitcher({
       try {
         const svc = await getOrgsService();
         await svc.switchOrganization(orgId);
-        // A hard navigation re-syncs all session-scoped data, and the explicit
-        // new route guarantees no transcript, draft, or approval crosses the
-        // organization boundary.
-        window.location.assign(
-          createOrganizationAppRoute(target.slug, APP_ROUTES.AGENT.NEW),
-        );
+        // Client navigation remounts the page under the new org slug and
+        // keeps the app shell. A document assign would reload sidebar,
+        // providers, and the whole tree.
+        push(getOrgSwitchHref(target.slug, pathname));
+        dispatch({ type: 'SWITCH_DONE' });
       } catch {
         dispatch({ type: 'SWITCH_FAILED' });
       }
     },
-    [activeOrgId, getOrgsService, isSwitching, orgs],
+    [activeOrgId, getOrgsService, isSwitching, orgs, pathname, push],
   );
 
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';

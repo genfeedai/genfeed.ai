@@ -5,7 +5,6 @@ import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/glo
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandSwitcherProps } from '@genfeedai/props/social/brand-switcher.props';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -40,7 +39,6 @@ export default function MenuBrandSwitcher({
     UsersService.getInstance(token),
   );
 
-  const { user } = useAuthUser();
   const { openBrandOverlay } = useBrandOverlay();
   const { push } = useRouter();
   const [isUpdatingBrand, setIsUpdatingBrand] = useState(false);
@@ -60,19 +58,13 @@ export default function MenuBrandSwitcher({
         await service.patchMeBrand(id, { isSelected: true });
         logger.info(`${url} success`);
         onBrandChange?.(id);
-        const reloadPromise = user?.reload();
-        if (reloadPromise) {
-          void reloadPromise.catch((reloadError: unknown) => {
-            logger.warn(`${url} reload failed`, reloadError);
-          });
-        }
       } catch (error) {
         logger.error(`${url} failed`, error);
       } finally {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, onBrandChange, user],
+    [getUsersService, onBrandChange],
   );
 
   const handleClearSelection = useCallback(async () => {
@@ -87,18 +79,12 @@ export default function MenuBrandSwitcher({
       await service.clearMeBrandSelection();
       logger.info(`${url} success`);
       clearSelectionAction.onSelect();
-      const reloadPromise = user?.reload();
-      if (reloadPromise) {
-        void reloadPromise.catch((reloadError: unknown) => {
-          logger.warn(`${url} reload failed`, reloadError);
-        });
-      }
     } catch (error) {
       logger.error(`${url} failed`, error);
     } finally {
       setIsUpdatingBrand(false);
     }
-  }, [clearSelectionAction, getUsersService, isUpdating, user]);
+  }, [clearSelectionAction, getUsersService, isUpdating]);
 
   const handleClearButtonClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {

@@ -11,6 +11,7 @@ const mockPush = vi.fn();
 const mockGetMyOrganizations = vi.fn();
 const mockSwitchOrganization = vi.fn();
 let mockParams: { orgSlug?: string } = { orgSlug: 'acme-org' };
+let mockPathname = '/acme-org/~/agent/new';
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 let capturedOnSelect: ((id: string) => void) | undefined;
@@ -20,7 +21,7 @@ let mockIsSubscriptionActive = true;
 let mockSubscriptionTier: string | null = 'scale';
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
+  usePathname: () => mockPathname,
   useParams: () => mockParams,
   useRouter: () => ({
     push: mockPush,
@@ -119,6 +120,7 @@ describe('OrganizationSwitcher', () => {
     mockIsSubscriptionActive = true;
     mockSubscriptionTier = 'scale';
     mockParams = { orgSlug: 'acme-org' };
+    mockPathname = '/acme-org/~/agent/new';
     mockGetMyOrganizations.mockReset();
     mockSwitchOrganization.mockReset();
     mockSwitchOrganization.mockResolvedValue({
@@ -318,8 +320,9 @@ describe('OrganizationSwitcher', () => {
     );
   });
 
-  it('persists the switch and starts a clean target-org conversation', async () => {
+  it('persists the switch and client-navigates to the same surface in the target org', async () => {
     mockParams = { orgSlug: 'alpha' };
+    mockPathname = '/alpha/moonrise/library/assets';
     mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
 
     renderSwitcher();
@@ -333,8 +336,8 @@ describe('OrganizationSwitcher', () => {
     await waitFor(() => {
       expect(mockSwitchOrganization).toHaveBeenCalledWith('org_bravo');
     });
-    expect(window.location.assign).toHaveBeenCalledWith('/bravo/~/agent/new');
-    // Never reloads the current (old) org URL.
+    expect(mockPush).toHaveBeenCalledWith('/bravo/~/library/assets');
+    expect(window.location.assign).not.toHaveBeenCalled();
     expect(window.location.reload).not.toHaveBeenCalled();
   });
 
@@ -354,6 +357,7 @@ describe('OrganizationSwitcher', () => {
       expect(capturedItems).toHaveLength(2);
     });
     expect(mockSwitchOrganization).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
     expect(window.location.assign).not.toHaveBeenCalled();
   });
 });

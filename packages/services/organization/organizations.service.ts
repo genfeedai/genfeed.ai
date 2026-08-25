@@ -505,8 +505,8 @@ export class OrganizationsService extends BaseService<Organization> {
   }
 
   /**
-   * Switch the active organization. Call window.location.reload() after this to
-   * re-sync session-scoped workspace data.
+   * Switch the active organization. Follow with a client navigation to the
+   * new org slug so the shell stays mounted.
    */
   public async switchOrganization(orgId: string): Promise<{
     organization: { id: string; label: string };

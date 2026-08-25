@@ -620,6 +620,57 @@ export function createOrganizationAppRoute(
   return `/${orgSlug}/~${normalizeScopedRoutePath(path)}`;
 }
 
+const BRAND_ONLY_SETTINGS_PREFIXES = [
+  APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
+  APP_ROUTES.SETTINGS.PUBLISHING,
+  APP_ROUTES.SETTINGS.SKILLS,
+  APP_ROUTES.SETTINGS.SOCIAL,
+  APP_ROUTES.SETTINGS.LINKS,
+  '/settings/voice',
+  '/settings/interview',
+  '/settings/harness',
+  '/settings/kit',
+  '/settings/characters',
+] as const;
+
+function workspaceSurfacePath(pathname: string): string {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length < 3) {
+    return APP_ROUTES.WORKSPACE.OVERVIEW;
+  }
+
+  const rest = `/${parts.slice(2).join('/')}`;
+  return rest === '/overview' ? APP_ROUTES.WORKSPACE.OVERVIEW : rest;
+}
+
+function toOrganizationScopePath(brandScopedPath: string): string {
+  const path = brandScopedPath.startsWith('/')
+    ? brandScopedPath
+    : `/${brandScopedPath}`;
+
+  for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
+    if (path === prefix || path.startsWith(`${prefix}/`)) {
+      return APP_ROUTES.SETTINGS.BRANDS;
+    }
+  }
+
+  return path;
+}
+
+/**
+ * Client-side org switch keeps the current app surface. Brand-only settings
+ * fall back to the org brands hub so the destination is never a 404.
+ */
+export function getOrgSwitchHref(
+  nextOrgSlug: string,
+  pathname: string,
+): string {
+  return createOrganizationAppRoute(
+    nextOrgSlug,
+    toOrganizationScopePath(workspaceSurfacePath(pathname)),
+  );
+}
+
 /**
  * Build the brand-relative path to an artifact's dedicated editor page.
  * Pass the result through `useOrgUrl().href()` to scope it to org + brand.
