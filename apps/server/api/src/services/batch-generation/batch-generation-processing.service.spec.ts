@@ -485,7 +485,7 @@ describe('BatchGenerationProcessingService resume', () => {
           useValue: {
             batch: batchDelegate,
             batchItem: { upsert: vi.fn().mockResolvedValue({}) },
-            credential: { findFirst: vi.fn().mockResolvedValue(null) },
+            credential: { findMany: vi.fn().mockResolvedValue([]) },
           },
         },
         { provide: LoggerService, useValue: logger },
