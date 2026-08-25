@@ -2576,7 +2576,6 @@
       "message": "Type '\"video-generation\"' is not assignable to type 'ActivitySource'. Did you mean 'ActivitySource.VIDEO_GENERATION'?",
       "workspace": "api"
     },
-
     {
       "code": 2349,
       "count": 1,
@@ -3463,38 +3462,6 @@
       "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
       "fingerprint": "4345db5512cabfa7d970",
       "message": "'result' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/microservices/microservices.service.spec.ts",
-      "fingerprint": "12eedd286205203237dc",
-      "message": "Argument of type '(key: string) => \"production\" | \"http://notifications.genfeed.ai\"' is not assignable to parameter of type '(key: keyof ApiEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof ApiEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/microservices/microservices.service.spec.ts",
-      "fingerprint": "47d2ce56d784078a18e3",
-      "message": "Argument of type 'Observable<{ status: number; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'subscribe' are incompatible.     Type '{ (observerOrNext?: Partial<Observer<{ status: number; }>> | ((value: { status: number; }) => void) | undefined): Subscription; (next?: ((value: { status: number; }) => void) | null | undefined, error?: ((error: any) => void) | ... 1 more ... | undefined, complete?: (() => void) | ... 1 more ... | undefined): Subscr...' is not assignable to type '{ (observerOrNext?: Partial<Observer<AxiosResponse<unknown, unknown, {}, any>>> | ((value: AxiosResponse<unknown, unknown, {}, any>) => void) | undefined): Subscription; (next?: ((value: AxiosResponse<...>) => void) | ... 1 more ... | undefined, error?: ((error: any) => void) | ... 1 more ... | undefined, complete?:...'.       Types of parameters 'next' and 'next' are incompatible.         Types of parameters 'value' and 'value' are incompatible.           Type '{ status: number; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': data, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/microservices/microservices.service.spec.ts",
-      "fingerprint": "e9d794de4c5a8640c3a5",
-      "message": "Argument of type 'Observable<{ data: { key: string; url: string; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { key: string; url: string; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { key: string; url: string; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { key: string; url: string; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/microservices/microservices.service.spec.ts",
-      "fingerprint": "ed313cbe1e0e975d3fc0",
-      "message": "Argument of type '(key: string) => \"production\" | \"http://files.genfeed.ai\"' is not assignable to parameter of type '(key: keyof ApiEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof ApiEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
       "workspace": "api"
     },
     {

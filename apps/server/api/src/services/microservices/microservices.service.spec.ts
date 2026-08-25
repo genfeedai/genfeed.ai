@@ -4,8 +4,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+/** Matches the repo-wide spec idiom for HttpService stubs. */
+const httpResponse = (value: Partial<AxiosResponse>) =>
+  of(value as AxiosResponse);
 
 // Mock Redis client
 vi.mock('ioredis', () => ({
@@ -33,6 +38,16 @@ describe('MicroservicesService', () => {
   let httpService: HttpService;
   let configService: ConfigService;
   let loggerService: LoggerService;
+
+  /**
+   * `ConfigService.get` is generic over `keyof ApiEnvConfig`; the single cast
+   * here keeps every call site plainly typed instead of repeating one per test.
+   */
+  const mockConfigGet = (impl: (key: string) => string | undefined): void => {
+    vi.spyOn(configService, 'get').mockImplementation(
+      impl as ConfigService['get'],
+    );
+  };
 
   beforeEach(async () => {
     const mockHttpService = {
@@ -124,7 +139,7 @@ describe('MicroservicesService', () => {
   describe('checkServiceHealth', () => {
     it('should return healthy status for successful health check', async () => {
       const mockResponse = { status: 200 };
-      vi.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      vi.spyOn(httpService, 'get').mockReturnValue(httpResponse(mockResponse));
 
       const result = await service.checkServiceHealth(
         'files',
@@ -176,7 +191,7 @@ describe('MicroservicesService', () => {
       ).initializeServices();
 
       const mockResponse = { status: 200 };
-      vi.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      vi.spyOn(httpService, 'get').mockReturnValue(httpResponse(mockResponse));
 
       const result = await service.checkAllServices();
 
@@ -241,7 +256,7 @@ describe('MicroservicesService', () => {
       (service as unknown as { redisClient: unknown }).redisClient =
         mockRedisClient;
 
-      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+      mockConfigGet((key) => {
         if (key === 'NODE_ENV') {
           return 'production';
         }
@@ -281,7 +296,7 @@ describe('MicroservicesService', () => {
       (service as unknown as { redisClient: unknown }).redisClient =
         mockRedisClient;
 
-      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+      mockConfigGet((key) => {
         if (key === 'NODE_ENV') {
           return 'production';
         }
@@ -318,7 +333,7 @@ describe('MicroservicesService', () => {
       (service as unknown as { redisClient: unknown }).redisClient =
         mockRedisClient;
 
-      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+      mockConfigGet((key) => {
         if (key === 'NODE_ENV') {
           return 'production';
         }
@@ -363,7 +378,7 @@ describe('MicroservicesService', () => {
         .spyOn(process, 'exit')
         .mockImplementation((() => undefined) as never);
 
-      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+      mockConfigGet((key) => {
         if (key === 'NODE_ENV') {
           return 'production';
         }
@@ -395,7 +410,7 @@ describe('MicroservicesService', () => {
         .spyOn(process, 'exit')
         .mockImplementation((() => undefined) as never);
 
-      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+      mockConfigGet((key) => {
         if (key === 'NODE_ENV') {
           return 'production';
         }
@@ -433,7 +448,9 @@ describe('MicroservicesService', () => {
 
       expect(service.getReadiness().status).toBe('degraded');
 
-      vi.spyOn(httpService, 'get').mockReturnValue(of({ status: 200 }));
+      vi.spyOn(httpService, 'get').mockReturnValue(
+        httpResponse({ status: 200 }),
+      );
       await service.checkServiceHealth('files', 'http://files.genfeed.ai');
 
       expect(service.getReadiness()).toEqual({ status: 'ready' });
@@ -491,8 +508,8 @@ describe('MicroservicesService', () => {
       ).initializeServices();
 
       const mockResponse = { status: 200 };
-      vi.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
-      vi.spyOn(httpService, 'post').mockReturnValue(of(mockResponse));
+      vi.spyOn(httpService, 'get').mockReturnValue(httpResponse(mockResponse));
+      vi.spyOn(httpService, 'post').mockReturnValue(httpResponse(mockResponse));
 
       const notificationData = {
         data: { userId: '123' },
@@ -551,7 +568,7 @@ describe('MicroservicesService', () => {
       (service as unknown as { redisClient: unknown }).redisClient =
         mockRedisClient;
 
-      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+      mockConfigGet((key) => {
         if (key === 'NODE_ENV') {
           return 'production';
         }
@@ -588,9 +605,11 @@ describe('MicroservicesService', () => {
       ).initializeServices();
 
       const mockResponse = { status: 200 };
-      vi.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      vi.spyOn(httpService, 'get').mockReturnValue(httpResponse(mockResponse));
       vi.spyOn(httpService, 'post').mockReturnValue(
-        of({ data: { key: 'file123', url: 'https://example.com/file.jpg' } }),
+        httpResponse({
+          data: { key: 'file123', url: 'https://example.com/file.jpg' },
+        }),
       );
 
       const fileData = {
@@ -655,7 +674,7 @@ describe('MicroservicesService', () => {
       ).initializeServices();
 
       const mockResponse = { status: 200 };
-      vi.spyOn(httpService, 'get').mockReturnValue(of(mockResponse));
+      vi.spyOn(httpService, 'get').mockReturnValue(httpResponse(mockResponse));
 
       const result = await service.getHealthStatus();
 
