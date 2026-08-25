@@ -12,7 +12,7 @@ describe('PromptEditor', () => {
 
     const editor = await screen.findByRole('textbox', { name: 'Prompt' });
     await user.click(editor);
-    await user.keyboard('hello world');
+    await user.type(editor, 'hello world');
 
     await waitFor(() => {
       expect(onValueChange).toHaveBeenCalled();
