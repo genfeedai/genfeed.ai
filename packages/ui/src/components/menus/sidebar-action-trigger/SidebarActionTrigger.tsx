@@ -13,6 +13,7 @@ interface SidebarActionTriggerProps {
   onClick: () => void;
   ariaLabel?: string;
   className?: string;
+  testId?: string;
 }
 
 export default function SidebarActionTrigger({
@@ -22,6 +23,7 @@ export default function SidebarActionTrigger({
   onClick,
   ariaLabel,
   className,
+  testId,
 }: SidebarActionTriggerProps): ReactElement {
   return (
     <Button
@@ -29,6 +31,7 @@ export default function SidebarActionTrigger({
       withWrapper={false}
       onClick={onClick}
       ariaLabel={ariaLabel ?? label}
+      data-testid={testId}
       className={cn(
         'group relative flex h-7 w-full flex-row items-center gap-2 rounded px-2.5 py-1 text-left text-foreground/72 transition-[background-color,color] duration-200',
         'hover:bg-foreground/[0.06] hover:text-foreground',

@@ -56,7 +56,13 @@ test.describe('Library', () => {
       ).toBeVisible();
     }
 
-    await expect(authenticatedPage.getByText('Shelves')).toBeVisible();
+    // The library nav renders in both the desktop rail and the mobile drawer,
+    // so the group label resolves twice. Scope to the rail the test drives.
+    await expect(
+      authenticatedPage
+        .getByTestId('desktop-sidebar-rail')
+        .getByText('Shelves'),
+    ).toBeVisible();
 
     for (const label of ['Unsorted', 'Needs review', 'Approved']) {
       await expect(

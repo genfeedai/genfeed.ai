@@ -302,6 +302,7 @@ export default function AppProtectedLayoutSidebar({
             label="New Task"
             onClick={dispatchOpenTaskComposer}
             shortcut="⌘⇧N"
+            testId="sidebar-primary-action"
           />
           <SidebarSearchTrigger onClick={onOpenCommandPalette} />
         </>

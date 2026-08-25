@@ -688,7 +688,17 @@ test.describe('Clip Factory', () => {
       )
       .toBe('Edited_Hook_Title.mp4');
   });
+});
 
+// A sibling describe (no `beforeEach` requiring `authenticatedPage`) — the
+// suite above's beforeEach shares the default `page`/`context` with any
+// fixture requested by a test in the same describe block, so an
+// unauthenticated test nested inside it would inherit the authenticated
+// cookies before its own null-session mocks ever apply (nightly full tier,
+// #2982). Every other unauthenticated-access suite in this repo
+// (discovery.spec.ts, tasks.spec.ts, post-detail.spec.ts, etc.) isolates the
+// test the same way.
+test.describe('Clip Factory — Unauthenticated Access', () => {
   test('unauthenticated user is redirected away from clip factory', async ({
     unauthenticatedPage,
   }) => {
