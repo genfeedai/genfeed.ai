@@ -42,6 +42,10 @@ describe('CronTrendsService', () => {
         {
           provide: CacheService,
           useValue: {
+            claimOnce: vi.fn().mockResolvedValue('claimed'),
+            del: vi.fn().mockResolvedValue(true),
+            get: vi.fn().mockResolvedValue(null),
+            set: vi.fn().mockResolvedValue(true),
             withLock: vi
               .fn()
               .mockImplementation(async (_key, fn) => await fn()),
@@ -173,5 +177,100 @@ describe('CronTrendsService', () => {
     expect(loggerService.log).toHaveBeenCalledWith(
       expect.stringContaining('local schedulers disabled'),
     );
+  });
+  describe('backfillGlobalTrendCorpus back-off', () => {
+    const belowThreshold = { activeTrends: 4, referenceRecords: 6 };
+
+    it('should skip the scrape while the back-off window is still held', async () => {
+      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
+      cacheService.claimOnce.mockResolvedValueOnce('duplicate');
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(trendsService.fetchAndCacheTrends).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('backing off'),
+        expect.anything(),
+      );
+    });
+
+    it('should claim the base back-off window on the first unproductive attempt', async () => {
+      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(cacheService.claimOnce).toHaveBeenCalledWith(
+        expect.stringContaining('backfill'),
+        60 * 60,
+      );
+    });
+
+    it('should escalate the back-off window after consecutive unproductive attempts', async () => {
+      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
+      cacheService.get.mockResolvedValueOnce(2);
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(cacheService.claimOnce).toHaveBeenCalledWith(
+        expect.stringContaining('backfill'),
+        4 * 60 * 60,
+      );
+    });
+
+    it('should cap the escalated back-off window', async () => {
+      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
+      cacheService.get.mockResolvedValueOnce(99);
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(cacheService.claimOnce).toHaveBeenCalledWith(
+        expect.stringContaining('backfill'),
+        12 * 60 * 60,
+      );
+    });
+
+    it('should record an unproductive attempt when the corpus does not grow', async () => {
+      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(cacheService.set).toHaveBeenCalledWith(
+        expect.stringContaining('backfill'),
+        1,
+        expect.objectContaining({ ttl: expect.any(Number) }),
+      );
+    });
+
+    it('should clear the back-off after a productive backfill', async () => {
+      trendsService.getGlobalCorpusStats
+        .mockResolvedValueOnce(belowThreshold)
+        .mockResolvedValueOnce({ activeTrends: 21, referenceRecords: 40 });
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(cacheService.del).toHaveBeenCalled();
+      expect(cacheService.set).not.toHaveBeenCalled();
+    });
+
+    it('should clear the back-off when the corpus thresholds are already satisfied', async () => {
+      trendsService.getGlobalCorpusStats.mockResolvedValueOnce({
+        activeTrends: 72,
+        referenceRecords: 180,
+      });
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(cacheService.claimOnce).not.toHaveBeenCalled();
+      expect(cacheService.del).toHaveBeenCalled();
+    });
+
+    it('should still run when the cache is unavailable', async () => {
+      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
+      cacheService.claimOnce.mockResolvedValueOnce('unavailable');
+
+      await service.backfillGlobalTrendCorpus();
+
+      expect(trendsService.fetchAndCacheTrends).toHaveBeenCalledTimes(1);
+    });
   });
 });
