@@ -141,7 +141,7 @@ export default function GlobalModalsRenderer({
           selectedReferences={galleryConfig.selectedReferences}
           onClose={closeGallery}
           onSelect={(items) => {
-            galleryConfig.onSelect(items as GallerySelectItem[] | null);
+            galleryConfig.onSelect(items as GallerySelectItem[]);
             closeGallery();
           }}
         />

@@ -114,7 +114,7 @@ export interface ModalVideoProps extends ModalSelectProps<IVideo> {
 export interface ModalGalleryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (items: (IAsset | IImage | IMusic | IVideo)[] | null) => void;
+  onSelect: (items: (IAsset | IImage | IMusic | IVideo)[]) => void;
   category: IngredientCategory;
   title?: string;
   selectedId?: string;

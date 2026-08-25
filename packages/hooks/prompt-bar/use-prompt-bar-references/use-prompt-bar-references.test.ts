@@ -101,7 +101,7 @@ describe('usePromptBarReferences', () => {
       expect(result.current.references[0].id).toBe('asset-2');
     });
 
-    it('clears references when null is passed', () => {
+    it('clears references when an empty array is passed', () => {
       const options = createBaseOptions();
       const { result } = renderHook(() => usePromptBarReferences(options));
 
@@ -112,7 +112,7 @@ describe('usePromptBarReferences', () => {
       });
 
       act(() => {
-        result.current.handleReferenceSelect(null);
+        result.current.handleReferenceSelect([]);
       });
 
       expect(result.current.references).toHaveLength(0);

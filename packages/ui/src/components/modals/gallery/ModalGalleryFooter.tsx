@@ -132,7 +132,7 @@ export default function ModalGalleryFooter({
               {selectedItem && (
                 <Button
                   label="Clear"
-                  onClick={() => onSelect(null)}
+                  onClick={() => onSelect([])}
                   variant={ButtonVariant.DESTRUCTIVE}
                   size={ButtonSize.SM}
                 />

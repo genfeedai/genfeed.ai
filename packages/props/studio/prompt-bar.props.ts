@@ -235,7 +235,7 @@ export interface GalleryModalOptions {
   category: IngredientCategory;
   title?: string;
   format?: IngredientFormat | string;
-  onSelect: (assets: (IAsset | IImage)[] | null) => void;
+  onSelect: (assets: (IAsset | IImage)[]) => void;
   onSelectAccountReference?: (assets: IAsset[]) => void;
   selectedReferences?: string[];
   maxSelectableItems?: number;
@@ -431,7 +431,7 @@ export interface UsePromptBarReferencesReturn {
   setEndFrame: Dispatch<SetStateAction<IAsset | IImage | null>>;
   referenceSource: 'brand' | 'ingredient' | '';
   setReferenceSource: Dispatch<SetStateAction<'brand' | 'ingredient' | ''>>;
-  handleReferenceSelect: (selection: (IAsset | IImage)[] | null) => void;
+  handleReferenceSelect: (selection: (IAsset | IImage)[]) => void;
   handleSelectAccountReference: (assets: { id: string; url: string }[]) => void;
   isUserSelectingReferencesRef: RefObject<boolean>;
   hasInitializedReferencesRef: RefObject<boolean>;

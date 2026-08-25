@@ -12,7 +12,7 @@ type UsePromptBarDragDropParams = {
   currentConfig: MediaConfig;
   endFrame: IAsset | IImage | null;
   form: UseFormReturn<PromptTextareaSchema>;
-  handleReferenceSelect: (selection: (IAsset | IImage)[] | null) => void;
+  handleReferenceSelect: (selection: (IAsset | IImage)[]) => void;
   isDisabledState: boolean;
   isOnlyImagenModels: boolean;
   maxReferenceCount: number;

@@ -84,30 +84,9 @@ export function usePostDetailMedia({
         category: ingredientCategory,
         format,
         maxSelectableItems,
-        onSelect: async (selected: GallerySelectItem[] | null) => {
-          if (!selected) {
-            setIsSavingIngredients(true);
-            try {
-              const service = await getPostsService();
-              await service.patch(targetPostId, {
-                ingredients: [],
-              });
-
-              if (isParentPost) {
-                setSelectedIngredients([]);
-                setPost((prevPost) => ({
-                  ...(prevPost || (post as IPost)),
-                  ingredients: [],
-                }));
-              } else {
-                handleUpdateChild(targetPostId, { ingredients: [] });
-              }
-            } finally {
-              setIsSavingIngredients(false);
-            }
-            return;
-          }
-
+        // An emptied selection arrives as `[]` and falls through the same path:
+        // it patches, sets, and propagates empty ingredients like any other size.
+        onSelect: async (selected: GallerySelectItem[]) => {
           const ingredientsArray = selected as unknown as IIngredient[];
 
           const uniqueIngredients = ingredientsArray.filter(
