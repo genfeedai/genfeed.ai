@@ -70,8 +70,17 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           typeof params.style === 'string' ? params.style : undefined,
         width,
       });
-      const { input } = compiled.dispatch
-        ? { input: compiled.dispatch }
+      const compiledInput = compiled.dispatch
+        ? {
+            ...compiled.dispatch,
+            ...(references?.[0] ? { image: references[0] } : {}),
+            ...(typeof params.strength === 'number'
+              ? { strength: params.strength }
+              : {}),
+          }
+        : undefined;
+      const { input } = compiledInput
+        ? { input: compiledInput }
         : await promptBuilderService.buildPrompt(
             model as string,
             {
