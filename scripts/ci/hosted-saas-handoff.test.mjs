@@ -314,16 +314,30 @@ test('hosted SaaS site identity comes from GitHub environment variables', () => 
 });
 
 test('hosted SaaS owns the canonical browser app origin', () => {
+  const localsTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/locals.tf', import.meta.url),
+    ),
+    'utf8',
+  );
   const servicesTf = readFileSync(
     fileURLToPath(
       new URL('../../infra/tofu/hosted-saas/services.tf', import.meta.url),
     ),
     'utf8',
   );
+  const internalEnv = servicesTf.slice(
+    servicesTf.indexOf('internal_env = ['),
+    servicesTf.indexOf('module "service"'),
+  );
 
   assert.match(
-    servicesTf,
+    internalEnv,
     /\{ name = "GENFEEDAI_APP_URL", value = "https:\/\/app\.\$\{var\.domain\}" \}/,
+  );
+  assert.match(
+    localsTf,
+    /reserved_env_names\s*=\s*toset\(concat\(\s*\[for e in local\.internal_env : e\.name\]/,
   );
 });
 
