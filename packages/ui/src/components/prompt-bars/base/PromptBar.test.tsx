@@ -505,6 +505,18 @@ describe('PromptBar', () => {
     mockForm.getValues.mockImplementation((name: string) =>
       name === 'references' ? ['img-0'] : 'walking',
     );
+    mockUseWatch.mockImplementation(({ name }) => {
+      if (name === 'models') {
+        return ['test-model'];
+      }
+      if (name === 'format') {
+        return IngredientFormat.PORTRAIT;
+      }
+      if (name === 'outputs') {
+        return 1;
+      }
+      return null;
+    });
     const onPrepareSubmit = vi.fn(() => ({
       notices: ['Ghost has no canonical reference image'],
       references: ['img-0', 'img-anna'],

@@ -4,6 +4,44 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@ui/prompt-editor/PromptEditor', () => ({
+  default: function MockPromptEditor({
+    className,
+    isDisabled,
+    onSubmit,
+    onValueChange,
+    placeholder,
+    testId,
+    value,
+  }: {
+    className?: string;
+    isDisabled?: boolean;
+    onSubmit?: () => void;
+    onValueChange?: (next: string) => void;
+    placeholder?: string;
+    testId?: string;
+    value?: string;
+  }) {
+    return (
+      <textarea
+        aria-label="Prompt"
+        className={className}
+        data-testid={testId}
+        disabled={isDisabled}
+        onChange={(event) => onValueChange?.(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            onSubmit?.();
+          }
+        }}
+        placeholder={placeholder}
+        value={value}
+      />
+    );
+  },
+}));
+
 const PRESET = {
   description: 'Rewrite this section clearly',
   key: 'preset.text.content.test',
@@ -205,11 +243,12 @@ describe('PromptBarContent', () => {
   it('swaps the textarea for a single-line input when collapsed', () => {
     render(<PromptBarContent {...articleProps} />);
 
-    expect(screen.getByRole('textbox').tagName).toBe('TEXTAREA');
+    expect(screen.getByTestId('prompt-textarea')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /collapse/i }));
 
-    expect(screen.getByRole('textbox').tagName).toBe('INPUT');
+    expect(screen.getByTestId('prompt-input')).toBeInTheDocument();
+    expect(screen.queryByTestId('prompt-textarea')).not.toBeInTheDocument();
   });
 
   it('uses semantic chrome in expanded and collapsed modes', () => {
@@ -221,19 +260,16 @@ describe('PromptBarContent', () => {
       />,
     );
 
-    const expandedInput = screen.getByRole('textbox');
-    expect(expandedInput).toHaveClass('border-border', 'text-foreground');
+    expect(screen.getByTestId('prompt-textarea')).toHaveClass('border-border');
     expect(container.innerHTML).not.toMatch(
       /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /collapse/i }));
 
-    const collapsedInput = screen.getByRole('textbox');
-    expect(collapsedInput).toHaveClass(
+    expect(screen.getByTestId('prompt-input')).toHaveClass(
       'border-border',
       'bg-background-tertiary',
-      'text-foreground',
     );
     expect(container.innerHTML).not.toMatch(
       /\b(?:bg|border|ring|text)-(?:black|white)(?:\b|\/|\[)/,

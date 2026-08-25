@@ -636,10 +636,16 @@ describe('ImageGenerationService', () => {
         buildRequest(),
       );
 
-      const dispatchCall = promptBuilderService.buildPrompt.mock.calls.at(-1);
-      expect(
-        (dispatchCall?.[1] as { outputs?: number } | undefined)?.outputs,
-      ).toBe(3);
+      // SeeDream 5 Lite compiles a brief, so the legacy prompt-builder path is
+      // skipped. Batch size still has to ride on the provider payload.
+      expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
+        BATCH_MODEL,
+        expect.objectContaining({
+          max_images: 3,
+          sequential_image_generation: 'auto',
+        }),
+      );
       // Batch model -> one provider call, indexed external ids on each placeholder.
       expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
       const externalIds = metadataService.patch.mock.calls.map(

@@ -1,18 +1,53 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
+function emptyRect(): DOMRect {
+  return {
+    bottom: 0,
+    height: 0,
+    left: 0,
+    right: 0,
+    toJSON() {
+      return this;
+    },
+    top: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+  };
+}
+
+beforeAll(() => {
+  if (typeof Range.prototype.getBoundingClientRect !== 'function') {
+    Range.prototype.getBoundingClientRect = () => emptyRect();
+  }
+  if (typeof Range.prototype.getClientRects !== 'function') {
+    Range.prototype.getClientRects = () =>
+      [emptyRect()] as unknown as DOMRectList;
+  }
+  if (typeof document.elementFromPoint !== 'function') {
+    document.elementFromPoint = () => document.body;
+  }
+});
 
 describe('PromptEditor', () => {
   it('serializes typed content to plain text', async () => {
-    const user = userEvent.setup();
     const onValueChange = vi.fn();
 
     render(<PromptEditor onValueChange={onValueChange} value="" />);
-
     const editor = await screen.findByRole('textbox', { name: 'Prompt' });
-    await user.click(editor);
-    await user.keyboard('hello world');
+    editor.focus();
+
+    // jsdom user typing does not emit ProseMirror updates; the shipped paste
+    // handler is the reliable insert path in CI.
+    fireEvent.paste(editor, {
+      clipboardData: {
+        files: [],
+        getData: (type: string) => (type === 'text/plain' ? 'hello world' : ''),
+      },
+    });
 
     await waitFor(() => {
       expect(onValueChange).toHaveBeenCalled();

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -112,8 +112,8 @@ describe('PromptBarCollapsedView', () => {
   });
 
   it('should render input field', () => {
-    const { container } = render(<PromptBarCollapsedView {...defaultProps} />);
-    expect(container.querySelector('input')).toBeInTheDocument();
+    render(<PromptBarCollapsedView {...defaultProps} />);
+    expect(screen.getByRole('textbox', { name: 'Prompt' })).toBeInTheDocument();
   });
 
   it('should render with disabled state', () => {
