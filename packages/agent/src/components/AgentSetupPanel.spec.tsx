@@ -63,8 +63,8 @@ describe('AgentSetupPanel', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Twitter' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reddit' })).toBeInTheDocument();
     for (const unsupportedPlatform of [
+      'Reddit',
       'Shopify',
       'Mastodon',
       'Snapchat',
