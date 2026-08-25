@@ -313,6 +313,7 @@ describe('RedditPublisherService', () => {
           expect.any(String),
           undefined, // No link URL for text posts
           undefined, // No flair selected
+          mockCredential.id,
         );
       });
 
@@ -339,6 +340,7 @@ describe('RedditPublisherService', () => {
           expect.any(String),
           undefined, // No link URL for text posts
           undefined, // No flair selected
+          mockCredential.id,
         );
       });
 
@@ -377,6 +379,7 @@ describe('RedditPublisherService', () => {
           undefined, // Empty description becomes undefined
           undefined, // No link URL for text posts
           undefined, // No flair selected
+          mockCredential.id,
         );
       });
     });
@@ -401,6 +404,7 @@ describe('RedditPublisherService', () => {
           expect.any(String),
           undefined,
           undefined,
+          mockCredential.id,
         );
         expect(result.url).toBe(
           'https://www.reddit.com/r/anothersub/comments/post-999',
@@ -424,6 +428,7 @@ describe('RedditPublisherService', () => {
           expect.any(String),
           undefined,
           undefined,
+          mockCredential.id,
         );
       });
 
@@ -444,6 +449,7 @@ describe('RedditPublisherService', () => {
           expect.any(String),
           undefined,
           'flair-abc',
+          mockCredential.id,
         );
       });
     });

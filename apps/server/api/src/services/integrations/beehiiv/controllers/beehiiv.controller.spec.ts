@@ -37,7 +37,10 @@ describe('BeehiivController', () => {
     createSubscribers: ReturnType<typeof vi.fn>;
   };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let credentialsService: { upsertForBrand: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    createPendingForBrand: ReturnType<typeof vi.fn>;
+    updateExternalProfile: ReturnType<typeof vi.fn>;
+  };
 
   const loggerMock = {
     error: vi.fn(),
@@ -53,7 +56,7 @@ describe('BeehiivController', () => {
 
   const mockBrand = {
     id: testId('brand'),
-    organization: testId('org'),
+    organizationId: testId('org'),
   };
 
   const mockPublication = {
@@ -79,7 +82,15 @@ describe('BeehiivController', () => {
       listPublications: vi.fn(),
     };
     brandsService = { findOne: vi.fn() };
-    credentialsService = { upsertForBrand: vi.fn() };
+    credentialsService = {
+      createPendingForBrand: vi
+        .fn()
+        .mockResolvedValue({ id: 'pending-credential-id' }),
+      updateExternalProfile: vi.fn().mockResolvedValue({
+        id: 'test-object-id',
+        platform: CredentialPlatform.BEEHIIV,
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BeehiivController],
@@ -106,11 +117,6 @@ describe('BeehiivController', () => {
     it('should connect successfully with valid apiKey and brandId', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
       beehiivService.listPublications.mockResolvedValue([mockPublication]);
-      credentialsService.upsertForBrand.mockResolvedValue({
-        id: 'test-object-id',
-        platform: CredentialPlatform.BEEHIIV,
-      });
-
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
         brandId: testId('brand'),
@@ -119,15 +125,19 @@ describe('BeehiivController', () => {
       expect(beehiivService.listPublications).toHaveBeenCalledWith(
         'test-api-key',
       );
-      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
+      expect(credentialsService.createPendingForBrand).toHaveBeenCalledWith(
         mockBrand,
         testId('user'),
         CredentialPlatform.BEEHIIV,
+        { accessToken: 'test-api-key' },
+      );
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        'pending-credential-id',
+        mockBrand.organizationId,
         {
-          accessToken: 'test-api-key',
-          externalHandle: mockPublication.name,
-          externalId: mockPublication.id,
-          isConnected: true,
+          handle: mockPublication.name,
+          id: mockPublication.id,
+          name: mockPublication.name,
         },
       );
       expect(result).toHaveProperty('data');
@@ -139,26 +149,19 @@ describe('BeehiivController', () => {
         mockPublication,
         alternatePublication,
       ]);
-      credentialsService.upsertForBrand.mockResolvedValue({
-        id: 'test-object-id',
-        platform: CredentialPlatform.BEEHIIV,
-      });
-
       await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
         brandId: testId('brand'),
         publicationId: 'pub_selected',
       });
 
-      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
-        mockBrand,
-        testId('user'),
-        CredentialPlatform.BEEHIIV,
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        'pending-credential-id',
+        mockBrand.organizationId,
         {
-          accessToken: 'test-api-key',
-          externalHandle: alternatePublication.name,
-          externalId: alternatePublication.id,
-          isConnected: true,
+          handle: alternatePublication.name,
+          id: alternatePublication.id,
+          name: alternatePublication.name,
         },
       );
     });
@@ -174,7 +177,7 @@ describe('BeehiivController', () => {
       });
 
       expect(result).toHaveProperty('errors');
-      expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
+      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
     });
 
     it('should return bad request when apiKey is missing', async () => {
@@ -218,7 +221,7 @@ describe('BeehiivController', () => {
       });
 
       expect(result).toHaveProperty('errors');
-      expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
+      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
     });
 
     it('should return internal server error when listPublications throws', async () => {

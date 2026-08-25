@@ -56,6 +56,7 @@ describe('XAdsController', () => {
   let controller: XAdsController;
   let credentialsService: {
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
+    connectAccount: ReturnType<typeof vi.fn>;
     findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
@@ -83,8 +84,10 @@ describe('XAdsController', () => {
         credential: { id: 'credential-1' },
         state: 'opaque-state',
       }),
+      connectAccount: vi.fn().mockResolvedValue({ id: 'credential-1' }),
       findPendingOAuthCredential: vi.fn().mockResolvedValue({
         id: 'credential-1',
+        organizationId: 'org-1',
         oauthTokenSecret: 'pkce-verifier',
       }),
       patch: vi.fn().mockResolvedValue({ id: 'credential-1' }),
@@ -188,13 +191,14 @@ describe('XAdsController', () => {
       CredentialPlatform.X_ADS,
       { organizationId: 'org-1', userId: 'user-1' },
     );
-    expect(credentialsService.patch).toHaveBeenCalledWith(
+    expect(credentialsService.connectAccount).toHaveBeenCalledWith(
       'credential-1',
+      'org-1',
       expect.objectContaining({
-        externalId: 'account-1',
+        id: 'account-1',
+      }),
+      expect.objectContaining({
         grantedScopes: ['ads.read', 'ads.write', 'offline.access'],
-        isConnected: true,
-        isDeleted: false,
       }),
     );
   });
@@ -214,7 +218,7 @@ describe('XAdsController', () => {
 
     expect(failure).toBeInstanceOf(HttpException);
     expect((failure as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
-    expect(credentialsService.patch).not.toHaveBeenCalled();
+    expect(credentialsService.connectAccount).not.toHaveBeenCalled();
   });
 
   it('selects multiple X Ads accounts deterministically by account id', async () => {
@@ -227,14 +231,15 @@ describe('XAdsController', () => {
       state: 'opaque-state',
     });
 
-    expect(credentialsService.patch).toHaveBeenCalledWith(
+    expect(credentialsService.connectAccount).toHaveBeenCalledWith(
       'credential-1',
+      'org-1',
       expect.objectContaining({
-        externalHandle: 'First by id',
-        externalId: 'account-a',
-        externalName: 'First by id',
-        isConnected: true,
+        handle: 'First by id',
+        id: 'account-a',
+        name: 'First by id',
       }),
+      expect.any(Object),
     );
   });
 

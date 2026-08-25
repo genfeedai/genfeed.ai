@@ -248,6 +248,8 @@ describe('ThreadsPublisherService', () => {
         'brand-1',
         'https://assets.test/videos/video-1',
         'Video caption',
+        undefined,
+        undefined,
       );
       expect(result.success).toBe(true);
       expect(result.externalId).toBe('thread-video-1');
@@ -288,6 +290,8 @@ describe('ThreadsPublisherService', () => {
           },
         ],
         'Carousel caption',
+        undefined,
+        undefined,
       );
       expect(result.success).toBe(true);
       expect(result.externalId).toBe('thread-carousel-1');
@@ -328,6 +332,7 @@ describe('ThreadsPublisherService', () => {
         'https://assets.test/videos/video-1',
         'Video reply',
         'parent-thread-id',
+        undefined,
       );
     });
 
@@ -371,6 +376,7 @@ describe('ThreadsPublisherService', () => {
         'brand-1',
         'First reply',
         'parent-thread-id',
+        undefined,
       );
       // Second call should reply to previous reply (chain)
       expect(mockThreadsService.publishText).toHaveBeenCalledWith(
@@ -378,6 +384,7 @@ describe('ThreadsPublisherService', () => {
         'brand-1',
         'Second reply',
         'reply-1',
+        undefined,
       );
       expect(mockPostsService.patch).toHaveBeenCalledTimes(2);
     });

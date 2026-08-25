@@ -32,7 +32,10 @@ describe('DevtoController', () => {
     publishArticle: ReturnType<typeof vi.fn>;
   };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let credentialsService: { upsertForBrand: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    createPendingForBrand: ReturnType<typeof vi.fn>;
+    updateExternalProfile: ReturnType<typeof vi.fn>;
+  };
 
   const loggerMock = {
     error: vi.fn(),
@@ -48,7 +51,7 @@ describe('DevtoController', () => {
 
   const mockBrand = {
     id: devtoBrandId,
-    organization: devtoOrganizationId,
+    organizationId: devtoOrganizationId,
   };
 
   const mockDevtoUser = {
@@ -64,7 +67,15 @@ describe('DevtoController', () => {
       publishArticle: vi.fn(),
     };
     brandsService = { findOne: vi.fn() };
-    credentialsService = { upsertForBrand: vi.fn() };
+    credentialsService = {
+      createPendingForBrand: vi
+        .fn()
+        .mockResolvedValue({ id: 'pending-credential-id' }),
+      updateExternalProfile: vi.fn().mockResolvedValue({
+        id: 'test-object-id',
+        platform: CredentialPlatform.DEV_TO,
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DevtoController],
@@ -91,27 +102,25 @@ describe('DevtoController', () => {
     it('should connect successfully with a valid apiKey and brandId', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
       devtoService.getCurrentUser.mockResolvedValue(mockDevtoUser);
-      credentialsService.upsertForBrand.mockResolvedValue({
-        id: 'test-object-id',
-        platform: CredentialPlatform.DEV_TO,
-      });
-
       const result = await controller.connect(mockRequest, mockUser, {
         apiKey: 'test-api-key',
         brandId: devtoBrandId,
       });
 
       expect(devtoService.getCurrentUser).toHaveBeenCalledWith('test-api-key');
-      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
+      expect(credentialsService.createPendingForBrand).toHaveBeenCalledWith(
         mockBrand,
         devtoUserId,
         CredentialPlatform.DEV_TO,
+        { accessToken: 'test-api-key' },
+      );
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        'pending-credential-id',
+        devtoOrganizationId,
         {
-          accessToken: 'test-api-key',
-          externalHandle: mockDevtoUser.username,
-          externalId: String(mockDevtoUser.id),
-          externalName: mockDevtoUser.name,
-          isConnected: true,
+          handle: mockDevtoUser.username,
+          id: String(mockDevtoUser.id),
+          name: mockDevtoUser.name,
         },
       );
       expect(result).toHaveProperty('data');
@@ -158,7 +167,7 @@ describe('DevtoController', () => {
       });
 
       expect(result).toHaveProperty('errors');
-      expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
+      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
     });
 
     it('should return internal server error when verification throws', async () => {

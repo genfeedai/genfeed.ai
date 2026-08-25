@@ -263,6 +263,7 @@ describe('LinkedInPublisherService', () => {
           mockBrandId.toString(),
           expect.any(String),
           {},
+          mockCredential.id,
         );
       });
 
@@ -282,6 +283,7 @@ describe('LinkedInPublisherService', () => {
           expect.any(String),
           expect.any(String),
           { visibility: 'CONNECTIONS' },
+          mockCredential.id,
         );
       });
 
@@ -319,6 +321,7 @@ describe('LinkedInPublisherService', () => {
           expect.stringContaining('/images/'),
           expect.any(String),
           {},
+          mockCredential.id,
         );
       });
 
@@ -359,6 +362,7 @@ describe('LinkedInPublisherService', () => {
           expect.stringContaining('/videos/'),
           expect.any(String),
           {},
+          mockCredential.id,
         );
       });
     });

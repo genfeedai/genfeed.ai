@@ -22,6 +22,7 @@ describe('RestreamController OAuth encrypt path', () => {
   };
   const credentialsService = {
     beginOAuthForBrand: vi.fn(),
+    connectAccount: vi.fn(),
     findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
   };
@@ -53,7 +54,7 @@ describe('RestreamController OAuth encrypt path', () => {
       id: 'rs-user-1',
       username: 'streamer',
     });
-    credentialsService.patch.mockResolvedValue({
+    credentialsService.connectAccount.mockResolvedValue({
       id: 'cred-pending',
       isConnected: true,
     });
@@ -74,11 +75,12 @@ describe('RestreamController OAuth encrypt path', () => {
       CredentialPlatform.RESTREAM,
       expect.objectContaining({ organizationId: 'org-1' }),
     );
-    expect(credentialsService.patch).toHaveBeenCalledWith(
+    expect(credentialsService.connectAccount).toHaveBeenCalledWith(
       'cred-pending',
+      'org-1',
+      expect.objectContaining({ id: 'rs-user-1' }),
       expect.objectContaining({
         accessToken: 'plain-access',
-        isConnected: true,
         refreshToken: 'plain-refresh',
       }),
     );

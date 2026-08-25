@@ -40,7 +40,11 @@ describe('GoogleAdsController', () => {
   let credentialsService: vi.Mocked<
     Pick<
       CredentialsService,
-      'beginOAuthForBrand' | 'findOne' | 'findPendingOAuthCredential' | 'patch'
+      | 'beginOAuthForBrand'
+      | 'connectAccount'
+      | 'findOne'
+      | 'findPendingOAuthCredential'
+      | 'patch'
     >
   >;
   let googleAdsService: vi.Mocked<
@@ -75,6 +79,7 @@ describe('GoogleAdsController', () => {
         credential: MOCK_CREDENTIAL,
         state: 'opaque-oauth-state',
       }),
+      connectAccount: vi.fn().mockResolvedValue({ id: 'cred-1' }),
       findOne: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       findPendingOAuthCredential: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
       patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
@@ -156,7 +161,12 @@ describe('GoogleAdsController', () => {
       expect(
         googleAdsOAuthService.exchangeAuthCodeForAccessToken,
       ).toHaveBeenCalledWith('auth-code');
-      expect(credentialsService.patch).toHaveBeenCalled();
+      expect(credentialsService.connectAccount).toHaveBeenCalledWith(
+        'cred-1',
+        'test-object-id',
+        expect.objectContaining({ id: '123' }),
+        expect.objectContaining({ accessToken: expect.any(String) }),
+      );
       expect(result).toBeDefined();
     });
 

@@ -44,6 +44,7 @@ describe('FanvueController', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
+    connectAccount: ReturnType<typeof vi.fn>;
     findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
@@ -100,6 +101,9 @@ describe('FanvueController', () => {
               credential: { id: 'cred-1' },
               state: 'opaque-oauth-state',
             }),
+            connectAccount: vi
+              .fn()
+              .mockResolvedValue({ id: 'cred-1', isConnected: true }),
             findPendingOAuthCredential: vi.fn(),
             patch: vi
               .fn()
@@ -224,16 +228,16 @@ describe('FanvueController', () => {
       expect(fanvueService.getUserProfile).toHaveBeenCalledWith(
         'fanvue-access-token',
       );
-      expect(credentialsService.patch).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(credentialsService.connectAccount).toHaveBeenCalledWith(
+        'test-object-id',
+        orgId,
+        expect.objectContaining({
+          handle: 'testcreator',
+          id: 'fanvue-uuid-1',
+          name: 'Test Creator',
+        }),
         expect.objectContaining({
           accessToken: 'fanvue-access-token',
-          externalHandle: 'testcreator',
-          externalId: 'fanvue-uuid-1',
-          externalName: 'Test Creator',
-          isConnected: true,
-          isDeleted: false,
-          oauthState: null,
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: 'fanvue-refresh-token',

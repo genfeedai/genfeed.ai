@@ -379,6 +379,8 @@ describe('FacebookPublisherService', () => {
           expect.stringContaining('/videos/'),
           mockVideoPost.label,
           expect.any(String),
+          mockCredential.externalId,
+          mockCredential.id,
         );
       });
 
@@ -400,6 +402,8 @@ describe('FacebookPublisherService', () => {
           expect.any(String),
           '',
           expect.any(String),
+          mockCredential.externalId,
+          mockCredential.id,
         );
       });
     });

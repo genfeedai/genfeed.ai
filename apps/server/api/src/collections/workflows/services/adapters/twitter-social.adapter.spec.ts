@@ -78,6 +78,7 @@ describe('TwitterSocialAdapter', () => {
         'user456',
         'Hello!',
         undefined,
+        undefined,
       );
       expect(result.messageId).toBeDefined();
     });
@@ -562,6 +563,7 @@ describe('TwitterSocialAdapter', () => {
         'explicit-brand',
         'user456',
         'Hello!',
+        undefined,
       );
     });
 

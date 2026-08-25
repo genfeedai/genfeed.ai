@@ -361,6 +361,7 @@ describe('YouTubePublisherService', () => {
           mockIngredientId.toString(),
           mockVideoPost,
           {},
+          mockCredential.id,
         );
       });
 
