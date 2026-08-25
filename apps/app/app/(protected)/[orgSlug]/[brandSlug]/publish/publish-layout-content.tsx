@@ -232,6 +232,10 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
             {viewToggleNode}
             {exportNode}
             {scheduleActionsNode}
+            <ButtonRefresh
+              onClick={handleRefresh}
+              isRefreshing={isRefreshing}
+            />
             <Dropdown
               minWidth="190px"
               trigger={
@@ -273,10 +277,6 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
                 />
               </div>
             </Dropdown>
-            <ButtonRefresh
-              onClick={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
           </div>
         }
       >
