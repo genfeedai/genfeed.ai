@@ -49,6 +49,7 @@ jobs:
     # ceiling. Mirror ci.yml's requested token scopes explicitly so callers of
     # full-suite can validate the complete workflow graph at startup.
     permissions:
+      actions: write
       contents: read
       issues: write
       pull-requests: write

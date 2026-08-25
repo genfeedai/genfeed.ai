@@ -334,6 +334,24 @@ test('reaps zombie merge-queue runs after each master push', () => {
   );
 });
 
+test('reusable CI callers grant the merge-queue janitor permission ceiling', () => {
+  // GitHub validates every called job before evaluating its `if` expression.
+  // A caller that omits actions:write therefore startup-fails even when the
+  // push-only janitor would be skipped for that caller's event.
+  for (const [fileName, jobId] of [
+    ['full-suite.yml', 'ci'],
+    ['pr-full-suite.yml', 'full-suite'],
+  ]) {
+    const caller = jobBlock(readWorkflow(fileName), jobId, fileName);
+
+    assert.match(
+      caller,
+      /^ {6}actions: write$/m,
+      `${fileName} must let reusable ci.yml grant actions:write to its janitor job`,
+    );
+  }
+});
+
 // The curated action catalog decides whether a product action is exposed on
 // Agent, MCP, or both. Its reporter shipped with unit coverage and a
 // `catalog:changes` package script but no caller, so surface transitions landed
