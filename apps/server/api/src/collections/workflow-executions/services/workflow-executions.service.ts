@@ -673,24 +673,24 @@ export class WorkflowExecutionsService extends BaseService<
           "updatedAt"
         )
         SELECT
-          concat('wer_', e.id, '_', ${nodeId}),
+          concat('wer_', e.id, '_', ${nodeId}::text),
           e."organizationId",
           e.id,
-          ${nodeId},
-          ${nodeType},
-          ${status},
+          ${nodeId}::text,
+          ${nodeType}::text,
+          ${status}::text,
           ${inputJson}::jsonb,
           ${outputJson}::jsonb,
-          ${error},
-          ${startedAt},
-          ${completedAt},
-          ${nodeProgress},
-          ${retryCount},
-          ${creditsUsed},
+          ${error}::text,
+          ${startedAt}::timestamp,
+          ${completedAt}::timestamp,
+          ${nodeProgress}::int,
+          ${retryCount}::int,
+          ${creditsUsed}::int,
           NOW(),
           NOW()
         FROM workflow_executions AS e
-        WHERE e.id = ${executionId}
+        WHERE e.id = ${executionId}::text
         ON CONFLICT ("executionId", "nodeId") DO UPDATE SET
           "nodeType" = EXCLUDED."nodeType",
           status = EXCLUDED.status,
@@ -725,8 +725,8 @@ export class WorkflowExecutionsService extends BaseService<
           upserted."executionId",
           COUNT(*) FILTER (
             WHERE node_result.status IN (
-              ${SharedWorkflowExecutionStatus.COMPLETED},
-              ${SharedWorkflowExecutionStatus.FAILED}
+              ${SharedWorkflowExecutionStatus.COMPLETED}::text,
+              ${SharedWorkflowExecutionStatus.FAILED}::text
             )
           ) AS completed_count,
           COUNT(*) AS result_count
@@ -740,17 +740,17 @@ export class WorkflowExecutionsService extends BaseService<
         progress = CASE
           WHEN GREATEST(
             CASE
-              WHEN ${useStoredNodeCount} THEN counted.result_count
-              ELSE ${expectedNodeCount}
+              WHEN ${useStoredNodeCount}::boolean THEN counted.result_count
+              ELSE ${expectedNodeCount}::int
             END,
             COALESCE(execution."totalNodes", 0)
           ) > 0
             THEN ROUND(
               counted.completed_count::numeric * 100 / GREATEST(
                 CASE
-                  WHEN ${useStoredNodeCount}
+                  WHEN ${useStoredNodeCount}::boolean
                     THEN COALESCE(execution."totalNodes", counted.result_count)
-                  ELSE ${expectedNodeCount}
+                  ELSE ${expectedNodeCount}::int
                 END,
                 1
               )::numeric
@@ -760,8 +760,8 @@ export class WorkflowExecutionsService extends BaseService<
         "totalNodes" = COALESCE(
           execution."totalNodes",
           CASE
-            WHEN ${useStoredNodeCount} THEN counted.result_count
-            ELSE ${expectedNodeCount}
+            WHEN ${useStoredNodeCount}::boolean THEN counted.result_count
+            ELSE ${expectedNodeCount}::int
           END
         ),
         "updatedAt" = NOW()
