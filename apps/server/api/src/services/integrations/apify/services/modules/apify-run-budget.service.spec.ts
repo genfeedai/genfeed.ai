@@ -30,6 +30,10 @@ describe('ApifyRunBudgetService', () => {
 
     cacheService = {
       expire: vi.fn().mockResolvedValue(true),
+      generateKey: vi.fn(
+        (namespace: string, ...parts: (string | number)[]) =>
+          `${namespace}:${parts.join(':')}`,
+      ),
       incr: vi.fn(async (key: string) => {
         counters[key] = (counters[key] ?? 0) + 1;
         return counters[key];
