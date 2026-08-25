@@ -16,9 +16,10 @@ import {
  * Analytics is the single home for measurement — the Publish module no longer
  * carries its own analytics page.
  *
- * Two usage groups only (no single-item Habit/Insights headers):
- * - Performance: what happened (Overview, Posts, Brands, Streaks)
- * - Intelligence: why it happened / what next (Insights, Hooks, Lab, Trends)
+ * Shell already labels the module Analytics. What-happened destinations sit
+ * ungrouped under that header (Overview, Posts, Brands, Streaks) so the
+ * sidebar does not stack ANALYTICS + PERFORMANCE. Intelligence stays a group
+ * (Insights, Hooks, Lab, Trends).
  *
  * Org-level routes (`/:org/~/analytics/*`) only ship Overview today. Items with
  * `hrefScope: 'brand'` are brand-route only — hide them on org scope or they 404.
@@ -27,7 +28,7 @@ import {
  */
 export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
-    group: 'Performance',
+    group: '',
     // Only destination that exists under both brand and org (`~/`) analytics.
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
     hrefScope: 'organization',
@@ -37,7 +38,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     solid: ChartColumn,
   },
   {
-    group: 'Performance',
+    group: '',
     href: APP_ROUTES.ANALYTICS.POSTS,
     hrefScope: 'brand',
     label: 'Posts',
@@ -46,7 +47,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     solid: FileText,
   },
   {
-    group: 'Performance',
+    group: '',
     href: APP_ROUTES.ANALYTICS.BRANDS,
     hrefScope: 'brand',
     label: 'Brands',
@@ -55,7 +56,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     solid: Building2,
   },
   {
-    group: 'Performance',
+    group: '',
     href: APP_ROUTES.ANALYTICS.STREAKS,
     hrefScope: 'brand',
     label: 'Streaks',
@@ -127,14 +128,8 @@ export function getAnalyticsMenuItemsForScope(
   if (!isOrgScope) {
     return ANALYTICS_MENU_ITEMS;
   }
-  // Org scope only has Overview. Drop the Performance group label so the
-  // sidebar does not stack ANALYTICS + PERFORMANCE above a single row.
-  return ANALYTICS_MENU_ITEMS.filter((item) => item.hrefScope !== 'brand').map(
-    (item) => ({
-      ...item,
-      group: undefined,
-    }),
-  );
+  // Org scope only has Overview. Keep it ungrouped under Analytics.
+  return ANALYTICS_MENU_ITEMS.filter((item) => item.hrefScope !== 'brand');
 }
 
 export const ANALYTICS_LOGO_HREF = APP_ROUTES.ANALYTICS.OVERVIEW;
