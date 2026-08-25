@@ -302,6 +302,7 @@ describe('FanvueService', () => {
         access_token: 'new-access-token',
         expires_in: 3600,
         refresh_token: 'new-refresh-token',
+        scope: 'read:self read:media write:media write:post',
       };
 
       credentialsService.findOne.mockResolvedValue(mockCredential as never);
@@ -334,6 +335,13 @@ describe('FanvueService', () => {
         mockCredential.id,
         expect.objectContaining({
           accessToken: 'new-access-token',
+          grantedScopes: [
+            'read:media',
+            'read:self',
+            'write:media',
+            'write:post',
+          ],
+          grantedScopesCapturedAt: expect.any(Date),
           isConnected: true,
           refreshToken: 'new-refresh-token',
         }),
