@@ -1,12 +1,23 @@
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
-import { ApifyActorRunResponse } from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import {
+  ApifyAccountLimitSuspension,
+  ApifyActorRunResponse,
+} from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import {
+  describeApifyError,
+  isApifyAccountLimitError,
+} from '@api/services/integrations/apify/utils/apify-error.util';
 import { ByokProvider } from '@genfeedai/enums';
 import type { ByokResolutionResult } from '@genfeedai/interfaces';
 import { extractHashtags } from '@genfeedai/utils/data/extract.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -17,9 +28,28 @@ import { firstValueFrom } from 'rxjs';
  */
 @Injectable()
 export class ApifyBaseService {
+  /**
+   * How long to hold off calls for an account that reported a usage limit.
+   * Short enough that scraping resumes on its own once the owner raises the
+   * limit or the billing period rolls over, long enough that an exhausted
+   * account is not hammered on every scheduled run.
+   */
+  static readonly ACCOUNT_LIMIT_SUSPENSION_MS = 15 * 60 * 1000;
+
+  private static readonly HOSTED_SCOPE = 'hosted';
+
   private readonly apiUrl = 'https://api.apify.com/v2';
   private readonly constructorName: string = String(this.constructor.name);
   private readonly actorPathPattern = /^[^/~]+\/[^/~]+$/;
+
+  /**
+   * Usage-limit suspensions keyed by token scope, so one organization's
+   * exhausted BYOK account never blocks the hosted token or another org.
+   */
+  private readonly accountLimitSuspensions = new Map<
+    string,
+    ApifyAccountLimitSuspension
+  >();
 
   /**
    * Apify Actor IDs for different platforms
@@ -89,38 +119,14 @@ export class ApifyBaseService {
     if (!token) {
       return [];
     }
-    const url = this.buildActorRunUrl(actorId);
 
-    try {
-      // Start the actor run
-      const runResponse = await firstValueFrom(
-        this.httpService.post<ApifyActorRunResponse>(url, input, {
-          headers: this.buildAuthHeaders(token),
-        }),
-      );
-
-      const runId = runResponse.data.data.id;
-      const datasetId = runResponse.data.data.defaultDatasetId;
-
-      // Wait for the run to finish (with timeout)
-      await this.waitForRun(runId, token);
-
-      // Fetch results from the dataset
-      const datasetUrl = `${this.apiUrl}/datasets/${datasetId}/items`;
-      const datasetResponse = await firstValueFrom(
-        this.httpService.get<T[]>(datasetUrl, {
-          headers: this.buildAuthHeaders(token),
-        }),
-      );
-
-      return datasetResponse.data;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName}.runActor failed for ${actorId}`,
-        error,
-      );
-      throw error;
-    }
+    return this.executeActor<T>({
+      actorId,
+      failureLabel: `${this.constructorName}.runActor failed for ${actorId}`,
+      input,
+      scope: ApifyBaseService.HOSTED_SCOPE,
+      token,
+    });
   }
 
   /**
@@ -157,6 +163,41 @@ export class ApifyBaseService {
       return { data: [], source: 'hosted' };
     }
 
+    const data = await this.executeActor<T>({
+      actorId,
+      failureLabel: `${this.constructorName}.runActorForOrg failed for ${actorId} (org: ${orgId}, source: ${source})`,
+      input,
+      scope:
+        source === 'byok' ? `byok:${orgId}` : ApifyBaseService.HOSTED_SCOPE,
+      token,
+    });
+
+    return { data, source };
+  }
+
+  /**
+   * Shared actor execution: refuse to call an account that is already known to
+   * be over its usage limit, then start the run, wait for it, and read the
+   * dataset.
+   */
+  private async executeActor<T>({
+    actorId,
+    failureLabel,
+    input,
+    scope,
+    token,
+  }: {
+    actorId: string;
+    failureLabel: string;
+    input: object;
+    scope: string;
+    token: string;
+  }): Promise<T[]> {
+    const suspension = this.getActiveAccountLimitSuspension(scope);
+    if (suspension) {
+      throw this.buildAccountLimitException(suspension);
+    }
+
     const url = this.buildActorRunUrl(actorId);
 
     try {
@@ -178,14 +219,67 @@ export class ApifyBaseService {
         }),
       );
 
-      return { data: datasetResponse.data, source };
+      return datasetResponse.data;
     } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName}.runActorForOrg failed for ${actorId} (org: ${orgId}, source: ${source})`,
-        error,
-      );
+      if (isApifyAccountLimitError(error)) {
+        this.recordAccountLimit(scope, actorId, error);
+        throw error;
+      }
+
+      this.loggerService.error(failureLabel, error);
       throw error;
     }
+  }
+
+  /**
+   * Returns the live suspension for a token scope, clearing it once expired.
+   */
+  private getActiveAccountLimitSuspension(
+    scope: string,
+  ): ApifyAccountLimitSuspension | null {
+    const suspension = this.accountLimitSuspensions.get(scope);
+    if (!suspension) {
+      return null;
+    }
+
+    if (Date.now() >= suspension.suspendedUntilMs) {
+      this.accountLimitSuspensions.delete(scope);
+      return null;
+    }
+
+    return suspension;
+  }
+
+  /**
+   * Record a usage-limit refusal and surface it as one actionable line rather
+   * than an anonymous axios stack on every scheduled call.
+   */
+  private recordAccountLimit(
+    scope: string,
+    actorId: string,
+    error: unknown,
+  ): void {
+    const suspendedUntilMs =
+      Date.now() + ApifyBaseService.ACCOUNT_LIMIT_SUSPENSION_MS;
+
+    this.accountLimitSuspensions.set(scope, {
+      reason: describeApifyError(error),
+      suspendedUntilMs,
+    });
+
+    this.loggerService.error(
+      `${this.constructorName} Apify rejected ${actorId} for the "${scope}" token — ${describeApifyError(error)}. Apify calls on this token are suspended until ${new Date(suspendedUntilMs).toISOString()}; raise the account usage limit or upgrade the plan to restore scraping.`,
+      undefined,
+      { actorId, scope, suspendedUntilMs },
+    );
+  }
+
+  private buildAccountLimitException(
+    suspension: ApifyAccountLimitSuspension,
+  ): ServiceUnavailableException {
+    return new ServiceUnavailableException(
+      `Apify is over its account usage limit (${suspension.reason}). Calls are suspended until ${new Date(suspension.suspendedUntilMs).toISOString()}.`,
+    );
   }
 
   /**
