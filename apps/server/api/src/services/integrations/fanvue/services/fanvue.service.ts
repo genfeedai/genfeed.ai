@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -20,6 +21,7 @@ const FANVUE_SCOPES = [
   'read:self',
   'read:media',
   'write:media',
+  'write:post',
 ];
 
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
@@ -226,7 +228,7 @@ export class FanvueService {
         ),
       );
 
-      const { access_token, refresh_token, expires_in } = response.data;
+      const { access_token, refresh_token, expires_in, scope } = response.data;
 
       this.loggerService.log(`${url} token refreshed`, {
         expiresIn: expires_in,
@@ -244,6 +246,7 @@ export class FanvueService {
             : undefined,
           isConnected: true,
           refreshToken: newRefreshToken,
+          ...buildGrantedScopesCredentialPatch(scope),
         },
       );
 

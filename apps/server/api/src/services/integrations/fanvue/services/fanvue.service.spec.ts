@@ -138,12 +138,15 @@ describe('FanvueService', () => {
     it('should include all required scopes', () => {
       const url = service.buildAuthUrl('state', 'challenge');
 
-      expect(url).toContain('scope=');
-      expect(url).toContain('openid');
-      expect(url).toContain('offline_access');
-      expect(url).toContain('read%3Aself');
-      expect(url).toContain('read%3Amedia');
-      expect(url).toContain('write%3Amedia');
+      expect(new URL(url).searchParams.get('scope')?.split(' ')).toEqual([
+        'openid',
+        'offline_access',
+        'offline',
+        'read:self',
+        'read:media',
+        'write:media',
+        'write:post',
+      ]);
     });
   });
 
@@ -299,6 +302,7 @@ describe('FanvueService', () => {
         access_token: 'new-access-token',
         expires_in: 3600,
         refresh_token: 'new-refresh-token',
+        scope: 'read:self read:media write:media write:post',
       };
 
       credentialsService.findOne.mockResolvedValue(mockCredential as never);
@@ -331,6 +335,13 @@ describe('FanvueService', () => {
         mockCredential.id,
         expect.objectContaining({
           accessToken: 'new-access-token',
+          grantedScopes: [
+            'read:media',
+            'read:self',
+            'write:media',
+            'write:post',
+          ],
+          grantedScopesCapturedAt: expect.any(Date),
           isConnected: true,
           refreshToken: 'new-refresh-token',
         }),

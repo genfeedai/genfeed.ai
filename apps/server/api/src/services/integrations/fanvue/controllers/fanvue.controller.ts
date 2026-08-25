@@ -15,6 +15,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -189,6 +190,7 @@ export class FanvueController {
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: tokens.refresh_token,
+          ...buildGrantedScopesCredentialPatch(tokens.scope),
         },
       );
 

@@ -120,6 +120,8 @@ describe('FanvueController', () => {
               access_token: 'fanvue-access-token',
               expires_in: 3600,
               refresh_token: 'fanvue-refresh-token',
+              scope:
+                'openid offline_access read:self read:media write:media write:post',
             }),
             generatePkce: vi.fn().mockReturnValue({
               codeChallenge: 'test-challenge',
@@ -238,6 +240,15 @@ describe('FanvueController', () => {
         }),
         expect.objectContaining({
           accessToken: 'fanvue-access-token',
+          grantedScopes: [
+            'offline_access',
+            'openid',
+            'read:media',
+            'read:self',
+            'write:media',
+            'write:post',
+          ],
+          grantedScopesCapturedAt: expect.any(Date),
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: 'fanvue-refresh-token',

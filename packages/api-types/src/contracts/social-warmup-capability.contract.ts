@@ -379,6 +379,7 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
       'read:self',
       'read:media',
       'write:media',
+      'write:post',
     ],
     evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against FanvueService FANVUE_SCOPES and FanvuePublisherService. No scheduler capability entry.`,
     nativeOnlyActions: [
