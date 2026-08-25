@@ -10,6 +10,8 @@ import {
   generationBriefExemptionEvidenceSchema,
   generationBriefPersistedEvidenceSchema,
   generationBriefSupportSchema,
+  generationBriefSurfaceSchema,
+  generationBriefSurfaceValues,
 } from '@api-types/contracts/generation-brief-compiler.contract';
 import { FLUX_SCHNELL_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
 import { describe, expect, test } from 'vitest';
@@ -141,5 +143,103 @@ describe('generation brief compiler contract', () => {
     expect(buildGenerationBriefExemptionSource('legacy_prompt_builder')).toBe(
       'generation-brief-exemption:legacy_prompt_builder',
     );
+  });
+
+  test('enumerates every originating surface (#3469)', () => {
+    expect(generationBriefSurfaceValues).toEqual([
+      'studio',
+      'workflow',
+      'agent_skill',
+      'telegram_bot',
+    ]);
+    for (const surface of generationBriefSurfaceValues) {
+      expect(generationBriefSurfaceSchema.parse(surface)).toBe(surface);
+    }
+    expect(() => generationBriefSurfaceSchema.parse('mcp')).toThrow();
+  });
+
+  test('compile evidence records the originating surface when provided (#3469)', () => {
+    const withSurface = generationBriefCompileEvidenceSchema.parse({
+      appliedFields: ['intent.objective', 'output.aspectRatio'],
+      briefVersion: 1,
+      compilerId: 'flux-schnell-image-compiler',
+      compilerVersion: 1,
+      fidelityMode: 'off',
+      mediaKind: 'image',
+      modelKey: FLUX_SCHNELL_MODEL_KEY,
+      omittedSignals: [],
+      output: {
+        aspectRatio: '16:9',
+        hasSeed: false,
+        numOutputs: 1,
+        outputFormat: 'jpg',
+      },
+      profileId: 'flux-schnell-capability',
+      profileVersion: 1,
+      referenceAssetIds: [],
+      status: 'compiled',
+      surface: 'workflow',
+    });
+    expect(withSurface.surface).toBe('workflow');
+
+    const withoutSurface = generationBriefCompileEvidenceSchema.parse({
+      appliedFields: ['intent.objective', 'output.aspectRatio'],
+      briefVersion: 1,
+      compilerId: 'flux-schnell-image-compiler',
+      compilerVersion: 1,
+      fidelityMode: 'off',
+      mediaKind: 'image',
+      modelKey: FLUX_SCHNELL_MODEL_KEY,
+      omittedSignals: [],
+      output: {
+        aspectRatio: '16:9',
+        hasSeed: false,
+        numOutputs: 1,
+        outputFormat: 'jpg',
+      },
+      profileId: 'flux-schnell-capability',
+      profileVersion: 1,
+      referenceAssetIds: [],
+      status: 'compiled',
+    });
+    expect(withoutSurface.surface).toBeUndefined();
+
+    expect(() =>
+      generationBriefCompileEvidenceSchema.parse({
+        appliedFields: [],
+        briefVersion: 1,
+        compilerId: 'flux-schnell-image-compiler',
+        compilerVersion: 1,
+        fidelityMode: 'off',
+        mediaKind: 'image',
+        modelKey: FLUX_SCHNELL_MODEL_KEY,
+        omittedSignals: [],
+        output: {
+          aspectRatio: '16:9',
+          hasSeed: false,
+          numOutputs: 1,
+          outputFormat: 'jpg',
+        },
+        profileId: 'flux-schnell-capability',
+        profileVersion: 1,
+        referenceAssetIds: [],
+        status: 'compiled',
+        surface: 'mcp',
+      }),
+    ).toThrow();
+  });
+
+  test('exemption evidence records the originating surface when provided (#3469)', () => {
+    const withSurface = generationBriefExemptionEvidenceSchema.parse({
+      compilerId: null,
+      compilerVersion: null,
+      modelKey: 'google/imagen-4',
+      profileId: null,
+      profileVersion: null,
+      reason: 'legacy_prompt_builder',
+      status: 'exempted',
+      surface: 'agent_skill',
+    });
+    expect(withSurface.surface).toBe('agent_skill');
   });
 });
