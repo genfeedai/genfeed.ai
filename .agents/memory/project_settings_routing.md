@@ -3,7 +3,7 @@ name: project_settings_routing
 description: Canonical settings route shapes for personal, organization, and brand scopes
 type: project
 status: active
-last_verified: 2026-04-28
+last_verified: 2026-08-25
 topics: [routing, settings, multitenancy, app-router]
 ---
 
@@ -13,10 +13,12 @@ topics: [routing, settings, multitenancy, app-router]
 
 **How to apply:**
 
-- Personal settings: `/settings`
-- Organization settings: `/:orgSlug/~/settings`
-- Brand settings: `/:orgSlug/:brandSlug/settings`
+- Settings is a shell with nested pages, same pattern as Workspace → Overview.
+- Personal settings home: `/settings/personal`. Bare `/settings` redirects there.
+- Personal nested pages stay unscoped: `/settings/notifications`, `/settings/chat`, `/settings/progress`, `/settings/help`. Do not rewrite these onto `/:orgSlug/~/settings/*`.
+- Organization settings home: `/:orgSlug/~/settings/general`. Bare `/:orgSlug/~/settings` redirects there.
 - Org subpages append under org settings, e.g. `/:orgSlug/~/settings/api-keys`, `/:orgSlug/~/settings/billing`, `/:orgSlug/~/settings/members`
+- Brand settings: `/:orgSlug/:brandSlug/settings`
 - Brand subpages append under brand settings, e.g. `/:orgSlug/:brandSlug/settings/voice`, `/:orgSlug/:brandSlug/settings/publishing`, `/:orgSlug/:brandSlug/settings/agent-defaults`
 - Do not generate brand settings URLs with `/settings/brands/:brandId`. Legacy routes can redirect for compatibility, but new links should use `brandSlug`.
 - Use `hrefScope` on menu items when a config-level `/settings` href could mean personal, organization, or brand settings.

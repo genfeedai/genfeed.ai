@@ -9,6 +9,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   hasCompletedBrandOnboardingStep,
+  isPersonalSettingsPath,
   isSharedBrandOnboardingPath,
   LEGACY_APP_ROUTES,
   ONBOARDING_STEPS,
@@ -303,7 +304,7 @@ function isBareProtectedPath(pathname: string): boolean {
   }
 
   if (topLevelSegment === 'settings') {
-    return pathname !== '/settings';
+    return !isPersonalSettingsPath(pathname);
   }
 
   return (
@@ -911,8 +912,19 @@ async function resolveCanonicalProtectedPath(
   const topLevelSegment = getTopLevelSegment(canonicalPath);
 
   if (topLevelSegment === 'settings') {
-    if (canonicalPath === '/settings/personal') {
-      return { cookieValue, path: '/settings' };
+    if (isPersonalSettingsPath(canonicalPath)) {
+      if (canonicalPath === APP_ROUTES.SETTINGS.ROOT) {
+        return { cookieValue, path: APP_ROUTES.SETTINGS.PERSONAL };
+      }
+
+      return { cookieValue, path: canonicalPath };
+    }
+
+    if (canonicalPath === APP_ROUTES.SETTINGS.GENERAL) {
+      return {
+        cookieValue,
+        path: `/${slugs.orgSlug}/~${APP_ROUTES.SETTINGS.GENERAL}`,
+      };
     }
 
     return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
@@ -1329,6 +1341,10 @@ async function routeBetterAuthRequest(
       setSlugCookie(response, resolved.cookieValue);
     }
     return response;
+  }
+
+  if (pathname === APP_ROUTES.SETTINGS.ROOT) {
+    return redirectPreservingSearch(req, APP_ROUTES.SETTINGS.PERSONAL);
   }
 
   if (isBareProtectedPath(pathname)) {

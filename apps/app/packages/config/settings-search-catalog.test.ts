@@ -42,20 +42,24 @@ describe('buildSettingsSearchCatalog', () => {
           item.id === `personal-section:${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
       )?.href,
     ).toBe(
-      `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
+      `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
     );
     expect(
       catalog.find(
         (item) =>
           item.id === `personal-section:${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
       )?.href,
-    ).toBe(`${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`);
+    ).toBe(
+      `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
+    );
     expect(
       catalog.find(
         (item) =>
           item.id === `personal-section:${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
       )?.href,
-    ).toBe(`${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`);
+    ).toBe(
+      `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
+    );
     expect(
       catalog.find(
         (item) =>

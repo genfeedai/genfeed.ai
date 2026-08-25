@@ -44,6 +44,9 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Personal')?.isExactMatch).toBe(
         true,
       );
+      expect(items.find((i) => i.label === 'Personal')?.href).toBe(
+        APP_ROUTES.SETTINGS.PERSONAL,
+      );
       expect(
         items.find((i) => i.label === 'Help')?.isExactMatch,
       ).toBeUndefined();
@@ -120,7 +123,7 @@ describe('buildSettingsMenuItems', () => {
       );
       expect(items.find((i) => i.label === 'General')?.isExactMatch).toBe(true);
       expect(items.find((i) => i.label === 'General')?.href).toBe(
-        APP_ROUTES.SETTINGS.ROOT,
+        APP_ROUTES.SETTINGS.GENERAL,
       );
     });
 

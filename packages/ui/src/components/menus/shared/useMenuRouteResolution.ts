@@ -73,10 +73,6 @@ export function useMenuRouteResolution() {
 
   const resolveSettingsHref = useCallback(
     (path: string) => {
-      if (path === '/settings/personal') {
-        return '/settings';
-      }
-
       if (path.startsWith('/settings/brands/')) {
         const [, , , routeBrandSlug, ...rest] = path.split('/');
 

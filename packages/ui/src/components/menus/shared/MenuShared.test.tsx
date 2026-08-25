@@ -707,13 +707,13 @@ describe('MenuShared', () => {
     const settingsConfig: MenuConfig = {
       items: [
         {
-          href: '/settings',
+          href: '/settings/personal',
           hrefScope: 'personal',
           isExactMatch: true,
           label: 'Personal',
         },
         {
-          href: '/settings',
+          href: '/settings/general',
           hrefScope: 'organization',
           isExactMatch: true,
           label: 'General',
@@ -744,14 +744,14 @@ describe('MenuShared', () => {
         .filter((node) => node.getAttribute('data-active') === 'true')
         .map((node) => node.textContent);
 
-    it('activates only the personal root on /settings', () => {
-      mockPathname.value = '/settings';
+    it('activates only the personal root on /settings/personal', () => {
+      mockPathname.value = '/settings/personal';
       render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
       expect(activeLabels()).toEqual(['Personal']);
     });
 
-    it('activates General (not Members) on the org settings root', () => {
-      mockPathname.value = '/acme/~/settings';
+    it('activates General (not Members) on the org settings general route', () => {
+      mockPathname.value = '/acme/~/settings/general';
       render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
       expect(activeLabels()).toEqual(['General']);
     });

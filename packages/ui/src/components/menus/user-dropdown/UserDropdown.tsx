@@ -54,9 +54,9 @@ export default function UserDropdown({
   // enters a settings scope, whose sidebar then shows only that scope's pages
   // (see buildSettingsMenuItems). Help is part of the personal scope. See #1231.
   const allDropdownItems: DropdownItem[] = [
-    { href: APP_ROUTES.SETTINGS.ROOT, icon: User, label: 'Personal' },
+    { href: APP_ROUTES.SETTINGS.PERSONAL, icon: User, label: 'Personal' },
     {
-      href: orgHref(APP_ROUTES.SETTINGS.ROOT),
+      href: orgHref(APP_ROUTES.SETTINGS.GENERAL),
       icon: Building2,
       label: 'Organization',
     },

@@ -1,13 +1,11 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import SettingsOrganizationPage from '../(pages)/organization/content';
-import { SettingsOrganizationRouteShell } from './SettingsOrganizationRouteShell';
+import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import { redirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Organization Settings');
-
-export default function SettingsOrgPage() {
-  return (
-    <SettingsOrganizationRouteShell>
-      <SettingsOrganizationPage />
-    </SettingsOrganizationRouteShell>
-  );
+export default async function OrganizationSettingsIndexPage({
+  params,
+}: {
+  params: Promise<{ orgSlug: string }>;
+}) {
+  const { orgSlug } = await params;
+  redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.GENERAL));
 }

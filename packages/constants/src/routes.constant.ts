@@ -371,6 +371,11 @@ export const APP_ROUTES = {
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
     PUBLISHING: '/settings/publishing',
+    /**
+     * Organization settings home. Bare `/:orgSlug/~/settings` redirects here
+     * the same way Workspace ROOT redirects to Overview.
+     */
+    GENERAL: '/settings/general',
     ROOT: '/settings',
     /**
      * Brand-scoped social + ad OAuth connect surface (Facebook → Meta Ads,
@@ -446,8 +451,37 @@ export const APP_ROUTE_TEMPLATES = {
   BRAND_SETTINGS: '/:orgSlug/:brandSlug/settings',
   ORGANIZATION: '/:orgSlug/~',
   ORGANIZATION_SETTINGS: '/:orgSlug/~/settings',
-  PERSONAL_SETTINGS: APP_ROUTES.SETTINGS.ROOT,
+  PERSONAL_SETTINGS: APP_ROUTES.SETTINGS.PERSONAL,
 } as const;
+
+/**
+ * Personal settings live on the unscoped `/settings/*` shell. These child
+ * segments must not be rewritten onto `/:orgSlug/~/settings/*`.
+ */
+export const PERSONAL_SETTINGS_CHILD_SEGMENTS = [
+  'personal',
+  'notifications',
+  'chat',
+  'progress',
+  'help',
+] as const;
+
+export function isPersonalSettingsPath(pathname: string): boolean {
+  if (pathname === APP_ROUTES.SETTINGS.ROOT) {
+    return true;
+  }
+
+  if (!pathname.startsWith(`${APP_ROUTES.SETTINGS.ROOT}/`)) {
+    return false;
+  }
+
+  const segment =
+    pathname.slice(APP_ROUTES.SETTINGS.ROOT.length + 1).split('/')[0] ?? '';
+
+  return (PERSONAL_SETTINGS_CHILD_SEGMENTS as readonly string[]).includes(
+    segment,
+  );
+}
 
 export const LEGACY_APP_ROUTES = {
   /**

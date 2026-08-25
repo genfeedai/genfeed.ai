@@ -16,7 +16,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Theme, language, and account profile',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
+    href: `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
     id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.APPEARANCE}`,
     keywords: ['theme', 'dark', 'light', 'system', 'appearance'],
     label: 'Appearance',
@@ -25,7 +25,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'The language the app interface is shown in',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
+    href: `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
     id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.LANGUAGE}`,
     keywords: ['locale', 'language', 'translation'],
     label: 'Language',
@@ -34,7 +34,7 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
   {
     description: 'Show studio, workflow editor, and generation pages',
     group: 'Account',
-    href: `${APP_ROUTES.SETTINGS.ROOT}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
+    href: `${APP_ROUTES.SETTINGS.PERSONAL}#${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
     id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.FEATURES}`,
     keywords: ['advanced mode', 'features', 'studio', 'power user'],
     label: 'Advanced Mode',

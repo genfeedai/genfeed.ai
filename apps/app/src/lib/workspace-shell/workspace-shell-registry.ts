@@ -197,7 +197,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/agent/new': 'New Conversation',
   '/:orgSlug/~/agent/onboarding/:threadId': 'Onboarding',
   '/:orgSlug/~/library/:type': ':type',
-  '/:orgSlug/~/settings': 'General',
+  '/:orgSlug/~/settings': 'Settings',
+  '/:orgSlug/~/settings/general': 'General',
   '/:orgSlug/~/settings/credits': 'Credits',
   '/:orgSlug/~/settings/subscription': 'Subscription',
   '/:orgSlug/~/settings/usage': 'Usage',
@@ -221,7 +222,12 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/admin/overview/analytics/brands/:id/platforms/:platform': ':platform',
   '/admin/overview/analytics/organizations/:id': 'Organization Details',
   '/admin/videos/:id': 'Video',
-  '/settings': 'General',
+  '/settings': 'Settings',
+  '/settings/personal': 'Personal',
+  '/settings/chat': 'Chat',
+  '/settings/help': 'Help',
+  '/settings/notifications': 'Notifications',
+  '/settings/progress': 'Progress',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
@@ -412,13 +418,14 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/settings',
+      '/settings/personal',
       '/settings/chat',
       '/settings/help',
       '/settings/notifications',
       '/settings/progress',
     ],
     {
-      fallback: '/settings',
+      fallback: '/settings/personal',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'personal',
@@ -550,6 +557,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/settings',
+      '/:orgSlug/~/settings/general',
       '/:orgSlug/~/settings/personal',
       '/:orgSlug/~/settings/chat',
       '/:orgSlug/~/settings/help',
@@ -569,7 +577,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/elements/scenes',
     ],
     {
-      fallback: '/:orgSlug/~/settings',
+      fallback: '/:orgSlug/~/settings/general',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'organization',
