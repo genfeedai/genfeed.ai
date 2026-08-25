@@ -426,5 +426,5 @@ export function registerAdminNavigationCommands(): void {
   const {
     CommandPaletteService,
   } = require('@services/core/command-palette.service');
-  CommandPaletteService.registerCommand(adminNavigationCommands);
+  CommandPaletteService.registerCommands(adminNavigationCommands);
 }

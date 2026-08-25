@@ -7,15 +7,15 @@ import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette/use-c
 
 export function CommandPaletteInitializer(): null {
   const { isLoading, isSuperAdmin } = useAccessState();
-  const { registerCommand, unregisterCommand } = useCommandPalette();
+  const { registerCommands, unregisterCommands } = useCommandPalette();
 
   useDefaultCommandsRegistration();
 
   useAdminCommandRegistration({
     isLoaded: !isLoading,
     isSuperAdmin,
-    registerCommand,
-    unregisterCommand,
+    registerCommands,
+    unregisterCommands,
   });
 
   return null;

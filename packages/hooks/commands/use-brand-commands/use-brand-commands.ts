@@ -38,7 +38,7 @@ export function useBrandCommands({
   onBrandSwitch,
   enabled = true,
 }: UseBrandCommandsOptions): void {
-  const { registerCommand, unregisterCommand } = useCommandPalette();
+  const { registerCommands, unregisterCommands } = useCommandPalette();
 
   useEffect(() => {
     if (!enabled || !brands || brands.length === 0) {
@@ -53,17 +53,17 @@ export function useBrandCommands({
     );
 
     // Register all commands
-    registerCommand(commands);
+    registerCommands(commands);
 
     return () => {
-      unregisterCommand(commands.map((cmd) => cmd.id));
+      unregisterCommands(commands.map((cmd) => cmd.id));
     };
   }, [
     brands,
     currentBrandId,
     onBrandSwitch,
     enabled,
-    registerCommand,
-    unregisterCommand,
+    registerCommands,
+    unregisterCommands,
   ]);
 }

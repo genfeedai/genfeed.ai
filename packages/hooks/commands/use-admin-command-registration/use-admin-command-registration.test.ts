@@ -9,63 +9,64 @@ describe('useAdminCommandRegistration', () => {
   });
 
   it('registers the admin command when loaded and super admin', async () => {
-    const registerCommand = vi.fn();
-    const unregisterCommand = vi.fn();
+    const registerCommands = vi.fn();
+    const unregisterCommands = vi.fn();
 
     const { unmount } = renderHook(() =>
       useAdminCommandRegistration({
         isLoaded: true,
         isSuperAdmin: true,
-        registerCommand,
-        unregisterCommand,
+        registerCommands,
+        unregisterCommands,
       }),
     );
 
     await waitFor(() => {
-      expect(registerCommand).toHaveBeenCalledTimes(1);
+      expect(registerCommands).toHaveBeenCalledTimes(1);
     });
 
-    const command = registerCommand.mock.calls[0]?.[0] as ICommand;
-    expect(command.id).toBe('nav-admin');
-    expect(typeof command.action).toBe('function');
-    expect(typeof command.condition).toBe('function');
+    const commands = registerCommands.mock.calls[0]?.[0] as ICommand[];
+    expect(commands).toHaveLength(1);
+    expect(commands[0]?.id).toBe('nav-admin');
+    expect(typeof commands[0]?.action).toBe('function');
+    expect(typeof commands[0]?.condition).toBe('function');
 
     unmount();
 
-    expect(unregisterCommand).toHaveBeenCalledWith('nav-admin');
+    expect(unregisterCommands).toHaveBeenCalledWith(['nav-admin']);
   });
 
   it('does not register when not loaded', async () => {
-    const registerCommand = vi.fn();
+    const registerCommands = vi.fn();
 
     renderHook(() =>
       useAdminCommandRegistration({
         isLoaded: false,
         isSuperAdmin: true,
-        registerCommand,
-        unregisterCommand: vi.fn(),
+        registerCommands,
+        unregisterCommands: vi.fn(),
       }),
     );
 
     await waitFor(() => {
-      expect(registerCommand).not.toHaveBeenCalled();
+      expect(registerCommands).not.toHaveBeenCalled();
     });
   });
 
   it('does not register when user is not super admin', async () => {
-    const registerCommand = vi.fn();
+    const registerCommands = vi.fn();
 
     renderHook(() =>
       useAdminCommandRegistration({
         isLoaded: true,
         isSuperAdmin: false,
-        registerCommand,
-        unregisterCommand: vi.fn(),
+        registerCommands,
+        unregisterCommands: vi.fn(),
       }),
     );
 
     await waitFor(() => {
-      expect(registerCommand).not.toHaveBeenCalled();
+      expect(registerCommands).not.toHaveBeenCalled();
     });
   });
 });

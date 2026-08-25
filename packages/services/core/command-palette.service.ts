@@ -17,13 +17,12 @@ class CommandPaletteServiceClass {
   }
 
   /**
-   * Register one command or a batch.
+   * Register commands.
    *
    * Returns the ids that were actually added (already-registered ids are
    * skipped) so callers can unregister exactly what they own on cleanup.
    */
-  registerCommand(command: ICommand | readonly ICommand[]): string[] {
-    const commands = Array.isArray(command) ? command : [command];
+  registerCommands(commands: readonly ICommand[]): string[] {
     const registeredIds: string[] = [];
     const skippedIds: string[] = [];
 
@@ -55,10 +54,9 @@ class CommandPaletteServiceClass {
   }
 
   /**
-   * Unregister one command id or a batch. Missing ids are a no-op.
+   * Unregister command ids. Missing ids are a no-op.
    */
-  unregisterCommand(commandId: string | readonly string[]): void {
-    const commandIds = typeof commandId === 'string' ? [commandId] : commandId;
+  unregisterCommands(commandIds: readonly string[]): void {
     const removedIds: string[] = [];
     const missingIds: string[] = [];
 

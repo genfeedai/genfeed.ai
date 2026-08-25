@@ -492,7 +492,7 @@ export function registerDefaultCommands(
   orgSlug: string,
   brandSlug: string,
 ): string[] {
-  return CommandPaletteService.registerCommand(
+  return CommandPaletteService.registerCommands(
     createDefaultCommands(orgSlug, brandSlug),
   );
 }

@@ -12,6 +12,6 @@ the browser, so a thread list looked like the app was "registering again
 and again."
 
 **How to apply:** Command register/unregister/clear is `logger.debug`.
-There is one `registerCommand` and one `unregisterCommand`; each accepts
-a single value or a list so thread/brand hydration is one `setState`.
-Keep `logger.info` for user actions (opened, executed), not hydration.
+The palette API is arrays only: `registerCommands(commands)` and
+`unregisterCommands(ids)`. One `setState` per hydration. Keep
+`logger.info` for user actions (opened, executed), not hydration.

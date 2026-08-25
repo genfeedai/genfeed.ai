@@ -20,7 +20,7 @@ vi.mock('@services/core/environment.service', () => ({
 
 vi.mock('@services/core/command-palette.service', () => ({
   CommandPaletteService: {
-    registerCommand: mockRegisterCommands,
+    registerCommands: mockRegisterCommands,
   },
 }));
 
@@ -680,7 +680,7 @@ describe('commands.registry', () => {
       );
     });
 
-    it('should call CommandPaletteService.registerCommand', () => {
+    it('should call CommandPaletteService.registerCommands', () => {
       registerDefaultCommands(TEST_ORG, TEST_BRAND);
 
       expect(mockRegisterCommands).toHaveBeenCalledTimes(1);

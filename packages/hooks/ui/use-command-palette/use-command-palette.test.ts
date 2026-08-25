@@ -7,7 +7,7 @@ const mockContext = {
   close: vi.fn(),
   executeCommand: vi.fn(),
   open: vi.fn(),
-  registerCommand: vi.fn(),
+  registerCommands: vi.fn(),
   selectNext: vi.fn(),
   selectPrevious: vi.fn(),
   setQuery: vi.fn(),
@@ -19,7 +19,7 @@ const mockContext = {
     selectedIndex: 0,
   },
   toggle: vi.fn(),
-  unregisterCommand: vi.fn(),
+  unregisterCommands: vi.fn(),
 };
 
 let mockContextValue: typeof mockContext | null = mockContext;
@@ -132,16 +132,16 @@ describe('useCommandPalette', () => {
       expect(typeof result.current.executeCommand).toBe('function');
     });
 
-    it('provides registerCommand method', () => {
+    it('provides registerCommands method', () => {
       const { result } = renderHook(() => useCommandPalette());
 
-      expect(typeof result.current.registerCommand).toBe('function');
+      expect(typeof result.current.registerCommands).toBe('function');
     });
 
-    it('provides unregisterCommand method', () => {
+    it('provides unregisterCommands method', () => {
       const { result } = renderHook(() => useCommandPalette());
 
-      expect(typeof result.current.unregisterCommand).toBe('function');
+      expect(typeof result.current.unregisterCommands).toBe('function');
     });
   });
 
@@ -169,8 +169,8 @@ describe('useCommandPalette', () => {
       expect(result.current).toHaveProperty('toggle');
       expect(result.current).toHaveProperty('setQuery');
       expect(result.current).toHaveProperty('executeCommand');
-      expect(result.current).toHaveProperty('registerCommand');
-      expect(result.current).toHaveProperty('unregisterCommand');
+      expect(result.current).toHaveProperty('registerCommands');
+      expect(result.current).toHaveProperty('unregisterCommands');
       expect(result.current).toHaveProperty('selectNext');
       expect(result.current).toHaveProperty('selectPrevious');
     });

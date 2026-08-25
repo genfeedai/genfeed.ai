@@ -154,42 +154,36 @@ export function CommandPaletteProvider({
     }));
   }, []);
 
-  const registerCommand = useCallback(
-    (command: ICommand | readonly ICommand[]) => {
-      const registeredIds = CommandPaletteService.registerCommand(command);
-      const commands = CommandPaletteService.getAllCommands();
-      setState((prev) => ({
-        ...prev,
-        commands,
-      }));
-      return registeredIds;
-    },
-    [],
-  );
+  const registerCommands = useCallback((commands: readonly ICommand[]) => {
+    const registeredIds = CommandPaletteService.registerCommands(commands);
+    const nextCommands = CommandPaletteService.getAllCommands();
+    setState((prev) => ({
+      ...prev,
+      commands: nextCommands,
+    }));
+    return registeredIds;
+  }, []);
 
-  const unregisterCommand = useCallback(
-    (commandId: string | readonly string[]) => {
-      CommandPaletteService.unregisterCommand(commandId);
-      const commands = CommandPaletteService.getAllCommands();
-      setState((prev) => ({
-        ...prev,
-        commands,
-      }));
-    },
-    [],
-  );
+  const unregisterCommands = useCallback((commandIds: readonly string[]) => {
+    CommandPaletteService.unregisterCommands(commandIds);
+    const nextCommands = CommandPaletteService.getAllCommands();
+    setState((prev) => ({
+      ...prev,
+      commands: nextCommands,
+    }));
+  }, []);
 
   const value: ICommandPaletteContext = {
     close,
     executeCommand,
     open,
-    registerCommand,
+    registerCommands,
     selectNext,
     selectPrevious,
     setQuery,
     state,
     toggle,
-    unregisterCommand,
+    unregisterCommands,
   };
 
   return (

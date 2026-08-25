@@ -52,8 +52,8 @@ describe('CommandPaletteInitializer', () => {
       refreshAccessState: vi.fn(),
     });
     useCommandPaletteMock.mockReturnValue({
-      registerCommand: vi.fn(),
-      unregisterCommand: vi.fn(),
+      registerCommands: vi.fn(),
+      unregisterCommands: vi.fn(),
     });
   });
 
