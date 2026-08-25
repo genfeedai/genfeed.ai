@@ -275,7 +275,11 @@ describe('CampaignExecutorService', () => {
       expect(result.replyExternalId).toBe('reply123');
       expect(
         mockCampaignTargetsService.claimForProcessing,
-      ).toHaveBeenCalledWith(targetId.toString(), orgId);
+      ).toHaveBeenCalledWith(
+        targetId.toString(),
+        orgId,
+        expect.objectContaining({ scheduleVersion: 1 }),
+      );
       expect(mockCampaignTargetsService.markAsReplied).toHaveBeenCalledWith(
         targetId.toString(),
         orgId,

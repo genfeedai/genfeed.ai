@@ -17,16 +17,18 @@ describe('AGENT_CAMPAIGN_TOOLS', () => {
       'platform',
       'campaignType',
     ]);
-    expect(createCampaign?.parameters.properties).toEqual(
-      expect.objectContaining({
-        campaignType: expect.objectContaining({
-          enum: listExecutableOutreachCampaignTypes(),
-        }),
-        credentialId: expect.objectContaining({ type: 'string' }),
-        platform: expect.objectContaining({
-          enum: listExecutableOutreachPlatforms(),
-        }),
-      }),
+    expect(
+      [
+        ...readStringEnum(createCampaign?.parameters.properties.campaignType),
+      ].sort(),
+    ).toEqual([...listExecutableOutreachCampaignTypes()].sort());
+    expect(
+      [
+        ...readStringEnum(createCampaign?.parameters.properties.platform),
+      ].sort(),
+    ).toEqual([...listExecutableOutreachPlatforms()].sort());
+    expect(createCampaign?.parameters.properties.credentialId).toEqual(
+      expect.objectContaining({ type: 'string' }),
     );
     expect(createCampaign?.parameters.properties).not.toHaveProperty(
       'credential',
