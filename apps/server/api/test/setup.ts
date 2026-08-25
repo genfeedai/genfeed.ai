@@ -13,6 +13,10 @@ import { config as loadEnv } from 'dotenv';
 
 loadEnv({ path: join(process.cwd(), '.env.test') });
 
+if (!process.env.TOKEN_ENCRYPTION_KEY) {
+  process.env.TOKEN_ENCRYPTION_KEY = 'test-encryption-key-for-testing-only';
+}
+
 // Global setup - runs before all tests
 beforeAll(async () => {
   // Any global setup can go here

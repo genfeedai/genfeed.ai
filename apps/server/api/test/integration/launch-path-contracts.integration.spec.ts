@@ -420,11 +420,11 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('schedules reply post-watch after successful X publish', () => {
-    const cronPosts = readRepo(
-      'apps/server/workers/src/crons/posts/cron.posts.service.ts',
+    const delivery = readRepo(
+      'apps/server/workers/src/services/scheduled-post-delivery.service.ts',
     );
-    expect(cronPosts).toContain('scheduleReplyPostWatchAfterPublish');
-    expect(cronPosts).toContain('schedulePostWatch');
+    expect(delivery).toContain('scheduleReplyPostWatchAfterPublish');
+    expect(delivery).toContain('schedulePostWatch');
   });
 
   it('registers X activity webhook and reply inbound/post-watch pipes', () => {
