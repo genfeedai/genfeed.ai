@@ -48,6 +48,7 @@ describe('ThreadsService (coverage)', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
   let httpService: {
     get: ReturnType<typeof vi.fn>;
@@ -667,7 +668,6 @@ describe('ThreadsService (coverage)', () => {
         'Optional caption',
         'reply-to-1',
         undefined,
-        undefined,
       );
 
       expect(service.createImageContainer).toHaveBeenCalledWith(
@@ -676,6 +676,8 @@ describe('ThreadsService (coverage)', () => {
         'https://example.com/img.jpg',
         'Optional caption',
         'reply-to-1',
+        undefined,
+        undefined,
       );
       expect(result).toEqual({ threadId: 'image-thread-1' });
     });

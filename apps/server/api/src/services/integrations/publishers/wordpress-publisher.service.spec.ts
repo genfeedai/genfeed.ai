@@ -5,6 +5,7 @@ import type { PublishContext } from '@api/services/integrations/publishers/inter
 import { WordpressPublisherService } from '@api/services/integrations/publishers/wordpress-publisher.service';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -88,7 +89,7 @@ describe('WordpressPublisherService', () => {
       id: mockCredentialId,
       accessToken: 'encrypted-token',
       externalId: 'site-123',
-      platform: CredentialPlatform.WORDPRESS,
+      platform: PrismaCredentialPlatform.WORDPRESS,
     };
 
     it('should publish a text-only post successfully', async () => {
@@ -148,7 +149,7 @@ describe('WordpressPublisherService', () => {
       const result = await service.publish(
         makeContext({
           id: mockCredentialId,
-          platform: CredentialPlatform.WORDPRESS,
+          platform: PrismaCredentialPlatform.WORDPRESS,
         }),
       );
 

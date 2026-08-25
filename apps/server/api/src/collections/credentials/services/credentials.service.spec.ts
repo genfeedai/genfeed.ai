@@ -609,8 +609,8 @@ describe('CredentialsService', () => {
 
       const [survivorUpdate, retirementUpdate] =
         prisma.credential.update.mock.calls.map(
-          (call: [{ data: Record<string, unknown>; where: unknown }]) =>
-            call[0],
+          (call) =>
+            call[0] as { data: Record<string, unknown>; where: unknown },
         );
 
       expect(survivorUpdate.where).toEqual({ id: 'incumbent-1' });
@@ -672,8 +672,9 @@ describe('CredentialsService', () => {
       });
 
       const incumbentLookup = prisma.credential.findFirst.mock.calls.find(
-        (call: [{ where?: Record<string, unknown> }]) =>
-          call[0]?.where?.externalId === 'account-1',
+        (call) =>
+          (call[0] as { where?: Record<string, unknown> })?.where
+            ?.externalId === 'account-1',
       )?.[0] as { where: Record<string, unknown> };
 
       expect(incumbentLookup.where.isDeleted).toBe(false);
