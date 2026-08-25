@@ -23,6 +23,13 @@ export const repoRoot = join(here, '../../../../..');
 const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.js'];
 
 /**
+ * Declaration artifacts re-export the same names as the implementation they
+ * describe (`export declare class Foo`), so leaving them in the candidate set
+ * would turn a stray checked-in `.d.ts` into a permanent ambiguous lookup.
+ */
+const DECLARATION_ARTIFACT_EXTENSIONS = ['.d.ts', '.d.tsx', '.d.mts', '.d.cts'];
+
+/**
  * Generated or vendored trees never own a production declaration. Dot
  * directories (`.next`, `.turbo`, `.vercel`) are skipped wholesale.
  */
@@ -55,6 +62,14 @@ function resolveRoot(root: string): string {
 }
 
 function isSourceFile(fileName: string): boolean {
+  if (
+    DECLARATION_ARTIFACT_EXTENSIONS.some((extension) =>
+      fileName.endsWith(extension),
+    )
+  ) {
+    return false;
+  }
+
   return SOURCE_EXTENSIONS.some((extension) => fileName.endsWith(extension));
 }
 

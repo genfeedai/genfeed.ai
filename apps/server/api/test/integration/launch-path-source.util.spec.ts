@@ -107,6 +107,23 @@ describe('launch-path source resolution', () => {
     ).toContain(join('src', 'only.service.ts'));
   });
 
+  it('skips declaration artifacts so a checked-in .d.ts cannot make a lookup ambiguous', () => {
+    writeFixture(
+      'skips-declarations/src/typed.service.ts',
+      'export class TypedService {}\n',
+    );
+    writeFixture(
+      'skips-declarations/types/typed.service.d.ts',
+      'export declare class TypedService {}\n',
+    );
+
+    expect(
+      resolveSourcePathOf('TypedService', {
+        root: fixtureRoot('skips-declarations'),
+      }),
+    ).toContain(join('src', 'typed.service.ts'));
+  });
+
   it('names the searched subtree when nothing declares the symbol', () => {
     writeFixture('missing-declaration/other.ts', 'export class Other {}\n');
 
