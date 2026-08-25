@@ -45,11 +45,13 @@ describe('CI concurrency', () => {
     expect(workflow).toContain('cancel-in-progress: false');
   });
 
-  it('runs the executable-contract suite from the guards job', () => {
+  it('runs the executable-contract suite from the static-checks job', () => {
     const workflow = readWorkflow('ci.yml');
-    const guardsJob =
-      workflow.split(/\n {2}guards:\n/)[1]?.split(/\n {2}format:\n/)[0] ?? '';
+    const staticChecksJob =
+      workflow
+        .split(/\n {2}static-checks:\n/)[1]
+        ?.split(/\n {2}spec-typecheck:\n/)[0] ?? '';
 
-    expect(guardsJob).toContain('bun run test:executable-contracts');
+    expect(staticChecksJob).toContain('bun run test:executable-contracts');
   });
 });
