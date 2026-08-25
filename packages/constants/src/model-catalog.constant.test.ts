@@ -1,6 +1,7 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
+  AGENT_CHAT_MODEL_KEYS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   RETIRED_AGENT_CHAT_MODELS,
   SELECTABLE_AGENT_CHAT_MODELS,
@@ -104,12 +105,36 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     }
   });
 
-  it('never activates a row without a price', () => {
-    const freeActiveRows = UNIFIED_MODEL_CATALOG.filter(
-      (entry) => entry.isActive && entry.cost <= 0,
+  // A zero-cost active row is either a model the provider genuinely gives away
+  // or a row whose price we forgot to curate — and the two are indistinguishable
+  // from `cost` alone. `isFree` is the deliberate marker, so an unpriced row
+  // still fails here instead of quietly handing out free rounds.
+  it('never activates a row without a price unless it is marked free', () => {
+    const unpricedActiveRows = UNIFIED_MODEL_CATALOG.filter(
+      (entry) => entry.isActive && entry.cost <= 0 && !entry.isFree,
     );
 
-    expect(freeActiveRows).toEqual([]);
+    expect(unpricedActiveRows).toEqual([]);
+  });
+
+  it('marks the zero-cost auto-router free rather than leaving it unpriced', () => {
+    const freeRow = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+    );
+
+    expect(freeRow?.isFree).toBe(true);
+    expect(freeRow?.isActive).toBe(true);
+    expect(freeRow?.cost).toBe(0);
+  });
+
+  // Only a $0-constrained route may carry the marker. Anything else wearing it
+  // would be an under-bill wearing the exemption that exists to prevent one.
+  it('marks no priced row free', () => {
+    const mispricedFreeRows = UNIFIED_MODEL_CATALOG.filter(
+      (entry) => entry.isFree && entry.cost > 0,
+    );
+
+    expect(mispricedFreeRows).toEqual([]);
   });
 
   it('seeds Nano Banana 2 Lite as the cloud image default', () => {
