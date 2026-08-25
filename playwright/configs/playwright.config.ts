@@ -209,6 +209,9 @@ export default defineConfig({
         launchOptions: {
           args: ['--disable-web-security'], // For API mocking
         },
+        // Mocked API routes must own every request. An active production PWA
+        // worker bypasses Playwright routing and leaks fake auth to the live API.
+        serviceWorkers: 'block',
       },
     },
     ...(shouldRunAuthedProject
