@@ -19,6 +19,7 @@ import { ImageGenerationProviderDispatchService } from '@api/collections/images/
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
@@ -40,6 +41,7 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
+import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -82,6 +84,7 @@ import { Module } from '@nestjs/common';
     FileQueueModule,
     FilesClientModule,
     FalModule,
+    HiggsFieldModule,
     KlingAIModule,
     LeonardoAIModule,
     ModelsModule,
@@ -101,6 +104,7 @@ import { Module } from '@nestjs/common';
   providers: [
     FalImageGenerationProviderAdapter,
     GenfeedAiImageGenerationProviderAdapter,
+    HiggsFieldImageGenerationProviderAdapter,
     ImageGenerationCreditsService,
     ImageGenerationProviderDispatchService,
     ImageGenerationProviderRegistryService,

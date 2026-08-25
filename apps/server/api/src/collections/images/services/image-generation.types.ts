@@ -12,6 +12,7 @@ import type { ModelProvider } from '@genfeedai/enums';
 
 export type ImageGenerationProvider =
   | 'genfeedai'
+  | 'higgsfield'
   | 'klingai'
   | 'fal'
   | 'leonardo'

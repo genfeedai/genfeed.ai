@@ -93,6 +93,8 @@ export const MODEL_KEYS = {
   LEONARDOAI: 'leonardoai',
   RUNWAYML: 'runwayml',
   SDXL: 'sdxl',
+  HIGGSFIELD_SOUL: 'higgsfield-ai/soul/standard',
+  HIGGSFIELD_KLING_VIDEO: 'kling-video/v3/pro/image-to-video',
   FAL_FLUX_DEV: 'fal-ai/flux/dev',
   FAL_FLUX_SCHNELL: 'fal-ai/flux/schnell',
   FAL_FLUX_PRO: 'fal-ai/flux-pro',

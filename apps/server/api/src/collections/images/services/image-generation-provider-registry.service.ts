@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/images/services/image-generation.types';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
@@ -24,10 +25,12 @@ export class ImageGenerationProviderRegistryService {
     leonardoAdapter: LeonardoImageGenerationProviderAdapter,
     replicateAdapter: ReplicateImageGenerationProviderAdapter,
     sdxlAdapter: SdxlImageGenerationProviderAdapter,
+    higgsFieldAdapter: HiggsFieldImageGenerationProviderAdapter,
   ) {
     this.adapters = [
       genfeedAiAdapter,
       klingAiAdapter,
+      higgsFieldAdapter,
       falAdapter,
       leonardoAdapter,
       replicateAdapter,

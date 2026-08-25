@@ -27,6 +27,8 @@ const MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
   ['openai/', ByokProvider.OPENAI],
   ['heygen/', ByokProvider.HEYGEN],
   ['hedra', ByokProvider.HEDRA],
+  ['higgsfield-ai/', ByokProvider.HIGGSFIELD],
+  ['kling-video/', ByokProvider.HIGGSFIELD],
   ['klingai', ByokProvider.KLINGAI],
   ['leonardoai', ByokProvider.LEONARDOAI],
   ['fal-ai/', ByokProvider.FAL],

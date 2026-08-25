@@ -47,6 +47,7 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   'genfeed-ai': { color: '#3B82F6', iconKey: 'genfeed', label: 'GenFeed' },
   google: { color: '#4285F4', iconKey: 'google', label: 'Google' },
   heygen: { color: '#00C2FF', iconKey: 'heygen', label: 'HeyGen' },
+  'higgsfield-ai': { color: '#EC4899', label: 'Higgsfield' },
   'ideogram-ai': { color: '#FF6B35', iconKey: 'ideogram', label: 'Ideogram' },
   kwaivgi: { color: '#FF2D55', iconKey: 'kling', label: 'Kling' },
   local: { color: '#64748B', iconKey: 'local', label: 'Self-hosted' },
@@ -79,6 +80,7 @@ export const COST_TIER_DISPLAY: Record<
  */
 const MODEL_KEY_BRAND_ALIASES: Record<string, string> = {
   'klingai-v2': 'kwaivgi',
+  'kling-video/v3/pro/image-to-video': 'higgsfield-ai',
 };
 
 const FALLBACK_BRAND_LABELS: Record<string, string> = {

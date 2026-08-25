@@ -921,6 +921,25 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
+    [MODEL_KEYS.HIGGSFIELD_KLING_VIDEO]: {
+      aspectRatios: ASPECT_RATIOS.KLING,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '9:16',
+      defaultDuration: 5,
+      durations: [5],
+      hasDurationEditing: true,
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 1,
+    },
+    [MODEL_KEYS.HIGGSFIELD_SOUL]: {
+      aspectRatios: ASPECT_RATIOS.KLING,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '9:16',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 0,
+    },
 
     [MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]: {
       category: ModelCategory.TEXT,

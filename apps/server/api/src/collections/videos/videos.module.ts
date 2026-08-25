@@ -23,6 +23,7 @@ import { VideosRelationshipsController } from '@api/collections/videos/controlle
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -44,6 +45,7 @@ import { FileQueueModule } from '@api/services/files-microservice/queue/file-que
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
+import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -85,6 +87,7 @@ import { Module } from '@nestjs/common';
     FileQueueModule,
     FilesClientModule,
     HeyGenModule,
+    HiggsFieldModule,
     IngredientsModule,
     KlingAIModule,
     MetadataModule,
@@ -106,6 +109,7 @@ import { Module } from '@nestjs/common';
     CreditsGuard,
     CreditsInterceptor,
     FalVideoGenerationProviderAdapter,
+    HiggsFieldVideoGenerationProviderAdapter,
     KlingAiVideoGenerationProviderAdapter,
     ModelRegistrationService,
     ModelsGuard,
