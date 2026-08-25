@@ -74,6 +74,28 @@
       "unavailableTitle": "Claim unavailable"
     }
   },
+  "oauth": {
+    "platformCallback": {
+      "actions": {
+        "back": "Go back",
+        "retry": "Try again",
+        "signIn": "Sign in to continue"
+      },
+      "auth": {
+        "description": "Sign in to finish connecting your {platform} account.",
+        "title": "Sign in required"
+      },
+      "connecting": "Connecting your {platform} account…",
+      "error": {
+        "description": "Failed to verify your account. Please try again.",
+        "title": "Connection Failed"
+      },
+      "success": {
+        "description": "Redirecting you back…",
+        "title": "{platform} Connected"
+      }
+    }
+  },
   "agentCampaign": {
     "agentStrategies": "Agents",
     "agents": {
