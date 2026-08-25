@@ -1,7 +1,10 @@
+import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
+  type AgentThreadTitlePersistence,
   buildFallbackThreadTitle,
   buildSeedThreadTitle,
   extractThreadEnvelope,
+  maybeUpdateThreadTitle,
   sanitizeGeneratedThreadTitle,
 } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
 import { fenceUntrustedContent } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
@@ -88,6 +91,75 @@ describe('agent-thread-title.util', () => {
       });
       expect(result.content).toBe('Here is the plan.');
       expect(result.title).toBe('Launch Plan');
+    });
+  });
+
+  describe('maybeUpdateThreadTitle', () => {
+    const context = {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    } as AgentChatContext;
+
+    function buildPersistence(currentTitle: string): {
+      persistence: AgentThreadTitlePersistence;
+      updates: Array<{ title: string }>;
+    } {
+      const updates: Array<{ title: string }> = [];
+      return {
+        persistence: {
+          findOne: () => Promise.resolve({ title: currentTitle }),
+          updateThreadMetadata: (_threadId, _organizationId, metadata) => {
+            updates.push(metadata);
+            return Promise.resolve(undefined);
+          },
+        },
+        updates,
+      };
+    }
+
+    it('persists the generated title and returns it for live push', async () => {
+      const { persistence, updates } = buildPersistence('draft a launch plan');
+
+      await expect(
+        maybeUpdateThreadTitle({
+          agentThreadsService: persistence,
+          context,
+          seedTitle: 'draft a launch plan',
+          threadId: 'thread-1',
+          title: 'Launch Plan',
+        }),
+      ).resolves.toBe('Launch Plan');
+      expect(updates).toEqual([{ title: 'Launch Plan' }]);
+    });
+
+    it('returns null without writing when the thread was already renamed', async () => {
+      const { persistence, updates } = buildPersistence('Custom Name');
+
+      await expect(
+        maybeUpdateThreadTitle({
+          agentThreadsService: persistence,
+          context,
+          seedTitle: 'draft a launch plan',
+          threadId: 'thread-1',
+          title: 'Launch Plan',
+        }),
+      ).resolves.toBeNull();
+      expect(updates).toEqual([]);
+    });
+
+    it('returns null when the generated title matches the seed', async () => {
+      const { persistence, updates } = buildPersistence('draft a launch plan');
+
+      await expect(
+        maybeUpdateThreadTitle({
+          agentThreadsService: persistence,
+          context,
+          seedTitle: 'draft a launch plan',
+          threadId: 'thread-1',
+          title: 'draft a launch plan',
+        }),
+      ).resolves.toBeNull();
+      expect(updates).toEqual([]);
     });
   });
 });

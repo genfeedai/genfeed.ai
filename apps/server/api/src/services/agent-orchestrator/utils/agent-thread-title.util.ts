@@ -123,7 +123,8 @@ export function extractThreadEnvelope(params: {
 
 /**
  * Persist a generated title only while the thread still holds the seed title
- * (first-message naming race-safe).
+ * (first-message naming race-safe). Returns the persisted title, or null when
+ * nothing changed, so callers can push it to live clients.
  */
 export async function maybeUpdateThreadTitle(params: {
   agentThreadsService: AgentThreadTitlePersistence;
@@ -131,12 +132,12 @@ export async function maybeUpdateThreadTitle(params: {
   seedTitle: string;
   threadId: string;
   title: string | null;
-}): Promise<void> {
+}): Promise<string | null> {
   const seedTitle = params.seedTitle.trim();
   const nextTitle = params.title?.trim() ?? '';
 
   if (!seedTitle || !nextTitle || nextTitle === seedTitle) {
-    return;
+    return null;
   }
 
   const thread = (await params.agentThreadsService.findOne({
@@ -150,7 +151,7 @@ export async function maybeUpdateThreadTitle(params: {
   const currentTitle =
     typeof thread?.title === 'string' ? thread.title.trim() : '';
   if (currentTitle !== seedTitle) {
-    return;
+    return null;
   }
 
   await params.agentThreadsService.updateThreadMetadata(
@@ -158,4 +159,5 @@ export async function maybeUpdateThreadTitle(params: {
     params.context.organizationId,
     { title: nextTitle },
   );
+  return nextTitle;
 }

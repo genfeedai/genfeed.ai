@@ -725,6 +725,8 @@ export interface AgentStreamDonePayload {
   creditsRemaining: number;
   runId?: string;
   startedAt?: string;
+  /** Set when this run generated and persisted the thread's title. */
+  threadTitle?: string;
   toolCalls: AgentToolCallSummary[];
   metadata: Record<string, unknown>;
   timestamp: string;

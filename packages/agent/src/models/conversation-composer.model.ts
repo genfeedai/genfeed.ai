@@ -95,7 +95,6 @@ export interface PersistedConversationComposerDraft {
   attachments: PersistedConversationComposerAttachment[];
   contentReferences: PersistedConversationComposerContentReference[];
   document: JSONContent | null;
-  hasFocusIntent: boolean;
   plainText: string;
   updatedAt: string;
 }

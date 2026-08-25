@@ -11,7 +11,6 @@ const EMPTY_DRAFT: PersistedConversationComposerDraft = {
   attachments: [],
   contentReferences: [],
   document: null,
-  hasFocusIntent: false,
   plainText: '',
   updatedAt: '',
 };
@@ -77,7 +76,6 @@ function normalizeDraft(
       value.document && typeof value.document === 'object'
         ? value.document
         : null,
-    hasFocusIntent: value.hasFocusIntent === true,
     plainText: typeof value.plainText === 'string' ? value.plainText : '',
     updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : '',
   };
@@ -178,13 +176,6 @@ export function writeConversationComposerContentReferences(
   contentReferences: PersistedConversationComposerContentReference[],
 ): void {
   writeDraft(scopeKey, { contentReferences });
-}
-
-export function writeConversationComposerFocusIntent(
-  scopeKey: string | null,
-  hasFocusIntent: boolean,
-): void {
-  writeDraft(scopeKey, { hasFocusIntent });
 }
 
 export function clearConversationComposerDraft(scopeKey: string | null): void {

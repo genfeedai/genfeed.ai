@@ -875,6 +875,25 @@ export function useAgentChatContainer({
     return () => container.removeEventListener('scroll', handleScroll);
   }, [loadOlderMessages]);
 
+  // Stick-to-bottom: while the user is pinned to the bottom, every streamed
+  // token, tool transition, work event, or new message re-pins the viewport.
+  // Scrolling up (isAtBottom=false) releases the pin until the user returns.
+  // Older-message prepends only happen near the top, so they never re-pin.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the stream/timeline values are intentional re-pin triggers; the body only reads refs
+  useEffect(() => {
+    if (!isAtBottom) {
+      return;
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [
+    isAtBottom,
+    streamState.streamingContent,
+    streamState.streamingReasoning,
+    streamState.activeToolCalls.length,
+    workEvents.length,
+    messages.length,
+  ]);
+
   // Scroll-to-bottom when a thread first becomes readable (imperative DOM, not
   // derived UI). A thread restored from cache paints without ever flipping
   // isLoadingThread, so keying only off the loading transition would leave the
