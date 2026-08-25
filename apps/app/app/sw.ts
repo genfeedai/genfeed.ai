@@ -124,7 +124,7 @@ const runtimeCaching: RuntimeCaching[] = [
  * are owned by `DeploymentVersionWatcher`, which never force-reloads so an
  * in-progress edit in the studio is never discarded.
  */
-export function createServiceWorker(): void {
+function createServiceWorker(): void {
   const serwist = new Serwist({
     clientsClaim: false,
     fallbacks: {
