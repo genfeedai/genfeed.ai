@@ -53,7 +53,7 @@ describe('BeehiivService', () => {
     // keep describing one connected account.
     credentialsResolveMock = vi.fn(
       (options: { credentialId?: string | null }) =>
-        credentialsFindOneMock(options),
+        (credentialsFindOneMock as vi.Mock)(options),
     );
 
     const module: TestingModule = await Test.createTestingModule({

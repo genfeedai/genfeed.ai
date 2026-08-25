@@ -84,7 +84,7 @@ describe('DevtoService', () => {
             // so the existing cases keep describing one connected account.
             resolveBrandAccount: vi.fn(
               (options: { credentialId?: string | null }) =>
-                credentialsFindOneMock(options),
+                (credentialsFindOneMock as vi.Mock)(options),
             ),
           },
         },

@@ -613,7 +613,11 @@ describe('CredentialsService', () => {
             call[0] as { data: Record<string, unknown>; where: unknown },
         );
 
-      expect(survivorUpdate.where).toEqual({ id: 'incumbent-1' });
+      expect(survivorUpdate.where).toEqual({
+        id: 'incumbent-1',
+        isDeleted: false,
+        organizationId: orgId,
+      });
       expect(survivorUpdate.data).toEqual(
         expect.objectContaining({
           accessToken: 'fresh-token',
@@ -623,7 +627,11 @@ describe('CredentialsService', () => {
         }),
       );
 
-      expect(retirementUpdate.where).toEqual({ id: 'pending-1' });
+      expect(retirementUpdate.where).toEqual({
+        id: 'pending-1',
+        isDeleted: false,
+        organizationId: orgId,
+      });
       expect(retirementUpdate.data).toEqual({
         isConnected: false,
         isDeleted: true,
@@ -646,7 +654,11 @@ describe('CredentialsService', () => {
       expect(survivor.id).toBe('winner-1');
       expect(prisma.credential.update.mock.calls.at(-1)?.[0]).toEqual({
         data: { isConnected: false, isDeleted: true, oauthState: null },
-        where: { id: 'pending-1' },
+        where: {
+          id: 'pending-1',
+          isDeleted: false,
+          organizationId: orgId,
+        },
       });
     });
 
@@ -678,6 +690,7 @@ describe('CredentialsService', () => {
       )?.[0] as { where: Record<string, unknown> };
 
       expect(incumbentLookup.where.isDeleted).toBe(false);
+      expect(incumbentLookup.where.organizationId).toBe(orgId);
     });
 
     it('applies the connection payload before identity is settled', async () => {

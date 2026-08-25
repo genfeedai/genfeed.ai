@@ -725,17 +725,21 @@ export class CredentialsService extends BaseService<
       return claimIdentity();
     }
 
+    const organizationId = requireCredentialRelationId(
+      credential.organizationId,
+      'organizationId',
+    );
+
     const mergeIntoIncumbent = async (): Promise<CredentialDocument | null> =>
       this.prisma.$transaction(async (tx) => {
         const incumbent = await tx.credential.findFirst({
           select: { id: true },
-          where: {
+          where: scopedWhere(organizationId, {
             brandId,
             externalId,
             id: { not: credential.id },
-            isDeleted: false,
             platform: prismaPlatform,
-          },
+          }),
         });
 
         if (!incumbent) {
@@ -751,14 +755,14 @@ export class CredentialsService extends BaseService<
             isDeleted: false,
             oauthState: null,
           },
-          where: { id: incumbent.id },
+          where: scopedWhere(organizationId, { id: incumbent.id }),
         });
 
         // The just-authorized row has handed over everything that matters.
         // Retire it softly — a foreign key may already point at it.
         await tx.credential.update({
           data: { isConnected: false, isDeleted: true, oauthState: null },
-          where: { id: credential.id },
+          where: scopedWhere(organizationId, { id: credential.id }),
         });
 
         return this.normalizeDocument(survivor);

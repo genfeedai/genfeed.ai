@@ -36,14 +36,15 @@ import {
 } from '@ui/primitives/dialog';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const STATE_LABELS: Record<AccountHealthSummary['state'], string> = {
-  healthy: 'Healthy',
-  not_started: 'Not started',
-  risky: 'Risky',
-  warming: 'Warming',
-};
+const STATE_MESSAGE_KEYS = {
+  healthy: 'state.healthy',
+  not_started: 'state.notStarted',
+  risky: 'state.risky',
+  warming: 'state.warming',
+} as const satisfies Record<AccountHealthSummary['state'], string>;
 
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 
@@ -76,6 +77,7 @@ function ConnectedAccount({
   isSelected = false,
   onSelect,
 }: BrandDetailConnectedAccountProps) {
+  const translate = useTranslations('pages.brandSocialMedia');
   const label = getConnectionLabel(connection);
   const content = (
     <>
@@ -84,7 +86,7 @@ function ConnectedAccount({
           {connection.avatarUrl ? (
             <AvatarImage
               src={connection.avatarUrl}
-              alt={`${label} profile picture`}
+              alt={translate('profilePictureAlt', { account: label })}
               className="object-cover"
             />
           ) : null}
@@ -122,10 +124,13 @@ function ConnectedAccount({
       href={connection.url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Open ${label} on ${connection.platform}`}
+      aria-label={translate('openProfileAria', {
+        account: label,
+        platform: connection.platform,
+      })}
       className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
     >
-      {`Open ${label}`}
+      {translate('openProfile', { account: label })}
     </Link>
   ) : null;
 
@@ -155,7 +160,10 @@ function ConnectedAccount({
       href={connection.url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Open ${label} on ${connection.platform}`}
+      aria-label={translate('openProfileAria', {
+        account: label,
+        platform: connection.platform,
+      })}
       className={className}
     >
       {content}
@@ -175,30 +183,6 @@ function getHealthToneClass(summary: AccountHealthSummary): string {
   return 'border-success/30 bg-success/10 text-success';
 }
 
-function formatHealthDetail(summary: AccountHealthSummary): string {
-  if (summary.override.isActive) {
-    return 'Manual override active for this account.';
-  }
-
-  if (summary.holdPublishing) {
-    return summary.holdReason ?? 'Scheduled publishing is held for warmup.';
-  }
-
-  if (summary.signals.accountAgeStatus === 'STALE') {
-    return 'Platform account-age evidence is stale. Reconnect to refresh readiness checks.';
-  }
-
-  if (summary.signals.accountAgeStatus === 'FAILED') {
-    return 'Platform account-age check failed. Missing or stale evidence is tracked separately.';
-  }
-
-  if (summary.signals.accountAgeStatus === 'MISSING') {
-    return `${summary.signals.publishedPosts} published post${summary.signals.publishedPosts === 1 ? '' : 's'}. Native social-account age is not yet verified by the platform.`;
-  }
-
-  return `${summary.signals.publishedPosts} published post${summary.signals.publishedPosts === 1 ? '' : 's'} across ${summary.signals.connectedDays} connected day${summary.signals.connectedDays === 1 ? '' : 's'}.`;
-}
-
 export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
@@ -206,6 +190,7 @@ export default function BrandDetailSocialMediaCard({
   onRefresh,
   variant = 'compact',
 }: BrandDetailSocialMediaCardProps) {
+  const translate = useTranslations('pages.brandSocialMedia');
   const isPageVariant = variant === 'page';
   const { getToken } = useAuthIdentity();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -285,6 +270,35 @@ export default function BrandDetailSocialMediaCard({
     ? hasWarmupBlueprint(selectedConnection.platform)
     : false;
 
+  function formatHealthDetail(summary: AccountHealthSummary): string {
+    if (summary.override.isActive) {
+      return translate('health.overrideActive');
+    }
+
+    if (summary.holdPublishing) {
+      return summary.holdReason ?? translate('health.publishingHeld');
+    }
+
+    if (summary.signals.accountAgeStatus === 'STALE') {
+      return translate('health.accountAgeStale');
+    }
+
+    if (summary.signals.accountAgeStatus === 'FAILED') {
+      return translate('health.accountAgeFailed');
+    }
+
+    if (summary.signals.accountAgeStatus === 'MISSING') {
+      return translate('health.accountAgeMissing', {
+        publishedPosts: summary.signals.publishedPosts,
+      });
+    }
+
+    return translate('health.accountAgeVerified', {
+      connectedDays: summary.signals.connectedDays,
+      publishedPosts: summary.signals.publishedPosts,
+    });
+  }
+
   function handleOverrideRequest(request: SocialWarmupOverrideRequest) {
     setOverrideCredentialId(request.credentialId);
     setOverrideUnresolvedChecks(request.unresolvedChecks);
@@ -355,7 +369,9 @@ export default function BrandDetailSocialMediaCard({
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
       logger.error(`Failed to initiate ${platform} OAuth:`, error);
-      NotificationsService.getInstance().error(`Connect ${item.label}`);
+      NotificationsService.getInstance().error(
+        translate('connectPlatform', { platform: item.label }),
+      );
       setConnectingPlatform(null);
     }
   };
@@ -371,14 +387,16 @@ export default function BrandDetailSocialMediaCard({
       await CredentialsService.getInstance(token).delete(
         disconnectTarget.credentialId,
       );
-      NotificationsService.getInstance().success('Account disconnected');
+      NotificationsService.getInstance().success(
+        translate('accountDisconnected'),
+      );
       setDisconnectTarget(null);
       // The connection list is owned by the page, so the removed row only
       // disappears once the brand is reloaded.
       await onRefresh?.();
     } catch (error) {
       logger.error('Failed to disconnect account', error);
-      NotificationsService.getInstance().error('Disconnect account');
+      NotificationsService.getInstance().error(translate('disconnectAccount'));
     } finally {
       setIsDisconnecting(false);
     }
@@ -398,7 +416,7 @@ export default function BrandDetailSocialMediaCard({
         {
           confirm: true,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          reason: 'Manual override confirmed from brand social dashboard.',
+          reason: translate('overrideReason'),
         },
       );
       setAccountHealth((current) => {
@@ -407,11 +425,15 @@ export default function BrandDetailSocialMediaCard({
         );
         return [...withoutUpdated, updated];
       });
-      NotificationsService.getInstance().success('Warmup override confirmed');
+      NotificationsService.getInstance().success(
+        translate('overrideConfirmed'),
+      );
       setOverrideCredentialId(null);
     } catch (error) {
       logger.error('Failed to confirm account health override', error);
-      NotificationsService.getInstance().error('Confirm warmup override');
+      NotificationsService.getInstance().error(
+        translate('confirmWarmupOverride'),
+      );
     } finally {
       setIsOverrideSubmitting(false);
     }
@@ -474,15 +496,17 @@ export default function BrandDetailSocialMediaCard({
               <p className="truncate text-sm font-medium">{item.label}</p>
               <p className="text-xs text-muted-foreground">
                 {isConnected
-                  ? `${platformConnections.length} connected`
-                  : 'Not connected'}
+                  ? translate('connectedCount', {
+                      count: platformConnections.length,
+                    })
+                  : translate('notConnected')}
               </p>
             </div>
           </div>
           {isConnected ? (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-success/30 bg-success/10 px-2 py-0.5 text-2xs font-semibold uppercase text-success">
               <Check className="size-3" />
-              Linked
+              {translate('linked')}
             </span>
           ) : null}
         </div>
@@ -512,7 +536,9 @@ export default function BrandDetailSocialMediaCard({
                     onClick={() => handleConnectPlatform(item)}
                     isDisabled={connectingPlatform !== null}
                   >
-                    {`Reconnect ${getConnectionLabel(connection)}`}
+                    {translate('reconnectAccount', {
+                      account: getConnectionLabel(connection),
+                    })}
                   </Button>
                   <Button
                     variant={ButtonVariant.GHOST}
@@ -520,7 +546,9 @@ export default function BrandDetailSocialMediaCard({
                     className="h-7 px-2 text-2xs text-muted-foreground"
                     onClick={() => setDisconnectTarget(connection)}
                   >
-                    {`Disconnect ${getConnectionLabel(connection)}`}
+                    {translate('disconnectNamed', {
+                      account: getConnectionLabel(connection),
+                    })}
                   </Button>
                 </div>
                 {isPageVariant ? (
@@ -548,8 +576,8 @@ export default function BrandDetailSocialMediaCard({
             isDisabled={connectingPlatform !== null}
           >
             {isConnected
-              ? `Add another ${item.label} account`
-              : `Connect ${item.label}`}
+              ? translate('addAnotherAccount', { platform: item.label })
+              : translate('connectPlatform', { platform: item.label })}
           </Button>
         </div>
       </div>
@@ -567,10 +595,12 @@ export default function BrandDetailSocialMediaCard({
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Account health
+            {translate('accountHealth')}
           </h3>
           {isHealthLoading ? (
-            <span className="text-xs text-muted-foreground">Checking</span>
+            <span className="text-xs text-muted-foreground">
+              {translate('checking')}
+            </span>
           ) : null}
         </div>
         {selectedConnection && selectedHasWarmup ? (
@@ -602,13 +632,16 @@ export default function BrandDetailSocialMediaCard({
                       {summary.label}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {summary.platform} · score {summary.score}
+                      {translate('score', {
+                        platform: summary.platform,
+                        score: summary.score,
+                      })}
                     </p>
                   </div>
                   <span
                     className={`shrink-0 rounded-sm border px-2 py-1 text-2xs font-semibold uppercase ${getHealthToneClass(summary)}`}
                   >
-                    {STATE_LABELS[summary.state]}
+                    {translate(STATE_MESSAGE_KEYS[summary.state])}
                   </span>
                 </div>
                 <p className="text-xs leading-5 text-muted-foreground">
@@ -624,7 +657,7 @@ export default function BrandDetailSocialMediaCard({
                       setOverrideCredentialId(summary.credentialId);
                     }}
                   >
-                    Override 24h
+                    {translate('override24h')}
                   </Button>
                 ) : null}
               </div>
@@ -636,10 +669,11 @@ export default function BrandDetailSocialMediaCard({
 
   const socialDescription =
     connectedPlatformsCount > 0
-      ? `${connectedPlatformsCount} connected account${
-          connectedPlatformsCount === 1 ? '' : 's'
-        } · ${OAUTH_CONNECT_PLATFORMS.length} channels available`
-      : 'Connect accounts to display them here.';
+      ? translate('channelAvailability', {
+          channelCount: OAUTH_CONNECT_PLATFORMS.length,
+          connectedCount: connectedPlatformsCount,
+        })
+      : translate('connectAccountsDescription');
 
   const disconnectDialog = (
     <Dialog
@@ -652,10 +686,13 @@ export default function BrandDetailSocialMediaCard({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Disconnect account</DialogTitle>
+          <DialogTitle>{translate('disconnectAccount')}</DialogTitle>
           <DialogDescription>
             {disconnectTarget
-              ? `${getConnectionLabel(disconnectTarget)} stops publishing for this brand. Other accounts on ${disconnectTarget.platform} are untouched, and you can reconnect it later.`
+              ? translate('disconnectAccountDescription', {
+                  account: getConnectionLabel(disconnectTarget),
+                  platform: disconnectTarget.platform,
+                })
               : ''}
           </DialogDescription>
         </DialogHeader>
@@ -666,7 +703,7 @@ export default function BrandDetailSocialMediaCard({
             variant={ButtonVariant.GHOST}
             onClick={() => setDisconnectTarget(null)}
           >
-            Cancel
+            {translate('cancel')}
           </Button>
           <Button
             size={ButtonSize.SM}
@@ -674,7 +711,7 @@ export default function BrandDetailSocialMediaCard({
             isLoading={isDisconnecting}
             onClick={handleConfirmDisconnect}
           >
-            Disconnect
+            {translate('disconnect')}
           </Button>
         </div>
       </DialogContent>
@@ -693,10 +730,9 @@ export default function BrandDetailSocialMediaCard({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Confirm warmup override</DialogTitle>
+          <DialogTitle>{translate('confirmWarmupOverride')}</DialogTitle>
           <DialogDescription>
-            This bypasses the account-health publishing hold for 24 hours. Use
-            it only after reviewing the platform warmup guidance.
+            {translate('overrideDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -704,14 +740,16 @@ export default function BrandDetailSocialMediaCard({
           <div className="space-y-4">
             <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
               {selectedOverrideHealth.holdReason ??
-                'This account is currently held by warmup state.'}
+                translate('accountHeldByWarmup')}
             </div>
             {selectedOverrideHealth.override.reason ||
             selectedOverrideHealth.override.expiresAt ? (
               <p className="text-xs text-muted-foreground">
                 {selectedOverrideHealth.override.reason}
                 {selectedOverrideHealth.override.expiresAt
-                  ? ` · expires ${selectedOverrideHealth.override.expiresAt}`
+                  ? translate('expires', {
+                      time: selectedOverrideHealth.override.expiresAt,
+                    })
                   : ''}
               </p>
             ) : null}
@@ -728,7 +766,7 @@ export default function BrandDetailSocialMediaCard({
                 variant={ButtonVariant.GHOST}
                 onClick={() => setOverrideCredentialId(null)}
               >
-                Cancel
+                {translate('cancel')}
               </Button>
               <Button
                 size={ButtonSize.SM}
@@ -736,7 +774,7 @@ export default function BrandDetailSocialMediaCard({
                 isLoading={isOverrideSubmitting}
                 onClick={handleConfirmOverride}
               >
-                Confirm override
+                {translate('confirmOverride')}
               </Button>
             </div>
           </div>
@@ -761,7 +799,10 @@ export default function BrandDetailSocialMediaCard({
           ))}
 
           {accountHealthSection ? (
-            <Card label="Account health" description="Warmup and risk signals.">
+            <Card
+              label={translate('accountHealth')}
+              description={translate('accountHealthDescription')}
+            >
               {accountHealthSection}
             </Card>
           ) : null}
@@ -775,7 +816,7 @@ export default function BrandDetailSocialMediaCard({
   return (
     <>
       <Card
-        label="Connected accounts"
+        label={translate('connectedAccounts')}
         description={socialDescription}
         headerAction={
           <Button
@@ -784,7 +825,9 @@ export default function BrandDetailSocialMediaCard({
             className="h-8 shrink-0 px-2.5 text-xs"
             onClick={() => setIsDialogOpen(true)}
           >
-            {connectedPlatformsCount > 0 ? 'Manage' : 'Connect'}
+            {connectedPlatformsCount > 0
+              ? translate('manage')
+              : translate('connect')}
           </Button>
         }
       >
@@ -807,7 +850,7 @@ export default function BrandDetailSocialMediaCard({
           </div>
         ) : (
           <div className="rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground">
-            No social accounts connected yet.
+            {translate('empty')}
           </div>
         )}
 
@@ -821,10 +864,9 @@ export default function BrandDetailSocialMediaCard({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Social Media</DialogTitle>
+            <DialogTitle>{translate('socialMedia')}</DialogTitle>
             <DialogDescription>
-              Connect channels for this brand and review the profiles that are
-              already linked.
+              {translate('socialMediaDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -840,7 +882,9 @@ export default function BrandDetailSocialMediaCard({
                       className="h-7 px-2 text-2xs text-muted-foreground"
                       onClick={() => setDisconnectTarget(connection)}
                     >
-                      {`Disconnect ${getConnectionLabel(connection)}`}
+                      {translate('disconnectNamed', {
+                        account: getConnectionLabel(connection),
+                      })}
                     </Button>
                   </div>
                 ))}
@@ -848,7 +892,7 @@ export default function BrandDetailSocialMediaCard({
 
               <div className="space-y-4 border-t border-border pt-4">
                 <p className="text-sm text-muted-foreground">
-                  Add another account, or a new channel, for this brand.
+                  {translate('addAnotherDescription')}
                 </p>
                 {allPlatformGroups.map((group) => (
                   <div key={group.id} className="space-y-2">
@@ -865,7 +909,7 @@ export default function BrandDetailSocialMediaCard({
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Connect your social media accounts to display them here.
+                {translate('connectSocialAccountsDescription')}
               </p>
               {allPlatformGroups.map((group) => (
                 <div key={group.id} className="space-y-2">
