@@ -27,6 +27,7 @@ describe('meta ad library mappers', () => {
       granularity: 'ad',
       performanceScore: null,
       platform: 'meta',
+      usagePolicy: 'remix_allowed',
     });
     expect(record.clicks).toBeUndefined();
     expect(record.cpc).toBeUndefined();

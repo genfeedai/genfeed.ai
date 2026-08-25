@@ -1,4 +1,7 @@
-import { resolvePaidCreativeType } from './paid-creative';
+import {
+  resolvePaidCreativeType,
+  resolvePaidCreativeUsagePolicy,
+} from './paid-creative';
 import type {
   MetaAdLibraryRowInput,
   NormalizedPaidCreativeRecord,
@@ -82,5 +85,6 @@ export function normalizeMetaAdLibraryRecord(
     spend: undefined,
     targetingCountries: row.targetingCountries,
     targetingCriteria: row.publisherPlatforms,
+    usagePolicy: resolvePaidCreativeUsagePolicy('meta_ads_library'),
   };
 }

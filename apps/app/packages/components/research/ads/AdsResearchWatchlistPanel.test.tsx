@@ -68,6 +68,11 @@ vi.mock('@ui/primitives/select', () => ({
   SelectValue: () => null,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const readiness: AdWatchlistPlatformReadiness[] = [
   {
     available: true,
@@ -173,6 +178,18 @@ describe('AdsResearchWatchlistPanel', () => {
         'The archive scraper credential is not configured on this deployment.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('uses the singular label for one captured creative (#3537)', () => {
+    renderPanel({
+      advertisers: advertisers.map((advertiser) =>
+        advertiser.id === 'watched-1'
+          ? { ...advertiser, lastSnapshotRecordCount: 1 }
+          : advertiser,
+      ),
+    });
+
+    expect(screen.getByText('1 creative')).toBeInTheDocument();
   });
 
   it('falls back to the raw blocker code when it has no wording yet (#3537)', () => {

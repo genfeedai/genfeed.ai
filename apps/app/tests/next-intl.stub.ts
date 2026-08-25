@@ -6,15 +6,40 @@ type MessageNode = string | { readonly [key: string]: MessageNode };
 // Resolve against the real English catalog so shared-package namespaces
 // (`agent`, `pages`, …) stay in sync with i18n/messages.ts.
 const catalog = loadMessages(DEFAULT_LOCALE) as unknown as MessageNode;
+const CARDINAL_PLURAL_PATTERN =
+  /\{(\w+),\s*plural,\s*one\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}\}/g;
+
+function interpolateMessage(
+  message: string,
+  values?: Record<string, string | number>,
+): string {
+  const withPlurals = message.replace(
+    CARDINAL_PLURAL_PATTERN,
+    (token, name: string, singular: string, plural: string) => {
+      const value = values?.[name];
+
+      if (typeof value !== 'number') {
+        return token;
+      }
+
+      return (value === 1 ? singular : plural).replaceAll('#', String(value));
+    },
+  );
+
+  return withPlurals.replace(/\{(\w+)\}/g, (token, name: string) =>
+    values?.[name] === undefined ? token : String(values[name]),
+  );
+}
 
 /**
  * `vi.mock('next-intl')` replacement that resolves keys against the real
  * English catalog, so component tests keep asserting the copy a user actually
  * reads instead of a `catalog:` placeholder.
  *
- * Interpolation covers the `{name}` form the catalog uses; it is not a full
- * ICU implementation. A missing key returns its own path, which surfaces as a
- * failed assertion rather than a silent blank.
+ * Interpolation covers simple `{name}` placeholders and the catalog's
+ * `{count, plural, one {...} other {...}}` cardinal form. It is intentionally
+ * not a full ICU implementation. A missing key returns its own path, which
+ * surfaces as a failed assertion rather than a silent blank.
  */
 export function translateFromCatalog(namespace: string) {
   return (key: string, values?: Record<string, string | number>): string => {
@@ -39,8 +64,6 @@ export function translateFromCatalog(namespace: string) {
       return path;
     }
 
-    return node.replace(/\{(\w+)\}/g, (token, name: string) =>
-      values?.[name] === undefined ? token : String(values[name]),
-    );
+    return interpolateMessage(node, values);
   };
 }

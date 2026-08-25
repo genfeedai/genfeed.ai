@@ -10,13 +10,13 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
@@ -1183,7 +1183,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.TEXT);
 
-      expect(result).toBe(DEFAULT_TEXT_MODEL);
+      expect(result).toBe(LOWEST_COST_AGENT_CHAT_MODEL_KEY);
     });
 
     it('should return fallback for IMAGE_EDIT category when the registry is empty', async () => {

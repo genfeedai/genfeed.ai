@@ -1,4 +1,7 @@
-import { resolvePaidCreativeType } from './paid-creative';
+import {
+  resolvePaidCreativeType,
+  resolvePaidCreativeUsagePolicy,
+} from './paid-creative';
 import type {
   NormalizedPaidCreativeRecord,
   XAdsRepositoryExportRowInput,
@@ -88,5 +91,6 @@ export function normalizeXAdsRepositoryExportRecord(
     spend: undefined,
     targetingCountries: row.targetingCountries,
     targetingCriteria: row.targetingCriteria,
+    usagePolicy: resolvePaidCreativeUsagePolicy('x_ads_repository'),
   };
 }

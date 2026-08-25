@@ -235,7 +235,6 @@
     "apps/app/packages/components/performance-lab/PatternCard.tsx": 3,
     "apps/app/packages/components/performance-lab/PatternLabPage.tsx": 3,
     "apps/app/packages/components/performance-lab/UsePatternButton.tsx": 1,
-    "apps/app/packages/components/research/ads/AdsResearchAdCards.tsx": 6,
     "apps/app/packages/components/research/ads/AdsResearchDetailSidebar.tsx": 27,
     "apps/app/packages/components/research/ads/AdsResearchFilterPanel.tsx": 2,
     "apps/app/src/components/models/ModelBrowserModal.tsx": 8,
