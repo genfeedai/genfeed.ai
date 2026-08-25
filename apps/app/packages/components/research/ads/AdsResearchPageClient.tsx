@@ -33,13 +33,19 @@ import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
 import { AdsResearchFilterPanel } from './AdsResearchFilterPanel';
 import { AdsResearchWatchlistPanel } from './AdsResearchWatchlistPanel';
-import { useAdsResearchPageClient } from './useAdsResearchPageClient';
+import {
+  type AdSortKey,
+  useAdsResearchPageClient,
+} from './useAdsResearchPageClient';
 import { useAdsResearchWatchlist } from './useAdsResearchWatchlist';
 
 const SORT_OPTIONS = [
   { label: 'Score (High → Low)', value: 'score' },
   { label: 'CTR (High → Low)', value: 'ctr' },
   { label: 'ROAS (High → Low)', value: 'roas' },
+  // The only ranking axis competitor archive rows carry: no archive publishes
+  // CTR or ROAS, but all of them publish how long an ad has been running.
+  { label: 'Longest running', value: 'longevity' },
 ];
 
 function CompactStat({
@@ -293,9 +299,7 @@ export default function AdsResearchPageClient({
                 name="sort"
                 value={sortKey}
                 options={SORT_OPTIONS}
-                onChange={(_name, value) =>
-                  setSortKey(value as 'score' | 'ctr' | 'roas')
-                }
+                onChange={(_name, value) => setSortKey(value as AdSortKey)}
                 className="h-9 rounded-lg shadow-border bg-card px-3 text-sm text-white/80 hover:bg-white/[0.04] hover:text-white"
               />
               <div className="ml-1 flex flex-wrap items-center gap-x-4 gap-y-1">

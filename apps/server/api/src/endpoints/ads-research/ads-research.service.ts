@@ -15,6 +15,7 @@ import {
 import type { PaidCreativeProvider } from '@genfeedai/integrations/ads';
 import {
   isPaidCreativeResearchSource,
+  resolvePaidCreativeLongevity,
   resolvePaidCreativeSourceLabel,
   resolvePaidCreativeUsagePolicy,
 } from '@genfeedai/integrations/ads';
@@ -29,6 +30,7 @@ import type {
   AdsResearchDetail,
   AdsResearchFilters,
   AdsResearchItem,
+  AdsResearchLongevity,
   AdsResearchMetric,
   AdsResearchPlatform,
   AdsResearchResponse,
@@ -603,6 +605,29 @@ export class AdsResearchService {
   }
 
   /**
+   * Turn the run dates an archive published into a persistence score. This is
+   * the only performance-shaped number a competitor row ever carries: archives
+   * disclose how long an advertiser kept paying for a creative, never how it
+   * performed, and a long-lived ad is the honest proxy for a winning one.
+   */
+  private resolveItemLongevity(
+    item: AdPerformanceDocument,
+  ): AdsResearchLongevity | undefined {
+    return (
+      resolvePaidCreativeLongevity(
+        {
+          isHalted: item.isHalted === true,
+          presentationEndDate: item.presentationEndDate as string | undefined,
+          presentationStartDate: item.presentationStartDate as
+            | string
+            | undefined,
+        },
+        new Date(),
+      ) ?? undefined
+    );
+  }
+
+  /**
    * Present a tenant-owned competitor snapshot from a transparency archive.
    *
    * Archives publish creative, not delivery: none of them disclose spend,
@@ -644,14 +669,20 @@ export class AdsResearchService {
           platform,
         })
       : [];
+    const longevity = this.resolveItemLongevity(item);
+    const longevityNote = longevity
+      ? ` It has been running for ${longevity.daysLive} day${
+          longevity.daysLive === 1 ? '' : 's'
+        } and is ${longevity.isStillRunning ? 'still live' : 'no longer live'}.`
+      : '';
 
     return {
       body: isRemixAllowed ? (item.bodyText as string | undefined) : undefined,
       channel: 'all',
       cta: isRemixAllowed ? (item.ctaText as string | undefined) : undefined,
       explanation: isRemixAllowed
-        ? `${sourceLabel} creative currently served by ${advertiserLabel}. The archive publishes the creative only, so delivery and spend metrics are unavailable.`
-        : `Tenant-scoped ${sourceLabel}. Performance metrics are unavailable, and commercial remix use is disabled pending approval.`,
+        ? `${sourceLabel} creative currently served by ${advertiserLabel}. The archive publishes the creative only, so delivery and spend metrics are unavailable.${longevityNote}`
+        : `Tenant-scoped ${sourceLabel}. Performance metrics are unavailable, and commercial remix use is disabled pending approval.${longevityNote}`,
       headline: isRemixAllowed
         ? (item.headlineText as string | undefined)
         : undefined,
@@ -663,6 +694,7 @@ export class AdsResearchService {
       landingPageUrl: isRemixAllowed
         ? (item.landingPageUrl as string | undefined)
         : undefined,
+      longevity,
       metricLabel: 'Estimated reach',
       metricValue: this.toNumber(item.estimatedReach),
       metrics: {},

@@ -64,7 +64,7 @@ type CredentialOption = {
   platform?: string;
 };
 
-type AdSortKey = 'score' | 'ctr' | 'roas';
+export type AdSortKey = 'score' | 'ctr' | 'roas' | 'longevity';
 
 const SOURCE_VALUES = ['all', 'my_accounts', 'public'] as const;
 const PLATFORM_VALUES = ['all', 'google', 'meta', 'tiktok', 'x'] as const;
@@ -82,7 +82,7 @@ const TIMEFRAME_VALUES = [
   'last_90_days',
   'all_time',
 ] as const;
-const SORT_VALUES = ['score', 'ctr', 'roas'] as const;
+const SORT_VALUES = ['score', 'ctr', 'roas', 'longevity'] as const;
 const VIEW_VALUES = [ViewType.GRID, ViewType.TABLE] as const;
 
 function getBrandLabel(selectedBrand?: { label?: string; name?: string }) {
@@ -356,6 +356,17 @@ export function useAdsResearchPageClient(
       switch (sortKey) {
         case 'ctr':
           return (b.metrics.ctr ?? 0) - (a.metrics.ctr ?? 0);
+        case 'longevity':
+          /**
+           * Competitor archive rows have no CTR or ROAS to rank by, so they
+           * sort last on every other key. Longevity is the axis they do carry:
+           * how long the advertiser kept paying to run the creative. Ties
+           * break on days on air so a saturated pair still orders sensibly.
+           */
+          return (
+            (b.longevity?.score ?? -1) - (a.longevity?.score ?? -1) ||
+            (b.longevity?.daysLive ?? 0) - (a.longevity?.daysLive ?? 0)
+          );
         case 'roas':
           return (b.metrics.roas ?? 0) - (a.metrics.roas ?? 0);
         default:

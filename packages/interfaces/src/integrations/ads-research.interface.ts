@@ -37,6 +37,18 @@ export interface AdsResearchPatternSummary {
   examples?: string[];
 }
 
+/**
+ * How long a competitor kept a creative on air, derived from the run dates a
+ * transparency archive publishes. It is absent — never zero — when the archive
+ * disclosed no usable start date, so an unscored ad is never mistaken for a
+ * short-lived one.
+ */
+export interface AdsResearchLongevity {
+  daysLive: number;
+  isStillRunning: boolean;
+  score: number;
+}
+
 export interface AdsResearchItem {
   id: string;
   sourceId: string;
@@ -61,6 +73,7 @@ export interface AdsResearchItem {
   sourceLabel?: string;
   metricValue?: number;
   metricLabel?: string;
+  longevity?: AdsResearchLongevity;
   explanation: string;
   credentialId?: string;
   adAccountId?: string;

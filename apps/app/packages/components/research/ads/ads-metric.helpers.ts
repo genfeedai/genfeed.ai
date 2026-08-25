@@ -1,5 +1,6 @@
 import type {
   AdsResearchItem,
+  AdsResearchLongevity,
   AdsResearchMetric,
   AdsResearchPlatform,
 } from '@genfeedai/interfaces';
@@ -14,6 +15,23 @@ export function formatMetric(value?: number): string {
   }
 
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+/**
+ * Render how long a competitor kept a creative on air. Returns `null` when the
+ * archive published no run dates — an unscored ad reads as blank rather than
+ * as a zero-day one.
+ */
+export function formatLongevity(
+  longevity: AdsResearchLongevity | undefined,
+): string | null {
+  if (!longevity) {
+    return null;
+  }
+
+  const days = `${longevity.daysLive}d`;
+
+  return longevity.isStillRunning ? `${days} live` : `${days} ended`;
 }
 
 export function getMetricValue(

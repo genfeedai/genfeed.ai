@@ -281,6 +281,59 @@ describe('AdsResearchService', () => {
     expect(result.sourceLabel).not.toBe('Public niche winner');
   });
 
+  it('scores how long an archive creative has been running (#3537)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-25T12:00:00.000Z'));
+    adPerformanceService.findPublicById.mockResolvedValue(
+      buildPublicAd({
+        adPlatform: 'meta',
+        advertiserName: 'Nike',
+        id: 'meta-longevity-ad',
+        presentationStartDate: '2026-05-27T12:00:00.000Z',
+        researchSource: 'meta_ads_library',
+        scope: 'organization',
+      }),
+    );
+
+    const result = await service.getAdDetail('org-1', {
+      id: 'meta-longevity-ad',
+      source: 'public',
+    });
+
+    vi.useRealTimers();
+
+    expect(result.longevity).toEqual({
+      daysLive: 90,
+      isStillRunning: true,
+      score: 100,
+    });
+    // Longevity is a run-duration fact, not a delivery metric: it must never
+    // put an invented number into `metrics`.
+    expect(result.metrics).toEqual({});
+    expect(result.explanation).toContain('running for 90 days');
+    expect(result.explanation).toContain('still live');
+  });
+
+  it('leaves an archive creative unscored when no run dates were published (#3537)', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(
+      buildPublicAd({
+        adPlatform: 'meta',
+        id: 'meta-undated-ad',
+        researchSource: 'meta_ads_library',
+        scope: 'organization',
+      }),
+    );
+
+    const result = await service.getAdDetail('org-1', {
+      id: 'meta-undated-ad',
+      source: 'public',
+    });
+
+    // Absent, never zero — an ad nobody dated is not a short-lived ad.
+    expect(result.longevity).toBeUndefined();
+    expect(result.explanation).not.toContain('running for');
+  });
+
   it('maps a Google Transparency Center snapshot onto the google research platform (#3537)', async () => {
     adPerformanceService.findPublicById.mockResolvedValue(
       buildPublicAd({
