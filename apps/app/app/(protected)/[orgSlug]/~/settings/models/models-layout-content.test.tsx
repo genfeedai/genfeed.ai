@@ -94,4 +94,23 @@ describe('ModelsLayoutContent', () => {
 
     expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/models/images');
   });
+
+  it('keeps the type filter and refresh on one non-wrapping row', () => {
+    render(
+      <ModelsLayoutContent>
+        <div>children</div>
+      </ModelsLayoutContent>,
+    );
+
+    const row = screen.getByTestId('models-layout-actions');
+    const filter = screen.getByRole('combobox', { name: 'Model type' });
+    const refresh = screen.getByRole('button', { name: 'Refresh' });
+
+    expect(row.className).toMatch(/items-center/);
+    expect(row.className).not.toMatch(/flex-wrap/);
+    expect(row).toContainElement(filter);
+    expect(row).toContainElement(refresh);
+    expect(filter.className).toMatch(/\bw-36\b/);
+    expect(filter.className).not.toMatch(/\bw-full\b/);
+  });
 });
