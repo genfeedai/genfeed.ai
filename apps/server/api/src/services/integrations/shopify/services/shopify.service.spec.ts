@@ -54,7 +54,7 @@ describe('ShopifyService', () => {
       // answers with whatever `findOne` is primed to return so the existing
       // single-account cases keep describing one connected account.
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        credentialsService.findOne(options),
+        (credentialsService.findOne as vi.Mock)(options),
       ),
     };
 

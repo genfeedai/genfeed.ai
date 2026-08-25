@@ -134,7 +134,7 @@ describe('TwitterService (coverage)', () => {
 
     credentialsService = {
       findBrandAccounts: vi.fn(async () => {
-        const credential = await credentialsService.findOne();
+        const credential = await (credentialsService.findOne as vi.Mock)();
         return credential ? [credential] : [];
       }),
       findOne: vi.fn().mockResolvedValue(null),
@@ -143,7 +143,7 @@ describe('TwitterService (coverage)', () => {
       // answers with whatever `findOne` is primed to return so the existing
       // single-account cases keep describing one connected account.
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        credentialsService.findOne(options),
+        (credentialsService.findOne as vi.Mock)(options),
       ),
     };
 

@@ -403,7 +403,6 @@
     "packages/pages/brands/components/sidebar/BrandDetailLinksSummaryCard.tsx": 2,
     "packages/pages/brands/components/sidebar/BrandDetailManualKitCard.tsx": 9,
     "packages/pages/brands/components/sidebar/BrandDetailReferencesCard.tsx": 1,
-    "packages/pages/brands/components/sidebar/BrandDetailSocialMediaCard.tsx": 16,
     "packages/pages/brands/components/sidebar/BrandDetailSocialSummaryCard.tsx": 2,
     "packages/pages/brands/components/sidebar/BrandIdentityActions.tsx": 5,
     "packages/pages/brands/components/sidebar/BrandIdentityAvatarField.tsx": 2,

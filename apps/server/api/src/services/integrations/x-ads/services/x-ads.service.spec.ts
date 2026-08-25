@@ -99,7 +99,7 @@ describe('XAdsService', () => {
       // double answers with whatever `findOne` is primed to return so the
       // existing cases keep describing one connected account.
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        credentialsService.findOne(options),
+        (credentialsService.findOne as vi.Mock)(options),
       ),
     };
     httpService = { get: vi.fn(), post: vi.fn(), put: vi.fn() };
