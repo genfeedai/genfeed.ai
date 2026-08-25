@@ -33,4 +33,13 @@ describe('button variants', () => {
     expect(className).toContain('justify-center');
     expect(className.split(/\s+/)).not.toContain('justify-start');
   });
+
+  it('left-aligns labeled ghost buttons', () => {
+    const className = buttonVariants({
+      size: ButtonSize.DEFAULT,
+      variant: ButtonVariant.GHOST,
+    });
+
+    expect(className).toContain('justify-start');
+  });
 });
