@@ -35,6 +35,12 @@ interface BatchGenerationDraft {
 /**
  * Host callbacks for batch generation that still depend on orchestrator-owned
  * thread title helpers.
+ *
+ * `maybeUpdateThreadTitle` resolves to the persisted title, or null when the
+ * thread had already been renamed and nothing changed. Batch turns do not push
+ * a live title today (their `agent:done` payload carries no `threadTitle`), so
+ * the value is unused here — the shape mirrors the util so the two cannot drift
+ * apart again.
  */
 export type AgentOrchestratorBatchHost = {
   maybeUpdateThreadTitle: (params: {
@@ -42,7 +48,7 @@ export type AgentOrchestratorBatchHost = {
     seedTitle: string;
     threadId: string;
     title: string | null;
-  }) => Promise<void>;
+  }) => Promise<string | null>;
 };
 
 @Injectable()

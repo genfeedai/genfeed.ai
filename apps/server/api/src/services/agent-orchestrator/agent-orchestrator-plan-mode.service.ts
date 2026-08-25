@@ -35,6 +35,12 @@ import { Injectable } from '@nestjs/common';
 /**
  * Host callbacks for plan-mode turns that still depend on orchestrator-owned
  * thread title persistence (async DB update).
+ *
+ * `maybeUpdateThreadTitle` resolves to the persisted title, or null when the
+ * thread had already been renamed and nothing changed. Plan-mode turns do not
+ * push a live title today (their `agent:done` payload carries no `threadTitle`),
+ * so the value is unused here — the shape mirrors the util so the two cannot
+ * drift apart again.
  */
 export type AgentOrchestratorPlanModeHost = {
   maybeUpdateThreadTitle: (params: {
@@ -42,7 +48,7 @@ export type AgentOrchestratorPlanModeHost = {
     seedTitle: string;
     threadId: string;
     title: string | null;
-  }) => Promise<void>;
+  }) => Promise<string | null>;
 };
 
 @Injectable()
