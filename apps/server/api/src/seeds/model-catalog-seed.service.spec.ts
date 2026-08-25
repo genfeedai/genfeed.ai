@@ -79,7 +79,11 @@ describe('ModelCatalogSeedService', () => {
   });
 
   it('never overwrites an existing price with an unpriced catalog entry', async () => {
-    const unpriced = UNIFIED_MODEL_CATALOG.find((entry) => entry.cost === 0);
+    // `isFree` rows are also cost 0 but curated that way — pick a genuinely
+    // unpriced one so this asserts the uncurated guard, not the free exception.
+    const unpriced = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.cost === 0 && !entry.isFree,
+    );
     expect(unpriced).toBeDefined();
 
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
@@ -87,6 +91,16 @@ describe('ModelCatalogSeedService', () => {
     const call = callForKey(unpriced?.key ?? '');
     expect(call?.update).not.toHaveProperty('cost');
     expect(call?.create).toMatchObject({ cost: 0, isActive: false });
+  });
+
+  it('writes the zero price of a declared-free catalog entry', async () => {
+    const free = UNIFIED_MODEL_CATALOG.find((entry) => entry.isFree);
+
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+    const call = callForKey(free?.key ?? '');
+    expect(call?.update).toMatchObject({ cost: 0 });
+    expect(call?.create).toMatchObject({ cost: 0, isActive: true });
   });
 
   it('leaves operator activation alone for non-default entries', async () => {

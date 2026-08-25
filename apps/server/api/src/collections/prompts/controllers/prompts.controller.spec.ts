@@ -29,6 +29,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { PromptCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -162,7 +163,7 @@ describe('PromptsController', () => {
       expect(service.create).toHaveBeenCalled();
       expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'openrouter/free',
+          model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
         }),
       );
       expect(result).toBeDefined();

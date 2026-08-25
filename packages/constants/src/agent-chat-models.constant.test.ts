@@ -80,6 +80,23 @@ describe('AGENT_CHAT_MODELS', () => {
     ).toBe(0);
   });
 
+  // Zero credits is a claim about the provider, never an accident of a
+  // definition that shipped without prices. A hosted model rounds to zero only
+  // when it is explicitly marked free.
+  it('grants zero credits only to models declared free or self-hosted', () => {
+    for (const model of AGENT_CHAT_MODELS.filter(
+      (candidate) => candidate.creditCostPerRound === 0,
+    )) {
+      expect(Boolean(model.isFree || model.isSelfHosted)).toBe(true);
+    }
+  });
+
+  it('declares the free auto-router free', () => {
+    expect(
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE)?.isFree,
+    ).toBe(true);
+  });
+
   it('bills self-hosted models to the platform, not the round', () => {
     for (const model of AGENT_CHAT_MODELS.filter(
       (candidate) => candidate.isSelfHosted,

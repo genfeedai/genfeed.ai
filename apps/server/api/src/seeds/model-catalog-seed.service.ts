@@ -167,8 +167,10 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDeleted: false,
       // `isActive` and `cost` stay operator/discovery territory: a curated row
       // may have been priced or disabled deliberately, and the seed's 0 for an
-      // uncurated key would hand out free generations.
-      ...(entry.cost > 0 ? { cost: entry.cost } : {}),
+      // uncurated key would hand out free generations. A row the catalog
+      // declares free is the exception — there 0 is the curated price, so
+      // holding a stale non-zero cost would bill a round the provider gave away.
+      ...(entry.cost > 0 || entry.isFree ? { cost: entry.cost } : {}),
       // Unit pricing + provider USD must not lag the catalog — bill time prefers
       // providerCostUsd × live applyMargin.
       ...(entry.costPerUnit != null ? { costPerUnit: entry.costPerUnit } : {}),

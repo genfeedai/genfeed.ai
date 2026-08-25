@@ -3,7 +3,7 @@ import { ApifyBaseService } from '@api/services/integrations/apify/services/modu
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 describe('ApifyBaseService', () => {
   let service: ApifyBaseService;
@@ -305,5 +305,154 @@ describe('ApifyBaseService', () => {
     expect(service.ACTORS.YOUTUBE_SCRAPER).toBeDefined();
     expect(service.ACTORS.TWITTER_SCRAPER).toBeDefined();
     expect(service.ACTORS.INSTAGRAM_SCRAPER).toBeDefined();
+  });
+
+  // ─── Account-limit circuit breaker ───────────────────────────────────────
+
+  describe('Apify account usage limit', () => {
+    const ACCOUNT_LIMIT_ERROR = {
+      isAxiosError: true,
+      message: 'Request failed with status code 403',
+      name: 'AxiosError',
+      response: {
+        data: {
+          error: {
+            message: 'Monthly usage hard limit exceeded',
+            type: 'platform-feature-disabled',
+          },
+        },
+        status: 403,
+      },
+    };
+
+    let nowSpy: ReturnType<typeof vi.spyOn>;
+    let now: number;
+
+    beforeEach(() => {
+      now = 1_700_000_000_000;
+      nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    });
+
+    afterEach(() => {
+      nowSpy.mockRestore();
+    });
+
+    it('logs an actionable account-limit error instead of an anonymous request failure', async () => {
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+
+      const messages = loggerService.error.mock.calls.map(
+        (call: unknown[]) => call[0] as string,
+      );
+      expect(
+        messages.some(
+          (message) =>
+            message.includes('Monthly usage hard limit exceeded') &&
+            message.includes('suspended'),
+        ),
+      ).toBe(true);
+    });
+
+    it('stops issuing doomed hosted calls while the account limit is active', async () => {
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+
+      await expect(service.runActor('other/actor', {})).rejects.toThrow(
+        /Apify/i,
+      );
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries once the suspension window has elapsed', async () => {
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+
+      now += ApifyBaseService.ACCOUNT_LIMIT_SUSPENSION_MS + 1;
+
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not suspend on failures that are not account limits', async () => {
+      httpService.post.mockReturnValue(
+        throwError(() => ({
+          isAxiosError: true,
+          message: 'Request failed with status code 500',
+          name: 'AxiosError',
+          response: { status: 500 },
+        })),
+      );
+
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('scopes a byok account limit to that organization only', async () => {
+      byokFactory.resolveProvider.mockResolvedValue({
+        apiKey: 'byok-key',
+        source: 'byok',
+      });
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(
+        service.runActorForOrg('org-1', 'test/actor', {}),
+      ).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+
+      await expect(
+        service.runActorForOrg('org-1', 'test/actor', {}),
+      ).rejects.toThrow(/Apify/i);
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+
+      byokFactory.resolveProvider.mockResolvedValue({
+        apiKey: 'byok-key-2',
+        source: 'byok',
+      });
+      await expect(
+        service.runActorForOrg('org-2', 'test/actor', {}),
+      ).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps byok organizations running when the hosted token hits its limit', async () => {
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(service.runActor('test/actor', {})).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+
+      byokFactory.resolveProvider.mockResolvedValue({
+        apiKey: 'byok-key',
+        source: 'byok',
+      });
+      await expect(
+        service.runActorForOrg('org-1', 'test/actor', {}),
+      ).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('suspends the hosted scope when an organization falls back to the hosted token', async () => {
+      byokFactory.resolveProvider.mockResolvedValue({
+        apiKey: null,
+        source: 'hosted',
+      });
+      httpService.post.mockReturnValue(throwError(() => ACCOUNT_LIMIT_ERROR));
+
+      await expect(
+        service.runActorForOrg('org-1', 'test/actor', {}),
+      ).rejects.toBeDefined();
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+
+      await expect(service.runActor('test/actor', {})).rejects.toThrow(
+        /Apify/i,
+      );
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
   });
 });
