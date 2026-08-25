@@ -1,0 +1,77 @@
+import { CostTier, ModelCategory, QualityTier } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+import { buildModelsTableColumns } from './ModelsTableColumns';
+
+function buildModel(overrides: Partial<IModel> = {}): IModel {
+  return {
+    category: ModelCategory.IMAGE,
+    cost: 1,
+    costTier: CostTier.LOW,
+    id: 'model-1',
+    isActive: true,
+    isDefault: false,
+    isDeleted: false,
+    key: 'flux-dev',
+    label: 'Flux Dev',
+    qualityTier: QualityTier.STANDARD,
+    ...overrides,
+  } as IModel;
+}
+
+function renderColumn(
+  header: string,
+  model: IModel,
+  isAdminScope = false,
+): void {
+  const columns = buildModelsTableColumns({
+    handleAdminToggle: vi.fn(),
+    handleToggleModel: vi.fn(),
+    isAdminScope,
+    isModelEnabled: () => true,
+    isOnlyDefaultInCategory: () => false,
+    togglingModelId: null,
+  });
+  const column = columns.find((entry) => entry.header === header);
+  if (!column?.render) {
+    throw new Error(`Missing ${header} column`);
+  }
+  render(column.render(model));
+}
+
+describe('buildModelsTableColumns', () => {
+  it('shows a quality bar and pricing symbol instead of a Value label', () => {
+    const columns = buildModelsTableColumns({
+      handleAdminToggle: vi.fn(),
+      handleToggleModel: vi.fn(),
+      isAdminScope: false,
+      isModelEnabled: () => true,
+      isOnlyDefaultInCategory: () => false,
+      togglingModelId: null,
+    });
+
+    expect(columns.map((column) => column.header)).toContain('Quality');
+    expect(columns.map((column) => column.header)).toContain('Cost');
+    expect(columns.map((column) => column.header)).not.toContain('Value');
+  });
+
+  it('renders the picker quality meter and dollar cost mark', () => {
+    renderColumn('Quality', buildModel({ qualityTier: QualityTier.ULTRA }));
+    renderColumn('Cost', buildModel({ costTier: CostTier.HIGH }));
+
+    expect(screen.getByRole('meter', { name: 'Quality' })).toHaveAttribute(
+      'aria-valuenow',
+      '4',
+    );
+    expect(screen.getByText('$$$')).toBeInTheDocument();
+  });
+
+  it('renders an em dash when quality or cost is missing', () => {
+    renderColumn('Quality', buildModel({ qualityTier: undefined }));
+    renderColumn('Cost', buildModel({ costTier: undefined }));
+
+    expect(screen.getAllByText('—')).toHaveLength(2);
+  });
+});

@@ -1,4 +1,9 @@
-import type { CostTier, ModelCategory, RouterPriority } from '@genfeedai/enums';
+import type {
+  CostTier,
+  ModelCategory,
+  QualityTier,
+  RouterPriority,
+} from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import type { RefObject } from 'react';
@@ -113,4 +118,8 @@ export interface ModelSelectorTriggerProps {
 
 export interface ModelSelectorCostBadgeProps {
   costTier?: CostTier;
+}
+
+export interface ModelSelectorQualityBarProps {
+  qualityTier?: QualityTier;
 }

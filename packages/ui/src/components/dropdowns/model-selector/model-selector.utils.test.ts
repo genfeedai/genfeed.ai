@@ -2,12 +2,14 @@ import {
   CostTier,
   ModelCategory,
   ModelProvider,
+  QualityTier,
   SpeedTier,
 } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import {
   getModelRowCapabilities,
   getModelSpecCapabilities,
+  getQualityTierLevel,
   MODEL_FILTER_ALL,
   MODEL_FILTER_AUDIO,
   MODEL_FILTER_CHEAP,
@@ -423,5 +425,15 @@ describe('orderOptionsByKeys', () => {
         'google/veo-3',
       ]).map((option) => option.model.key),
     ).toEqual(['kwaivgi/kling-v2', 'google/veo-3']);
+  });
+});
+
+describe('getQualityTierLevel', () => {
+  it('maps quality tiers onto a 1–4 bar', () => {
+    expect(getQualityTierLevel(QualityTier.BASIC)).toBe(1);
+    expect(getQualityTierLevel(QualityTier.STANDARD)).toBe(2);
+    expect(getQualityTierLevel(QualityTier.HIGH)).toBe(3);
+    expect(getQualityTierLevel(QualityTier.ULTRA)).toBe(4);
+    expect(getQualityTierLevel(undefined)).toBe(0);
   });
 });
