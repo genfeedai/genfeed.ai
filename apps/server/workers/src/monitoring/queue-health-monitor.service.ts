@@ -1,4 +1,8 @@
-import { ALL_QUEUE_NAMES, type QueueName } from '@genfeedai/queue-contracts';
+import {
+  ALL_QUEUE_NAMES,
+  hasQueueConsumer,
+  type QueueName,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
@@ -78,6 +82,13 @@ export class QueueHealthMonitorService {
     );
 
     if (!isQueueName(snapshot.queueName)) {
+      return;
+    }
+
+    // Queues with no registered consumer breach on every sweep by construction.
+    // Paging on them trains responders to ignore the alert; the backlog is
+    // tracked by the per-queue CloudWatch metrics instead.
+    if (!hasQueueConsumer(snapshot.queueName)) {
       return;
     }
 
