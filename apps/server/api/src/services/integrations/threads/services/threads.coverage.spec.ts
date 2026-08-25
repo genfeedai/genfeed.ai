@@ -615,6 +615,7 @@ describe('ThreadsService (coverage)', () => {
         'org-1',
         'brand-1',
         'text-container-1',
+        undefined,
       );
       expect(result).toEqual({ threadId: 'text-thread-1' });
     });

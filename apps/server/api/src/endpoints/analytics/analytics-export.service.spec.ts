@@ -151,7 +151,10 @@ describe('AnalyticsExportService', () => {
             id: postId,
             brandId,
             createdAt: new Date(),
-            credential: { platform: CredentialPlatform.YOUTUBE },
+            credential: {
+              id: 'credential-youtube-1',
+              platform: CredentialPlatform.YOUTUBE,
+            },
             externalId: 'youtube-123',
             label: 'YT Video',
             metadata: {},
