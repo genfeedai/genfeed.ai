@@ -5,9 +5,13 @@ import { ChartColumn, LayoutGrid, MessageSquare } from 'lucide-react';
 export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: APP_ROUTES.OVERVIEW.ROOT,
+    href: APP_ROUTES.WORKSPACE.OVERVIEW,
     label: 'Overview',
-    matchPaths: [APP_ROUTES.OVERVIEW.ROOT],
+    matchPaths: [
+      APP_ROUTES.OVERVIEW.ROOT,
+      APP_ROUTES.WORKSPACE.ROOT,
+      APP_ROUTES.WORKSPACE.OVERVIEW,
+    ],
     outline: LayoutGrid,
     solid: LayoutGrid,
   },
@@ -29,4 +33,4 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const ORG_LOGO_HREF = APP_ROUTES.OVERVIEW.ROOT;
+export const ORG_LOGO_HREF = APP_ROUTES.WORKSPACE.OVERVIEW;

@@ -369,22 +369,38 @@ describe('workspace shell trusted registry', () => {
     ).toBe(false);
   });
 
-  it('keeps the two accepted hard-cut families outside the registry', () => {
-    expect(resolveWorkspaceShellRoute('/acme/~/workspace')).toBeNull();
+  it('keeps the organization-settings hard-cut family outside the registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/~/settings/organization'),
     ).toBeNull();
   });
 
   it('registers organization and brand Workspace overviews independently', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/workspace/overview'),
+    ).toMatchObject({
+      adapter: {
+        key: 'organization-workspace-overview',
+        status: 'embedded',
+      },
+      safeFallback: '/:orgSlug/~/workspace/overview',
+      scope: 'organization',
+      surfaceKey: 'organization-overview',
+    });
     expect(resolveWorkspaceShellRoute('/acme/~/overview')).toMatchObject({
       adapter: {
         key: 'organization-workspace-overview',
         status: 'embedded',
       },
-      safeFallback: '/:orgSlug/~/overview',
+      safeFallback: '/:orgSlug/~/workspace/overview',
       scope: 'organization',
       surfaceKey: 'organization-overview',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/workspace/activity'),
+    ).toMatchObject({
+      scope: 'organization',
+      surfaceKey: 'workspace',
     });
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/workspace'),

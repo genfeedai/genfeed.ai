@@ -1,13 +1,10 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
-import { OrganizationWorkspaceOverviewSurfaceAdapter } from '@/features/workspace-overview/workspace-overview-surface-adapters';
+import { APP_ROUTES } from '@genfeedai/constants';
+import { redirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Organization Overview');
-
-export default function OrgOverviewPage() {
-  return (
-    <OrganizationWorkspaceOverviewSurfaceAdapter>
-      <AnalyticsOrganizationOverview />
-    </OrganizationWorkspaceOverviewSurfaceAdapter>
-  );
+/**
+ * Org Workspace home is `/workspace/overview`. Bare `/overview` is a leftover
+ * alias — next.config + proxy also redirect; this covers App Router hops.
+ */
+export default function OrgOverviewRedirectPage() {
+  redirect(APP_ROUTES.WORKSPACE.OVERVIEW);
 }

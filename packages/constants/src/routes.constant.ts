@@ -287,7 +287,16 @@ export const APP_ROUTES = {
     SUMMARY: '/onboarding/summary',
   },
   OVERVIEW: {
+    /**
+     * Legacy activity list. Workspace Activity is the operator surface
+     * (`WORKSPACE.ACTIVITY`); this path stays registered under the workspace
+     * switcher so old bookmarks still resolve.
+     */
     ACTIVITIES: '/overview/activities',
+    /**
+     * @deprecated Use WORKSPACE.OVERVIEW. Bare `/overview` permanently
+     * redirects there so org Workspace is not a competing `/overview` app.
+     */
     ROOT: '/overview',
   },
   PUBLISH: {

@@ -89,7 +89,6 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([
-  '/:orgSlug/~/workspace',
   '/:orgSlug/~/settings/organization',
 ] as const);
 

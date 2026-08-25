@@ -122,6 +122,8 @@ export default async function OrgRootAppPage({
 }: OrgRootAppPageProps) {
   const { orgRootApp, orgSlug, segments } = await params;
 
+  // Org Workspace is a static `~/workspace/*` tree. The catch-all must not
+  // own those destinations (legacy hard-cut used to 404 them here).
   if (orgRootApp === 'workspace') {
     notFound();
   }

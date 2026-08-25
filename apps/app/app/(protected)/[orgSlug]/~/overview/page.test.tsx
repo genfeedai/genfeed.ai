@@ -1,35 +1,20 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
-import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
-import OrgOverviewPage, * as PageModule from './page';
+import { redirect } from 'next/navigation';
+import { describe, expect, it, vi } from 'vitest';
+import OrgOverviewRedirectPage, * as PageModule from './page';
 
-vi.mock(
-  '@/features/workspace-overview/workspace-overview-surface-adapters',
-  () => ({
-    OrganizationWorkspaceOverviewSurfaceAdapter: ({
-      children,
-    }: {
-      children: ReactNode;
-    }) => <div data-testid="organization-overview-adapter">{children}</div>,
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(() => {
+    throw new Error('NEXT_REDIRECT');
   }),
-);
-
-vi.mock(
-  '@pages/analytics/organization-overview/analytics-organization-overview',
-  () => ({
-    default: () => <div data-testid="organization-overview" />,
-  }),
-);
+}));
 
 runPageModuleTests('app/(protected)/[orgSlug]/~/overview/page', PageModule);
 
-describe('OrgOverviewPage', () => {
-  it('renders the organization overview surface', () => {
-    render(<OrgOverviewPage />);
-
-    expect(screen.getByTestId('organization-overview')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('organization-overview-adapter'),
-    ).toBeInTheDocument();
+describe('OrgOverviewRedirectPage', () => {
+  it('sends leftover /overview onto workspace overview', () => {
+    expect(() => OrgOverviewRedirectPage()).toThrow('NEXT_REDIRECT');
+    expect(redirect).toHaveBeenCalledWith(APP_ROUTES.WORKSPACE.OVERVIEW);
   });
 });

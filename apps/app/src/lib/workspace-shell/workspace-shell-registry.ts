@@ -161,6 +161,9 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/library/voices': 'Assets',
   '/:orgSlug/:brandSlug/automate': 'Overview',
   '/:orgSlug/:brandSlug/workspace': 'Overview',
+  '/:orgSlug/~/workspace': 'Overview',
+  '/:orgSlug/~/workspace/overview': 'Overview',
+  '/:orgSlug/~/overview': 'Overview',
   '/:orgSlug/~/analytics': 'Overview',
   '/:orgSlug/~/automate': 'Overview',
   '/:orgSlug/:brandSlug/automate/:agentId': 'Agent',
@@ -444,19 +447,43 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     surfaceKey: 'connect-genfeed',
     telemetryClass: 'management',
   }),
-  ...registerRoutes(['/:orgSlug/~/overview'], {
-    adapter: {
-      key: 'organization-workspace-overview',
-      status: 'embedded',
+  ...registerRoutes(
+    [
+      '/:orgSlug/~/overview',
+      '/:orgSlug/~/workspace',
+      '/:orgSlug/~/workspace/overview',
+    ],
+    {
+      adapter: {
+        key: 'organization-workspace-overview',
+        status: 'embedded',
+      },
+      fallback: '/:orgSlug/~/workspace/overview',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      scope: 'organization',
+      surfaceKey: 'organization-overview',
+      switcherItems: ['workspace'],
+      telemetryClass: 'product',
     },
-    fallback: '/:orgSlug/~/overview',
-    mode: 'canvas',
-    productClass: 'control-plane',
-    scope: 'organization',
-    surfaceKey: 'organization-overview',
-    switcherItems: ['workspace', 'messages', 'discover'],
-    telemetryClass: 'product',
-  }),
+  ),
+  ...registerRoutes(
+    [
+      '/:orgSlug/~/workspace/inbox/:view',
+      '/:orgSlug/~/workspace/activity',
+      '/:orgSlug/~/workspace/tasks',
+      '/:orgSlug/~/workspace/tasks/:id',
+    ],
+    {
+      fallback: '/:orgSlug/~/workspace/overview',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      scope: 'organization',
+      surfaceKey: 'workspace',
+      switcherItems: ['workspace'],
+      telemetryClass: 'product',
+    },
+  ),
   ...registerRoutes(['/:orgSlug/~/automate'], {
     fallback: '/:orgSlug/~/automate',
     mode: 'canvas',
@@ -467,7 +494,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     telemetryClass: 'product',
   }),
   ...registerRoutes(['/:orgSlug'], {
-    fallback: '/:orgSlug/~/overview',
+    fallback: '/:orgSlug/~/workspace/overview',
     mode: 'canvas',
     productClass: 'control-plane',
     scope: 'organization',
@@ -1115,10 +1142,11 @@ const ADMIN_ROUTE_REGISTRATIONS = [
 /**
  * Canonical application-owned inventory for the protected route patterns
  * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0 plus routes added after
- * its 206-route snapshot. The two inventory hard cuts (`/:orgSlug/~/workspace/*`
- * and `/:orgSlug/~/settings/organization/*`) are deliberately absent. Retired
+ * its 206-route snapshot. The inventory hard cut
+ * (`/:orgSlug/~/settings/organization/*`) is deliberately absent. Retired
  * `/automate/strategies` is a third hard cut: the `:agentId` pattern must not
- * treat that slug as a live agent.
+ * treat that slug as a live agent. Org Workspace lives at
+ * `/:orgSlug/~/workspace/*` (legacy `/:orgSlug/~/overview` redirects there).
  */
 export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
   ...PERSONAL_ROUTE_REGISTRATIONS,

@@ -10,8 +10,12 @@
     "save": "Save"
   },
   "activity": {
+    "empty": "No activity yet",
+    "error": "Couldn't load recent activity",
     "label": "Activity",
+    "loading": "Loading activity...",
     "open": "Open activity",
+    "viewAll": "View all",
     "credits": {
       "add": "{amount, select, none {Credits added} other {{amount} credits added}}",
       "remove": "{amount, select, none {{source, select, none {Credit deduction} other {{source}}}} other {{source, select, none {{amount} credits used} other {{source} · {amount} credits used}}}}",

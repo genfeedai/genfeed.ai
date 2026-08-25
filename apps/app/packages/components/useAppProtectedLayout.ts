@@ -111,14 +111,16 @@ export function useAppProtectedLayout(
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
   const isAutomateRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATE);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
-  // Org shell only for true org destinations (overview, etc.). Module routes
-  // under `/:org/~/publish|studio|…` keep their own app sidebars — otherwise
-  // Publish steals the Organization menu.
+  // Org shell only for leftover org destinations (Connect, etc.). Module
+  // routes under `/:org/~/workspace|publish|studio|…` keep their own app
+  // sidebars — otherwise Workspace/Publish steal the Organization menu.
   const isOrgRoute = (() => {
     const parts = rawPathname.split('/').filter(Boolean);
     return (
       parts[1] === '~' &&
       !pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS) &&
+      !pathname.startsWith(APP_ROUTE_PREFIXES.WORKSPACE) &&
+      !pathname.startsWith(APP_ROUTE_PREFIXES.OVERVIEW) &&
       !isConversationRoute &&
       !isPublishRoute &&
       !isAnalyticsRoute &&

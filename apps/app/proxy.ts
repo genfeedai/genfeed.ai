@@ -858,6 +858,7 @@ const ORG_ROOT_APP_PREFIXES = [
   'publish',
   'settings',
   'studio',
+  'workspace',
 ] as const;
 
 function createOrgScopedCanonicalPath(
@@ -866,8 +867,8 @@ function createOrgScopedCanonicalPath(
 ): string {
   const topLevelSegment = getTopLevelSegment(canonicalPath);
 
-  if (topLevelSegment === 'workspace' || topLevelSegment === 'overview') {
-    return `/${orgSlug}/~/overview`;
+  if (topLevelSegment === 'overview') {
+    return `/${orgSlug}/~/workspace/overview`;
   }
 
   // Automate has one org-scoped surface — the cross-brand overview. Deeper
@@ -886,7 +887,7 @@ function createOrgScopedCanonicalPath(
     return `/${orgSlug}/~${canonicalPath}`;
   }
 
-  return `/${orgSlug}/~/overview`;
+  return `/${orgSlug}/~/workspace/overview`;
 }
 
 async function resolveCanonicalProtectedPath(

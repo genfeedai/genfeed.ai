@@ -141,7 +141,7 @@ describe('OrgRootAppPage', () => {
     );
   });
 
-  it('does not support legacy org workspace overview aliases', async () => {
+  it('does not render workspace through the org catch-all', async () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({

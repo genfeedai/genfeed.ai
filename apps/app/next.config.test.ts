@@ -131,6 +131,26 @@ describe('app next.config', () => {
     });
   });
 
+  it('redirects leftover /overview onto /workspace/overview in three scopes', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: '/workspace/overview',
+      permanent: true,
+      source: '/overview',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/:brandSlug/workspace/overview',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/overview',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/~/workspace/overview',
+      permanent: true,
+      source: '/:orgSlug/~/overview',
+    });
+  });
+
   it('redirects /settings/policy to /settings/agents in three scopes', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({

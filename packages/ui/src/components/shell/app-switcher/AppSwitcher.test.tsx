@@ -357,7 +357,7 @@ describe('AppSwitcher', () => {
     const workspaceLink = screen.getByRole('link', { name: 'Workspace' });
     expect(workspaceLink).toHaveAttribute(
       'href',
-      '/acme/~/overview?thread=thread-1',
+      '/acme/~/workspace/overview?thread=thread-1',
     );
 
     fireEvent.click(workspaceLink);
@@ -391,7 +391,7 @@ describe('AppSwitcher', () => {
     );
     expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
       'href',
-      '/acme/~/overview',
+      '/acme/~/workspace/overview',
     );
   });
 
@@ -618,7 +618,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
         'href',
-        '/acme/~/overview',
+        '/acme/~/workspace/overview',
       );
       expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
         'href',

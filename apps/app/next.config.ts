@@ -279,6 +279,44 @@ const config = createAppNextConfig({
         APP_ROUTES.WORKSPACE.INBOX,
       ),
     },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+      ),
+      permanent: false,
+      source: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.WORKSPACE.INBOX,
+      ),
+    },
+    // Leftover `/overview` app. Workspace Overview is the canonical home.
+    {
+      destination: APP_ROUTES.WORKSPACE.OVERVIEW,
+      permanent: true,
+      source: APP_ROUTES.OVERVIEW.ROOT,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.WORKSPACE.OVERVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.OVERVIEW.ROOT,
+      ),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.WORKSPACE.OVERVIEW,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', APP_ROUTES.OVERVIEW.ROOT),
+    },
     // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
     // it to `/:org/:brand/review`) — that page never existed. Send both dead
     // shapes to Publish Review so stored thread links stop 404ing.
