@@ -3,6 +3,7 @@ import {
   ApifyAccountLimitSuspension,
   ApifyActorRunResponse,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import {
   describeApifyError,
   isApifyAccountLimitError,
@@ -91,6 +92,7 @@ export class ApifyBaseService {
     private readonly configService: ConfigService,
     readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
+    private readonly runBudgetService: ApifyRunBudgetService,
     @Optional()
     private readonly byokProviderFactory?: ByokProviderFactoryService,
   ) {}
@@ -196,6 +198,13 @@ export class ApifyBaseService {
     const suspension = this.getActiveAccountLimitSuspension(scope);
     if (suspension) {
       throw this.buildAccountLimitException(suspension);
+    }
+
+    const budget = await this.runBudgetService.consumeRun(scope, actorId);
+    if (!budget.isAllowed) {
+      throw new ServiceUnavailableException(
+        budget.reason ?? 'Apify run budget exhausted',
+      );
     }
 
     const url = this.buildActorRunUrl(actorId);

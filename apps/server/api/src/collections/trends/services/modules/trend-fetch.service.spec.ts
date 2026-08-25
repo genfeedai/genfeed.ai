@@ -345,4 +345,72 @@ describe('TrendFetchService', () => {
 
     vi.useRealTimers();
   });
+
+  describe('fetchPlatformTrends cost containment', () => {
+    it('caches an empty result so a failing scrape does not re-run every call', async () => {
+      mockApifyService.getTikTokTrends.mockResolvedValue([]);
+
+      await service.fetchPlatformTrends('tiktok');
+
+      expect(mockCacheService.set).toHaveBeenCalledTimes(1);
+      const [, value] = mockCacheService.set.mock.calls[0];
+      expect(value).toEqual([]);
+    });
+
+    it('gives an empty result a shorter life than a successful one', async () => {
+      mockApifyService.getTikTokTrends.mockResolvedValue([]);
+      await service.fetchPlatformTrends('tiktok');
+      const [, , emptyOptions] = mockCacheService.set.mock.calls[0];
+
+      mockCacheService.set.mockClear();
+      mockApifyService.getRedditTrends.mockResolvedValue([
+        { growthRate: 10, mentions: 5, platform: 'reddit', topic: '#a' },
+      ]);
+      await service.fetchPlatformTrends('reddit');
+      const [, , populatedOptions] = mockCacheService.set.mock.calls[0];
+
+      expect(emptyOptions.ttl).toBeLessThan(populatedOptions.ttl);
+    });
+
+    it('holds global trends longer than the 30-minute corpus backfill interval', async () => {
+      mockApifyService.getTikTokTrends.mockResolvedValue([
+        { growthRate: 10, mentions: 5, platform: 'tiktok', topic: '#a' },
+      ]);
+
+      await service.fetchPlatformTrends('tiktok');
+
+      const [, , options] = mockCacheService.set.mock.calls[0];
+      expect(options.ttl).toBeGreaterThan(30 * 60);
+    });
+
+    it('serves the personalized path from cache instead of re-scraping', async () => {
+      mockCacheService.get.mockResolvedValue([
+        { growthRate: 10, mentions: 5, platform: 'tiktok', topic: '#cached' },
+      ]);
+
+      const trends = await service.fetchPlatformTrends(
+        'tiktok',
+        'org-1',
+        'brand-1',
+      );
+
+      expect(trends).toHaveLength(1);
+      expect(mockApifyService.getTikTokTrends).not.toHaveBeenCalled();
+    });
+
+    it('keys the personalized cache by organization and brand', async () => {
+      mockApifyService.getTikTokTrends.mockResolvedValue([]);
+
+      await service.fetchPlatformTrends('tiktok', 'org-1', 'brand-1');
+      const [personalizedKey] = mockCacheService.set.mock.calls[0];
+
+      mockCacheService.set.mockClear();
+      await service.fetchPlatformTrends('tiktok');
+      const [globalKey] = mockCacheService.set.mock.calls[0];
+
+      expect(personalizedKey).toContain('org-1');
+      expect(personalizedKey).toContain('brand-1');
+      expect(personalizedKey).not.toEqual(globalKey);
+    });
+  });
 });

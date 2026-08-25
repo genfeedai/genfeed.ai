@@ -18,7 +18,23 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TrendFetchService {
-  private readonly GLOBAL_TRENDS_TTL_SECONDS = 1800; // 30 minutes
+  /**
+   * Apify bills per actor run, so this TTL is a spend control, not a freshness
+   * knob. It must stay comfortably above the 30-minute corpus backfill interval
+   * — a TTL equal to the cron period guarantees a miss on every single run.
+   */
+  private readonly GLOBAL_TRENDS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
+  /**
+   * Personalized results are cached too. Bypassing the cache whenever an
+   * organization or brand is in scope turned every authenticated read into a
+   * fresh multi-platform scrape.
+   */
+  private readonly PERSONALIZED_TRENDS_TTL_SECONDS = 60 * 60; // 1 hour
+  /**
+   * Empty results are cached deliberately: without negative caching a platform
+   * that returns nothing (or is failing) is re-scraped at full rate forever.
+   */
+  private readonly EMPTY_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes
   private readonly PERSONALIZED_TWITTER_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes, matches the inspiration-spec ephemeral cache pattern
   private readonly CACHE_PREFIX = 'trends';
   private readonly GLOBAL_TREND_DOCUMENT_TTL_MINUTES = 48 * 60;
@@ -273,8 +289,11 @@ export class TrendFetchService {
   }
 
   /**
-   * Fetch trends from a specific platform using Apify or fallback services
-   * Uses Redis caching for global trends (30 min TTL)
+   * Fetch trends from a specific platform using Apify or fallback services.
+   *
+   * Every result — global, organization-scoped, and empty — is cached. Apify
+   * charges per actor run, so a cache miss is a bill, and an uncached failure
+   * is a bill repeated on every caller.
    */
   async fetchPlatformTrends(
     platform: string,
@@ -282,14 +301,20 @@ export class TrendFetchService {
     brandId?: string,
   ): Promise<TrendData[]> {
     const isGlobalRequest = !organizationId && !brandId;
-    const cacheKey = `${this.CACHE_PREFIX}:global:${platform}`;
+    const cacheKey = this.buildPlatformTrendsCacheKey(
+      platform,
+      organizationId,
+      brandId,
+    );
 
-    if (isGlobalRequest) {
-      const cached = await this.cacheService.get<TrendData[]>(cacheKey);
-      if (cached) {
-        this.loggerService.debug(`Cache hit for global ${platform} trends`);
-        return cached;
-      }
+    const cached = await this.cacheService.get<TrendData[]>(cacheKey);
+    if (cached) {
+      this.loggerService.debug(`Cache hit for ${platform} trends`, {
+        brandId,
+        isGlobalRequest,
+        organizationId,
+      });
+      return cached;
     }
 
     try {
@@ -326,18 +351,67 @@ export class TrendFetchService {
 
       const trends = await handler();
 
-      if (isGlobalRequest && trends.length > 0) {
-        await this.cacheService.set(cacheKey, trends, {
-          tags: ['trends', `trends:${platform}`],
-          ttl: this.GLOBAL_TRENDS_TTL_SECONDS,
-        });
-      }
+      await this.cacheService.set(cacheKey, trends, {
+        tags: this.buildPlatformTrendsCacheTags(
+          platform,
+          organizationId,
+          brandId,
+        ),
+        ttl: this.resolvePlatformTrendsTtl(isGlobalRequest, trends.length),
+      });
 
       return trends;
     } catch (error: unknown) {
       this.loggerService.error(`Failed to fetch trends for ${platform}`, error);
       return [];
     }
+  }
+
+  /**
+   * Personalized reads get their own key instead of skipping the cache, so an
+   * authenticated dashboard refresh cannot trigger a fresh scrape per platform.
+   */
+  private buildPlatformTrendsCacheKey(
+    platform: string,
+    organizationId?: string,
+    brandId?: string,
+  ): string {
+    if (!organizationId && !brandId) {
+      return `${this.CACHE_PREFIX}:global:${platform}`;
+    }
+
+    return `${this.CACHE_PREFIX}:scoped:${platform}:${organizationId ?? 'none'}:${brandId ?? 'none'}`;
+  }
+
+  private buildPlatformTrendsCacheTags(
+    platform: string,
+    organizationId?: string,
+    brandId?: string,
+  ): string[] {
+    const tags = ['trends', `trends:${platform}`];
+
+    if (organizationId) {
+      tags.push(`trends:org:${organizationId}`);
+    }
+
+    if (brandId) {
+      tags.push(`trends:brand:${brandId}`);
+    }
+
+    return tags;
+  }
+
+  private resolvePlatformTrendsTtl(
+    isGlobalRequest: boolean,
+    trendCount: number,
+  ): number {
+    if (trendCount === 0) {
+      return this.EMPTY_TRENDS_TTL_SECONDS;
+    }
+
+    return isGlobalRequest
+      ? this.GLOBAL_TRENDS_TTL_SECONDS
+      : this.PERSONALIZED_TRENDS_TTL_SECONDS;
   }
 
   /**
