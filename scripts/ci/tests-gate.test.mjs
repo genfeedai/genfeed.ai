@@ -21,6 +21,7 @@ const ALL_SUCCESS_ENV = {
   TEST_SERVER_SERVICES_RESULT: 'success',
   TEST_WEB_DESKTOP_MOBILE_RESULT: 'success',
   TEST_EXTENSIONS_RESULT: 'success',
+  STATIC_CHECKS_RESULT: 'success',
   BUILD_RESULT: 'success',
   TEST_APP_RESULT: 'skipped',
   TEST_APP_CHANGED_RESULT: 'success',
@@ -186,6 +187,25 @@ test('fails when an upstream job is cancelled', () => {
   assert.deepEqual(result.failures, ['Build cancelled']);
 });
 
+test('fails when the consolidated static checks fail', () => {
+  // Format, secretlint, lint, typecheck, and the executable contracts run in
+  // one static-checks job (#1969). The gate must treat that job exactly like
+  // the five contexts it replaced.
+  const result = evaluate({ STATIC_CHECKS_RESULT: 'failure' });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, ['Static checks failure']);
+});
+
+test('static checks can never be skipped past the gate', () => {
+  const result = evaluate({ STATIC_CHECKS_RESULT: 'skipped' });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, [
+    'Static checks was applicable but skipped',
+  ]);
+});
+
 test('fails when an applicable job is unexpectedly skipped', () => {
   const result = evaluate({ TEST_APP_CHANGED_RESULT: 'skipped' });
 
@@ -266,6 +286,7 @@ test('keeps the workflow contract stable', () => {
   );
 
   for (const job of [
+    'static-checks',
     'test-scope',
     'test-packages',
     'test-server-services',

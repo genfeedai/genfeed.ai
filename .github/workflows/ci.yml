@@ -177,18 +177,29 @@ jobs:
             --log-opts="--no-merges ${CI_BASE_SHA}..HEAD" \
             --redact --verbose --exit-code=1
 
-  secretlint:
-    name: Secretlint (changed files)
+  # Format, secretlint, lint, typecheck, and the executable contracts run
+  # sequentially in one runner slot (#1969). As five separate jobs each paid
+  # its own checkout + Bun setup (~40s of a ~1-minute job) and together they
+  # held four queue slots per run while the org pool was saturated. Build no
+  # longer waits on them — the Tests Gate holds their failure semantics via
+  # STATIC_CHECKS_RESULT, so the merge bar is unchanged.
+  static-checks:
+    name: Static Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-
-      - name: Get changed files
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Check formatting
+        run: bun run format:check
+      - name: Get changed files for secretlint
         id: changed
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
@@ -207,68 +218,10 @@ jobs:
             } >> "$GITHUB_OUTPUT"
             echo "Scanning $(echo "$FILES" | wc -l | xargs) files"
           fi
-
-      - name: Setup Bun environment
-        if: steps.changed.outputs.files != ''
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-
       - name: Run secretlint on changed files
         if: steps.changed.outputs.files != ''
         run: echo "${{ steps.changed.outputs.files }}" | xargs bunx secretlint
         timeout-minutes: 5
-
-  guards:
-    name: Executable Contracts
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - name: Run executable contracts
-        run: bun run test:executable-contracts
-
-  format:
-    name: Format
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-      - run: bun run format:check
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Run lint
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
@@ -276,21 +229,6 @@ jobs:
           else
             bun run lint
           fi
-
-  typecheck:
-    name: Typecheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: trust
-    if: needs.trust.outputs.is-trusted == 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Run typecheck
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
@@ -298,6 +236,8 @@ jobs:
           else
             bun run type-check
           fi
+      - name: Run executable contracts
+        run: bun run test:executable-contracts
 
   # The Typecheck job above cannot see spec files: every backend workspace's
   # tsconfig.typecheck.json excludes them, and no vitest config enables
@@ -401,8 +341,6 @@ jobs:
       api_count: ${{ steps.plan.outputs.api_count }}
       app_matrix: ${{ steps.plan.outputs.app_matrix }}
       api_matrix: ${{ steps.plan.outputs.api_matrix }}
-      app_coverage_matrix: ${{ steps.plan.outputs.app_coverage_matrix }}
-      api_coverage_matrix: ${{ steps.plan.outputs.api_coverage_matrix }}
       force_full: ${{ steps.plan.outputs.force_full }}
       packages: ${{ steps.plan.outputs.packages }}
       server_services: ${{ steps.plan.outputs.server_services }}
@@ -644,7 +582,10 @@ jobs:
           bun-version: '1.3.14'
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
+      - name: Mark test start
+        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
       - name: Run changed app tests
+        id: tests
         run: |
           BASE="$CI_BASE_SHA"
           # Force-push / new-branch pushes report an all-zero "before"; fall back
@@ -653,11 +594,38 @@ jobs:
             BASE="HEAD~1"
           fi
           echo "Running app tests changed since $BASE"
+          # Pull requests instrument this same run for the #1849 observation
+          # ratchet (folded from the standalone Changed Coverage jobs, #1969);
+          # master pushes and merge-queue runs skip the instrumentation cost.
+          COVERAGE_ARGS=()
+          if [ "$WITH_COVERAGE" = "true" ]; then
+            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --coverage.reporter=lcovonly)
+          fi
           cd apps/app && bunx vitest run --config ./vitest.config.mts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }}
+            --shard=${{ matrix.shard }}/${{ matrix.total }} \
+            "${COVERAGE_ARGS[@]}"
         env:
           NODE_ENV: test
+          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
+      - name: Stage app coverage shard
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          mkdir -p coverage-shard
+          # Seconds cover the shard's full test+coverage wall clock: the
+          # instrumented run is the same run that gates, so there is no
+          # separate coverage-only timing left to take.
+          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
+          cp apps/app/coverage/lcov.info coverage-shard/lcov.info || true
+      - name: Upload app lcov
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: coverage-shard
+          if-no-files-found: warn
+          retention-days: 7
 
   # Focused, blocking API tests mirror the app planner. Large changed graphs are
   # sharded rather than serialized on one two-worker runner; full-suite workflow
@@ -685,7 +653,10 @@ jobs:
           bun-version: '1.3.14'
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
+      - name: Mark test start
+        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
       - name: Run changed API tests
+        id: tests
         run: |
           BASE="$CI_BASE_SHA"
           # Force-push / new-branch pushes report an all-zero "before"; fall back
@@ -694,12 +665,45 @@ jobs:
             BASE="HEAD~1"
           fi
           echo "Running API tests changed since $BASE"
+          # Pull requests instrument this same run for the #1849 observation
+          # ratchet (folded from the standalone Changed Coverage jobs, #1969);
+          # master pushes and merge-queue runs skip the instrumentation cost.
+          COVERAGE_ARGS=()
+          if [ "$WITH_COVERAGE" = "true" ]; then
+            COVERAGE_ARGS=(--coverage --coverage.reporter=lcovonly)
+          fi
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }}
+            --shard=${{ matrix.shard }}/${{ matrix.total }} \
+            "${COVERAGE_ARGS[@]}"
         env:
           NODE_ENV: test
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
+          WITH_COVERAGE: ${{ github.event_name == 'pull_request' }}
+          # Suppresses the API suite's whole-repository coverage thresholds. They
+          # describe the full suite; a diff-scoped subset would trip every one of
+          # them and the failure would carry no information. Harmless on runs
+          # without instrumentation — the config also suppresses them for any
+          # sharded run, and this job always shards.
+          CHANGED_CODE_COVERAGE: '1'
+      - name: Stage api coverage shard
+        if: always() && github.event_name == 'pull_request'
+        run: |
+          mkdir -p coverage-shard
+          # Seconds cover the shard's full test+coverage wall clock: the
+          # instrumented run is the same run that gates, so there is no
+          # separate coverage-only timing left to take.
+          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
+          cp apps/server/api/coverage/lcov.info coverage-shard/lcov.info || true
+      - name: Upload api lcov
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
+          path: coverage-shard
+          if-no-files-found: warn
+          retention-days: 7
 
   test-api:
     name: Test API (Shard ${{ matrix.shard }}/4)
@@ -777,7 +781,11 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [trust, format, lint, guards, typecheck]
+    # Build no longer queues behind the static checks (#1969): they gate the
+    # merge through the Tests Gate, not through this job's dependency edge, so
+    # the build starts as soon as trust clears instead of after the slowest
+    # static job.
+    needs: [trust]
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -812,6 +820,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
+      - static-checks
       - test-scope
       - test-packages
       - test-server-services
@@ -848,158 +857,37 @@ jobs:
           TEST_API_RESULT: ${{ needs.test-api.result }}
           TEST_API_CHANGED_RESULT: ${{ needs.test-api-changed.result }}
           OPENAPI_DRIFT_RESULT: ${{ needs.openapi-drift.result }}
+          STATIC_CHECKS_RESULT: ${{ needs.static-checks.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
   # ── Changed-code coverage — OBSERVATION ONLY (#1849) ────────────────────────
   #
-  # These three jobs are deliberately absent from `tests-gate.needs` above and
-  # must stay that way while the committed baseline says `mode: "observation"`.
-  # They measure; they never gate. Promotion to a merge requirement is a separate
-  # reviewed change (flip the baseline `mode`, then add "Changed Coverage Report"
-  # to the branch ruleset) — see scripts/ci/changed-code-coverage.baseline.json.
+  # Coverage rides the changed-test shards above (#1969): on pull requests the
+  # Test App/API (changed) jobs run their exact same Vitest graph with lcov
+  # instrumentation enabled, so the measurement costs zero extra runners and
+  # zero extra wall clock beyond the instrumentation overhead itself. The
+  # report job below aggregates the shards' staged lcov and stays deliberately
+  # absent from `tests-gate.needs` while the committed baseline says
+  # `mode: "observation"` — it measures, it never gates. Promotion to a merge
+  # requirement is a separate reviewed change (flip the baseline `mode`, then
+  # add "Changed Coverage Report" to the branch ruleset) — see
+  # scripts/ci/changed-code-coverage.baseline.json.
   #
   # Full-repository coverage stays in the weekly Coverage workflow: its matrix
-  # costs 21-24 minutes and must never enter pull-request CI. What runs here is
-  # the SAME already-affected scope the changed-shard jobs run, re-executed with
-  # instrumentation and sharded the same way, so the shards' merged lcov covers
-  # the whole changed graph without any one runner carrying all of it.
+  # costs 21-24 minutes and must never enter pull-request CI.
   #
-  # Sharding is the load-bearing part of the 20-minute budget, not a nicety. A
-  # diff touching a widely-imported shared package makes `--changed` pull in most
-  # of a suite; instrumented and unsharded that overran the budget and the
-  # job-level timeout cancelled it, reporting red on a job that is meant never to
-  # gate. The budget now lives on the *step*, where `continue-on-error` can
-  # absorb it: an over-budget shard records a failed surface, and the report job
-  # publishes `infrastructure-failed` instead of the pull request growing an X.
-  coverage-changed-app:
-    name: Changed Coverage (app shard ${{ matrix.shard }}/${{ matrix.total }})
-    runs-on: ubuntu-latest
-    # Backstop only — must stay above the step budget plus setup, so that the
-    # thing which fires on a slow suite is the step, never the job.
-    timeout-minutes: 30
-    needs: [trust, test-scope]
-    # Keys off `app`, not `app_tests`: a planner escalation to the full suite
-    # sets app_tests=false while app stays true, and the diff is still worth
-    # measuring. `--changed` bounds the work either way.
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && github.event_name == 'pull_request'
-      && needs.test-scope.outputs.app == 'true'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.test-scope.outputs.app_coverage_matrix) }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-      - name: Build app workspace
-        run: bunx turbo run build --filter='./apps/app...'
-      - name: Mark coverage start
-        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
-      - name: Run changed app tests with coverage
-        id: coverage
-        # Never fails the job: a red surface is recorded as a surface result and
-        # reported downstream, not raised as a pull-request failure. The budget
-        # is a step timeout for the same reason — a job timeout would cancel the
-        # job outright and `continue-on-error` could not absorb it.
-        timeout-minutes: 20
-        continue-on-error: true
-        run: |
-          BASE="$CI_BASE_SHA"
-          cd apps/app && bunx vitest run --config ./vitest.config.mts \
-            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }} \
-            --coverage --coverage.enabled=true --coverage.provider=v8 \
-            --coverage.all=false --coverage.reporter=lcovonly
-        env:
-          NODE_ENV: test
-      - name: Stage app coverage shard
-        if: always()
-        run: |
-          mkdir -p coverage-shard
-          # Timing is taken here rather than inside the run step so that an
-          # over-budget shard still reports its true wall clock: the step it
-          # would otherwise have been recorded in is the one that got killed.
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
-          echo '${{ steps.coverage.outcome }}' > coverage-shard/outcome
-          cp apps/app/coverage/lcov.info coverage-shard/lcov.info || true
-      - name: Upload app lcov
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: changed-code-coverage-lcov-app-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: coverage-shard
-          if-no-files-found: warn
-          retention-days: 7
-
-  coverage-changed-api:
-    name: Changed Coverage (api shard ${{ matrix.shard }}/${{ matrix.total }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [trust, test-scope]
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && github.event_name == 'pull_request'
-      && needs.test-scope.outputs.api == 'true'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.test-scope.outputs.api_coverage_matrix) }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-      - name: Build API dependencies
-        run: bunx turbo run build --filter=./packages/**
-      - name: Mark coverage start
-        run: echo "COVERAGE_STARTED=$(date +%s)" >> "$GITHUB_ENV"
-      - name: Run changed API tests with coverage
-        id: coverage
-        timeout-minutes: 20
-        continue-on-error: true
-        run: |
-          BASE="$CI_BASE_SHA"
-          cd apps/server/api && bunx vitest run --config vitest.config.ts \
-            --maxWorkers=2 --passWithNoTests --changed "$BASE" \
-            --shard=${{ matrix.shard }}/${{ matrix.total }} \
-            --coverage --coverage.reporter=lcovonly
-        env:
-          NODE_ENV: test
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
-          # Suppresses the API suite's whole-repository coverage thresholds. They
-          # describe the full suite; a diff-scoped subset would trip every one of
-          # them and the failure would carry no information.
-          CHANGED_CODE_COVERAGE: '1'
-      - name: Stage api coverage shard
-        if: always()
-        run: |
-          mkdir -p coverage-shard
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
-          echo '${{ steps.coverage.outcome }}' > coverage-shard/outcome
-          cp apps/server/api/coverage/lcov.info coverage-shard/lcov.info || true
-      - name: Upload api lcov
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: changed-code-coverage-lcov-api-${{ github.event.pull_request.number }}-${{ github.run_attempt }}-shard-${{ matrix.shard }}
-          path: coverage-shard
-          if-no-files-found: warn
-          retention-days: 7
-
+  # Two accepted observation gaps come with the fold: a planner escalation to
+  # the full suite (force_full) and a surface whose changed graph selected no
+  # tests both skip the changed jobs, so those PRs report `skipped` surfaces
+  # instead of a standalone measurement. The report already models skipped
+  # surfaces; the ratchet aggregation tolerates them.
   coverage-changed-report:
     name: Changed Coverage Report
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [trust, coverage-changed-app, coverage-changed-api]
+    needs: [trust, test-app-changed, test-api-changed]
     if: >-
       always() && github.event_name == 'pull_request'
       && needs.trust.outputs.is-trusted == 'true'
@@ -1028,10 +916,10 @@ jobs:
           # Only distinguishes "surface ran at all" from "surface was skipped".
           # Whether the measurement is usable, and how long it took, come from
           # the shards' own staged outcome/seconds — a matrix job's outputs are
-          # last-writer-wins, and step-level `continue-on-error` keeps a failed
-          # coverage step from ever showing up in the job result.
-          APP_RESULT: ${{ needs.coverage-changed-app.result }}
-          API_RESULT: ${{ needs.coverage-changed-api.result }}
+          # last-writer-wins, so the job result alone cannot say which shard
+          # produced what.
+          APP_RESULT: ${{ needs.test-app-changed.result }}
+          API_RESULT: ${{ needs.test-api-changed.result }}
         shell: bash
         run: |
           node scripts/ci/changed-code-coverage.mjs \
@@ -1202,6 +1090,54 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body,
+              core,
+            });
+            core.info(JSON.stringify(result));
+
+  # ── Merge-queue zombie-run janitor (#1969) ──────────────────────────────────
+  #
+  # When a queue entry merges, GitHub deletes its temporary
+  # `gh-readonly-queue/master/...` ref — but `merge_group` workflow runs still
+  # queued or in progress on that ref are not cancelled with it. Each zombie
+  # held a runner slot until the 6-hour workflow timeout, which starved the
+  # org-wide runner pool at peak (measured while auditing #1850). Every queue
+  # merge lands on `master` as a push, so this job sweeps on exactly that
+  # signal: cancel active merge_group runs whose queue ref no longer resolves,
+  # and leave runs on live queue refs alone. Independent of the test graph by
+  # design — a red gate must not keep zombies alive.
+  merge-queue-janitor:
+    name: Merge Queue Janitor
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'push'
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout janitor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Cancel zombie merge-queue runs
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { cleanMergeQueueRuns } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/merge-queue-janitor.mjs',
+                ),
+              ).href,
+            );
+
+            const result = await cleanMergeQueueRuns({
+              github,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               core,
             });
             core.info(JSON.stringify(result));
