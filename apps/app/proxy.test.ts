@@ -1160,7 +1160,7 @@ describe('proxy', () => {
 
     expect(workspaceResponse.status).toBe(307);
     expect(workspaceResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/overview',
+      'http://localhost:3000/acme/~/workspace/overview',
     );
   });
 

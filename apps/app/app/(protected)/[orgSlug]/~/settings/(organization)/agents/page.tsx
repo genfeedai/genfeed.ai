@@ -4,7 +4,7 @@ import { SettingsOrganizationRouteShell } from '../SettingsOrganizationRouteShel
 
 export const generateMetadata = createPageMetadata('Organization Agents');
 
-export default function SettingsOrganizationPolicyRoute() {
+export default function SettingsOrganizationAgentsRoute() {
   return (
     <SettingsOrganizationRouteShell>
       <SettingsOrganizationPolicyPage />

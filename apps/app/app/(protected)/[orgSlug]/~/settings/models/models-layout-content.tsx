@@ -101,11 +101,14 @@ export default function ModelsLayoutContent({
       description="Manage available AI models."
       icon={Cpu}
       right={
-        <>
+        <div
+          data-testid="models-layout-actions"
+          className="flex items-center gap-2"
+        >
           <Select value={activeType} onValueChange={handleTypeChange}>
             <SelectTrigger
               id="models-type-filter"
-              className="h-9 min-w-36"
+              className="h-8 w-36 shrink-0"
               aria-label="Model type"
             >
               <SelectValue placeholder="All" />
@@ -129,7 +132,7 @@ export default function ModelsLayoutContent({
               onClick={() => openModal(ModalEnum.TRAINING_UPLOAD)}
             />
           ) : null}
-        </>
+        </div>
       }
     >
       {children}

@@ -5,17 +5,19 @@ import {
   AgentAutonomyMode,
   normalizeAgentAutonomyMode,
 } from '@genfeedai/enums';
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
+import type { IModel, IOrganizationSetting } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Card from '@ui/card/Card';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
 import AdvancedRoutingCard from './advanced-routing-card';
 import AgentPolicyCard from './agent-policy-card';
 import CreditGovernanceCard from './credit-governance-card';
+import { resolveEnabledModelOptions } from './resolve-enabled-model-options';
 
 type AgentPolicyState = NonNullable<IOrganizationSetting['agentPolicy']>;
 
@@ -148,6 +150,18 @@ export default function SettingsAgentsPage() {
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
+  const getModelsService = useAuthedService((token: string) =>
+    ModelsService.getInstance(token),
+  );
+
+  const { data: catalogModels = [] } = useQuery({
+    enabled: Boolean(organizationId),
+    queryFn: async (): Promise<IModel[]> => {
+      const service = await getModelsService();
+      return service.findAll({});
+    },
+    queryKey: ['settings-agent-model-catalog', organizationId],
+  });
 
   useEffect(() => {
     const agentPolicy = settings?.agentPolicy;
@@ -227,6 +241,10 @@ export default function SettingsAgentsPage() {
   );
 
   const enabledModelIds = settings?.enabledModelIds ?? [];
+  const modelOptions = useMemo(
+    () => resolveEnabledModelOptions(enabledModelIds, catalogModels),
+    [catalogModels, enabledModelIds],
+  );
 
   return (
     <div className="space-y-4">
@@ -256,8 +274,8 @@ export default function SettingsAgentsPage() {
 
       <AdvancedRoutingCard
         allowAdvancedOverrides={allowAdvancedOverrides}
-        enabledModelIds={enabledModelIds}
         generationModelOverride={generationModelOverride}
+        modelOptions={modelOptions}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>
           updateAndPersist({ allowAdvancedOverrides: value })
@@ -273,12 +291,6 @@ export default function SettingsAgentsPage() {
         }
         reviewModelOverride={reviewModelOverride}
         thinkingModelOverride={thinkingModelOverride}
-      />
-
-      <Card
-        label="Brand-Level Profiles"
-        description="Persona, voice, strategy, and platform overrides now live on each brand detail page instead of generic settings."
-        bodyClassName="gap-3 p-4"
       />
     </div>
   );

@@ -242,8 +242,43 @@ describe('TimelineWorkGroup', () => {
     const group = screen.getByTestId('timeline-work-group');
     expect(group.className).not.toMatch(/destructive/);
     expect(screen.getByText('Worked for 547ms').className).toMatch(
-      /text-secondary/,
+      /text-gray-900/,
+    );
+    expect(screen.getByText('Worked for 547ms').className).not.toMatch(
+      /\btext-muted\b/,
+    );
+    expect(screen.getByText('Worked for 547ms').className).not.toMatch(
+      /\btext-secondary\b/,
     );
     expect(screen.getByText('Failed').className).toMatch(/text-destructive/);
+  });
+
+  it('paints step count and failure detail as muted text, not muted fill', () => {
+    render(
+      <TimelineWorkGroup
+        entry={{
+          ...buildSettledEntry(2),
+          events: [
+            ...buildSettledEntry(2).events,
+            {
+              createdAt: '2026-03-18T10:00:00.000Z',
+              detail: 'provider returned empty output',
+              event: AgentWorkEventType.FAILED,
+              id: 'e-failed',
+              label: 'Run Failed',
+              status: AgentWorkEventStatus.FAILED,
+              threadId: 't1',
+            },
+          ],
+          totalDurationMs: 4000,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('2 steps').className).toMatch(/text-gray-800/);
+    expect(screen.getByText('2 steps').className).not.toMatch(/\btext-muted\b/);
+    expect(
+      screen.getByText('provider returned empty output').className,
+    ).toMatch(/text-gray-800/);
   });
 });

@@ -191,15 +191,15 @@ export default function AppTable<T>({
   return (
     <div className="relative overflow-hidden rounded-card bg-card shadow-border">
       <TableSectionHeader label={label} description={description} />
-      <div className="overflow-x-auto rounded">
-        <table className="w-full caption-bottom">
+      <div className="overflow-x-auto">
+        <table className="w-full caption-bottom border-collapse">
           <thead
             className={cn(
-              'sticky top-0 z-10 bg-card/95 backdrop-blur-lg',
+              'sticky top-0 z-10 border-b border-border bg-card',
               hideHeader && 'sr-only',
             )}
           >
-            <tr className="border-b border-border transition-colors">
+            <tr className="transition-colors">
               {selectable && (
                 <th className="size-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Checkbox
@@ -237,7 +237,7 @@ export default function AppTable<T>({
             </tr>
           </thead>
 
-          <tbody className="[&_tr:last-child]:border-0">
+          <tbody className="divide-y divide-border">
             {items.map((item: T, index: number) => {
               const itemId = getItemId ? getItemId(item) : '';
               const isSelected = selectedIds.includes(itemId);
@@ -246,7 +246,7 @@ export default function AppTable<T>({
                 <tr
                   key={getRowKey ? getRowKey(item, index) : index}
                   className={cn(
-                    'group border-b border-border transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
+                    'group transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
                     isSelected && 'bg-accent',
                     onRowClick &&
                       'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
@@ -329,7 +329,7 @@ export default function AppTable<T>({
                                     // 44px touch target on small screens; compact
                                     // icon control on desktop. Cap glyph size so
                                     // bare lucide icons don't render at 24px.
-                                    'size-11 p-0 lg:size-8 [&_svg]:size-3.5',
+                                    'inline-flex size-11 items-center justify-center p-0 lg:size-8 [&_svg]:size-3.5',
                                     action.className,
                                     action.getClassName?.(item),
                                   )}

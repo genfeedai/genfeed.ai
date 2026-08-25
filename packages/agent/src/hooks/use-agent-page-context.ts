@@ -343,6 +343,49 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
+  [APP_ROUTES.WORKSPACE.ROOT]: {
+    placeholder: 'What would you like to do?',
+    suggestedActions: [
+      {
+        icon: createElement(Calendar, {
+          className: 'size-5 text-foreground/50',
+        }),
+        label: 'Generate',
+        prompt: 'Generate 20 posts for this week across my connected platforms',
+      },
+      {
+        icon: createElement(ClipboardCheck, {
+          className: 'size-5 text-foreground/50',
+        }),
+        label: 'Review',
+        prompt: "Show me what's waiting for review",
+      },
+      {
+        icon: createElement(ChartColumn, {
+          className: 'size-5 text-foreground/50',
+        }),
+        label: 'Analytics',
+        prompt: 'How did my content perform this week? Show me the analytics',
+      },
+    ],
+  },
+  [APP_ROUTES.WORKSPACE.ACTIVITY]: {
+    placeholder: 'Ask about recent activity...',
+    suggestedActions: [
+      {
+        icon: createElement(ChartColumn, {
+          className: 'size-5 text-foreground/50',
+        }),
+        label: 'Summary',
+        prompt: 'Give me a summary of recent content activity',
+      },
+      {
+        icon: createElement(Search, { className: 'size-5 text-foreground/50' }),
+        label: 'Engage',
+        prompt: 'Search for posts I should engage with',
+      },
+    ],
+  },
   [APP_ROUTES.PUBLISH.ROOT]: {
     placeholder: 'Ask about your posts...',
     suggestedActions: [

@@ -3,6 +3,7 @@ import { AGENT_CHAT_MODEL_KEYS } from './agent-chat-models.constant';
 import {
   CLOUD_QUALITY_IMAGE_MODEL_KEY,
   CLOUD_QUALITY_VIDEO_MODEL_KEY,
+  getFallbackAgentChatModelKey,
   getFallbackImageModelKey,
   getFallbackVideoModelKey,
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
@@ -22,7 +23,7 @@ describe('lowest-cost model keys', () => {
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
     );
     expect(LOWEST_COST_AGENT_CHAT_MODEL_KEY).toBe(
-      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
     );
   });
 
@@ -111,6 +112,9 @@ describe('deployment fallback media keys', () => {
     expect(getFallbackVideoModelKey(input)).toBe(
       MODEL_KEYS.REPLICATE_MINIMAX_H3,
     );
+    expect(getFallbackAgentChatModelKey(input)).toBe(
+      AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
+    );
   });
 
   it('uses lowest-cost keys for cloud staging', () => {
@@ -121,6 +125,9 @@ describe('deployment fallback media keys', () => {
 
     expect(getFallbackImageModelKey(input)).toBe(LOWEST_COST_IMAGE_MODEL_KEY);
     expect(getFallbackVideoModelKey(input)).toBe(LOWEST_COST_VIDEO_MODEL_KEY);
+    expect(getFallbackAgentChatModelKey(input)).toBe(
+      LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+    );
   });
 
   it('uses lowest-cost keys when nodeEnv is unset', () => {
@@ -128,5 +135,8 @@ describe('deployment fallback media keys', () => {
 
     expect(getFallbackImageModelKey(input)).toBe(LOWEST_COST_IMAGE_MODEL_KEY);
     expect(getFallbackVideoModelKey(input)).toBe(LOWEST_COST_VIDEO_MODEL_KEY);
+    expect(getFallbackAgentChatModelKey(input)).toBe(
+      LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+    );
   });
 });

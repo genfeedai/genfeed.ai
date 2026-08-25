@@ -91,7 +91,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         label: 'Workspace',
         route: createScopedAppRoute({
           brandPath: '/workspace',
-          organizationPath: '/overview',
+          organizationPath: '/workspace/overview',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.workspace,
       },

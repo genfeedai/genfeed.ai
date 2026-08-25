@@ -287,7 +287,16 @@ export const APP_ROUTES = {
     SUMMARY: '/onboarding/summary',
   },
   OVERVIEW: {
+    /**
+     * Legacy activity list. Workspace Activity is the operator surface
+     * (`WORKSPACE.ACTIVITY`); this path stays registered under the workspace
+     * switcher so old bookmarks still resolve.
+     */
     ACTIVITIES: '/overview/activities',
+    /**
+     * @deprecated Use WORKSPACE.OVERVIEW. Bare `/overview` permanently
+     * redirects there so org Workspace is not a competing `/overview` app.
+     */
     ROOT: '/overview',
   },
   PUBLISH: {
@@ -369,7 +378,13 @@ export const APP_ROUTES = {
     ORGANIZATION_CREDENTIALS: '/settings/organization/credentials',
     ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
-    POLICY: '/settings/policy',
+    /**
+     * Org agent/automation defaults. Menu label is Agents — keep the slug
+     * identical. `/settings/policy` redirects here.
+     */
+    AGENTS: '/settings/agents',
+    /** @deprecated Same path as SETTINGS.AGENTS. */
+    POLICY: '/settings/agents',
     PUBLISHING: '/settings/publishing',
     /**
      * Organization settings home. Bare `/:orgSlug/~/settings` redirects here

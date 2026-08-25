@@ -312,6 +312,69 @@ describe('BrandKitReviewCard', () => {
     });
   });
 
+  it('applies one field from its row Apply button', async () => {
+    mocks.applyBrandKitDraft.mockResolvedValue({
+      appliedFields: ['description'],
+      brandId: 'brand-1',
+      diagnostics: [],
+      preservedFields: [],
+      status: 'partial',
+    });
+
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+
+    await screen.findByRole('button', { name: 'Apply Description' });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Description' }));
+
+    await waitFor(() => {
+      expect(mocks.applyBrandKitDraft).toHaveBeenCalledWith('brand-1', {
+        draftId: 'brand-1',
+        fields: {
+          description: {
+            action: 'accept',
+            value: 'New description',
+          },
+        },
+      });
+    });
+
+    expect(
+      screen.queryByLabelText('Select Description'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('New description')).toBeInTheDocument();
+  });
+
+  it('does not keep a dead Refresh brand control', async () => {
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+    await screen.findByText('67% readiness');
+
+    expect(
+      screen.queryByRole('button', { name: /refresh brand/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('does not apply deferred asset fields by default', async () => {
     render(
       <BrandKitReviewCard
@@ -328,7 +391,10 @@ describe('BrandKitReviewCard', () => {
 
     await screen.findByText('Logo');
 
-    expect(screen.queryByLabelText('Apply Logo')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Select Logo')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Apply Logo' }),
+    ).not.toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Apply Selected Fields' }),
     );

@@ -1,8 +1,12 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
+import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
+import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
+import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
 
 export type BuildModelsTableColumnsParams = {
@@ -11,6 +15,7 @@ export type BuildModelsTableColumnsParams = {
   isOnlyDefaultInCategory: (model: IModel) => boolean;
   handleAdminToggle: (model: IModel, field: 'isActive' | 'isDefault') => void;
   handleToggleModel: (model: IModel, enabled: boolean) => void;
+  onOpenDetails: (model: IModel) => void;
   togglingModelId: string | null;
 };
 
@@ -20,6 +25,7 @@ export function buildModelsTableColumns({
   isOnlyDefaultInCategory,
   handleAdminToggle,
   handleToggleModel,
+  onOpenDetails,
   togglingModelId,
 }: BuildModelsTableColumnsParams): TableColumn<IModel>[] {
   const getRegistryStatus = (model: IModel) => {
@@ -58,7 +64,22 @@ export function buildModelsTableColumns({
   };
 
   return [
-    { header: 'Label', key: 'label' },
+    {
+      header: 'Label',
+      key: 'label',
+      render: (model: IModel) => (
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          textTransform="none"
+          className="text-left font-medium text-foreground hover:underline"
+          ariaLabel={`View details for ${model.label}`}
+          onClick={() => onOpenDetails(model)}
+        >
+          {model.label}
+        </Button>
+      ),
+    },
     {
       className: 'truncate max-w-40',
       header: 'Description',
@@ -107,20 +128,24 @@ export function buildModelsTableColumns({
       ),
     },
     {
-      header: 'Value',
-      key: 'cost',
-      render: (val: IModel) => {
-        const tier = val.costTier || 'low';
-        const tierLabel =
-          tier === 'high' ? 'Best' : tier === 'medium' ? 'Better' : 'Good';
-        const tierClass =
-          tier === 'high'
-            ? 'bg-foreground/15 text-foreground'
-            : tier === 'medium'
-              ? 'bg-muted-foreground/15 text-foreground/80'
-              : 'bg-secondary text-foreground/70';
-        return <Badge className={`text-xs ${tierClass}`}>{tierLabel}</Badge>;
-      },
+      header: 'Quality',
+      key: 'qualityTier',
+      render: (model: IModel) =>
+        model.qualityTier ? (
+          <ModelSelectorQualityBar qualityTier={model.qualityTier} />
+        ) : (
+          <span className="text-gray-800">—</span>
+        ),
+    },
+    {
+      header: 'Cost',
+      key: 'costTier',
+      render: (model: IModel) =>
+        model.costTier ? (
+          <ModelSelectorCostBadge costTier={model.costTier} />
+        ) : (
+          <span className="text-gray-800">—</span>
+        ),
     },
     ...(isAdminScope
       ? [

@@ -561,6 +561,11 @@ export function useModelsList({
     [getModelsService, handleRefresh, notificationsService],
   );
 
+  const handleViewDetails = useCallback((model: IModel) => {
+    setSelectedModel(model);
+    openModal(ModalEnum.MODEL);
+  }, []);
+
   const columns = useMemo(
     () =>
       buildModelsTableColumns({
@@ -569,6 +574,7 @@ export function useModelsList({
         isOnlyDefaultInCategory,
         handleAdminToggle,
         handleToggleModel,
+        onOpenDetails: handleViewDetails,
         togglingModelId,
       }),
     [
@@ -577,15 +583,10 @@ export function useModelsList({
       isOnlyDefaultInCategory,
       handleAdminToggle,
       handleToggleModel,
+      handleViewDetails,
       togglingModelId,
     ],
   );
-
-  // Open model details modal
-  const handleViewDetails = useCallback((model: IModel) => {
-    setSelectedModel(model);
-    openModal(ModalEnum.MODEL);
-  }, []);
 
   return {
     isAdminScope,

@@ -1,12 +1,13 @@
 import '@testing-library/jest-dom/vitest';
 import { AgentAutonomyMode } from '@genfeedai/enums';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsAgentsPage from './settings-agents-page';
 
 const mocks = vi.hoisted(() => ({
-  getOrganizationsService: vi.fn(),
+  findAllModels: vi.fn(),
   loggerError: vi.fn(),
   organizationId: 'org-1',
   patchSettings: vi.fn(),
@@ -35,7 +36,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getOrganizationsService,
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('test-token'),
 }));
 
 vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
@@ -53,7 +55,17 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('@services/organization/organizations.service', () => ({
   OrganizationsService: {
-    getInstance: vi.fn(),
+    getInstance: () => ({
+      patchSettings: mocks.patchSettings,
+    }),
+  },
+}));
+
+vi.mock('@services/ai/models.service', () => ({
+  ModelsService: {
+    getInstance: () => ({
+      findAll: mocks.findAllModels,
+    }),
   },
 }));
 
@@ -160,21 +172,34 @@ describe('SettingsAgentsPage', () => {
     };
     mocks.patchSettings.mockResolvedValue({});
     mocks.refresh.mockResolvedValue(undefined);
-    mocks.getOrganizationsService.mockResolvedValue({
-      patchSettings: mocks.patchSettings,
-    });
+    mocks.findAllModels.mockResolvedValue([
+      { id: 'gpt-5.5', key: 'gpt-5.5', label: 'GPT-5.5' },
+      { id: 'gpt-5.4', key: 'gpt-5.4', label: 'GPT-5.4' },
+      { id: 'gpt-5.4-mini', key: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
+    ]);
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
+  function renderPage() {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <SettingsAgentsPage />
+      </QueryClientProvider>,
+    );
+  }
+
   it('loads existing policy settings and patches on each control change', async () => {
-    render(<SettingsAgentsPage />);
+    renderPage();
 
     expect(screen.getByText('Autonomous Agent Policy')).toBeInTheDocument();
     expect(screen.getByText('Advanced Routing')).toBeInTheDocument();
-    expect(screen.getByText('Brand-Level Profiles')).toBeInTheDocument();
+    expect(screen.queryByText('Brand-Level Profiles')).toBeNull();
     expect(
       screen.queryByRole('button', { name: /save agent policy/i }),
     ).toBeNull();
@@ -247,7 +272,7 @@ describe('SettingsAgentsPage', () => {
       agentPolicy: undefined,
       enabledModelIds: ['gpt-5.5'],
     };
-    const { rerender } = render(<SettingsAgentsPage />);
+    const { rerender } = renderPage();
 
     expect(
       screen.getByText('Default routing for most teams.'),
@@ -303,7 +328,15 @@ describe('SettingsAgentsPage', () => {
 
     vi.clearAllMocks();
     mocks.organizationId = '';
-    rerender(<SettingsAgentsPage />);
+    rerender(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <SettingsAgentsPage />
+      </QueryClientProvider>,
+    );
     fireEvent.change(screen.getAllByRole('combobox')[0], {
       target: { value: 'budget' },
     });
@@ -311,7 +344,15 @@ describe('SettingsAgentsPage', () => {
 
     mocks.organizationId = 'org-1';
     mocks.patchSettings.mockRejectedValueOnce(new Error('save failed'));
-    rerender(<SettingsAgentsPage />);
+    rerender(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <SettingsAgentsPage />
+      </QueryClientProvider>,
+    );
     fireEvent.change(screen.getAllByRole('combobox')[0], {
       target: { value: 'balanced' },
     });

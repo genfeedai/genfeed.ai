@@ -96,15 +96,16 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     }
   });
 
-  it('uses two usage groups only (Performance + Intelligence)', () => {
+  it('keeps Intelligence as the only named group (no stacked Performance header)', () => {
     const groups = [...new Set(ANALYTICS_MENU_ITEMS.map((item) => item.group))];
 
-    expect(groups).toEqual(['Performance', 'Intelligence']);
+    expect(groups).toEqual(['', 'Intelligence']);
+    expect(groups).not.toContain('Performance');
     expect(groups).not.toContain('Habits');
   });
 
-  it('puts what-happened destinations under Performance', () => {
-    expect(labelsInGroup('Performance')).toEqual([
+  it('puts what-happened destinations ungrouped under Analytics', () => {
+    expect(labelsInGroup('')).toEqual([
       'Overview',
       'Posts',
       'Brands',
@@ -173,11 +174,11 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     expect(orgItems.some((item) => item.href === '/analytics/posts')).toBe(
       false,
     );
-    // Flat under shell "Analytics" — no redundant Performance group header.
-    expect(orgItems.every((item) => item.group === undefined)).toBe(true);
+    expect(orgItems.every((item) => !item.group)).toBe(true);
 
     const brandItems = getAnalyticsMenuItemsForScope('default');
     expect(brandItems.length).toBe(ANALYTICS_MENU_ITEMS.length);
-    expect(brandItems.some((item) => item.group === 'Performance')).toBe(true);
+    expect(brandItems.some((item) => item.group === 'Intelligence')).toBe(true);
+    expect(brandItems.some((item) => item.group === 'Performance')).toBe(false);
   });
 });

@@ -500,6 +500,35 @@ describe('RouterService', () => {
         expect(modelsService.findOne).not.toHaveBeenCalled();
       });
 
+      it('falls back to the catalog default for conversation TEXT when the allowlist is empty', async () => {
+        const freeChat = createMockModel({
+          category: ModelCategory.TEXT,
+          id: testId('model', 16),
+          isDefault: true,
+          key: 'openrouter/free',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([freeChat]);
+        modelsService.findOne.mockResolvedValue(freeChat);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+
+        const result = await service.selectModel({
+          category: ModelCategory.TEXT,
+          organizationId: testId('org'),
+          prioritize: 'cost',
+          prompt: 'Help me draft a caption',
+        });
+
+        expect(result.selectedModel).toBe('openrouter/free');
+      });
+
       it('should prefer default models slightly', async () => {
         const defaultModel = createMockModel({
           category: ModelCategory.IMAGE,

@@ -71,6 +71,14 @@ vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
   }),
 }));
 
+// Personal Advanced Mode gates the composer model picker. Mutable so a single
+// test can flip it without re-mocking the module.
+const userSettings = { isAdvancedMode: true };
+
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
+  useOptionalUser: () => ({ currentUser: { settings: userSettings } }),
+}));
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     settings: { isVoiceControlEnabled: false },
@@ -131,6 +139,7 @@ describe('AgentChatInput', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    userSettings.isAdvancedMode = true;
     storeState.activeThreadId = null;
     storeState.draftPlanModeEnabled = false;
     storeState.composerSeed = null;
@@ -176,6 +185,21 @@ describe('AgentChatInput', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('model-catalog-size')).not.toBeInTheDocument();
     expect(onModelChange).not.toHaveBeenCalled();
+  });
+
+  it('hides the model picker entirely when Advanced Mode is off', () => {
+    userSettings.isAdvancedMode = false;
+
+    render(<AgentChatInput onModelChange={vi.fn()} onSend={vi.fn()} />);
+
+    // Minimal bar: prompt + voice + send only. The server Auto-routes the turn.
+    expect(screen.queryByTestId('model-catalog-size')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Use Auto' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /no models enabled/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {

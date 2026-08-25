@@ -3,7 +3,7 @@ import {
   extractBrandFromKey,
   getBrandConfig,
 } from '@genfeedai/constants';
-import { CostTier, SpeedTier } from '@genfeedai/enums';
+import { CostTier, QualityTier, SpeedTier } from '@genfeedai/enums';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -211,6 +211,20 @@ export function getCostTierDisplay(
     return null;
   }
   return COST_TIER_DISPLAY[costTier] ?? null;
+}
+
+const QUALITY_TIER_LEVEL: Record<QualityTier, number> = {
+  [QualityTier.BASIC]: 1,
+  [QualityTier.STANDARD]: 2,
+  [QualityTier.HIGH]: 3,
+  [QualityTier.ULTRA]: 4,
+};
+
+export function getQualityTierLevel(qualityTier?: QualityTier): number {
+  if (!qualityTier) {
+    return 0;
+  }
+  return QUALITY_TIER_LEVEL[qualityTier] ?? 0;
 }
 
 export function hasModelAudio(model: IModel): boolean {

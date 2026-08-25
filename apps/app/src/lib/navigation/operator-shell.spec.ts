@@ -1,3 +1,4 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import type { Task } from '@services/management/tasks.service';
 import { describe, expect, it } from 'vitest';
 import {
@@ -10,8 +11,11 @@ import {
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
   resolveAgentConversationRoute,
+  resolveBrandSwitchSurfacePath,
   resolveOrganizationScopePath,
 } from './operator-shell';
+
+const threadId = testId('thread');
 
 describe('operator-shell helpers', () => {
   it('normalizes brand and org scoped protected routes', () => {
@@ -140,6 +144,17 @@ describe('operator-shell helpers', () => {
     );
   });
 
+  it('drops a selected conversation when resolving a brand-switch surface', () => {
+    expect(resolveBrandSwitchSurfacePath(`/agent/${threadId}`)).toBe('/agent');
+    expect(resolveBrandSwitchSurfacePath('/agent/onboarding/thread-1')).toBe(
+      '/agent',
+    );
+    expect(resolveBrandSwitchSurfacePath('/agent/new')).toBe('/agent/new');
+    expect(resolveBrandSwitchSurfacePath('/studio/storyboard')).toBe(
+      '/studio/storyboard',
+    );
+  });
+
   it('maps brand-only settings to the org brands hub when leaving brand scope', () => {
     expect(resolveOrganizationScopePath('/settings/publishing')).toBe(
       '/settings/brands',
@@ -215,22 +230,30 @@ describe('operator-shell helpers', () => {
     }
   });
 
-  it('keeps org-scoped app surfaces when switching brands', () => {
+  it('enters the selected brand and drops a selected conversation', () => {
     expect(
       getBrandSwitchHref({
         nextBrandSlug: 'sunrise',
         nextOrgSlug: 'acme',
         pathname: '/acme/~/agent',
       }),
-    ).toBe('/acme/~/agent');
+    ).toBe('/acme/sunrise/agent');
 
     expect(
       getBrandSwitchHref({
         nextBrandSlug: 'sunrise',
         nextOrgSlug: 'acme',
-        pathname: '/acme/~/agent/thread-1',
+        pathname: `/acme/werwer/agent/${threadId}`,
       }),
-    ).toBe('/acme/~/agent/thread-1');
+    ).toBe('/acme/sunrise/agent');
+
+    expect(
+      getBrandSwitchHref({
+        nextBrandSlug: 'sunrise',
+        nextOrgSlug: 'acme',
+        pathname: '/acme/moonrise/agent/new',
+      }),
+    ).toBe('/acme/sunrise/agent/new');
   });
 
   it('keeps brand-scoped app paths when switching brands', () => {

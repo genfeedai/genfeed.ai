@@ -96,3 +96,7 @@ reports/seo/
 # Generated OpenAPI artifact — emitted by `bun run --filter=@genfeedai/api openapi:emit`;
 # CI validates a fresh emission per PR (openapi-drift job) and the live API serves /v1/openapi.json dynamically.
 apps/server/api/openapi/openapi.json
+
+# Machine-local scratch for QA/session runs — holds session tokens and
+# throwaway query output. Never committed; this repo is public.
+.tmp/

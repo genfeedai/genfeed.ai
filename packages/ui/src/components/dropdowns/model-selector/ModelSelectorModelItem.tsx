@@ -6,6 +6,7 @@ import type { ModelSelectorModelItemProps } from '@genfeedai/props/ui/model-sele
 import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import ModelSelectorModelSpec from '@ui/dropdowns/model-selector/ModelSelectorModelSpec';
+import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
 import { getModelRowCapabilities } from '@ui/dropdowns/model-selector/model-selector.utils';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -109,6 +110,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
             );
           })}
 
+          <ModelSelectorQualityBar qualityTier={model.qualityTier} />
           <ModelSelectorCostBadge costTier={costTier} />
 
           {isLocked ? (

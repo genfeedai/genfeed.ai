@@ -94,6 +94,7 @@ export const AGENT_CHAT_MODEL_KEYS = {
   KIMI_K3: 'moonshotai/kimi-k3',
   LOCAL_MISTRAL_SMALL: 'local/mistral-small',
   LOCAL_QWEN_32B: 'local/qwen-32b',
+  OPENROUTER_FREE: 'openrouter/free',
 } as const;
 
 export type AgentChatModelKey =
@@ -144,6 +145,13 @@ interface AgentChatModelDefinition {
 }
 
 const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
+  {
+    brandSlug: 'openrouter',
+    description: 'Free tier — $0 chat, rate-limited by OpenRouter',
+    key: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+    label: 'Auto (Free)',
+    pricing: { completionPerMillion: 0, promptPerMillion: 0 },
+  },
   {
     brandSlug: 'deepseek-ai',
     description: 'Cheapest capable chat — everyday questions and drafting',
@@ -253,9 +261,13 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
 
 export const AGENT_CHAT_MODELS: AgentChatModel[] =
   AGENT_CHAT_MODEL_DEFINITIONS.map((definition) => {
-    const creditCostPerRound = definition.isSelfHosted
-      ? 0
-      : calculateAgentRoundCredits(definition.pricing);
+    const isZeroPriced =
+      definition.pricing.promptPerMillion === 0 &&
+      definition.pricing.completionPerMillion === 0;
+    const creditCostPerRound =
+      definition.isSelfHosted || isZeroPriced
+        ? 0
+        : calculateAgentRoundCredits(definition.pricing);
 
     return {
       ...definition,
@@ -293,7 +305,9 @@ export const DEFAULT_GROK_MODEL_KEY = LLM_DEFAULTS.grok;
  * that no longer reflects what the provider charges.
  *
  * `openrouter/auto` is retired on purpose: it let OpenRouter pick any model at
- * any price while we billed the cheapest tier.
+ * any price while we billed the cheapest tier. `openrouter/free` is a different
+ * route and stays offered: every model it can pick is $0, so billing it at zero
+ * credits is exact rather than an under-bill.
  *
  * **A successor preserves price tier, not brand.** These are not aliases — a
  * retired key is a dead model, and the successor is whatever currently does its

@@ -460,17 +460,13 @@ export default function BrandKitReviewCard({
     [],
   );
 
-  const handleApply = useCallback(async () => {
-    if (!draft || selectedApplyCount === 0) {
-      setError('Select at least one supported field to apply.');
-      return;
-    }
+  const handleApplyKeys = useCallback(
+    async (keys: readonly BrandKitFieldKey[]) => {
+      if (!draft) {
+        return;
+      }
 
-    setIsApplying(true);
-    setError(null);
-
-    try {
-      const fields = Array.from(selectedFields).reduce<
+      const fields = keys.reduce<
         NonNullable<
           Parameters<BrandsService['applyBrandKitDraft']>[1]
         >['fields']
@@ -487,29 +483,64 @@ export default function BrandKitReviewCard({
         return acc;
       }, {});
 
-      const service = await getBrandsService();
-      const result = await service.applyBrandKitDraft(brandId, {
-        draftId: draft.id,
-        fields,
-      });
+      if (Object.keys(fields).length === 0) {
+        setError('Select at least one supported field to apply.');
+        return;
+      }
 
-      setApplyResult(result);
-      await onRefreshBrand();
-    } catch (applyError) {
-      logger.error('Failed to apply brand kit draft', applyError);
-      setError('Failed to apply selected brand kit fields.');
-    } finally {
-      setIsApplying(false);
-    }
-  }, [
-    brandId,
-    draft,
-    fieldValues,
-    getBrandsService,
-    onRefreshBrand,
-    selectedApplyCount,
-    selectedFields,
-  ]);
+      setIsApplying(true);
+      setError(null);
+
+      try {
+        const service = await getBrandsService();
+        const result = await service.applyBrandKitDraft(brandId, {
+          draftId: draft.id,
+          fields,
+        });
+
+        setApplyResult(result);
+        setDraft((current) => {
+          if (!current) {
+            return current;
+          }
+
+          const nextFields = { ...current.fields };
+
+          for (const key of result.appliedFields) {
+            const field = nextFields[key];
+            if (!field) {
+              continue;
+            }
+
+            nextFields[key] = {
+              ...field,
+              currentValue: parseEditableValue(
+                key,
+                fieldValues[key] ?? formatBrandKitValue(field.proposedValue),
+              ),
+              proposedValue: undefined,
+            };
+          }
+
+          return { ...current, fields: nextFields };
+        });
+        setSelectedFields((current) => {
+          const next = new Set(current);
+          for (const key of result.appliedFields) {
+            next.delete(key);
+          }
+          return next;
+        });
+        await onRefreshBrand();
+      } catch (applyError) {
+        logger.error('Failed to apply brand kit draft', applyError);
+        setError('Failed to apply selected brand kit fields.');
+      } finally {
+        setIsApplying(false);
+      }
+    },
+    [brandId, draft, fieldValues, getBrandsService, onRefreshBrand],
+  );
 
   return (
     <Card
@@ -617,14 +648,24 @@ export default function BrandKitReviewCard({
                             </div>
 
                             {isSelectable ? (
-                              <Checkbox
-                                aria-label={`Apply ${field.label}`}
-                                isChecked={selectedFields.has(key)}
-                                label="Apply"
-                                onCheckedChange={(checked) =>
-                                  handleToggleField(key, checked === true)
-                                }
-                              />
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  aria-label={`Select ${field.label}`}
+                                  isChecked={selectedFields.has(key)}
+                                  label="Select"
+                                  onCheckedChange={(checked) =>
+                                    handleToggleField(key, checked === true)
+                                  }
+                                />
+                                <Button
+                                  ariaLabel={`Apply ${field.label}`}
+                                  isDisabled={isApplying}
+                                  label="Apply"
+                                  size={ButtonSize.SM}
+                                  variant={ButtonVariant.SECONDARY}
+                                  onClick={() => void handleApplyKeys([key])}
+                                />
+                              </div>
                             ) : (
                               <span className="rounded-full bg-background-secondary px-2 py-1 text-xs text-muted-foreground">
                                 {isAssetField
@@ -811,10 +852,10 @@ export default function BrandKitReviewCard({
                 {formatSelectedFieldSummary(selectedApplyCount)}
               </p>
               <Button
-                isDisabled={selectedApplyCount === 0}
+                isDisabled={selectedApplyCount === 0 || isApplying}
                 isLoading={isApplying}
                 label="Apply Selected Fields"
-                onClick={() => void handleApply()}
+                onClick={() => void handleApplyKeys([...selectedFields])}
               />
             </div>
           </div>
@@ -828,13 +869,6 @@ export default function BrandKitReviewCard({
             </p>
           </div>
         )}
-
-        <Button
-          className="h-8 text-xs"
-          label="Refresh brand"
-          variant={ButtonVariant.GHOST}
-          onClick={() => void onRefreshBrand()}
-        />
       </div>
     </Card>
   );

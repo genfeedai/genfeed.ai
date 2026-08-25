@@ -1,3 +1,4 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,6 +36,12 @@ vi.mock('@genfeedai/constants', () => ({
     WORKSPACE: '/workspace',
   },
   APP_ROUTES: {
+    AGENT: {
+      JOURNEY: '/agent/journey',
+      NEW: '/agent/new',
+      ONBOARDING: '/agent/onboarding',
+      ROOT: '/agent',
+    },
     CONNECT: '/connect',
     LOGIN: '/login',
     LOGOUT: '/logout',
@@ -206,6 +213,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
+
+const threadId = testId('thread');
 
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
@@ -648,5 +657,23 @@ describe('AppProtectedTopbar', () => {
     onBrandChange?.('brand');
 
     expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent/new');
+  });
+
+  it('drops the selected conversation when switching brands', () => {
+    mockPathname.value = `/acme/werwer/agent/${threadId}`;
+
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="werwer"
+        currentApp="agent"
+      />,
+    );
+
+    const onBrandChange = brandSwitcherSpy.mock.calls.at(-1)?.[0]
+      ?.onBrandChange as ((id: string) => void) | undefined;
+    onBrandChange?.('brand');
+
+    expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent');
   });
 });

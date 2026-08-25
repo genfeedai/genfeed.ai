@@ -14,6 +14,7 @@ import type {
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  getFallbackAgentChatModelKey,
   getFallbackImageModelKey,
   getFallbackVideoModelKey,
   type LowestCostModelDefaultsInput,
@@ -46,7 +47,7 @@ function resolveFallbackModelKeys(): Record<ModelCategory, string> {
     [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
     [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
     [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
-    [ModelCategory.TEXT]: DEFAULT_TEXT_MODEL,
+    [ModelCategory.TEXT]: getFallbackAgentChatModelKey(input),
     [ModelCategory.VIDEO]: getFallbackVideoModelKey(input),
     [ModelCategory.VIDEO_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
     [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
@@ -715,10 +716,10 @@ export class RouterService {
           organizationId: options.organizationId,
         });
 
-        // An org-scoped Auto pick that misses the allowlist must not fall
-        // back to a catalog default. That default then fails
-        // validateModelForOrg with "Model not enabled" (#3227).
-        if (options.organizationId) {
+        // Image/video Auto must not fall back to a catalog default when the
+        // org allowlist is empty (#3227). Conversation TEXT still needs a
+        // chat model — use the catalog default (the free tier locally).
+        if (options.organizationId && options.category !== ModelCategory.TEXT) {
           throw new ForbiddenException('No models enabled for this workspace');
         }
 

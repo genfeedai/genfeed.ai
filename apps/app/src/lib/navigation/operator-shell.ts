@@ -206,6 +206,23 @@ export function getCurrentBrandScopedPath(pathname: string): string {
 }
 
 /**
+ * Brand-owned resources (a selected conversation, an onboarding thread)
+ * cannot follow the user onto another brand. Keep the surface; drop the id.
+ */
+export function resolveBrandSwitchSurfacePath(brandScopedPath: string): string {
+  const path = brandScopedPath.startsWith('/')
+    ? brandScopedPath
+    : `/${brandScopedPath}`;
+  const conversation = resolveAgentConversationRoute(path);
+
+  if (conversation?.threadId || conversation?.isOnboarding) {
+    return APP_ROUTES.AGENT.ROOT;
+  }
+
+  return path;
+}
+
+/**
  * Brand settings that only exist under `/:org/:brand/settings/*` — there is no
  * org-level `/:org/~/settings/...` page. Clearing brand selection must not
  * rewrite those to a 404.
@@ -251,13 +268,9 @@ export function getBrandSwitchHref({
   nextOrgSlug: string;
   pathname: string;
 }): string {
-  const parts = pathname.split('/').filter(Boolean);
-
-  if (parts.length >= 3 && parts[1] === '~') {
-    return `/${nextOrgSlug}/~/${parts.slice(2).join('/')}`;
-  }
-
-  return `/${nextOrgSlug}/${nextBrandSlug}${getCurrentBrandScopedPath(pathname)}`;
+  return `/${nextOrgSlug}/${nextBrandSlug}${resolveBrandSwitchSurfacePath(
+    getCurrentBrandScopedPath(pathname),
+  )}`;
 }
 
 export function pickOperatorTaskContextSearchParams(

@@ -3,8 +3,7 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { useState } from 'react';
 
 /**
- * ButtonRefresh component for refresh/reload actions.
- * Shows spinning arrow icon during refresh.
+ * Ghost icon refresh. Idle uses RefreshCw; loading uses the shared Spinner.
  */
 const meta = {
   argTypes: {
@@ -18,7 +17,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'A refresh button with an animated spinning arrow icon and built-in loading state.',
+          'Ghost refresh control. Idle glyph is RefreshCw; refreshing uses the shared Spinner ring.',
       },
     },
     layout: 'centered',
