@@ -110,12 +110,7 @@ export default function StoryboardWorkspace() {
       format,
       maxSelectableItems: 20,
       onSelect: (selected) => {
-        const items = (Array.isArray(selected)
-          ? selected
-          : selected
-            ? [selected]
-            : []) as unknown as IImage[];
-        addSceneImages(items);
+        addSceneImages((selected ?? []) as unknown as IImage[]);
       },
       title: 'Add images to storyboard',
     });
@@ -127,12 +122,7 @@ export default function StoryboardWorkspace() {
       format,
       maxSelectableItems: 10,
       onSelect: (selected) => {
-        const items = (Array.isArray(selected)
-          ? selected
-          : selected
-            ? [selected]
-            : []) as unknown as IVideo[];
-        addMergeVideos(items);
+        addMergeVideos((selected ?? []) as unknown as IVideo[]);
       },
       title: 'Select videos to merge',
     });

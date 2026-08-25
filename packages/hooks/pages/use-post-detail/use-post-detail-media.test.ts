@@ -46,9 +46,7 @@ vi.mock('@hooks/pages/use-post-detail/use-post-detail-state', () => ({
 interface GalleryOptions {
   category: string;
   maxSelectableItems: number;
-  onSelect: (
-    selected: { id: string } | Array<{ id: string }> | null,
-  ) => Promise<void>;
+  onSelect: (selected: Array<{ id: string }> | null) => Promise<void>;
   selectedId?: string;
   selectedReferences?: string[];
 }
@@ -191,7 +189,7 @@ describe('usePostDetailMedia', () => {
     const options = mockOpenGallery.mock.calls[0][0] as GalleryOptions;
 
     await act(async () => {
-      await options.onSelect({ id: 'ing-1' });
+      await options.onSelect([{ id: 'ing-1' }]);
     });
 
     expect(mockServicePatch).toHaveBeenCalledWith('child-1', {

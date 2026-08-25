@@ -235,7 +235,7 @@ export interface GalleryModalOptions {
   category: IngredientCategory;
   title?: string;
   format?: IngredientFormat | string;
-  onSelect: (asset: IAsset | IImage | (IAsset | IImage)[]) => void;
+  onSelect: (assets: (IAsset | IImage)[] | null) => void;
   onSelectAccountReference?: (assets: IAsset[]) => void;
   selectedReferences?: string[];
   maxSelectableItems?: number;
@@ -255,7 +255,6 @@ export interface UploadModalOptions {
   maxFiles?: number;
   initialFiles?: File[];
   autoSubmit?: boolean;
-  onConfirm?: (ingredient?: IIngredient | IAsset) => void;
   onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
 }
 
@@ -432,9 +431,7 @@ export interface UsePromptBarReferencesReturn {
   setEndFrame: Dispatch<SetStateAction<IAsset | IImage | null>>;
   referenceSource: 'brand' | 'ingredient' | '';
   setReferenceSource: Dispatch<SetStateAction<'brand' | 'ingredient' | ''>>;
-  handleReferenceSelect: (
-    selection: IAsset | IAsset[] | IImage | IImage[] | null,
-  ) => void;
+  handleReferenceSelect: (selection: (IAsset | IImage)[] | null) => void;
   handleSelectAccountReference: (assets: { id: string; url: string }[]) => void;
   isUserSelectingReferencesRef: RefObject<boolean>;
   hasInitializedReferencesRef: RefObject<boolean>;

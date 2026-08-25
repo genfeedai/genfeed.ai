@@ -182,7 +182,7 @@ describe('ModalGalleryFooter', () => {
     );
     const selectButton = screen.getByText('Select Images (1)');
     await user.click(selectButton);
-    expect(onSelect).toHaveBeenCalledWith({ id: 'img-1' });
+    expect(onSelect).toHaveBeenCalledWith([{ id: 'img-1' }]);
     expect(onClose).toHaveBeenCalled();
   });
 

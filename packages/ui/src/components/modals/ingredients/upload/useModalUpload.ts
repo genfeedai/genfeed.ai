@@ -49,7 +49,6 @@ type UseModalUploadParams = Pick<
   | 'category'
   | 'parentId'
   | 'parentModel'
-  | 'onConfirm'
   | 'onComplete'
   | 'width'
   | 'height'
@@ -67,7 +66,6 @@ export function useModalUpload({
   category,
   parentId,
   parentModel,
-  onConfirm,
   onComplete,
   width,
   height,
@@ -304,7 +302,6 @@ export function useModalUpload({
   ]);
 
   const closeModalUpload = (
-    newIngredient?: IIngredient | IAsset,
     uploadedIngredients: (IIngredient | IAsset)[] = [],
   ) => {
     closeModal(ModalEnum.UPLOAD);
@@ -315,8 +312,7 @@ export function useModalUpload({
     setVoiceCloneName('');
     setVoiceCloneProvider(VoiceProvider.ELEVENLABS);
     clearRecordedFile();
-    onConfirm(newIngredient);
-    onComplete?.(uploadedIngredients);
+    onComplete(uploadedIngredients);
   };
 
   const handleStartRecording = useCallback(() => {
@@ -356,7 +352,7 @@ export function useModalUpload({
         formData.append('provider', voiceCloneProvider);
         formData.append('file', selectedFiles[0]);
         const voice = await service.cloneVoice(formData);
-        closeModalUpload(voice, [voice]);
+        closeModalUpload([voice]);
       } catch (err: unknown) {
         logger.error('POST /voices/clone failed', err);
         setError(err instanceof Error ? err.message : 'Voice cloning failed.');
@@ -370,7 +366,6 @@ export function useModalUpload({
     const usePresignedUrls = EnvironmentService.USE_PRESIGNED_URLS;
 
     try {
-      let lastUploaded: IIngredient | Asset | undefined;
       let hasFailures = false;
       const completedUploads: (IIngredient | IAsset)[] = [];
 
@@ -464,7 +459,6 @@ export function useModalUpload({
             }
           }
 
-          lastUploaded = uploaded;
           if (uploaded) {
             completedUploads.push(uploaded);
           }
@@ -507,10 +501,7 @@ export function useModalUpload({
       }
 
       if (!hasFailures) {
-        closeModalUpload(
-          lastUploaded as IIngredient | IAsset,
-          completedUploads,
-        );
+        closeModalUpload(completedUploads);
       } else {
         setError(
           'Some files failed to upload. Please check the failed files and try again.',

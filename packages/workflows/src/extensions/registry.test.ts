@@ -17,7 +17,7 @@ describe('InMemoryNodeRegistry', () => {
   it('registers and retrieves a node by type and version', () => {
     const registry = new InMemoryNodeRegistry();
     const node = makeNode();
-    registry.register(node);
+    registry.register([node]);
 
     expect(registry.get('test-node', 1)).toBe(node);
   });
@@ -33,7 +33,7 @@ describe('InMemoryNodeRegistry', () => {
     const v1 = makeNode({ version: 1 });
     const v3 = makeNode({ version: 3 });
     const v2 = makeNode({ version: 2 });
-    registry.registerMany([v1, v3, v2]);
+    registry.register([v1, v3, v2]);
 
     expect(registry.get('test-node')).toBe(v3);
     expect(registry.get('test-node', 2)).toBe(v2);
@@ -41,9 +41,9 @@ describe('InMemoryNodeRegistry', () => {
 
   it('replaces a node registered with the same type and version', () => {
     const registry = new InMemoryNodeRegistry();
-    registry.register(makeNode({ label: 'First' }));
+    registry.register([makeNode({ label: 'First' })]);
     const replacement = makeNode({ label: 'Second' });
-    registry.register(replacement);
+    registry.register([replacement]);
 
     expect(registry.get('test-node', 1)).toBe(replacement);
     expect(registry.list()).toHaveLength(1);
@@ -65,7 +65,7 @@ describe('InMemoryNodeRegistry', () => {
 
   it('list returns every registered definition', () => {
     const registry = new InMemoryNodeRegistry();
-    registry.registerMany([
+    registry.register([
       makeNode({ type: 'a', version: 1 }),
       makeNode({ type: 'a', version: 2 }),
     ]);

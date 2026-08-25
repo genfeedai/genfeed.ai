@@ -81,7 +81,6 @@ export function useGlobalModalsState() {
     maxFiles?: number;
     initialFiles?: File[];
     autoSubmit?: boolean;
-    onConfirm?: (ingredient?: IIngredient | IAsset) => void;
     onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
   } | null>(null);
   const [uploadTrigger, setUploadTrigger] = useState(0);
@@ -89,7 +88,7 @@ export function useGlobalModalsState() {
   const [galleryConfig, setGalleryConfig] = useState<{
     isOpen: boolean;
     category: IngredientCategory;
-    onSelect: (item: GallerySelectItem | GallerySelectItem[] | null) => void;
+    onSelect: (items: GallerySelectItem[] | null) => void;
     title?: string;
     selectedId?: string;
     format?: string;
@@ -229,7 +228,6 @@ export function useGlobalModalsState() {
       maxFiles?: number;
       initialFiles?: File[];
       autoSubmit?: boolean;
-      onConfirm?: (ingredient?: IIngredient | IAsset) => void;
       onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
     }) => {
       setUploadConfig(config);
@@ -245,7 +243,7 @@ export function useGlobalModalsState() {
   const openGallery = useCallback(
     (config: {
       category: IngredientCategory;
-      onSelect: (item: GallerySelectItem | GallerySelectItem[] | null) => void;
+      onSelect: (items: GallerySelectItem[] | null) => void;
       title?: string;
       selectedId?: string;
       format?: string;

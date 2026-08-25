@@ -219,7 +219,7 @@ export function useLibraryBrowser({
 
     openUpload({
       category,
-      onConfirm: () => handleRefresh(),
+      onComplete: () => handleRefresh(),
       parentId: brandId,
       parentModel: 'Brand',
     });

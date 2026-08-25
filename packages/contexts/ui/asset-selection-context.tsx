@@ -19,7 +19,6 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
   });
 
   const [generatedAssetId, setGeneratedAssetId] = useState<string | null>(null);
-  const [generatedAssetIds, setGeneratedAssetIds] = useState<string[]>([]);
   const [generationQueue, setGenerationQueue] = useState<IGenerationItem[]>([]);
 
   const activeGenerations = useMemo(
@@ -59,7 +58,6 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
     setSelectedAsset(null);
     setIsGenerating(false);
     setGeneratedAssetId(null);
-    setGeneratedAssetIds([]);
     setGenerationQueue([]);
     setCurrentFormat({ height: 1920, width: 1080 });
   }, []);
@@ -71,7 +69,6 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
       clearAll,
       currentFormat,
       generatedAssetId,
-      generatedAssetIds,
       generationQueue,
       isGenerating,
       removeFromQueue,
@@ -79,19 +76,17 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
       selectedIngredient,
       setCurrentFormat,
       setGeneratedAssetId,
-      setGeneratedAssetIds,
       setIsGenerating,
       setSelectedAsset,
       updateGenerationStatus,
     }),
-    // setCurrentFormat, setGeneratedAssetId, setGeneratedAssetIds, setIsGenerating, setSelectedAsset are stable useState setters — omitted from deps
+    // setCurrentFormat, setGeneratedAssetId, setIsGenerating, setSelectedAsset are stable useState setters — omitted from deps
     [
       activeGenerations,
       addToGenerationQueue,
       clearAll,
       currentFormat,
       generatedAssetId,
-      generatedAssetIds,
       generationQueue,
       isGenerating,
       removeFromQueue,

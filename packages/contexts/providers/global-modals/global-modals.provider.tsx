@@ -64,13 +64,12 @@ export interface GlobalModalsContextValue {
     maxFiles?: number;
     initialFiles?: File[];
     autoSubmit?: boolean;
-    onConfirm?: (ingredient?: IIngredient | IAsset) => void;
     onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
   }) => void;
   closeUpload: () => void;
   openGallery: (config: {
     category: IngredientCategory;
-    onSelect: (item: GallerySelectItem | GallerySelectItem[] | null) => void;
+    onSelect: (items: GallerySelectItem[] | null) => void;
     title?: string;
     selectedId?: string;
     format?: string;
@@ -172,7 +171,9 @@ export function useConfirmModal(): Pick<
 }
 
 export function useUploadModal(
-  options: { onConfirm?: (ingredient?: IIngredient | IAsset) => void } = {},
+  options: {
+    onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
+  } = {},
 ) {
   const context = use(GlobalModalsContext);
   if (!context) {
@@ -191,15 +192,14 @@ export function useUploadModal(
       maxFiles?: number;
       initialFiles?: File[];
       autoSubmit?: boolean;
-      onConfirm?: (ingredient?: IIngredient | IAsset) => void;
       onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
     }) => {
       context.openUpload({
         ...config,
-        onConfirm: config.onConfirm || options.onConfirm,
+        onComplete: config.onComplete || options.onComplete,
       });
     },
-    [context, options.onConfirm],
+    [context, options.onComplete],
   );
 
   return {

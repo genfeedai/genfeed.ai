@@ -290,7 +290,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
 
       openUpload({
         category,
-        onConfirm: () => {
+        onComplete: () => {
           findOneBrand(true);
         },
         parentId: state.brand.id,

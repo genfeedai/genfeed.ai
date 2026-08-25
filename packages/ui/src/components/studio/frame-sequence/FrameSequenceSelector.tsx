@@ -44,11 +44,7 @@ export default function FrameSequenceSelector({
       maxSelectableItems: 50,
       onSelect: (selected) => {
         const existingIds = new Set(frames.map((f) => f.id));
-        const rawFrames = Array.isArray(selected)
-          ? selected
-          : selected
-            ? [selected]
-            : [];
+        const rawFrames = selected ?? [];
 
         const seenIds = new Set<string>();
         const deduplicatedFrames = rawFrames.filter((f) => {

@@ -6,7 +6,6 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -180,18 +179,24 @@ describe('BeehiivService', () => {
     });
   });
 
-  describe('createSubscriber', () => {
-    it('should create a subscriber and return it', async () => {
+  describe('createSubscribers', () => {
+    it('posts one subscription per address and includes utm_source', async () => {
       httpPostMock.mockReturnValue(of({ data: { data: mockSubscriber } }));
 
-      const result = await service.createSubscriber(
+      const result = await service.createSubscribers(
         'api-key',
         'pub_abc123',
-        'sub@example.com',
+        ['sub@example.com'],
         'twitter',
       );
 
-      expect(result).toEqual(mockSubscriber);
+      expect(result).toEqual([
+        expect.objectContaining({
+          email: 'sub@example.com',
+          subscriberId: mockSubscriber.id,
+          success: true,
+        }),
+      ]);
       expect(httpPostMock).toHaveBeenCalledWith(
         'https://api.beehiiv.com/v2/publications/pub_abc123/subscriptions',
         { email: 'sub@example.com', utm_source: 'twitter' },
@@ -204,11 +209,9 @@ describe('BeehiivService', () => {
     it('should not include utm_source when not provided', async () => {
       httpPostMock.mockReturnValue(of({ data: { data: mockSubscriber } }));
 
-      await service.createSubscriber(
-        'api-key',
-        'pub_abc123',
+      await service.createSubscribers('api-key', 'pub_abc123', [
         'sub@example.com',
-      );
+      ]);
 
       expect(httpPostMock).toHaveBeenCalledWith(
         expect.any(String),
@@ -217,32 +220,29 @@ describe('BeehiivService', () => {
       );
     });
 
-    it('should throw when create fails', async () => {
+    it('returns a failed outcome instead of throwing when one address is rejected', async () => {
       httpPostMock.mockReturnValue(
         throwError(() => ({ response: { status: 409 } })),
       );
 
-      await expect(
-        service.createSubscriber('api-key', 'pub_abc123', 'dup@example.com'),
-      ).rejects.toMatchObject({
-        code: 'validation_failed',
-        isRetryable: false,
-      });
-    });
-  });
+      const result = await service.createSubscribers('api-key', 'pub_abc123', [
+        'dup@example.com',
+      ]);
 
-  describe('createSubscribers', () => {
+      expect(result).toEqual([
+        expect.objectContaining({
+          email: 'dup@example.com',
+          errorCode: 'validation_failed',
+          isRetryable: false,
+          success: false,
+        }),
+      ]);
+    });
+
     it('returns one normalized outcome per address', async () => {
-      const createSubscriber = vi
-        .spyOn(service, 'createSubscriber')
-        .mockResolvedValueOnce(mockSubscriber)
-        .mockRejectedValueOnce(
-          new BeehiivProviderError(
-            'validation_failed',
-            'Beehiiv rejected the request payload.',
-            { isRetryable: false, statusCode: 422 },
-          ),
-        );
+      httpPostMock
+        .mockReturnValueOnce(of({ data: { data: mockSubscriber } }))
+        .mockReturnValueOnce(throwError(() => ({ response: { status: 422 } })));
 
       const result = await service.createSubscribers(
         'api-key',
@@ -251,12 +251,13 @@ describe('BeehiivService', () => {
         'launch',
       );
 
-      expect(createSubscriber).toHaveBeenNthCalledWith(
+      expect(httpPostMock).toHaveBeenNthCalledWith(
         1,
-        'api-key',
-        'pub_abc123',
-        'sub@example.com',
-        'launch',
+        'https://api.beehiiv.com/v2/publications/pub_abc123/subscriptions',
+        { email: 'sub@example.com', utm_source: 'launch' },
+        expect.objectContaining({
+          headers: expect.objectContaining({ Authorization: 'Bearer api-key' }),
+        }),
       );
       expect(result).toEqual([
         expect.objectContaining({

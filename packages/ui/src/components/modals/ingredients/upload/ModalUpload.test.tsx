@@ -47,7 +47,7 @@ vi.mock('react-dropzone', () => ({
 }));
 
 describe.skip('ModalUpload', () => {
-  const mockOnConfirm = vi.fn();
+  const mockOnComplete = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,7 +57,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -69,7 +69,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -77,20 +77,20 @@ describe.skip('ModalUpload', () => {
   });
 
   it('should render with custom type for videos', () => {
-    render(<ModalUpload type="video" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="video" onComplete={mockOnComplete} />);
 
     expect(screen.getByTestId('modal-upload')).toBeInTheDocument();
   });
 
   it('should render with custom type for audio', () => {
-    render(<ModalUpload type="voice" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="voice" onComplete={mockOnComplete} />);
 
     expect(screen.getByTestId('modal-upload')).toBeInTheDocument();
   });
 
   it('should accept logo asset type', () => {
     render(
-      <ModalUpload category={AssetCategory.LOGO} onConfirm={mockOnConfirm} />,
+      <ModalUpload category={AssetCategory.LOGO} onComplete={mockOnComplete} />,
     );
 
     expect(screen.getByTestId('modal-upload')).toBeInTheDocument();
@@ -98,7 +98,10 @@ describe.skip('ModalUpload', () => {
 
   it('should accept banner asset type', () => {
     render(
-      <ModalUpload category={AssetCategory.BANNER} onConfirm={mockOnConfirm} />,
+      <ModalUpload
+        category={AssetCategory.BANNER}
+        onComplete={mockOnComplete}
+      />,
     );
 
     expect(screen.getByTestId('modal-upload')).toBeInTheDocument();
@@ -108,7 +111,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
         isMultiple={false}
       />,
     );
@@ -120,7 +123,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
         maxFiles={10}
       />,
     );
@@ -132,7 +135,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
         width={1920}
         height={1080}
       />,
@@ -145,7 +148,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
         parentId="parent-123"
         parentModel="Project"
       />,
@@ -158,7 +161,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -170,7 +173,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -182,7 +185,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -199,7 +202,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -210,7 +213,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -218,13 +221,13 @@ describe.skip('ModalUpload', () => {
   });
 
   it('should show appropriate max size for videos', () => {
-    render(<ModalUpload type="video" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="video" onComplete={mockOnComplete} />);
 
     expect(screen.getByText(/max.*50.*mb/i)).toBeInTheDocument();
   });
 
   it('should show appropriate max size for audio', () => {
-    render(<ModalUpload type="voice" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="voice" onComplete={mockOnComplete} />);
 
     expect(screen.getByText(/max.*25.*mb/i)).toBeInTheDocument();
   });
@@ -233,7 +236,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
         maxFiles={3}
       />,
     );
@@ -241,7 +244,7 @@ describe.skip('ModalUpload', () => {
     expect(screen.getByText(/max.*3.*files/i)).toBeInTheDocument();
   });
 
-  it('should call onConfirm when cancel is clicked', async () => {
+  it('should call onComplete when cancel is clicked', async () => {
     const { closeModal } = await import(
       '@genfeedai/helpers/ui/modal/modal.helper'
     );
@@ -249,7 +252,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -258,32 +261,32 @@ describe.skip('ModalUpload', () => {
 
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
-      expect(mockOnConfirm).toHaveBeenCalled();
+      expect(mockOnComplete).toHaveBeenCalled();
     });
   });
 
   it('should handle image-to-video type', () => {
-    render(<ModalUpload type="image-to-video" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="image-to-video" onComplete={mockOnComplete} />);
 
     expect(screen.getByTestId('modal-upload')).toBeInTheDocument();
     expect(screen.getByText(/max.*50.*mb/i)).toBeInTheDocument();
   });
 
   it('should handle music type', () => {
-    render(<ModalUpload type="music" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="music" onComplete={mockOnComplete} />);
 
     expect(screen.getByTestId('modal-upload')).toBeInTheDocument();
     expect(screen.getByText(/max.*25.*mb/i)).toBeInTheDocument();
   });
 
   it('should set max files to 1 for logo type', () => {
-    render(<ModalUpload type="logo" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="logo" onComplete={mockOnComplete} />);
 
     expect(screen.getByText(/max.*1.*file/i)).toBeInTheDocument();
   });
 
   it('should set max files to 1 for banner type', () => {
-    render(<ModalUpload type="banner" onConfirm={mockOnConfirm} />);
+    render(<ModalUpload type="banner" onComplete={mockOnComplete} />);
 
     expect(screen.getByText(/max.*1.*file/i)).toBeInTheDocument();
   });
@@ -292,7 +295,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={AssetCategory.REFERENCE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 
@@ -313,7 +316,7 @@ describe.skip('ModalUpload', () => {
     render(
       <ModalUpload
         category={IngredientCategory.IMAGE}
-        onConfirm={mockOnConfirm}
+        onComplete={mockOnComplete}
       />,
     );
 

@@ -114,9 +114,7 @@ export interface ModalVideoProps extends ModalSelectProps<IVideo> {
 export interface ModalGalleryProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (
-    item: IAsset | IImage | IMusic | (IAsset | IImage)[] | null,
-  ) => void; // Support single item, array, music, or null
+  onSelect: (items: (IAsset | IImage | IMusic | IVideo)[] | null) => void;
   category: IngredientCategory;
   title?: string;
   selectedId?: string;
@@ -512,8 +510,7 @@ export interface ModalUploadProps extends ModalVisibilityProps {
   initialFiles?: File[];
   autoSubmit?: boolean;
 
-  onConfirm: (ingredient?: IIngredient | IAsset) => void;
-  onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
+  onComplete: (ingredients: (IIngredient | IAsset)[]) => void;
 }
 
 export interface ModalImageToVideoProps {

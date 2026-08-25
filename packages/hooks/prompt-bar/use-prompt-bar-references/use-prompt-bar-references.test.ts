@@ -69,7 +69,7 @@ describe('usePromptBarReferences', () => {
       const asset = createMockAsset();
 
       act(() => {
-        result.current.handleReferenceSelect(asset);
+        result.current.handleReferenceSelect([asset]);
       });
 
       expect(result.current.references).toHaveLength(1);
@@ -90,11 +90,11 @@ describe('usePromptBarReferences', () => {
       const asset2 = createMockAsset({ id: 'asset-2' });
 
       act(() => {
-        result.current.handleReferenceSelect(asset1);
+        result.current.handleReferenceSelect([asset1]);
       });
 
       act(() => {
-        result.current.handleReferenceSelect(asset2);
+        result.current.handleReferenceSelect([asset2]);
       });
 
       expect(result.current.references).toHaveLength(1);
@@ -108,7 +108,7 @@ describe('usePromptBarReferences', () => {
       const asset = createMockAsset();
 
       act(() => {
-        result.current.handleReferenceSelect(asset);
+        result.current.handleReferenceSelect([asset]);
       });
 
       act(() => {
@@ -122,7 +122,7 @@ describe('usePromptBarReferences', () => {
       });
     });
 
-    it('handles array with single item same as single item', () => {
+    it('handles a one-item array', () => {
       const options = createBaseOptions();
       const { result } = renderHook(() => usePromptBarReferences(options));
 
@@ -247,7 +247,7 @@ describe('usePromptBarReferences', () => {
       });
 
       act(() => {
-        result.current.handleReferenceSelect(portraitImage);
+        result.current.handleReferenceSelect([portraitImage]);
       });
 
       expect(options.notificationsService.warning).toHaveBeenCalledWith(
@@ -270,7 +270,7 @@ describe('usePromptBarReferences', () => {
       });
 
       act(() => {
-        result.current.handleReferenceSelect(landscapeImage);
+        result.current.handleReferenceSelect([landscapeImage]);
       });
 
       expect(options.notificationsService.warning).toHaveBeenCalledWith(
@@ -293,7 +293,7 @@ describe('usePromptBarReferences', () => {
       });
 
       act(() => {
-        result.current.handleReferenceSelect(nonSquareImage);
+        result.current.handleReferenceSelect([nonSquareImage]);
       });
 
       expect(options.notificationsService.warning).toHaveBeenCalledWith(
@@ -316,7 +316,7 @@ describe('usePromptBarReferences', () => {
       });
 
       act(() => {
-        result.current.handleReferenceSelect(landscapeImage);
+        result.current.handleReferenceSelect([landscapeImage]);
       });
 
       expect(options.notificationsService.warning).not.toHaveBeenCalled();
@@ -336,7 +336,7 @@ describe('usePromptBarReferences', () => {
       });
 
       act(() => {
-        result.current.handleReferenceSelect(portraitImage);
+        result.current.handleReferenceSelect([portraitImage]);
       });
 
       expect(options.notificationsService.warning).not.toHaveBeenCalled();
@@ -356,7 +356,7 @@ describe('usePromptBarReferences', () => {
       };
 
       act(() => {
-        result.current.handleReferenceSelect(imageWithoutDimensions as any);
+        result.current.handleReferenceSelect([imageWithoutDimensions]);
       });
 
       expect(options.notificationsService.warning).not.toHaveBeenCalled();

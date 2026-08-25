@@ -92,11 +92,7 @@ export default function ModalGalleryFooter({
                   size={ButtonSize.SM}
                   onClick={() => {
                     if (selectedItemsData.length > 0) {
-                      onSelect(
-                        selectedItemsData.length === 1
-                          ? selectedItemsData[0]
-                          : selectedItemsData,
-                      );
+                      onSelect(selectedItemsData);
                     }
                     onClose();
                   }}
@@ -122,11 +118,7 @@ export default function ModalGalleryFooter({
                   size={ButtonSize.SM}
                   onClick={() => {
                     if (selectedItemsData.length > 0) {
-                      onSelect(
-                        selectedItemsData.length === 1
-                          ? selectedItemsData[0]
-                          : selectedItemsData,
-                      );
+                      onSelect(selectedItemsData);
                     }
                     onClose();
                   }}

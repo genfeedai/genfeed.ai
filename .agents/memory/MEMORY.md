@@ -59,6 +59,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_generation_card_model_survives_refresh](feedback_generation_card_model_survives_refresh.md) — generation-card model/priority/outputs persist in a Zustand store separate from chat
 - [feedback_thread_generation_type_lock](feedback_thread_generation_type_lock.md) — a thread is image or video generation, not both
 - [feedback_command_palette_registration_quiet](feedback_command_palette_registration_quiet.md) — command register/unregister is debug, never info in the browser
+- [feedback_arrays_only_mutation_apis](feedback_arrays_only_mutation_apis.md) — public mutations take arrays; no singular+plural twins or T | T[] overloads
 - [feedback_toolbar_ghost_icon_cluster](feedback_toolbar_ghost_icon_cluster.md) — toolbar icon actions are ghost, 14px, clustered at the far right
 - [feedback_generation_card_single_model_outputs_stepper](feedback_generation_card_single_model_outputs_stepper.md) — one model per generate; N images via the Outputs ButtonDropdown
 - [feedback_generation_card_one_line_prompt](feedback_generation_card_one_line_prompt.md) — generation-card prompt is one line; Read & edit sits on that row

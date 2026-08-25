@@ -1,7 +1,6 @@
 'use client';
 
 import type { SubscriptionTier } from '@genfeedai/enums';
-import type { IAsset, IImage, IMusic } from '@genfeedai/interfaces';
 import {
   LazyBrandOverlay,
   LazyIngredientOverlay,
@@ -121,12 +120,9 @@ export default function GlobalModalsRenderer({
           maxFiles={uploadConfig.maxFiles}
           initialFiles={uploadConfig.initialFiles}
           autoSubmit={uploadConfig.autoSubmit}
-          onConfirm={(ingredient) => {
-            uploadConfig.onConfirm?.(ingredient);
-            closeUpload();
-          }}
           onComplete={(ingredients) => {
             uploadConfig.onComplete?.(ingredients);
+            closeUpload();
           }}
         />
       )}
@@ -144,12 +140,8 @@ export default function GlobalModalsRenderer({
           onSelectAccountReference={galleryConfig.onSelectAccountReference}
           selectedReferences={galleryConfig.selectedReferences}
           onClose={closeGallery}
-          onSelect={(
-            item: IAsset | IImage | IMusic | (IAsset | IImage)[] | null,
-          ) => {
-            galleryConfig.onSelect(
-              item as GallerySelectItem | GallerySelectItem[] | null,
-            );
+          onSelect={(items) => {
+            galleryConfig.onSelect(items as GallerySelectItem[] | null);
             closeGallery();
           }}
         />

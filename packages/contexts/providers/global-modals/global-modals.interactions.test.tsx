@@ -125,7 +125,7 @@ interface HarnessApi {
 
 const postCloseMock = vi.fn();
 const postRefreshMock = vi.fn();
-const uploadFallbackConfirmMock = vi.fn();
+const uploadFallbackCompleteMock = vi.fn();
 
 let api: HarnessApi;
 
@@ -147,7 +147,7 @@ function Harness(): null {
     }),
     postRemix: usePostRemixModal(),
     prompt: usePromptModal(),
-    upload: useUploadModal({ onConfirm: uploadFallbackConfirmMock }),
+    upload: useUploadModal({ onComplete: uploadFallbackCompleteMock }),
   };
   return null;
 }
@@ -312,15 +312,13 @@ describe('GlobalModals interactions', () => {
     expect(secondConfirm).not.toHaveBeenCalled();
   });
 
-  it('opens the upload modal and falls back to the hook-level onConfirm', () => {
+  it('opens the upload modal and falls back to the hook-level onComplete', () => {
     renderProvider();
-    const onComplete = vi.fn();
 
     act(() => {
       api.upload.openUpload({
         category: 'image',
         isMultiple: true,
-        onComplete,
       });
     });
 
@@ -333,32 +331,30 @@ describe('GlobalModals interactions', () => {
         'ModalUpload',
         'onComplete',
       )([uploaded]);
-      getCallback<(ingredient?: IIngredient | IAsset) => void>(
-        'ModalUpload',
-        'onConfirm',
-      )(uploaded);
     });
 
-    expect(onComplete).toHaveBeenCalledWith([uploaded]);
-    expect(uploadFallbackConfirmMock).toHaveBeenCalledWith(uploaded);
+    expect(uploadFallbackCompleteMock).toHaveBeenCalledWith([uploaded]);
   });
 
-  it('prefers the per-call onConfirm over the hook-level fallback and closes upload', () => {
+  it('prefers the per-call onComplete over the hook-level fallback and closes upload', () => {
     renderProvider();
-    const perCallConfirm = vi.fn();
+    const perCallComplete = vi.fn();
 
     act(() => {
-      api.upload.openUpload({ category: 'video', onConfirm: perCallConfirm });
+      api.upload.openUpload({
+        category: 'video',
+        onComplete: perCallComplete,
+      });
     });
     act(() => {
-      getCallback<(ingredient?: IIngredient | IAsset) => void>(
+      getCallback<(ingredients: (IIngredient | IAsset)[]) => void>(
         'ModalUpload',
-        'onConfirm',
-      )(undefined);
+        'onComplete',
+      )([]);
     });
 
-    expect(perCallConfirm).toHaveBeenCalledTimes(1);
-    expect(uploadFallbackConfirmMock).not.toHaveBeenCalled();
+    expect(perCallComplete).toHaveBeenCalledTimes(1);
+    expect(uploadFallbackCompleteMock).not.toHaveBeenCalled();
 
     captured.record = {};
     act(() => {
@@ -384,13 +380,13 @@ describe('GlobalModals interactions', () => {
 
     const selected = { id: 'asset_9' } as unknown as IAsset;
     act(() => {
-      getCallback<(item: IAsset | null) => void>(
+      getCallback<(items: IAsset[] | null) => void>(
         'ModalGallery',
         'onSelect',
-      )(selected);
+      )([selected]);
     });
 
-    expect(onSelect).toHaveBeenCalledWith(selected);
+    expect(onSelect).toHaveBeenCalledWith([selected]);
 
     act(() => {
       api.gallery.openGallery({

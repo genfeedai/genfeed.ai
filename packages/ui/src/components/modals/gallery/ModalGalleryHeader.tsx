@@ -28,8 +28,7 @@ export default function ModalGalleryHeader({
   onUseAccountReference,
 }: ModalGalleryHeaderProps) {
   const { openUpload } = useUploadModal({
-    onConfirm: () => {
-      // Refresh gallery after upload
+    onComplete: () => {
       window.location.reload();
     },
   });
