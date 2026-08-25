@@ -9,7 +9,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
 
   it('returns fresh access token without calling refresh', async () => {
     const credentialsService = {
-      resolveBrandAccount: vi.fn().mockResolvedValue({
+      findOne: vi.fn().mockResolvedValue({
         accessToken: 'fresh-access',
         accessTokenExpiry: new Date(Date.now() + 3_600_000),
         id: 'cred-fresh',
@@ -44,7 +44,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
 
   it('refreshes when access token is expired and persists the new token', async () => {
     const credentialsService = {
-      resolveBrandAccount: vi.fn().mockResolvedValue({
+      findOne: vi.fn().mockResolvedValue({
         accessToken: 'stale-access',
         accessTokenExpiry: new Date(Date.now() - 60_000),
         id: 'cred-stale',
@@ -143,7 +143,7 @@ describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
 
   it('forceRefresh refreshes even when expiry is still in the future', async () => {
     const credentialsService = {
-      resolveBrandAccount: vi.fn().mockResolvedValue({
+      findOne: vi.fn().mockResolvedValue({
         accessToken: 'maybe-revoked',
         accessTokenExpiry: new Date(Date.now() + 3_600_000),
         id: 'cred-force',
