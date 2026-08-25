@@ -2,7 +2,8 @@
   "adsResearch": {
     "actions": {
       "filters": "Filters",
-      "manageConnections": "Manage ad connections"
+      "manageConnections": "Manage ad connections",
+      "watchCompetitors": "Competitors"
     },
     "connection": {
       "description": "Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.",

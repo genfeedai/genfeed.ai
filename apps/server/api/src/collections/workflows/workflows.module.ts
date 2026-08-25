@@ -37,6 +37,7 @@ import { BatchWorkflowService } from '@api/collections/workflows/services/batch-
 import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
+import { PaidCreativeResearchWorkflowService } from '@api/collections/workflows/services/paid-creative-research-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
@@ -51,7 +52,6 @@ import { WorkflowSchedulerService } from '@api/collections/workflows/services/wo
 import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
-import { XAdsInspirationWorkflowService } from '@api/collections/workflows/services/x-ads-inspiration-workflow.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -62,10 +62,10 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { PaidCreativeResearchModule } from '@api/services/paid-creative-research/paid-creative-research.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
-import { XAdsRepositoryModule } from '@api/services/x-ads-repository/x-ads-repository.module';
 import { SharedModule } from '@api/shared/shared.module';
 import {
   BATCH_WORKFLOW_QUEUE,
@@ -140,7 +140,7 @@ import { Module } from '@nestjs/common';
     WhisperModule,
     WorkflowExecutionsModule,
     WorkflowExecutorModule,
-    XAdsRepositoryModule,
+    PaidCreativeResearchModule,
 
     BullModule.registerQueue({
       defaultJobOptions: {
@@ -185,7 +185,7 @@ import { Module } from '@nestjs/common';
     SystemWorkflowCatalogService,
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
-    XAdsInspirationWorkflowService,
+    PaidCreativeResearchWorkflowService,
   ],
 })
 export class WorkflowsModule {}

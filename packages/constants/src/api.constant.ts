@@ -1,5 +1,6 @@
 export const API_ENDPOINTS = {
   ACTIVITIES: '/activities',
+  AD_WATCHED_ADVERTISERS: '/ad-watched-advertisers',
   ADMIN_FLEET_ASSETS: '/admin/fleet/assets',
   ADMIN_FLEET_CHARACTERS: '/admin/fleet/characters',
   ADMIN_FLEET_GENERATE: '/admin/fleet/generate',

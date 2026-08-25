@@ -17,6 +17,7 @@ import { Megaphone } from 'lucide-react';
 import Image from 'next/image';
 
 import {
+  formatLongevity,
   formatMetric,
   getMetricLabel,
   getMetricValue,
@@ -37,6 +38,7 @@ export function AdGridCard({
   onSelect,
 }: AdGridCardProps) {
   const metricValue = getMetricValue(item, metric);
+  const longevityLabel = formatLongevity(item.longevity);
   const previewUrl = item.previewUrl || item.imageUrls?.[0];
 
   return (
@@ -68,6 +70,13 @@ export function AdGridCard({
               <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
               {item.channel !== 'all' && (
                 <Badge variant="ghost">{item.channel}</Badge>
+              )}
+              {longevityLabel && (
+                <Badge
+                  variant={item.longevity?.isStillRunning ? 'blue' : 'ghost'}
+                >
+                  {longevityLabel}
+                </Badge>
               )}
             </div>
           </div>
@@ -168,6 +177,9 @@ export function AdTableRow({
         {formatMetric(item.metrics.ctr)}
       </TableCell>
       <TableCell className="px-4 py-3 text-sm text-foreground/60">
+        {formatLongevity(item.longevity) || '—'}
+      </TableCell>
+      <TableCell className="px-4 py-3 text-sm text-foreground/60">
         {item.channel !== 'all' ? item.channel : '—'}
       </TableCell>
       <TableCell className="px-4 py-3 text-sm text-foreground/40">
@@ -266,6 +278,9 @@ export function AdsResearchAdTable({
               CTR
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+              Running
+            </TableHead>
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               Channel
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
@@ -277,7 +292,7 @@ export function AdsResearchAdTable({
           {ads.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={8}
                 className="px-4 py-8 text-center text-sm text-foreground/40"
               >
                 {search.trim()

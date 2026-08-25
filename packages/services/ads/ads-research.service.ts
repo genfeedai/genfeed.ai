@@ -6,6 +6,7 @@ import type {
   AdsResearchPlatform,
   AdsResearchResponse,
   AdsResearchWorkflowResult,
+  AdWatchlistPlatformReadiness,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -67,6 +68,15 @@ export class AdsResearchService extends HTTPBaseService {
 
     return await this.instance
       .get<AdsResearchDetail>(`${source}/${id}`, { params: query })
+      .then((res) => res.data);
+  }
+
+  /** Per-platform state of the competitor archives the watchlist polls. */
+  public async listWatchlistReadiness(): Promise<
+    AdWatchlistPlatformReadiness[]
+  > {
+    return await this.instance
+      .get<AdWatchlistPlatformReadiness[]>('watchlist-readiness')
       .then((res) => res.data);
   }
 

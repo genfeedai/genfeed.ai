@@ -6,10 +6,10 @@ import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
+import { PaidCreativeResearchWorkflowService } from '@api/collections/workflows/services/paid-creative-research-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { XAdsInspirationWorkflowService } from '@api/collections/workflows/services/x-ads-inspiration-workflow.service';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import type {
   ExecutionContext,
@@ -28,7 +28,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
-    private readonly xAdsInspirationWorkflowService?: XAdsInspirationWorkflowService,
+    private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
     private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
   ) {}
 
@@ -42,7 +42,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerTrendNotificationExecutors(engine);
     this.registerLivestreamBotExecutors(engine);
     this.registerWinnerPromotionExecutors(engine);
-    this.registerXAdsInspirationExecutors(engine);
+    this.registerPaidCreativeResearchExecutors(engine);
     this.registerOutreachCampaignDispatchExecutors(engine);
   }
 
@@ -284,16 +284,16 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
   }
 
-  private registerXAdsInspirationExecutors(engine: WorkflowEngine): void {
+  private registerPaidCreativeResearchExecutors(engine: WorkflowEngine): void {
     engine.registerExecutor(
-      'xAdsInspirationIngestion',
+      'paidCreativeResearchIngestion',
       (_node, _inputs, context) =>
-        this.xAdsInspirationWorkflowService
-          ? this.xAdsInspirationWorkflowService.runXAdsInspirationIngestion(
+        this.paidCreativeResearchWorkflowService
+          ? this.paidCreativeResearchWorkflowService.runPaidCreativeResearchIngestion(
               context.organizationId,
             )
-          : this.xAdsInspirationUnavailable(
-              'xAdsInspirationIngestion',
+          : this.paidCreativeResearchUnavailable(
+              'paidCreativeResearchIngestion',
               context,
             ),
     );
@@ -332,7 +332,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     };
   }
 
-  private async xAdsInspirationUnavailable(
+  private async paidCreativeResearchUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
@@ -341,7 +341,7 @@ export class WorkflowAutomationExecutorRegistrarService {
       advertisersChecked: 0,
       errors: 0,
       organizationId: context.organizationId,
-      reason: 'x_ads_inspiration_service_unavailable',
+      reason: 'paid_creative_research_service_unavailable',
       recordsIngested: 0,
       skipped: 1,
       status: 'skipped',

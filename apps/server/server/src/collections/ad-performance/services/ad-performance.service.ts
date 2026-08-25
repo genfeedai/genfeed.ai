@@ -1,3 +1,4 @@
+import { PAID_CREATIVE_RESEARCH_SOURCES } from '@genfeedai/integrations/ads';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
@@ -31,6 +32,15 @@ const AD_PERFORMANCE_IDENTITY_KEYS = [
   'organization',
   'organizationId',
 ] as const;
+/**
+ * Rows carrying one of these `researchSource` values are a tenant's own
+ * competitor-research snapshot, never part of the cross-organization public
+ * corpus. Keeping this as a set (rather than the single X source it started
+ * as) is what lets Meta, TikTok, and Google transparency ingestion share one
+ * pool without leaking one tenant's watchlist into another's Discover feed.
+ */
+const TENANT_RESEARCH_SOURCES: string[] = [...PAID_CREATIVE_RESEARCH_SOURCES];
+
 const AD_PERFORMANCE_RESEARCH_KEYS = [
   'researchFreshnessState',
   'researchObservedAt',
@@ -68,7 +78,7 @@ export class AdPerformanceService {
     @Inject(SERVER_TOKENS.prisma)
     private readonly prisma: Pick<
       ServerPrisma,
-      '$transaction' | 'adPerformance' | 'xAdWatchedAdvertiser'
+      '$transaction' | 'adPerformance' | 'adWatchedAdvertiser'
     >,
   ) {}
 
@@ -172,7 +182,7 @@ export class AdPerformanceService {
           : { brandId: null }),
         organizationId,
         researchFreshnessState: 'fresh',
-        researchSource: 'x_ads_repository',
+        researchSource: { in: TENANT_RESEARCH_SOURCES },
         scope: 'organization',
       },
     ];
@@ -182,7 +192,7 @@ export class AdPerformanceService {
     return {
       OR: [
         { researchSource: null },
-        { researchSource: { not: 'x_ads_repository' } },
+        { researchSource: { notIn: TENANT_RESEARCH_SOURCES } },
       ],
       scope: 'public',
     };
@@ -213,7 +223,7 @@ export class AdPerformanceService {
                 organizationId: params.organizationId,
                 performanceScore: null,
                 researchFreshnessState: 'fresh',
-                researchSource: 'x_ads_repository',
+                researchSource: { in: TENANT_RESEARCH_SOURCES },
                 scope: 'organization',
               },
             ],
@@ -578,7 +588,7 @@ export class AdPerformanceService {
     return this.prisma.$transaction(
       async (transaction) => {
         const watchedAdvertiser =
-          await transaction.xAdWatchedAdvertiser.findFirst({
+          await transaction.adWatchedAdvertiser.findFirst({
             select: {
               brandId: true,
               id: true,
@@ -634,7 +644,7 @@ export class AdPerformanceService {
         );
 
         const watchTransition =
-          await transaction.xAdWatchedAdvertiser.updateMany({
+          await transaction.adWatchedAdvertiser.updateMany({
             data: {
               freshnessState: params.records.length === 0 ? 'empty' : 'fresh',
               lastAttemptedAt: params.observedAt,
@@ -700,12 +710,13 @@ export class AdPerformanceService {
   async markResearchSnapshotStale(
     organizationId: string,
     snapshotKey: string,
+    researchSource: string,
   ): Promise<number> {
     const result = await this.prisma.adPerformance.updateMany({
       data: { researchFreshnessState: 'stale' },
       where: scopedWhere(organizationId, {
         researchSnapshotKey: snapshotKey,
-        researchSource: 'x_ads_repository',
+        researchSource,
       }),
     });
 

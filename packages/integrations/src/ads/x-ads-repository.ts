@@ -1,5 +1,6 @@
+import { resolvePaidCreativeType } from './paid-creative';
 import type {
-  NormalizedXAdsRepositoryRecord,
+  NormalizedPaidCreativeRecord,
   XAdsRepositoryExportRowInput,
 } from './types';
 
@@ -41,10 +42,11 @@ export function normalizeXAdsRepositoryImpressions(
  */
 export function normalizeXAdsRepositoryExportRecord(
   row: XAdsRepositoryExportRowInput,
-): NormalizedXAdsRepositoryRecord {
+): NormalizedPaidCreativeRecord {
   const estimatedReach = normalizeXAdsRepositoryImpressions(row);
 
   return {
+    adFormat: undefined,
     advertiserHandle: row.advertiserHandle,
     advertiserName: row.advertiserName,
     bodyText: row.creativeContent,
@@ -58,6 +60,7 @@ export function normalizeXAdsRepositoryExportRecord(
     cpm: undefined,
     creativeContent: row.creativeContent,
     creativeMediaUrls: row.creativeMediaUrls,
+    creativeType: resolvePaidCreativeType(row.creativeMediaUrls),
     ctaText: undefined,
     ctr: undefined,
     currency: undefined,

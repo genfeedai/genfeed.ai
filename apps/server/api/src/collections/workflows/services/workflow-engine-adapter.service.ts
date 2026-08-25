@@ -27,6 +27,7 @@ import { CampaignOrchestrationWorkflowService } from '@api/collections/workflows
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
+import { PaidCreativeResearchWorkflowService } from '@api/collections/workflows/services/paid-creative-research-workflow.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
@@ -42,7 +43,6 @@ import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collection
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
-import { XAdsInspirationWorkflowService } from '@api/collections/workflows/services/x-ads-inspiration-workflow.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
@@ -144,7 +144,7 @@ export class WorkflowEngineAdapterService {
     @Optional()
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
     @Optional()
-    private readonly xAdsInspirationWorkflowService?: XAdsInspirationWorkflowService,
+    private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
     @Optional()
     private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
   ) {
@@ -219,7 +219,7 @@ export class WorkflowEngineAdapterService {
       this.trendNotificationWorkflowService,
       this.livestreamBotWorkflowService,
       this.winnerPromotionWorkflowService,
-      this.xAdsInspirationWorkflowService,
+      this.paidCreativeResearchWorkflowService,
       this.outreachCampaignDispatchWorkflowService,
     );
     this.trendPublishRegistrar =

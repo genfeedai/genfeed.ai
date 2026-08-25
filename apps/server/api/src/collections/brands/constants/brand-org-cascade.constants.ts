@@ -443,8 +443,8 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
-    delegate: 'xAdWatchedAdvertiser',
-    table: 'x_ad_watched_advertisers',
+    delegate: 'adWatchedAdvertiser',
+    table: 'ad_watched_advertisers',
     brandField: 'brandId',
     orgField: 'organizationId',
   },

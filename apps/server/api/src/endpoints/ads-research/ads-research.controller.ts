@@ -6,6 +6,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { PaidCreativePlatformReadiness } from '@api/services/paid-creative-research/interfaces/paid-creative-research.interface';
+import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import type {
   AdsChannel,
   AdsResearchMetric,
@@ -29,7 +31,23 @@ import {
 @Controller('ads/research')
 @UseGuards(RolesGuard)
 export class AdsResearchController {
-  constructor(private readonly adsResearchService: AdsResearchService) {}
+  constructor(
+    private readonly adsResearchService: AdsResearchService,
+    private readonly paidCreativeProviderRegistry: PaidCreativeProviderRegistry,
+  ) {}
+
+  /**
+   * Per-platform state of the competitor archives the watchlist polls.
+   *
+   * Deliberately unfiltered: the blocked platforms are the ones an operator
+   * most needs to see, because a watch row on an unavailable archive will
+   * never produce creative and the UI has to say so instead of showing an
+   * empty list that reads like "no competitor is running ads".
+   */
+  @Get('watchlist-readiness')
+  listWatchlistReadiness(): PaidCreativePlatformReadiness[] {
+    return this.paidCreativeProviderRegistry.getReadiness();
+  }
 
   @Get()
   async listAds(

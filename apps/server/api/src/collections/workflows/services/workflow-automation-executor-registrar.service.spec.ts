@@ -104,17 +104,19 @@ describe('WorkflowAutomationExecutorRegistrarService — winner promotion', () =
 });
 
 /**
- * #3395 item 3: the X Ads Inspiration workflow's `xAdsInspirationIngestion`
- * node must be wired to `XAdsInspirationWorkflowService`, and degrade to a
+ * #3537: the competitor ad research workflow's `paidCreativeResearchIngestion`
+ * node must be wired to `PaidCreativeResearchWorkflowService`, and degrade to a
  * diagnosable skip (never a thrown "no executor registered") when the
  * service is unavailable — same contract as every sibling automation node.
  */
-describe('WorkflowAutomationExecutorRegistrarService — x ads inspiration', () => {
+describe('WorkflowAutomationExecutorRegistrarService — paid creative research', () => {
   const helper = {
     wrapEngineExecutor: () => async () => ({}),
   } as unknown as WorkflowEngineExecutorHelperService;
 
-  function register(xAdsInspirationWorkflowService?: unknown): WorkflowEngine {
+  function register(
+    paidCreativeResearchWorkflowService?: unknown,
+  ): WorkflowEngine {
     const engine = new WorkflowEngine();
     new WorkflowAutomationExecutorRegistrarService(
       helper,
@@ -127,24 +129,24 @@ describe('WorkflowAutomationExecutorRegistrarService — x ads inspiration', () 
       undefined,
       undefined,
       undefined,
-      xAdsInspirationWorkflowService as never,
+      paidCreativeResearchWorkflowService as never,
     ).register(engine);
     return engine;
   }
 
-  it('registers the xAdsInspirationIngestion node type', () => {
+  it('registers the paidCreativeResearchIngestion node type', () => {
     const engine = register({
-      runXAdsInspirationIngestion: vi.fn(),
+      runPaidCreativeResearchIngestion: vi.fn(),
     });
 
     expect(engine.getRegisteredNodeTypes()).toContain(
-      'xAdsInspirationIngestion',
+      'paidCreativeResearchIngestion',
     );
   });
 
-  it('delegates to XAdsInspirationWorkflowService.runXAdsInspirationIngestion scoped to the run organization', async () => {
-    const runXAdsInspirationIngestion = vi.fn().mockResolvedValue({
-      action: 'xAdsInspirationIngestion',
+  it('delegates to PaidCreativeResearchWorkflowService.runPaidCreativeResearchIngestion scoped to the run organization', async () => {
+    const runPaidCreativeResearchIngestion = vi.fn().mockResolvedValue({
+      action: 'paidCreativeResearchIngestion',
       advertisersChecked: 2,
       errors: 0,
       organizationId: 'org-1',
@@ -152,16 +154,16 @@ describe('WorkflowAutomationExecutorRegistrarService — x ads inspiration', () 
       skipped: 0,
       status: 'completed',
     });
-    const engine = register({ runXAdsInspirationIngestion });
+    const engine = register({ runPaidCreativeResearchIngestion });
 
-    const executor = engine.getExecutor('xAdsInspirationIngestion');
+    const executor = engine.getExecutor('paidCreativeResearchIngestion');
     const output = await executor?.(
       {
         config: {},
         id: 'n1',
         inputs: [],
         label: 'n1',
-        type: 'xAdsInspirationIngestion',
+        type: 'paidCreativeResearchIngestion',
       },
       new Map(),
       {
@@ -172,21 +174,21 @@ describe('WorkflowAutomationExecutorRegistrarService — x ads inspiration', () 
       },
     );
 
-    expect(runXAdsInspirationIngestion).toHaveBeenCalledWith('org-1');
+    expect(runPaidCreativeResearchIngestion).toHaveBeenCalledWith('org-1');
     expect(output).toMatchObject({ recordsIngested: 5, status: 'completed' });
   });
 
   it('skips diagnosably instead of throwing when the service is unavailable', async () => {
     const engine = register(undefined);
 
-    const executor = engine.getExecutor('xAdsInspirationIngestion');
+    const executor = engine.getExecutor('paidCreativeResearchIngestion');
     const output = await executor?.(
       {
         config: {},
         id: 'n1',
         inputs: [],
         label: 'n1',
-        type: 'xAdsInspirationIngestion',
+        type: 'paidCreativeResearchIngestion',
       },
       new Map(),
       {
@@ -198,7 +200,7 @@ describe('WorkflowAutomationExecutorRegistrarService — x ads inspiration', () 
     );
 
     expect(output).toMatchObject({
-      reason: 'x_ads_inspiration_service_unavailable',
+      reason: 'paid_creative_research_service_unavailable',
       status: 'skipped',
     });
   });

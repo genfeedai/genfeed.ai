@@ -30,13 +30,15 @@ describe('WorkflowsModule optional executor imports', () => {
     );
   });
 
-  it('#3395: imports XAdsRepositoryModule and registers XAdsInspirationWorkflowService as a provider so it is DI-constructible rather than resolving to undefined at runtime', () => {
+  it('#3537: imports PaidCreativeResearchModule and registers PaidCreativeResearchWorkflowService as a provider so it is DI-constructible rather than resolving to undefined at runtime', () => {
     expect(source).toContain(
-      "from '@api/services/x-ads-repository/x-ads-repository.module'",
+      "from '@api/services/paid-creative-research/paid-creative-research.module'",
     );
-    expect(source).toMatch(/imports:\s*\[[\s\S]*XAdsRepositoryModule[\s\S]*\]/);
     expect(source).toMatch(
-      /providers:\s*\[[\s\S]*XAdsInspirationWorkflowService[\s\S]*\]/,
+      /imports:\s*\[[\s\S]*PaidCreativeResearchModule[\s\S]*\]/,
+    );
+    expect(source).toMatch(
+      /providers:\s*\[[\s\S]*PaidCreativeResearchWorkflowService[\s\S]*\]/,
     );
   });
 });

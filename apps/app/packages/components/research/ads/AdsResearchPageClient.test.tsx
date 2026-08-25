@@ -48,6 +48,7 @@ const publicAd = {
     roas: 4.2,
     spendEfficiency: 1.4,
   },
+  longevity: { daysLive: 120, isStillRunning: true, score: 100 },
   platform: 'meta',
   source: 'public',
   title: 'Meta hook story',
@@ -190,6 +191,20 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getAdsResearchServiceMock,
 }));
 
+// The watchlist owns its own queries. Mocked whole rather than left to the
+// positional `useQuery` stub below, which binds call order to the three
+// research queries and would silently reassign them.
+vi.mock('./useAdsResearchWatchlist', () => ({
+  useAdsResearchWatchlist: () => ({
+    addAdvertiser: vi.fn(),
+    advertisers: [],
+    isAdding: false,
+    isLoading: false,
+    readiness: [],
+    removeAdvertiser: vi.fn(),
+  }),
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => useQueryStates[useQueryCallIndex++ % useQueryStates.length],
   useQueryClient: () => ({
@@ -299,13 +314,23 @@ vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
   default: ({
     name,
     onChange,
+    options,
   }: {
     name: string;
     onChange: (_name: string, value: string) => void;
+    options: Array<{ label: string; value: string }>;
   }) => (
-    <button onClick={() => onChange(name, 'ctr')} type="button">
-      Sort by CTR
-    </button>
+    <div>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          onClick={() => onChange(name, option.value)}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   ),
 }));
 
@@ -566,7 +591,7 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByText('Platform')).toBeInTheDocument();
     expect(screen.getByText('Title')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sort by CTR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CTR (High → Low)' }));
     expect(screen.getByText('2.40')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
@@ -815,6 +840,37 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
+    ).toBeInTheDocument();
+  });
+
+  it('ranks archive creatives by how long they have been running', () => {
+    const { container } = render(<AdsResearchPageClient />);
+
+    const readTitles = () =>
+      Array.from(container.querySelectorAll('h3')).map(
+        (heading) => heading.textContent,
+      );
+
+    // Default sort is performance score, where the connected ad (99) beats
+    // the archive row (96) because archives publish no score at all.
+    expect(readTitles()).toEqual(['Google lead gen winner', 'Meta hook story']);
+    expect(screen.getByText('120d live')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Longest running' }));
+
+    expect(readTitles()).toEqual(['Meta hook story', 'Google lead gen winner']);
+  });
+
+  it('opens the competitor watchlist from the Ads toolbar (#3537)', () => {
+    render(<AdsResearchPageClient />);
+
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Competitors' }));
+
+    expect(screen.getByText('Watched competitors')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Advertiser handle or page name'),
     ).toBeInTheDocument();
   });
 });
