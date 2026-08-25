@@ -78,7 +78,6 @@ describe('TwitterSocialAdapter', () => {
         'user456',
         'Hello!',
         undefined,
-        undefined,
       );
       expect(result.messageId).toBeDefined();
     });
@@ -583,6 +582,7 @@ describe('TwitterSocialAdapter', () => {
         'legacy-user',
         'user456',
         'Hello!',
+        undefined,
       );
     });
   });

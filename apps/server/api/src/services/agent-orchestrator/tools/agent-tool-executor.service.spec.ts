@@ -442,6 +442,9 @@ describe('AgentToolExecutorService', () => {
     const credentialsService = {
       find: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
+      resolveBrandAccount: vi.fn((options: Record<string, unknown>) =>
+        credentialsService.findOne(options),
+      ),
     };
     const organizationsService = {
       findOne: vi.fn().mockResolvedValue({ onboardingCompleted: false }),

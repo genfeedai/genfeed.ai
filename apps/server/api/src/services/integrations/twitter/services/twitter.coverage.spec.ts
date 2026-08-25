@@ -251,10 +251,12 @@ describe('TwitterService (coverage)', () => {
 
       await service.refreshToken('org', 'brand', 'cred-id');
 
-      expect(credentialsService.findOne).toHaveBeenCalledWith({
-        id: 'cred-id',
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId: 'brand',
+        credentialId: 'cred-id',
+        isDisconnectedIncluded: true,
         organizationId: 'org',
-        platform: 'TWITTER',
+        platform: 'twitter',
       });
     });
   });

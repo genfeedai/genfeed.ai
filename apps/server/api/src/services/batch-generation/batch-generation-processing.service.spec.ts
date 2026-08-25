@@ -24,7 +24,7 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     findFirst: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
   };
-  let credentialDelegate: { findFirst: ReturnType<typeof vi.fn> };
+  let credentialDelegate: { findMany: ReturnType<typeof vi.fn> };
   let summaryService: {
     toBatchSummary: ReturnType<typeof vi.fn>;
   };
@@ -96,7 +96,7 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
     credentialDelegate = {
-      findFirst: vi.fn().mockResolvedValue({ id: 'cred-instagram-1' }),
+      findMany: vi.fn().mockResolvedValue([{ id: 'cred-instagram-1' }]),
     };
     summaryService = {
       toBatchSummary: vi.fn().mockResolvedValue({
@@ -147,9 +147,11 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
   it('resolves a connected brand credential with Prisma SCREAMING platform', async () => {
     await service.processBatch('batch-1', 'org-1');
 
-    expect(credentialDelegate.findFirst).toHaveBeenCalledWith(
+    expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        orderBy: { createdAt: 'asc' },
         select: { id: true },
+        take: 2,
         where: expect.objectContaining({
           brandId: 'brand-1',
           isConnected: true,
@@ -174,7 +176,7 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
   });
 
   it('creates an untargeted draft when no credential matches', async () => {
-    credentialDelegate.findFirst.mockResolvedValue(null);
+    credentialDelegate.findMany.mockResolvedValue([]);
 
     await service.processBatch('batch-1', 'org-1');
 
@@ -214,7 +216,7 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     await service.processBatch('batch-1', 'org-1');
 
     expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
-    expect(credentialDelegate.findFirst).not.toHaveBeenCalled();
+    expect(credentialDelegate.findMany).not.toHaveBeenCalled();
     expect(postsService.create).not.toHaveBeenCalled();
     expect(finalUpdatePayload().items?.[0]?.status).toBe(
       BatchItemStatus.FAILED,
@@ -290,7 +292,7 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
 
     await service.processBatch('batch-1', 'org-1');
 
-    expect(credentialDelegate.findFirst).not.toHaveBeenCalled();
+    expect(credentialDelegate.findMany).not.toHaveBeenCalled();
     const created = postsService.create.mock.calls[0]?.[0];
     expect(created).not.toHaveProperty('credentialId');
     expect(created?.platform).toBeUndefined();
@@ -298,11 +300,13 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
 
   it('normalizes a hyphenated platform for both the credential and the post', async () => {
     useBatchItems([{ ...baseItem, platform: 'google-ads' }]);
-    credentialDelegate.findFirst.mockResolvedValue({ id: 'cred-google-ads-1' });
+    credentialDelegate.findMany.mockResolvedValue([
+      { id: 'cred-google-ads-1' },
+    ]);
 
     await service.processBatch('batch-1', 'org-1');
 
-    expect(credentialDelegate.findFirst).toHaveBeenCalledWith(
+    expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           organizationId: 'org-1',
@@ -323,11 +327,11 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     // Two spellings in `posts.platform` for one platform means every
     // platform-filtered read misses half the rows.
     useBatchItems([{ ...baseItem, platform: 'dev-to' }]);
-    credentialDelegate.findFirst.mockResolvedValue({ id: 'cred-devto-1' });
+    credentialDelegate.findMany.mockResolvedValue([{ id: 'cred-devto-1' }]);
 
     await service.processBatch('batch-1', 'org-1');
 
-    expect(credentialDelegate.findFirst).toHaveBeenCalledWith(
+    expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           organizationId: 'org-1',
@@ -345,11 +349,11 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
 
   it('resolves the "x" alias to twitter on both the credential and the post', async () => {
     useBatchItems([{ ...baseItem, platform: 'X' }]);
-    credentialDelegate.findFirst.mockResolvedValue({ id: 'cred-twitter-1' });
+    credentialDelegate.findMany.mockResolvedValue([{ id: 'cred-twitter-1' }]);
 
     await service.processBatch('batch-1', 'org-1');
 
-    expect(credentialDelegate.findFirst).toHaveBeenCalledWith(
+    expect(credentialDelegate.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           organizationId: 'org-1',
