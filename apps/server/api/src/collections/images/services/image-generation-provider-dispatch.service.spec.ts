@@ -3,6 +3,7 @@ import { ImageGenerationProviderDispatchService } from '@api/collections/images/
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
@@ -65,6 +66,10 @@ describe('ImageGenerationProviderDispatchService', () => {
   const sharedService = {
     createMediaDocuments: vi.fn(),
   };
+  const higgsFieldService = {
+    generateTextToImage: vi.fn(),
+    waitForImageCompletion: vi.fn(),
+  };
   const websocketService = {
     publishBackgroundTaskUpdate: vi.fn(),
     publishVideoComplete: vi.fn(),
@@ -80,6 +85,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       replicateService as never,
     ),
     new SdxlImageGenerationProviderAdapter(),
+    new HiggsFieldImageGenerationProviderAdapter(higgsFieldService as never),
   );
   const generationEventWebhookService = {
     emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
@@ -362,6 +368,38 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(klingAIService.queueGenerateImage).not.toHaveBeenCalled();
     expect(leonardoaiService.generateImage).not.toHaveBeenCalled();
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
+  it('routes Higgsfield Soul with the resolved outputUrls, finalizing like any external-id provider', async () => {
+    higgsFieldService.generateTextToImage.mockResolvedValue({
+      requestId: 'higgsfield-req-1',
+    });
+    higgsFieldService.waitForImageCompletion.mockResolvedValue({
+      imageUrl: 'https://higgsfield.example.com/generated.png',
+    });
+    const context = buildContext({ model: MODEL_KEYS.HIGGSFIELD_SOUL });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(higgsFieldService.generateTextToImage).toHaveBeenCalledWith({
+      aspectRatio: '16:9',
+      organizationId: 'organization-1',
+      prompt: 'A cinematic sunrise',
+    });
+    expect(higgsFieldService.waitForImageCompletion).toHaveBeenCalledWith(
+      'higgsfield-req-1',
+      { organizationId: 'organization-1' },
+    );
+    expect(imagesService.patch).toHaveBeenCalledWith(
+      'ingredient-1',
+      expect.objectContaining({
+        cdnUrl: 'https://cdn.example.com/generated.png',
+        s3Key: 'images/generated.png',
+        status: IngredientStatus.GENERATED,
+      }),
+    );
+    expect(plan?.kind).toBe('poll-single');
   });
 
   it('normalizes batch Replicate outputs into indexed placeholders', async () => {

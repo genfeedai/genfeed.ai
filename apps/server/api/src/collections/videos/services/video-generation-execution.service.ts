@@ -251,6 +251,7 @@ export class VideoGenerationExecutionService {
       modelInputSchema: context.modelInputSchema,
       modelProvider: context.modelProvider,
       modelSchemaFamily: context.modelSchemaFamily,
+      organizationId: context.user.organizationId,
       prompt: context.promptInput.prompt || '',
       promptParams: context.promptParams,
       width: context.width,

@@ -17,12 +17,17 @@ export interface DispatchVideoGenerationParams {
   modelInputSchema?: Record<string, unknown>;
   modelProvider?: ModelProvider | string;
   modelSchemaFamily?: string;
+  organizationId?: string;
   prompt: string;
   promptParams: Record<string, unknown>;
   width: number;
 }
 
-export type VideoGenerationProvider = 'fal' | 'klingai' | 'replicate';
+export type VideoGenerationProvider =
+  | 'fal'
+  | 'higgsfield'
+  | 'klingai'
+  | 'replicate';
 
 export interface VideoGenerationProviderResult {
   completion: 'polling' | 'remote-output';

@@ -1,4 +1,5 @@
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
@@ -17,11 +18,16 @@ describe('VideoGenerationProviderDispatchService', () => {
   const replicateService = {
     generateTextToVideo: vi.fn(),
   };
+  const higgsFieldService = {
+    generateImageToVideo: vi.fn(),
+    waitForCompletion: vi.fn(),
+  };
 
   const service = new VideoGenerationProviderDispatchService(
     new KlingAiVideoGenerationProviderAdapter(klingAIService as never),
     new FalVideoGenerationProviderAdapter(falService as never),
     new ReplicateVideoGenerationProviderAdapter(replicateService as never),
+    new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService as never),
   );
 
   const buildParams = (
@@ -162,5 +168,40 @@ describe('VideoGenerationProviderDispatchService', () => {
     );
     expect(falService.generateVideo).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it('routes Higgsfield Kling video and resolves the polled video URL', async () => {
+    higgsFieldService.generateImageToVideo.mockResolvedValue({
+      requestId: 'higgsfield-req-1',
+    });
+    higgsFieldService.waitForCompletion.mockResolvedValue({
+      videoUrl: 'https://higgsfield.example.com/video.mp4',
+    });
+    const params = buildParams({
+      model: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      organizationId: 'org-1',
+    });
+
+    await expect(service.dispatch(params)).resolves.toEqual({
+      completion: 'remote-output',
+      externalId: 'https://higgsfield.example.com/video.mp4',
+      provider: 'higgsfield',
+    });
+
+    expect(higgsFieldService.generateImageToVideo).toHaveBeenCalledWith({
+      aspectRatio: '16:9',
+      duration: 8,
+      imageUrl: 'https://cdn.example.com/reference.png',
+      modelId: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      organizationId: 'org-1',
+      prompt: 'A cinematic sunrise',
+    });
+    expect(higgsFieldService.waitForCompletion).toHaveBeenCalledWith(
+      'higgsfield-req-1',
+      { organizationId: 'org-1' },
+    );
+    expect(falService.generateVideo).not.toHaveBeenCalled();
+    expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
   });
 });

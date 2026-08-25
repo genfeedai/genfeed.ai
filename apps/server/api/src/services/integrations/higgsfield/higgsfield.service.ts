@@ -14,6 +14,7 @@ interface HiggsFieldJobStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   output?: {
     video_url?: string;
+    image_url?: string;
   };
   error?: string;
 }
@@ -283,6 +284,66 @@ export class HiggsFieldService {
         );
       }
       return { videoUrl };
+    } catch (err: unknown) {
+      if (err instanceof PollTimeoutException) {
+        throw new Error(
+          `Higgsfield job ${requestId} timed out after ${err.timeoutMs}ms`,
+        );
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Poll a text-to-image job until completed or failed, with timeout.
+   * Delegates to PollUntilService to avoid duplicated while-loop logic.
+   */
+  async waitForImageCompletion(
+    requestId: string,
+    options?: {
+      pollIntervalMs?: number;
+      timeoutMs?: number;
+      organizationId?: string;
+    },
+  ): Promise<{ imageUrl: string }> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    let credentialsOverride: { apiKey: string; apiSecret?: string } | undefined;
+    if (options?.organizationId) {
+      const byokKey = await this.byokService.resolveApiKey(
+        options.organizationId,
+        ByokProvider.HIGGSFIELD,
+      );
+      if (byokKey) {
+        credentialsOverride = byokKey;
+      }
+    }
+
+    try {
+      const { value: status } = await this.pollUntilService.poll(
+        () => this.pollJob(requestId, credentialsOverride),
+        (s) => {
+          if (s.status === 'failed') {
+            throw new Error(
+              `Higgsfield job ${requestId} failed: ${s.error ?? 'unknown error'}`,
+            );
+          }
+          return s.status === 'completed' && Boolean(s.output?.image_url);
+        },
+        {
+          intervalMs: options?.pollIntervalMs ?? 10_000,
+          timeoutMs: options?.timeoutMs ?? 600_000,
+        },
+      );
+
+      this.loggerService.log(`${caller} job ${requestId} completed`);
+      const imageUrl = status.output?.image_url;
+      if (!imageUrl) {
+        throw new Error(
+          `Higgsfield job ${requestId} completed without an image URL`,
+        );
+      }
+      return { imageUrl };
     } catch (err: unknown) {
       if (err instanceof PollTimeoutException) {
         throw new Error(

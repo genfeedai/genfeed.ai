@@ -466,6 +466,7 @@ const IMAGE_GENERATION_BRIEF_EXEMPTION_ENTRIES: ReadonlyArray<
   [MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID, 'legacy_prompt_builder'],
   [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO, 'legacy_prompt_builder'],
   [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA, 'legacy_prompt_builder'],
+  [MODEL_KEYS.HIGGSFIELD_SOUL, 'legacy_prompt_builder'],
   [MODEL_KEYS.LEONARDOAI, 'legacy_prompt_builder'],
   [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5, 'legacy_prompt_builder'],
   [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2, 'legacy_prompt_builder'],

@@ -59,6 +59,7 @@ import { ImageGenerationProviderDispatchService } from '@api/collections/images/
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
@@ -183,6 +184,10 @@ const createImageGenerationService = () => {
   const comfyUIService = createMockComfyUIService();
   const klingAIService = createMockKlingAIImageService();
   const falService = createMockFalService();
+  const higgsFieldService = {
+    generateTextToImage: vi.fn(),
+    waitForImageCompletion: vi.fn(),
+  };
   const leonardoaiService = {
     generateImage: vi.fn().mockResolvedValue('leo-gen'),
   };
@@ -254,6 +259,7 @@ const createImageGenerationService = () => {
       replicateService as never,
     ),
     new SdxlImageGenerationProviderAdapter(),
+    new HiggsFieldImageGenerationProviderAdapter(higgsFieldService as never),
   );
   const generationEventWebhookService = {
     emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),

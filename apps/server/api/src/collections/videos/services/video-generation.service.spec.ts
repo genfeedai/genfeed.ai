@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
@@ -133,10 +134,15 @@ describe('VideoGenerationService', () => {
         .fn()
         .mockResolvedValue({ url: 'https://fal/generated.mp4' }),
     };
+    const higgsFieldService = {
+      generateImageToVideo: vi.fn(),
+      waitForCompletion: vi.fn(),
+    };
     const providerDispatchService = new VideoGenerationProviderDispatchService(
       new KlingAiVideoGenerationProviderAdapter(klingAIService as never),
       new FalVideoGenerationProviderAdapter(falService as never),
       new ReplicateVideoGenerationProviderAdapter(replicateService as never),
+      new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService as never),
     );
     const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     const videosService = {
