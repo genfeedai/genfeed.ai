@@ -1,3 +1,4 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import type { Task } from '@services/management/tasks.service';
 import { describe, expect, it } from 'vitest';
 import {
@@ -13,6 +14,8 @@ import {
   resolveBrandSwitchSurfacePath,
   resolveOrganizationScopePath,
 } from './operator-shell';
+
+const threadId = testId('thread');
 
 describe('operator-shell helpers', () => {
   it('normalizes brand and org scoped protected routes', () => {
@@ -142,9 +145,7 @@ describe('operator-shell helpers', () => {
   });
 
   it('drops a selected conversation when resolving a brand-switch surface', () => {
-    expect(
-      resolveBrandSwitchSurfacePath('/agent/cmssrd5m20034k1xnmeo07gk7'),
-    ).toBe('/agent');
+    expect(resolveBrandSwitchSurfacePath(`/agent/${threadId}`)).toBe('/agent');
     expect(resolveBrandSwitchSurfacePath('/agent/onboarding/thread-1')).toBe(
       '/agent',
     );
@@ -242,7 +243,7 @@ describe('operator-shell helpers', () => {
       getBrandSwitchHref({
         nextBrandSlug: 'sunrise',
         nextOrgSlug: 'acme',
-        pathname: '/acme/werwer/agent/cmssrd5m20034k1xnmeo07gk7',
+        pathname: `/acme/werwer/agent/${threadId}`,
       }),
     ).toBe('/acme/sunrise/agent');
 

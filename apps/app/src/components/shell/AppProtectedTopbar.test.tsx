@@ -1,3 +1,4 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -212,6 +213,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
+
+const threadId = testId('thread');
 
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
@@ -657,7 +660,7 @@ describe('AppProtectedTopbar', () => {
   });
 
   it('drops the selected conversation when switching brands', () => {
-    mockPathname.value = '/acme/werwer/agent/cmssrd5m20034k1xnmeo07gk7';
+    mockPathname.value = `/acme/werwer/agent/${threadId}`;
 
     render(
       <AppProtectedTopbar

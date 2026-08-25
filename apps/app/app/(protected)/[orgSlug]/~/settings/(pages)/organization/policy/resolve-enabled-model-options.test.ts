@@ -1,15 +1,18 @@
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 
 import { resolveEnabledModelOptions } from './resolve-enabled-model-options';
+
+const modelId = testId('model');
 
 describe('resolveEnabledModelOptions', () => {
   it('uses catalog labels instead of raw ids', () => {
     expect(
       resolveEnabledModelOptions(
-        ['cmsf5d3q60001ftxne5oxt0jd', 'google/flux-dev'],
+        [modelId, 'google/flux-dev'],
         [
           {
-            id: 'cmsf5d3q60001ftxne5oxt0jd',
+            id: modelId,
             key: 'black-forest-labs/flux-schnell',
             label: 'FLUX Schnell',
           },
@@ -21,7 +24,7 @@ describe('resolveEnabledModelOptions', () => {
         ],
       ),
     ).toEqual([
-      { label: 'FLUX Schnell', value: 'cmsf5d3q60001ftxne5oxt0jd' },
+      { label: 'FLUX Schnell', value: modelId },
       { label: 'Flux Dev', value: 'google/flux-dev' },
     ]);
   });
