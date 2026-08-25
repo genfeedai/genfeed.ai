@@ -7,12 +7,12 @@ import {
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const findPublicArticles = vi.fn<() => Promise<Article[]>>();
+const findAllPublicArticles = vi.fn<() => Promise<Article[]>>();
 const getPublicArticleBySlug = vi.fn<() => Promise<Article | null>>();
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
-    getInstance: () => ({ findPublicArticles, getPublicArticleBySlug }),
+    getInstance: () => ({ findAllPublicArticles, getPublicArticleBySlug }),
   },
 }));
 
@@ -56,7 +56,7 @@ function readJsonLdScripts(element: ReactNode): unknown[] {
 }
 
 beforeEach(() => {
-  findPublicArticles.mockReset();
+  findAllPublicArticles.mockReset();
   getPublicArticleBySlug.mockReset();
 });
 
@@ -73,7 +73,7 @@ describe('getPublicArticleBySlugCached', () => {
 
 describe('generateStaticParams', () => {
   it('keeps only articles that carry a slug', async () => {
-    findPublicArticles.mockResolvedValue([
+    findAllPublicArticles.mockResolvedValue([
       article({ slug: 'one' }),
       article({ slug: undefined }),
       article({ slug: 'two' }),
@@ -86,7 +86,7 @@ describe('generateStaticParams', () => {
   });
 
   it('degrades to an empty list when the API fails', async () => {
-    findPublicArticles.mockRejectedValue(new Error('offline'));
+    findAllPublicArticles.mockRejectedValue(new Error('offline'));
 
     await expect(generateStaticParams()).resolves.toEqual([]);
   });
