@@ -89,6 +89,8 @@ export class ThreadsPublisherService extends BasePublisherService {
           brandId,
           mediaItems,
           text,
+          undefined, // replyToId
+          credential.id,
         );
         threadId = result.threadId;
       } else if (mediaItems[0]?.mediaType === ThreadsMediaType.IMAGE) {
@@ -98,6 +100,8 @@ export class ThreadsPublisherService extends BasePublisherService {
           brandId,
           mediaItems[0].url,
           text,
+          undefined, // replyToId
+          credential.id,
         );
         threadId = result.threadId;
       } else if (mediaItems[0]?.mediaType === ThreadsMediaType.VIDEO) {
@@ -107,6 +111,8 @@ export class ThreadsPublisherService extends BasePublisherService {
           brandId,
           mediaItems[0].url,
           text,
+          undefined, // replyToId
+          credential.id,
         );
         threadId = result.threadId;
       } else {
@@ -115,6 +121,8 @@ export class ThreadsPublisherService extends BasePublisherService {
           organizationId,
           brandId,
           text,
+          undefined, // replyToId
+          credential.id,
         );
         threadId = result.threadId;
       }
@@ -183,7 +191,7 @@ export class ThreadsPublisherService extends BasePublisherService {
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { organizationId, brandId } = context;
+    const { organizationId, brandId, credential } = context;
 
     if (children.length === 0) {
       this.logger.log(`${url} no children to post as replies`, {
@@ -225,6 +233,8 @@ export class ThreadsPublisherService extends BasePublisherService {
           brandId,
           text.substring(0, 500),
           replyToId,
+          // Replies go out as the account that posted the parent thread.
+          credential.id,
         );
 
         if (result?.threadId) {
@@ -318,6 +328,7 @@ export class ThreadsPublisherService extends BasePublisherService {
     brandId: string,
     text: string,
     replyToId: string,
+    credentialId: string,
   ): Promise<{ threadId: string }> {
     const mediaItems = this.extractThreadsMediaItems(
       child.category,
@@ -331,6 +342,7 @@ export class ThreadsPublisherService extends BasePublisherService {
         mediaItems,
         text,
         replyToId,
+        credentialId,
       );
     }
 
@@ -341,6 +353,7 @@ export class ThreadsPublisherService extends BasePublisherService {
         mediaItems[0].url,
         text,
         replyToId,
+        credentialId,
       );
     }
 
@@ -351,6 +364,7 @@ export class ThreadsPublisherService extends BasePublisherService {
         mediaItems[0].url,
         text,
         replyToId,
+        credentialId,
       );
     }
 
@@ -359,6 +373,7 @@ export class ThreadsPublisherService extends BasePublisherService {
       brandId,
       text,
       replyToId,
+      credentialId,
     );
   }
 }

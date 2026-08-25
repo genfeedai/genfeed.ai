@@ -12,6 +12,17 @@ describe('RedditService', () => {
   let httpService: HttpService;
 
   beforeEach(async () => {
+    const credentialsMock = {
+      findOne: vi.fn(),
+      patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsMock.findOne(options),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RedditService,
@@ -31,7 +42,7 @@ describe('RedditService', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { findOne: vi.fn(), patch: vi.fn() },
+          useValue: credentialsMock,
         },
         {
           provide: HttpService,
@@ -73,6 +84,32 @@ describe('RedditService', () => {
       'cred',
       expect.objectContaining({ accessToken: 'a' }),
     );
+  });
+
+  it('refreshes the account named by credentialId', async () => {
+    // A brand may hold several Reddit accounts; token repair addresses the
+    // named one instead of whichever happens to be the brand default.
+    const orgId = testId('org');
+    const brandId = testId('brand');
+    (credentialsService.findOne as vi.Mock).mockResolvedValue({
+      id: 'cred-2',
+      refreshToken: 'refresh',
+    });
+    (httpService.post as vi.Mock).mockReturnValue(
+      of({
+        data: { access_token: 'a', expires_in: 3600, refresh_token: 'b' },
+      }),
+    );
+
+    await service.refreshToken(orgId, brandId, 'cred-2');
+
+    expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+      brandId,
+      credentialId: 'cred-2',
+      isDisconnectedIncluded: true,
+      organizationId: orgId,
+      platform: 'reddit',
+    });
   });
 
   describe('submitPost', () => {

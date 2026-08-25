@@ -3,7 +3,7 @@ import { AuthorReplyLoopService } from './author-reply-loop.service';
 
 describe('AuthorReplyLoopService.getInbox YouTube path', () => {
   const prisma = {
-    credential: { findFirst: vi.fn() },
+    credential: { findMany: vi.fn() },
     processedTweet: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const logger = { warn: vi.fn(), log: vi.fn(), error: vi.fn() };
@@ -41,7 +41,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
   });
 
   it('lists YouTube comments when platform=youtube and credential exists', async () => {
-    prisma.credential.findFirst.mockResolvedValue({ id: 'yt-cred' });
+    prisma.credential.findMany.mockResolvedValue([{ id: 'yt-cred' }]);
     // Empty accessToken decrypts safely (same as author-reply-loop.service.spec).
     credentialsService.findOne.mockResolvedValue({
       accessToken: '',
@@ -96,7 +96,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
   });
 
   it('returns empty items (not throw) when YouTube timeline fails', async () => {
-    prisma.credential.findFirst.mockResolvedValue({ id: 'yt-cred' });
+    prisma.credential.findMany.mockResolvedValue([{ id: 'yt-cred' }]);
     credentialsService.findOne.mockResolvedValue({
       accessToken: '',
       externalId: 'UC123',
@@ -118,7 +118,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
   });
 
   it('throws a clear error when no YouTube credential exists', async () => {
-    prisma.credential.findFirst.mockResolvedValue(null);
+    prisma.credential.findMany.mockResolvedValue([]);
     credentialsService.findOne.mockResolvedValue(null);
 
     await expect(
@@ -131,7 +131,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
   });
 
   it('normalizes UC channel ids to /channel/ URLs for timeline', async () => {
-    prisma.credential.findFirst.mockResolvedValue({ id: 'yt-cred' });
+    prisma.credential.findMany.mockResolvedValue([{ id: 'yt-cred' }]);
     credentialsService.findOne.mockResolvedValue({
       accessToken: '',
       externalId: 'UCabcdefghijklmnopqrstuv',

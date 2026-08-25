@@ -75,17 +75,24 @@ export class GhostController {
         body.apiKey,
       );
 
-      // Save or update the credential
-      const credential = await this.credentialsService.upsertForBrand(
+      // Provision the row first, then let identity reconciliation decide
+      // whether this is a reconnect of a site the brand already has or an
+      // additional one. The site URL is the identity — a brand may run several
+      // Ghost blogs, and two of them can share a title.
+      const pending = await this.credentialsService.createPendingForBrand(
         brand,
         user.userId ?? user.id,
         CredentialPlatform.GHOST,
+        { accessToken: body.apiKey },
+      );
+
+      const credential = await this.credentialsService.updateExternalProfile(
+        pending.id,
+        brand.organizationId,
         {
-          accessToken: body.apiKey,
-          externalHandle: body.ghostUrl,
-          externalId: siteInfo.title,
-          externalName: siteInfo.title,
-          isConnected: true,
+          handle: body.ghostUrl,
+          id: body.ghostUrl,
+          name: siteInfo.title,
         },
       );
 

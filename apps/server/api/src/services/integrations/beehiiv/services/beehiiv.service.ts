@@ -276,10 +276,13 @@ export class BeehiivService {
   ): Promise<{ apiKey: string; publicationId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      ...(credentialId ? { id: credentialId } : {}),
-      organizationId: organizationId,
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // API-key credentials never lose isConnected on a refresh failure, but a
+      // publication that failed verification still has to be readable here.
+      isDisconnectedIncluded: true,
+      organizationId,
       platform: CredentialPlatform.BEEHIIV,
     });
 

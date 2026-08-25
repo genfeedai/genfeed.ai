@@ -117,17 +117,16 @@ export class ShopifyController {
       );
     }
 
-    const updatedCredential = await this.credentialsService.patch(
+    // The shop domain carried on the pending row is the account identity.
+    const updatedCredential = await this.credentialsService.connectAccount(
       credential.id,
+      credential.organizationId,
       {
-        accessToken: tokens.accessToken,
-        externalHandle: credential.externalHandle,
-        externalId: credential.externalHandle,
-        externalName: credential.externalHandle,
-        isConnected: true,
-        isDeleted: false,
-        oauthState: null,
+        handle: credential.externalHandle,
+        id: credential.externalHandle,
+        name: credential.externalHandle,
       },
+      { accessToken: tokens.accessToken },
     );
 
     return serializeSingle(request, CredentialSerializer, updatedCredential);

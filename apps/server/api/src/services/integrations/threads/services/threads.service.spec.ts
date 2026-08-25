@@ -20,6 +20,17 @@ describe('ThreadsService', () => {
   };
 
   beforeEach(async () => {
+    const credentialsMock = {
+      findOne: vi.fn(),
+      patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsMock.findOne(options),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ThreadsService,
@@ -29,7 +40,7 @@ describe('ThreadsService', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { findOne: vi.fn(), patch: vi.fn() },
+          useValue: credentialsMock,
         },
         {
           provide: LoggerService,

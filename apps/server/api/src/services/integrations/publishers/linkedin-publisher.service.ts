@@ -91,6 +91,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           brandId,
           caption,
           context.settings,
+          credential.id,
         );
         externalId = this.getLinkedInPublishId(result);
       } else if (mediaInfo.isImagePost) {
@@ -100,6 +101,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           mediaInfo.mediaUrls[0],
           caption,
           context.settings,
+          credential.id,
         );
         externalId = this.getLinkedInPublishId(result);
       } else {
@@ -109,6 +111,7 @@ export class LinkedInPublisherService extends BasePublisherService {
           mediaInfo.mediaUrls[0],
           caption,
           context.settings,
+          credential.id,
         );
         externalId = this.getLinkedInPublishId(result);
       }
@@ -166,6 +169,8 @@ export class LinkedInPublisherService extends BasePublisherService {
           brandId,
           parentExternalId,
           text,
+          // Comments go out as the account that posted the parent.
+          context.credential.id,
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

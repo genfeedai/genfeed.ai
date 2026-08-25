@@ -1,5 +1,4 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
@@ -35,7 +34,6 @@ export class MastodonPublisherService extends BasePublisherService {
     protected readonly configService: ConfigService,
     protected readonly logger: LoggerService,
     private readonly mastodonService: MastodonService,
-    private readonly credentialsService: CredentialsService,
     private readonly postsService: PostsService,
   ) {
     super(configService, logger);
@@ -70,7 +68,7 @@ export class MastodonPublisherService extends BasePublisherService {
    */
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { post, credential, organizationId, brandId } = context;
+    const { post, credential } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
     // Log the attempt
@@ -87,12 +85,10 @@ export class MastodonPublisherService extends BasePublisherService {
     }
 
     try {
-      // Get Mastodon credential with instance URL
-      const mastodonCredential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
-        platform: CredentialPlatform.MASTODON,
-      });
+      // The account this post was scheduled for, already resolved by the
+      // publish pipeline. Re-resolving it from brand + platform would hand the
+      // post to a sibling account the moment the brand connects a second one.
+      const mastodonCredential = credential;
 
       // The explicit instance setting wins; the credential's instance is the
       // fallback for releases scheduled before the setting existed.
@@ -171,7 +167,6 @@ export class MastodonPublisherService extends BasePublisherService {
     parentExternalId: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { organizationId, brandId } = context;
 
     // Sort children by order to ensure correct thread sequence
     const sortedChildren = [...children].sort(
@@ -187,12 +182,8 @@ export class MastodonPublisherService extends BasePublisherService {
       },
     );
 
-    // Get Mastodon credential
-    const mastodonCredential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
-      platform: CredentialPlatform.MASTODON,
-    });
+    // Replies go out as the same account that posted the parent status.
+    const mastodonCredential = context.credential;
 
     const instanceUrl =
       readChannelSettingString(context.settings, 'instanceUrl') ??

@@ -156,15 +156,23 @@ export class FanvueService {
    * Refresh the access token using the refresh token
    * Proactively refreshes if token expires within 10 minutes
    */
+  /**
+   * @param credentialId - which connected Fanvue account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<{ accessToken: string; credential: Record<string, unknown> }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // A failed refresh flips isConnected off; the retry still has to find it.
+      isDisconnectedIncluded: true,
+      organizationId,
       platform: CredentialPlatform.FANVUE,
     });
 
@@ -443,15 +451,24 @@ export class FanvueService {
   /**
    * Create a post on Fanvue
    */
+  /**
+   * @param credentialId - which connected Fanvue account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   async createPost(
     organizationId: string,
     brandId: string,
     content: string,
     mediaUuids?: string[],
+    credentialId?: string,
   ): Promise<FanvuePostResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const { accessToken } = await this.refreshToken(organizationId, brandId);
+    const { accessToken } = await this.refreshToken(
+      organizationId,
+      brandId,
+      credentialId,
+    );
 
     try {
       const body: Record<string, unknown> = {

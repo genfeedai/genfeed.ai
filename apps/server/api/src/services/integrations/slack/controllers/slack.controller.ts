@@ -117,16 +117,15 @@ export class SlackController {
 
     const userInfo = await this.slackService.getUserInfo(accessToken);
 
-    const updatedCredential = await this.credentialsService.patch(
+    const updatedCredential = await this.credentialsService.connectAccount(
       credential.id,
+      credential.organizationId,
       {
-        accessToken,
-        externalHandle: userInfo.user,
-        externalId: userInfo.user_id,
-        externalName: userInfo.team,
-        isConnected: true,
-        oauthState: null,
+        handle: userInfo.user,
+        id: userInfo.user_id,
+        name: userInfo.team,
       },
+      { accessToken },
     );
 
     return serializeSingle(request, CredentialSerializer, updatedCredential);

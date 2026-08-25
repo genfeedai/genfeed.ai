@@ -32,6 +32,11 @@ export type CollectedSourcePost = {
 export type SourceCollectContext = {
   organizationId?: string;
   brandId?: string;
+  /**
+   * Which of the brand's accounts to collect as. A brand may hold several
+   * accounts on one platform; omitted collects as the brand's default account.
+   */
+  credentialId?: string;
   limit?: number;
   sinceId?: string;
   includeReplies?: boolean;

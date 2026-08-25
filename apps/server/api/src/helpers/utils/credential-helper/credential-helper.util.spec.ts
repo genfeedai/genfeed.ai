@@ -27,6 +27,10 @@ const mockCredential = {
 function makeCredentialsService(credential: typeof mockCredential | null) {
   return {
     findOne: vi.fn().mockResolvedValue(credential),
+    // The helper resolves the brand account through the multi-account
+    // resolver; the double answers with the one credential each case
+    // describes.
+    resolveBrandAccount: vi.fn().mockResolvedValue(credential),
   };
 }
 
@@ -48,19 +52,36 @@ describe('CredentialHelper', () => {
       expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('encrypted-token');
     });
 
-    it('passes correct query to findOne', async () => {
+    it('resolves the brand account rather than querying directly', async () => {
       const service = makeCredentialsService(mockCredential);
       await CredentialHelper.getDecryptedCredential(
         service as never,
         baseOptions,
       );
 
-      expect(service.findOne).toHaveBeenCalledWith(
+      expect(service.resolveBrandAccount).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId: expect.any(String),
           organizationId: expect.any(String),
           platform,
         }),
+      );
+      expect(service.findOne).not.toHaveBeenCalled();
+    });
+
+    it('asks for the named account when a credential id is given', async () => {
+      // A brand holding several accounts on one platform acts as the account
+      // the caller named, never as whichever row the brand lists first.
+      const service = makeCredentialsService(mockCredential);
+      const credentialId = testId('credential');
+
+      await CredentialHelper.getDecryptedCredential(service as never, {
+        ...baseOptions,
+        credentialId,
+      });
+
+      expect(service.resolveBrandAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId }),
       );
     });
 
@@ -101,6 +122,16 @@ describe('CredentialHelper', () => {
   });
 
   describe('buildQuery', () => {
+    it('pins the query to one account when a credential id is given', () => {
+      const credentialId = testId('credential');
+      const query = CredentialHelper.buildQuery({
+        ...baseOptions,
+        credentialId,
+      });
+
+      expect(query.id).toBe(credentialId);
+    });
+
     it('builds a query with canonical relation IDs', () => {
       const query = CredentialHelper.buildQuery(baseOptions);
 

@@ -55,6 +55,11 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
           description: 'Brand to use when no username is given',
           type: 'string',
         },
+        credentialId: {
+          description:
+            "Which of the brand's connected X accounts to read as (optional; defaults to the brand's first connected account)",
+          type: 'string',
+        },
         excludeReplies: {
           description: 'Hide replies',
           type: 'boolean',

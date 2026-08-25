@@ -242,13 +242,18 @@ export class MastodonService {
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<MastodonAccount> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        // Token repair has to find the row even after a failed refresh
+        // flipped `isConnected` off.
+        isDisconnectedIncluded: true,
+        organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 
@@ -446,6 +451,7 @@ export class MastodonService {
     organizationId: string,
     brandId: string,
     externalId: string,
+    credentialId?: string,
   ): Promise<{
     views: number;
     likes: number;
@@ -455,9 +461,10 @@ export class MastodonService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        organizationId,
         platform: CredentialPlatform.MASTODON,
       });
 

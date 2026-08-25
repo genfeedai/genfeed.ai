@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   DmSender,
   EngagementChecker,
@@ -44,6 +45,42 @@ export class TwitterSocialAdapter {
   ) {}
 
   /**
+   * Resolves which of the brand's X accounts a trigger watches.
+   *
+   * With a brand in scope the shared resolver applies: an explicit
+   * `credentialId` reads as that account, otherwise the brand's default answers
+   * and the resolver logs the accounts it passed over. A node saved before
+   * brand scoping existed has no brand at all, so it keeps the org-wide lookup
+   * — correct only while the org holds a single X account, which is why it
+   * warns.
+   */
+  private async resolveAccount(
+    organizationId: string,
+    brandId?: string,
+    credentialId?: string,
+  ) {
+    if (brandId) {
+      return this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        organizationId,
+        platform: CredentialPlatform.TWITTER,
+      });
+    }
+
+    this.loggerService.warn(
+      `${this.logContext} resolving an X account without brand scope`,
+      { credentialId, organizationId },
+    );
+
+    return this.credentialsService.findOne({
+      ...(credentialId ? { id: credentialId } : {}),
+      organizationId: organizationId,
+      platform: CredentialPlatform.TWITTER,
+    });
+  }
+
+  /**
    * Posts a reply tweet using the Twitter API v2.
    * Supports text-only and media replies.
    */
@@ -52,6 +89,7 @@ export class TwitterSocialAdapter {
       const {
         organizationId,
         brandId: explicitBrandId,
+        credentialId,
         userId,
         postId,
         text,
@@ -73,6 +111,9 @@ export class TwitterSocialAdapter {
           [mediaUrl],
           text,
           'image/jpeg',
+          undefined,
+          {},
+          credentialId,
         );
         return {
           replyId: tweetId,
@@ -86,6 +127,8 @@ export class TwitterSocialAdapter {
         brandId,
         text,
         postId,
+        {},
+        credentialId,
       );
 
       return {
@@ -103,6 +146,7 @@ export class TwitterSocialAdapter {
       const {
         organizationId,
         brandId: explicitBrandId,
+        credentialId,
         userId,
         recipientId,
         text,
@@ -124,6 +168,7 @@ export class TwitterSocialAdapter {
         brandId,
         recipientId,
         text,
+        credentialId,
       );
 
       return { messageId: `tw_dm_${Date.now()}` };
@@ -137,6 +182,8 @@ export class TwitterSocialAdapter {
   createMentionChecker(): MentionChecker {
     return async (params) => {
       const {
+        brandId,
+        credentialId,
         organizationId,
         platform,
         keywords,
@@ -150,11 +197,13 @@ export class TwitterSocialAdapter {
         platform,
       });
 
-      // Get the brand's Twitter username from credentials
-      const credential = await this.credentialsService.findOne({
-        organizationId: organizationId,
-        platform: 'twitter',
-      });
+      // Whose mentions these are: a brand may hold several X accounts, so the
+      // trigger names one and the resolver falls back to the brand default.
+      const credential = await this.resolveAccount(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       const platformUsername =
         typeof credential?.externalHandle === 'string'
@@ -208,12 +257,19 @@ export class TwitterSocialAdapter {
    */
   createFollowerChecker(): NewFollowerChecker {
     return async (params) => {
-      const { lastFollowerId, minFollowerCount, organizationId } = params;
+      const {
+        brandId,
+        credentialId,
+        lastFollowerId,
+        minFollowerCount,
+        organizationId,
+      } = params;
 
-      const credential = await this.credentialsService.findOne({
-        organizationId: organizationId,
-        platform: 'twitter',
-      });
+      const credential = await this.resolveAccount(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       const platformUsername =
         typeof credential?.externalHandle === 'string'

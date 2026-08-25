@@ -171,20 +171,21 @@ export class FanvueController {
         );
       }
 
-      // Update credential with tokens, clear code_verifier
-      const credential = await this.credentialsService.patch(
+      // Tokens land on the pending row, then identity reconciliation decides
+      // whether this refreshes an existing account or adds a new one.
+      const credential = await this.credentialsService.connectAccount(
         existingCredential.id,
+        existingCredential.organizationId,
+        {
+          handle: externalHandle,
+          id: externalId,
+          name: externalName,
+        },
         {
           accessToken: tokens.access_token,
           accessTokenExpiry: tokens.expires_in
             ? new Date(Date.now() + tokens.expires_in * 1000)
             : undefined,
-          externalHandle,
-          externalId,
-          externalName,
-          isConnected: true,
-          isDeleted: false,
-          oauthState: null,
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: tokens.refresh_token,

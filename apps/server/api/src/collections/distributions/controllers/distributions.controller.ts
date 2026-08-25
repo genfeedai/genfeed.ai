@@ -54,6 +54,7 @@ export class DistributionsController {
           caption: dto.caption,
           chatId: dto.chatId,
           contentType: dto.contentType,
+          credentialId: dto.credentialId,
           mediaUrl: dto.mediaUrl,
           organizationId: organization,
           text: dto.text,

@@ -176,6 +176,7 @@ export class AgentXActionsToolHandler {
       const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
       const tweet = await twitterService.getTweetById(postId, {
         brandId,
+        credentialId: readOptionalString(params.credentialId),
         organizationId: ctx.organizationId,
       });
 
@@ -212,6 +213,9 @@ export class AgentXActionsToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
+    // A brand may hold several X accounts; an explicit id reads as that one,
+    // otherwise the resolver picks the brand default and logs the rest.
+    const credentialId = readOptionalString(params.credentialId);
     let username = readOptionalString(params.username)?.replace(/^@/, '');
     let accessToken: string | undefined;
     const twitterService = this.resolveTwitterService();
@@ -228,9 +232,9 @@ export class AgentXActionsToolHandler {
         };
       }
 
-      const credential = await this.credentialsService.findOne({
+      const credential = await this.credentialsService.resolveBrandAccount({
         brandId,
-        isDeleted: false,
+        credentialId,
         organizationId: ctx.organizationId,
         platform: CredentialPlatform.TWITTER,
       });
@@ -248,12 +252,14 @@ export class AgentXActionsToolHandler {
         (await twitterService.resolveBrandUserAccessToken(
           ctx.organizationId,
           brandId,
+          credentialId,
         )) ?? undefined;
     } else if (brandId) {
       accessToken =
         (await twitterService.resolveBrandUserAccessToken(
           ctx.organizationId,
           brandId,
+          credentialId,
         )) ?? undefined;
     }
 

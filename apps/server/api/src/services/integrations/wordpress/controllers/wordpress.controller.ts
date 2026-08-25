@@ -112,17 +112,17 @@ export class WordpressController {
       );
     }
 
-    const updatedCredential = await this.credentialsService.patch(
+    // The blog id is the account identity, so a brand can connect several
+    // WordPress blogs instead of the newest replacing the last.
+    const updatedCredential = await this.credentialsService.connectAccount(
       credential.id,
+      credential.organizationId,
       {
-        accessToken: tokens.accessToken,
-        externalHandle: tokens.blogUrl,
-        externalId: tokens.blogId,
-        externalName: tokens.blogUrl,
-        isConnected: true,
-        isDeleted: false,
-        oauthState: null,
+        handle: tokens.blogUrl,
+        id: tokens.blogId,
+        name: tokens.blogUrl,
       },
+      { accessToken: tokens.accessToken },
     );
 
     return serializeSingle(request, CredentialSerializer, updatedCredential);

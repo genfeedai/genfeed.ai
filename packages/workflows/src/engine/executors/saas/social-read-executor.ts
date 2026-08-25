@@ -34,6 +34,8 @@ export type SocialReadProvider = (params: {
   organizationId: string;
   userId: string;
   brandId?: string;
+  /** Which of the brand's accounts to read as; omitted reads the default. */
+  credentialId?: string;
   platform: SocialReadPlatform;
   mode: SocialReadMode;
   query?: string;
@@ -127,6 +129,11 @@ export class SocialReadExecutor extends BaseExecutor {
       typeof brandFromInput === 'string'
         ? brandFromInput
         : (brandFromInput?.id ?? brandFromInput?.brandId ?? brandFromConfig);
+    const credentialId = this.getOptionalConfig<string | undefined>(
+      node.config,
+      'credentialId',
+      undefined,
+    );
 
     if (mode === 'search' && !String(query).trim()) {
       throw new Error('query is required when mode is search');
@@ -134,6 +141,7 @@ export class SocialReadExecutor extends BaseExecutor {
 
     const posts = await this.provider({
       brandId,
+      credentialId: String(credentialId ?? '').trim() || undefined,
       limit,
       mode,
       organizationId: context.organizationId,

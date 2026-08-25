@@ -87,9 +87,12 @@ vi.mock('@services/external/services.service', () => ({
   },
 }));
 
+const deleteCredential = vi.fn(async () => ({ id: 'credential-1' }));
+
 vi.mock('@services/organization/credentials.service', () => ({
   CredentialsService: {
     getInstance: () => ({
+      delete: deleteCredential,
       listBrandAccountHealth,
       listPostingTimes: vi.fn(async () => []),
       overrideAccountHealth,
@@ -286,9 +289,20 @@ describe('BrandDetailSocialMediaCard', () => {
     // the same vocabulary, so a linked account must not read "Not connected".
     expect(screen.getByText('Linked')).toBeInTheDocument();
     expect(screen.getByText('1 connected')).toBeInTheDocument();
+    // Reconnect and disconnect address the account, and the tile keeps
+    // offering a second one.
     expect(
-      screen.getByRole('button', { name: 'Reconnect Instagram' }),
+      screen.getByRole('button', { name: 'Reconnect Genfeed' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Disconnect Genfeed' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Add another Instagram account' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/one instagram account per brand/i),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('posting-times-editor')).toHaveTextContent(
       'credential-1',
     );
@@ -482,6 +496,50 @@ describe('BrandDetailSocialMediaCard', () => {
           reason: 'Manual override confirmed from brand social dashboard.',
         }),
       );
+    });
+  });
+
+  it('disconnects a single account and leaves its platform siblings alone', async () => {
+    const onRefresh = vi.fn();
+
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            handle: 'genfeed',
+            name: 'Genfeed',
+            platform: CredentialPlatform.TWITTER,
+          },
+          {
+            credentialId: 'credential-2',
+            handle: 'genfeedlabs',
+            name: 'Genfeed Labs',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={2}
+        onRefresh={onRefresh}
+        variant="page"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Disconnect Genfeed Labs' }),
+    );
+
+    // The confirmation has to say the other account survives — that is the
+    // whole difference from the old one-account-per-platform behaviour.
+    expect(
+      screen.getByText(/other accounts on twitter are untouched/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+
+    await waitFor(() => {
+      expect(deleteCredential).toHaveBeenCalledWith('credential-2');
+      expect(onRefresh).toHaveBeenCalled();
     });
   });
 });

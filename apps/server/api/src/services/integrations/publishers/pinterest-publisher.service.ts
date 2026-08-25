@@ -1,5 +1,4 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
@@ -29,7 +28,6 @@ export class PinterestPublisherService extends BasePublisherService {
     protected readonly configService: ConfigService,
     protected readonly logger: LoggerService,
     private readonly pinterestService: PinterestService,
-    private readonly credentialsService: CredentialsService,
   ) {
     super(configService, logger);
   }
@@ -66,7 +64,7 @@ export class PinterestPublisherService extends BasePublisherService {
    */
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { post, credential, organizationId, brandId } = context;
+    const { post, credential } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
     // Log the attempt
@@ -83,12 +81,10 @@ export class PinterestPublisherService extends BasePublisherService {
     }
 
     try {
-      // Pinterest requires getting credential and board info
-      const pinterestCredential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
-        platform: CredentialPlatform.PINTEREST,
-      });
+      // The account this post was scheduled for, already resolved by the
+      // publish pipeline. Re-resolving it from brand + platform would hand the
+      // post to a sibling account the moment the brand connects a second one.
+      const pinterestCredential = credential;
 
       // The explicit board setting wins; the credential's board is the
       // fallback for releases scheduled before the setting existed.

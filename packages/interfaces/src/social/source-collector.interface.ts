@@ -129,6 +129,8 @@ export interface SocialPostImportResult {
 
 export interface SourcePostDraftActionInput {
   actionType?: SourcePostActionType | string;
+  /** Which of the brand's accounts on this platform the draft publishes as. */
+  credentialId?: string;
   text?: string;
 }
 

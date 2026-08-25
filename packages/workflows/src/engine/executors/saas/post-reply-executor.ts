@@ -55,6 +55,11 @@ export type ReplyPublisher = (params: {
   userId: string;
   /** The brand ID associated with this action. Use this instead of userId for brand-scoped operations. */
   brandId?: string;
+  /**
+   * Which of the brand's accounts on this platform replies. A brand may hold
+   * several; omitted replies as the brand's default account.
+   */
+  credentialId?: string;
   conversationId?: string;
   idempotencyKey?: string;
   platform: ReplyPlatform;
@@ -141,6 +146,7 @@ export class PostReplyExecutor extends BaseExecutor {
     const result = await this.publisher({
       brandId: node.config.brandId as string | undefined,
       conversationId,
+      credentialId: node.config.credentialId as string | undefined,
       idempotencyKey,
       mediaUrl,
       organizationId: context.organizationId,

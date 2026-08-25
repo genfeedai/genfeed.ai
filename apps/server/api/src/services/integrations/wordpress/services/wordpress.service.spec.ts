@@ -44,6 +44,12 @@ describe('WordpressService', () => {
     const mockCredentialsService = {
       findOne: vi.fn(),
       patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        (mockCredentialsService.findOne as vi.Mock)(options),
+      ),
     };
 
     const mockLoggerService = {
@@ -206,8 +212,12 @@ describe('WordpressService', () => {
       const result = await service.refreshToken(orgId, brandId);
 
       expect(result).toEqual({ isValid: true });
-      expect(credentialsService.findOne).toHaveBeenCalledWith({
+      // Validation resolves the brand's account and has to see a row a prior
+      // failure already marked disconnected.
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
         brandId,
+        credentialId: undefined,
+        isDisconnectedIncluded: true,
         organizationId: orgId,
         platform: CredentialPlatform.WORDPRESS,
       });

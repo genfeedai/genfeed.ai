@@ -29,7 +29,13 @@ export class InstagramSocialAdapter {
    */
   createReplyPublisher(): ReplyPublisher {
     return async (params) => {
-      const { organizationId, brandId: explicitBrandId, postId, text } = params;
+      const {
+        organizationId,
+        brandId: explicitBrandId,
+        credentialId,
+        postId,
+        text,
+      } = params;
 
       if (!explicitBrandId) {
         throw new Error('brandId is required for Instagram reply publishing');
@@ -47,6 +53,7 @@ export class InstagramSocialAdapter {
         brandId,
         postId,
         text,
+        credentialId,
       );
 
       return {
@@ -65,6 +72,7 @@ export class InstagramSocialAdapter {
       const {
         organizationId,
         brandId: explicitBrandId,
+        credentialId,
         recipientId,
         text,
       } = params;
@@ -88,6 +96,7 @@ export class InstagramSocialAdapter {
         brandId,
         recipientId,
         text,
+        credentialId,
       );
 
       return { messageId: messageId ?? `ig_dm_${Date.now()}` };

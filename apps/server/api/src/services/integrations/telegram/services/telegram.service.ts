@@ -97,46 +97,33 @@ export class TelegramService {
         );
       }
 
-      // Check if credential already exists
-      const existingCredential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
-        platform: CredentialPlatform.TELEGRAM,
-      });
-
-      // Prepare credential data
-      const credentialData = {
-        brandId,
-        externalAvatar: authData.photo_url,
-        externalHandle: authData.username || authData.first_name,
-        externalId: authData.id.toString(),
-        externalName: authData.username
-          ? `${authData.first_name}${authData.last_name ? ` ${authData.last_name}` : ''}`
-          : authData.first_name,
-        isConnected: true,
-        isDeleted: false,
-        organizationId,
-        platform: CredentialPlatform.TELEGRAM,
+      // The Login Widget only proves which Telegram account authorized us once
+      // it hands back `authData.id`, so provision a pending row and let identity
+      // reconciliation decide between refreshing an account and adding one.
+      const pending = await this.credentialsService.createPendingForBrand(
+        { id: brandId, organizationId },
         userId,
-      };
+        CredentialPlatform.TELEGRAM,
+      );
 
-      let credential: CredentialDocument;
-      if (existingCredential) {
-        // Update existing credential
-        credential = await this.credentialsService.patch(
-          existingCredential.id,
-          credentialData,
+      const credential: CredentialDocument =
+        await this.credentialsService.connectAccount(
+          pending.id,
+          organizationId,
+          {
+            avatarUrl: authData.photo_url,
+            handle: authData.username || authData.first_name,
+            id: authData.id.toString(),
+            name: authData.username
+              ? `${authData.first_name}${authData.last_name ? ` ${authData.last_name}` : ''}`
+              : authData.first_name,
+          },
+          { isConnected: true },
         );
-        this.loggerService.log(`${url} updated existing credential`, {
-          credentialId: credential.id,
-        });
-      } else {
-        // Create new credential
-        credential = await this.credentialsService.create(credentialData);
-        this.loggerService.log(`${url} created new credential`, {
-          credentialId: credential.id,
-        });
-      }
+
+      this.loggerService.log(`${url} connected credential`, {
+        credentialId: credential.id,
+      });
 
       return credential;
     } catch (error: unknown) {

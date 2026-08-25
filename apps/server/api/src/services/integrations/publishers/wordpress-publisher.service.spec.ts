@@ -1,5 +1,4 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -23,7 +22,6 @@ describe('WordpressPublisherService', () => {
   let configService: ConfigService;
   let logger: LoggerService;
   let wordpressService: WordpressService;
-  let credentialsService: CredentialsService;
 
   beforeEach(() => {
     configService = {} as ConfigService;
@@ -38,15 +36,10 @@ describe('WordpressPublisherService', () => {
       createPost: vi.fn(),
     } as unknown as WordpressService;
 
-    credentialsService = {
-      findOne: vi.fn(),
-    } as unknown as CredentialsService;
-
     service = new WordpressPublisherService(
       configService,
       logger,
       wordpressService,
-      credentialsService,
     );
   });
 
@@ -71,143 +64,106 @@ describe('WordpressPublisherService', () => {
     const mockCredentialId = testId('credential');
     const mockPostId = testId('post');
 
+    const makeContext = (
+      credential: Partial<CredentialDocument>,
+      post: Partial<PostEntity> = {},
+    ): PublishContext => ({
+      settings: {},
+      brandId: mockBrandId,
+      credential: credential as unknown as CredentialDocument,
+      organization: {
+        id: mockOrgId,
+      } as unknown as OrganizationDocument,
+      organizationId: mockOrgId,
+      post: {
+        id: mockPostId,
+        description: 'This is a test post',
+        label: 'Test Post',
+        ...post,
+      } as unknown as PostEntity,
+      postId: 'post-123',
+    });
+
+    const connectedAccount = {
+      id: mockCredentialId,
+      accessToken: 'encrypted-token',
+      externalId: 'site-123',
+      platform: CredentialPlatform.WORDPRESS,
+    };
+
     it('should publish a text-only post successfully', async () => {
-      const context: PublishContext = {
-        settings: {},
-        brandId: mockBrandId,
-        credential: {
-          id: mockCredentialId,
-          platform: CredentialPlatform.WORDPRESS,
-        } as unknown as CredentialDocument,
-        organization: {
-          id: mockOrgId,
-        } as unknown as OrganizationDocument,
-        organizationId: mockOrgId,
-        post: {
-          id: mockPostId,
-          description: 'This is a test post',
-          label: 'Test Post',
-        } as unknown as PostEntity,
-        postId: 'post-123',
-      };
-
-      const mockCredential = {
-        id: mockCredentialId,
-        accessToken: 'encrypted-token',
-        externalId: 'site-123',
-        platform: CredentialPlatform.WORDPRESS,
-      };
-
-      vi.mocked(credentialsService.findOne).mockResolvedValue(
-        mockCredential as unknown as CredentialDocument,
-      );
       vi.mocked(wordpressService.createPost).mockResolvedValue('wp-post-123');
 
-      const result = await service.publish(context);
+      const result = await service.publish(makeContext(connectedAccount));
 
       expect(result.success).toBe(true);
-      expect(credentialsService.findOne).toHaveBeenCalled();
+      expect(wordpressService.createPost).toHaveBeenCalledWith(
+        'encrypted-token',
+        'site-123',
+        'Test Post',
+        expect.any(String),
+        'publish',
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should publish to the site on the context, not a sibling account', async () => {
+      // A brand with two WordPress sites publishes to the site carried by the
+      // post's own credential.
+      vi.mocked(wordpressService.createPost).mockResolvedValue('wp-post-456');
+
+      await service.publish(
+        makeContext({
+          ...connectedAccount,
+          id: testId('credential-2'),
+          accessToken: 'encrypted-token-2',
+          externalId: 'site-456',
+        } as unknown as CredentialDocument),
+      );
+
+      expect(wordpressService.createPost).toHaveBeenCalledWith(
+        'encrypted-token-2',
+        'site-456',
+        expect.any(String),
+        expect.any(String),
+        'publish',
+        undefined,
+        undefined,
+        undefined,
+      );
     });
 
     it('should return failure when credential not found', async () => {
-      const context: PublishContext = {
-        settings: {},
-        brandId: mockBrandId,
-        credential: {
-          id: mockCredentialId,
-          platform: CredentialPlatform.WORDPRESS,
-        } as unknown as CredentialDocument,
-        organization: {
-          id: mockOrgId,
-        } as unknown as OrganizationDocument,
-        organizationId: mockOrgId,
-        post: {
-          id: mockPostId,
-          description: 'Test post',
-        } as unknown as PostEntity,
-        postId: 'post-123',
-      };
-
-      vi.mocked(credentialsService.findOne).mockResolvedValue(null);
-
-      const result = await service.publish(context);
+      const result = await service.publish(
+        makeContext(undefined as unknown as CredentialDocument),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('credential');
     });
 
     it('should return failure when credential missing accessToken', async () => {
-      const context: PublishContext = {
-        settings: {},
-        brandId: mockBrandId,
-        credential: {
+      const result = await service.publish(
+        makeContext({
           id: mockCredentialId,
           platform: CredentialPlatform.WORDPRESS,
-        } as unknown as CredentialDocument,
-        organization: {
-          id: mockOrgId,
-        } as unknown as OrganizationDocument,
-        organizationId: mockOrgId,
-        post: {
-          id: mockPostId,
-          description: 'Test post',
-        } as unknown as PostEntity,
-        postId: 'post-123',
-      };
-
-      const mockCredential = {
-        id: mockCredentialId,
-        platform: CredentialPlatform.WORDPRESS,
-        // Missing accessToken
-      };
-
-      vi.mocked(credentialsService.findOne).mockResolvedValue(
-        mockCredential as unknown as CredentialDocument,
+        }),
       );
-
-      const result = await service.publish(context);
 
       expect(result.success).toBe(false);
       expect(logger.error).toHaveBeenCalled();
     });
 
     it('should throw when WordPress API errors occur', async () => {
-      const context: PublishContext = {
-        settings: {},
-        brandId: mockBrandId,
-        credential: {
-          id: mockCredentialId,
-          platform: CredentialPlatform.WORDPRESS,
-        } as unknown as CredentialDocument,
-        organization: {
-          id: mockOrgId,
-        } as unknown as OrganizationDocument,
-        organizationId: mockOrgId,
-        post: {
-          id: mockPostId,
-          description: 'Test content',
-          label: 'Test Post',
-        } as unknown as PostEntity,
-        postId: 'post-123',
-      };
-
-      const mockCredential = {
-        id: mockCredentialId,
-        accessToken: 'encrypted-token',
-        externalId: 'site-123',
-        platform: CredentialPlatform.WORDPRESS,
-      };
-
-      vi.mocked(credentialsService.findOne).mockResolvedValue(
-        mockCredential as unknown as CredentialDocument,
-      );
       vi.mocked(wordpressService.createPost).mockRejectedValue(
         new Error('WordPress API error'),
       );
 
-      await expect(service.publish(context)).rejects.toThrow(
-        'WordPress API error',
-      );
+      await expect(
+        service.publish(makeContext(connectedAccount)),
+      ).rejects.toThrow('WordPress API error');
     });
   });
 });

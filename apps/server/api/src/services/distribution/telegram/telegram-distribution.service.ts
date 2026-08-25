@@ -37,6 +37,8 @@ interface SendOptions {
   mediaUrl?: string;
   caption?: string;
   brandId?: string;
+  /** Which of the brand's Telegram accounts sends this. */
+  credentialId?: string;
   scheduledAt?: Date;
 }
 
@@ -72,6 +74,7 @@ export class TelegramDistributionService {
         caption: options.caption,
         chatId: options.chatId,
         contentType: options.contentType,
+        credentialId: options.credentialId,
         mediaUrl: options.mediaUrl,
         text: options.text,
       },
@@ -83,6 +86,7 @@ export class TelegramDistributionService {
       const botToken = await this.resolveBotToken(
         options.organizationId,
         options.brandId,
+        options.credentialId,
       );
 
       const result = await this.sendToTelegram(
@@ -138,6 +142,7 @@ export class TelegramDistributionService {
         caption: options.caption,
         chatId: options.chatId,
         contentType: options.contentType,
+        credentialId: options.credentialId,
         mediaUrl: options.mediaUrl,
         text: options.text,
       },
@@ -195,6 +200,9 @@ export class TelegramDistributionService {
     try {
       const organizationId = distribution.organizationId;
       const brandId = distribution.brandId ?? undefined;
+      // Which account was chosen when the send was scheduled — a brand may
+      // hold several Telegram bots, and the schedule picked one of them.
+      const credentialId = distribution.credentialId;
       const chatId = distribution.chatId;
       const contentType = distribution.contentType;
 
@@ -208,7 +216,11 @@ export class TelegramDistributionService {
         status: PublishStatus.PUBLISHING,
       });
 
-      const botToken = await this.resolveBotToken(organizationId, brandId);
+      const botToken = await this.resolveBotToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       const result = await this.sendToTelegram(
         botToken,
@@ -249,13 +261,14 @@ export class TelegramDistributionService {
   private async resolveBotToken(
     organizationId: string,
     brandId?: string,
+    credentialId?: string,
   ): Promise<string> {
     // Try org-specific credential first (brand-scoped token)
     if (brandId) {
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        isConnected: true,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });
 

@@ -187,7 +187,11 @@ export class DiscordService {
    * @param brandId - Brand ID
    * @returns Updated credential
    */
-  async refreshToken(organizationId: string, brandId: string) {
+  async refreshToken(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     if (!this.clientId || !this.clientSecret) {
@@ -202,9 +206,13 @@ export class DiscordService {
     }
 
     try {
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        // Token repair has to find the row even after a failed refresh
+        // flipped `isConnected` off.
+        isDisconnectedIncluded: true,
+        organizationId,
         platform: CredentialPlatform.DISCORD,
       });
 
@@ -267,9 +275,13 @@ export class DiscordService {
       this.loggerService.error(`${url} failed`, error);
 
       // Mark credential as disconnected if refresh fails
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        // Token repair has to find the row even after a failed refresh
+        // flipped `isConnected` off.
+        isDisconnectedIncluded: true,
+        organizationId,
         platform: CredentialPlatform.DISCORD,
       });
 

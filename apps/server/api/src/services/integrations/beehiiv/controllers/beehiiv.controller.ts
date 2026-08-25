@@ -96,16 +96,23 @@ export class BeehiivController {
         });
       }
 
-      // Store credential with API key as accessToken
-      const credential = await this.credentialsService.upsertForBrand(
+      // Store credential with API key as accessToken. The publication id is the
+      // account identity, so connecting a second publication adds an account
+      // instead of replacing the first.
+      const pending = await this.credentialsService.createPendingForBrand(
         brand,
         user.userId ?? user.id,
         CredentialPlatform.BEEHIIV,
+        { accessToken: apiKey },
+      );
+
+      const credential = await this.credentialsService.updateExternalProfile(
+        pending.id,
+        brand.organizationId,
         {
-          accessToken: apiKey,
-          externalHandle: publication.name,
-          externalId: publication.id,
-          isConnected: true,
+          handle: publication.name,
+          id: publication.id,
+          name: publication.name,
         },
       );
 
@@ -130,6 +137,7 @@ export class BeehiivController {
   async listPublications(
     @CurrentUser() user: User,
     @Query('brandId') brandId: string,
+    @Query('credentialId') credentialId?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId });
@@ -145,6 +153,7 @@ export class BeehiivController {
       const { apiKey } = await this.beehiivService.getDecryptedApiKey(
         user.organizationId?.toString() || '',
         brandId,
+        credentialId,
       );
 
       const publications = await this.beehiivService.listPublications(apiKey);
@@ -164,6 +173,7 @@ export class BeehiivController {
     @Query('brandId') brandId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('credentialId') credentialId?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId });
@@ -180,6 +190,7 @@ export class BeehiivController {
         await this.beehiivService.getDecryptedApiKey(
           user.organizationId?.toString() || '',
           brandId,
+          credentialId,
         );
 
       const subscribers = await this.beehiivService.getSubscribers(
@@ -215,6 +226,7 @@ export class BeehiivController {
         await this.beehiivService.getDecryptedApiKey(
           user.organizationId?.toString() || '',
           body.brandId,
+          body.credentialId,
         );
 
       const outcomes = await this.beehiivService.createSubscribers(

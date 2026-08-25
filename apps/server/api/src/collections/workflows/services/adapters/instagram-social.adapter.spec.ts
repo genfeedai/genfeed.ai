@@ -51,6 +51,7 @@ describe('InstagramSocialAdapter', () => {
         'brand1',
         'media_123',
         'Great post!',
+        undefined,
       );
       expect(result.replyId).toBe('comment_123');
     });
@@ -73,6 +74,7 @@ describe('InstagramSocialAdapter', () => {
         'brand1',
         'user789',
         'Hey!',
+        undefined,
       );
       expect(result.messageId).toBe('msg_456');
     });
@@ -104,6 +106,7 @@ describe('InstagramSocialAdapter', () => {
         'explicit-brand',
         'media_123',
         'Great post!',
+        undefined,
       );
     });
 
@@ -136,6 +139,7 @@ describe('InstagramSocialAdapter', () => {
         'explicit-brand',
         'user789',
         'Hey!',
+        undefined,
       );
     });
 

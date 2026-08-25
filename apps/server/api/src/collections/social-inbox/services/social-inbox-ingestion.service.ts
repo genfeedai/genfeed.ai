@@ -280,6 +280,7 @@ export class SocialInboxIngestionService {
           post.brandId,
           String(post.externalId),
           limit,
+          credential.id,
         );
 
         if (comments.length === 0) {
@@ -380,6 +381,7 @@ export class SocialInboxIngestionService {
           post.brandId,
           String(post.externalId),
           limit,
+          credential.id,
         );
 
         if (comments.length === 0) {
@@ -471,6 +473,7 @@ export class SocialInboxIngestionService {
         scope.organizationId,
         brandId,
         limit,
+        credential.id,
       );
 
       if (threads.length === 0) {
@@ -572,10 +575,12 @@ export class SocialInboxIngestionService {
         Platform.TWITTER,
         mentionCursor,
         () =>
-          this.twitterService.listMentions(scope.organizationId, brandId, {
-            limit,
-            sinceId: mentionCursor,
-          }),
+          this.twitterService.listMentions(
+            scope.organizationId,
+            brandId,
+            { limit, sinceId: mentionCursor },
+            credential.id,
+          ),
       );
 
       await this.ingestBatch(
@@ -641,6 +646,7 @@ export class SocialInboxIngestionService {
               brandId,
               String(post.externalId),
               { limit, sinceId: replyCursor },
+              credential.id,
             ),
         );
 
@@ -717,6 +723,7 @@ export class SocialInboxIngestionService {
                 limit,
                 ...(paginationToken ? { paginationToken } : {}),
               },
+              credential.id,
             ),
         );
         const createdBefore = counts.messagesCreated;
@@ -877,6 +884,7 @@ export class SocialInboxIngestionService {
           this.linkedInService.listDirectMessages(
             scope.organizationId,
             brandId,
+            credential.id,
           ),
       );
 

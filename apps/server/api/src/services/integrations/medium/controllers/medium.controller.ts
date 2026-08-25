@@ -144,17 +144,19 @@ export class MediumController {
         ? new Date(Date.now() + expiresIn * 1000)
         : undefined;
 
-      // Update the credential with the access token
-      const credential = await this.credentialsService.patch(
+      // Update the credential with the access token, then settle identity so a
+      // second Medium author adds an account rather than replacing the first.
+      const credential = await this.credentialsService.connectAccount(
         existingCredential.id,
+        existingCredential.organizationId,
+        {
+          handle: profile.username,
+          id: profile.id,
+          name: profile.username,
+        },
         {
           accessToken,
           accessTokenExpiry: expiryDate,
-          externalHandle: profile.username,
-          externalId: profile.id,
-          isConnected: true,
-          isDeleted: false,
-          oauthState: null,
           refreshToken,
         },
       );
@@ -182,6 +184,7 @@ export class MediumController {
     @Query('brandId') brandId: string,
     @Query('publishStatus')
     publishStatus: 'public' | 'draft' | 'unlisted' = 'public',
+    @Query('credentialId') credentialId?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -200,6 +203,7 @@ export class MediumController {
         user.organizationId,
         brandId,
         publishStatus,
+        credentialId,
       );
 
       return {

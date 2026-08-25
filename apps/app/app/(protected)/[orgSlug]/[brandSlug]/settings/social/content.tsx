@@ -14,6 +14,7 @@ export default function BrandSettingsSocialPage() {
   const {
     brand,
     brandId,
+    handleRefreshBrand,
     hasBrandId,
     isLoading,
     socialConnections,
@@ -41,6 +42,7 @@ export default function BrandSettingsSocialPage() {
           brandId={brandId}
           connections={socialConnections}
           connectedPlatformsCount={connectedPlatformsCount}
+          onRefresh={() => handleRefreshBrand(true)}
           variant="page"
         />
       </div>

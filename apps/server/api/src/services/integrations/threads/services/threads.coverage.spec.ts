@@ -59,6 +59,17 @@ describe('ThreadsService (coverage)', () => {
   };
 
   beforeEach(async () => {
+    const credentialsMock = {
+      findOne: vi.fn(),
+      patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsMock.findOne(options),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ThreadsService,
@@ -68,7 +79,7 @@ describe('ThreadsService (coverage)', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { findOne: vi.fn(), patch: vi.fn() },
+          useValue: credentialsMock,
         },
         {
           provide: LoggerService,
@@ -919,8 +930,8 @@ describe('ThreadsService (coverage)', () => {
         'cred-override',
       );
 
-      expect(credentialsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'cred-override' }),
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId: 'cred-override' }),
       );
     });
 

@@ -46,6 +46,12 @@ describe('FanvueService', () => {
     const mockCredentialsService = {
       findOne: vi.fn(),
       patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        (mockCredentialsService.findOne as vi.Mock)(options),
+      ),
     };
 
     const mockLoggerService = {
@@ -255,6 +261,28 @@ describe('FanvueService', () => {
       expect(result.accessToken).toBe('decrypted_encrypted-access-token');
       expect(result.credential).toEqual(mockCredential);
       expect(httpService.post).not.toHaveBeenCalled();
+    });
+
+    it('acts as the account named by credentialId', async () => {
+      // A brand may hold several Fanvue accounts; token repair addresses the
+      // named one instead of whichever happens to be the brand default.
+      credentialsService.findOne.mockResolvedValue({
+        id: 'credential-2',
+        accessToken: 'encrypted-access-token',
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        platform: CredentialPlatform.FANVUE,
+        refreshToken: 'encrypted-refresh-token',
+      } as never);
+
+      await service.refreshToken(orgId, brandId, 'credential-2');
+
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId,
+        credentialId: 'credential-2',
+        isDisconnectedIncluded: true,
+        organizationId: orgId,
+        platform: CredentialPlatform.FANVUE,
+      });
     });
 
     it('should refresh token when it expires within 10 minutes', async () => {

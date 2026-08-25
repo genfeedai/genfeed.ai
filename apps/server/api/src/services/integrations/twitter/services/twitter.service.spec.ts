@@ -47,6 +47,16 @@ describe('TwitterService', () => {
   let service: TwitterService;
 
   beforeEach(async () => {
+    const credentialsMock = {
+      findOne: vi.fn().mockResolvedValue(null),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsMock.findOne(options),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TwitterService,
@@ -55,10 +65,7 @@ describe('TwitterService', () => {
         { provide: ConfigService, useValue: { get: vi.fn() } },
         {
           provide: CredentialsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-            upsertForBrand: vi.fn(),
-          },
+          useValue: credentialsMock,
         },
         { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
         { provide: AnalyticsService, useValue: {} },

@@ -579,9 +579,12 @@ export class YoutubeAuthorizedSignalsService {
     }
 
     if (credential.brandId) {
+      // Refresh the account whose signals are being read, not the brand's
+      // default one — a brand may hold several YouTube channels.
       const oauthClient = await this.youtubeAuthService.refreshToken(
         params.organizationId,
         credential.brandId,
+        credential.id,
       );
       const refreshed = readString(oauthClient.credentials.access_token);
       if (refreshed) {

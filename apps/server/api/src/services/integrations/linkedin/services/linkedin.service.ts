@@ -242,20 +242,23 @@ export class LinkedInService {
     }
   }
 
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<LinkedInCredential> {
-    const queryCredentials = {
+    const credentials = (await this.credentialsService.resolveBrandAccount({
       brandId,
-      isDeleted: false,
+      credentialId,
+      // A failed refresh flips isConnected off; the retry still has to find it.
+      isDisconnectedIncluded: true,
       organizationId,
       platform: CredentialPlatform.LINKEDIN,
-    };
-
-    const credentials = (await this.credentialsService.findOne(
-      queryCredentials,
-    )) as LinkedInCredential | null;
+    })) as LinkedInCredential | null;
 
     if (!credentials) {
       throw new Error('LinkedIn credential not found');
@@ -342,17 +345,26 @@ export class LinkedInService {
     }
   }
 
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async uploadImage(
     organizationId: string,
     brandId: string,
     imageUrl: string,
     caption: string,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('LinkedIn credential not found or invalid');
@@ -459,16 +471,25 @@ export class LinkedInService {
     }
   }
 
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async createTextPost(
     organizationId: string,
     brandId: string,
     text: string,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('LinkedIn credential not found or invalid');
@@ -516,17 +537,26 @@ export class LinkedInService {
     }
   }
 
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async uploadVideo(
     organizationId: string,
     brandId: string,
     videoUrl: string,
     caption: string,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('LinkedIn credential not found or invalid');
@@ -688,16 +718,25 @@ export class LinkedInService {
    * List comments on one published LinkedIn share/UGC post.
    * Replies keep the top-level comment id as their thread id.
    */
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async listPostComments(
     organizationId: string,
     brandId: string,
     postUrn: string,
     options: { limit?: number; start?: number } = {},
+    credentialId?: string,
   ): Promise<LinkedInInboxComment[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
       if (!credential?.accessToken) {
         throw new Error('LinkedIn credential not found or invalid');
       }
@@ -765,13 +804,19 @@ export class LinkedInService {
    * path only requests `w_member_social`, so DMs stay closed unless a later
    * grant adds a mailbox scope.
    */
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async listDirectMessages(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<LinkedInDirectMessageListing> {
-    const credential = await this.credentialsService.findOne({
+    const credential = await this.credentialsService.resolveBrandAccount({
       brandId,
-      isDeleted: false,
+      credentialId,
+      isDisconnectedIncluded: true,
       organizationId,
       platform: CredentialPlatform.LINKEDIN,
     });
@@ -807,16 +852,25 @@ export class LinkedInService {
    * @param text The comment text
    * @returns The comment URN
    */
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async postComment(
     organizationId: string,
     brandId: string,
     postUrn: string,
     text: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('LinkedIn credential not found or invalid');
@@ -869,10 +923,15 @@ export class LinkedInService {
    * @param shareId The LinkedIn share/post ID (URN format)
    * @returns Analytics data including views, likes, comments, shares, impressions
    */
+  /**
+   * @param credentialId - which connected LinkedIn account this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   public async getMediaAnalytics(
     organizationId: string,
     brandId: string,
     shareId: string,
+    credentialId?: string,
   ): Promise<{
     views: number;
     likes: number;
@@ -896,7 +955,11 @@ export class LinkedInService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('LinkedIn credential not found or invalid');

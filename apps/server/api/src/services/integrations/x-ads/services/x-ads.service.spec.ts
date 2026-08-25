@@ -75,6 +75,7 @@ describe('XAdsService', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
   };
   let httpService: {
     get: ReturnType<typeof vi.fn>;
@@ -91,7 +92,16 @@ describe('XAdsService', () => {
   let now: number;
 
   beforeEach(() => {
-    credentialsService = { findOne: vi.fn(), patch: vi.fn() };
+    credentialsService = {
+      findOne: vi.fn(),
+      patch: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the
+      // double answers with whatever `findOne` is primed to return so the
+      // existing cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsService.findOne(options),
+      ),
+    };
     httpService = { get: vi.fn(), post: vi.fn(), put: vi.fn() };
     loggerService = { error: vi.fn() };
     oauthService = { refreshAccessToken: vi.fn() };
@@ -667,9 +677,12 @@ describe('XAdsService', () => {
       await expect(
         service.refreshToken('organization-1', 'brand-1'),
       ).rejects.toBeInstanceOf(NotFoundException);
-      expect(credentialsService.findOne).toHaveBeenCalledWith({
+      // Token repair addresses the brand's account through the multi-account
+      // resolver and has to see rows a failed refresh already disconnected.
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
         brandId: 'brand-1',
-        isDeleted: false,
+        credentialId: undefined,
+        isDisconnectedIncluded: true,
         organizationId: 'organization-1',
         platform: 'x_ads',
       });

@@ -109,6 +109,12 @@ export interface BrandDetailSocialMediaCardProps {
   connections: BrandDetailSocialConnection[];
   connectedPlatformsCount: number;
   /**
+   * Reload the brand after an account is disconnected. The card owns the
+   * mutation but not the connection list, so without this the removed account
+   * keeps rendering until the next navigation.
+   */
+  onRefresh?: () => Promise<void> | void;
+  /**
    * `compact` — summary card + connect modal (sidebar / embed).
    * `page` — full categorized integration card list (settings/social).
    */

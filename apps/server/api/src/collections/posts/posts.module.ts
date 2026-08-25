@@ -18,6 +18,7 @@ import { PostsGenerationController } from '@api/collections/posts/controllers/op
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
+import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fanout.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
@@ -59,6 +60,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
   ],
   exports: [
     AnalyticsSyncWorkflowService,
+    PostAccountFanoutModule,
     PostAnalyticsCollectionStateService,
     PostAnalyticsService,
     PostLifecycleModule,
@@ -79,6 +81,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     ModelsModule,
     NotificationsPublisherModule,
     OrganizationSettingsModule,
+    PostAccountFanoutModule,
     PostGroupsModule,
     PostLifecycleModule,
     PromptBuilderModule,

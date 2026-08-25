@@ -1,14 +1,14 @@
 import {
+  DEFAULT_CLIP_RESULT_MODE,
+  isClipResultMode,
+} from '@genfeedai/interfaces';
+import {
   CLIP_FACTORY_JOB_NAME,
   CLIP_FACTORY_QUEUE,
   ClipFactoryJobData,
   isSupportedAvatarVideoProviderName,
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
 } from '@genfeedai/queue-contracts';
-import {
-  DEFAULT_CLIP_RESULT_MODE,
-  isClipResultMode,
-} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable } from '@nestjs/common';

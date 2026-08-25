@@ -710,6 +710,15 @@ export class AuthorReplyLoopService {
     return readReplyBotCredentialId(config as Record<string, unknown>);
   }
 
+  /**
+   * Fallback for bot configs written before accounts were addressable.
+   *
+   * A reply bot speaks *as* an account, so it may only fall back while the
+   * answer is unambiguous. Once the brand holds more than one account on the
+   * platform, the correct one is unknowable from the config, and replying from
+   * a guessed account is worse than not replying — so this fails closed and the
+   * operator repoints the bot at a credential.
+   */
   private async findBrandCredentialId(
     organizationId: string,
     brandId: string,
@@ -719,16 +728,26 @@ export class AuthorReplyLoopService {
     if (!prismaPlatform) {
       return undefined;
     }
-    const credential = await this.prisma.credential.findFirst({
-      orderBy: { updatedAt: 'desc' },
+    const credentials = await this.prisma.credential.findMany({
+      orderBy: { createdAt: 'asc' },
       select: { id: true },
+      take: 2,
       where: scopedWhere(organizationId, {
         brandId,
         isDeleted: false,
         platform: prismaPlatform,
       }),
     });
-    return credential?.id;
+
+    if (credentials.length > 1) {
+      this.logger.warn(
+        `${AuthorReplyLoopService.name} reply bot has no credentialId and the brand holds ${credentials.length} ${platform} accounts; refusing to guess`,
+        { brandId, organizationId, platform },
+      );
+      return undefined;
+    }
+
+    return credentials[0]?.id;
   }
 
   private async loadPlatformCredential(

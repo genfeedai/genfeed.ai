@@ -3,7 +3,6 @@
  */
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -25,7 +24,6 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 describe('ShopifyPublisherService', () => {
   let service: ShopifyPublisherService;
   let shopifyService: vi.Mocked<ShopifyService>;
-  let credentialsService: vi.Mocked<CredentialsService>;
   let loggerService: vi.Mocked<LoggerService>;
 
   const orgId = testId('org');
@@ -93,18 +91,11 @@ describe('ShopifyPublisherService', () => {
             createProduct: vi.fn(),
           },
         },
-        {
-          provide: CredentialsService,
-          useValue: {
-            findOne: vi.fn(),
-          },
-        },
       ],
     }).compile();
 
     service = module.get<ShopifyPublisherService>(ShopifyPublisherService);
     shopifyService = module.get(ShopifyService);
-    credentialsService = module.get(CredentialsService);
     loggerService = module.get(LoggerService);
   });
 
@@ -127,7 +118,6 @@ describe('ShopifyPublisherService', () => {
 
   describe('publish', () => {
     it('should create a Shopify product and return success result', async () => {
-      credentialsService.findOne.mockResolvedValue(mockCredential);
       shopifyService.createProduct.mockResolvedValue({
         handle: 'my-product',
         id: 'shopify-product-123',
@@ -152,7 +142,6 @@ describe('ShopifyPublisherService', () => {
     });
 
     it('should fall back to buildPostUrl when onlineStoreUrl is not present', async () => {
-      credentialsService.findOne.mockResolvedValue(mockCredential);
       shopifyService.createProduct.mockResolvedValue({
         handle: 'my-product',
         id: 'shopify-product-456',
@@ -166,10 +155,34 @@ describe('ShopifyPublisherService', () => {
       );
     });
 
-    it('should return failed result when credential is not found', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
+    it('should create the product on the account the post belongs to', async () => {
+      // A brand with two Shopify stores publishes to the one carried by the
+      // post's credential, never to whichever store happens to be oldest.
+      const secondStore = {
+        ...mockCredential,
+        id: 'second-account-id',
+        externalHandle: 'secondstore.myshopify.com',
+      } as unknown as CredentialDocument;
+      shopifyService.createProduct.mockResolvedValue({
+        handle: 'my-product',
+        id: 'shopify-product-999',
+      } as never);
 
-      const result = await service.publish(makeContext());
+      await service.publish(makeContext({ credential: secondStore }));
+
+      expect(shopifyService.createProduct).toHaveBeenCalledWith(
+        'secondstore.myshopify.com',
+        'decrypted-token',
+        expect.any(String),
+        expect.any(String),
+        expect.any(Array),
+      );
+    });
+
+    it('should return failed result when credential is not found', async () => {
+      const result = await service.publish(
+        makeContext({ credential: undefined as never }),
+      );
 
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/Shopify credential/i);
@@ -177,18 +190,19 @@ describe('ShopifyPublisherService', () => {
     });
 
     it('should return failed result when credential has no accessToken', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        ...mockCredential,
-        accessToken: null,
-      } as unknown as CredentialDocument);
-
-      const result = await service.publish(makeContext());
+      const result = await service.publish(
+        makeContext({
+          credential: {
+            ...mockCredential,
+            accessToken: null,
+          } as unknown as CredentialDocument,
+        }),
+      );
 
       expect(result.success).toBe(false);
     });
 
     it('should return failed result when createProduct returns no id', async () => {
-      credentialsService.findOne.mockResolvedValue(mockCredential);
       shopifyService.createProduct.mockResolvedValue({ id: null } as never);
 
       const result = await service.publish(makeContext());
@@ -198,7 +212,6 @@ describe('ShopifyPublisherService', () => {
     });
 
     it('should throw when shopifyService.createProduct throws', async () => {
-      credentialsService.findOne.mockResolvedValue(mockCredential);
       shopifyService.createProduct.mockRejectedValue(
         new Error('Shopify API down'),
       );
@@ -214,7 +227,6 @@ describe('ShopifyPublisherService', () => {
         ...mockPost,
         label: undefined,
       } as unknown as PostEntity;
-      credentialsService.findOne.mockResolvedValue(mockCredential);
       shopifyService.createProduct.mockResolvedValue({
         id: 'prod-789',
         onlineStoreUrl: 'https://store/products/untitled',

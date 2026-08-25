@@ -19,6 +19,12 @@ describe('InstagramService', () => {
   const credentialsMock = {
     findOne: vi.fn(),
     patch: vi.fn(),
+    // The service resolves its account through the multi-account resolver;
+    // the double answers with whatever `findOne` is primed to return so the
+    // existing single-account cases keep describing one connected account.
+    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+      (credentialsMock.findOne as vi.Mock)(options),
+    ),
   } as unknown as CredentialsService;
 
   const httpServiceMock = {
@@ -341,7 +347,9 @@ describe('InstagramService', () => {
       expect(result.accessToken).toBe('new-token');
     });
 
-    it('looks up a specific credential when an id is provided', async () => {
+    it('resolves the named account when a credential id is provided', async () => {
+      // A brand may hold several Instagram accounts; publish paths always name
+      // the one the post belongs to.
       credentialsMock.findOne = vi.fn().mockResolvedValue({
         accessToken: 'fresh-token',
         accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -352,11 +360,33 @@ describe('InstagramService', () => {
 
       await service.getValidCredential('org-id', 'brand-id', 'credential-42');
 
-      expect(credentialsMock.findOne).toHaveBeenCalledWith({
-        id: 'credential-42',
+      expect(credentialsMock.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId: 'brand-id',
+        credentialId: 'credential-42',
+        isDisconnectedIncluded: true,
         organizationId: 'org-id',
         platform: 'instagram',
       });
+    });
+
+    it('asks for the brand default when no credential id is provided', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue({
+        accessToken: 'fresh-token',
+        accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        externalId: 'ig-account-id',
+        id: 'credential-1',
+        isConnected: true,
+      });
+
+      await service.getValidCredential('org-id', 'brand-id');
+
+      expect(credentialsMock.resolveBrandAccount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-id',
+          credentialId: undefined,
+          platform: 'instagram',
+        }),
+      );
     });
   });
 

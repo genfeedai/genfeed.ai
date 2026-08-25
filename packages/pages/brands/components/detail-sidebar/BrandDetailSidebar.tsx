@@ -27,6 +27,7 @@ export default function BrandDetailSidebar({
   manageLinksHref,
   onTogglePublicProfile,
   onOpenLinkModal,
+  onRefreshBrand,
 }: BrandDetailSidebarProps) {
   const isPublic = isPublicAssetScope(brand.scope);
 
@@ -48,6 +49,7 @@ export default function BrandDetailSidebar({
           brandId={brand.id}
           connections={socialConnections}
           connectedPlatformsCount={connectedPlatformsCount}
+          onRefresh={onRefreshBrand}
         />
       )}
 

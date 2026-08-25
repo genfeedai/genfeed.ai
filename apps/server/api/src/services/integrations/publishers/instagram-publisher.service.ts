@@ -94,6 +94,8 @@ export class InstagramPublisherService extends BasePublisherService {
           brandId,
           mediaInfo.mediaUrls,
           caption,
+          undefined, // hashtags
+          credential.id,
         );
         externalId = carouselResult.mediaId;
         externalShortcode = carouselResult.shortcode;
@@ -104,6 +106,8 @@ export class InstagramPublisherService extends BasePublisherService {
           brandId,
           mediaInfo.mediaUrls[0],
           caption,
+          undefined, // hashtags
+          credential.id,
         );
         externalId = imageResult.mediaId;
         externalShortcode = imageResult.shortcode;
@@ -126,6 +130,7 @@ export class InstagramPublisherService extends BasePublisherService {
           undefined, // coverImageUrl
           undefined, // hashtags
           shareToFeed,
+          credential.id,
         );
         externalId = reelResult.mediaId;
         externalShortcode = reelResult.shortcode;
@@ -192,6 +197,8 @@ export class InstagramPublisherService extends BasePublisherService {
           brandId,
           parentExternalId,
           text,
+          // Comments go out as the account that owns the parent media.
+          context.credential.id,
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

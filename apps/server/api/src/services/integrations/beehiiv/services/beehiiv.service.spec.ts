@@ -20,6 +20,7 @@ describe('BeehiivService', () => {
   let httpGetMock: ReturnType<typeof vi.fn>;
   let httpPostMock: ReturnType<typeof vi.fn>;
   let credentialsFindOneMock: ReturnType<typeof vi.fn>;
+  let credentialsResolveMock: ReturnType<typeof vi.fn>;
 
   const loggerMock = {
     error: vi.fn(),
@@ -47,6 +48,13 @@ describe('BeehiivService', () => {
     httpGetMock = vi.fn();
     httpPostMock = vi.fn();
     credentialsFindOneMock = vi.fn();
+    // Multi-account resolution routes through `resolveBrandAccount`; the double
+    // answers with whatever `findOne` is primed to return so the existing cases
+    // keep describing one connected account.
+    credentialsResolveMock = vi.fn(
+      (options: { credentialId?: string | null }) =>
+        credentialsFindOneMock(options),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -72,6 +80,7 @@ describe('BeehiivService', () => {
           provide: CredentialsService,
           useValue: {
             findOne: credentialsFindOneMock,
+            resolveBrandAccount: credentialsResolveMock,
           },
         },
       ],
@@ -385,7 +394,9 @@ describe('BeehiivService', () => {
       expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('encrypted-token');
     });
 
-    it('scopes a target credential lookup to its exact credential ID', async () => {
+    it('reads the API key of the account named by credentialId', async () => {
+      // A brand may hold several Beehiiv publications; the caller names which
+      // one it is acting as instead of taking the brand default.
       credentialsFindOneMock.mockResolvedValue({
         accessToken: 'encrypted-token',
         externalId: 'pub_abc123',
@@ -393,9 +404,10 @@ describe('BeehiivService', () => {
 
       await service.getDecryptedApiKey(orgId, brandId, 'credential-1');
 
-      expect(credentialsFindOneMock).toHaveBeenCalledWith({
+      expect(credentialsResolveMock).toHaveBeenCalledWith({
         brandId,
-        id: 'credential-1',
+        credentialId: 'credential-1',
+        isDisconnectedIncluded: true,
         organizationId: orgId,
         platform: CredentialPlatform.BEEHIIV,
       });

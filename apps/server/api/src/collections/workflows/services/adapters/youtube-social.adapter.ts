@@ -18,7 +18,7 @@ export class YoutubeSocialAdapter {
 
   createReplyPublisher(): ReplyPublisher {
     return async (params) => {
-      const { organizationId, brandId, postId, text } = params;
+      const { organizationId, brandId, credentialId, postId, text } = params;
 
       if (!brandId) {
         throw new Error('brandId is required for YouTube comment replies');
@@ -26,6 +26,7 @@ export class YoutubeSocialAdapter {
 
       this.loggerService.debug(`${this.logContext} replying to comment`, {
         brandId,
+        credentialId,
         organizationId,
         parentCommentId: postId,
       });
@@ -35,6 +36,7 @@ export class YoutubeSocialAdapter {
         brandId,
         postId,
         text,
+        credentialId,
       );
 
       return {
@@ -50,6 +52,7 @@ export class YoutubeSocialAdapter {
         organizationId,
         brandId,
         contentIds,
+        credentialId,
         keywords,
         excludeKeywords,
         lastCommentId,
@@ -63,6 +66,7 @@ export class YoutubeSocialAdapter {
         organizationId,
         brandId,
         { maxResults: 50 },
+        credentialId,
       );
 
       for (const comment of result.comments) {

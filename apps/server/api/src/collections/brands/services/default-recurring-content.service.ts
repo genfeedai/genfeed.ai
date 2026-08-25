@@ -326,10 +326,15 @@ export class DefaultRecurringContentService {
     // credential write (e.g. an OAuth connect during onboarding) could raise a
     // serialization failure unrelated to the workflow insert, which the catch
     // below would misread as "already created" and silently skip the workflow.
+    // A brand may hold several accounts on the same platform, so this seed
+    // names one deliberately — the brand's oldest connected account — instead of
+    // taking whatever row the database returns first. The operator retargets the
+    // node, or duplicates the workflow per account, from the workflow editor.
     const credentialId =
       params.contentType === 'post'
         ? ((
             await this.prisma.credential.findFirst({
+              orderBy: { createdAt: 'asc' },
               select: { id: true },
               where: scopedWhere(params.organizationId, {
                 brandId: params.brandId,

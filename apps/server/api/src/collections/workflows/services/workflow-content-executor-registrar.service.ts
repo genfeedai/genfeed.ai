@@ -1,5 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
+import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { SOURCE_CORPUS_CONFIG_LIMITS } from '@api/collections/workflows/registry/node-registry';
@@ -10,7 +13,6 @@ import {
   fromPrismaCredentialPlatform,
   PostCategory,
   TargetExecutionState,
-  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import {
   CastPromptExecutor,
@@ -30,6 +32,7 @@ export class WorkflowContentExecutorRegistrarService {
     private readonly newslettersService?: NewslettersService,
     private readonly openRouterService?: OpenRouterService,
     private readonly sourcePostsService?: SourcePostsService,
+    private readonly postAccountFanoutService?: PostAccountFanoutService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -129,9 +132,15 @@ export class WorkflowContentExecutorRegistrarService {
   private registerPostExecutor(engine: WorkflowEngine): void {
     const postsService = this.postsService;
     const credentialsService = this.credentialsService;
+    const fanoutService = this.postAccountFanoutService;
     const openRouterService = this.openRouterService;
 
-    if (!postsService || !credentialsService || !openRouterService) {
+    if (
+      !postsService ||
+      !credentialsService ||
+      !fanoutService ||
+      !openRouterService
+    ) {
       return;
     }
 
@@ -155,41 +164,15 @@ export class WorkflowContentExecutorRegistrarService {
       const timezone =
         this.helper.readConfigString(node.config, 'timezone') ?? 'UTC';
 
-      const credentialQuery: Record<string, unknown> = {
-        brandId,
-        isConnected: true,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      };
-
-      if (credentialId) {
-        credentialQuery.id = credentialId;
-      }
-      if (platform) {
-        const prismaPlatform = toPrismaCredentialPlatform(platform);
-        if (!prismaPlatform) {
-          return {
-            reason: 'missing_connected_credential',
-            status: 'skipped',
-          };
-        }
-        credentialQuery.platform = prismaPlatform;
-      }
-
-      const credential = await credentialsService.findOne(credentialQuery);
-      if (!credential) {
+      // A node that names neither an account nor a platform has no target. It
+      // used to fall back to whichever credential the brand happened to have
+      // first, which stops being a single answer the moment a brand runs more
+      // than one account — so it skips instead of guessing.
+      if (!credentialId && !platform) {
         return {
-          reason: 'missing_connected_credential',
+          reason: 'no_target_account',
           status: 'skipped',
         };
-      }
-      const domainPlatform = fromPrismaCredentialPlatform(
-        String(credential.platform ?? ''),
-      );
-      if (!domainPlatform) {
-        throw new Error(
-          `Unknown credential platform: ${String(credential.platform ?? '')}`,
-        );
       }
 
       const completion = await openRouterService.chatCompletion({
@@ -203,31 +186,67 @@ export class WorkflowContentExecutorRegistrarService {
         completion.choices?.[0]?.message?.content?.trim() ??
         `Daily post draft for ${brandLabel}`;
 
-      const post = await postsService.create({
-        brandId: brandId,
-        category: PostCategory.TEXT,
-        credentialId: credential.id,
-        description,
-        ingredients: [],
-        label: this.helper.buildPostLabel(description),
-        organizationId: context.organizationId,
-        platform: domainPlatform,
-        source: 'workflow-post-generator',
-        targetExecutionState: TargetExecutionState.DRAFT,
-        timezone,
-        userId: context.userId,
-      });
+      // An explicit credentialId names one account; a bare platform means every
+      // account the brand holds there, each with its own body.
+      const targets = credentialId
+        ? await resolveSingleAccountTarget({
+            brandId,
+            credentialId,
+            credentialsService,
+            description,
+            organizationId: context.organizationId,
+          })
+        : await fanoutService.resolveTargets({
+            brandId,
+            caption: description,
+            organizationId: context.organizationId,
+            platforms: [platform as string],
+          });
+
+      if (targets.length === 0) {
+        return {
+          reason: 'missing_connected_credential',
+          status: 'skipped',
+        };
+      }
+
+      const groupId = randomUUID();
+      const posts = [];
+
+      for (const target of targets) {
+        const post = await postsService.create({
+          brandId: brandId,
+          category: PostCategory.TEXT,
+          credentialId: target.credentialId,
+          description: target.caption,
+          groupId,
+          ingredients: [],
+          label: this.helper.buildPostLabel(target.caption),
+          organizationId: context.organizationId,
+          platform: target.platform,
+          source: 'workflow-post-generator',
+          targetExecutionState: TargetExecutionState.DRAFT,
+          timezone,
+          userId: context.userId,
+        });
+
+        posts.push(post);
+      }
+
+      const primary = posts[0];
 
       return {
-        description: post.description,
-        id: post.id.toString(),
-        platform: post.platform,
+        description: primary.description,
+        groupId,
+        id: primary.id.toString(),
+        platform: primary.platform,
         post: {
-          id: post.id.toString(),
-          label: post.label,
-          status: post.status,
+          id: primary.id.toString(),
+          label: primary.label,
+          status: primary.status,
         },
-        status: post.status,
+        postIds: posts.map((post) => post.id.toString()),
+        status: primary.status,
       };
     });
   }
@@ -434,4 +453,48 @@ function readIdInput(value: unknown): string | undefined {
   const record = value as Record<string, unknown>;
   const id = record.id ?? record.ingredientId ?? record.postId;
   return typeof id === 'string' && id.trim().length > 0 ? id.trim() : undefined;
+}
+
+/**
+ * Resolve the single account a node names explicitly. Scoped by org and brand
+ * so a stale config cannot address another tenant's credential, and matched on
+ * the credential id alone so it stays unambiguous once a brand holds several
+ * accounts on one platform.
+ */
+async function resolveSingleAccountTarget(params: {
+  brandId: string;
+  credentialId: string;
+  credentialsService: CredentialsService;
+  description: string;
+  organizationId: string;
+}): Promise<PostAccountTarget[]> {
+  const credential = await params.credentialsService.findOne({
+    brandId: params.brandId,
+    id: params.credentialId,
+    isConnected: true,
+    isDeleted: false,
+    organizationId: params.organizationId,
+  });
+
+  if (!credential) {
+    return [];
+  }
+
+  const platform = fromPrismaCredentialPlatform(
+    String(credential.platform ?? ''),
+  );
+
+  if (!platform) {
+    throw new Error(
+      `Unknown credential platform: ${String(credential.platform ?? '')}`,
+    );
+  }
+
+  return [
+    {
+      caption: params.description,
+      credentialId: credential.id.toString(),
+      platform,
+    },
+  ];
 }

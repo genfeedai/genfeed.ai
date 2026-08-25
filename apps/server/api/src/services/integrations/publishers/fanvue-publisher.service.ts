@@ -49,6 +49,7 @@ export class FanvuePublisherService extends BasePublisherService {
       const { accessToken } = await this.fanvueService.refreshToken(
         organizationId,
         brandId,
+        context.credential.id,
       );
 
       // Upload media if present
@@ -74,6 +75,7 @@ export class FanvuePublisherService extends BasePublisherService {
         brandId,
         content,
         mediaUuids.length > 0 ? mediaUuids : undefined,
+        context.credential.id,
       );
 
       if (!result.uuid) {

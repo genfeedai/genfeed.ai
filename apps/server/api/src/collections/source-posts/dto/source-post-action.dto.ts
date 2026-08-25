@@ -13,6 +13,15 @@ export class SourcePostDraftActionDto {
   })
   actionType?: SourcePostActionType;
 
+  /**
+   * Which of the brand's accounts on this platform the draft publishes as.
+   * Omitted resolves the brand's default account for the platform.
+   */
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  credentialId?: string;
+
   @IsString()
   @IsOptional()
   @MaxLength(2048)

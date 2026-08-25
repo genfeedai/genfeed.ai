@@ -194,18 +194,24 @@ export class FacebookService {
     }
   }
 
+  /**
+   * @param credentialId - which Facebook account to refresh. Required whenever
+   *   the caller knows it: a brand may hold several Facebook accounts, and
+   *   without an id this repairs the brand's oldest one.
+   */
   public async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<Record<string, unknown>> {
-    const queryCredentials = {
+    const credentials = await this.credentialsService.resolveBrandAccount({
       brandId,
-      isDeleted: false,
+      credentialId,
+      // A failed refresh flips isConnected off; the retry still has to find it.
+      isDisconnectedIncluded: true,
       organizationId,
       platform: CredentialPlatform.FACEBOOK,
-    };
-
-    const credentials = await this.credentialsService.findOne(queryCredentials);
+    });
 
     if (!credentials) {
       throw new Error('Facebook credential not found');
@@ -271,9 +277,15 @@ export class FacebookService {
     }
   }
 
+  /**
+   * @param credentialId - which Facebook account's pages to list. Two Facebook
+   *   accounts on one brand expose different page sets; without an id this
+   *   answers for the brand's oldest account.
+   */
   public async getUserPages(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<
     Array<{
       id: string;
@@ -286,9 +298,10 @@ export class FacebookService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
+      const credential = await this.credentialsService.resolveBrandAccount({
+        brandId,
+        credentialId,
+        organizationId,
         platform: CredentialPlatform.FACEBOOK,
       });
 
@@ -402,11 +415,16 @@ export class FacebookService {
     title: string,
     description: string,
     pageId?: string,
+    credentialId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('Facebook credential not found or invalid');
@@ -503,11 +521,16 @@ export class FacebookService {
     title: string,
     description: string,
     pageId?: string,
+    credentialId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('Facebook credential not found or invalid');
@@ -599,6 +622,8 @@ export class FacebookService {
    * @param brandId The brand ID
    * @param postId The Facebook post ID
    * @param message The comment text
+   * @param credentialId Which Facebook account comments; the brand's oldest
+   *   account is used when the caller cannot name one
    * @returns The comment ID
    */
   public async postComment(
@@ -606,11 +631,16 @@ export class FacebookService {
     brandId: string,
     postId: string,
     message: string,
+    credentialId?: string,
   ): Promise<{ commentId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.refreshToken(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
       if (!credential?.accessToken) {
         throw new Error('Facebook credential not found or invalid');

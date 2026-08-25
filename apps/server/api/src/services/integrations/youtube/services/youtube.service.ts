@@ -54,20 +54,25 @@ export class YoutubeService {
     return this.metadataService.getVideoMetadata(videoId);
   }
 
-  refreshToken(organizationId: string, brandId: string) {
-    return this.authService.refreshToken(organizationId, brandId);
+  refreshToken(organizationId: string, brandId: string, credentialId?: string) {
+    return this.authService.refreshToken(organizationId, brandId, credentialId);
   }
 
   getTrends(organizationId?: string, brandId?: string, regionCode = 'US') {
     return this.analyticsService.getTrends(organizationId, brandId, regionCode);
   }
 
+  /**
+   * @param credentialId - which connected YouTube channel this runs as. A brand
+   *   may hold several; without an id this falls back to its oldest one.
+   */
   uploadVideo(
     organizationId: string,
     brandId: string,
     videoId: string,
     post: PostEntity,
     settings: ChannelTargetSettings = {},
+    credentialId?: string,
   ) {
     return this.uploadService.uploadVideo(
       organizationId,
@@ -75,6 +80,7 @@ export class YoutubeService {
       videoId,
       post,
       settings,
+      credentialId,
     );
   }
 
@@ -98,11 +104,17 @@ export class YoutubeService {
     );
   }
 
-  getMediaAnalytics(organizationId: string, brandId: string, videoId: string) {
+  getMediaAnalytics(
+    organizationId: string,
+    brandId: string,
+    videoId: string,
+    credentialId?: string,
+  ) {
     return this.analyticsService.getMediaAnalytics(
       organizationId,
       brandId,
       videoId,
+      credentialId,
     );
   }
 
@@ -110,11 +122,13 @@ export class YoutubeService {
     organizationId: string,
     brandId: string,
     videoIds: string[],
+    credentialId?: string,
   ) {
     return this.analyticsService.getMediaAnalyticsBatch(
       organizationId,
       brandId,
       videoIds,
+      credentialId,
     );
   }
 
@@ -188,12 +202,14 @@ export class YoutubeService {
     brandId: string,
     videoId: string,
     text: string,
+    credentialId?: string,
   ) {
     return this.commentsService.postComment(
       organizationId,
       brandId,
       videoId,
       text,
+      credentialId,
     );
   }
 
@@ -204,11 +220,13 @@ export class YoutubeService {
       maxResults?: number;
       pageToken?: string;
     },
+    credentialId?: string,
   ) {
     return this.commentsService.listRecentChannelComments(
       organizationId,
       brandId,
       options,
+      credentialId,
     );
   }
 
@@ -217,12 +235,14 @@ export class YoutubeService {
     brandId: string,
     videoId: string,
     maxResults?: number,
+    credentialId?: string,
   ) {
     return this.commentsService.listVideoComments(
       organizationId,
       brandId,
       videoId,
       maxResults,
+      credentialId,
     );
   }
 
@@ -231,12 +251,14 @@ export class YoutubeService {
     brandId: string,
     parentCommentId: string,
     text: string,
+    credentialId?: string,
   ) {
     return this.commentsService.replyToComment(
       organizationId,
       brandId,
       parentCommentId,
       text,
+      credentialId,
     );
   }
 
@@ -245,12 +267,14 @@ export class YoutubeService {
     brandId: string,
     parentCommentId: string,
     text: string,
+    credentialId?: string,
   ) {
     return this.commentsService.postCommentReply(
       organizationId,
       brandId,
       parentCommentId,
       text,
+      credentialId,
     );
   }
 }

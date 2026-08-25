@@ -56,6 +56,7 @@ export class DistributionsService extends BaseService<
           caption: dto.caption,
           chatId: dto.chatId,
           contentType: dto.contentType,
+          credentialId: dto.credentialId,
           mediaUrl: dto.mediaUrl,
           scheduledAt: scheduledAt?.toISOString(),
           text: dto.text,

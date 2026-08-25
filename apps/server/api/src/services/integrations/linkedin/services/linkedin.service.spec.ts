@@ -41,6 +41,12 @@ describe('LinkedInService', () => {
   const mockCredentialsService = {
     findOne: vi.fn(),
     patch: vi.fn(),
+    // Multi-account resolution routes through `resolveBrandAccount`; the double
+    // answers with whatever `findOne` is primed to return so the existing
+    // single-account cases keep describing one connected account.
+    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+      (mockCredentialsService.findOne as vi.Mock)(options),
+    ),
   };
 
   const mockHttpService = {
@@ -304,6 +310,33 @@ describe('LinkedInService', () => {
           isConnected: true,
         }),
       );
+    });
+
+    it('refreshes the account named by credentialId', async () => {
+      // A brand may hold several LinkedIn accounts; token repair addresses the
+      // named one instead of whichever happens to be the brand default.
+      mockCredentialsService.findOne.mockResolvedValue({
+        id: 'credential-2',
+        refreshToken: 'encrypted-refresh-token',
+      });
+      mockAuthClientInstance.exchangeRefreshTokenForAccessToken.mockResolvedValue(
+        {
+          access_token: 'new-access-token',
+          expires_in: 5184000,
+          refresh_token: 'new-refresh-token',
+        },
+      );
+      mockCredentialsService.patch.mockResolvedValue({ id: 'credential-2' });
+
+      await service.refreshToken(orgId, brandId, 'credential-2');
+
+      expect(mockCredentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId,
+        credentialId: 'credential-2',
+        isDisconnectedIncluded: true,
+        organizationId: orgId,
+        platform: 'linkedin',
+      });
     });
 
     it('should throw when credential not found', async () => {

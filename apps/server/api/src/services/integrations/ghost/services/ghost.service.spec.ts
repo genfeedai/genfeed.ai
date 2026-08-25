@@ -21,7 +21,10 @@ describe('GhostService', () => {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
   };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
+  let credentialsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    resolveBrandAccount: ReturnType<typeof vi.fn>;
+  };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -34,7 +37,15 @@ describe('GhostService', () => {
 
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };
-    credentialsService = { findOne: vi.fn() };
+    credentialsService = {
+      findOne: vi.fn(),
+      // Multi-account resolution routes through `resolveBrandAccount`; the double
+      // answers with whatever `findOne` is primed to return so the existing
+      // single-account cases keep describing one connected account.
+      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
+        credentialsService.findOne(options),
+      ),
+    };
     loggerService = {
       debug: vi.fn(),
       error: vi.fn(),

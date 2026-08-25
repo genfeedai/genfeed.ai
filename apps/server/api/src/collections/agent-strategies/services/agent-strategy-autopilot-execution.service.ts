@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
@@ -26,10 +27,10 @@ import type {
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -40,12 +41,10 @@ import {
   ActivityKey,
   ActivitySource,
   ContentFormat,
-  fromPrismaCredentialPlatform,
   IngredientCategory,
   PersistedReviewDecision,
   PostCategory,
   TargetExecutionState,
-  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -60,8 +59,8 @@ export class AgentStrategyAutopilotExecutionService {
     private readonly contentGatewayService: ContentGatewayService,
     private readonly optimizersService: OptimizersService,
     private readonly evaluationsOperationsService: EvaluationsOperationsService,
-    private readonly credentialsService: CredentialsService,
     private readonly postsService: PostsService,
+    private readonly postAccountFanoutService: PostAccountFanoutService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly logger: LoggerService,
   ) {}
@@ -791,34 +790,34 @@ export class AgentStrategyAutopilotExecutionService {
   ): Promise<{ postIds: string[]; published: boolean }> {
     const createdPostIds: string[] = [];
     const draftId = getDraftId(draft);
+    const brandId = getStrategyBrandId(strategy) ?? '';
+    const organizationId = getStrategyOrganizationId(strategy);
     let reusedDraft = false;
 
-    for (const platform of platforms) {
-      // `credentials.platform` is the SCREAMING Prisma enum; the opportunity
-      // carries the lowercase product id. Querying with the raw value matches
-      // nothing, so auto-publish would silently no-op on every platform.
-      const credential = await this.credentialsService.findOne(
-        scopedWhere(getStrategyOrganizationId(strategy), {
-          brandId: getStrategyBrandId(strategy) ?? '',
-          isConnected: true,
-          platform: toPrismaCredentialPlatform(platform),
-        }),
-      );
+    // A brand may hold several accounts on one platform, so auto-publish
+    // addresses every connected account rather than whichever row a
+    // platform-only lookup happened to return first. The draft becomes the
+    // first account's post; the rest are siblings sharing one groupId.
+    const targets = await this.postAccountFanoutService.resolveTargets({
+      brandId,
+      caption: content,
+      organizationId,
+      platforms,
+    });
+    const groupId = randomUUID();
 
-      if (!credential) {
-        continue;
-      }
-
+    for (const target of targets) {
       const post = reusedDraft
         ? await this.postsService.create({
             agentStrategyId: getStrategyId(strategy),
-            brandId: getStrategyBrandId(strategy) ?? '',
+            brandId,
             category: PostCategory.TEXT,
             contentRunId: draft.contentRunId ?? undefined,
-            credentialId: documentId(credential),
-            description: content,
-            organizationId: getStrategyOrganizationId(strategy),
-            platform: fromPrismaCredentialPlatform(credential.platform),
+            credentialId: target.credentialId,
+            description: target.caption,
+            groupId,
+            organizationId,
+            platform: target.platform,
             promptUsed: draft.promptUsed ?? undefined,
             scheduledDate: new Date(),
             source: draft.source ?? undefined,
@@ -828,8 +827,9 @@ export class AgentStrategyAutopilotExecutionService {
             userId,
           } as PostCreateInput)
         : await this.postsService.patch(draftId, {
-            credentialId: documentId(credential),
-            platform: fromPrismaCredentialPlatform(credential.platform),
+            credentialId: target.credentialId,
+            groupId,
+            platform: target.platform,
             scheduledDate: new Date(),
             targetExecutionState: TargetExecutionState.PUBLISHING,
           });

@@ -11,7 +11,6 @@ vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
 }));
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
@@ -29,7 +28,6 @@ describe('MastodonPublisherService', () => {
     publishStatus: ReturnType<typeof vi.fn>;
     uploadMedia: ReturnType<typeof vi.fn>;
   };
-  let credentialsService: { findOne: ReturnType<typeof vi.fn> };
   let postsService: { patch: ReturnType<typeof vi.fn> };
   let configService: {
     get: ReturnType<typeof vi.fn>;
@@ -82,9 +80,6 @@ describe('MastodonPublisherService', () => {
       publishStatus: vi.fn().mockResolvedValue({ id: 'ext-123' }),
       uploadMedia: vi.fn().mockResolvedValue({ id: 'media-1' }),
     };
-    credentialsService = {
-      findOne: vi.fn().mockResolvedValue(mockCredential),
-    };
     postsService = { patch: vi.fn().mockResolvedValue(undefined) };
     configService = {
       get: vi.fn(() => 'https://webhooks.genfeed.ai'),
@@ -98,7 +93,6 @@ describe('MastodonPublisherService', () => {
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
         { provide: MastodonService, useValue: mastodonService },
-        { provide: CredentialsService, useValue: credentialsService },
         { provide: PostsService, useValue: postsService },
       ],
     }).compile();
@@ -214,10 +208,31 @@ describe('MastodonPublisherService', () => {
       expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('enc-token');
     });
 
-    it('should return failed result when credential not found', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
+    it('should publish as the account on the context, not a sibling account', async () => {
+      const secondAccount = {
+        id: 'second-account-id',
+        accessToken: 'enc-token-2',
+        description: 'https://second.social',
+        externalHandle: '@second@second.social',
+        platform: CredentialPlatform.MASTODON,
+      } as unknown as CredentialDocument;
 
-      const result = await service.publish(makeContext());
+      await service.publish(makeContext({ credential: secondAccount }));
+
+      expect(mastodonService.publishStatus).toHaveBeenCalledWith(
+        'https://second.social',
+        'decrypted:enc-token-2',
+        'Hello Mastodon!',
+        undefined,
+        undefined,
+        'public',
+      );
+    });
+
+    it('should return failed result when credential not found', async () => {
+      const result = await service.publish(
+        makeContext({ credential: undefined as never }),
+      );
       expect(result.success).toBe(false);
       expect(result.error).toContain('credential');
     });

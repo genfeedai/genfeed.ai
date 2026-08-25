@@ -29,6 +29,13 @@ export interface NewFollowerTriggerOutput {
 export type NewFollowerChecker = (params: {
   organizationId: string;
   platform: FollowerTriggerPlatform;
+  /** Brand whose connected account this trigger watches. */
+  brandId?: string;
+  /**
+   * Which of the brand's accounts on this platform to watch. A brand may hold
+   * several; omitted watches the brand's default account.
+   */
+  credentialId?: string;
   minFollowerCount?: number;
   lastFollowerId: string | null;
 }) => Promise<NewFollowerTriggerOutput | null>;
@@ -94,6 +101,8 @@ export class NewFollowerTriggerExecutor extends BaseExecutor {
     );
 
     const result = await this.checker({
+      brandId: node.config.brandId as string | undefined,
+      credentialId: node.config.credentialId as string | undefined,
       lastFollowerId,
       minFollowerCount,
       organizationId: context.organizationId,

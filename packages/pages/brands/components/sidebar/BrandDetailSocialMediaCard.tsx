@@ -203,6 +203,7 @@ export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
   connectedPlatformsCount,
+  onRefresh,
   variant = 'compact',
 }: BrandDetailSocialMediaCardProps) {
   const isPageVariant = variant === 'page';
@@ -225,25 +226,14 @@ export default function BrandDetailSocialMediaCard({
     string | null
   >(null);
   const [isOverrideSubmitting, setIsOverrideSubmitting] = useState(false);
+  const [disconnectTarget, setDisconnectTarget] =
+    useState<SocialConnection | null>(null);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   const connectedConnections = connections;
-  const connectedPlatforms = useMemo(
-    () =>
-      new Set(connectedConnections.map((connection) => connection.platform)),
-    [connectedConnections],
-  );
-
-  const unconnectedPlatforms = useMemo(
-    () =>
-      OAUTH_CONNECT_PLATFORMS.filter(
-        (p) => !connectedPlatforms.has(p.platform),
-      ),
-    [connectedPlatforms],
-  );
-  const unconnectedPlatformGroups = useMemo(
-    () => groupOAuthConnectPlatforms(unconnectedPlatforms),
-    [unconnectedPlatforms],
-  );
+  // Every channel stays on the connect list even once it holds an account: a
+  // brand runs as many accounts per platform as it wants, so filtering the
+  // connected ones out would hide the way to add the second one.
   const allPlatformGroups = useMemo(
     () => groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS),
     [],
@@ -370,6 +360,30 @@ export default function BrandDetailSocialMediaCard({
     }
   };
 
+  const handleConfirmDisconnect = async () => {
+    if (!disconnectTarget) {
+      return;
+    }
+
+    setIsDisconnecting(true);
+    try {
+      const token = (await resolveAuthToken(getToken)) ?? '';
+      await CredentialsService.getInstance(token).delete(
+        disconnectTarget.credentialId,
+      );
+      NotificationsService.getInstance().success('Account disconnected');
+      setDisconnectTarget(null);
+      // The connection list is owned by the page, so the removed row only
+      // disappears once the brand is reloaded.
+      await onRefresh?.();
+    } catch (error) {
+      logger.error('Failed to disconnect account', error);
+      NotificationsService.getInstance().error('Disconnect account');
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
+
   const handleConfirmOverride = async () => {
     if (!selectedOverrideHealth) {
       return;
@@ -474,7 +488,7 @@ export default function BrandDetailSocialMediaCard({
         </div>
 
         {isConnected ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {platformConnections.map((connection) => (
               <div className="space-y-2" key={connection.credentialId}>
                 <ConnectedAccount
@@ -488,6 +502,27 @@ export default function BrandDetailSocialMediaCard({
                       : undefined
                   }
                 />
+                {/* Per account, not per platform: reconnecting one account of
+                    a brand that runs several must not touch its siblings. */}
+                <div className="flex flex-wrap items-center gap-1">
+                  <Button
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.SM}
+                    className="h-7 px-2 text-2xs"
+                    onClick={() => handleConnectPlatform(item)}
+                    isDisabled={connectingPlatform !== null}
+                  >
+                    {`Reconnect ${getConnectionLabel(connection)}`}
+                  </Button>
+                  <Button
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.SM}
+                    className="h-7 px-2 text-2xs text-muted-foreground"
+                    onClick={() => setDisconnectTarget(connection)}
+                  >
+                    {`Disconnect ${getConnectionLabel(connection)}`}
+                  </Button>
+                </div>
                 {isPageVariant ? (
                   <CredentialPostingTimesEditor
                     credentialId={connection.credentialId}
@@ -500,6 +535,8 @@ export default function BrandDetailSocialMediaCard({
         ) : null}
 
         <div className="mt-auto pt-1">
+          {/* Stays available after the first account connects — that is how a
+              brand adds the second one. */}
           <Button
             variant={
               isConnected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
@@ -510,14 +547,10 @@ export default function BrandDetailSocialMediaCard({
             isLoading={connectingPlatform === item.platform}
             isDisabled={connectingPlatform !== null}
           >
-            {isConnected ? `Reconnect ${item.label}` : `Connect ${item.label}`}
+            {isConnected
+              ? `Add another ${item.label} account`
+              : `Connect ${item.label}`}
           </Button>
-          {isConnected ? (
-            <p className="mt-1.5 text-center text-2xs leading-4 text-muted-foreground">
-              One {item.label} account per brand for now — reconnect replaces
-              the linked profile.
-            </p>
-          ) : null}
         </div>
       </div>
     );
@@ -603,8 +636,50 @@ export default function BrandDetailSocialMediaCard({
 
   const socialDescription =
     connectedPlatformsCount > 0
-      ? `${connectedPlatformsCount} connected · ${unconnectedPlatforms.length} available to add`
+      ? `${connectedPlatformsCount} connected account${
+          connectedPlatformsCount === 1 ? '' : 's'
+        } · ${OAUTH_CONNECT_PLATFORMS.length} channels available`
       : 'Connect accounts to display them here.';
+
+  const disconnectDialog = (
+    <Dialog
+      open={Boolean(disconnectTarget)}
+      onOpenChange={(open) => {
+        if (!open) {
+          setDisconnectTarget(null);
+        }
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Disconnect account</DialogTitle>
+          <DialogDescription>
+            {disconnectTarget
+              ? `${getConnectionLabel(disconnectTarget)} stops publishing for this brand. Other accounts on ${disconnectTarget.platform} are untouched, and you can reconnect it later.`
+              : ''}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex justify-end gap-2">
+          <Button
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            onClick={() => setDisconnectTarget(null)}
+          >
+            Cancel
+          </Button>
+          <Button
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DESTRUCTIVE}
+            isLoading={isDisconnecting}
+            onClick={handleConfirmDisconnect}
+          >
+            Disconnect
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   const overrideDialog = (
     <Dialog
@@ -691,6 +766,7 @@ export default function BrandDetailSocialMediaCard({
             </Card>
           ) : null}
         </div>
+        {disconnectDialog}
         {overrideDialog}
       </>
     );
@@ -756,30 +832,35 @@ export default function BrandDetailSocialMediaCard({
             <div className="space-y-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 {connectedConnections.map((connection) => (
-                  <ConnectedAccount
-                    key={connection.credentialId}
-                    connection={connection}
-                  />
+                  <div className="space-y-1" key={connection.credentialId}>
+                    <ConnectedAccount connection={connection} />
+                    <Button
+                      variant={ButtonVariant.GHOST}
+                      size={ButtonSize.SM}
+                      className="h-7 px-2 text-2xs text-muted-foreground"
+                      onClick={() => setDisconnectTarget(connection)}
+                    >
+                      {`Disconnect ${getConnectionLabel(connection)}`}
+                    </Button>
+                  </div>
                 ))}
               </div>
 
-              {unconnectedPlatformGroups.length > 0 ? (
-                <div className="space-y-4 border-t border-border pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Add more channels for this brand.
-                  </p>
-                  {unconnectedPlatformGroups.map((group) => (
-                    <div key={group.id} className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {group.label}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {group.platforms.map(renderConnectButton)}
-                      </div>
+              <div className="space-y-4 border-t border-border pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Add another account, or a new channel, for this brand.
+                </p>
+                {allPlatformGroups.map((group) => (
+                  <div key={group.id} className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {group.label}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.platforms.map(renderConnectButton)}
                     </div>
-                  ))}
-                </div>
-              ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -801,6 +882,7 @@ export default function BrandDetailSocialMediaCard({
         </DialogContent>
       </Dialog>
 
+      {disconnectDialog}
       {overrideDialog}
     </>
   );

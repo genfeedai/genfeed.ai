@@ -352,10 +352,11 @@ export class BotsRestreamChatService {
     }
 
     if (bot.brandId) {
-      const byBrand = await this.credentialsService.findOne({
+      // Discovery only — a brand with several Restream accounts gets its
+      // default one, and the id is pinned onto the bot below so every later
+      // load addresses that account explicitly.
+      const byBrand = await this.credentialsService.resolveBrandAccount({
         brandId: bot.brandId,
-        isConnected: true,
-        isDeleted: false,
         organizationId: bot.organizationId,
         platform: CredentialPlatform.RESTREAM,
       });

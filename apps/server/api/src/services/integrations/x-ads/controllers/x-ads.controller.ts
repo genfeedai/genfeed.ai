@@ -196,19 +196,21 @@ export class XAdsController {
         });
       }
 
-      const updatedCredential = await this.credentialsService.patch(
+      // The Ads account id is the identity — an agency brand routinely runs
+      // more than one.
+      const updatedCredential = await this.credentialsService.connectAccount(
         credential.id,
+        credential.organizationId,
+        {
+          handle: primaryAccount.name || 'X Ads',
+          id: primaryAccount.id,
+          name: primaryAccount.name || 'X Ads',
+        },
         {
           accessToken: tokens.accessToken,
           accessTokenExpiry: tokens.expiresIn
             ? new Date(Date.now() + tokens.expiresIn * 1000)
             : undefined,
-          externalHandle: primaryAccount.name || 'X Ads',
-          externalId: primaryAccount.id,
-          externalName: primaryAccount.name || 'X Ads',
-          isConnected: true,
-          isDeleted: false,
-          oauthState: null,
           oauthToken: null,
           oauthTokenSecret: null,
           refreshToken: tokens.refreshToken,

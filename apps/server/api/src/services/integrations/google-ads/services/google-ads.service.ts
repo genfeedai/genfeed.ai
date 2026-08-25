@@ -202,12 +202,17 @@ export class GoogleAdsService {
   async refreshToken(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<Record<string, unknown>> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.credentialsService.findOne({
-      brandId: brandId,
-      organizationId: organizationId,
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      credentialId,
+      // Token repair has to find the row even after a failed refresh
+      // flipped `isConnected` off.
+      isDisconnectedIncluded: true,
+      organizationId,
       platform: CredentialPlatform.GOOGLE_ADS,
     });
 

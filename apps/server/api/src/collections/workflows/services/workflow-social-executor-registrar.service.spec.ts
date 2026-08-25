@@ -46,7 +46,10 @@ function register(
       sendEmail?: ReturnType<typeof vi.fn>;
       sendNotification?: ReturnType<typeof vi.fn>;
     };
-    credentialsService?: { findOne?: ReturnType<typeof vi.fn> };
+    credentialsService?: {
+      findOne?: ReturnType<typeof vi.fn>;
+      resolveBrandAccount?: ReturnType<typeof vi.fn>;
+    };
   } = {},
 ) {
   const engine = new WorkflowEngine();

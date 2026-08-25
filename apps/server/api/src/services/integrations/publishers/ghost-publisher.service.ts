@@ -1,5 +1,4 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
@@ -26,7 +25,6 @@ export class GhostPublisherService extends BasePublisherService {
     protected readonly configService: ConfigService,
     protected readonly logger: LoggerService,
     private readonly ghostService: GhostService,
-    private readonly credentialsService: CredentialsService,
   ) {
     super(configService, logger);
   }
@@ -38,7 +36,7 @@ export class GhostPublisherService extends BasePublisherService {
    */
   async publish(context: PublishContext): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { post, credential, organizationId, brandId } = context;
+    const { post, credential } = context;
     const mediaInfo = this.extractMediaInfo(post);
 
     // Log the attempt
@@ -55,12 +53,10 @@ export class GhostPublisherService extends BasePublisherService {
     }
 
     try {
-      // Get Ghost credential with API key
-      const ghostCredential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
-        platform: CredentialPlatform.GHOST,
-      });
+      // The account this post was scheduled for, already resolved by the
+      // publish pipeline. Re-resolving it from brand + platform would hand the
+      // post to a sibling account the moment the brand connects a second one.
+      const ghostCredential = credential;
 
       if (!ghostCredential?.accessToken || !ghostCredential?.externalHandle) {
         this.logger.error(`${url} Ghost credential or site URL not found`, {

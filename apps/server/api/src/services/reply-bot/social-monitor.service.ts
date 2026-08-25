@@ -80,6 +80,11 @@ export interface FetchContentOptions {
   preferOfficialApi?: boolean;
   /** Brand scope for OAuth-first X user token lookup. */
   brandId?: string;
+  /**
+   * Which of the brand's accounts to read as. A brand may hold several accounts
+   * on one platform; omitted reads as the brand's default account.
+   */
+  credentialId?: string;
   organizationId?: string;
 }
 
@@ -395,6 +400,7 @@ export class SocialMonitorService {
           await this.twitterService.resolveBrandUserAccessToken(
             options.organizationId,
             options.brandId,
+            options.credentialId,
           );
       }
 
@@ -487,6 +493,7 @@ export class SocialMonitorService {
           await this.twitterService.resolveBrandUserAccessToken(
             options.organizationId,
             options.brandId,
+            options.credentialId,
           );
       }
 

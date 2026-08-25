@@ -1,5 +1,4 @@
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
@@ -28,7 +27,6 @@ export class FacebookPublisherService extends BasePublisherService {
     protected readonly configService: ConfigService,
     protected readonly logger: LoggerService,
     private readonly facebookService: FacebookService,
-    private readonly credentialsService: CredentialsService,
     private readonly postsService: PostsService,
   ) {
     super(configService, logger);
@@ -56,12 +54,10 @@ export class FacebookPublisherService extends BasePublisherService {
     }
 
     try {
-      // Get Facebook credential with page access token
-      const fbCredential = await this.credentialsService.findOne({
-        brandId: brandId,
-        organizationId: organizationId,
-        platform: CredentialPlatform.FACEBOOK,
-      });
+      // The account this post was scheduled for, already resolved by the
+      // publish pipeline. Re-resolving it from brand + platform would hand the
+      // post to a sibling account the moment the brand connects a second one.
+      const fbCredential = credential;
 
       // The explicit page setting wins; the credential's page is the fallback
       // for releases scheduled before the setting existed.
@@ -83,6 +79,7 @@ export class FacebookPublisherService extends BasePublisherService {
       const pagesResponse = await this.facebookService.getUserPages(
         organizationId,
         brandId,
+        fbCredential.id,
       );
       const targetPage = pagesResponse.find((page) => page.id === pageId);
 
@@ -117,6 +114,8 @@ export class FacebookPublisherService extends BasePublisherService {
           mediaInfo.mediaUrls[0],
           post.label ?? '',
           caption,
+          pageId,
+          fbCredential.id,
         );
       }
 
@@ -170,6 +169,7 @@ export class FacebookPublisherService extends BasePublisherService {
           brandId,
           parentExternalId,
           text,
+          context.credential.id,
         ),
       updateChild: (childId, update) =>
         this.postsService.patch(childId, update),

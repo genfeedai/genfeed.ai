@@ -14,7 +14,6 @@ import type {
   InstagramRemixMode,
 } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 function readOptionalNumber(value: unknown): number | undefined {
@@ -208,14 +207,16 @@ export class AgentInstagramInspirationToolHandler {
       >[0]['brand'],
       platform: 'instagram',
     });
+    // A brand may hold several Instagram accounts; `credentialId` names the one
+    // whose handle seeds the inspiration, otherwise the brand default is used
+    // and the resolver logs the accounts it passed over.
     const credential = this.credentialsService
-      ? await this.credentialsService.findOne(
-          scopedWhere(ctx.organizationId, {
-            brandId,
-            isConnected: true,
-            platform: CredentialPlatform.INSTAGRAM,
-          }),
-        )
+      ? await this.credentialsService.resolveBrandAccount({
+          brandId,
+          credentialId: readOptionalString(params.credentialId),
+          organizationId: ctx.organizationId,
+          platform: CredentialPlatform.INSTAGRAM,
+        })
       : null;
 
     return {

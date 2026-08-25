@@ -68,6 +68,15 @@ export class CreateDistributionDto {
   readonly brandId?: string;
 
   @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      "Which of the brand's accounts on this platform sends the message; omit to use the brand's default account",
+    required: false,
+  })
+  readonly credentialId?: string;
+
+  @IsOptional()
   @IsDateString()
   @ApiProperty({
     description:
