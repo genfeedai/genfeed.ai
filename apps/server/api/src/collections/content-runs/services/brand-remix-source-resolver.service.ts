@@ -77,6 +77,7 @@ export class BrandRemixSourceResolverService {
       throw new BadRequestException({
         detail:
           'The selected ads credential is disconnected or does not belong to this brand.',
+        message: 'Ads credential is unavailable',
         title: 'Ads credential is unavailable',
       });
     }

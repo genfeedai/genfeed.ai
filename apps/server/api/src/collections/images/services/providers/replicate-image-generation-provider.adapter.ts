@@ -191,6 +191,15 @@ export class ReplicateImageGenerationProviderAdapter
           )
         ).input;
 
+    // Compiled SeeDream dispatch omits request-scoped batch size. Overlay the
+    // official Replicate fields so one provider call still asks for N images.
+    if (request.compiledDispatch && isBatchSupported) {
+      Object.assign(input, {
+        max_images: request.outputs,
+        ...(request.outputs > 1 ? { sequential_image_generation: 'auto' } : {}),
+      });
+    }
+
     return {
       additionalActivityFailure: 'fail',
       additionalFailureLabel:

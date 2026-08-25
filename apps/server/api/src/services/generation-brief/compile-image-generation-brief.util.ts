@@ -279,6 +279,8 @@ export interface BuildImageGenerationBriefEvidenceInput {
   outputFormat: string;
   profileId: string;
   profileVersion: number;
+  /** Dispatched reference ids. Defaults to every brief reference. */
+  referenceAssetIds?: string[];
 }
 
 /**
@@ -307,9 +309,9 @@ export function buildImageGenerationBriefEvidence(
     },
     profileId: input.profileId,
     profileVersion: input.profileVersion,
-    referenceAssetIds: input.brief.references.map(
-      (reference) => reference.assetId,
-    ),
+    referenceAssetIds:
+      input.referenceAssetIds ??
+      input.brief.references.map((reference) => reference.assetId),
     status: 'compiled',
   };
 }

@@ -494,10 +494,10 @@ export class CampaignExecutorService {
   /**
    * Preview a reply without posting
    */
-  previewReply(
+  async previewReply(
     campaign: OutreachCampaignDocument,
     target: CampaignTargetDocument,
-  ): Promise<string> | string {
+  ): Promise<string> {
     requireExecutableOutreachPair({
       campaignType: campaign.campaignType,
       platform: campaign.platform,
