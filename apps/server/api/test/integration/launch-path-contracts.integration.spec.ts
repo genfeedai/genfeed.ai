@@ -1,7 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+
+import { readRepo, readSourceOf } from './launch-path-source.util';
 
 /**
  * Hermetic launch-path contracts collected for the API E2E tier.
@@ -9,17 +8,21 @@ import { describe, expect, it } from 'vitest';
  * These are not live HTTP tests — they lock production-critical query and
  * migration shapes so nightly P3018 / bootstrap regressions fail in CI without
  * spinning a full Playwright matrix. CPU-cheap by design (read source only).
+ *
+ * Subjects are located by their exported declaration inside an owning subtree
+ * (`readSourceOf`), never by a hardcoded path: #3508 relocated
+ * `scheduleReplyPostWatchAfterPublish` and reddened the release Full Suite
+ * while the production code was correct. `readRepo` is reserved for artifacts
+ * whose PATH IS the contract — migrations, the Prisma schema, `.gitignore`,
+ * agent memory, tier manifests.
  */
-const here = dirname(fileURLToPath(import.meta.url));
-// apps/server/api/test/integration → monorepo root
-const repoRoot = join(here, '../../../../..');
-
-function readRepo(relativePath: string): string {
-  return readFileSync(join(repoRoot, relativePath), 'utf8');
-}
+const API_SRC = 'apps/server/api/src';
+const APP = 'apps/app';
+const WORKERS_SRC = 'apps/server/workers/src';
 
 describe('launch-path contracts (hermetic E2E tier)', () => {
   it('refuses to serve public articles when the live schema drifts (#2832)', () => {
+    // main.ts is the bootstrap entry point — its path is part of the contract.
     const main = readRepo('apps/server/api/src/main.ts');
     const listenIdx = main.indexOf('app.listen(port)');
     const contractCallIdx = main.indexOf(
@@ -38,8 +41,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(listenIdx).toBeGreaterThan(informationSchemaIdx);
     expect(main).toContain('API-GENFEED-AI-71');
 
-    const contract = readRepo('packages/prisma/src/article-column-contract.ts');
-    expect(contract).toContain('REQUIRED_ARTICLE_COLUMNS');
+    const contract = readSourceOf('REQUIRED_ARTICLE_COLUMNS', {
+      root: 'packages/prisma/src',
+    });
     expect(contract).toContain("'label'");
     expect(contract).toContain("'summary'");
     expect(contract).toContain(
@@ -57,9 +61,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('bounds review-inbox bootstrap scans in production source', () => {
-    const source = readRepo(
-      'apps/server/api/src/services/batch-generation/batch-generation-review.service.ts',
-    );
+    const source = readSourceOf('BatchGenerationReviewService', {
+      root: API_SRC,
+    });
     expect(source).toContain('this.prisma.batchItem.groupBy({');
     expect(source).toContain('this.prisma.batchItem.findMany({');
     expect(source).toContain('take: recentLimit');
@@ -67,9 +71,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('aggregates agent-run stats with groupBy instead of four counts', () => {
-    const source = readRepo(
-      'apps/server/api/src/collections/agent-runs/services/agent-runs.service.ts',
-    );
+    const source = readSourceOf('AgentRunsService', { root: API_SRC });
     expect(source).toContain('this.prisma.agentRun.groupBy({');
     expect(source).toContain("by: ['status']");
     // Guard against reintroducing the four-count fan-out on the bootstrap path.
@@ -83,9 +85,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('fails closed when Replicate webhook signing secret is missing', () => {
-    const source = readRepo(
-      'apps/server/api/src/endpoints/webhooks/replicate/webhooks.replicate.controller.ts',
-    );
+    const source = readSourceOf('ReplicateWebhookController', {
+      root: API_SRC,
+    });
     expect(source).toContain(
       'REPLICATE_WEBHOOK_SIGNING_SECRET is not configured',
     );
@@ -93,9 +95,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('continues prior executions on job retry instead of re-triggering', () => {
-    const source = readRepo(
-      'apps/server/workers/src/processors/api/collections/workflows/services/workflow-execution.processor.ts',
-    );
+    const source = readSourceOf('WorkflowExecutionProcessor', {
+      root: WORKERS_SRC,
+    });
     expect(source).toContain('priorExecutionIds');
     expect(source).toContain('continueExistingExecution');
     expect(source).toContain('continuedOnRetry');
@@ -103,9 +105,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('treats completed and cancelled prior executions as terminal on continue', () => {
-    const source = readRepo(
-      'apps/server/api/src/collections/workflows/services/workflow-executor.service.ts',
-    );
+    const source = readSourceOf('WorkflowExecutorService', { root: API_SRC });
     expect(source).toContain('continueExistingExecution');
     expect(source).toContain('WorkflowExecutionStatus.COMPLETED');
     expect(source).toContain('WorkflowExecutionStatus.CANCELLED');
@@ -122,9 +122,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('completes durable claims on the graph-runner throw path (#2359)', () => {
-    const source = readRepo(
-      'apps/server/api/src/collections/workflows/services/workflow-node-graph-runner.service.ts',
-    );
+    const source = readSourceOf('WorkflowNodeGraphRunnerService', {
+      root: API_SRC,
+    });
     // Success and throw branches both call nodeClaimService.complete so a
     // failed node is not left `running` forever (retry would busy-skip).
     const completeCalls = source.match(/this\.nodeClaimService\.complete\(/g);
@@ -133,12 +133,10 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('defers agent bootstrap until brand scope resolves (#2702)', () => {
-    const layout = readRepo(
-      'apps/app/app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient.tsx',
-    );
-    const brandState = readRepo(
-      'packages/contexts/user/brand-context/useBrandProviderState.ts',
-    );
+    const layout = readSourceOf('AgentWorkspaceLayoutClient', { root: APP });
+    const brandState = readSourceOf('useBrandProviderState', {
+      root: 'packages/contexts',
+    });
     expect(layout).toContain('isBrandScopeResolved');
     expect(layout).toContain(
       'hasAttemptedReturningBootstrapRef.current = false',
@@ -148,9 +146,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('rejects invalid batch platforms before content generation (#2696)', () => {
-    const processing = readRepo(
-      'apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts',
-    );
+    const processing = readSourceOf('BatchGenerationProcessingService', {
+      root: API_SRC,
+    });
     const generateIdx = processing.indexOf(
       'this.contentGeneratorService.generateContent',
     );
@@ -162,9 +160,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('cancels the batch when the agent tool credit reserve fails (#2696)', () => {
-    const source = readRepo(
-      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-batch-generation.service.ts',
-    );
+    const source = readSourceOf('AgentMediaBatchGenerationService', {
+      root: API_SRC,
+    });
     expect(source).toContain('reserveCreditsOrCancel');
     expect(source).toContain('cancelBatch');
     expect(source).toContain(
@@ -192,18 +190,14 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('pins social-read + report-delivery residual contracts (#2664)', () => {
-    const registrar = readRepo(
-      'apps/server/api/src/collections/workflows/services/workflow-social-executor-registrar.service.ts',
-    );
-    const palette = readRepo(
-      'apps/app/src/features/workflows/components/CloudNodePalette.tsx',
-    );
-    const credits = readRepo(
-      'packages/workflows/src/engine/utils/credit-calculator.ts',
-    );
-    const canvas = readRepo(
-      'apps/app/src/features/workflows/nodes/merged-node-types.ts',
-    );
+    const registrar = readSourceOf('WorkflowSocialExecutorRegistrarService', {
+      root: API_SRC,
+    });
+    const palette = readSourceOf('CloudNodePalette', { root: APP });
+    const credits = readSourceOf('DEFAULT_CREDIT_COSTS', {
+      root: 'packages/workflows/src',
+    });
+    const canvas = readSourceOf('cloudNodeTypes', { root: APP });
     expect(registrar).toContain('formatSocialReadProviderError');
     expect(registrar).toContain('formatReportDeliveryError');
     expect(registrar).toContain('socialRead twitter rate limited');
@@ -218,9 +212,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('agent executeWorkflow is organization-scoped before the executor runs', () => {
-    const source = readRepo(
-      'apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-execute.service.ts',
-    );
+    const source = readSourceOf('AgentWorkflowToolExecuteService', {
+      root: API_SRC,
+    });
     const executeIdx = source.indexOf('async executeWorkflow(');
     const slice = source.slice(executeIdx, executeIdx + 1200);
     expect(slice).toContain('organizationId: ctx.organizationId');
@@ -229,9 +223,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('in-process node claim map hydrates completed nodes for same executionId', () => {
-    const source = readRepo(
-      'apps/server/api/src/collections/workflows/services/workflow-node-graph-runner.service.ts',
-    );
+    const source = readSourceOf('WorkflowNodeGraphRunnerService', {
+      root: API_SRC,
+    });
     expect(source).toContain('hydrateCompletedNodesFromExecution');
     expect(source).toContain('this.nodeClaims.set');
     expect(source).toContain('claimNodeOnce');
@@ -240,18 +234,18 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('content harness loads core pack, media kinds, and generation wiring', () => {
-    const service = readRepo(
-      'apps/server/api/src/services/harness/harness.service.ts',
-    );
-    const types = readRepo('packages/harness/src/types.ts');
-    const mediaPrompt = readRepo('packages/harness/src/media-prompt.ts');
-    const mediaHandler = readRepo(
-      'apps/server/api/src/services/agent-orchestrator/tools/agent-media-asset-generation.service.ts',
-    );
-    const ads = readRepo(
-      'apps/server/api/src/endpoints/ads-research/ads-research.service.ts',
-    );
-    const config = readRepo('packages/libs/config/config.service.ts');
+    const service = readSourceOf('ContentHarnessService', { root: API_SRC });
+    const types = readSourceOf('ContentKind', { root: 'packages/harness/src' });
+    const mediaPrompt = readSourceOf('buildMediaPromptFromHarness', {
+      root: 'packages/harness/src',
+    });
+    const mediaHandler = readSourceOf('AgentMediaAssetGenerationService', {
+      root: API_SRC,
+    });
+    const ads = readSourceOf('AdsResearchService', { root: API_SRC });
+    const config = readSourceOf('ConfigService', {
+      root: 'packages/libs/config',
+    });
     expect(service).toContain('CORE_CONTENT_HARNESS_PACK');
     expect(service).toContain('CONTENT_HARNESS_PACKAGES');
     expect(service).toContain('composeContentHarnessBrief');
@@ -267,33 +261,28 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('video upscale/reframe charge only via CreditsInterceptor (no manual deduct)', () => {
-    const upscale = readRepo(
-      'apps/server/api/src/collections/videos/controllers/transformations/upscale/videos-upscale.controller.ts',
-    );
-    const reframe = readRepo(
-      'apps/server/api/src/collections/videos/controllers/transformations/reframe/videos-reframe.controller.ts',
-    );
-    const lipSync = readRepo(
-      'apps/server/api/src/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller.ts',
-    );
-    for (const source of [upscale, reframe, lipSync]) {
+    const controllers = [
+      'VideosUpscaleController',
+      'VideosReframeController',
+      'VideosLipSyncController',
+    ];
+    for (const controller of controllers) {
+      const source = readSourceOf(controller, { root: API_SRC });
       expect(source).toContain('CreditsInterceptor');
       expect(source).not.toContain('deductCreditsFromOrganization');
     }
   });
 
   it('context auto-create uses parsePlatform for posts.platform (not a local map)', () => {
-    const source = readRepo(
-      'apps/server/api/src/collections/contexts/services/contexts.service.ts',
-    );
+    const source = readSourceOf('ContextsService', { root: API_SRC });
     expect(source).toContain('parsePlatform');
     expect(source).not.toContain('const PLATFORM_MAP');
   });
 
   it('exposes harness winner promotion as an authenticated API', () => {
-    const controller = readRepo(
-      'apps/server/api/src/collections/harness-profiles/controllers/harness-profiles.controller.ts',
-    );
+    const controller = readSourceOf('HarnessProfilesController', {
+      root: API_SRC,
+    });
     expect(controller).toContain("Post('promote-winners')");
     expect(controller).toContain('promoteTopPerformers');
   });
@@ -302,21 +291,19 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const migration = readRepo(
       'packages/prisma/prisma/migrations/20260807100000_add_context_entry_pgvector/migration.sql',
     );
-    const similarity = readRepo(
-      'apps/server/api/src/collections/contexts/utils/context-similarity-query.util.ts',
-    );
-    const contexts = readRepo(
-      'apps/server/api/src/collections/contexts/services/contexts.service.ts',
-    );
-    const harnessGen = readRepo(
-      'apps/server/api/src/services/harness/harness-generation.service.ts',
-    );
-    const harnessModule = readRepo(
-      'apps/server/api/src/services/harness/harness.module.ts',
-    );
-    const winnerPromotion = readRepo(
-      'apps/server/api/src/services/harness/harness-winner-promotion.service.ts',
-    );
+    const similarity = readSourceOf('buildContextSimilarityQuery', {
+      root: API_SRC,
+    });
+    const contexts = readSourceOf('ContextsService', { root: API_SRC });
+    const harnessGen = readSourceOf('HarnessGenerationService', {
+      root: API_SRC,
+    });
+    const harnessModule = readSourceOf('ContentHarnessModule', {
+      root: API_SRC,
+    });
+    const winnerPromotion = readSourceOf('HarnessWinnerPromotionService', {
+      root: API_SRC,
+    });
     expect(migration).toContain('CREATE EXTENSION IF NOT EXISTS vector');
     expect(migration).toContain('hnsw');
     expect(similarity).toContain('<=>');
@@ -329,18 +316,16 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('ingests KnowledgeBase sources as chunked ContextEntry embeddings', () => {
-    const autoCreate = readRepo(
-      'apps/server/api/src/collections/contexts/services/contexts.service.ts',
-    );
-    const ingest = readRepo(
-      'apps/server/api/src/collections/contexts/services/knowledge-source-ingest.service.ts',
-    );
-    const extract = readRepo(
-      'apps/server/api/src/collections/contexts/utils/extract-source-text.util.ts',
-    );
-    const processor = readRepo(
-      'apps/server/workers/src/processors/api/queues/knowledge-source-ingest/knowledge-source-ingest.processor.ts',
-    );
+    const autoCreate = readSourceOf('ContextsService', { root: API_SRC });
+    const ingest = readSourceOf('KnowledgeSourceIngestService', {
+      root: API_SRC,
+    });
+    const extract = readSourceOf('UnsupportedKnowledgeSourceError', {
+      root: API_SRC,
+    });
+    const processor = readSourceOf('KnowledgeSourceIngestProcessor', {
+      root: WORKERS_SRC,
+    });
     expect(autoCreate).toContain('chunkText');
     expect(autoCreate).toContain('this.addEntry');
     expect(ingest).toContain('extractSourceText');
@@ -353,29 +338,28 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('registers platform-x harness pack from open-source ranking signals', () => {
-    const xPack = readRepo('packages/harness/src/platforms/x-algorithm.ts');
-    const harnessService = readRepo(
-      'apps/server/api/src/services/harness/harness.service.ts',
-    );
+    const xPack = readSourceOf('X_HEAVY_RANKER_WEIGHTS_2023', {
+      root: 'packages/harness/src',
+    });
+    const harnessService = readSourceOf('ContentHarnessService', {
+      root: API_SRC,
+    });
     expect(xPack).toContain('X_PLATFORM_HARNESS_PACK');
     expect(xPack).toContain('scoreXPublicMetrics');
-    expect(xPack).toContain('X_HEAVY_RANKER_WEIGHTS_2023');
     expect(harnessService).toContain('X_PLATFORM_HARNESS_PACK');
   });
 
   it('exposes author-reply loop API for X conversation closed loops', () => {
-    const controller = readRepo(
-      'apps/server/api/src/collections/reply-bot-configs/controllers/reply-bot-configs.controller.ts',
-    );
-    const replyGen = readRepo(
-      'apps/server/api/src/services/reply-bot/reply-generation.service.ts',
-    );
-    const authorLoop = readRepo(
-      'apps/server/api/src/services/reply-bot/author-reply-loop.service.ts',
-    );
-    const executor = readRepo(
-      'apps/server/api/src/services/reply-bot/bot-action-executor.service.ts',
-    );
+    const controller = readSourceOf('ReplyBotConfigsController', {
+      root: API_SRC,
+    });
+    const replyGen = readSourceOf('ReplyGenerationService', { root: API_SRC });
+    const authorLoop = readSourceOf('AuthorReplyLoopService', {
+      root: API_SRC,
+    });
+    const executor = readSourceOf('BotActionExecutorService', {
+      root: API_SRC,
+    });
     expect(controller).toContain("Post('author-reply/ensure')");
     expect(controller).toContain("Get('author-reply/inbox')");
     expect(controller).toContain("Post('author-reply/send')");
@@ -387,30 +371,23 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(authorLoop).toContain('loadPlatformCredential');
     expect(executor).toContain('postYouTubeCommentReply');
     expect(executor).toContain('replyToComment');
-    const bindUi = readRepo(
-      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentWorkflowBindCard.tsx',
-    );
+    const bindUi = readSourceOf('AgentWorkflowBindCard', { root: APP });
     expect(bindUi).toContain('preferredWorkflowId');
     expect(bindUi).toContain('workflowInputOverrides');
     expect(bindUi).toContain('Save binding');
-    const runDialogUtil = readRepo(
-      'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/agents/agent-workflow-run-input.util.ts',
-    );
+    const runDialogUtil = readSourceOf('buildAgentWorkflowRunInput', {
+      root: APP,
+    });
     expect(runDialogUtil).toContain('listUnfilledRequiredAfterForm');
-    const credentialUtil = readRepo(
-      'apps/server/api/src/services/campaign/reply-bot-credential.util.ts',
-    );
-    expect(credentialUtil).toContain('toReplyBotCredentialData');
+    const credentialUtil = readSourceOf('toReplyBotCredentialData', {
+      root: API_SRC,
+    });
     expect(credentialUtil).toContain('readReplyBotCredentialId');
   });
 
   it('reads X replies via official API first with Apify fallback only', () => {
-    const twitter = readRepo(
-      'apps/server/api/src/services/integrations/twitter/services/twitter.service.ts',
-    );
-    const monitor = readRepo(
-      'apps/server/api/src/services/reply-bot/social-monitor.service.ts',
-    );
+    const twitter = readSourceOf('TwitterService', { root: API_SRC });
+    const monitor = readSourceOf('SocialMonitorService', { root: API_SRC });
     expect(twitter).toContain('getTweetReplies');
     expect(twitter).toContain('tweets/search/recent');
     expect(twitter).toContain('conversation_id:');
@@ -420,38 +397,39 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('schedules reply post-watch after successful X publish', () => {
-    const delivery = readRepo(
-      'apps/server/workers/src/services/scheduled-post-delivery.service.ts',
-    );
+    const delivery = readSourceOf('ScheduledPostDeliveryService', {
+      root: WORKERS_SRC,
+    });
     expect(delivery).toContain('scheduleReplyPostWatchAfterPublish');
     expect(delivery).toContain('schedulePostWatch');
   });
 
   it('registers X activity webhook and reply inbound/post-watch pipes', () => {
-    const controller = readRepo(
-      'apps/server/api/src/endpoints/webhooks/x-activity/webhooks.x-activity.controller.ts',
-    );
-    const queues = readRepo(
-      'packages/queue-contracts/src/queue-names.constant.ts',
-    );
-    const inbound = readRepo(
-      'apps/server/api/src/queues/reply-bot/reply-inbound-queue.service.ts',
-    );
+    const controller = readSourceOf('XActivityWebhookController', {
+      root: API_SRC,
+    });
+    const inboundQueueName = readSourceOf('REPLY_INBOUND_QUEUE', {
+      root: 'packages/queue-contracts/src',
+    });
+    const postWatchQueueName = readSourceOf('REPLY_POST_WATCH_QUEUE', {
+      root: 'packages/queue-contracts/src',
+    });
+    const inbound = readSourceOf('ReplyInboundQueueService', { root: API_SRC });
     expect(controller).toContain("Controller('webhooks/x-activity')");
     expect(controller).toContain('handleCrc');
-    expect(queues).toContain("REPLY_INBOUND_QUEUE = 'reply-inbound'");
-    expect(queues).toContain("REPLY_POST_WATCH_QUEUE = 'reply-post-watch'");
+    expect(inboundQueueName).toContain("REPLY_INBOUND_QUEUE = 'reply-inbound'");
+    expect(postWatchQueueName).toContain(
+      "REPLY_POST_WATCH_QUEUE = 'reply-post-watch'",
+    );
     expect(inbound).toContain('schedulePostWatch');
     expect(inbound).toContain('enqueueInbound');
   });
 
   it('classifies reply intents and caps comment age at 48h', () => {
-    const intent = readRepo(
-      'apps/server/api/src/services/reply-bot/reply-intent.util.ts',
-    );
-    const authorLoop = readRepo(
-      'apps/server/api/src/services/reply-bot/author-reply-loop.service.ts',
-    );
+    const intent = readSourceOf('ReplyIntent', { root: API_SRC });
+    const authorLoop = readSourceOf('AuthorReplyLoopService', {
+      root: API_SRC,
+    });
     expect(intent).toContain('export type ReplyIntent');
     expect(intent).toContain("'thanks'");
     expect(intent).toContain("'troll'");
@@ -465,6 +443,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('keeps repaired API E2E specs in the full tier and drops the dead health harness', () => {
+    // The manifest and the coverage script are addressed by path on purpose:
+    // the tier runner resolves them from these exact locations.
     const manifest = readRepo(
       'apps/server/api/scripts/api-e2e-tiers.manifest.ts',
     );
