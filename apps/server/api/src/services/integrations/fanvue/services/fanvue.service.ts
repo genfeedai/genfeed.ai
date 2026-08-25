@@ -20,6 +20,7 @@ const FANVUE_SCOPES = [
   'read:self',
   'read:media',
   'write:media',
+  'write:post',
 ];
 
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB

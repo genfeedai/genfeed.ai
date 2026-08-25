@@ -144,6 +144,7 @@ describe('FanvueService', () => {
       expect(url).toContain('read%3Aself');
       expect(url).toContain('read%3Amedia');
       expect(url).toContain('write%3Amedia');
+      expect(url).toContain('write%3Apost');
     });
   });
 
