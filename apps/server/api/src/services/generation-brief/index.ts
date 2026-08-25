@@ -9,6 +9,10 @@ export { compileMinimaxH3GenerationBrief } from '@api/services/generation-brief/
 export type { CompilePrunaaiPVideoGenerationBriefInput } from '@api/services/generation-brief/compile-prunaai-p-video-generation-brief';
 export { compilePrunaaiPVideoGenerationBrief } from '@api/services/generation-brief/compile-prunaai-p-video-generation-brief';
 export { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
+export {
+  GENERATION_BRIEF_ENTRY_EXEMPTIONS,
+  GENERATION_BRIEF_GENERATIVE_ENTRY_POINTS,
+} from '@api/services/generation-brief/generation-brief-entry-points';
 export type {
   ImageGenerationBriefCompileFn,
   ImageGenerationBriefCompileInput,
@@ -32,3 +36,10 @@ export { resolveImageGenerationBriefSupport } from '@api/services/generation-bri
 export { resolveImageGenerationFidelityMode } from '@api/services/generation-brief/resolve-image-generation-fidelity-mode';
 export { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
 export { resolveVideoGenerationFidelityMode } from '@api/services/generation-brief/resolve-video-generation-fidelity-mode';
+export type { RunImageGenerationBriefInput } from '@api/services/generation-brief/run-image-generation-brief';
+export {
+  resolveImageGenerationBriefModelKey,
+  runImageGenerationBrief,
+} from '@api/services/generation-brief/run-image-generation-brief';
+export type { RunVideoGenerationBriefInput } from '@api/services/generation-brief/run-video-generation-brief';
+export { runVideoGenerationBrief } from '@api/services/generation-brief/run-video-generation-brief';

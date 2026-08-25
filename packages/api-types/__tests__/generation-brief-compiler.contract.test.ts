@@ -151,6 +151,7 @@ describe('generation brief compiler contract', () => {
       'workflow',
       'agent_skill',
       'telegram_bot',
+      'schedule',
     ]);
     for (const surface of generationBriefSurfaceValues) {
       expect(generationBriefSurfaceSchema.parse(surface)).toBe(surface);

@@ -2,6 +2,7 @@ import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dt
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { runVideoGenerationBrief } from '@api/services/generation-brief';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import {
@@ -76,6 +77,17 @@ export class GenerateVideoTask {
         `Executing generate:video task with model: ${config.model}`,
         'GenerateVideoTask',
       );
+
+      void runVideoGenerationBrief({
+        durationSeconds: config.duration,
+        height: 1080,
+        model: config.model,
+        objective: config.prompt,
+        seed: config.seed,
+        surface: 'schedule',
+        visualDirection: config.style,
+        width: 1920,
+      });
 
       let generatedUrl: string;
       let externalId: string;

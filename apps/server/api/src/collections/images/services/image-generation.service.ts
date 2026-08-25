@@ -31,15 +31,11 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
-  assembleImageGenerationBrief,
-  assertRedactedGenerationBriefEvidence,
   GenerationBriefCompileError,
-  resolveImageGenerationBriefSupport,
-  resolveImageGenerationFidelityMode,
+  runImageGenerationBrief,
   toRedactedGenerationBriefProviderData,
 } from '@api/services/generation-brief';
 import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
-import { getImageGenerationBriefRegistryEntry } from '@api/services/generation-brief/image-generation-brief-registry';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
@@ -47,10 +43,6 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
-import {
-  buildGenerationBriefCompileSource,
-  buildGenerationBriefExemptionSource,
-} from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   IngredientCategory,
   MetadataExtension,
@@ -385,80 +377,36 @@ export class ImageGenerationService {
     evidence: GenerationBriefPersistedEvidence;
     generationSource: string;
   } {
-    const support = resolveImageGenerationBriefSupport(params.model);
-    if (support.kind === 'exempt') {
-      return {
-        evidence: assertRedactedGenerationBriefEvidence({
-          compilerId: null,
-          compilerVersion: null,
-          modelKey: support.modelKey,
-          profileId: null,
-          profileVersion: null,
-          reason: support.reason,
-          status: 'exempted',
-        }),
-        generationSource: buildGenerationBriefExemptionSource(support.reason),
-      };
-    }
-
-    const entry = getImageGenerationBriefRegistryEntry(support.modelKey);
-    if (!entry) {
-      throw new HttpException(
-        {
-          detail: `No registered generation brief compiler for model "${support.modelKey}".`,
-          title: 'Generation brief compilation failed',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    const composition = [
+      params.createImageDto.camera,
+      params.createImageDto.lens,
+    ]
+      .filter((value): value is string => Boolean(value?.trim()))
+      .join(', ');
+    const avoid = [
+      ...(params.createImageDto.blacklist ?? []),
+      ...(params.createImageDto.negativePrompt
+        ? [params.createImageDto.negativePrompt]
+        : []),
+    ];
 
     try {
-      const fidelityMode = resolveImageGenerationFidelityMode({
-        brandingMode: params.createImageDto.brandingMode,
-        isBrandingEnabled: params.createImageDto.isBrandingEnabled,
-      });
-      const composition = [
-        params.createImageDto.camera,
-        params.createImageDto.lens,
-      ]
-        .filter((value): value is string => Boolean(value?.trim()))
-        .join(', ');
-      const avoid = [
-        ...(params.createImageDto.blacklist ?? []),
-        ...(params.createImageDto.negativePrompt
-          ? [params.createImageDto.negativePrompt]
-          : []),
-      ];
-      const brief = assembleImageGenerationBrief({
+      return runImageGenerationBrief({
         avoid,
+        brandingMode: params.createImageDto.brandingMode,
         composition,
-        fidelityMode,
         height: params.height,
+        isBrandingEnabled: params.createImageDto.isBrandingEnabled,
         lighting: params.createImageDto.lighting,
+        model: params.model,
         objective: params.promptOriginalText,
         referenceIds: params.referenceIds,
         scene: params.createImageDto.scene,
+        seed: params.createImageDto.seed,
+        surface: 'studio',
         visualDirection: params.style || params.createImageDto.style,
-        visualDirectionSource: 'user',
         width: params.width,
       });
-      const compiled = entry.compile({
-        brief,
-        modelKey: support.modelKey,
-        seed: params.createImageDto.seed,
-      });
-
-      return {
-        brief: compiled.brief,
-        dispatch: compiled.dispatch,
-        evidence: assertRedactedGenerationBriefEvidence(compiled.evidence),
-        generationSource: buildGenerationBriefCompileSource({
-          compilerId: entry.compilerId,
-          compilerVersion: entry.compilerVersion,
-          profileId: entry.profileId,
-          profileVersion: entry.profileVersion,
-        }),
-      };
     } catch (error: unknown) {
       if (error instanceof GenerationBriefCompileError) {
         throw new HttpException(

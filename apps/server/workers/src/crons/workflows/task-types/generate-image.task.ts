@@ -1,4 +1,5 @@
 import { ByokService } from '@api/services/byok/byok.service';
+import { runImageGenerationBrief } from '@api/services/generation-brief';
 import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -61,13 +62,32 @@ export class GenerateImageTask {
         'GenerateImageTask',
       );
 
+      const compiled = runImageGenerationBrief({
+        height: config.height || 1024,
+        model: config.model,
+        objective: config.prompt,
+        seed: config.seed,
+        surface: 'schedule',
+        width: config.width || 1024,
+      });
+      const compiledConfig: GenerateImageConfig = {
+        ...config,
+        prompt:
+          typeof compiled.dispatch?.prompt === 'string'
+            ? compiled.dispatch.prompt
+            : config.prompt,
+      };
+
       let generatedUrl: string;
       let externalId: string;
 
       // Route to appropriate AI service based on model, with provider failover
       switch (config.model) {
         case ImageTaskModel.LEONARDO:
-          externalId = await this.generateWithLeonardo(config, organizationId);
+          externalId = await this.generateWithLeonardo(
+            compiledConfig,
+            organizationId,
+          );
           generatedUrl = externalId;
           break;
 
@@ -76,7 +96,7 @@ export class GenerateImageTask {
         case ImageTaskModel.IMAGEN4:
           try {
             externalId = await this.generateWithReplicate(
-              config,
+              compiledConfig,
               organizationId,
             );
             generatedUrl = externalId;
@@ -91,7 +111,7 @@ export class GenerateImageTask {
                 ? 'fal-ai/flux-pro'
                 : 'fal-ai/flux/dev';
             generatedUrl = await this.generateWithFal(
-              { ...config, falModelId },
+              { ...compiledConfig, falModelId },
               organizationId,
             );
             externalId = generatedUrl;
@@ -100,7 +120,10 @@ export class GenerateImageTask {
 
         case ImageTaskModel.FAL:
           try {
-            generatedUrl = await this.generateWithFal(config, organizationId);
+            generatedUrl = await this.generateWithFal(
+              compiledConfig,
+              organizationId,
+            );
             externalId = generatedUrl;
           } catch (error: unknown) {
             if (!this.isProviderCapacityError(error)) throw error;
@@ -109,7 +132,7 @@ export class GenerateImageTask {
               'GenerateImageTask',
             );
             externalId = await this.generateWithReplicate(
-              { ...config, model: ImageTaskModel.REPLICATE },
+              { ...compiledConfig, model: ImageTaskModel.REPLICATE },
               organizationId,
             );
             generatedUrl = externalId;

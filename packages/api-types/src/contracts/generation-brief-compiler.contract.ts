@@ -45,6 +45,7 @@ export const generationBriefSurfaceValues = [
   'workflow',
   'agent_skill',
   'telegram_bot',
+  'schedule',
 ] as const;
 
 export const generationBriefSurfaceSchema = z.enum(
