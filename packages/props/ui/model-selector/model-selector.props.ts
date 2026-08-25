@@ -32,11 +32,7 @@ export interface ModelSelectorCapability {
   icon: IconType;
 }
 
-/**
- * A single-select filter chip. `all` plus the catalog's source groups and the
- * capability shortcuts — the flat list has no rail and no accordion, so this
- * row is the only structural filter.
- */
+/** A category or capability chip in the model picker's single filter row. */
 export interface ModelSelectorFilter {
   id: string;
   label: string;
@@ -76,9 +72,12 @@ export interface ModelSelectorPopoverProps {
 }
 
 export interface ModelSelectorFilterPillsProps {
-  filters: ModelSelectorFilter[];
-  activeFilterId: string;
-  onFilterSelect: (filterId: string) => void;
+  categoryFilters: ModelSelectorFilter[];
+  activeCategoryId: string;
+  onCategorySelect: (filterId: string) => void;
+  capabilityFilters: ModelSelectorFilter[];
+  activeCapabilityFilterId: string | null;
+  onCapabilityFilterSelect: (filterId: string) => void;
 }
 
 export interface ModelSelectorModelItemProps {

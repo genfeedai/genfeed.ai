@@ -34,6 +34,19 @@ export const MODEL_FILTER_ALL_OPTION: ModelSelectorFilter = {
   label: 'All',
 };
 
+export const MODEL_CATEGORY_AUTO = 'category:auto';
+export const MODEL_CATEGORY_CATALOG = 'category:catalog';
+
+export const MODEL_CATEGORY_AUTO_OPTION: ModelSelectorFilter = {
+  id: MODEL_CATEGORY_AUTO,
+  label: 'Auto',
+};
+
+export const MODEL_CATEGORY_CATALOG_OPTION: ModelSelectorFilter = {
+  id: MODEL_CATEGORY_CATALOG,
+  label: 'Catalog',
+};
+
 /**
  * Capability shortcuts. Each one only joins the pill row when the current
  * catalog actually has a model behind it — an empty filter is a dead control.

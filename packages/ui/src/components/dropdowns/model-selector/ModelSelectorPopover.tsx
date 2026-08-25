@@ -15,6 +15,10 @@ import {
   AUTO_PRIORITY_LABELS,
   AUTO_PRIORITY_OPTIONS,
   MODEL_CAPABILITY_FILTERS,
+  MODEL_CATEGORY_AUTO,
+  MODEL_CATEGORY_AUTO_OPTION,
+  MODEL_CATEGORY_CATALOG,
+  MODEL_CATEGORY_CATALOG_OPTION,
   MODEL_FILTER_ALL_OPTION,
   MODEL_LEGACY_FILTER,
 } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -49,7 +53,7 @@ import { Check, Sparkles } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 type ModelSelectorSection = {
-  key: 'favorites' | 'recent' | 'all' | 'results';
+  key: string;
   heading: string | undefined;
   options: ModelSelectorOption[];
 };
@@ -78,7 +82,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   const isSingleSelect = selectionMode === 'single';
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilterId, setActiveFilterId] = useState(MODEL_FILTER_ALL);
+  const [activeCategoryId, setActiveCategoryId] = useState(MODEL_FILTER_ALL);
+  const [activeCapabilityFilterId, setActiveCapabilityFilterId] = useState<
+    string | null
+  >(null);
   const { recentModelKeys, onModelUsed } = useModelRecents();
 
   useEffect(() => {
@@ -88,7 +95,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
     setIsOpen(false);
     setSearchTerm('');
-    setActiveFilterId(MODEL_FILTER_ALL);
+    setActiveCategoryId(MODEL_FILTER_ALL);
+    setActiveCapabilityFilterId(null);
   }, [isDisabled]);
 
   const isAutoSelected = values.includes(AUTO_MODEL_OPTION_VALUE);
@@ -141,21 +149,61 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }));
   }, [allOptions, sourceGroupLabels]);
 
+  const orderedSourceGroups = useMemo(() => {
+    const catalogGroups = new Set(autoSourceGroups ?? []);
+
+    return [...sourceGroups].sort((left, right) => {
+      const leftIsCatalog = catalogGroups.has(left.id);
+      const rightIsCatalog = catalogGroups.has(right.id);
+
+      if (leftIsCatalog === rightIsCatalog) {
+        return left.label.localeCompare(right.label);
+      }
+
+      // Custom/brand models precede the broad catalog, matching the picker IA.
+      return leftIsCatalog ? 1 : -1;
+    });
+  }, [autoSourceGroups, sourceGroups]);
+
   const hasLegacy = allOptions.some((option) => option.isDeprecated);
 
-  // Every pill has to earn its slot: a filter nobody can satisfy is a dead
-  // control that costs the same horizontal space as a useful one.
-  const filters = useMemo((): ModelSelectorFilter[] => {
+  const hasAutoEligibleSource =
+    !autoSourceGroups ||
+    autoSourceGroups.length === 0 ||
+    sourceGroups.length === 0 ||
+    autoSourceGroups.some((group) =>
+      sourceGroups.some((sourceGroup) => sourceGroup.id === group),
+    );
+  const canSelectAuto =
+    allOptions.length > 0 &&
+    hasAutoEligibleSource &&
+    (!isSingleSelect || Boolean(autoLabel));
+
+  const categoryFilters = useMemo((): ModelSelectorFilter[] => {
     const nextFilters: ModelSelectorFilter[] = [MODEL_FILTER_ALL_OPTION];
 
-    if (sourceGroups.length > 1) {
-      for (const sourceGroup of sourceGroups) {
+    if (canSelectAuto) {
+      nextFilters.push(MODEL_CATEGORY_AUTO_OPTION);
+    }
+
+    if (orderedSourceGroups.length === 0) {
+      nextFilters.push(MODEL_CATEGORY_CATALOG_OPTION);
+    } else {
+      for (const sourceGroup of orderedSourceGroups) {
         nextFilters.push({
           id: `${MODEL_FILTER_SOURCE_PREFIX}${sourceGroup.id}`,
           label: sourceGroup.label,
         });
       }
     }
+
+    return nextFilters;
+  }, [canSelectAuto, orderedSourceGroups]);
+
+  // Every capability has to earn its slot: a filter nobody can satisfy is a
+  // dead control that costs the same horizontal space as a useful one.
+  const capabilityFilters = useMemo((): ModelSelectorFilter[] => {
+    const nextFilters: ModelSelectorFilter[] = [];
 
     for (const capabilityFilter of MODEL_CAPABILITY_FILTERS) {
       const hasMatch = allOptions.some((option) =>
@@ -171,28 +219,52 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }
 
     return nextFilters;
-  }, [allOptions, hasLegacy, sourceGroups]);
+  }, [allOptions, hasLegacy]);
 
-  // A catalog swap (image ⇄ video) can retire the active pill mid-session.
-  const effectiveFilterId = filters.some(
-    (filter) => filter.id === activeFilterId,
+  // A catalog swap (image ⇄ video) can retire an active chip mid-session.
+  const effectiveCategoryId = categoryFilters.some(
+    (filter) => filter.id === activeCategoryId,
   )
-    ? activeFilterId
+    ? activeCategoryId
     : MODEL_FILTER_ALL;
 
-  const activeSourceGroup = isSourceFilter(effectiveFilterId)
-    ? getSourceFilterGroup(effectiveFilterId)
-    : 'all';
-  const isCapabilityFilterActive =
-    effectiveFilterId !== MODEL_FILTER_ALL &&
-    !isSourceFilter(effectiveFilterId);
+  const effectiveCapabilityFilterId = capabilityFilters.some(
+    (filter) => filter.id === activeCapabilityFilterId,
+  )
+    ? activeCapabilityFilterId
+    : null;
+
+  const isAutoCategory = effectiveCategoryId === MODEL_CATEGORY_AUTO;
+
+  const categoryOptions = useMemo(() => {
+    if (isAutoCategory) {
+      return [];
+    }
+
+    if (
+      effectiveCategoryId === MODEL_FILTER_ALL ||
+      effectiveCategoryId === MODEL_CATEGORY_CATALOG
+    ) {
+      return allOptions;
+    }
+
+    if (isSourceFilter(effectiveCategoryId)) {
+      const sourceGroup = getSourceFilterGroup(effectiveCategoryId);
+      return allOptions.filter((option) => option.sourceGroup === sourceGroup);
+    }
+
+    return allOptions;
+  }, [allOptions, effectiveCategoryId, isAutoCategory]);
 
   const catalogOptions = useMemo(
     () =>
-      allOptions.filter((option) =>
-        matchesModelFilter(option, effectiveFilterId),
+      categoryOptions.filter((option) =>
+        matchesModelFilter(
+          option,
+          effectiveCapabilityFilterId ?? MODEL_FILTER_ALL,
+        ),
       ),
-    [allOptions, effectiveFilterId],
+    [categoryOptions, effectiveCapabilityFilterId],
   );
 
   // Search reaches past the "All" pill's legacy exclusion — someone typing a
@@ -202,13 +274,19 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       return [];
     }
 
-    const searchPool =
-      effectiveFilterId === MODEL_FILTER_ALL ? allOptions : catalogOptions;
+    const searchPool = effectiveCapabilityFilterId
+      ? catalogOptions
+      : categoryOptions;
 
     return searchPool.filter((option) =>
       matchesModelSearch(option, normalizedSearchTerm),
     );
-  }, [allOptions, catalogOptions, effectiveFilterId, normalizedSearchTerm]);
+  }, [
+    catalogOptions,
+    categoryOptions,
+    effectiveCapabilityFilterId,
+    normalizedSearchTerm,
+  ]);
 
   // Sections never overlap: a model appears once, so scanning the list is a
   // single pass and cmdk keeps one row per value.
@@ -242,21 +320,71 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         !recentKeys.has(option.model.key),
     );
 
-    const hasRankedSection =
-      favoriteOptions.length > 0 || recentOptions.length > 0;
-
-    return [
+    const rankedSections: ModelSelectorSection[] = [
       { heading: 'Favorites', key: 'favorites', options: favoriteOptions },
       { heading: 'Recent', key: 'recent', options: recentOptions },
+    ].filter(
+      (section): section is ModelSelectorSection => section.options.length > 0,
+    );
+
+    if (effectiveCategoryId === MODEL_FILTER_ALL && sourceGroups.length > 0) {
+      const sourceSections = orderedSourceGroups.map((sourceGroup) => ({
+        heading: sourceGroup.label,
+        key: `source-${sourceGroup.id}`,
+        options: remainingOptions.filter(
+          (option) => option.sourceGroup === sourceGroup.id,
+        ),
+      }));
+      const groupedKeys = new Set(
+        sourceSections.flatMap((section) =>
+          section.options.map((option) => option.model.key),
+        ),
+      );
+      const ungroupedOptions = remainingOptions.filter(
+        (option) => !groupedKeys.has(option.model.key),
+      );
+
+      return [
+        ...rankedSections,
+        ...sourceSections,
+        {
+          heading: 'Catalog',
+          key: 'catalog',
+          options: ungroupedOptions,
+        },
+      ].filter(
+        (section): section is ModelSelectorSection =>
+          section.options.length > 0,
+      );
+    }
+
+    const activeCategoryLabel = categoryFilters.find(
+      (filter) => filter.id === effectiveCategoryId,
+    )?.label;
+
+    return [
+      ...rankedSections,
       {
-        heading: hasRankedSection ? 'All models' : undefined,
-        key: 'all',
+        heading:
+          effectiveCategoryId === MODEL_FILTER_ALL
+            ? 'Catalog'
+            : activeCategoryLabel,
+        key: 'catalog',
         options: remainingOptions,
       },
     ].filter(
       (section): section is ModelSelectorSection => section.options.length > 0,
     );
-  }, [catalogOptions, normalizedSearchTerm, recentModelKeys, searchResults]);
+  }, [
+    catalogOptions,
+    categoryFilters,
+    effectiveCategoryId,
+    normalizedSearchTerm,
+    orderedSourceGroups,
+    recentModelKeys,
+    searchResults,
+    sourceGroups.length,
+  ]);
 
   const selectedModels = useMemo(
     () =>
@@ -272,34 +400,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   // it (`!isAutoSelected`), which left a tall empty popover of priority-only
   // rows and made it impossible to pick a concrete model once Auto was on.
   const shouldShowManualCatalog = allOptions.length > 0;
+  const shouldShowManualRows = shouldShowManualCatalog && !isAutoCategory;
 
-  const shouldShowAuto = useMemo(() => {
-    // Capability and legacy pills are catalog subsets — Auto is not one.
-    if (isCapabilityFilterActive) {
-      return false;
-    }
-
-    if (sourceGroups.length === 0) {
-      return true;
-    }
-
-    if (activeSourceGroup === 'all') {
-      if (!autoSourceGroups || autoSourceGroups.length === 0) {
-        return true;
-      }
-
-      return autoSourceGroups.some((group) =>
-        sourceGroups.some((sourceGroup) => sourceGroup.id === group),
-      );
-    }
-
-    return (autoSourceGroups ?? []).includes(activeSourceGroup);
-  }, [
-    activeSourceGroup,
-    autoSourceGroups,
-    isCapabilityFilterActive,
-    sourceGroups,
-  ]);
+  const shouldShowAuto =
+    (effectiveCategoryId === MODEL_FILTER_ALL || isAutoCategory) &&
+    !effectiveCapabilityFilterId;
 
   const visibleAutoPriorities = useMemo(() => {
     if (!normalizedSearchTerm) {
@@ -317,10 +422,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   // explicitly opts in with autoLabel (studio generation keeps the full surface).
   // An empty allowlist must not offer Auto — confirm would 403 in RouterService.
   const shouldShowAutoCard =
-    models.length > 0 &&
-    (!isSingleSelect || Boolean(autoLabel)) &&
-    (isAutoSelected || shouldShowAuto) &&
-    visibleAutoPriorities.length > 0;
+    canSelectAuto && shouldShowAuto && visibleAutoPriorities.length > 0;
 
   const handleToggle = useCallback(
     (modelKey: string) => {
@@ -375,7 +477,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     [name, onChange, onPrioritizeChange],
   );
 
-  const hasVisibleRows = sections.length > 0;
+  const hasVisibleRows = sections.length > 0 || shouldShowAutoCard;
 
   return (
     <Popover
@@ -387,7 +489,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         setIsOpen(open);
         if (!open) {
           setSearchTerm('');
-          setActiveFilterId(MODEL_FILTER_ALL);
+          setActiveCategoryId(MODEL_FILTER_ALL);
+          setActiveCapabilityFilterId(null);
         }
       }}
     >
@@ -439,14 +542,6 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             during arrow-key navigation. */}
         <TooltipProvider delayDuration={400} disableHoverableContent>
           <div className="flex max-h-[inherit] min-h-0 w-full flex-col bg-secondary">
-            {shouldShowManualCatalog ? (
-              <ModelSelectorFilterPills
-                filters={filters}
-                activeFilterId={effectiveFilterId}
-                onFilterSelect={setActiveFilterId}
-              />
-            ) : null}
-
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
               className="flex min-h-0 flex-col bg-secondary text-primary"
@@ -467,6 +562,29 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   )}
                 />
               )}
+
+              {shouldShowManualCatalog ? (
+                <ModelSelectorFilterPills
+                  categoryFilters={categoryFilters}
+                  activeCategoryId={effectiveCategoryId}
+                  onCategorySelect={(categoryId) => {
+                    setActiveCategoryId(categoryId);
+                    if (categoryId === MODEL_CATEGORY_AUTO) {
+                      setActiveCapabilityFilterId(null);
+                    }
+                  }}
+                  capabilityFilters={capabilityFilters}
+                  activeCapabilityFilterId={effectiveCapabilityFilterId}
+                  onCapabilityFilterSelect={(filterId) => {
+                    setActiveCapabilityFilterId((currentFilterId) =>
+                      currentFilterId === filterId ? null : filterId,
+                    );
+                    if (isAutoCategory) {
+                      setActiveCategoryId(MODEL_FILTER_ALL);
+                    }
+                  }}
+                />
+              ) : null}
 
               <CommandList
                 className={cn(
@@ -514,7 +632,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   </CommandGroup>
                 )}
 
-                {shouldShowManualCatalog &&
+                {shouldShowManualRows &&
                   sections.map((section) => (
                     <CommandGroup key={section.key} heading={section.heading}>
                       {section.options.map((option) => (

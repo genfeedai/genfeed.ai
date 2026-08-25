@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from '@ui/primitives/tooltip';
 import { Check, Star } from 'lucide-react';
-import type { MouseEvent } from 'react';
+import type { MouseEvent, PointerEvent } from 'react';
 import { memo, useCallback } from 'react';
 
 /**
@@ -53,12 +53,34 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
     [onFavoriteToggle, model.key],
   );
 
+  const handlePointerDown = useCallback(
+    (event: PointerEvent) => {
+      if (!isSingleSelect || isLocked || event.button !== 0) {
+        return;
+      }
+
+      // cmdk can consume the first pointer click inside a Radix popover before
+      // its onSelect fires. Commit single-select rows at pointer down, matching
+      // the already-reliable Auto rows; keyboard selection still uses onSelect.
+      event.preventDefault();
+      handleSelect();
+    },
+    [handleSelect, isLocked, isSingleSelect],
+  );
+
+  const handleFavoritePointerDown = useCallback((event: PointerEvent) => {
+    // The favorite button is intentionally nested in cmdk's non-button row.
+    // Keep its pointer gesture from selecting the surrounding model.
+    event.stopPropagation();
+  }, []);
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <CommandItem
           value={`${model.label} ${brandLabel} ${model.description ?? ''}`}
           onSelect={handleSelect}
+          onPointerDown={handlePointerDown}
           disabled={isLocked}
           aria-disabled={isLocked || undefined}
           className={cn(
@@ -130,6 +152,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={handleFavoriteClick}
+            onPointerDown={handleFavoritePointerDown}
             className={cn(
               '-my-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-accent lg:my-0 lg:size-6',
               isFavorite

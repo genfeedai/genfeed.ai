@@ -83,8 +83,8 @@ const PromptBarModelControls = memo(function PromptBarModelControls({
           model.id && trainingIds.has(model.id) ? 'trainings' : 'models'
         }
         sourceGroupLabels={{
-          models: 'Models',
-          trainings: 'Trainings',
+          models: 'Catalog',
+          trainings: 'Brand models',
         }}
         autoSourceGroups={['models']}
         onChange={(_name: string, values: string[]) => {
