@@ -62,12 +62,22 @@ describe('AGENT_CHAT_MODELS', () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('charges every hosted model at least one credit per round', () => {
+  it('charges every paid hosted model at least one credit per round', () => {
     for (const model of AGENT_CHAT_MODELS.filter(
-      (candidate) => !candidate.isSelfHosted,
+      (candidate) =>
+        !candidate.isSelfHosted &&
+        (candidate.pricing.promptPerMillion > 0 ||
+          candidate.pricing.completionPerMillion > 0),
     )) {
       expect(model.creditCostPerRound).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it('keeps the free tier at zero credits', () => {
+    expect(
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE)
+        ?.creditCostPerRound,
+    ).toBe(0);
   });
 
   it('bills self-hosted models to the platform, not the round', () => {
@@ -84,10 +94,17 @@ describe('AGENT_CHAT_MODELS', () => {
     ).toBe(false);
   });
 
-  it('offers no auto-routing entry', () => {
-    expect(
-      AGENT_CHAT_MODELS.some((model) => model.key.startsWith('openrouter/')),
-    ).toBe(false);
+  it('offers no priced auto-routing entry', () => {
+    // `openrouter/auto` was retired because it picked any model at any price
+    // while we billed the cheapest tier. Only a $0-constrained auto-router can
+    // be billed exactly, so `openrouter/free` is the single allowed exception.
+    for (const model of AGENT_CHAT_MODELS.filter((candidate) =>
+      candidate.key.startsWith('openrouter/'),
+    )) {
+      expect(model.key).toBe(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE);
+      expect(model.pricing.promptPerMillion).toBe(0);
+      expect(model.pricing.completionPerMillion).toBe(0);
+    }
   });
 
   it('catalogues both defaults so they always have a price', () => {

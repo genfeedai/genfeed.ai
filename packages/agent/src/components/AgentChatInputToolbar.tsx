@@ -1,5 +1,6 @@
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -89,6 +90,11 @@ function AgentChatInputToolbarInner({
 }: AgentChatInputToolbarProps): ReactElement {
   const translate = useTranslations('agent.composerToolbar');
   const isCompact = density === 'compact';
+  // Personal Advanced Mode gates non-essential composer chrome. Same default as
+  // `use-prompt-bar-state`: advanced until settings say otherwise.
+  const userContext = useOptionalUser();
+  const isAdvancedMode =
+    userContext?.currentUser?.settings?.isAdvancedMode ?? true;
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   const hasSelectableModels = models.length > 0;
   const isAutoSelected =
@@ -116,7 +122,9 @@ function AgentChatInputToolbarInner({
         <span className="truncate text-xs">{translate('noModelsEnabled')}</span>
       </Button>
     ) : null;
-  const modelSelector = emptyAllowlistControl ? (
+  // Advanced Mode off = no model chrome on the conversation bar; the server
+  // Auto-routes. Keep the picker for advanced users.
+  const modelSelector = !isAdvancedMode ? null : emptyAllowlistControl ? (
     emptyAllowlistControl
   ) : onModelChange ? (
     <ModelSelectorPopover

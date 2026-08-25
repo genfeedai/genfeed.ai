@@ -35,6 +35,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   PromptStatus,
@@ -95,7 +96,7 @@ function toMarketplacePromptTitle(prompt: PromptDocument): string {
   return promptText.length > 80 ? `${promptText.slice(0, 77)}...` : promptText;
 }
 
-const PROMPT_ENHANCEMENT_MODEL = 'openrouter/free';
+const PROMPT_ENHANCEMENT_MODEL = AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE;
 const DEFAULT_TEXT_SYSTEM_PROMPT =
   'You are an expert AI assistant. Follow the instructions carefully and provide high-quality responses.';
 
