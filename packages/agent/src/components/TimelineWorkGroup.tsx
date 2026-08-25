@@ -162,13 +162,13 @@ function TimelineWorkGroupInner({
         showSteps && 'mt-0.5 border-t border-border/40 pt-1.5',
       )}
     >
-      <div className="flex min-w-0 items-center gap-1.5 text-xs text-secondary">
-        <Clock className="size-3.5 shrink-0 text-muted" />
-        {/* Duration is neutral runtime — only status / failure use semantic color */}
-        <span className="font-medium text-secondary">{durationPhrase}</span>
+      <div className="flex min-w-0 items-center gap-1.5 text-xs text-gray-900">
+        <Clock className="size-3.5 shrink-0 text-gray-800" />
+        {/* Duration is secondary type — never text-muted/text-secondary fill tokens */}
+        <span className="font-medium text-gray-900">{durationPhrase}</span>
         {isTerminal ? (
           <>
-            <span aria-hidden="true" className="text-foreground/25">
+            <span aria-hidden="true" className="text-gray-700">
               ·
             </span>
             <span
@@ -176,7 +176,7 @@ function TimelineWorkGroupInner({
                 'inline-flex items-center gap-1 text-2xs',
                 terminalStatus === 'failed'
                   ? 'font-medium text-destructive'
-                  : 'text-muted',
+                  : 'text-gray-900',
               )}
             >
               {terminalStatus === 'failed' ? (
@@ -188,10 +188,10 @@ function TimelineWorkGroupInner({
             </span>
             {stepCount > 0 ? (
               <>
-                <span aria-hidden="true" className="text-foreground/25">
+                <span aria-hidden="true" className="text-gray-700">
                   ·
                 </span>
-                <span className="text-2xs text-muted">
+                <span className="text-2xs text-gray-800">
                   {stepCount} step{stepCount !== 1 ? 's' : ''}
                 </span>
               </>
@@ -199,20 +199,20 @@ function TimelineWorkGroupInner({
           </>
         ) : stepCount > 0 ? (
           <>
-            <span aria-hidden="true" className="text-foreground/25">
+            <span aria-hidden="true" className="text-gray-700">
               ·
             </span>
-            <span className="text-2xs text-muted">
+            <span className="text-2xs text-gray-800">
               {stepCount} step{stepCount !== 1 ? 's' : ''}
             </span>
           </>
         ) : null}
         {failureDetail && !showSteps ? (
           <>
-            <span aria-hidden="true" className="text-foreground/25">
+            <span aria-hidden="true" className="text-gray-700">
               ·
             </span>
-            <span className="truncate text-2xs text-muted">
+            <span className="truncate text-2xs text-gray-800">
               {failureDetail}
             </span>
           </>
@@ -221,7 +221,7 @@ function TimelineWorkGroupInner({
       {isCollapsible && stepCount > 0 ? (
         <ChevronDown
           className={cn(
-            'size-3.5 shrink-0 text-muted transition-transform',
+            'size-3.5 shrink-0 text-gray-800 transition-transform',
             isExpanded ? 'rotate-180' : '',
           )}
         />
