@@ -369,7 +369,13 @@ export const APP_ROUTES = {
     ORGANIZATION_CREDENTIALS: '/settings/organization/credentials',
     ORGANIZATION_POLICY: '/settings/organization/policy',
     PERSONAL: '/settings/personal',
-    POLICY: '/settings/policy',
+    /**
+     * Org agent/automation defaults. Menu label is Agents — keep the slug
+     * identical. `/settings/policy` redirects here.
+     */
+    AGENTS: '/settings/agents',
+    /** @deprecated Same path as SETTINGS.AGENTS. */
+    POLICY: '/settings/agents',
     PUBLISHING: '/settings/publishing',
     /**
      * Organization settings home. Bare `/:orgSlug/~/settings` redirects here

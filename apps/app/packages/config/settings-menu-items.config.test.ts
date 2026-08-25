@@ -158,14 +158,14 @@ describe('buildSettingsMenuItems', () => {
       expect(models?.isExactMatch).toBeUndefined();
     });
 
-    it('points Agents at APP_ROUTES.SETTINGS.POLICY, not a /settings/agents slug', () => {
+    it('points Agents at /settings/agents so the slug matches the label', () => {
       const items = buildSettingsMenuItems({
         scope: SettingsSurface.ORGANIZATION,
       });
       expect(items.find((i) => i.label === 'Agents')?.href).toBe(
-        APP_ROUTES.SETTINGS.POLICY,
+        APP_ROUTES.SETTINGS.AGENTS,
       );
-      expect(APP_ROUTES.SETTINGS.POLICY).toBe('/settings/policy');
+      expect(APP_ROUTES.SETTINGS.AGENTS).toBe('/settings/agents');
     });
   });
 

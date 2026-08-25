@@ -76,8 +76,8 @@ export interface BuildSettingsMenuItemsParams {
  *   `/:orgSlug/~/settings/general`. Brand home stays `/:org/:brand/settings`.
  * - Org sidebar label is **General** (workspace defaults).
  * - Brand sidebar label is **Profile** (public brand identity).
- * - Org **Agents** is agent/automation governance (not legal ToS). Route stays
- *   `/settings/policy`; sidebar label is Agents.
+ * - Org **Agents** is agent/automation governance (not legal ToS). Route is
+ *   `/settings/agents` so the slug matches the sidebar label.
  */
 
 function buildPersonalMenuItems(): MenuItemConfig[] {
@@ -168,9 +168,8 @@ function buildOrganizationMenuItems(
     },
     {
       // Org agent/automation defaults (reply style, autonomy, credit caps).
-      // Route remains /settings/policy; label is Agents (not legal policy).
       group: 'Organization',
-      href: APP_ROUTES.SETTINGS.POLICY,
+      href: APP_ROUTES.SETTINGS.AGENTS,
       hrefScope: 'organization',
       label: 'Agents',
       outline: Bot,

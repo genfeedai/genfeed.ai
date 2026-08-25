@@ -569,7 +569,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/api-keys',
       '/:orgSlug/~/settings/integrations',
       '/:orgSlug/~/settings/webhooks',
-      '/:orgSlug/~/settings/policy',
+      '/:orgSlug/~/settings/agents',
       '/:orgSlug/~/settings/usage',
       '/:orgSlug/~/settings/brands',
       '/:orgSlug/~/settings/models',

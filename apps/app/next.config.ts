@@ -304,28 +304,28 @@ const config = createAppNextConfig({
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/review'),
     },
-    // Org Settings → Agents is a dead path. Live page is /settings/policy.
+    // Org Settings → Agents. /settings/policy was the old slug.
     {
-      destination: APP_ROUTES.SETTINGS.POLICY,
+      destination: APP_ROUTES.SETTINGS.AGENTS,
       permanent: true,
-      source: '/settings/agents',
+      source: '/settings/policy',
     },
     {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.SETTINGS.POLICY,
+        APP_ROUTES.SETTINGS.AGENTS,
       ),
       permanent: true,
-      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/settings/agents'),
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/settings/policy'),
     },
     {
       destination: createOrganizationAppRoute(
         ':orgSlug',
-        APP_ROUTES.SETTINGS.POLICY,
+        APP_ROUTES.SETTINGS.AGENTS,
       ),
       permanent: true,
-      source: createOrganizationAppRoute(':orgSlug', '/settings/agents'),
+      source: createOrganizationAppRoute(':orgSlug', '/settings/policy'),
     },
     // Brand-scoped /admin/* never existed. Send it to the platform dashboard.
     {

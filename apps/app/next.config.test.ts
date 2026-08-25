@@ -131,22 +131,22 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects dead /settings/agents to /settings/policy in three scopes', async () => {
+  it('redirects /settings/policy to /settings/agents in three scopes', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({
-      destination: '/settings/policy',
+      destination: '/settings/agents',
       permanent: true,
-      source: '/settings/agents',
+      source: '/settings/policy',
     });
     expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/settings/policy',
+      destination: '/:orgSlug/:brandSlug/settings/agents',
       permanent: true,
-      source: '/:orgSlug/:brandSlug/settings/agents',
+      source: '/:orgSlug/:brandSlug/settings/policy',
     });
     expect(redirects).toContainEqual({
-      destination: '/:orgSlug/~/settings/policy',
+      destination: '/:orgSlug/~/settings/agents',
       permanent: true,
-      source: '/:orgSlug/~/settings/agents',
+      source: '/:orgSlug/~/settings/policy',
     });
   });
 
