@@ -1,31 +1,24 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Editor } from '@tiptap/core';
-import { createPromptEditorExtensions } from '@ui/prompt-editor/create-prompt-editor-extensions';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('PromptEditor', () => {
-  let injectedEditor: Editor | null = null;
-
-  afterEach(() => {
-    injectedEditor?.destroy();
-    injectedEditor = null;
-  });
-
   it('serializes typed content to plain text', async () => {
     const onValueChange = vi.fn();
-    injectedEditor = new Editor({
-      content: '',
-      extensions: createPromptEditorExtensions(),
+
+    render(<PromptEditor onValueChange={onValueChange} value="" />);
+    const editor = await screen.findByRole('textbox', { name: 'Prompt' });
+    editor.focus();
+
+    // jsdom user typing does not emit ProseMirror updates; the shipped paste
+    // handler is the reliable insert path in CI.
+    fireEvent.paste(editor, {
+      clipboardData: {
+        files: [],
+        getData: (type: string) => (type === 'text/plain' ? 'hello world' : ''),
+      },
     });
-
-    render(
-      <PromptEditor editor={injectedEditor} onValueChange={onValueChange} />,
-    );
-    await screen.findByTestId('prompt-editor');
-
-    injectedEditor.commands.insertContent('hello world');
 
     await waitFor(() => {
       expect(onValueChange).toHaveBeenCalled();
