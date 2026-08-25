@@ -65,6 +65,27 @@ const enrollmentInclude = {
   },
 } as const;
 
+type AuthorizedSignalsSnapshot =
+  | TikTokAuthorizedSignalsSnapshot
+  | InstagramAuthorizedSignalsSnapshot
+  | TwitterAuthorizedSignalsSnapshot
+  | YoutubeAuthorizedSignalsSnapshot
+  | LinkedinAuthorizedSignalsSnapshot;
+
+interface SyncAuthorizedSnapshotParams {
+  brandId: string;
+  credentialId: string;
+  organizationId: string;
+  snapshot: AuthorizedSignalsSnapshot;
+}
+
+interface SyncYoutubeAuthorizedSnapshotParams {
+  brandId: string;
+  credentialId: string;
+  organizationId: string;
+  snapshot: YoutubeAuthorizedSignalsSnapshot;
+}
+
 @Injectable()
 export class SocialWarmupEnrollmentsService {
   constructor(
@@ -360,12 +381,9 @@ export class SocialWarmupEnrollmentsService {
     await this.syncAuthorizedSnapshot(params);
   }
 
-  async syncYoutubeAuthorizedSnapshot(params: {
-    brandId: string;
-    credentialId: string;
-    organizationId: string;
-    snapshot: YoutubeAuthorizedSignalsSnapshot;
-  }): Promise<void> {
+  async syncYoutubeAuthorizedSnapshot(
+    params: SyncYoutubeAuthorizedSnapshotParams,
+  ): Promise<void> {
     await this.syncAuthorizedSnapshot(params);
   }
 
@@ -378,17 +396,9 @@ export class SocialWarmupEnrollmentsService {
     await this.syncAuthorizedSnapshot(params);
   }
 
-  private async syncAuthorizedSnapshot(params: {
-    brandId: string;
-    credentialId: string;
-    organizationId: string;
-    snapshot:
-      | TikTokAuthorizedSignalsSnapshot
-      | InstagramAuthorizedSignalsSnapshot
-      | TwitterAuthorizedSignalsSnapshot
-      | YoutubeAuthorizedSignalsSnapshot
-      | LinkedinAuthorizedSignalsSnapshot;
-  }): Promise<void> {
+  private async syncAuthorizedSnapshot(
+    params: SyncAuthorizedSnapshotParams,
+  ): Promise<void> {
     await this.syncPlatformSnapshot({
       brandId: params.brandId,
       credentialId: params.credentialId,

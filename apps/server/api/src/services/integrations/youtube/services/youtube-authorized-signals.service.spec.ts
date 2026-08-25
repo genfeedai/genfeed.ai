@@ -430,6 +430,64 @@ describe('YoutubeAuthorizedSignalsService', () => {
     ).toBe(false);
   });
 
+  it('records a skipped YouTube channel fetch as missing_scope, not empty_response', async () => {
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: [YOUTUBE_UPLOAD_SCOPE],
+      organizationId: 'org-1',
+    });
+
+    expect(snapshot.state).toBe('partial');
+    expect(
+      evidenceOf(snapshot, 'channel-fields-platform-signal'),
+    ).toMatchObject({
+      reason: 'missing_scope',
+      status: 'permission_limited',
+    });
+    expect(evidenceOf(snapshot, 'owned-uploads-snapshot')).toMatchObject({
+      reason: 'missing_scope',
+      status: 'permission_limited',
+    });
+    expect(evidenceOf(snapshot, 'native-account-age')).toMatchObject({
+      reason: 'missing_scope',
+      status: 'permission_limited',
+    });
+    expect(
+      httpService.get.mock.calls.some((call) =>
+        String(call[0]).includes('/channels'),
+      ),
+    ).toBe(false);
+  });
+
+  it('preserves empty_response when a permitted channel request returns no channel', async () => {
+    httpService.get.mockImplementation((url: string) => {
+      if (url.includes('/channels')) {
+        return of({ data: { items: [] } });
+      }
+      return of({ data: { items: [] } });
+    });
+
+    const snapshot = await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    expect(
+      evidenceOf(snapshot, 'channel-fields-platform-signal'),
+    ).toMatchObject({
+      reason: 'empty_response',
+      status: 'empty',
+    });
+    expect(
+      httpService.get.mock.calls.some((call) =>
+        String(call[0]).includes('/channels'),
+      ),
+    ).toBe(true);
+  });
+
   it('treats missing brand-account channel selection as recoverable, not failed', async () => {
     httpService.get.mockImplementation((url: string) => {
       if (url.includes('/channels')) {

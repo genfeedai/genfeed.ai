@@ -26,26 +26,36 @@ import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
+interface YoutubeControllerBrandsServiceMock {
+  findOne: ReturnType<typeof vi.fn>;
+}
+
+interface YoutubeControllerCredentialsServiceMock {
+  beginOAuthForBrand: ReturnType<typeof vi.fn>;
+  findOne: ReturnType<typeof vi.fn>;
+  findPendingOAuthCredential: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
+  updateExternalProfile: ReturnType<typeof vi.fn>;
+}
+
+interface YoutubeServiceMock {
+  exchangeCodeForTokens: ReturnType<typeof vi.fn>;
+  generateAuthUrl: ReturnType<typeof vi.fn>;
+  getChannelDetails: ReturnType<typeof vi.fn>;
+  getTrends: ReturnType<typeof vi.fn>;
+  getVideoMetadata: ReturnType<typeof vi.fn>;
+}
+
+interface YoutubeAuthorizedSignalsServiceMock {
+  refresh: ReturnType<typeof vi.fn>;
+}
+
 describe('YoutubeController', () => {
   let controller: YoutubeController;
-  let brandsService: { findOne: ReturnType<typeof vi.fn> };
-  let credentialsService: {
-    beginOAuthForBrand: ReturnType<typeof vi.fn>;
-    findOne: ReturnType<typeof vi.fn>;
-    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-    updateExternalProfile: ReturnType<typeof vi.fn>;
-  };
-  let youtubeService: {
-    exchangeCodeForTokens: ReturnType<typeof vi.fn>;
-    generateAuthUrl: ReturnType<typeof vi.fn>;
-    getChannelDetails: ReturnType<typeof vi.fn>;
-    getTrends: ReturnType<typeof vi.fn>;
-    getVideoMetadata: ReturnType<typeof vi.fn>;
-  };
-  let youtubeAuthorizedSignalsService: {
-    refresh: ReturnType<typeof vi.fn>;
-  };
+  let brandsService: YoutubeControllerBrandsServiceMock;
+  let credentialsService: YoutubeControllerCredentialsServiceMock;
+  let youtubeService: YoutubeServiceMock;
+  let youtubeAuthorizedSignalsService: YoutubeAuthorizedSignalsServiceMock;
 
   const mockRequest = {} as unknown as Request;
   const brandId = 'test-object-id';
