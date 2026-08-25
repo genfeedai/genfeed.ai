@@ -1,6 +1,10 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
-import { BUTTON_VARIANT_CONFIG, resolveButtonVariant } from './button.variants';
+import {
+  BUTTON_VARIANT_CONFIG,
+  buttonVariants,
+  resolveButtonVariant,
+} from './button.variants';
 
 describe('button variants', () => {
   it('defines only the canonical semantic variants', () => {
@@ -18,5 +22,15 @@ describe('button variants', () => {
     expect(resolveButtonVariant('unknown' as ButtonVariant)).toBe(
       ButtonVariant.DEFAULT,
     );
+  });
+
+  it('centers the glyph on ghost icon buttons', () => {
+    const className = buttonVariants({
+      size: ButtonSize.ICON,
+      variant: ButtonVariant.GHOST,
+    });
+
+    expect(className).toContain('justify-center');
+    expect(className.split(/\s+/)).not.toContain('justify-start');
   });
 });

@@ -61,6 +61,12 @@ export function getSizeOverrideClassName(size?: ButtonSize | null) {
     return 'h-10 px-5 text-sm uppercase tracking-[0.18em]';
   }
 
+  if (size === ButtonSize.ICON) {
+    // Ghost (and other) variants set justify-start for labeled buttons.
+    // Icon-only controls must win and keep the glyph centered in the square.
+    return 'justify-center';
+  }
+
   return '';
 }
 

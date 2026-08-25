@@ -77,6 +77,25 @@ describe('Table', () => {
     expect(onRowClick).toHaveBeenCalledTimes(2);
   });
 
+  it('uses one hairline system for header and rows', () => {
+    const { container } = render(
+      <Table
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+      />,
+    );
+
+    const table = container.querySelector('table');
+    const head = container.querySelector('thead');
+    const body = container.querySelector('tbody');
+
+    expect(table).toHaveClass('border-collapse');
+    expect(head).toHaveClass('border-b', 'border-border');
+    expect(body).toHaveClass('divide-y', 'divide-border');
+    expect(container.querySelector('thead tr')).not.toHaveClass('border-b');
+  });
+
   it('does not fire onRowClick when keyboard targets a nested button', () => {
     const onRowClick = vi.fn();
     const onAction = vi.fn();
