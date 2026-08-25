@@ -191,7 +191,7 @@ test('enforces executable contracts through the aggregate suite', () => {
   // paths. Those scanners, Bull Board parity, and relation-alias ratchets run
   // from `test:executable-contracts` so a dead rule is deleted with its test.
   const workflow = readWorkflow('ci.yml');
-  const guards = jobBlock(workflow, 'guards', 'ci.yml');
+  const staticChecks = jobBlock(workflow, 'static-checks', 'ci.yml');
   const packageJson = JSON.parse(
     readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
   );
@@ -202,9 +202,9 @@ test('enforces executable contracts through the aggregate suite', () => {
   );
 
   assert.match(
-    guards,
+    staticChecks,
     /^ {8}run: bun run test:executable-contracts$/m,
-    'the guards job must run the executable-contracts test script',
+    'the static-checks job must run the executable-contracts test script',
   );
   assert.match(
     script,
@@ -219,6 +219,7 @@ test('enforces executable contracts through the aggregate suite', () => {
   for (const contractTest of [
     'scripts/ci/hosted-saas-handoff.test.mjs',
     'scripts/ci/dispatch-hosted-saas.test.mjs',
+    'scripts/ci/merge-queue-janitor.test.mjs',
     'scripts/ci/pr-validation-workflows.test.mjs',
   ]) {
     assert.match(
@@ -242,6 +243,95 @@ test('enforces executable contracts through the aggregate suite', () => {
       `executable-contracts.test.ts must still invoke ${token}`,
     );
   }
+});
+
+test('consolidates static validation into one runner slot', () => {
+  // #1969: five ~1-minute jobs (format, secretlint, guards, lint, typecheck)
+  // each burned a runner slot per PR and starved the org-wide pool at peak —
+  // measured queue waits of 8–19 minutes for sub-minute jobs. They now run
+  // sequentially inside one static-checks job. Build starts straight off
+  // trust, and the tests gate reads static-checks directly, so the failure
+  // semantics of the old topology (any red static fails the gate) survive.
+  const workflow = readWorkflow('ci.yml');
+  const staticChecks = jobBlock(workflow, 'static-checks', 'ci.yml');
+
+  assert.match(staticChecks, /^ {4}name: Static Checks$/m);
+  assert.match(staticChecks, /bun run format:check/);
+  assert.match(staticChecks, /secretlint/);
+  assert.match(staticChecks, /bunx turbo run lint/);
+  assert.match(staticChecks, /bunx turbo run type-check/);
+  assert.match(staticChecks, /bun run test:executable-contracts/);
+
+  for (const retired of [
+    'format',
+    'lint',
+    'typecheck',
+    'guards',
+    'secretlint',
+  ]) {
+    assert.doesNotMatch(
+      workflow,
+      new RegExp(`^ {2}${retired}:\\n`, 'm'),
+      `the standalone ${retired} job must stay folded into static-checks`,
+    );
+  }
+
+  const build = jobBlock(workflow, 'build', 'ci.yml');
+  assert.match(
+    build,
+    /^ {4}needs: \[trust\]$/m,
+    'build must start immediately off trust instead of queueing behind statics',
+  );
+  assert.match(
+    workflow,
+    /^ {10}STATIC_CHECKS_RESULT: \$\{\{ needs\.static-checks\.result \}\}$/m,
+    'tests-gate must read the static-checks result directly',
+  );
+});
+
+test('caps the CI job inventory at twenty jobs', () => {
+  // Runner-slot starvation is a head-count problem: every job occupies a
+  // slot for its full queue+setup+run span. New validation belongs inside an
+  // existing job (a step, or a test in test:executable-contracts) — see
+  // feedback_no_new_ci_guard_steps. Raising this ceiling needs an explicit
+  // capacity review, not a drive-by.
+  const workflow = readWorkflow('ci.yml');
+  const jobsSection = workflow.slice(workflow.indexOf('\njobs:\n') + 1);
+  const jobIds = [...jobsSection.matchAll(/^ {2}([A-Za-z0-9_-]+):$/gm)].map(
+    (match) => match[1],
+  );
+
+  assert.ok(jobIds.length > 0, 'ci.yml must define jobs');
+  assert.ok(
+    jobIds.length <= 20,
+    `ci.yml defines ${jobIds.length} jobs (${jobIds.join(', ')}); the ceiling is 20`,
+  );
+});
+
+test('reaps zombie merge-queue runs after each master push', () => {
+  // Merged queue entries leave behind queued/in_progress merge_group runs on
+  // deleted gh-readonly-queue refs; each zombie holds a runner slot until the
+  // 6-hour timeout. The janitor cancels runs whose queue ref no longer
+  // resolves. Push-gated: every queue merge lands as a push to master, so the
+  // cleanup runs exactly when zombies can appear.
+  const workflow = readWorkflow('ci.yml');
+  const janitor = jobBlock(workflow, 'merge-queue-janitor', 'ci.yml');
+
+  assert.match(
+    janitor,
+    /if: github\.event_name == 'push'/,
+    'the janitor must run only on push events',
+  );
+  assert.match(
+    janitor,
+    /^ {6}actions: write$/m,
+    'cancelling workflow runs requires actions: write',
+  );
+  assert.match(
+    janitor,
+    /merge-queue-janitor\.mjs[\s\S]*?cleanMergeQueueRuns/,
+    'the janitor must run cleanMergeQueueRuns from scripts/ci/merge-queue-janitor.mjs',
+  );
 });
 
 // The curated action catalog decides whether a product action is exposed on

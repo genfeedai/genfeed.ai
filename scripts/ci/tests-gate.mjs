@@ -88,6 +88,14 @@ export function createTestsGateJobs(env) {
       dormant: TEMPORARILY_DISABLED_TEST_GROUPS.has(groupKey),
     })),
     {
+      // Format, secretlint, lint, typecheck, and the executable contracts run
+      // in one consolidated job (#1969); the gate holds their failure
+      // semantics now that build no longer queues behind them.
+      name: 'Static checks',
+      result: readResult(env, 'STATIC_CHECKS_RESULT'),
+      applicable: true,
+    },
+    {
       name: 'Build',
       result: readResult(env, 'BUILD_RESULT'),
       applicable: true,

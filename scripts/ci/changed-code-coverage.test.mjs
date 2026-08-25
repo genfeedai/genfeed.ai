@@ -713,24 +713,22 @@ test('worst-of folds the job result together with the shard outcomes', () => {
 
 // ── Workflow contract ───────────────────────────────────────────────────────
 
-test('the coverage jobs live in CI and can never gate a merge', () => {
-  for (const job of [
-    'coverage-changed-app:',
-    'coverage-changed-api:',
-    'coverage-changed-report:',
-  ]) {
-    assert.ok(CI_WORKFLOW.includes(job), `ci.yml must define ${job}`);
-  }
-
-  const gate = CI_WORKFLOW.slice(
-    CI_WORKFLOW.indexOf('  tests-gate:'),
-    CI_WORKFLOW.indexOf('  coverage-changed-app:'),
+test('the coverage report lives in CI and can never gate a merge', () => {
+  assert.ok(
+    CI_WORKFLOW.includes('coverage-changed-report:'),
+    'ci.yml must define coverage-changed-report:',
   );
-  assert.ok(gate.length > 0, 'tests-gate must precede the coverage jobs');
+  // The standalone instrumented matrix jobs are folded into the changed-test
+  // shards (#1969): re-defining them would re-run the same `--changed`
+  // selection twice and re-open the ~31% runner-minute duplication.
+  assert.equal(CI_WORKFLOW.includes('coverage-changed-app:'), false);
+  assert.equal(CI_WORKFLOW.includes('coverage-changed-api:'), false);
+
+  const gate = ciJob('tests-gate');
   assert.equal(
     gate.includes('coverage-changed'),
     false,
-    'tests-gate must not depend on an observation-mode job',
+    'tests-gate must not depend on the observation-mode report',
   );
 });
 
@@ -743,84 +741,63 @@ function ciJob(name) {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('each coverage surface is budgeted and non-fatal', () => {
-  for (const name of ['coverage-changed-app', 'coverage-changed-api']) {
-    const job = ciJob(name);
-    assert.match(
-      job,
-      /continue-on-error: true/,
-      `${name} must never fail the pull request`,
-    );
-    assert.match(
-      job,
-      /--changed "\$BASE"/,
-      `${name} must measure the affected scope only`,
-    );
-    assert.match(job, /--coverage/, `${name} must run instrumented`);
-    // The affected scope is decided by the existing planner, not re-derived.
-    assert.match(job, /needs: \[trust, test-scope\]/);
-  }
-});
-
-test('the 20-minute budget sits on the step, where it cannot cancel the job', () => {
-  // Two jobs were cancelled at a job-level `timeout-minutes: 20` on diffs that
-  // touched widely-imported shared packages. `continue-on-error` cannot absorb a
-  // job timeout — the job is cancelled outright and reports red — so an
-  // observation-only job showed a failing check on the pull request. The budget
-  // has to be a step timeout for the non-fatal contract to hold.
-  for (const name of ['coverage-changed-app', 'coverage-changed-api']) {
-    const job = ciJob(name);
-    const step = job.slice(job.indexOf('      - name: Run changed'));
-
-    assert.match(
-      step,
-      /timeout-minutes: 20\n\s+continue-on-error: true/,
-      `${name} must budget the coverage step at 20 minutes and absorb overruns`,
-    );
-
-    const jobTimeout = job.match(/^ {4}timeout-minutes: (\d+)$/m);
-    assert.ok(jobTimeout, `${name} must keep a job-level backstop`);
-    assert.ok(
-      Number(jobTimeout[1]) > 20,
-      `${name} job backstop must exceed the step budget, or it fires first`,
-    );
-  }
-});
-
-test('coverage runs are sharded by the planner, like the tests they mirror', () => {
+test('coverage rides the changed-test shards, instrumented on pull requests only', () => {
+  // #1969: the standalone coverage matrix re-ran the same `--changed`
+  // selection the test shards had just executed — ~31% of CI runner-minutes
+  // for a duplicate signal. The fold runs each changed-test shard once,
+  // adding v8 instrumentation only on pull requests (pushes and queue runs
+  // keep the uninstrumented fast path; the observation report is per-PR).
   for (const [name, surface] of [
-    ['coverage-changed-app', 'app'],
-    ['coverage-changed-api', 'api'],
+    ['test-app-changed', 'app'],
+    ['test-api-changed', 'api'],
   ]) {
     const job = ciJob(name);
     assert.match(
       job,
-      new RegExp(
-        `matrix: \\$\\{\\{ fromJSON\\(needs\\.test-scope\\.outputs\\.${surface}_coverage_matrix\\) \\}\\}`,
-      ),
-      `${name} must shard from the planner's coverage matrix`,
+      /WITH_COVERAGE: \$\{\{ github\.event_name == 'pull_request' \}\}/,
+      `${name} must instrument pull requests only`,
     );
-    // One slow shard must not cancel its siblings and destroy their lcov.
+    assert.match(
+      job,
+      /if \[ "\$WITH_COVERAGE" = "true" \]/,
+      `${name} must branch on the env flag, not the raw event name`,
+    );
+    assert.match(
+      job,
+      /--coverage\.reporter=lcovonly/,
+      `${name} must emit lcov for the observation report`,
+    );
+    // One slow or red shard must not cancel its siblings and destroy their
+    // lcov — and every shard's verdict still reaches the gate individually.
     assert.match(job, /fail-fast: false/, `${name} must not fail fast`);
     assert.match(
       job,
       /--shard=\$\{\{ matrix\.shard \}\}\/\$\{\{ matrix\.total \}\}/,
       `${name} must pass its shard through to vitest`,
     );
-    // Each shard carries its own outcome and wall clock: a matrix job's outputs
-    // are last-writer-wins, and step-level continue-on-error hides a failed step
-    // from the job result.
+    // Each shard stages its own outcome and wall clock: a matrix job's
+    // outputs are last-writer-wins across shards.
     assert.match(job, /(?<!\.)coverage-shard\/outcome/);
     assert.match(job, /(?<!\.)coverage-shard\/seconds/);
+    assert.match(
+      job,
+      new RegExp(`changed-code-coverage-lcov-${surface}-`),
+      `${name} must upload shards under the ${surface} artifact prefix`,
+    );
     assert.match(job, /-shard-\$\{\{ matrix\.shard \}\}\n/);
+    // A red suite must still ship its lcov and outcome — the observation
+    // report needs the failure recorded, not silently absent.
+    assert.match(
+      job,
+      /if: always\(\) && github\.event_name == 'pull_request'/,
+      `${name} must stage and upload coverage even when the tests fail`,
+    );
 
     // The staging directory must not be hidden. `upload-artifact` defaults
     // `include-hidden-files: false`, so a leading dot makes it skip every
-    // staged file, and `if-no-files-found: ignore` swallows the warning: the
-    // shards run green, upload nothing, and the report silently falls back to
-    // the job result with no lcov and no latency. Cost one full CI round on
-    // #2326 to find, because that PR's own diff was entirely excluded files so
-    // the empty report looked legitimate.
+    // staged file: the shards run green, upload nothing, and the report
+    // silently falls back to the job result with no lcov and no latency.
+    // Cost one full CI round on #2326 to find.
     assert.doesNotMatch(
       job,
       /path: \./,
@@ -831,6 +808,11 @@ test('coverage runs are sharded by the planner, like the tests they mirror', () 
 
 test('the report reads each surface as its own directory of shards', () => {
   const job = ciJob('coverage-changed-report');
+
+  // The surface result now comes from the folded changed-test jobs — the
+  // same jobs that produced the shards being aggregated.
+  assert.match(job, /APP_RESULT: \$\{\{ needs\.test-app-changed\.result \}\}/);
+  assert.match(job, /API_RESULT: \$\{\{ needs\.test-api-changed\.result \}\}/);
 
   for (const surface of ['app', 'api']) {
     assert.match(

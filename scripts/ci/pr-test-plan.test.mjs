@@ -11,7 +11,6 @@ import {
   parseTurboDryRun,
   parseVitestList,
   readChangedFiles,
-  selectCoverageShardCount,
   selectShardCount,
 } from './pr-test-plan.mjs';
 
@@ -128,25 +127,7 @@ test('selects bounded adaptive shard counts', () => {
   assert.equal(selectShardCount(737), 4);
 });
 
-test('coverage shard counts never collapse to nothing', () => {
-  // The coverage jobs key off the surface flag, not `*_tests`, so they run in
-  // cases where the test shards are skipped. A zero-shard matrix there would
-  // drop the measurement silently instead of reporting it.
-  assert.equal(selectCoverageShardCount(0), 1);
-  assert.equal(selectCoverageShardCount(1), 1);
-  assert.equal(selectCoverageShardCount(75), 1);
-  assert.equal(selectCoverageShardCount(76), 2);
-  assert.equal(selectCoverageShardCount(251), 4);
-
-  // Under a full-suite escalation the planner never lists the changed test
-  // files, so the count arrives as 0 while the `--changed` graph is at its
-  // widest — exactly the case that overran the budget unsharded. Read the
-  // missing count as unknown, not as small.
-  assert.equal(selectCoverageShardCount(0, true), 4);
-  assert.equal(selectCoverageShardCount(737, true), 4);
-});
-
-test('the plan carries a coverage matrix even when the test matrix is empty', () => {
+test('a full-suite escalation carries no separate coverage plan', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
     changedFiles: ['bun.lock'],
@@ -155,9 +136,13 @@ test('the plan carries a coverage matrix even when the test matrix is empty', ()
 
   assert.equal(plan.forceFull, true);
   assert.deepEqual(plan.apiTests.matrix, { include: [] });
-  assert.equal(plan.apiTests.coverageShards, 4);
-  assert.equal(plan.apiTests.coverageMatrix.include.length, 4);
-  assert.equal(plan.appTests.coverageShards, 4);
+  // Changed coverage rides the changed-test shards themselves (#1969); a
+  // side coverage matrix would re-run the same selection instrumented and
+  // drift out of sync with the shards that actually gate the merge.
+  assert.equal('coverageMatrix' in plan.apiTests, false);
+  assert.equal('coverageShards' in plan.apiTests, false);
+  assert.equal('coverageMatrix' in plan.appTests, false);
+  assert.equal('coverageShards' in plan.appTests, false);
 });
 
 test('creates deterministic matrix entries', () => {
@@ -293,23 +278,19 @@ test('keeps the workflow wired to exact changed selection and dynamic shards', (
     /name: Upload pull-request test plan[\s\S]*?actions\/upload-artifact@[0-9a-f]{40} # v7\.\d+\.\d+/,
   );
 
-  // The instrumented coverage runs shard off their own matrix rather than
-  // reusing the test matrix: that one is empty under a full-suite escalation,
-  // which is precisely when the coverage graph is widest.
-  for (const output of ['app_coverage_matrix', 'api_coverage_matrix']) {
-    assert.match(
-      workflow,
-      new RegExp(
-        `${output}: \\$\\{\\{ steps\\.plan\\.outputs\\.${output} \\}\\}`,
-      ),
-    );
-    assert.match(
-      workflow,
-      new RegExp(
-        `matrix: \\$\\{\\{ fromJSON\\(needs\\.test-scope\\.outputs\\.${output}\\) \\}\\}`,
-      ),
-    );
-  }
+  // Changed coverage is folded into the changed-test shards (#1969): the
+  // same `--changed` selection runs once, instrumented on pull requests,
+  // instead of a standalone coverage matrix re-running it. The planner no
+  // longer exports a coverage matrix at all.
+  assert.doesNotMatch(workflow, /app_coverage_matrix|api_coverage_matrix/);
+  const coverageGates = workflow.match(
+    /WITH_COVERAGE: \$\{\{ github\.event_name == 'pull_request' \}\}/g,
+  );
+  assert.equal(
+    coverageGates?.length ?? 0,
+    2,
+    'both changed-test jobs must gate coverage instrumentation on pull_request',
+  );
 });
 
 test('workspace-group jobs gate on planner outputs alone, so pushes run them', () => {
