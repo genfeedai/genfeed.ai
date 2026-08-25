@@ -1,6 +1,6 @@
 import { ModelCategory, ModelProvider, SpeedTier } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import { transformModelsToOptions } from '@ui/dropdowns/model-selector/model-selector.utils';
@@ -174,6 +174,36 @@ describe('ModelSelectorModelItem', () => {
     );
 
     expect(onFavoriteToggle).toHaveBeenCalledWith('google/veo-3');
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it('selects a named model on primary pointer down', () => {
+    const onToggle = vi.fn();
+
+    renderRow(createOption({ key: 'google/veo-3', label: 'Veo 3' }), {
+      onToggle,
+    });
+
+    fireEvent.pointerDown(screen.getByRole('option'), { button: 0 });
+
+    expect(onToggle).toHaveBeenCalledOnce();
+    expect(onToggle).toHaveBeenCalledWith('google/veo-3');
+  });
+
+  it('does not select the model when pointer down starts on favorite', () => {
+    const onToggle = vi.fn();
+    const onFavoriteToggle = vi.fn();
+
+    renderRow(createOption({ key: 'google/veo-3', label: 'Veo 3' }), {
+      onFavoriteToggle,
+      onToggle,
+    });
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Add Veo 3 to favorites' }),
+      { button: 0 },
+    );
+
     expect(onToggle).not.toHaveBeenCalled();
   });
 

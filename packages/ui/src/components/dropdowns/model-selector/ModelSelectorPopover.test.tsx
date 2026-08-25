@@ -1,6 +1,6 @@
 import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,7 +27,11 @@ vi.mock('@ui/primitives/command', async () => {
       heading?: React.ReactNode;
     }) => (
       <section>
-        {heading ? <div>{heading}</div> : null}
+        {heading ? (
+          <div role="heading" aria-level={2}>
+            {heading}
+          </div>
+        ) : null}
         {children}
       </section>
     ),
@@ -52,18 +56,28 @@ vi.mock('@ui/primitives/command', async () => {
     CommandItem: ({
       'aria-label': ariaLabel,
       children,
+      disabled,
+      onPointerDown,
       onSelect,
       value,
     }: {
       'aria-label'?: string;
       children: React.ReactNode;
+      disabled?: boolean;
+      onPointerDown?: React.PointerEventHandler<HTMLButtonElement>;
       onSelect?: (value: string) => void;
       value?: string;
     }) => (
       <button
         type="button"
         aria-label={ariaLabel}
-        onClick={() => onSelect?.(value ?? '')}
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) {
+            onSelect?.(value ?? '');
+          }
+        }}
+        onPointerDown={onPointerDown}
       >
         {children}
       </button>
@@ -396,7 +410,7 @@ describe('ModelSelectorPopover', () => {
     await openPicker(user);
 
     expect(
-      screen.queryByRole('group', { name: 'Filter models' }),
+      screen.queryByRole('group', { name: 'Model capabilities' }),
     ).not.toBeInTheDocument();
 
     rerender(
@@ -416,7 +430,9 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    const filterGroup = screen.getByRole('group', {
+      name: 'Model capabilities',
+    });
     expect(
       within(filterGroup).getByRole('button', { name: 'Audio' }),
     ).toBeInTheDocument();
@@ -447,7 +463,9 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    const filterGroup = screen.getByRole('group', {
+      name: 'Model capabilities',
+    });
     await user.click(
       within(filterGroup).getByRole('button', { name: 'Audio' }),
     );
@@ -461,7 +479,7 @@ describe('ModelSelectorPopover', () => {
     expect(screen.queryByText('Best Quality')).not.toBeInTheDocument();
   });
 
-  it('filters by source pill and hides auto outside its source groups', async () => {
+  it('separates Auto, brand models, and catalog into first-class categories', async () => {
     const user = userEvent.setup();
 
     render(
@@ -486,23 +504,136 @@ describe('ModelSelectorPopover', () => {
         sourceGroupResolver={(model) =>
           model.id === 'training-1' ? 'trainings' : 'models'
         }
-        sourceGroupLabels={{ models: 'GenFeed', trainings: 'Trainings' }}
+        sourceGroupLabels={{
+          models: 'Catalog',
+          trainings: 'Brand models',
+        }}
         autoSourceGroups={['models']}
       />,
     );
 
     await openPicker(user);
 
-    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    const filterGroup = screen.getByRole('group', {
+      name: 'Model categories',
+    });
+    expect(
+      within(filterGroup).getByRole('button', { name: 'Auto' }),
+    ).toBeInTheDocument();
+    expect(
+      within(filterGroup).getByRole('button', { name: 'Brand models' }),
+    ).toBeInTheDocument();
+    expect(
+      within(filterGroup).getByRole('button', { name: 'Catalog' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Best Quality')).toBeInTheDocument();
 
+    await user.click(within(filterGroup).getByRole('button', { name: 'Auto' }));
+
+    expect(screen.getByText('Best Quality')).toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana Pro')).not.toBeInTheDocument();
+
     await user.click(
-      within(filterGroup).getByRole('button', { name: 'Trainings' }),
+      within(filterGroup).getByRole('button', { name: 'Brand models' }),
     );
 
     expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
     expect(screen.queryByText('Best Quality')).not.toBeInTheDocument();
+  });
+
+  it('composes a category with one independent capability filter', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            hasSpeech: true,
+            id: 'model-audio',
+            key: 'google/veo-3',
+            label: 'Veo 3',
+          }),
+          createModel({
+            id: 'model-silent',
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+          createModel({
+            hasSpeech: true,
+            id: 'training-audio',
+            key: 'google/brand-video',
+            label: 'Brand Video',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        sourceGroupResolver={(model) =>
+          model.id === 'training-audio' ? 'trainings' : 'models'
+        }
+        sourceGroupLabels={{
+          models: 'Catalog',
+          trainings: 'Brand models',
+        }}
+        autoSourceGroups={['models']}
+      />,
+    );
+
+    await openPicker(user);
+
+    const categories = screen.getByRole('group', {
+      name: 'Model categories',
+    });
+    const capabilities = screen.getByRole('group', {
+      name: 'Model capabilities',
+    });
+
+    await user.click(
+      within(categories).getByRole('button', { name: 'Catalog' }),
+    );
+    await user.click(
+      within(capabilities).getByRole('button', { name: 'Audio' }),
+    );
+
+    expect(
+      within(categories).getByRole('button', { name: 'Catalog' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      within(capabilities).getByRole('button', { name: 'Audio' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Veo 3')).toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+    expect(screen.queryByText('Brand Video')).not.toBeInTheDocument();
+  });
+
+  it('selects a named model from the same pointer event path as Auto', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <ModelSelectorPopover
+        models={[createModel({ key: 'google/veo-3', label: 'Veo 3' })]}
+        values={[]}
+        onChange={onChange}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="single"
+      />,
+    );
+
+    await openPicker(user);
+    fireEvent.pointerDown(
+      screen.getByText('Veo 3').closest('button') as Element,
+      {
+        button: 0,
+      },
+    );
+
+    expect(onChange).toHaveBeenCalledOnce();
+    expect(onChange).toHaveBeenCalledWith('models', ['google/veo-3']);
   });
 
   it('keeps auto routing and the manual catalog visible when auto is selected', async () => {
@@ -608,15 +739,16 @@ describe('ModelSelectorPopover', () => {
 
     await openPicker(user);
 
-    const popoverText =
-      screen.getByTestId('model-selector-popover').textContent ?? '';
+    const headings = screen
+      .getAllByRole('heading')
+      .map((heading) => heading.textContent);
 
-    expect(popoverText.indexOf('Favorites')).toBeGreaterThan(-1);
-    expect(popoverText.indexOf('Favorites')).toBeLessThan(
-      popoverText.indexOf('Recent'),
+    expect(headings.indexOf('Favorites')).toBeGreaterThan(-1);
+    expect(headings.indexOf('Favorites')).toBeLessThan(
+      headings.indexOf('Recent'),
     );
-    expect(popoverText.indexOf('Recent')).toBeLessThan(
-      popoverText.indexOf('All models'),
+    expect(headings.indexOf('Recent')).toBeLessThan(
+      headings.indexOf('Catalog'),
     );
     expect(screen.getAllByText('Model B')).toHaveLength(1);
     expect(screen.getAllByText('Model C')).toHaveLength(1);
@@ -663,7 +795,9 @@ describe('ModelSelectorPopover', () => {
     expect(screen.getByText('Current Alpha')).toBeInTheDocument();
     expect(screen.queryByText('Legacy Alpha')).not.toBeInTheDocument();
 
-    const filterGroup = screen.getByRole('group', { name: 'Filter models' });
+    const filterGroup = screen.getByRole('group', {
+      name: 'Model capabilities',
+    });
     await user.click(
       within(filterGroup).getByRole('button', { name: 'Legacy' }),
     );
@@ -694,7 +828,9 @@ describe('ModelSelectorPopover', () => {
     expect(screen.queryByText('Current Beta')).not.toBeInTheDocument();
     // One result list — no Favorites/Recent/All split while searching.
     expect(screen.queryByText('Favorites')).not.toBeInTheDocument();
-    expect(screen.queryByText('All models')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Catalog' }),
+    ).not.toBeInTheDocument();
   });
 
   it('reports an empty catalog instead of an empty section heading', async () => {
@@ -714,7 +850,9 @@ describe('ModelSelectorPopover', () => {
     await user.type(screen.getByPlaceholderText('Search models…'), 'zzzz');
 
     expect(screen.getByText('No models found')).toBeInTheDocument();
-    expect(screen.queryByText('All models')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Catalog' }),
+    ).not.toBeInTheDocument();
   });
 
   it('gives favorite toggles an accessible model-specific label', async () => {
