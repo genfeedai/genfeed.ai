@@ -55,6 +55,12 @@ export interface ModelCatalogSeedEntry {
   isActive: boolean;
   isBatchSupported?: boolean;
   isDefault?: boolean;
+  /**
+   * The provider charges nothing for this row, so `cost: 0` is its real price
+   * rather than a missing one. Without the marker a zero-cost active row is
+   * treated as uncurated and fails the catalog's no-free-activation guard.
+   */
+  isFree?: boolean;
   isHighlighted?: boolean;
   isImagenModel?: boolean;
   isLegacy?: boolean;
@@ -244,6 +250,7 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
         : ModelProvider.OPENROUTER,
       recommendedFor: [AGENT_CHAT_CAPABILITY],
       supportsFeatures: model.isReasoning ? [REASONING_FEATURE] : [],
+      ...(model.isFree ? { isFree: true } : {}),
     } satisfies ModelCatalogSeedEntry;
   });
 }
