@@ -31,6 +31,22 @@ interface TrendsAccessControlResult {
 @Injectable()
 export class TrendSourcePreviewService {
   private readonly CONTENT_CACHE_TTL_SECONDS = 600;
+  /**
+   * Every live preview resolution is one billed Apify actor run. Precompute
+   * used to fan out over the whole corpus at once, so a single `?refresh=true`
+   * cost one run per trend. These three bounds are what keep that honest:
+   * how many runs a batch may spend, how many may be in flight, and how old a
+   * stored preview has to be before `force` is allowed to re-spend on it.
+   */
+  private readonly MAX_LIVE_PREVIEW_FETCHES_PER_BATCH = 8;
+  private readonly LIVE_PREVIEW_FETCH_CONCURRENCY = 3;
+  private readonly PREVIEW_REFRESH_MIN_AGE_MS = 6 * 60 * 60 * 1000;
+  /**
+   * `?refresh=true` is a user-facing button that spends real money. One
+   * refresh per scope per cooldown window is enough to feel responsive without
+   * letting a held-down refresh drain the Apify account.
+   */
+  private readonly REFRESH_COOLDOWN_SECONDS = 15 * 60;
   private readonly CONTENT_FEED_PLATFORMS = new Set([
     'instagram',
     'linkedin',
@@ -111,21 +127,39 @@ export class TrendSourcePreviewService {
   ): Promise<TrendEntity[]> {
     const limit = options.limit ?? TREND_SOURCE_PREVIEW_LIMIT;
 
-    return await Promise.all(
-      trends.map(async (trend) => {
-        if (!this.CONTENT_FEED_PLATFORMS.has(trend.platform)) {
-          return trend;
+    const candidateIndexes = trends.reduce<number[]>(
+      (indexes, trend, index) => {
+        if (this.needsLivePreviewFetch(trend, limit, options.force === true)) {
+          indexes.push(index);
         }
+        return indexes;
+      },
+      [],
+    );
 
-        const cachedItems =
-          this.trendSourceItemsService.getStoredTrendSourcePreview(
-            trend,
-            limit,
-          );
-        if (!options.force && cachedItems.length > 0) {
-          return trend;
-        }
+    const fetchIndexes = candidateIndexes.slice(
+      0,
+      this.MAX_LIVE_PREVIEW_FETCHES_PER_BATCH,
+    );
 
+    if (candidateIndexes.length > fetchIndexes.length) {
+      this.loggerService.warn(
+        'Trend source preview batch exceeded its Apify run budget; the remaining trends keep their stored preview until the next pass',
+        {
+          deferredTrends: candidateIndexes.length - fetchIndexes.length,
+          maxFetchesPerBatch: this.MAX_LIVE_PREVIEW_FETCHES_PER_BATCH,
+          requestedTrends: candidateIndexes.length,
+        },
+      );
+    }
+
+    const hydrated = [...trends];
+
+    await this.mapWithConcurrency(
+      fetchIndexes,
+      this.LIVE_PREVIEW_FETCH_CONCURRENCY,
+      async (index) => {
+        const trend = trends[index];
         const resolvedItems = await this.resolveTrendSourcePreview(
           trend,
           undefined,
@@ -136,12 +170,76 @@ export class TrendSourcePreviewService {
           },
         );
 
-        return this.persistTrendSourcePreview(
+        hydrated[index] = await this.persistTrendSourcePreview(
           trend,
           resolvedItems,
           options.writeScope,
         );
-      }),
+      },
+    );
+
+    return hydrated;
+  }
+
+  /**
+   * A trend earns a billed Apify run only when it has no stored preview, or
+   * when a forced refresh is asking for one that is genuinely stale. `force`
+   * on a preview cached minutes ago is a repeat purchase of the same data.
+   */
+  private needsLivePreviewFetch(
+    trend: TrendEntity,
+    limit: number,
+    isForced: boolean,
+  ): boolean {
+    if (!this.CONTENT_FEED_PLATFORMS.has(trend.platform)) {
+      return false;
+    }
+
+    const cachedItems =
+      this.trendSourceItemsService.getStoredTrendSourcePreview(trend, limit);
+
+    if (cachedItems.length === 0) {
+      return true;
+    }
+
+    return isForced && this.isStoredPreviewStale(trend);
+  }
+
+  private isStoredPreviewStale(trend: TrendEntity): boolean {
+    const cachedAt = trend.metadata?.sourcePreviewCachedAt;
+    if (typeof cachedAt !== 'string') {
+      return true;
+    }
+
+    const cachedAtMs = Date.parse(cachedAt);
+    if (Number.isNaN(cachedAtMs)) {
+      return true;
+    }
+
+    return Date.now() - cachedAtMs >= this.PREVIEW_REFRESH_MIN_AGE_MS;
+  }
+
+  /**
+   * Run `worker` over `items` with a fixed number of workers in flight, so a
+   * large corpus cannot open one Apify run per trend simultaneously.
+   */
+  private async mapWithConcurrency<T>(
+    items: T[],
+    concurrency: number,
+    worker: (item: T) => Promise<void>,
+  ): Promise<void> {
+    let cursor = 0;
+
+    const runNext = async (): Promise<void> => {
+      while (cursor < items.length) {
+        const index = cursor;
+        cursor += 1;
+        await worker(items[index]);
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, items.length) }, runNext),
     );
   }
 
@@ -210,7 +308,8 @@ export class TrendSourcePreviewService {
   ): Promise<TrendContentResult> {
     const limit = options.limit ?? 30;
     const platform = options.platform;
-    const refresh = options.refresh ?? false;
+    const refresh =
+      (options.refresh ?? false) && (await this.claimRefreshCooldown(scope));
     const cacheKey = this.cacheService.generateKey(
       'trends:content',
       scope.organizationId || 'global',
@@ -267,6 +366,45 @@ export class TrendSourcePreviewService {
     });
 
     return payload;
+  }
+
+  /**
+   * Take the scope's refresh slot for this window. A refusal downgrades the
+   * request to a normal cached read rather than failing it — the caller still
+   * gets trends, just not a fresh round of billed scrapes.
+   *
+   * A cache outage claims nothing and allows the refresh: the run budget in
+   * ApifyBaseService is the backstop that does not depend on Redis being up.
+   */
+  private async claimRefreshCooldown(scope: {
+    organizationId?: string;
+    brandId?: string;
+  }): Promise<boolean> {
+    const key = this.cacheService.generateKey(
+      'trends:content:refresh-cooldown',
+      scope.organizationId || 'global',
+      scope.brandId || 'global',
+    );
+
+    const claim = await this.cacheService.claimOnce(
+      key,
+      this.REFRESH_COOLDOWN_SECONDS,
+      ['trends', 'trends:content'],
+    );
+
+    if (claim === 'duplicate') {
+      this.loggerService.debug(
+        'Trend content refresh is on cooldown; serving cached content instead of re-scraping',
+        {
+          brandId: scope.brandId,
+          cooldownSeconds: this.REFRESH_COOLDOWN_SECONDS,
+          organizationId: scope.organizationId,
+        },
+      );
+      return false;
+    }
+
+    return true;
   }
 
   /**
