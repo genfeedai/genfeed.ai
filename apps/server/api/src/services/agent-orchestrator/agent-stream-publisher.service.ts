@@ -455,6 +455,7 @@ export class AgentStreamPublisherService {
     metadata: Record<string, unknown>;
     runId?: string;
     startedAt?: string;
+    threadTitle?: string;
     toolCalls: Array<{
       creditsUsed: number;
       durationMs: number;

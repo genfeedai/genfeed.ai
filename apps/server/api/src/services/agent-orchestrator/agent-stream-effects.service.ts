@@ -161,6 +161,7 @@ export class AgentStreamEffectsService {
     durationMs?: number;
     runStartedAt?: string;
     threadId: string;
+    threadTitle?: string;
     toolCalls: ToolCallSummary[];
   }): Effect.Effect<void, unknown> {
     return this.publishStreamDoneEffect({
@@ -172,6 +173,7 @@ export class AgentStreamEffectsService {
       runId: params.context.runId,
       startedAt: params.runStartedAt,
       threadId: params.threadId,
+      threadTitle: params.threadTitle,
       toolCalls: params.toolCalls,
       userId: params.context.userId,
     }).pipe(
