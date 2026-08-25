@@ -25,6 +25,10 @@ export const HeygenIcon = createBrandIcon(
   'M4 4h5v6.4h6V4h5v16h-5v-6.4H9V20H4V4z',
 );
 
+export const HiggsfieldIcon = createBrandIcon(
+  'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4.4a5.6 5.6 0 1 1 0 11.2 5.6 5.6 0 0 1 0-11.2zm0 3a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z',
+);
+
 export const IdeogramIcon = createBrandIcon(
   'M12 1.6 14.2 9l7.4 2.2-7.4 2.2L12 20.8 9.8 13.4 2.4 11.2 9.8 9 12 1.6z',
 );

@@ -11,6 +11,7 @@ const CATALOG_ICON_KEYS = [
   'genfeed',
   'google',
   'heygen',
+  'higgsfield',
   'ideogram',
   'kling',
   'local',

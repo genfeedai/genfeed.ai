@@ -20,6 +20,7 @@ export {
   ArgilIcon,
   FalIcon,
   HeygenIcon,
+  HiggsfieldIcon,
   IdeogramIcon,
   KlingIcon,
   LumaIcon,
