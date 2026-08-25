@@ -89,21 +89,27 @@ export function useContextMenu() {
     selectAll,
   };
 
-  const lockNode = useCallback(
-    (nodeId: string) => {
-      const node = nodeMap.get(nodeId);
-      if (node && !node.data.locked) {
-        toggleNodeLock(nodeId);
+  /** Lock the given nodes, skipping any that are already locked. */
+  const lockNodes = useCallback(
+    (nodeIds: string[]) => {
+      for (const nodeId of nodeIds) {
+        const node = nodeMap.get(nodeId);
+        if (node && !node.data.locked) {
+          toggleNodeLock(nodeId);
+        }
       }
     },
     [nodeMap, toggleNodeLock],
   );
 
-  const unlockNode = useCallback(
-    (nodeId: string) => {
-      const node = nodeMap.get(nodeId);
-      if (node?.data.locked) {
-        toggleNodeLock(nodeId);
+  /** Unlock the given nodes, skipping any that are already unlocked. */
+  const unlockNodes = useCallback(
+    (nodeIds: string[]) => {
+      for (const nodeId of nodeIds) {
+        const node = nodeMap.get(nodeId);
+        if (node?.data.locked) {
+          toggleNodeLock(nodeId);
+        }
       }
     },
     [nodeMap, toggleNodeLock],
@@ -116,30 +122,6 @@ export function useContextMenu() {
       }
     },
     [createGroup],
-  );
-
-  const lockAllNodes = useCallback(
-    (nodeIds: string[]) => {
-      for (const nodeId of nodeIds) {
-        const node = nodeMap.get(nodeId);
-        if (node && !node.data.locked) {
-          toggleNodeLock(nodeId);
-        }
-      }
-    },
-    [nodeMap, toggleNodeLock],
-  );
-
-  const unlockAllNodes = useCallback(
-    (nodeIds: string[]) => {
-      for (const nodeId of nodeIds) {
-        const node = nodeMap.get(nodeId);
-        if (node?.data.locked) {
-          toggleNodeLock(nodeId);
-        }
-      }
-    },
-    [nodeMap, toggleNodeLock],
   );
 
   const alignNodesHorizontally = useCallback(
@@ -285,11 +267,11 @@ export function useContextMenu() {
           onCut: (nodeId) => handlers.cutNodes([nodeId]),
           onDelete: (nodeId) => handlers.deleteNodes([nodeId]),
           onDuplicate: (nodeId) => handlers.duplicateNodes([nodeId]),
-          onLock: lockNode,
+          onLock: (nodeId) => lockNodes([nodeId]),
           onSetAsThumbnail:
             workflowId && workflowsApi ? setAsThumbnail : undefined,
           onSetColor: setNodeColor,
-          onUnlock: unlockNode,
+          onUnlock: (nodeId) => unlockNodes([nodeId]),
         });
       }
 
@@ -321,8 +303,8 @@ export function useContextMenu() {
           onDeleteAll: handlers.deleteNodes,
           onDuplicateAll: handlers.duplicateNodes,
           onGroup: groupNodes,
-          onLockAll: lockAllNodes,
-          onUnlockAll: unlockAllNodes,
+          onLockAll: lockNodes,
+          onUnlockAll: unlockNodes,
         });
 
       default:
@@ -335,12 +317,10 @@ export function useContextMenu() {
     nodeMap,
     position,
     clipboard,
-    lockNode,
-    unlockNode,
+    lockNodes,
+    unlockNodes,
     pasteNodes,
     groupNodes,
-    lockAllNodes,
-    unlockAllNodes,
     alignNodesHorizontally,
     alignNodesVertically,
     hasMediaOutput,
