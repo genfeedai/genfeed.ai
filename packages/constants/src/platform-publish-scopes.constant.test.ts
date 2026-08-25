@@ -25,6 +25,9 @@ describe('PLATFORM_REQUIRED_PUBLISH_SCOPES', () => {
     expect(
       PLATFORM_REQUIRED_PUBLISH_SCOPES[CredentialPlatform.FACEBOOK],
     ).toEqual(['pages_manage_posts']);
+    expect(PLATFORM_REQUIRED_PUBLISH_SCOPES[CredentialPlatform.FANVUE]).toEqual(
+      ['write:post'],
+    );
   });
 
   it('leaves platforms without a declared publish scope unknown', () => {

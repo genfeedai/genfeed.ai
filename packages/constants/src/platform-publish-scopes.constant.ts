@@ -8,6 +8,7 @@ import { CredentialPlatform } from '@genfeedai/enums';
  */
 export const PLATFORM_REQUIRED_PUBLISH_SCOPES = {
   [CredentialPlatform.FACEBOOK]: ['pages_manage_posts'],
+  [CredentialPlatform.FANVUE]: ['write:post'],
   [CredentialPlatform.INSTAGRAM]: ['instagram_content_publish'],
   [CredentialPlatform.LINKEDIN]: ['w_member_social'],
   [CredentialPlatform.TIKTOK]: ['video.publish'],

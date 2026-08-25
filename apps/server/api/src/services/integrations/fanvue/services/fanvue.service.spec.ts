@@ -138,13 +138,15 @@ describe('FanvueService', () => {
     it('should include all required scopes', () => {
       const url = service.buildAuthUrl('state', 'challenge');
 
-      expect(url).toContain('scope=');
-      expect(url).toContain('openid');
-      expect(url).toContain('offline_access');
-      expect(url).toContain('read%3Aself');
-      expect(url).toContain('read%3Amedia');
-      expect(url).toContain('write%3Amedia');
-      expect(url).toContain('write%3Apost');
+      expect(new URL(url).searchParams.get('scope')?.split(' ')).toEqual([
+        'openid',
+        'offline_access',
+        'offline',
+        'read:self',
+        'read:media',
+        'write:media',
+        'write:post',
+      ]);
     });
   });
 
