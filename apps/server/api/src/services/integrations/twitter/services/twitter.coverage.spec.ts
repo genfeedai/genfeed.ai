@@ -680,7 +680,7 @@ describe('TwitterService (coverage)', () => {
       const tweetId = await service.uploadMedia(
         'org',
         'brand',
-        'https://example.com/img.jpg',
+        ['https://example.com/img.jpg'],
         'My caption',
         'image/jpeg',
       );
@@ -729,7 +729,7 @@ describe('TwitterService (coverage)', () => {
       await service.uploadMedia(
         'org',
         'brand',
-        'https://example.com/img.jpg',
+        ['https://example.com/img.jpg'],
         'Quote',
         'image/jpeg',
         'original-tweet-id',
@@ -757,7 +757,7 @@ describe('TwitterService (coverage)', () => {
         service.uploadMedia(
           'org',
           'brand',
-          'https://example.com/img.jpg',
+          ['https://example.com/img.jpg'],
           'Fail',
           'image/jpeg',
         ),

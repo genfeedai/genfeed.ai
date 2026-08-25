@@ -440,7 +440,7 @@ describe('TwitterPublisherService', () => {
         expect(twitterService.uploadMedia).toHaveBeenCalledWith(
           expect.any(String),
           expect.any(String),
-          expect.any(String),
+          expect.any(Array),
           expect.any(String),
           'image/jpeg',
           undefined,
@@ -464,7 +464,7 @@ describe('TwitterPublisherService', () => {
         expect(twitterService.uploadMedia).toHaveBeenCalledWith(
           mockOrganizationId.toString(),
           mockBrandId.toString(),
-          expect.stringContaining('/images/'),
+          [expect.stringContaining('/images/')],
           mockImagePost.description,
           'image/jpeg',
           undefined,
@@ -488,7 +488,7 @@ describe('TwitterPublisherService', () => {
         expect(twitterService.uploadMedia).toHaveBeenCalledWith(
           mockOrganizationId.toString(),
           mockBrandId.toString(),
-          expect.stringContaining('/videos/'),
+          [expect.stringContaining('/videos/')],
           mockVideoPost.description,
           'video/mp4',
           undefined,
@@ -540,7 +540,7 @@ describe('TwitterPublisherService', () => {
         expect(twitterService.uploadMedia).toHaveBeenCalledWith(
           expect.any(String),
           expect.any(String),
-          expect.stringContaining('/images/'),
+          [expect.stringContaining('/images/')],
           expect.any(String),
           'image/jpeg',
           undefined,

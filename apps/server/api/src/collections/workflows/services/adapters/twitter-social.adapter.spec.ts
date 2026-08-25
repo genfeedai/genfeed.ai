@@ -96,7 +96,7 @@ describe('TwitterSocialAdapter', () => {
       expect(mockTwitterService.uploadMedia).toHaveBeenCalledWith(
         organizationId,
         'brand1',
-        'https://example.com/image.jpg',
+        ['https://example.com/image.jpg'],
         'Nice tweet!',
         'image/jpeg',
       );

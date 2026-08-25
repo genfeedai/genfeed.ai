@@ -70,7 +70,7 @@ export class TwitterSocialAdapter {
         const tweetId = await this.twitterService.uploadMedia(
           organizationId,
           brandId,
-          mediaUrl,
+          [mediaUrl],
           text,
           'image/jpeg',
         );
