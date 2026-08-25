@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { VoiceProvider } from '@genfeedai/enums';
+import type { IAsset, IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { Voice } from '@models/ingredients/voice.model';
@@ -377,14 +378,14 @@ describe('LibraryVoicesPage', () => {
         category: 'voice',
         isMultiple: false,
         maxFiles: 1,
-        onConfirm: expect.any(Function),
+        onComplete: expect.any(Function),
       }),
     );
 
     const uploadOptions = mockOpenUpload.mock.calls[0]?.[0] as {
-      onConfirm: () => void;
+      onComplete: (ingredients: (IAsset | IIngredient)[]) => void;
     };
-    uploadOptions.onConfirm();
+    uploadOptions.onComplete([]);
 
     expect(mockCloseUpload).toHaveBeenCalled();
     expect(refresh).toHaveBeenCalled();
