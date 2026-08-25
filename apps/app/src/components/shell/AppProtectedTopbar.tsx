@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  APP_ROUTES,
-  createBrandAppRoute,
-  createOrganizationAppRoute,
-} from '@genfeedai/constants';
+import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -32,6 +28,7 @@ import TopbarActivityMenu from '@/components/shell/TopbarActivityMenu';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
+  getBrandSwitchHref,
   getCurrentBrandScopedPath,
   pickOperatorTaskContextSearchParams,
   resolveOrganizationScopePath,
@@ -169,14 +166,14 @@ function AppProtectedTopbarContent({
       }
 
       if (nextOrgSlug && nextBrand?.slug) {
-        // Always enter (or stay in) brand scope and keep the current surface
-        // (e.g. /agent/new → /:org/:brand/agent/new). Never bounce to overview.
+        // Stay on the surface (agent, studio, …) but drop a selected
+        // conversation — that thread belongs to the previous brand.
         push(
-          createBrandAppRoute(
+          getBrandSwitchHref({
+            nextBrandSlug: nextBrand.slug,
             nextOrgSlug,
-            nextBrand.slug,
-            getCurrentBrandScopedPath(pathname),
-          ),
+            pathname,
+          }),
         );
       }
     },

@@ -35,6 +35,12 @@ vi.mock('@genfeedai/constants', () => ({
     WORKSPACE: '/workspace',
   },
   APP_ROUTES: {
+    AGENT: {
+      JOURNEY: '/agent/journey',
+      NEW: '/agent/new',
+      ONBOARDING: '/agent/onboarding',
+      ROOT: '/agent',
+    },
     CONNECT: '/connect',
     LOGIN: '/login',
     LOGOUT: '/logout',
@@ -648,5 +654,23 @@ describe('AppProtectedTopbar', () => {
     onBrandChange?.('brand');
 
     expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent/new');
+  });
+
+  it('drops the selected conversation when switching brands', () => {
+    mockPathname.value = '/acme/werwer/agent/cmssrd5m20034k1xnmeo07gk7';
+
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="werwer"
+        currentApp="agent"
+      />,
+    );
+
+    const onBrandChange = brandSwitcherSpy.mock.calls.at(-1)?.[0]
+      ?.onBrandChange as ((id: string) => void) | undefined;
+    onBrandChange?.('brand');
+
+    expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent');
   });
 });
