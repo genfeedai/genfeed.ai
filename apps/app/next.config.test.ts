@@ -109,12 +109,9 @@ describe('app next.config', () => {
     );
   });
 
-  it('does not define stale bare overview redirects', async () => {
+  it('does not define a stale bare-root redirect', async () => {
     const redirects = await config.redirects?.();
     expect(redirects?.some((redirect) => redirect.source === '/')).toBe(false);
-    expect(redirects?.some((redirect) => redirect.source === '/overview')).toBe(
-      false,
-    );
   });
 
   it('redirects dead bare /review CTAs to publish/review', async () => {

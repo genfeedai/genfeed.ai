@@ -15,6 +15,7 @@ import {
 } from '@ui/primitives/table';
 import { Megaphone } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 import {
   formatLongevity,
@@ -257,34 +258,36 @@ export function AdsResearchAdTable({
   selectedKey,
   onSelect,
 }: AdsResearchAdTableProps) {
+  const translate = useTranslations('pages.adsResearch.adList');
+
   return (
     <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
       <Table className="w-full text-left">
         <TableHeader>
           <TableRow className="border-b border-white/[0.06] bg-card">
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              Platform
+              {translate('platform')}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              Title
+              {translate('title')}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              Source
+              {translate('source')}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               {getMetricLabel(metric)}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              CTR
+              {translate('ctr')}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              Running
+              {translate('running')}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              Channel
+              {translate('channel')}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              Account
+              {translate('account')}
             </TableHead>
           </TableRow>
         </TableHeader>

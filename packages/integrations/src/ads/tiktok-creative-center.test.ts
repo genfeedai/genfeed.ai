@@ -18,6 +18,7 @@ describe('tiktok creative center mappers', () => {
       granularity: 'ad',
       performanceScore: null,
       platform: 'tiktok',
+      usagePolicy: 'remix_allowed',
     });
     expect(record.impressions).toBeUndefined();
     expect(record.spend).toBeUndefined();

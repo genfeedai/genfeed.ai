@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 const WATCHLIST_PLATFORM_OPTIONS: Array<{
@@ -68,6 +69,7 @@ function AdvertiserRow({
   isBusy: boolean;
   onRemove: (id: string) => void;
 }) {
+  const translate = useTranslations('pages.adsResearch.watchlist');
   const lastRun = advertiser.lastSuccessfulAt || advertiser.lastAttemptedAt;
 
   return (
@@ -85,7 +87,11 @@ function AdvertiserRow({
               advertiser.freshnessState}
           </span>
           {typeof advertiser.lastSnapshotRecordCount === 'number' ? (
-            <span>{advertiser.lastSnapshotRecordCount} creatives</span>
+            <span>
+              {translate('creatives', {
+                count: advertiser.lastSnapshotRecordCount,
+              })}
+            </span>
           ) : null}
           {lastRun ? (
             <span>{new Date(lastRun).toLocaleDateString()}</span>
@@ -143,6 +149,7 @@ export function AdsResearchWatchlistPanel({
   onAdd,
   onRemove,
 }: AdsResearchWatchlistPanelProps) {
+  const translate = useTranslations('pages.adsResearch.watchlist');
   const [advertiserHandle, setAdvertiserHandle] = useState('');
   const [platform, setPlatform] = useState<AdWatchlistPlatform>('meta');
   const blockedPlatforms = readiness.filter((entry) => !entry.available);
@@ -151,13 +158,9 @@ export function AdsResearchWatchlistPanel({
     <div className="mb-4 space-y-3 rounded-xl bg-card/40 p-4 shadow-border">
       <div className="space-y-1">
         <div className="text-sm font-semibold text-foreground">
-          Watched competitors
+          {translate('title')}
         </div>
-        <p className="text-xs text-foreground/55">
-          We poll each competitor's public ad archive and file what is running
-          into this page, ready to remix. Archives publish the creative only, so
-          spend and delivery numbers stay unavailable.
-        </p>
+        <p className="text-xs text-foreground/55">{translate('description')}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -195,7 +198,7 @@ export function AdsResearchWatchlistPanel({
             setAdvertiserHandle('');
           }}
         >
-          Watch competitor
+          {translate('watchCompetitor')}
         </Button>
       </div>
 
@@ -208,7 +211,9 @@ export function AdsResearchWatchlistPanel({
       {blockedPlatforms.length > 0 ? (
         <Alert type={AlertCategory.INFO}>
           <div className="space-y-1 text-xs">
-            <div className="font-medium">Archives we cannot poll yet</div>
+            <div className="font-medium">
+              {translate('archivesUnavailable')}
+            </div>
             <ul className="space-y-0.5 text-foreground/70">
               {blockedPlatforms.map((entry) => (
                 <li key={entry.platform}>
@@ -225,14 +230,9 @@ export function AdsResearchWatchlistPanel({
       ) : null}
 
       {isLoading ? (
-        <p className="text-xs text-foreground/45">
-          Loading watched competitors…
-        </p>
+        <p className="text-xs text-foreground/45">{translate('loading')}</p>
       ) : advertisers.length === 0 ? (
-        <p className="text-xs text-foreground/45">
-          No competitors watched yet. Add one above to start collecting their
-          live ads.
-        </p>
+        <p className="text-xs text-foreground/45">{translate('empty')}</p>
       ) : (
         <ul className="space-y-2">
           {advertisers.map((advertiser) => (

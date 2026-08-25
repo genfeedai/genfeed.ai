@@ -1,8 +1,10 @@
+import { PAID_CREATIVE_RESEARCH_SOURCES } from '@genfeedai/integrations/ads';
 import type { AdPerformance } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import type { ServerPrisma } from '@server/server.dependencies';
 import { AdPerformanceService } from './ad-performance.service';
 
 const NOW = new Date('2026-08-01T00:00:00.000Z');
+const TENANT_RESEARCH_SOURCES = [...PAID_CREATIVE_RESEARCH_SOURCES];
 
 function makeRow(
   data: Record<string, unknown> = {},
@@ -556,7 +558,7 @@ describe('AdPerformanceService', () => {
           isDeleted: false,
           OR: [
             { researchSource: null },
-            { researchSource: { not: 'x_ads_repository' } },
+            { researchSource: { notIn: TENANT_RESEARCH_SOURCES } },
           ],
           scope: 'public',
         },

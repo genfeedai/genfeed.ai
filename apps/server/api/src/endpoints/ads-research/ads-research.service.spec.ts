@@ -243,6 +243,7 @@ describe('AdsResearchService', () => {
         adPlatform: 'meta',
         advertiserName: 'Nike',
         bodyText: 'Run further this winter',
+        campaignName: undefined,
         ctaText: 'Shop now',
         estimatedReach: 4200,
         headlineText: 'Winter running kit',
@@ -340,7 +341,8 @@ describe('AdsResearchService', () => {
         // platforms land on the same archive and the same stored ad platform.
         adPlatform: 'google-ads',
         advertiserName: 'Example Corp',
-        headlineText: null,
+        campaignName: undefined,
+        headlineText: undefined,
         id: 'google-research-ad',
         researchSource: 'google_ads_transparency_center',
         scope: 'organization',
@@ -365,7 +367,8 @@ describe('AdsResearchService', () => {
       buildPublicAd({
         adPlatform: 'tiktok_ads',
         advertiserHandle: 'gymshark',
-        headlineText: null,
+        campaignName: undefined,
+        headlineText: undefined,
         id: 'tiktok-research-ad',
         researchSource: 'tiktok_creative_center',
         scope: 'organization',

@@ -68,6 +68,11 @@ vi.mock('@ui/primitives/select', () => ({
   SelectValue: () => null,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const readiness: AdWatchlistPlatformReadiness[] = [
   {
     available: true,
