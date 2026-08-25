@@ -1,9 +1,13 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OAuthPlatformForm from './oauth-platform-form';
 
 const mocks = vi.hoisted(() => ({
+  authIdentity: {
+    isLoaded: true,
+    isSignedIn: true,
+  },
   getServicesService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
@@ -14,6 +18,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getServicesService,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => mocks.authIdentity,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -42,6 +50,10 @@ vi.mock('next/navigation', () => ({
 describe('OAuthPlatformForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.authIdentity = {
+      isLoaded: true,
+      isSignedIn: true,
+    };
     const realSetTimeout = globalThis.setTimeout;
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(
       (callback, timeout, ...args) => {
@@ -88,6 +100,70 @@ describe('OAuthPlatformForm', () => {
     expect(screen.getByText('Instagram Connected')).toBeVisible();
 
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+  });
+
+  it('waits for the authenticated session to hydrate before verifying', async () => {
+    mocks.authIdentity = {
+      isLoaded: false,
+      isSignedIn: false,
+    };
+    const { rerender } = render(<OAuthPlatformForm platform="twitter" />);
+
+    expect(mocks.getServicesService).not.toHaveBeenCalled();
+
+    mocks.authIdentity = {
+      isLoaded: true,
+      isSignedIn: true,
+    };
+    rerender(<OAuthPlatformForm platform="twitter" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        code: 'code-1',
+        state: 'state-1',
+      });
+    });
+    expect(mocks.getServicesService).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the callback through sign-in when the session expired', () => {
+    mocks.authIdentity = {
+      isLoaded: true,
+      isSignedIn: false,
+    };
+
+    render(<OAuthPlatformForm platform="twitter" />);
+
+    expect(mocks.getServicesService).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('link', { name: 'Sign in to continue' }),
+    ).toHaveAttribute(
+      'href',
+      `/login?callbackUrl=${encodeURIComponent(
+        '/oauth/twitter?code=code-1&return_to=%2Fsettings%2Fpublishing&state=state-1',
+      )}`,
+    );
+  });
+
+  it('retries verification without requiring another provider redirect', async () => {
+    mocks.getServicesService
+      .mockRejectedValueOnce(new Error('Authentication token unavailable'))
+      .mockResolvedValueOnce({
+        postVerify: mocks.postVerify,
+      });
+
+    render(<OAuthPlatformForm platform="twitter" />);
+
+    const retry = await screen.findByRole('button', { name: 'Try again' });
+    fireEvent.click(retry);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        code: 'code-1',
+        state: 'state-1',
+      });
+    });
+    expect(mocks.getServicesService).toHaveBeenCalledTimes(2);
   });
 
   it('renders failure state and default back link when verification fails', async () => {
