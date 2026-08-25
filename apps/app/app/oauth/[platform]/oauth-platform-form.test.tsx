@@ -24,6 +24,17 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => mocks.authIdentity,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../tests/next-intl.stub'
+  );
+
+  return {
+    useTranslations: () =>
+      translateFromCatalog('common.oauth.platformCallback'),
+  };
+});
+
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.loggerError,

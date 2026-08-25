@@ -227,7 +227,6 @@
     "apps/app/app/~offline/content.tsx": 3,
     "apps/app/app/error.tsx": 2,
     "apps/app/app/global-error.tsx": 2,
-    "apps/app/app/oauth/[platform]/oauth-platform-form.tsx": 6,
     "apps/app/packages/components/admin/modals/ModalRole.tsx": 3,
     "apps/app/packages/components/admin/modals/ModalSubscription.tsx": 2,
     "apps/app/packages/components/asset-gate-guard.tsx": 4,

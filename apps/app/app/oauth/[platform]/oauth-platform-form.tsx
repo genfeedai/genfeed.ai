@@ -10,6 +10,7 @@ import { Button } from '@ui/primitives/button';
 import { CircleCheck, CircleX } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import AnalyticsPublicRouteSync from '@/components/analytics/AnalyticsPublicRouteSync';
 
@@ -30,6 +31,7 @@ const DEFAULT_RETURN_PATH = '/settings/api-keys';
 const INITIAL_STATE: VerifyResult = { status: 'loading' };
 
 function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
+  const translate = useTranslations('common.oauth.platformCallback');
   const searchParams = useSearchParams();
   const code = searchParams.get('code');
   const oauthToken = searchParams.get('oauth_token');
@@ -109,7 +111,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         logger.error(`${url} failed`, error);
         setResult({
           status: 'error',
-          errorMessage: 'Failed to verify your account. Please try again.',
+          errorMessage: translate('error.description'),
         });
       }
     },
@@ -123,6 +125,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       push,
       resolveReturnTo,
       state,
+      translate,
     ],
   );
 
@@ -151,19 +154,19 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
               <div className="size-16 animate-spin rounded-full border-b-2 border-primary" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Connecting your {platformLabel} account…
+              {translate('connecting', { platform: platformLabel })}
             </p>
           </div>
         )}
 
         {isLoaded && !isSignedIn && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Sign in required</h2>
+            <h2 className="text-lg font-semibold">{translate('auth.title')}</h2>
             <p className="text-sm text-muted-foreground">
-              Sign in to finish connecting your {platformLabel} account.
+              {translate('auth.description', { platform: platformLabel })}
             </p>
             <Button asChild withWrapper={false}>
-              <Link href={loginHref}>Sign in to continue</Link>
+              <Link href={loginHref}>{translate('actions.signIn')}</Link>
             </Button>
           </div>
         )}
@@ -171,9 +174,11 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         {isSignedIn && result.status === 'success' && (
           <div className="space-y-4">
             <CircleCheck className="mx-auto text-5xl text-success" />
-            <h2 className="text-lg font-semibold">{platformLabel} Connected</h2>
+            <h2 className="text-lg font-semibold">
+              {translate('success.title', { platform: platformLabel })}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Redirecting you back…
+              {translate('success.description')}
             </p>
           </div>
         )}
@@ -181,18 +186,20 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         {isSignedIn && result.status === 'error' && (
           <div className="space-y-4">
             <CircleX className="mx-auto text-5xl text-destructive" />
-            <h2 className="text-lg font-semibold">Connection Failed</h2>
+            <h2 className="text-lg font-semibold">
+              {translate('error.title')}
+            </h2>
             <p className="text-sm text-muted-foreground">
               {result.errorMessage}
             </p>
             <div className="flex justify-center gap-2">
-              <Button onClick={retry}>Try again</Button>
+              <Button onClick={retry}>{translate('actions.retry')}</Button>
               <Button asChild variant={ButtonVariant.LINK} withWrapper={false}>
                 <Link
                   href={resolveReturnTo() || DEFAULT_RETURN_PATH}
                   onClick={clearStoredReturnTo}
                 >
-                  Go back
+                  {translate('actions.back')}
                 </Link>
               </Button>
             </div>
