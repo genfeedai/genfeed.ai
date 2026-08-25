@@ -29,6 +29,22 @@ resource "aws_ssm_parameter" "redis_password" {
   value       = random_password.redis_auth_token.result
 }
 
+# BullMQ keeps waiting jobs in hashes with no TTL. Under an eviction policy that
+# only considers volatile keys, a full cache still refuses to write and the
+# default policy would silently drop state we cannot rebuild -- so production
+# runs `noeviction` and fails writes loudly instead. This group is declared here
+# because a console-only setting is lost the moment the group is recreated.
+resource "aws_elasticache_parameter_group" "redis" {
+  name        = "${local.name_prefix}-redis7"
+  family      = "redis7"
+  description = "Genfeed production: noeviction for BullMQ job durability"
+
+  parameter {
+    name  = "maxmemory-policy"
+    value = "noeviction"
+  }
+}
+
 resource "aws_elasticache_replication_group" "redis" {
   replication_group_id       = "${local.name_prefix}-redis"
   description                = "genfeed production redis"
@@ -37,7 +53,7 @@ resource "aws_elasticache_replication_group" "redis" {
   node_type                  = "cache.t4g.micro"
   num_cache_clusters         = 1
   port                       = 6379
-  parameter_group_name       = "default.redis7"
+  parameter_group_name       = aws_elasticache_parameter_group.redis.name
   subnet_group_name          = aws_elasticache_subnet_group.redis.name
   security_group_ids         = [aws_security_group.cache.id]
   automatic_failover_enabled = false
