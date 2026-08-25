@@ -313,6 +313,20 @@ test('hosted SaaS site identity comes from GitHub environment variables', () => 
   assert.doesNotMatch(tofuProviders, /bucket\s*=\s*"genfeed-tfstate"/);
 });
 
+test('hosted SaaS owns the canonical browser app origin', () => {
+  const servicesTf = readFileSync(
+    fileURLToPath(
+      new URL('../../infra/tofu/hosted-saas/services.tf', import.meta.url),
+    ),
+    'utf8',
+  );
+
+  assert.match(
+    servicesTf,
+    /\{ name = "GENFEEDAI_APP_URL", value = "https:\/\/app\.\$\{var\.domain\}" \}/,
+  );
+});
+
 test('scopes public ECS tasks to service-required secrets and IAM', () => {
   const localsTf = readFileSync(
     fileURLToPath(
