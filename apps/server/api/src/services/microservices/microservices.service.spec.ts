@@ -230,9 +230,9 @@ describe('MicroservicesService', () => {
       );
     });
 
-    it('should throw exception in production when services are unhealthy', async () => {
-      // verifyRequiredServices retries 5 times with exponential backoff (2+4+8+16s = 30s)
-      // Use fake timers to avoid the actual delays
+    it('retries with exponential backoff before giving up on unhealthy peers', async () => {
+      // verifyRequiredServices retries 5 times with exponential backoff
+      // (2+4+8+16s = 30s). Use fake timers to avoid the actual delays.
       vi.useFakeTimers();
 
       const mockRedisClient = {
@@ -248,7 +248,6 @@ describe('MicroservicesService', () => {
         return 'http://files.genfeed.ai';
       });
 
-      // Re-initialize with mocked config
       (
         service as unknown as {
           initializeServices: () => void;
@@ -256,23 +255,224 @@ describe('MicroservicesService', () => {
       ).initializeServices();
 
       const error = new Error('Service unavailable');
+      const get = vi
+        .spyOn(httpService, 'get')
+        .mockReturnValue(throwError(() => error));
+
+      const verifyPromise = service.verifyRequiredServices();
+      await vi.runAllTimersAsync();
+      await verifyPromise;
+
+      // 3 configured services x 5 attempts
+      expect(get).toHaveBeenCalledTimes(15);
+
+      vi.useRealTimers();
+    });
+
+    it('completes startup instead of throwing when peers are unhealthy in production', async () => {
+      // #3565: a Cloud Map cold start can leave a peer unregistered for longer
+      // than the retry budget. Boot must survive it — the dependency is
+      // required at first use, not at boot.
+      vi.useFakeTimers();
+
+      const mockRedisClient = {
+        ping: vi.fn().mockResolvedValue('PONG'),
+      };
+      (service as unknown as { redisClient: unknown }).redisClient =
+        mockRedisClient;
+
+      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') {
+          return 'production';
+        }
+        return 'http://files.genfeed.ai';
+      });
+
+      (
+        service as unknown as {
+          initializeServices: () => void;
+        }
+      ).initializeServices();
+
+      const error = new Error('getaddrinfo ENOTFOUND files.genfeed.internal');
       vi.spyOn(httpService, 'get').mockReturnValue(throwError(() => error));
 
       const verifyPromise = service.verifyRequiredServices();
-
-      // Attach rejection handler BEFORE advancing timers to avoid unhandled rejection
-      const expectation = expect(verifyPromise).rejects.toThrow(HttpException);
-
-      // Advance through all retry delays (2+4+8+16s) so the loop completes
       await vi.runAllTimersAsync();
 
-      await expectation;
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('Required services are not available'),
+      await expect(verifyPromise).resolves.toBeUndefined();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Continuing startup'),
         expect.any(Object),
       );
 
       vi.useRealTimers();
+    });
+
+    it('marks unreachable peers degraded so readiness can report them', async () => {
+      vi.useFakeTimers();
+
+      const mockRedisClient = {
+        ping: vi.fn().mockResolvedValue('PONG'),
+      };
+      (service as unknown as { redisClient: unknown }).redisClient =
+        mockRedisClient;
+
+      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') {
+          return 'production';
+        }
+        return 'http://files.genfeed.ai';
+      });
+
+      (
+        service as unknown as {
+          initializeServices: () => void;
+        }
+      ).initializeServices();
+
+      const error = new Error('getaddrinfo ENOTFOUND files.genfeed.internal');
+      vi.spyOn(httpService, 'get').mockReturnValue(throwError(() => error));
+
+      const verifyPromise = service.verifyRequiredServices();
+      await vi.runAllTimersAsync();
+      await verifyPromise;
+
+      const readiness = service.getReadiness();
+
+      expect(readiness.status).toBe('degraded');
+      expect(readiness.degradedDependencies?.map((d) => d.name).sort()).toEqual(
+        ['files', 'mcp', 'notifications'],
+      );
+      expect(
+        readiness.degradedDependencies?.find((d) => d.name === 'files'),
+      ).toEqual({
+        error: 'getaddrinfo ENOTFOUND files.genfeed.internal',
+        name: 'files',
+        since: expect.any(String),
+        url: 'http://files.genfeed.ai',
+      });
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('onModuleInit', () => {
+    it('does not terminate the process when peers are unreachable at boot', async () => {
+      const exitSpy = vi
+        .spyOn(process, 'exit')
+        .mockImplementation((() => undefined) as never);
+
+      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') {
+          return 'production';
+        }
+        if (key === 'REDIS_URL') {
+          return undefined;
+        }
+        return 'http://files.genfeed.ai';
+      });
+
+      const error = new Error('getaddrinfo ENOTFOUND files.genfeed.internal');
+      vi.spyOn(httpService, 'get').mockReturnValue(throwError(() => error));
+
+      vi.useFakeTimers();
+      const initPromise = service.onModuleInit();
+      await vi.runAllTimersAsync();
+      await initPromise;
+      vi.useRealTimers();
+
+      expect(exitSpy).not.toHaveBeenCalled();
+      expect(service.getReadiness().status).toBe('degraded');
+
+      exitSpy.mockRestore();
+    });
+
+    it('still terminates the process when Redis is unavailable', async () => {
+      // Redis stays a hard boot dependency — it is not a Cloud Map peer and a
+      // process without it cannot serve anything.
+      const exitSpy = vi
+        .spyOn(process, 'exit')
+        .mockImplementation((() => undefined) as never);
+
+      vi.spyOn(configService, 'get').mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') {
+          return 'production';
+        }
+        if (key === 'REDIS_URL') {
+          return 'redis://localhost:6379';
+        }
+        return 'http://files.genfeed.ai';
+      });
+      vi.spyOn(service, 'checkRedisHealth').mockResolvedValue(false);
+
+      await service.onModuleInit();
+
+      expect(exitSpy).toHaveBeenCalledWith(1);
+
+      exitSpy.mockRestore();
+    });
+  });
+
+  describe('degraded dependency tracking', () => {
+    it('reports ready before anything has failed', () => {
+      expect(service.getReadiness()).toEqual({ status: 'ready' });
+    });
+
+    it('clears the degraded mark once the peer answers again', async () => {
+      (
+        service as unknown as {
+          initializeServices: () => void;
+        }
+      ).initializeServices();
+
+      vi.spyOn(httpService, 'get').mockReturnValue(
+        throwError(() => new Error('Service unavailable')),
+      );
+      await service.checkServiceHealth('files', 'http://files.genfeed.ai');
+
+      expect(service.getReadiness().status).toBe('degraded');
+
+      vi.spyOn(httpService, 'get').mockReturnValue(of({ status: 200 }));
+      await service.checkServiceHealth('files', 'http://files.genfeed.ai');
+
+      expect(service.getReadiness()).toEqual({ status: 'ready' });
+    });
+
+    it('keeps the original since timestamp across consecutive failures', async () => {
+      vi.spyOn(httpService, 'get').mockReturnValue(
+        throwError(() => new Error('Service unavailable')),
+      );
+
+      vi.useFakeTimers().setSystemTime(new Date('2026-08-25T17:27:47.000Z'));
+      await service.checkServiceHealth('files', 'http://files.genfeed.ai');
+
+      vi.setSystemTime(new Date('2026-08-25T17:28:16.000Z'));
+      await service.checkServiceHealth('files', 'http://files.genfeed.ai');
+      vi.useRealTimers();
+
+      expect(service.getReadiness().degradedDependencies?.[0].since).toBe(
+        '2026-08-25T17:27:47.000Z',
+      );
+    });
+
+    it('surfaces degraded dependencies through getHealthDetails', async () => {
+      (
+        service as unknown as {
+          initializeServices: () => void;
+        }
+      ).initializeServices();
+
+      vi.spyOn(httpService, 'get').mockReturnValue(
+        throwError(() => new Error('Service unavailable')),
+      );
+
+      const details = await service.getHealthDetails();
+
+      expect(details.degradedDependencies).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'files' })]),
+      );
+      expect(details.services).toHaveLength(3);
     });
   });
 

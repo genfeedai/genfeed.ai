@@ -149,6 +149,74 @@ describe('HealthController', () => {
       const result = controller.ready();
       expect(result).toHaveProperty('status', 'ready');
     });
+
+    it('reports ready when a contributor exposes no degraded dependency', async () => {
+      const moduleRef: TestingModule = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          {
+            provide: HEALTH_CONTRIBUTOR,
+            useValue: {
+              getHealthDetails: () => ({}),
+              getReadiness: () => ({ status: 'ready' }),
+            },
+          },
+        ],
+      }).compile();
+
+      const result = moduleRef.get<HealthController>(HealthController).ready();
+
+      expect(result).toHaveProperty('status', 'ready');
+      expect(result).not.toHaveProperty('degradedDependencies');
+    });
+
+    it('reports degraded dependencies without failing the probe', async () => {
+      const degradedDependencies = [
+        {
+          error: 'getaddrinfo ENOTFOUND files.genfeed.internal',
+          name: 'files',
+          since: '2026-08-25T17:27:47.000Z',
+          url: 'http://files.genfeed.internal',
+        },
+      ];
+
+      const moduleRef: TestingModule = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          {
+            provide: HEALTH_CONTRIBUTOR,
+            useValue: {
+              getHealthDetails: () => ({}),
+              getReadiness: () => ({
+                degradedDependencies,
+                status: 'degraded',
+              }),
+            },
+          },
+        ],
+      }).compile();
+
+      const result = moduleRef.get<HealthController>(HealthController).ready();
+
+      expect(result).toHaveProperty('status', 'degraded');
+      expect(result.degradedDependencies).toEqual(degradedDependencies);
+    });
+
+    it('stays ready when the contributor omits the readiness hook', async () => {
+      const moduleRef: TestingModule = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          {
+            provide: HEALTH_CONTRIBUTOR,
+            useValue: { getHealthDetails: () => ({ activeBots: 3 }) },
+          },
+        ],
+      }).compile();
+
+      expect(
+        moduleRef.get<HealthController>(HealthController).ready(),
+      ).toHaveProperty('status', 'ready');
+    });
   });
 
   describe('live', () => {
