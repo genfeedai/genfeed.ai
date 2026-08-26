@@ -1,9 +1,14 @@
+import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
+
 /**
  * Input DTO to start a clip orchestration run.
  */
 export interface StartClipRunDto {
   /** Brand kit to resolve once into immutable references for this run. */
   brandId?: string;
+
+  /** Already-preflighted references supplied by a generation entry point. */
+  runReferences?: readonly GenerationBriefReference[];
 
   /** Clip project ID to orchestrate. */
   projectId: string;

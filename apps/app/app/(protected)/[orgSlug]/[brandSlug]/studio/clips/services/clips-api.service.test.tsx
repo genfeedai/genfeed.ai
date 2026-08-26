@@ -257,6 +257,58 @@ describe('ClipsApiService', () => {
     );
   });
 
+  it('reads and submits the trusted hook approval contract', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: {
+              attempt: 1,
+              hookClipResultId: 'hook-result-1',
+              remainingClipCount: 3,
+              state: 'awaiting_confirmation',
+            },
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: {
+              attempt: 1,
+              hookClipResultId: 'hook-result-1',
+              lastAction: 'approve',
+              remainingClipCount: 3,
+              state: 'approved',
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-approval'),
+    );
+
+    await expect(service.getHookApproval('clip-project-1')).resolves.toEqual(
+      expect.objectContaining({ state: 'awaiting_confirmation' }),
+    );
+    await expect(
+      service.submitHookApproval('clip-project-1', {
+        action: 'approve',
+      }),
+    ).resolves.toEqual(expect.objectContaining({ state: 'approved' }));
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.test/v1/clip-projects/clip-project-1/hook-approval',
+      expect.objectContaining({
+        body: JSON.stringify({ action: 'approve' }),
+        method: 'POST',
+      }),
+    );
+  });
+
   it('retries Library linking without generating a new clip', async () => {
     fetchMock.mockResolvedValue(
       new Response(

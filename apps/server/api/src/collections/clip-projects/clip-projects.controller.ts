@@ -3,7 +3,10 @@ import { ClipProjectsService } from '@api/collections/clip-projects/clip-project
 import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
-import { GenerateClipsDto } from '@api/collections/clip-projects/dto/generate-clips.dto';
+import {
+  GenerateClipsDto,
+  SubmitHookClipDecisionDto,
+} from '@api/collections/clip-projects/dto/generate-clips.dto';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
@@ -12,6 +15,7 @@ import { ClipGenerationRequestService } from '@api/collections/clip-projects/ser
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -34,6 +38,7 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   AgentClipRunIdentity,
   ClipReferenceApplication,
+  HookClipApprovalStatus,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
@@ -78,6 +83,7 @@ export class ClipProjectsController {
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
     private readonly highlightRewriteService: HighlightRewriteService,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly hookClipApprovalService: HookClipApprovalService,
   ) {}
 
   @Post('from-youtube')
@@ -333,6 +339,27 @@ export class ClipProjectsController {
       projectId,
     });
 
+    const hookApprovalRequired =
+      mode === 'avatar' &&
+      selectedEditedHighlights.length > 1 &&
+      dto.hookApprovalRequired !== false;
+    const initialCreditCount = hookApprovalRequired
+      ? 1
+      : selectedEditedHighlights.length;
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        orgId,
+        initialCreditCount,
+      );
+    if (!hasCredits) {
+      const currentBalance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(orgId);
+      throw new InsufficientCreditsException(
+        initialCreditCount,
+        currentBalance,
+      );
+    }
+
     await this.clipProjectsService.patch(projectId, {
       highlights: persistedHighlights,
       progress: 0,
@@ -346,6 +373,7 @@ export class ClipProjectsController {
     const result = await this.clipGenerationService.generateClips({
       avatarId: identity?.avatarId,
       highlights: selectedEditedHighlights,
+      hookApprovalRequired,
       mode,
       orgId,
       projectId,
@@ -381,6 +409,39 @@ export class ClipProjectsController {
       ...(reference.application ? { reference: reference.application } : {}),
       status: result.queuedClipCount > 0 ? 'generating' : 'failed',
     });
+  }
+
+  @Get(':projectId/hook-approval')
+  @ApiOperation({ summary: 'Get the trusted hook clip approval state' })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getHookClipApproval(
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+  ): Promise<{ data: HookClipApprovalStatus }> {
+    const data = await this.hookClipApprovalService.getStatus(
+      projectId,
+      user.organizationId,
+    );
+    return { data };
+  }
+
+  @Post(':projectId/hook-approval')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Approve, regenerate, or reject the hook clip' })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async submitHookClipDecision(
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+    @Body() dto: SubmitHookClipDecisionDto,
+  ): Promise<{ data: HookClipApprovalStatus }> {
+    const data = await this.hookClipApprovalService.submitDecision({
+      action: dto.action,
+      feedback: dto.feedback,
+      organizationId: user.organizationId,
+      projectId,
+      userId: user.userId ?? user.id,
+    });
+    return { data };
   }
 
   @Post()
@@ -440,10 +501,22 @@ export class ClipProjectsController {
     @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
-    const data = await this.clipProjectsService.reconcileTerminalState(
+    const hookApproval = await this.hookClipApprovalService.getStatus(
       id,
       user.organizationId,
     );
+    const data = this.hookClipApprovalService.isProjectReconciliationBlocked(
+      hookApproval,
+    )
+      ? await this.clipProjectsService.findOne({
+          id,
+          isDeleted: false,
+          organizationId: user.organizationId,
+        })
+      : await this.clipProjectsService.reconcileTerminalState(
+          id,
+          user.organizationId,
+        );
 
     if (!data) {
       return returnNotFound(this.constructorName, id);

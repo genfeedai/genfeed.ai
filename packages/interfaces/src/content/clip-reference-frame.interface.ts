@@ -85,3 +85,34 @@ export interface ClipProjectReadResponse {
   sourceVideoUrl?: string;
   status?: string;
 }
+
+export const HOOK_CLIP_APPROVAL_ACTIONS = [
+  'approve',
+  'request_changes',
+  'reject',
+] as const;
+
+export type HookClipApprovalAction =
+  (typeof HOOK_CLIP_APPROVAL_ACTIONS)[number];
+
+export const HOOK_CLIP_APPROVAL_STATES = [
+  'not_required',
+  'generating_hook',
+  'awaiting_confirmation',
+  'resuming',
+  'approved',
+  'rejected',
+  'failed',
+] as const;
+
+export type HookClipApprovalState = (typeof HOOK_CLIP_APPROVAL_STATES)[number];
+
+/** Trusted server projection for the hook-first clip review checkpoint. */
+export interface HookClipApprovalStatus {
+  state: HookClipApprovalState;
+  attempt: number;
+  remainingClipCount: number;
+  hookClipResultId?: string;
+  lastAction?: HookClipApprovalAction;
+  feedback?: string;
+}

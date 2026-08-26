@@ -349,9 +349,18 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     let cancelled = false;
     setIsHydrating(true);
 
-    void clipsService
-      .getProject(projectIdFromRoute, abortController.signal)
-      .then((data) => {
+    void (async () => {
+      const data = await clipsService.getProject(
+        projectIdFromRoute,
+        abortController.signal,
+      );
+      const hookApproval = await clipsService.getHookApproval(
+        projectIdFromRoute,
+        abortController.signal,
+      );
+      return [data, hookApproval] as const;
+    })()
+      .then(([data, hookApproval]) => {
         if (cancelled) {
           return;
         }
@@ -364,6 +373,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         setProject({
           clips: [],
           highlights: [],
+          hookApproval,
           mode,
           projectId: projectIdFromRoute,
           referenceFrames: data.referenceFrames,
@@ -788,9 +798,16 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
 
     const pollClips = async () => {
       try {
-        const [projectData, clips] = await Promise.all([
-          clipsService.getProject(project.projectId, abortController.signal),
+        const projectData = await clipsService.getProject(
+          project.projectId,
+          abortController.signal,
+        );
+        const [clips, hookApproval] = await Promise.all([
           clipsService.getClipResults(
+            project.projectId,
+            abortController.signal,
+          ),
+          clipsService.getHookApproval(
             project.projectId,
             abortController.signal,
           ),
@@ -803,7 +820,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         const projectStatus = projectData.status ?? 'generating';
 
         setProject((prev) =>
-          prev ? { ...prev, clips, status: projectStatus } : prev,
+          prev ? { ...prev, clips, hookApproval, status: projectStatus } : prev,
         );
 
         if (TERMINAL_PROJECT_STATUSES.has(projectStatus)) {

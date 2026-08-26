@@ -1,11 +1,17 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import type {
+  HookClipApprovalAction,
+  HookClipApprovalStatus,
+} from '@genfeedai/interfaces';
 import type { ProjectState } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
-import { Film } from 'lucide-react';
+import { Textarea } from '@ui/primitives/textarea';
+import { Check, Film, Sparkles, X } from 'lucide-react';
+import { useState } from 'react';
 
 import type { ClipsApiService } from '../services/clips-api.service';
 import ClipResultCard from './ClipResultCard';
@@ -23,6 +29,50 @@ export default function ClipsProgressView({
   project,
   selectedCount,
 }: ClipsProgressViewProps) {
+  const [feedback, setFeedback] = useState('');
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [isDecisionSubmitting, setIsDecisionSubmitting] = useState(false);
+  const [submittedApproval, setSubmittedApproval] = useState<{
+    sourceAttempt?: number;
+    sourceState?: HookClipApprovalStatus['state'];
+    status: HookClipApprovalStatus;
+  } | null>(null);
+  const serverApproval = project.hookApproval;
+  const approval =
+    submittedApproval?.sourceAttempt === serverApproval?.attempt &&
+    submittedApproval?.sourceState === serverApproval?.state
+      ? submittedApproval.status
+      : serverApproval;
+
+  const submitDecision = async (action: HookClipApprovalAction) => {
+    setDecisionError(null);
+    setIsDecisionSubmitting(true);
+    try {
+      const result = await clipsService.submitHookApproval(project.projectId, {
+        action,
+        ...(feedback.trim() ? { feedback: feedback.trim() } : {}),
+      });
+      setSubmittedApproval({
+        sourceAttempt: serverApproval?.attempt,
+        sourceState: serverApproval?.state,
+        status: result,
+      });
+      if (action !== 'approve') {
+        setFeedback('');
+      }
+    } catch (error: unknown) {
+      setDecisionError(
+        error instanceof Error
+          ? error.message
+          : 'The hook decision could not be saved.',
+      );
+    } finally {
+      setIsDecisionSubmitting(false);
+    }
+  };
+
+  const isAwaitingHookApproval = approval?.state === 'awaiting_confirmation';
+  const isGeneratingHook = approval?.state === 'generating_hook';
   const pendingDescription =
     selectedCount > 0
       ? project.mode === 'raw-cut'
@@ -31,12 +81,21 @@ export default function ClipsProgressView({
       : project.mode === 'raw-cut'
         ? 'Processing YouTube video and creating raw cuts...'
         : 'Processing YouTube video and generating avatar clips...';
-  const statusHeading =
-    project.status === 'completed'
-      ? 'Clips ready'
-      : project.status === 'failed'
-        ? 'Clip generation failed'
-        : 'Generating clips';
+  const statusHeading = isAwaitingHookApproval
+    ? 'Review the hook clip'
+    : isGeneratingHook
+      ? approval?.lastAction === 'request_changes'
+        ? 'Regenerating hook clip'
+        : 'Generating hook clip'
+      : approval?.state === 'resuming' || approval?.state === 'approved'
+        ? 'Generating remaining clips'
+        : approval?.state === 'rejected'
+          ? 'Hook clip rejected'
+          : project.status === 'completed'
+            ? 'Clips ready'
+            : project.status === 'failed'
+              ? 'Clip generation failed'
+              : 'Generating clips';
 
   return (
     <div>
@@ -48,11 +107,20 @@ export default function ClipsProgressView({
           </h2>
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          {project.status === 'completed'
-            ? `Done — ${project.clips.length} clip${project.clips.length === 1 ? '' : 's'} generated`
-            : project.status === 'failed'
-              ? 'Pipeline failed. Check logs for details.'
-              : pendingDescription}
+          {isAwaitingHookApproval
+            ? `${approval.remainingClipCount} remaining clip${approval.remainingClipCount === 1 ? '' : 's'} will start only after approval.`
+            : isGeneratingHook
+              ? 'Only the hook clip is being generated. Remaining clips have not been dispatched.'
+              : approval?.state === 'resuming' || approval?.state === 'approved'
+                ? 'Hook approved. The same character, voice, and reference identities are being reused.'
+                : approval?.state === 'rejected'
+                  ? (approval.feedback ??
+                    'The run stopped before any remaining clips were dispatched.')
+                  : project.status === 'completed'
+                    ? `Done — ${project.clips.length} clip${project.clips.length === 1 ? '' : 's'} generated`
+                    : project.status === 'failed'
+                      ? 'Pipeline failed. Check logs for details.'
+                      : pendingDescription}
         </p>
 
         {project.status !== 'completed' && project.status !== 'failed' && (
@@ -66,6 +134,67 @@ export default function ClipsProgressView({
           </div>
         )}
       </div>
+
+      {isAwaitingHookApproval ? (
+        <Card bodyClassName="space-y-4 p-5" className="mb-6">
+          <div>
+            <h3 className="text-sm font-medium text-foreground">
+              Hook approval
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Check face, voice, and style before spending credits on the
+              remaining clips.
+            </p>
+          </div>
+          <Textarea
+            aria-label="Hook review feedback"
+            className="min-h-20 w-full rounded-md"
+            placeholder="Describe what should change, or why this hook is rejected"
+            value={feedback}
+            onChange={(event) => setFeedback(event.target.value)}
+          />
+          {decisionError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {decisionError}
+            </p>
+          ) : null}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+              isDisabled={isDecisionSubmitting || feedback.trim().length === 0}
+              isLoading={isDecisionSubmitting}
+              onClick={() => void submitDecision('request_changes')}
+              icon={<Sparkles className="size-3.5" />}
+            >
+              Request changes
+            </Button>
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+              isDisabled={isDecisionSubmitting}
+              isLoading={isDecisionSubmitting}
+              onClick={() => void submitDecision('approve')}
+              icon={<Check className="size-3.5" />}
+            >
+              Approve hook
+            </Button>
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DESTRUCTIVE}
+              withWrapper={false}
+              isDisabled={isDecisionSubmitting || feedback.trim().length === 0}
+              isLoading={isDecisionSubmitting}
+              onClick={() => void submitDecision('reject')}
+              icon={<X className="size-3.5" />}
+            >
+              Reject run
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       {project.clips.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

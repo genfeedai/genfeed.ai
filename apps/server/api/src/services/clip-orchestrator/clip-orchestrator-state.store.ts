@@ -31,6 +31,22 @@ export class ClipOrchestratorStateStore {
     await this.getRedisClient().del(this.getRedisKey(namespace, id));
   }
 
+  /** Atomically claim a one-shot transition across API replicas. */
+  async claim(
+    namespace: string,
+    id: string,
+    ttlSeconds = 24 * 60 * 60,
+  ): Promise<boolean> {
+    const claimed = await this.getRedisClient().set(
+      this.getRedisKey(namespace, id),
+      new Date().toISOString(),
+      'EX',
+      ttlSeconds,
+      'NX',
+    );
+    return claimed === 'OK';
+  }
+
   private getRedisKey(namespace: string, id: string): string {
     return `clip-orchestrator:${namespace}:${id}`;
   }
