@@ -1,9 +1,4 @@
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  returnNotFound: vi.fn((type, id) => ({
-    errors: [
-      { detail: `${type} ${id} not found`, status: '404', title: 'Not Found' },
-    ],
-  })),
   serializeCollection: vi.fn((_req, _serializer, data) => ({
     data: data.docs || data,
   })),
@@ -30,13 +25,11 @@ import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientStatus, TransformationCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
@@ -45,7 +38,6 @@ describe('ImagesTransformationsController', () => {
   let _imagesService: ImagesService;
   let _metadataService: MetadataService;
   let _sharedService: SharedService;
-  let _filesClientService: FilesClientService;
   let _replicateService: ReplicateService;
   let _promptBuilderService: PromptBuilderService;
   let _creditsUtilsService: CreditsUtilsService;
@@ -101,16 +93,6 @@ describe('ImagesTransformationsController', () => {
     },
     failedGenerationService: {
       handleFailedImageGeneration: vi.fn(),
-    },
-    filesClientService: {
-      resizeImageFromUrl: vi.fn().mockResolvedValue(Buffer.from('resized')),
-      uploadToS3: vi.fn().mockResolvedValue({
-        height: 1920,
-        publicUrl: 'https://cdn.example.com/resized.jpg',
-        s3Key: `ingredients/images/${resizedImageId}`,
-        size: 1024 * 1024,
-        width: 1080,
-      }),
     },
     imagesService: {
       findOne: vi.fn(),
@@ -184,10 +166,6 @@ describe('ImagesTransformationsController', () => {
           provide: FailedGenerationService,
           useValue: mockServices.failedGenerationService,
         },
-        {
-          provide: FilesClientService,
-          useValue: mockServices.filesClientService,
-        },
         { provide: ImagesService, useValue: mockServices.imagesService },
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: MetadataService, useValue: mockServices.metadataService },
@@ -225,7 +203,6 @@ describe('ImagesTransformationsController', () => {
     _imagesService = module.get<ImagesService>(ImagesService);
     _metadataService = module.get<MetadataService>(MetadataService);
     _sharedService = module.get<SharedService>(SharedService);
-    _filesClientService = module.get<FilesClientService>(FilesClientService);
     _replicateService = module.get<ReplicateService>(ReplicateService);
     _promptBuilderService =
       module.get<PromptBuilderService>(PromptBuilderService);
@@ -239,89 +216,6 @@ describe('ImagesTransformationsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('resizeImage', () => {
-    it('should resize an image', async () => {
-      const resizeParams = {
-        height: 1920,
-        width: 1080,
-      };
-
-      mockServices.imagesService.findOne.mockResolvedValue(mockImage);
-      mockServices.imagesService.patch.mockResolvedValue({
-        _id: resizedImageId,
-        status: 'generated',
-      });
-
-      const result = await controller.resizeImage(
-        mockRequest,
-        mockUser,
-        imageId,
-        resizeParams,
-      );
-
-      expect(mockServices.imagesService.findOne).toHaveBeenCalled();
-      expect(
-        mockServices.sharedService.createMediaDocuments,
-      ).toHaveBeenCalled();
-      expect(
-        mockServices.filesClientService.resizeImageFromUrl,
-      ).toHaveBeenCalledWith(
-        `https://api.example.com/ingredients/images/${imageId}`,
-        {
-          height: 1920,
-          width: 1080,
-        },
-      );
-      expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
-        resizedImageId,
-        'images',
-        {
-          contentType: 'image/jpeg',
-          data: Buffer.from('resized'),
-          type: 'buffer',
-        },
-      );
-      expect(mockServices.metadataService.patch).toHaveBeenCalled();
-      expect(mockServices.imagesService.patch).toHaveBeenCalledWith(
-        resizedImageId,
-        expect.objectContaining({
-          status: IngredientStatus.GENERATED,
-          transformations: [TransformationCategory.RESIZED],
-        }),
-      );
-      expect(result).toBeDefined();
-    });
-
-    it('should return 404 when image not found', async () => {
-      mockServices.imagesService.findOne.mockResolvedValue(null);
-
-      const result = await controller.resizeImage(
-        mockRequest,
-        mockUser,
-        imageId,
-        { height: 1920, width: 1080 },
-      );
-
-      expect(result.errors).toBeDefined();
-    });
-
-    it('should use default dimensions when not provided', async () => {
-      mockServices.imagesService.findOne.mockResolvedValue(mockImage);
-
-      await controller.resizeImage(mockRequest, mockUser, imageId, {});
-
-      expect(
-        mockServices.filesClientService.resizeImageFromUrl,
-      ).toHaveBeenCalledWith(
-        `https://api.example.com/ingredients/images/${imageId}`,
-        {
-          height: 1920,
-          width: 1080,
-        },
-      );
-    });
   });
 
   describe('reframeImage', () => {
