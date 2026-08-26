@@ -15,7 +15,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type {
@@ -40,7 +39,6 @@ import {
   Patch,
   Post,
   Req,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -59,7 +57,6 @@ export class TasksController extends BaseCRUDController<
     private readonly tasksService: TasksService,
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
-    private readonly agentOrchestratorService: AgentOrchestratorService,
     @Optional()
     private readonly workspaceTaskQueueService?: WorkspaceTaskQueueService,
   ) {
@@ -466,94 +463,5 @@ export class TasksController extends BaseCRUDController<
     const organization = user.organizationId;
     const doc = await this.tasksService.release(id, body.agentId, organization);
     return serializeSingle(request, TaskSerializer, doc);
-  }
-
-  @Post(':id/plan-thread')
-  async openPlanThread(@CurrentUser() user: User, @Param('id') id: string) {
-    const organization = user.organizationId;
-    const metadataUserId = user.userId ?? user.id;
-
-    if (!metadataUserId || !/^[0-9a-f]{24}$/i.test(metadataUserId)) {
-      throw new UnauthorizedException(
-        'Missing workspace user context. Please sign in again.',
-      );
-    }
-
-    const planThread = await this.tasksService.openPlanningThread(
-      id,
-      organization,
-      metadataUserId,
-    );
-
-    if (planThread.seeded) {
-      const prompt = await this.tasksService.getPlanningPrompt(
-        id,
-        organization,
-      );
-
-      await this.agentOrchestratorService.chat(
-        {
-          content: prompt,
-          planModeEnabled: true,
-          source: 'agent',
-          threadId: planThread.threadId,
-        },
-        {
-          organizationId: organization,
-          userId: metadataUserId,
-        },
-      );
-    }
-
-    return planThread;
-  }
-
-  @Post(':id/children')
-  async createChildren(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const organization = user.organizationId;
-    const metadataUserId = user.userId ?? user.id;
-
-    if (!metadataUserId || !/^[0-9a-f]{24}$/i.test(metadataUserId)) {
-      throw new UnauthorizedException(
-        'Missing workspace user context. Please sign in again.',
-      );
-    }
-
-    const tasks = await this.tasksService.createFollowUpTasks(
-      id,
-      organization,
-      metadataUserId,
-    );
-
-    const workspaceTaskQueueService = this.workspaceTaskQueueService;
-    if (workspaceTaskQueueService) {
-      await Promise.all(
-        tasks.map((task) => {
-          const taskExt = task as TaskDocument & {
-            outputType?: string;
-            platforms?: string[];
-            request?: string;
-          };
-          return workspaceTaskQueueService.enqueue({
-            brandId: task.brandId ?? undefined,
-            organizationId: organization,
-            outputType: taskExt.outputType,
-            platforms: taskExt.platforms,
-            request: taskExt.request,
-            taskId: task.id.toString(),
-            userId: metadataUserId,
-          });
-        }),
-      );
-    }
-
-    return serializeCollection(request, TaskSerializer, {
-      docs: tasks,
-      totalDocs: tasks.length,
-    });
   }
 }
