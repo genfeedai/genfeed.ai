@@ -131,7 +131,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/integrations/fleet/fleet.service',
   '@api/services/integrations/google-ads/google-ads.module',
   '@api/services/integrations/google-ads/services/google-ads.service',
-  '@api/services/integrations/hedra/hedra.module',
   '@api/services/integrations/higgsfield/higgsfield.module',
   '@api/services/integrations/higgsfield/higgsfield.service',
   '@api/services/integrations/instagram/instagram.module',
