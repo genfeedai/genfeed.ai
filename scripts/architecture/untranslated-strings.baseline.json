@@ -2,7 +2,6 @@
   "version": 1,
   "files": {
     "apps/app/app/(onboarding)/onboarding/(wizard)/brand/brand-account-type-selector.tsx": 1,
-    "apps/app/app/(onboarding)/onboarding/(wizard)/brand/brand-form-fields.tsx": 8,
     "apps/app/app/(onboarding)/onboarding/(wizard)/brand/brand-step-header.tsx": 3,
     "apps/app/app/(onboarding)/onboarding/(wizard)/layout.tsx": 3,
     "apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-error-state.tsx": 2,

@@ -188,4 +188,28 @@ describe('HiggsFieldService', () => {
       ).rejects.toThrow('timed out');
     });
   });
+
+  describe('waitForImageCompletion', () => {
+    it('stops polling a completed job and rejects a missing image URL immediately', async () => {
+      mockPollUntilService.poll.mockImplementation(
+        async (...args: unknown[]) => {
+          const isDone = args[1] as (status: {
+            status: 'completed';
+          }) => boolean;
+          const value = { status: 'completed' as const };
+
+          expect(isDone(value)).toBe(true);
+
+          return { attempts: 1, elapsedMs: 0, value };
+        },
+      );
+
+      await expect(
+        service.waitForImageCompletion('req-no-output'),
+      ).rejects.toThrow(
+        'Higgsfield job req-no-output completed without an image URL',
+      );
+      expect(mockPollUntilService.poll).toHaveBeenCalledTimes(1);
+    });
+  });
 });

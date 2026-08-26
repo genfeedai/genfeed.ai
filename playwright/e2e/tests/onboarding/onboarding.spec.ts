@@ -3,6 +3,8 @@ import { expect, test } from '../../fixtures/onboarding.fixture';
 import { OnboardingPage } from '../../pages/onboarding.page';
 import { brandPath } from '../../utils/app-chrome';
 
+const ONBOARDING_API_ENDPOINT = 'https://api.genfeed.ai/v1';
+
 /**
  * Onboarding Flow E2E Tests
  *
@@ -14,6 +16,49 @@ import { brandPath } from '../../utils/app-chrome';
  */
 
 test.describe('Onboarding Flow', () => {
+  test('keeps onboarding progress stateful when generic user mocks also match', async ({
+    onboardingPage,
+  }) => {
+    const progress = await onboardingPage.evaluate(
+      async ({ apiEndpoint, userId }) => {
+        const patchResponse = await fetch(
+          `${apiEndpoint}/users/${userId}/onboarding`,
+          {
+            body: JSON.stringify({ onboardingStepsCompleted: ['brand'] }),
+            headers: { 'Content-Type': 'application/json' },
+            method: 'PATCH',
+          },
+        );
+        const getResponse = await fetch(
+          `${apiEndpoint}/users/${userId}/onboarding`,
+        );
+
+        return {
+          patched: await patchResponse.json(),
+          reloaded: await getResponse.json(),
+        };
+      },
+      {
+        apiEndpoint: ONBOARDING_API_ENDPOINT,
+        userId: 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6',
+      },
+    );
+
+    expect(progress).toEqual({
+      patched: {
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: ['brand'],
+        onboardingType: null,
+        success: true,
+      },
+      reloaded: {
+        isOnboardingCompleted: false,
+        onboardingStepsCompleted: ['brand'],
+        onboardingType: null,
+      },
+    });
+  });
+
   test.describe('Happy Path (Full Flow)', () => {
     test('should hand off to the agent after brand, then finish the wizard tail', async ({
       onboardingPage,

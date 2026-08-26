@@ -52,6 +52,49 @@ describe('throwFailedUiActionResult validation mapping', () => {
   });
 });
 
+describe('throwFailedUiActionResult image result mapping', () => {
+  const safeResultError = 'Image generation finished without a usable CDN URL.';
+
+  it('maps a known unusable image result to a structured upstream failure', () => {
+    try {
+      throwFailedUiActionResult(safeResultError, 'Failed to generate image.');
+      throw new Error('expected image result error');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect(error).not.toBeInstanceOf(InternalServerErrorException);
+      const httpError = error as HttpException;
+      expect(httpError.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      expect(httpError.getResponse()).toEqual(
+        expect.objectContaining({
+          code: ErrorCode.SERVICE_UNAVAILABLE,
+          detail: safeResultError,
+          status: HttpStatus.BAD_GATEWAY,
+          title: 'Generation result unavailable',
+        }),
+      );
+    }
+  });
+
+  it('recovers the known image result category from an existing generic 500', () => {
+    try {
+      rethrowUiActionError(
+        new InternalServerErrorException(
+          `Failed to respond to UI action: 500 - ${safeResultError}`,
+        ),
+      );
+      throw new Error('expected image result error');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(HttpException);
+      expect(error).not.toBeInstanceOf(InternalServerErrorException);
+      const httpError = error as HttpException;
+      expect(httpError.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      expect(httpError.getResponse()).toEqual(
+        expect.objectContaining({ detail: safeResultError }),
+      );
+    }
+  });
+});
+
 describe('rethrowUiActionError validation mapping', () => {
   it('preserves an existing 400 HttpException', () => {
     const validationError = new HttpException(

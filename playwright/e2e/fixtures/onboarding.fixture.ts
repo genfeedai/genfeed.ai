@@ -45,6 +45,10 @@ interface OnboardingProgressState {
   completedSteps: string[];
 }
 
+interface OnboardingProgressRequestPayload {
+  onboardingStepsCompleted?: unknown;
+}
+
 // ----------------------------------------------------------------------------
 // Mock Session Data
 // ----------------------------------------------------------------------------
@@ -93,7 +97,7 @@ function readCompletedSteps(request: Request): string[] | null {
     return null;
   }
 
-  const steps = (body as { onboardingStepsCompleted?: unknown })
+  const steps = (body as OnboardingProgressRequestPayload)
     .onboardingStepsCompleted;
 
   if (!Array.isArray(steps)) {
@@ -205,7 +209,7 @@ async function setupOnboardingApiMocks(
   page: Page,
   state: OnboardingProgressState,
 ): Promise<void> {
-  // --- Onboarding-specific routes (registered BEFORE generic setupApiMocks) ---
+  // --- Onboarding-specific routes (registered AFTER generic setupApiMocks) ---
 
   // POST /onboarding/account-type
   await page.route(
@@ -510,10 +514,9 @@ export const test = base.extend<OnboardingFixtures>({
     // Set up Better Auth mocks with isOnboardingCompleted: false
     await setupBetterAuthMocksForOnboarding(page);
 
-    // Set up onboarding-specific API mocks FIRST (higher priority)
-    await setupOnboardingApiMocks(page, progressState);
-
-    // Set up generic API mocks (lower priority fallback)
+    // Register generic routes first. Playwright checks matching routes in
+    // reverse registration order, so the stateful onboarding routes below get
+    // first opportunity to handle overlapping /users/** progress requests.
     await setupApiMocks(page, {
       '**/auth/bootstrap**': async (route) => {
         await route.fulfill({
@@ -525,6 +528,8 @@ export const test = base.extend<OnboardingFixtures>({
         });
       },
     });
+
+    await setupOnboardingApiMocks(page, progressState);
 
     // Bootstrap by navigating to onboarding start
     await page.goto(APP_ROUTES.ONBOARDING.BRAND, {

@@ -1039,6 +1039,9 @@ export class AdsResearchService {
 
     return {
       accessToken: EncryptionUtil.decrypt(credential.accessToken),
+      accessTokenSecret: credential.accessTokenSecret
+        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
+        : undefined,
       adAccountId: params.adAccountId,
       credentialId: params.credentialId,
       loginCustomerId: params.loginCustomerId,

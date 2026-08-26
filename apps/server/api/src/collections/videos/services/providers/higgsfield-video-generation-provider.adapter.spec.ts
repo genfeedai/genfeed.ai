@@ -2,6 +2,7 @@ import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/video
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import type { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { BadRequestException } from '@nestjs/common';
 
 function buildParams(
   overrides: Partial<DispatchVideoGenerationParams> = {},
@@ -38,12 +39,17 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
   });
 
   describe('generate', () => {
-    it('throws when no source imageUrl is provided', async () => {
-      const adapter = buildAdapter({});
+    it('rejects a missing source imageUrl as a bad request before provider dispatch', async () => {
+      const generateImageToVideo = vi.fn();
+      const adapter = buildAdapter({ generateImageToVideo });
 
-      await expect(adapter.generate(buildParams())).rejects.toThrow(
+      const request = adapter.generate(buildParams());
+
+      await expect(request).rejects.toBeInstanceOf(BadRequestException);
+      await expect(request).rejects.toThrow(
         'Higgsfield video generation requires a source imageUrl',
       );
+      expect(generateImageToVideo).not.toHaveBeenCalled();
     });
 
     it('queues the image-to-video job, polls to completion, and returns the resolved video URL', async () => {

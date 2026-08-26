@@ -1,5 +1,11 @@
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 
+const AWS_S3_PUBLIC_HOST_PATTERN =
+  /(?:^|\.)s3(?:[.-][a-z0-9-]+)*\.amazonaws\.com(?:\.cn)?$/i;
+const LOCAL_ASSET_PATH_PREFIX = '/local/';
+const PRIVATE_ASSET_QUERY_PARAMETER_PATTERN =
+  /^(?:awsaccesskeyid|signature|x-amz-(?:credential|security-token|signature))$/i;
+
 export function isPlainMediaResponseRecord(
   value: unknown,
 ): value is Record<string, unknown> {
@@ -59,4 +65,77 @@ export function readMediaAssetUrl(
 
   const cdnBaseUrl = ingredientsEndpoint.replace(/\/ingredients\/?$/, '');
   return `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
+}
+
+export function readUsableCdnAssetUrl(
+  response: Record<string, unknown>,
+  ingredientsEndpoint: string,
+): string | undefined {
+  const explicitCandidates = [
+    readMediaResponseString(response, 'cdnUrl'),
+    readMediaResponseString(response, 'ingredientUrl'),
+    readMediaResponseString(response, 'url'),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  for (const candidate of explicitCandidates) {
+    if (isUsableAssetUrl(candidate, ingredientsEndpoint)) {
+      return candidate;
+    }
+  }
+  if (explicitCandidates.length > 0) {
+    return undefined;
+  }
+
+  const s3Key = readMediaResponseString(response, 's3Key');
+  if (!s3Key) {
+    return undefined;
+  }
+  const cdnBaseUrl = ingredientsEndpoint.replace(/\/ingredients\/?$/, '');
+  const derivedUrl = `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
+  return isUsableAssetUrl(derivedUrl, ingredientsEndpoint)
+    ? derivedUrl
+    : undefined;
+}
+
+function isUsableAssetUrl(
+  candidate: string,
+  ingredientsEndpoint: string,
+): boolean {
+  if (candidate.startsWith(LOCAL_ASSET_PATH_PREFIX)) {
+    try {
+      const localUrl = new URL(candidate, 'http://local.genfeed.invalid');
+      return (
+        localUrl.pathname.startsWith(LOCAL_ASSET_PATH_PREFIX) &&
+        localUrl.pathname.length > LOCAL_ASSET_PATH_PREFIX.length
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    const assetUrl = new URL(candidate);
+    const configuredCdnUrl = new URL(ingredientsEndpoint);
+    const isConfiguredOrigin = assetUrl.origin === configuredCdnUrl.origin;
+    const isAllowedProtocol =
+      assetUrl.protocol === 'https:' ||
+      (assetUrl.protocol === 'http:' && isConfiguredOrigin);
+    const isTrustedStorageOrigin =
+      isConfiguredOrigin || AWS_S3_PUBLIC_HOST_PATTERN.test(assetUrl.hostname);
+    const hasAssetPath = assetUrl.pathname !== '/';
+    const hasNoEmbeddedCredentials = !assetUrl.username && !assetUrl.password;
+    const hasNoPrivateQueryParameters = Array.from(
+      assetUrl.searchParams.keys(),
+    ).every((key) => !PRIVATE_ASSET_QUERY_PARAMETER_PATTERN.test(key));
+
+    return (
+      isAllowedProtocol &&
+      isTrustedStorageOrigin &&
+      hasAssetPath &&
+      hasNoEmbeddedCredentials &&
+      hasNoPrivateQueryParameters
+    );
+  } catch {
+    return false;
+  }
 }

@@ -174,6 +174,9 @@ const buildIngredientCreateDto = (
     ? { providerData: input.providerData }
     : {}),
   ...(input.scope !== undefined ? { scope: input.scope } : {}),
+  ...(input.sourceActionId !== undefined
+    ? { sourceActionId: input.sourceActionId }
+    : {}),
   ...(sourceIds.length > 0 ? { sources: sourceIds } : {}),
   status: input.status ?? IngredientStatus.PROCESSING,
   ...(tagIds.length > 0 ? { tags: tagIds } : {}),
