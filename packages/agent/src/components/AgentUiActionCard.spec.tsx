@@ -37,16 +37,22 @@ describe('AgentUiActionCard', () => {
     expect(screen.queryByText('low')).not.toBeInTheDocument();
   });
 
-  it('shows an amber badge for medium risk', () => {
+  it('shows a semantic warning badge for medium risk', () => {
     render(<AgentUiActionCard action={makeAction({ riskLevel: 'medium' })} />);
 
-    expect(screen.getByText('medium')).toHaveClass('bg-amber-100');
+    expect(screen.getByText('medium')).toHaveClass(
+      'bg-warning/10',
+      'text-warning',
+    );
   });
 
-  it('shows a red badge for high risk', () => {
+  it('shows a semantic destructive badge for high risk', () => {
     render(<AgentUiActionCard action={makeAction({ riskLevel: 'high' })} />);
 
-    expect(screen.getByText('high')).toHaveClass('bg-red-100');
+    expect(screen.getByText('high')).toHaveClass(
+      'bg-destructive/10',
+      'text-destructive',
+    );
   });
 
   it('renders href ctas as links and actionable ctas as disabled buttons', () => {

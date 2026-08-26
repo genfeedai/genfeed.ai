@@ -9,7 +9,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { Effect } from 'effect';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({
@@ -72,6 +72,10 @@ function makeAudioFile(name = 'sample.mp3'): File {
 }
 
 describe('VoiceCloneCard', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders title, description, and both voice paths', () => {
     render(
       <VoiceCloneCard action={makeAction()} apiService={makeApiService()} />,
@@ -159,7 +163,9 @@ describe('VoiceCloneCard', () => {
         screen.getByRole('button', { name: /use selected voice/i }),
       );
     });
-    await vi.advanceTimersByTimeAsync(50_000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50_000);
+    });
 
     expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(10);
     expect(
@@ -167,7 +173,6 @@ describe('VoiceCloneCard', () => {
         'Unable to reconcile voice generation. Please try again.',
       ),
     ).toBeInTheDocument();
-    vi.useRealTimers();
   });
 
   it('bounds voice reconciliation when the asset remains processing', async () => {
@@ -190,7 +195,9 @@ describe('VoiceCloneCard', () => {
         screen.getByRole('button', { name: /use selected voice/i }),
       );
     });
-    await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
+    });
 
     expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(360);
     expect(
@@ -198,7 +205,6 @@ describe('VoiceCloneCard', () => {
         'Voice generation is taking longer than expected. Please try again.',
       ),
     ).toBeInTheDocument();
-    vi.useRealTimers();
   });
 
   it('shows an error when no brand is active', async () => {

@@ -32,7 +32,7 @@ describe('formatAgentError', () => {
     });
 
     expect(formatted.title).toBe('Connection interrupted');
-    expect(formatted.detail).not.toMatch(/agent-error|\{"/i);
+    expect(formatted.detail).toBeNull();
   });
 
   it('maps missing provider credentials to configuration guidance', () => {
