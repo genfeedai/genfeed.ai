@@ -50,7 +50,7 @@ export class CreditDeductionProcessor extends WorkerHost {
 
         if (
           job.data.settlementAssetId &&
-          !(await this.isMediaSettlementBillable(job.data))
+          !(await this.isMediaSettlementBillable(job))
         ) {
           return;
         }
@@ -114,8 +114,9 @@ export class CreditDeductionProcessor extends WorkerHost {
   }
 
   private async isMediaSettlementBillable(
-    data: CreditDeductionJobData,
+    job: Job<CreditDeductionJobData>,
   ): Promise<boolean> {
+    const { data } = job;
     const asset = await this.prisma.ingredient.findFirst({
       select: { cdnUrl: true, id: true, s3Key: true, status: true },
       where: {
@@ -137,6 +138,18 @@ export class CreditDeductionProcessor extends WorkerHost {
       return false;
     }
     if (status !== 'GENERATED' && status !== 'VALIDATED') {
+      const attempts = Number(job.opts.attempts) || 1;
+      if (job.attemptsMade + 1 >= attempts) {
+        this.logger.error(
+          `${this.constructorName} media settlement requires operator reconciliation`,
+          {
+            assetId: data.settlementAssetId,
+            attempts,
+            organizationId: data.organizationId,
+            status: status || 'missing',
+          },
+        );
+      }
       throw new Error(
         `Media asset ${data.settlementAssetId} is not terminal (${status || 'missing'})`,
       );

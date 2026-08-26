@@ -16,6 +16,7 @@ describe('AgentRunProcessor', () => {
   let agentRunsService: {
     complete: ReturnType<typeof vi.fn>;
     fail: ReturnType<typeof vi.fn>;
+    getById: ReturnType<typeof vi.fn>;
     mergeMetadata: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     start: ReturnType<typeof vi.fn>;
@@ -56,6 +57,7 @@ describe('AgentRunProcessor', () => {
     agentRunsService = {
       complete: vi.fn(),
       fail: vi.fn(),
+      getById: vi.fn(),
       mergeMetadata: vi.fn(),
       patch: vi.fn(),
       start: vi.fn(),
@@ -125,6 +127,29 @@ describe('AgentRunProcessor', () => {
       expect.objectContaining({ executionMode: 'background', runId: 'run-1' }),
     );
     expect(agentRunsService.complete).not.toHaveBeenCalled();
+  });
+
+  it('does not replay an accepted chat turn whose run already completed', async () => {
+    agentRunsService.getById.mockResolvedValue({ status: 'COMPLETED' });
+    const job = {
+      data: {
+        clientRequestId: 'request-1',
+        kind: 'agent-chat-turn',
+        organizationId: 'org-1',
+        request: {
+          clientRequestId: 'request-1',
+          content: 'Generate an image',
+          threadId: 'thread-1',
+        },
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      },
+    } as Job<AgentRunJobData>;
+
+    await processor.process(job);
+
+    expect(agentOrchestratorService.chatStream).not.toHaveBeenCalled();
   });
 
   it('persists and publishes a safe terminal failure when durable retries are exhausted', async () => {

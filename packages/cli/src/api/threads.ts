@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { get, patch, post } from '@/api/client';
 import {
   flattenCollection,
@@ -69,6 +70,7 @@ export interface AgentChatAttachment {
 
 export interface AgentChatRequest {
   attachments?: AgentChatAttachment[];
+  clientRequestId?: string;
   content: string;
   brandId?: string | null;
   expectedContextVersion?: number;
@@ -215,6 +217,7 @@ export async function startAgentChatStream(
   const body = {
     attachments: request.attachments,
     brandId: request.brandId,
+    clientRequestId: request.clientRequestId ?? randomUUID(),
     content: request.content,
     expectedContextVersion: request.expectedContextVersion,
     model: request.model,

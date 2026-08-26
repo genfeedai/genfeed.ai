@@ -105,7 +105,7 @@ export class CreditsInterceptor implements NestInterceptor {
               : undefined,
             ...(sourceActionId
               ? {
-                  idempotencyKey: `agent-media-${sourceActionId}`,
+                  idempotencyKey: `agent-media-${sourceActionId}-${settlementAssetId}`,
                   referenceId: sourceActionId,
                   referenceType: 'agent-media:generation',
                   settlementAssetId,

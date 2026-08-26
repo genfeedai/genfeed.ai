@@ -11,6 +11,8 @@ import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
+const MAX_ASSET_RECONCILIATION_ATTEMPTS = 150;
+
 function formatPlatformLabel(platform: string): string {
   const normalized = platform.trim().toLowerCase();
 
@@ -167,14 +169,17 @@ export function ContentPreviewCard({
 }): ReactElement {
   const [reconciledUrl, setReconciledUrl] = useState<string>();
   const [reconciledStatus, setReconciledStatus] = useState(action.status);
+  const [reconciliationError, setReconciliationError] = useState<string>();
 
   useEffect(() => {
     if (!apiService || !action.assetId || reconciledUrl) {
       return;
     }
     const controller = new AbortController();
+    let attempts = 0;
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const reconcile = async () => {
+      attempts += 1;
       try {
         const asset = await runAgentApiEffect(
           apiService.getGeneratedAssetEffect(
@@ -188,15 +193,29 @@ export function ContentPreviewCard({
           return;
         }
         if (
+          attempts < MAX_ASSET_RECONCILIATION_ATTEMPTS &&
           !['archived', 'cancelled', 'failed', 'rejected'].includes(
             asset.status.toLowerCase(),
           )
         ) {
           timeout = setTimeout(reconcile, 2_000);
+        } else if (attempts >= MAX_ASSET_RECONCILIATION_ATTEMPTS) {
+          setReconciledStatus('failed');
+          setReconciliationError(
+            'Unable to reconcile generated media. Please refresh and try again.',
+          );
         }
       } catch {
-        if (!controller.signal.aborted) {
+        if (
+          !controller.signal.aborted &&
+          attempts < MAX_ASSET_RECONCILIATION_ATTEMPTS
+        ) {
           timeout = setTimeout(reconcile, 4_000);
+        } else if (!controller.signal.aborted) {
+          setReconciledStatus('failed');
+          setReconciliationError(
+            'Unable to reconcile generated media. Please refresh and try again.',
+          );
         }
       }
     };
@@ -288,6 +307,11 @@ export function ContentPreviewCard({
         >
           <div className="aspect-square w-full animate-pulse rounded-lg border border-border bg-muted" />
         </div>
+      )}
+      {reconciliationError && (
+        <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+          {reconciliationError}
+        </p>
       )}
       {resolvedVideos && resolvedVideos.length > 0 && (
         <AgentMediaArtifactPreview

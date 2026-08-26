@@ -74,6 +74,22 @@ describe('CreditDeductionProcessor', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('emits an operator signal before an unsettled asset exhausts durable retries', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'asset-1',
+      status: 'PROCESSING',
+    });
+    const job = buildJob({ settlementAssetId: 'asset-1' });
+    job.attemptsMade = 20_159;
+    job.opts.attempts = 20_160;
+
+    await expect(processor.process(job)).rejects.toThrow('not terminal');
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('requires operator reconciliation'),
+      expect.objectContaining({ assetId: 'asset-1' }),
+    );
+  });
+
   it('moves no credits when agent media reaches a terminal failure without an asset', async () => {
     prisma.ingredient.findFirst.mockResolvedValue({
       id: 'asset-1',

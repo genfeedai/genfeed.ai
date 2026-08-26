@@ -192,7 +192,7 @@ describe('CreditsInterceptor', () => {
       await vi.waitFor(() =>
         expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
           expect.objectContaining({
-            idempotencyKey: 'agent-media-action-123',
+            idempotencyKey: 'agent-media-action-123-asset-123',
             referenceId: 'action-123',
             referenceType: 'agent-media:generation',
             settlementAssetId: 'asset-123',

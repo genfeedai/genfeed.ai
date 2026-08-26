@@ -141,7 +141,7 @@ describe('CreditDeductionQueueService', () => {
         'deduct-credits',
         jobData,
         expect.objectContaining({
-          attempts: 360,
+          attempts: 20_160,
           backoff: { delay: 30_000, type: 'fixed' },
         }),
       );

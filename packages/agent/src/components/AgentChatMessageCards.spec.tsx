@@ -70,7 +70,37 @@ describe('ContentPreviewCard', () => {
         name: 'Open Image generating 1 preview',
       }),
     ).toBeInTheDocument();
-    expect(getGeneratedAssetEffect).toHaveBeenCalledWith('image-queued');
+    expect(getGeneratedAssetEffect).toHaveBeenCalledWith(
+      'image-queued',
+      expect.any(AbortSignal),
+    );
+    vi.useRealTimers();
+  });
+
+  it('bounds reconciliation polling for an asset that never becomes readable', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi.fn(() =>
+      Effect.fail(new Error('still unavailable')),
+    );
+
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: 'image-stuck',
+          assetKind: 'image',
+          id: 'image-stuck-card',
+          status: 'processing',
+          type: 'content_preview_card',
+        }}
+        apiService={{ getGeneratedAssetEffect } as never}
+      />,
+    );
+
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(150);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Unable to reconcile generated media. Please refresh and try again.',
+    );
     vi.useRealTimers();
   });
 

@@ -10,6 +10,8 @@ describe('AgentTurnAcceptanceService', () => {
   };
   const prisma = {
     agentRun: {
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
       upsert: vi.fn(),
     },
     agentThread: {
@@ -56,6 +58,7 @@ describe('AgentTurnAcceptanceService', () => {
       Promise.resolve(create),
     );
     queueService.queueRun.mockResolvedValue('agent-run-job');
+    prisma.agentRun.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it('durably acknowledges a new turn with stable request, run, thread, and context identity', async () => {
@@ -139,6 +142,59 @@ describe('AgentTurnAcceptanceService', () => {
       2,
       expect.objectContaining({ runId: first.runId }),
     );
+  });
+
+  it('recovers the active thread created by a concurrent acknowledgement', async () => {
+    prisma.agentThread.upsert.mockRejectedValueOnce({ code: 'P2002' });
+    prisma.agentThread.findFirst.mockResolvedValueOnce({
+      brandId: 'brand-1',
+      contextVersion: 1,
+      id: 'winning-thread',
+      status: 'ACTIVE',
+    });
+
+    await expect(
+      service.accept(
+        { clientRequestId: 'concurrent-thread', content: 'Continue safely' },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({ contextVersion: 1, status: 'queued' }),
+    );
+  });
+
+  it('recovers the active run created by a concurrent acknowledgement', async () => {
+    prisma.agentRun.upsert.mockRejectedValueOnce({ code: 'P2002' });
+    prisma.agentRun.findFirst.mockResolvedValueOnce({
+      metadata: {},
+      status: AgentRunStatus.PENDING,
+    });
+
+    await expect(
+      service.accept(
+        { clientRequestId: 'concurrent-run', content: 'Continue safely' },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ status: 'queued' }));
+  });
+
+  it('marks the accepted run failed when the durable queue reservation cannot be persisted', async () => {
+    queueService.queueRun.mockRejectedValueOnce(new Error('redis unavailable'));
+
+    await expect(
+      service.accept(
+        { clientRequestId: 'enqueue-failure', content: 'Generate safely' },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).rejects.toThrow('redis unavailable');
+
+    expect(prisma.agentRun.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({ status: AgentRunStatus.FAILED }),
+      where: expect.objectContaining({
+        isDeleted: false,
+        organizationId: 'org-1',
+      }),
+    });
   });
 
   it('rejects a reused client request identity when the accepted payload changed', async () => {

@@ -378,6 +378,24 @@ export class AgentRunProcessor extends WorkerHost {
       throw new Error(`Agent chat run ${data.runId} has incomplete job data`);
     }
 
+    const persistedRun = await this.agentRunsService.getById(
+      data.runId,
+      data.organizationId,
+    );
+    if (
+      persistedRun &&
+      [AgentRunStatus.COMPLETED, AgentRunStatus.CANCELLED].includes(
+        String(persistedRun.status) as AgentRunStatus,
+      )
+    ) {
+      this.logger.log(`${this.logContext} skipped terminal chat redelivery`, {
+        organizationId: data.organizationId,
+        runId: data.runId,
+        status: persistedRun.status,
+      });
+      return;
+    }
+
     const request = data.request as unknown as AgentChatRequest;
     try {
       await this.agentOrchestratorService.chatStream(request, {

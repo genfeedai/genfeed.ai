@@ -164,15 +164,28 @@ export class AgentTurnAcceptanceService {
             title,
             userId: context.userId,
           } satisfies Prisma.AgentThreadUncheckedCreateInput;
-          return this.prisma.agentThread.upsert({
-            create: createData,
-            update: {},
-            where: {
-              id: threadId,
-              isDeleted: false,
-              organizationId: context.organizationId,
-            },
-          });
+          return this.recoverUniqueCreate(
+            () =>
+              this.prisma.agentThread.upsert({
+                create: createData,
+                update: {},
+                where: {
+                  id: threadId,
+                  isDeleted: false,
+                  organizationId: context.organizationId,
+                },
+              }),
+            () =>
+              this.prisma.agentThread.findFirst({
+                where: {
+                  id: threadId,
+                  isDeleted: false,
+                  organizationId: context.organizationId,
+                  userId: context.userId,
+                },
+              }),
+            'Concurrent thread acceptance could not be recovered.',
+          );
         });
 
     const contextVersion = Number(thread.contextVersion ?? 1);
@@ -189,26 +202,39 @@ export class AgentTurnAcceptanceService {
     };
 
     const persistedRun = await measure('persist_run', () =>
-      this.prisma.agentRun.upsert({
-        create: {
-          brandId: thread.brandId ?? undefined,
-          id: runId,
-          label: request.content.slice(0, 120),
-          metadata: metadata as Prisma.InputJsonValue,
-          objective: request.content,
-          organizationId: context.organizationId,
-          status: AgentRunStatus.PENDING,
-          threadId,
-          trigger: AgentExecutionTrigger.MANUAL,
-          userId: context.userId,
-        },
-        update: {},
-        where: {
-          id: runId,
-          isDeleted: false,
-          organizationId: context.organizationId,
-        },
-      }),
+      this.recoverUniqueCreate(
+        () =>
+          this.prisma.agentRun.upsert({
+            create: {
+              brandId: thread.brandId ?? undefined,
+              id: runId,
+              label: request.content.slice(0, 120),
+              metadata: metadata as Prisma.InputJsonValue,
+              objective: request.content,
+              organizationId: context.organizationId,
+              status: AgentRunStatus.PENDING,
+              threadId,
+              trigger: AgentExecutionTrigger.MANUAL,
+              userId: context.userId,
+            },
+            update: {},
+            where: {
+              id: runId,
+              isDeleted: false,
+              organizationId: context.organizationId,
+            },
+          }),
+        () =>
+          this.prisma.agentRun.findFirst({
+            where: {
+              id: runId,
+              isDeleted: false,
+              organizationId: context.organizationId,
+              userId: context.userId,
+            },
+          }),
+        'Concurrent run acceptance could not be recovered.',
+      ),
     );
     const persistedMetadata = persistedRun.metadata as Record<string, unknown>;
     if (
@@ -227,30 +253,50 @@ export class AgentTurnAcceptanceService {
       AgentRunStatus.CANCELLED,
     ].includes(persistedStatus as AgentRunStatus);
     if (!isAlreadyOwnedOrTerminal) {
-      await measure('enqueue', () =>
-        this.queueService.queueRun({
-          apiKeyContext: context.apiKeyContext
-            ? {
-                isApiKey: context.apiKeyContext.isApiKey,
-                scopes: context.apiKeyContext.scopes,
-              }
-            : undefined,
-          clientRequestId: request.clientRequestId,
-          encryptedAuthToken: context.authToken
-            ? this.credentialCryptoService.encrypt(context.authToken)
-            : undefined,
-          kind: 'agent-chat-turn',
-          organizationId: context.organizationId,
-          request: {
-            ...request,
+      try {
+        await measure('enqueue', () =>
+          this.queueService.queueRun({
+            apiKeyContext: context.apiKeyContext
+              ? {
+                  isApiKey: context.apiKeyContext.isApiKey,
+                  scopes: context.apiKeyContext.scopes,
+                }
+              : undefined,
             clientRequestId: request.clientRequestId,
+            encryptedAuthToken: context.authToken
+              ? this.credentialCryptoService.encrypt(context.authToken)
+              : undefined,
+            kind: 'agent-chat-turn',
+            organizationId: context.organizationId,
+            request: {
+              ...request,
+              clientRequestId: request.clientRequestId,
+              threadId,
+            },
+            runId,
             threadId,
+            userId: context.userId,
+          }),
+        );
+      } catch (error: unknown) {
+        await this.prisma.agentRun.updateMany({
+          data: {
+            completedAt: new Date(),
+            error: 'Durable agent turn enqueue failed.',
+            metadata: {
+              ...metadata,
+              requestState: 'enqueue_failed',
+            } as Prisma.InputJsonValue,
+            status: AgentRunStatus.FAILED,
           },
-          runId,
-          threadId,
-          userId: context.userId,
-        }),
-      );
+          where: {
+            id: runId,
+            isDeleted: false,
+            organizationId: context.organizationId,
+          },
+        });
+        throw error;
+      }
     }
 
     this.logger.log(`${this.logContext} accepted turn`, {
@@ -274,5 +320,24 @@ export class AgentTurnAcceptanceService {
       status: 'queued',
       threadId,
     };
+  }
+
+  private async recoverUniqueCreate<T>(
+    create: () => Promise<T>,
+    readWinner: () => Promise<T | null>,
+    conflictMessage: string,
+  ): Promise<T> {
+    try {
+      return await create();
+    } catch (error: unknown) {
+      if ((error as { code?: unknown })?.code !== 'P2002') {
+        throw error;
+      }
+      const winner = await readWinner();
+      if (!winner) {
+        throw new ConflictException(conflictMessage);
+      }
+      return winner;
+    }
   }
 }

@@ -25,6 +25,7 @@ interface VoiceCloneCardProps {
 type CardStatus = 'idle' | 'uploading' | 'cloning' | 'done' | 'error';
 
 const EMPTY_EXISTING_VOICES: NonNullable<AgentUiAction['existingVoices']> = [];
+const MAX_VOICE_RECONCILIATION_FAILURES = 10;
 
 export function VoiceCloneCard({
   action,
@@ -91,10 +92,12 @@ export function VoiceCloneCard({
       return;
     }
 
+    let consecutiveFailures = 0;
     const interval = window.setInterval(() => {
       if (action.voiceoverText) {
         runAgentApiEffect(apiService.getGeneratedAssetEffect(activeVoiceId))
           .then((asset) => {
+            consecutiveFailures = 0;
             const nextStatus = asset.status.toUpperCase();
             if (nextStatus === 'GENERATED' || nextStatus === 'VALIDATED') {
               setProgress(100);
@@ -108,7 +111,15 @@ export function VoiceCloneCard({
               setError('Voice generation failed. Please try again.');
             }
           })
-          .catch(() => undefined);
+          .catch(() => {
+            consecutiveFailures += 1;
+            if (consecutiveFailures >= MAX_VOICE_RECONCILIATION_FAILURES) {
+              setStatus('error');
+              setError(
+                'Unable to reconcile voice generation. Please try again.',
+              );
+            }
+          });
         return;
       }
       runAgentApiEffect(apiService.getClonedVoicesEffect())
