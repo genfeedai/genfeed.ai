@@ -253,9 +253,11 @@ body.gf-studio-app {
 
 html,
 body {
-  scroll-behavior: smooth;
+  /* Theme flips fade at the shared 200ms interaction duration; anything longer
+     smears every route's background change. Smooth scrolling is opt-in per
+     scroller — on the root it hijacks chat autoscroll and anchor jumps. */
   transition-property: color, background-color;
-  transition-duration: 500ms;
+  transition-duration: 200ms;
   height: auto;
 
   font-family: var(--font-sans);
@@ -272,12 +274,6 @@ body {
 .font-serif-italic {
   font-family: var(--font-serif);
   font-style: italic;
-}
-
-a {
-  transition-property: background-color, border-color, color;
-  transition-duration: 0.3s;
-  transition-timing-function: ease-in-out;
 }
 
 /* Reset shadcn's default button shadow */
@@ -297,11 +293,12 @@ a {
   }
 }
 
-/* Transition utilities for consistent interactions */
+/* One interaction duration (200ms) and only paint properties. `all` at 300ms
+   animated layout and transforms on every button press, which reads as lag. */
 .btn,
 button {
-  transition-property: all;
-  transition-duration: 300ms;
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 200ms;
 }
 
 a {
@@ -311,7 +308,7 @@ a {
 
 .card {
   transition-property: box-shadow;
-  transition-duration: 300ms;
+  transition-duration: 200ms;
 }
 
 /* Scrollbars ride the translucent ladder, so they invert with the theme on
