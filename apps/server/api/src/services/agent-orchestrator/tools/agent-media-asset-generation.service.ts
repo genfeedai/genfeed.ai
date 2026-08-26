@@ -249,9 +249,9 @@ export class AgentMediaAssetGenerationService {
         'generate_first_image',
       );
     }
-    const onboardingStatus = cdnUrl
-      ? await this.onboardingHandler.checkOnboardingStatus(ctx)
-      : {};
+    const onboardingNextActions = cdnUrl
+      ? (await this.onboardingHandler.checkOnboardingStatus(ctx)).nextActions
+      : undefined;
     const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
 
     return {
@@ -270,7 +270,7 @@ export class AgentMediaAssetGenerationService {
           title: cdnUrl ? 'Image generated' : 'Image generating',
           type: 'content_preview_card',
         },
-        ...(onboardingStatus.nextActions ?? []),
+        ...(onboardingNextActions ?? []),
       ],
       success: true,
     };
@@ -410,9 +410,9 @@ export class AgentMediaAssetGenerationService {
         'generate_first_video',
       );
     }
-    const onboardingStatus = cdnUrl
-      ? await this.onboardingHandler.checkOnboardingStatus(ctx)
-      : {};
+    const onboardingNextActions = cdnUrl
+      ? (await this.onboardingHandler.checkOnboardingStatus(ctx)).nextActions
+      : undefined;
     const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
 
     return {
@@ -432,7 +432,7 @@ export class AgentMediaAssetGenerationService {
               type: 'content_preview_card',
               videos: cdnUrl ? [cdnUrl] : [],
             },
-            ...(onboardingStatus.nextActions ?? []),
+            ...(onboardingNextActions ?? []),
           ]
         : [],
       success: true,
