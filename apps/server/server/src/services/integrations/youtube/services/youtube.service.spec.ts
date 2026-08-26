@@ -27,31 +27,31 @@ import { YoutubeService } from '@server/services/integrations/youtube/services/y
 
 describe('YoutubeService', () => {
   let service: YoutubeService;
-  let authService: vi.Mocked<YoutubeAuthService>;
-  let metadataService: vi.Mocked<YoutubeMetadataService>;
-  let uploadService: vi.Mocked<ServerYoutubeUploader>;
-  let analyticsService: vi.Mocked<YoutubeAnalyticsService>;
+  let authService: Mocked<YoutubeAuthService>;
+  let metadataService: Mocked<YoutubeMetadataService>;
+  let uploadService: Mocked<ServerYoutubeUploader>;
+  let analyticsService: Mocked<YoutubeAnalyticsService>;
 
   beforeEach(async () => {
     authService = {
       refreshToken: vi.fn(),
-    } as unknown as vi.Mocked<YoutubeAuthService>;
+    } as unknown as Mocked<YoutubeAuthService>;
 
     metadataService = {
       getVideoMetadata: vi.fn(),
       getVideoStatus: vi.fn(),
-    } as unknown as vi.Mocked<YoutubeMetadataService>;
+    } as unknown as Mocked<YoutubeMetadataService>;
 
     uploadService = {
       uploadVideo: vi.fn(),
-    } as unknown as vi.Mocked<ServerYoutubeUploader>;
+    } as unknown as Mocked<ServerYoutubeUploader>;
 
     analyticsService = {
       getChannelDetails: vi.fn(),
       getMediaAnalytics: vi.fn(),
       getMediaAnalyticsBatch: vi.fn(),
       getTrends: vi.fn(),
-    } as unknown as vi.Mocked<YoutubeAnalyticsService>;
+    } as unknown as Mocked<YoutubeAnalyticsService>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

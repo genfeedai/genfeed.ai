@@ -16,9 +16,9 @@ vi.mock('@libs/utils/encryption/encryption.util');
 
 describe('MastodonService', () => {
   let service: MastodonService;
-  let configService: vi.Mocked<ConfigService>;
-  let loggerService: vi.Mocked<LoggerService>;
-  let httpService: vi.Mocked<HttpService>;
+  let configService: Mocked<ConfigService>;
+  let loggerService: Mocked<LoggerService>;
+  let httpService: Mocked<HttpService>;
 
   const instanceUrl = 'https://mastodon.social';
   const resolveBrandAccount = vi.fn();
@@ -38,7 +38,7 @@ describe('MastodonService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn((key) =>
+            get: vi.fn((key: string) =>
               // default: no app URL configured → allowlist warn-skips;
               // the redirectUri allowlist suite overrides per test
               String(key) === 'GENFEEDAI_APP_URL'
@@ -371,7 +371,7 @@ describe('MastodonService', () => {
 
   describe('redirectUri allowlist', () => {
     it('rejects redirect URIs outside the configured app origin', () => {
-      configService.get.mockImplementation((key) =>
+      configService.get.mockImplementation((key: string) =>
         String(key) === 'GENFEEDAI_APP_URL'
           ? 'https://app.genfeed.ai'
           : `mock-${String(key)}`,
@@ -388,7 +388,7 @@ describe('MastodonService', () => {
     });
 
     it('accepts redirect URIs under the configured app origin', () => {
-      configService.get.mockImplementation((key) =>
+      configService.get.mockImplementation((key: string) =>
         String(key) === 'GENFEEDAI_APP_URL'
           ? 'https://app.genfeed.ai///'
           : `mock-${String(key)}`,

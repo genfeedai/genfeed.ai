@@ -94,10 +94,10 @@ describe('Images split controllers', () => {
 
   it('removes extracted methods from the transformations controller', () => {
     expect(
-      ImagesTransformationsController.prototype.reframeImage,
+      Reflect.get(ImagesTransformationsController.prototype, 'reframeImage'),
     ).toBeUndefined();
     expect(
-      ImagesTransformationsController.prototype.resizeImage,
+      Reflect.get(ImagesTransformationsController.prototype, 'resizeImage'),
     ).toBeUndefined();
   });
 

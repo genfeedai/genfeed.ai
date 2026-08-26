@@ -11,6 +11,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   ImageTaskModel,
   IngredientStatus,
+  MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

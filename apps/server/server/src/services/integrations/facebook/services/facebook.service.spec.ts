@@ -34,10 +34,12 @@ describe('FacebookService', () => {
     // Multi-account resolution routes through `resolveBrandAccount`; the double
     // answers with whatever `findOne` is primed to return so the existing
     // single-account cases keep describing one connected account.
-    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-      (mockCredentialsService.findOne as vi.Mock)(options),
-    ),
+    resolveBrandAccount: vi.fn(),
   } satisfies ServerCredentialStore;
+  mockCredentialsService.resolveBrandAccount.mockImplementation(
+    (options: { credentialId?: string | null }) =>
+      (mockCredentialsService.findOne as Mock)(options),
+  );
 
   const mockLoggerService = {
     debug: vi.fn(),

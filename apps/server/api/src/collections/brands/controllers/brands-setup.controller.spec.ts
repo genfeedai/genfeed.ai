@@ -99,7 +99,7 @@ describe('BrandsSetupController', () => {
   });
 
   it('verifies brand access before delegating reference image orchestration', async () => {
-    const images = [];
+    const images: never[] = [];
     const addResult = { count: 0, success: true };
     brandSetupService.addReferenceImages.mockResolvedValue(addResult);
 

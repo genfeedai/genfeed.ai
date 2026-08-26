@@ -21,9 +21,9 @@ const makeAxiosResponse = <T>(data: T): AxiosResponse<T> => ({
 
 describe('OpenRouterService', () => {
   let service: OpenRouterService;
-  let configService: vi.Mocked<ConfigService>;
-  let loggerService: vi.Mocked<LoggerService>;
-  let httpService: vi.Mocked<HttpService>;
+  let configService: Mocked<ConfigService>;
+  let loggerService: Mocked<LoggerService>;
+  let httpService: Mocked<HttpService>;
 
   const defaultParams: OpenRouterChatCompletionParams = {
     messages: [{ content: 'Hello', role: 'user' }],
@@ -46,18 +46,18 @@ describe('OpenRouterService', () => {
   beforeEach(async () => {
     configService = {
       get: vi.fn().mockReturnValue('test-api-key'),
-    } as unknown as vi.Mocked<ConfigService>;
+    } as unknown as Mocked<ConfigService>;
 
     loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as unknown as vi.Mocked<LoggerService>;
+    } as unknown as Mocked<LoggerService>;
 
     httpService = {
       post: vi.fn(),
-    } as unknown as vi.Mocked<HttpService>;
+    } as unknown as Mocked<HttpService>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

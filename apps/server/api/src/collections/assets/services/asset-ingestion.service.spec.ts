@@ -15,19 +15,20 @@ import {
   FileInputType,
   IngredientCategory,
 } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('AssetIngestionService', () => {
-  const userId = 'cmuser0000000000000000001';
-  const brandId = 'cmbrand000000000000000001';
-  const ingredientId = 'cmingredient000000000000001';
-  const metadataId = 'cmmetadata0000000000000001';
-  const assetId = 'cmasset000000000000000001';
+  const userId = testId('user');
+  const brandId = testId('brand');
+  const ingredientId = testId('ingredient');
+  const metadataId = testId('metadata');
+  const assetId = testId('asset');
   const user = {
     id: 'legacy-user-id',
-    organizationId: 'cmorganization000000000000001',
+    organizationId: testId('organization'),
     userId,
   } as User;
   const file = {
@@ -195,7 +196,10 @@ describe('AssetIngestionService', () => {
   });
 
   it('publishes upload events with the canonical fallback user id', async () => {
-    const fallbackUser = { ...user, userId: undefined } as User;
+    const fallbackUser = {
+      ...user,
+      userId: undefined,
+    } as unknown as User;
 
     await service.createUpload(fallbackUser, file, uploadDto);
 

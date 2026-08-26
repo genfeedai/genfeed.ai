@@ -28,18 +28,34 @@
  *   - repostTweet (success, error)
  */
 
-// ── Module-level mocks (must precede all imports) ────────────────────────────
+import { of } from 'rxjs';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
-const mockV2Search = vi.fn();
-const mockV2Get = vi.fn();
-const mockV2Tweet = vi.fn();
-const mockV2UploadMedia = vi.fn();
-const mockV2SendDmInConversation = vi.fn();
-const mockV2SingleTweet = vi.fn();
-const mockV2Me = vi.fn();
-const mockV2Retweet = vi.fn();
-const mockV1TrendsByPlace = vi.fn();
-const mockRefreshOAuth2Token = vi.fn();
+// ── Module-level mocks ──────────────────────────────────────────────────────
+
+const {
+  mockRefreshOAuth2Token,
+  mockV1TrendsByPlace,
+  mockV2Get,
+  mockV2Me,
+  mockV2Retweet,
+  mockV2Search,
+  mockV2SendDmInConversation,
+  mockV2SingleTweet,
+  mockV2Tweet,
+  mockV2UploadMedia,
+} = vi.hoisted(() => ({
+  mockRefreshOAuth2Token: vi.fn(),
+  mockV1TrendsByPlace: vi.fn(),
+  mockV2Get: vi.fn(),
+  mockV2Me: vi.fn(),
+  mockV2Retweet: vi.fn(),
+  mockV2Search: vi.fn(),
+  mockV2SendDmInConversation: vi.fn(),
+  mockV2SingleTweet: vi.fn(),
+  mockV2Tweet: vi.fn(),
+  mockV2UploadMedia: vi.fn(),
+}));
 
 vi.mock('twitter-api-v2', () => {
   const MockTwitterApi = vi.fn(function TwitterApiMock() {
@@ -92,8 +108,6 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { SERVER_TOKENS } from '@server/server.dependencies';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
-import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -131,7 +145,7 @@ describe('TwitterService (coverage)', () => {
 
     credentialsService = {
       findBrandAccounts: vi.fn(async () => {
-        const credential = await (credentialsService.findOne as vi.Mock)();
+        const credential = await (credentialsService.findOne as Mock)();
         return credential ? [credential] : [];
       }),
       findOne: vi.fn().mockResolvedValue(null),
@@ -140,7 +154,7 @@ describe('TwitterService (coverage)', () => {
       // answers with whatever `findOne` is primed to return so the existing
       // single-account cases keep describing one connected account.
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        (credentialsService.findOne as vi.Mock)(options),
+        (credentialsService.findOne as Mock)(options),
       ),
     };
 

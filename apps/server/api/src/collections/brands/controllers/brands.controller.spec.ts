@@ -28,6 +28,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import type { IBrandOsDraftHandoff } from '@genfeedai/interfaces';
 import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
@@ -646,7 +647,7 @@ describe('BrandsController', () => {
 
   describe('Brand OS preview handoff', () => {
     const brandId = 'cmbrand000000000000000001';
-    const handoff = {
+    const handoff: IBrandOsDraftHandoff = {
       draft: {
         assetCandidates: [],
         brandId,
@@ -668,7 +669,7 @@ describe('BrandsController', () => {
       expiresAt: '2026-08-26T12:30:00.000Z',
       id: brandId,
       status: 'claimed',
-    } as const;
+    };
 
     it('verifies access, tenant-binds, and serializes a one-time claim', async () => {
       brandsService.findOne.mockResolvedValue(

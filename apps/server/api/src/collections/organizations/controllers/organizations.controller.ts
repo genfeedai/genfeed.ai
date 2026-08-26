@@ -157,6 +157,6 @@ export class OrganizationsController extends BaseCRUDController<
       user,
     );
 
-    return result as JsonApiSingleResponse;
+    return result as unknown as JsonApiSingleResponse;
   }
 }

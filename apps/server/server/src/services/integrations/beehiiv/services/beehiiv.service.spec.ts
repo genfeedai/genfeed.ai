@@ -1,3 +1,5 @@
+import type { Mock } from 'vitest';
+
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
     decrypt: vi.fn((val: string) => `decrypted:${val}`),
@@ -53,7 +55,7 @@ describe('BeehiivService', () => {
     // keep describing one connected account.
     credentialsResolveMock = vi.fn(
       (options: { credentialId?: string | null }) =>
-        (credentialsFindOneMock as vi.Mock)(options),
+        (credentialsFindOneMock as Mock)(options),
     );
 
     const module: TestingModule = await Test.createTestingModule({

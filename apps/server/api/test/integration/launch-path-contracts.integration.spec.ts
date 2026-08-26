@@ -18,6 +18,7 @@ import { readRepo, readSourceOf } from './launch-path-source.util';
  */
 const API_SRC = 'apps/server/api/src';
 const APP = 'apps/app';
+const SERVER_SRC = 'apps/server/server/src';
 const WORKERS_SRC = 'apps/server/workers/src';
 
 describe('launch-path contracts (hermetic E2E tier)', () => {
@@ -386,7 +387,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('reads X replies via official API first with Apify fallback only', () => {
-    const twitter = readSourceOf('TwitterService', { root: API_SRC });
+    const twitter = readSourceOf('TwitterService', { root: SERVER_SRC });
     const monitor = readSourceOf('SocialMonitorService', { root: API_SRC });
     expect(twitter).toContain('getTweetReplies');
     expect(twitter).toContain('tweets/search/recent');

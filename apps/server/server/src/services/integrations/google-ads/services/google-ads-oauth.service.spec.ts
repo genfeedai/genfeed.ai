@@ -8,9 +8,9 @@ import { GoogleAdsOAuthService } from './google-ads-oauth.service';
 
 describe('GoogleAdsOAuthService', () => {
   let service: GoogleAdsOAuthService;
-  let configService: vi.Mocked<ConfigService>;
-  let httpService: vi.Mocked<HttpService>;
-  let loggerService: vi.Mocked<LoggerService>;
+  let configService: Mocked<ConfigService>;
+  let httpService: Mocked<HttpService>;
+  let loggerService: Mocked<LoggerService>;
 
   const CONFIG_VALUES: Record<string, string> = {
     GOOGLE_ADS_CLIENT_ID: 'test-client-id',
@@ -77,7 +77,7 @@ describe('GoogleAdsOAuthService', () => {
     });
 
     it('refuses to start OAuth when client id is a placeholder', () => {
-      configService.get.mockImplementation((key) =>
+      configService.get.mockImplementation((key: string) =>
         String(key) === 'GOOGLE_ADS_CLIENT_ID'
           ? 'PLACEHOLDER_NOT_CONFIGURED'
           : CONFIG_VALUES[String(key)],

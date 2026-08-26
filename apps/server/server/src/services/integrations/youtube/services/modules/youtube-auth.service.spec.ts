@@ -62,7 +62,7 @@ describe('YoutubeAuthService', () => {
       // answers with whatever `findOne` is primed to return so the existing
       // single-account cases keep describing one connected account.
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        (credentialsService.findOne as vi.Mock)(options),
+        (credentialsService.findOne as Mock)(options),
       ),
     };
 

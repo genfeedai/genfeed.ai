@@ -4,6 +4,7 @@ import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-or
 import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import type { StartClipRunDto } from '@api/services/clip-orchestrator/dto/start-clip-run.dto';
+import { ReferenceImageCategory } from '@genfeedai/enums';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 function makeDto(overrides: Partial<StartClipRunDto> = {}): StartClipRunDto {
@@ -85,7 +86,7 @@ describe('ClipOrchestratorService', () => {
           id: 'face-1',
           label: 'Hero character sheet',
           mimeType: 'image/png',
-          referenceCategory: 'FACE',
+          referenceCategory: ReferenceImageCategory.FACE,
           role: 'reference',
           url: 'https://cdn.example.com/face.png',
         },
@@ -93,7 +94,7 @@ describe('ClipOrchestratorService', () => {
           id: 'product-1',
           label: 'Ceramic mug in glacier blue',
           mimeType: 'image/png',
-          referenceCategory: 'PRODUCT',
+          referenceCategory: ReferenceImageCategory.PRODUCT,
           role: 'reference',
           url: 'https://cdn.example.com/product.png',
         },

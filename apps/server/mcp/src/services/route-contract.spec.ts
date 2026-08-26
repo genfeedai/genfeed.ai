@@ -87,6 +87,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/credentials/controllers/credentials.controller.ts',
     prefix: 'credentials',
   },
+  credentialsPublishing: {
+    file: 'collections/credentials/controllers/credentials-publishing.controller.ts',
+    prefix: 'credentials',
+  },
   contentIntelGenerate: {
     file: 'collections/content-intelligence/controllers/generate.controller.ts',
     prefix: 'content-intelligence/generate',
@@ -129,6 +133,14 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
   },
   clipProjects: {
     file: 'collections/clip-projects/clip-projects.controller.ts',
+    prefix: 'clip-projects',
+  },
+  clipProjectIngestion: {
+    file: 'collections/clip-projects/clip-project-ingestion.controller.ts',
+    prefix: 'clip-projects',
+  },
+  clipProjectHighlights: {
+    file: 'collections/clip-projects/clip-project-highlights.controller.ts',
     prefix: 'clip-projects',
   },
   postGroups: {
@@ -298,7 +310,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   {
     method: 'Get',
     sub: 'mentions',
-    controller: 'credentials',
+    controller: 'credentialsPublishing',
     tools: ['get_linkedin_connection_status'],
   },
 
@@ -418,19 +430,19 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   {
     method: 'Post',
     sub: 'analyze',
-    controller: 'clipProjects',
+    controller: 'clipProjectIngestion',
     tools: ['analyze_clip_project'],
   },
   {
     method: 'Post',
     sub: 'from-youtube',
-    controller: 'clipProjects',
+    controller: 'clipProjectIngestion',
     tools: ['create_clip_project_from_youtube'],
   },
   {
     method: 'Get',
     sub: ':projectId/highlights',
-    controller: 'clipProjects',
+    controller: 'clipProjectHighlights',
     tools: ['get_clip_highlights'],
   },
   {
@@ -487,7 +499,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   {
     method: 'Get',
     sub: 'brand/:brandId/publishing-readiness',
-    controller: 'credentials',
+    controller: 'credentialsPublishing',
     tools: ['list_brand_publishing_readiness'],
   },
   {

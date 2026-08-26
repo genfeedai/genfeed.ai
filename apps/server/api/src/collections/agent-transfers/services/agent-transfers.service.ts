@@ -97,7 +97,7 @@ export class AgentTransfersService {
           ? {
               title: {
                 contains: query.trim(),
-                mode: 'insensitive',
+                mode: 'insensitive' as const,
               },
             }
           : {}),
@@ -358,7 +358,7 @@ export class AgentTransfersService {
           transfer.artifactReferences as unknown as AgentArtifactReference[],
         artifactVersionPinIds: transfer.artifactVersionPinIds,
         content: transfer.content,
-        deliveryMode: transfer.deliveryMode,
+        deliveryMode: AgentTransferDeliveryMode.SEND_AND_RUN,
         explicitUserIntent: true,
         idempotencyKey: transfer.idempotencyKey,
         sourceThreadId: transfer.sourceThreadId,

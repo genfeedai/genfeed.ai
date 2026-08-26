@@ -38,7 +38,7 @@ function asCredential(value: Partial<CredentialDocument>): CredentialDocument {
 describe('TiktokService', () => {
   let service: TiktokService;
   let httpService: HttpService;
-  let mockLoggerError: vi.Mock;
+  let mockLoggerError: Mock;
 
   const configMock = {
     get: vi.fn((key: string) => {
@@ -64,10 +64,12 @@ describe('TiktokService', () => {
     // The service resolves its account through the multi-account resolver;
     // the double answers with whatever `findOne` is primed to return so the
     // existing single-account cases keep describing one connected account.
-    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-      (credentialsMock.findOne as vi.Mock)(options),
-    ),
+    resolveBrandAccount: vi.fn(),
   } satisfies ServerCredentialStore;
+  credentialsMock.resolveBrandAccount.mockImplementation(
+    (options: { credentialId?: string | null }) =>
+      (credentialsMock.findOne as Mock)(options),
+  );
 
   const loggerMock = {
     error: vi.fn(),
@@ -124,7 +126,7 @@ describe('TiktokService', () => {
       });
 
       // Mock the HttpService post call
-      (httpService.post as vi.Mock).mockReturnValue(
+      (httpService.post as Mock).mockReturnValue(
         of({
           data: { data: { publish_id: 'test-id' } },
           status: 200,
@@ -168,7 +170,7 @@ describe('TiktokService', () => {
         stitch_disabled: false,
       });
 
-      (httpService.post as vi.Mock).mockReturnValue(
+      (httpService.post as Mock).mockReturnValue(
         of({
           data: { data: { publish_id: 'test-id' } },
           status: 200,
@@ -216,7 +218,7 @@ describe('TiktokService', () => {
         stitch_disabled: false,
       });
 
-      (httpService.post as vi.Mock).mockReturnValue(
+      (httpService.post as Mock).mockReturnValue(
         of({
           data: {},
           status: 500,
@@ -265,7 +267,7 @@ describe('TiktokService', () => {
         ...creatorOverrides,
       });
 
-      (httpService.post as vi.Mock).mockReturnValue(
+      (httpService.post as Mock).mockReturnValue(
         of({
           data: { data: { publish_id: 'test-id' } },
           status: 200,
@@ -280,7 +282,7 @@ describe('TiktokService', () => {
 
     const postInfoOf = () =>
       (
-        (httpService.post as vi.Mock).mock.calls[0][1] as {
+        (httpService.post as Mock).mock.calls[0][1] as {
           post_info: Record<string, unknown>;
         }
       ).post_info;
@@ -368,12 +370,12 @@ describe('TiktokService', () => {
 
   describe('refreshToken', () => {
     it('refreshes token and saves credentials', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         id: 'credential-id',
         refreshToken: 'ref',
       });
 
-      (httpService.post as vi.Mock).mockReturnValue(
+      (httpService.post as Mock).mockReturnValue(
         of({
           data: {
             access_token: 'nac',
@@ -384,7 +386,7 @@ describe('TiktokService', () => {
         }),
       );
 
-      (credentialsMock.patch as vi.Mock).mockResolvedValue({
+      (credentialsMock.patch as Mock).mockResolvedValue({
         id: 'credential-id',
         accessToken: 'nac',
         isConnected: true,
@@ -412,7 +414,7 @@ describe('TiktokService', () => {
     });
 
     it('throws when no refresh token exists', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue(undefined);
+      (credentialsMock.findOne as Mock).mockResolvedValue(undefined);
 
       await expect(
         service.refreshToken(testId('org'), testId('brand')),
@@ -420,12 +422,12 @@ describe('TiktokService', () => {
     });
 
     it('persists the exact scopes returned by token refresh through an atomic merge', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         id: 'credential-id',
         refreshToken: 'ref',
         warmupSignals: { connectedDays: 2 },
       });
-      (httpService.post as vi.Mock).mockReturnValue(
+      (httpService.post as Mock).mockReturnValue(
         of({
           data: {
             access_token: 'nac',
@@ -436,7 +438,7 @@ describe('TiktokService', () => {
           },
         }),
       );
-      (credentialsMock.patch as vi.Mock).mockResolvedValue({
+      (credentialsMock.patch as Mock).mockResolvedValue({
         id: 'credential-id',
         oauthTokenHash: null,
       });
@@ -472,7 +474,7 @@ describe('TiktokService', () => {
 
   describe('getTiktokInfo', () => {
     it('requests only user fields exposed by the exact granted scopes', async () => {
-      (httpService.get as vi.Mock).mockReturnValue(
+      (httpService.get as Mock).mockReturnValue(
         of({
           data: {
             data: {
@@ -566,7 +568,7 @@ describe('TiktokService', () => {
 
   describe('getValidCredential', () => {
     it('returns stored credential when access token is not near expiry', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         accessToken: 'fresh-access',
         accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
         id: 'credential-id',
@@ -584,7 +586,7 @@ describe('TiktokService', () => {
     });
 
     it('refreshes when access token is inside the refresh buffer', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         accessToken: 'stale-access',
         accessTokenExpiry: new Date(Date.now() + 5 * 60 * 1000),
         id: 'credential-id',
@@ -608,7 +610,7 @@ describe('TiktokService', () => {
 
   describe('getTrends', () => {
     it('returns empty trends without credentials', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue(null);
+      (credentialsMock.findOne as Mock).mockResolvedValue(null);
 
       const result = await service.getTrends('o', 'a');
 
@@ -617,14 +619,14 @@ describe('TiktokService', () => {
     });
 
     it('maps connected account videos without static fallback trends', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         accessToken: 'access',
         accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
         id: 'credential-id',
         isConnected: true,
         oauthTokenHash: '',
       });
-      (httpService.get as vi.Mock).mockReturnValue(
+      (httpService.get as Mock).mockReturnValue(
         of({
           data: {
             data: {
@@ -656,14 +658,14 @@ describe('TiktokService', () => {
 
   describe('getMediaAnalytics', () => {
     it('returns stats', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         accessToken: 'tok',
         accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
         id: 'credential-id',
         oauthTokenHash: '',
       });
 
-      (httpService.get as vi.Mock).mockReturnValue(
+      (httpService.get as Mock).mockReturnValue(
         of({
           data: {
             data: {

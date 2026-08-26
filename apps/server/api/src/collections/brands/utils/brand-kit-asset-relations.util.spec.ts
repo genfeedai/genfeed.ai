@@ -1,4 +1,5 @@
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
+import { ReferenceImageCategory } from '@genfeedai/enums';
 import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 
@@ -21,7 +22,7 @@ describe('toBrandKitAssetRelations', () => {
       references: [
         {
           id: 'asset-ref',
-          referenceCategory: 'PRODUCT',
+          referenceCategory: ReferenceImageCategory.PRODUCT,
           role: 'reference',
           url: 'https://cdn.example.com/references/asset-ref',
         },

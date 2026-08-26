@@ -54,6 +54,7 @@ import {
 } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 type Fixture = {
@@ -63,6 +64,11 @@ type Fixture = {
   sourceId: string;
   userId: string;
 };
+
+type PublishOutbound = (input: { postId: string }) => Promise<{
+  externalId: string;
+  url: string;
+}>;
 
 type AttributionDatabase = {
   activity: { deleteMany: () => Promise<unknown> };
@@ -122,12 +128,12 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
   let sourcePostsService: SourcePostsService;
   let topicsService: ListeningTopicsService;
   let collectTimeline: ReturnType<typeof vi.fn>;
-  let publishOutbound: ReturnType<typeof vi.fn>;
+  let publishOutbound: ReturnType<typeof vi.fn<PublishOutbound>>;
   let enqueuePublish: ReturnType<typeof vi.fn>;
 
   beforeAll(async () => {
     collectTimeline = vi.fn();
-    publishOutbound = vi.fn();
+    publishOutbound = vi.fn<PublishOutbound>();
     enqueuePublish = vi.fn().mockResolvedValue('publish-job-1798');
 
     const moduleConfig = await E2ETestModule.forRoot({
@@ -175,7 +181,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     );
     const credentialReadinessService = new CredentialPublishingReadinessService(
       providerSetupService,
-      moduleRef,
+      moduleRef as unknown as ModuleRef,
       prisma,
     );
     const readinessService = new PostGroupReadinessService(

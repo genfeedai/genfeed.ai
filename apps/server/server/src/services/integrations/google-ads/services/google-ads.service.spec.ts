@@ -24,8 +24,8 @@ const makeHttpResponse = <T>(data: T) => of({ data } as AxiosResponse<T>);
 
 describe('GoogleAdsService', () => {
   let service: GoogleAdsService;
-  let httpService: vi.Mocked<HttpService>;
-  let loggerService: vi.Mocked<LoggerService>;
+  let httpService: Mocked<HttpService>;
+  let loggerService: Mocked<LoggerService>;
 
   beforeEach(async () => {
     const credentialsMock = {
@@ -37,10 +37,12 @@ describe('GoogleAdsService', () => {
       // Multi-account resolution routes through `resolveBrandAccount`; the double
       // answers with whatever `findOne` is primed to return so the existing
       // single-account cases keep describing one connected account.
-      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        credentialsMock.findOne(options),
-      ),
+      resolveBrandAccount: vi.fn(),
     } satisfies ServerCredentialStore;
+    credentialsMock.resolveBrandAccount.mockImplementation(
+      (options: { credentialId?: string | null }) =>
+        credentialsMock.findOne(options),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

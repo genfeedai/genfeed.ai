@@ -1,4 +1,5 @@
 import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
+import { ReferenceImageCategory } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 describe('toBrandGenerationReferences', () => {
@@ -8,14 +9,14 @@ describe('toBrandGenerationReferences', () => {
         {
           id: 'face-1',
           label: 'Product photo with misleading words',
-          referenceCategory: 'FACE',
+          referenceCategory: ReferenceImageCategory.FACE,
           role: 'reference',
           url: 'https://cdn.example.com/references/face-1',
         },
         {
           id: 'product-1',
           label: 'Matte black bottle with gold cap',
-          referenceCategory: 'PRODUCT',
+          referenceCategory: ReferenceImageCategory.PRODUCT,
           role: 'reference',
           url: 'https://cdn.example.com/references/product-1',
         },

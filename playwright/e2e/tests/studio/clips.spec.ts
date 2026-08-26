@@ -15,6 +15,7 @@ const API_ANALYZE = '**/clip-projects/analyze';
 const API_CREATE_FROM_YOUTUBE = '**/clip-projects/from-youtube';
 const API_GENERATE = '**/clip-projects/*/generate';
 const API_HIGHLIGHTS = '**/clip-projects/*/highlights';
+const API_HOOK_APPROVAL = '**/clip-projects/*/hook-approval';
 const API_PROJECT = '**/clip-projects/*';
 const API_REWRITE = '**/clip-projects/*/highlights/*/rewrite';
 const API_CLIP_RESULTS = '**/clip-results**';
@@ -116,6 +117,7 @@ async function mockGetProject(page: Page, status = 'analyzing') {
     const pathname = new URL(route.request().url()).pathname;
     if (
       pathname.includes('/highlights') ||
+      pathname.includes('/hook-approval') ||
       pathname.includes('/generate') ||
       pathname.includes('/analyze')
     ) {
@@ -185,10 +187,25 @@ async function mockHighlightsPolling(
   });
 }
 
+async function mockHookApproval(page: Page) {
+  await page.route(API_HOOK_APPROVAL, async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        attempt: 0,
+        remainingClipCount: 0,
+        state: 'not_required',
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+}
+
 test.describe('Clip Factory', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockProjectList(authenticatedPage);
     await mockGetProject(authenticatedPage);
+    await mockHookApproval(authenticatedPage);
   });
 
   test('should load the clip factory page', async ({ authenticatedPage }) => {

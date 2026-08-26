@@ -124,7 +124,9 @@ describe('files controller boundaries', () => {
   );
 
   it('moves audio overlay off the source processing controller', () => {
-    expect(FilesProcessingController.prototype.audioOverlay).toBeUndefined();
+    expect(
+      Reflect.get(FilesProcessingController.prototype, 'audioOverlay'),
+    ).toBeUndefined();
   });
 
   it('registers the audio overlay sibling before the source processing controller', () => {
