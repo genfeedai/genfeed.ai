@@ -106,7 +106,7 @@ export class CredentialsService extends BaseService<Credential> {
     credentialId: string,
     data: ManualAccountHealthOverrideRequest,
   ): Promise<AccountHealthSummary> {
-    const response = await this.instance.post<AccountHealthSummary>(
+    const response = await this.instance.patch<AccountHealthSummary>(
       `/${credentialId}/account-health/override`,
       data,
     );

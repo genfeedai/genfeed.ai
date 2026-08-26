@@ -43,7 +43,7 @@ const MOVED_ROUTES = [
   [
     'overrideAccountHealth',
     ':credentialId/account-health/override',
-    RequestMethod.POST,
+    RequestMethod.PATCH,
   ],
   ['getMentions', 'mentions', RequestMethod.GET],
   ['getQuotaStatus', ':credentialId/quota', RequestMethod.GET],
@@ -71,6 +71,18 @@ describe('Credentials split controllers', () => {
       });
     },
   );
+
+  it('exposes manual account-health overrides via PATCH, never POST', () => {
+    const handler =
+      CredentialsPublishingController.prototype.overrideAccountHealth;
+
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.PATCH,
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).not.toBe(
+      RequestMethod.POST,
+    );
+  });
 
   it.each([CredentialsPublishingController, CredentialsController])(
     'preserves the shared credentials role guard on %s',

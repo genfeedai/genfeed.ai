@@ -100,18 +100,19 @@ describe('CredentialsService HTTP methods', () => {
     expect(result).toEqual(summary);
   });
 
-  it('overrideAccountHealth POSTs the manual override', async () => {
+  it('overrideAccountHealth PATCHes the manual override and never POSTs it', async () => {
     const summary = { credentialId, status: 'healthy' };
-    http.post.mockResolvedValue(axiosResponse(summary));
+    http.patch.mockResolvedValue(axiosResponse(summary));
 
     const result = await service.overrideAccountHealth(credentialId, {
       status: 'healthy',
     });
 
-    expect(http.post).toHaveBeenCalledWith(
+    expect(http.patch).toHaveBeenCalledWith(
       `/${credentialId}/account-health/override`,
       { status: 'healthy' },
     );
+    expect(http.post).not.toHaveBeenCalled();
     expect(result).toEqual(summary);
   });
 
