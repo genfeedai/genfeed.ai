@@ -1,10 +1,13 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
 import { of } from 'rxjs';
+import { PinterestService } from './pinterest.service';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
@@ -20,7 +23,10 @@ describe('PinterestService', () => {
     post: vi.fn(),
   } as unknown as HttpService;
   const credentialsServiceMock = {
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
     findOne: vi.fn(),
+    mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
     // Multi-account resolution routes through `resolveBrandAccount`; the double
     // answers with whatever `findOne` is primed to return so the existing
@@ -28,7 +34,7 @@ describe('PinterestService', () => {
     resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
       (credentialsServiceMock.findOne as vi.Mock)(options),
     ),
-  } as unknown as CredentialsService;
+  } satisfies ServerCredentialStore;
 
   beforeEach(async () => {
     process.env.PINTEREST_CLIENT_ID = 'client';
@@ -52,7 +58,7 @@ describe('PinterestService', () => {
           },
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: credentialsServiceMock,
         },
         {
