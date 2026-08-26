@@ -14,6 +14,8 @@ import type {
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
   IBrandKitManualInput,
+  IBrandOsDraftHandoff,
+  IBrandOsPreviewClaimRequest,
   IBrandSetupRequest,
   IBrandSetupResponse,
   IGeneratedBrandProfile,
@@ -349,6 +351,23 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .post<JsonApiResponseDocument>(`/${id}/brand-kit/crawl`, data)
       .then((res) => deserializeResource<IBrandKitDraft>(res.data));
+  }
+
+  public async claimBrandOsPreview(
+    id: string,
+    data: IBrandOsPreviewClaimRequest,
+  ): Promise<IBrandOsDraftHandoff> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/brand-kit/brand-os/claim`, data)
+      .then((res) => deserializeResource<IBrandOsDraftHandoff>(res.data));
+  }
+
+  public async getClaimedBrandOsDraft(
+    id: string,
+  ): Promise<IBrandOsDraftHandoff> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(`/${id}/brand-kit/brand-os`)
+      .then((res) => deserializeResource<IBrandOsDraftHandoff>(res.data));
   }
 
   public async applyBrandKitDraft(

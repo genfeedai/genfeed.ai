@@ -27,6 +27,7 @@ export {
   type AnalyticsUserIdentity,
   captureAnalyticsEvent,
   captureAnalyticsPageview,
+  captureBrandOsFunnelStage,
   clearAnalyticsOrganization,
   ensureAnalyticsAnonymous,
   identifyAnalyticsOrganization,

@@ -63,7 +63,7 @@ describe('BrandOSContent', () => {
     expect(screen.getByText('Discord')).toBeInTheDocument();
   });
 
-  it('keeps one clear primary CTA without adding the anonymous intake flow', () => {
+  it('keeps one clear primary CTA and exposes the bounded intake flow', () => {
     render(<BrandOSContent />);
 
     const primaryCta = screen.getByRole('link', {
@@ -81,23 +81,19 @@ describe('BrandOSContent', () => {
     expect(
       screen.getByRole('link', { name: /back to genfeed\.ai/i }),
     ).toHaveAttribute('href', '/');
-    // The intake form was removed — no public website URL field remains.
-    expect(screen.queryByLabelText(/public website url/i)).toBeNull();
+    expect(screen.getByLabelText(/website url/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/manual brand guidance/i)).toHaveAttribute(
+      'maxlength',
+      '12000',
+    );
   });
 
-  it('shows labeled evidence, sources, confidence, and candidate boundaries', () => {
+  it('shows the explicit preview and review state contracts', () => {
     render(<BrandOSContent />);
 
-    expect(screen.getByText('Confidence: 98%')).toBeInTheDocument();
-    expect(screen.getByText('extracted')).toBeInTheDocument();
-    expect(screen.getByText('inferred')).toBeInTheDocument();
-    expect(screen.getAllByText('candidate').length).toBeGreaterThan(0);
-    expect(screen.getByText('missing')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Exploration only — not Genfeed product tokens/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Current product color tokens remain unchanged/i),
-    ).toBeInTheDocument();
+    expect(screen.getAllByText('Waiting for a source').length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByText('No silent state changes.')).toBeInTheDocument();
   });
 });

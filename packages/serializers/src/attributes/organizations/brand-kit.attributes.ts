@@ -29,3 +29,15 @@ export const brandKitAssetImportAttributes = createEntityAttributes([
   'results',
   'diagnostics',
 ]);
+
+export const brandOsPreviewAttributes = createEntityAttributes([
+  'draft',
+  'expiresAt',
+  'previewToken',
+]);
+
+export const brandOsDraftHandoffAttributes = createEntityAttributes([
+  'draft',
+  'expiresAt',
+  'status',
+]);

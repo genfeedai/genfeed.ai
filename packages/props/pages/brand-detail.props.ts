@@ -264,6 +264,9 @@ export interface BrandDetailIdentityCardProps {
 export interface BrandKitReviewCardProps {
   brand: IBrand;
   brandId: string;
+  loadClaimedBrandOsDraft?: boolean;
+  onBrandOsDraftAccepted?: () => void;
+  onBrandOsDraftLoaded?: () => void;
   onRefreshBrand: () => Promise<void>;
 }
 

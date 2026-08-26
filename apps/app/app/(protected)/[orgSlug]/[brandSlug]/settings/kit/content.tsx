@@ -9,6 +9,7 @@ import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { captureBrandOsFunnelStage } from '@/lib/analytics';
 
 /**
  * Brand kit configuration — scan, manual draft, references, completeness.
@@ -63,6 +64,11 @@ export default function BrandSettingsKitPage() {
         <BrandKitReviewCard
           brand={brand}
           brandId={brandId}
+          loadClaimedBrandOsDraft
+          onBrandOsDraftAccepted={() =>
+            captureBrandOsFunnelStage('draft_accepted')
+          }
+          onBrandOsDraftLoaded={() => captureBrandOsFunnelStage('draft_saved')}
           onRefreshBrand={() => handleRefreshBrand(true)}
         />
 

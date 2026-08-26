@@ -1,5 +1,9 @@
 import { MAX_PAGE_SIZE } from '@genfeedai/constants';
-import type { IQueryParams } from '@genfeedai/interfaces';
+import type {
+  IBrandOsPreview,
+  IBrandOsPreviewRequest,
+  IQueryParams,
+} from '@genfeedai/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { Post } from '@genfeedai/models/content/post.model';
@@ -89,6 +93,14 @@ export class PublicService extends HTTPBaseService {
 
         return new Brand(deserializeResource<Partial<Brand>>(document));
       });
+  }
+
+  public async previewBrandOs(
+    data: IBrandOsPreviewRequest,
+  ): Promise<IBrandOsPreview> {
+    return await this.instance
+      .post<JsonApiResponseDocument>('brand-os/preview', data)
+      .then((res) => deserializeResource<IBrandOsPreview>(res.data));
   }
 
   public async findPublicAccountLinks(brandId: string): Promise<Link[]> {

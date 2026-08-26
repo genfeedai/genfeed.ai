@@ -295,6 +295,27 @@ describe('initAnalytics', () => {
 });
 
 describe('captureAnalyticsEvent', () => {
+  it('captures Brand OS acceptance and the first subsequent generation once', async () => {
+    const client = await loadClient();
+    client.captureBrandOsFunnelStage('draft_accepted');
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      generationType: GenerationType.POST,
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      generationType: GenerationType.POST,
+    });
+    client.initAnalytics();
+    await flushInit();
+
+    const events = mocks.posthogCapture.mock.calls.map(([event]) => event);
+    expect(
+      events.filter((event) => event === 'brand_os_draft_accepted'),
+    ).toHaveLength(1);
+    expect(
+      events.filter((event) => event === 'brand_os_first_generation'),
+    ).toHaveLength(1);
+  });
+
   it('buffers the ordered canonical funnel before the deferred client is initialised', async () => {
     const client = await loadClient();
 
@@ -828,6 +849,9 @@ describe('event taxonomy', () => {
     expect(new Set(values)).toEqual(
       new Set([
         'agent_thread_created',
+        'brand_os_draft_accepted',
+        'brand_os_draft_saved',
+        'brand_os_first_generation',
         'checkout_completed',
         'checkout_started',
         'connect_genfeed_step',

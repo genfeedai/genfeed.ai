@@ -9,6 +9,7 @@ import {
 
 const ROOT_CALLBACK_URL = '/';
 const POST_SIGNUP_CALLBACK_URL = '/onboarding/post-signup';
+const BRAND_OS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 type AuthCallbackURLOptions = {
   defaultCallbackURL?: string;
@@ -38,6 +39,11 @@ function parsePositiveIntegerParam(value?: string | null): string | null {
   return parsed > 0 ? String(parsed) : null;
 }
 
+export function parseBrandOsPreviewToken(value?: string | null): string | null {
+  const token = value?.trim();
+  return token && BRAND_OS_TOKEN_PATTERN.test(token) ? token : null;
+}
+
 function buildPostSignupCallbackURL(
   searchParams: Pick<URLSearchParams, 'get'>,
 ): string {
@@ -48,6 +54,9 @@ function buildPostSignupCallbackURL(
   );
   const brandDomain = extractBrandDomain(searchParams.get('brandDomain'));
   const brandName = searchParams.get('brandName')?.trim();
+  const brandOsToken = parseBrandOsPreviewToken(
+    searchParams.get('brandOsToken'),
+  );
 
   if (selectedPlan) {
     params.set('plan', selectedPlan);
@@ -65,6 +74,10 @@ function buildPostSignupCallbackURL(
     params.set('brandName', brandName);
   }
 
+  if (brandOsToken) {
+    params.set('brandOsToken', brandOsToken);
+  }
+
   const query = params.toString();
   return query
     ? `${POST_SIGNUP_CALLBACK_URL}?${query}`
@@ -80,7 +93,10 @@ export function getAuthCallbackURL(
     return explicitCallbackURL;
   }
 
-  if (options.includeOnboardingHandoffParams) {
+  if (
+    options.includeOnboardingHandoffParams ||
+    parseBrandOsPreviewToken(searchParams.get('brandOsToken'))
+  ) {
     return buildPostSignupCallbackURL(searchParams);
   }
 

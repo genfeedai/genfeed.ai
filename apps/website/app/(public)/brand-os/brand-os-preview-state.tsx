@@ -1,6 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type {
+  IBrandKitDiagnostic,
+  IBrandKitDraft,
+  IBrandKitSourceEvidence,
+} from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -43,6 +48,7 @@ type DiagnosticSeverity = 'info' | 'warning';
 
 interface BrandOSPreviewStateProps {
   announce?: boolean;
+  draft?: IBrandKitDraft | undefined;
   scaleRole?: CampaignScaleRole;
   showEvidence?: boolean;
   state: BrandOSPreviewStateName;
@@ -253,10 +259,67 @@ function EvidenceLabel({ kind }: { kind: EvidenceKind }) {
   );
 }
 
-function EvidencePreview() {
+function formatDraftValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.map(String).join(', ');
+  }
+  if (value && typeof value === 'object') {
+    return 'Structured brand evidence';
+  }
+  return value == null ? 'No proposed value' : String(value);
+}
+
+function toEvidenceItems(draft?: IBrandKitDraft): readonly EvidenceItem[] {
+  if (!draft) {
+    return EVIDENCE_ITEMS;
+  }
+
+  const fields = Object.values(draft.fields).filter(
+    (field) => field?.proposedValue !== undefined,
+  );
+  return fields.slice(0, 8).map((field) => ({
+    confidence: field?.confidence ?? null,
+    detail: formatDraftValue(field?.proposedValue),
+    kind:
+      field?.evidence[0]?.sourceType === 'website' ? 'extracted' : 'inferred',
+    label: field?.label ?? 'Brand signal',
+  }));
+}
+
+function toSourceRows(
+  evidence?: readonly IBrandKitSourceEvidence[],
+): readonly SourceRow[] {
+  if (evidence === undefined) {
+    return SOURCE_ROWS;
+  }
+  return evidence.slice(0, 8).map((source, index) => ({
+    detail: source.excerpt ?? `Evidence recorded as ${source.sourceType}`,
+    href: source.url ?? '#brand-os-preview',
+    label: source.label || `Source ${index + 1}`,
+  }));
+}
+
+function toDiagnostics(
+  diagnostics?: readonly IBrandKitDiagnostic[],
+): readonly DiagnosticItem[] {
+  if (diagnostics === undefined) {
+    return DIAGNOSTICS;
+  }
+  return diagnostics.slice(0, 8).map((diagnostic) => ({
+    message: diagnostic.message,
+    severity: diagnostic.severity === 'info' ? 'info' : 'warning',
+  }));
+}
+
+function EvidencePreview({ draft }: { draft?: IBrandKitDraft | undefined }) {
   const diagnosticsHeadingId = useId();
   const evidenceHeadingId = useId();
   const sourcesHeadingId = useId();
+  const evidenceItems = toEvidenceItems(draft);
+  const sourceRows = toSourceRows(draft?.evidence);
+  const diagnostics = toDiagnostics(
+    draft ? [...draft.diagnostics, ...draft.readiness.diagnostics] : undefined,
+  );
 
   return (
     <div className="grid gap-px bg-edge/10 lg:grid-cols-[1.15fr_0.85fr]">
@@ -278,29 +341,35 @@ function EvidencePreview() {
           </Text>
         </div>
 
-        <dl className="mt-5 divide-y divide-edge/10">
-          {EVIDENCE_ITEMS.map((item) => (
-            <div
-              className="grid gap-2 py-4 sm:grid-cols-[9rem_1fr]"
-              key={item.label}
-            >
-              <dt className="flex flex-col items-start gap-2">
-                <Text className="text-xs font-semibold text-surface">
-                  {item.label}
-                </Text>
-                <EvidenceLabel kind={item.kind} />
-              </dt>
-              <dd className="flex flex-col gap-1">
-                <Text className="text-sm leading-6 text-surface/75">
-                  {item.detail}
-                </Text>
-                <Text className="font-mono text-2xs uppercase text-surface/55">
-                  {formatConfidence(item.confidence)}
-                </Text>
-              </dd>
-            </div>
-          ))}
-        </dl>
+        {evidenceItems.length > 0 ? (
+          <dl className="mt-5 divide-y divide-edge/10">
+            {evidenceItems.map((item) => (
+              <div
+                className="grid gap-2 py-4 sm:grid-cols-[9rem_1fr]"
+                key={item.label}
+              >
+                <dt className="flex flex-col items-start gap-2">
+                  <Text className="text-xs font-semibold text-surface">
+                    {item.label}
+                  </Text>
+                  <EvidenceLabel kind={item.kind} />
+                </dt>
+                <dd className="flex flex-col gap-1">
+                  <Text className="text-sm leading-6 text-surface/75">
+                    {item.detail}
+                  </Text>
+                  <Text className="font-mono text-2xs uppercase text-surface/55">
+                    {formatConfidence(item.confidence)}
+                  </Text>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <Text className="mt-5 text-sm text-surface/60">
+            No supported recommendation was inferred from this source.
+          </Text>
+        )}
       </section>
 
       <div className="grid gap-px bg-edge/10">
@@ -315,25 +384,31 @@ function EvidencePreview() {
           >
             Source rows
           </Heading>
-          <ul className="mt-4 divide-y divide-edge/10">
-            {SOURCE_ROWS.map((source) => (
-              <li className="py-3 first:pt-0 last:pb-0" key={source.href}>
-                <Link
-                  className="group flex flex-col gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-surface focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  href={source.href}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <span className="text-xs font-semibold text-surface group-hover:underline">
-                    {source.label}
-                  </span>
-                  <span className="text-xs leading-5 text-surface/55">
-                    {source.detail}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {sourceRows.length > 0 ? (
+            <ul className="mt-4 divide-y divide-edge/10">
+              {sourceRows.map((source) => (
+                <li className="py-3 first:pt-0 last:pb-0" key={source.href}>
+                  <Link
+                    className="group flex flex-col gap-1 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-surface focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    href={source.href}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <span className="text-xs font-semibold text-surface group-hover:underline">
+                      {source.label}
+                    </span>
+                    <span className="text-xs leading-5 text-surface/55">
+                      {source.detail}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Text className="mt-4 text-xs leading-5 text-surface/55">
+              No source receipt was available.
+            </Text>
+          )}
         </section>
 
         <section
@@ -347,31 +422,37 @@ function EvidencePreview() {
           >
             Diagnostics
           </Heading>
-          <ul className="mt-4 space-y-3">
-            {DIAGNOSTICS.map((diagnostic) => (
-              <li className="flex items-start gap-2" key={diagnostic.message}>
-                {diagnostic.severity === 'warning' ? (
-                  <AlertTriangle
-                    aria-hidden="true"
-                    className="mt-0.5 size-4 shrink-0 text-warning"
-                  />
-                ) : (
-                  <Info
-                    aria-hidden="true"
-                    className="mt-0.5 size-4 shrink-0 text-info"
-                  />
-                )}
-                <div className="flex flex-col gap-0.5">
-                  <Text className="text-2xs font-black uppercase tracking-[0.12em] text-surface/55">
-                    {diagnostic.severity}
-                  </Text>
-                  <Text className="text-xs leading-5 text-surface/70">
-                    {diagnostic.message}
-                  </Text>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {diagnostics.length > 0 ? (
+            <ul className="mt-4 space-y-3">
+              {diagnostics.map((diagnostic) => (
+                <li className="flex items-start gap-2" key={diagnostic.message}>
+                  {diagnostic.severity === 'warning' ? (
+                    <AlertTriangle
+                      aria-hidden="true"
+                      className="mt-0.5 size-4 shrink-0 text-warning"
+                    />
+                  ) : (
+                    <Info
+                      aria-hidden="true"
+                      className="mt-0.5 size-4 shrink-0 text-info"
+                    />
+                  )}
+                  <div className="flex flex-col gap-0.5">
+                    <Text className="text-2xs font-black uppercase tracking-[0.12em] text-surface/55">
+                      {diagnostic.severity}
+                    </Text>
+                    <Text className="text-xs leading-5 text-surface/70">
+                      {diagnostic.message}
+                    </Text>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Text className="mt-4 text-xs leading-5 text-surface/55">
+              No additional diagnostics.
+            </Text>
+          )}
         </section>
       </div>
     </div>
@@ -380,6 +461,7 @@ function EvidencePreview() {
 
 export function BrandOSPreviewState({
   announce = false,
+  draft,
   scaleRole = 'block',
   showEvidence = false,
   state,
@@ -434,7 +516,7 @@ export function BrandOSPreviewState({
         </div>
       </div>
 
-      {showEvidence ? <EvidencePreview /> : null}
+      {showEvidence ? <EvidencePreview draft={draft} /> : null}
     </article>
   );
 }

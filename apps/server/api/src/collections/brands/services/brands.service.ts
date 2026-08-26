@@ -16,6 +16,7 @@ import type {
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import {
   type BrandRelocationPreview,
   type BrandRelocationResult,
@@ -52,6 +53,7 @@ import type {
   IBrandKitAssetImportResponse,
   IBrandKitDraft,
   IBrandKitResolvedAssets,
+  IBrandOsDraftHandoff,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -161,6 +163,7 @@ export class BrandsService extends BaseService<
     private readonly brandGenerationService: BrandGenerationService,
     private readonly brandKitAssetsService: BrandKitAssetsService,
     private readonly brandKitDraftService: BrandKitDraftService,
+    private readonly brandOsPreviewService: BrandOsPreviewService,
     private readonly defaultRecurringContentService: DefaultRecurringContentService,
     private readonly skillsService: SkillsService,
   ) {
@@ -802,6 +805,41 @@ export class BrandsService extends BaseService<
           where: criteria,
         }) as Promise<BrandDocument | null>,
     );
+  }
+
+  async claimBrandOsPreview(
+    brandId: string,
+    organizationId: string,
+    previewToken: string,
+  ): Promise<IBrandOsDraftHandoff> {
+    const brand = (await this.delegate.findFirst({
+      where: scopedWhere(organizationId, { id: brandId }),
+    })) as BrandDocument | null;
+
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    return this.brandOsPreviewService.claimPreview(
+      previewToken,
+      organizationId,
+      brand,
+    );
+  }
+
+  async readClaimedBrandOsPreview(
+    brandId: string,
+    organizationId: string,
+  ): Promise<IBrandOsDraftHandoff> {
+    const brand = (await this.delegate.findFirst({
+      where: scopedWhere(organizationId, { id: brandId }),
+    })) as BrandDocument | null;
+
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    return this.brandOsPreviewService.readClaimedPreview(organizationId, brand);
   }
 
   async generateBrandVoice(

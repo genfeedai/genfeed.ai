@@ -1,5 +1,5 @@
 import { ArticlesModule } from '@api/collections/articles/articles.module';
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { LinksModule } from '@api/collections/links/links.module';
@@ -9,6 +9,7 @@ import { NewslettersModule } from '@api/collections/newsletters/newsletters.modu
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
+import { PublicBrandOsController } from '@api/endpoints/public/controllers/brand-os/public.brand-os.controller';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { PublicMediaController } from '@api/endpoints/public/controllers/media/public-media.controller';
@@ -28,6 +29,7 @@ import { Module } from '@nestjs/common';
   controllers: [
     PublicArticlesController,
     PublicBrandsController,
+    PublicBrandOsController,
     PublicImagesController,
     PublicMediaController,
     PublicModelsController,
@@ -40,7 +42,7 @@ import { Module } from '@nestjs/common';
   exports: [],
   imports: [
     ArticlesModule,
-    BrandsModule,
+    BrandsCoreModule,
     FilesClientModule,
     ImagesModule,
     IngredientsModule,

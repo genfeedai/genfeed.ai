@@ -6,8 +6,12 @@ import PostSignupFallback from './PostSignupFallback';
 import { usePostSignupRouting } from './use-post-signup-routing.hook';
 
 function PostSignupPageContent() {
-  const { showFallback, statusMessage, resolveOnboardingHref } =
-    usePostSignupRouting();
+  const {
+    showFallback,
+    statusMessage,
+    resolveOnboardingHref,
+    retryBrandOsHandoff,
+  } = usePostSignupRouting();
 
   return (
     <PageLoadingState
@@ -16,7 +20,10 @@ function PostSignupPageContent() {
       message={statusMessage}
     >
       {showFallback ? (
-        <PostSignupFallback resolveOnboardingHref={resolveOnboardingHref} />
+        <PostSignupFallback
+          resolveOnboardingHref={resolveOnboardingHref}
+          retryBrandOsHandoff={retryBrandOsHandoff}
+        />
       ) : null}
     </PageLoadingState>
   );

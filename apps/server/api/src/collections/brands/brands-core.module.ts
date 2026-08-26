@@ -2,6 +2,7 @@ import { BrandDataMapper } from '@api/collections/brands/services/brand-data.map
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     BrandsService,
     DefaultRecurringContentService,
     BrandDataMapper,
+    BrandOsPreviewService,
   ],
   imports: [
     CommonModule,
@@ -38,6 +40,7 @@ import { Module } from '@nestjs/common';
     BrandGenerationService,
     BrandKitAssetsService,
     BrandKitDraftService,
+    BrandOsPreviewService,
     BrandRelocationService,
     BrandDataMapper,
   ],

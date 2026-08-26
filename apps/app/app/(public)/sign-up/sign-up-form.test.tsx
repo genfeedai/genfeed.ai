@@ -199,6 +199,30 @@ describe('SignUpForm', () => {
     });
   });
 
+  it('preserves an opaque Brand OS token in the post-signup callback only', async () => {
+    const token = 'a'.repeat(43);
+    window.history.replaceState(
+      {},
+      '',
+      `/sign-up/magic-link?brandOsToken=${token}`,
+    );
+    render(<SignUpBetterAuth mode="magic-link" />);
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'brand@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback(
+          `/onboarding/post-signup?brandOsToken=${token}`,
+        ),
+        email: 'brand@example.com',
+        metadata: { intent: 'signup' },
+      });
+    });
+  });
+
   it('persists cloud handoff query params into onboarding localStorage keys', async () => {
     window.history.replaceState(
       {},

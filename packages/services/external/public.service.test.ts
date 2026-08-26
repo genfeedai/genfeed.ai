@@ -55,6 +55,26 @@ describe('PublicService', () => {
     });
   });
 
+  it('previewBrandOs POSTs bounded intake and unwraps the handoff', async () => {
+    const preview = {
+      draft: { brandId: 'preview-1', id: 'preview-1', status: 'partial' },
+      expiresAt: '2026-08-26T12:30:00.000Z',
+      previewToken: 'a'.repeat(43),
+    };
+    http.post.mockResolvedValue(
+      axiosResponse(resourceDocument(preview, { id: 'preview-1' })),
+    );
+
+    const result = await service.previewBrandOs({
+      guidance: 'Direct, proof-led guidance.',
+    });
+
+    expect(http.post).toHaveBeenCalledWith('brand-os/preview', {
+      guidance: 'Direct, proof-led guidance.',
+    });
+    expect(result).toMatchObject(preview);
+  });
+
   it('findPublicAccountLinks maps links for the brand', async () => {
     http.get.mockResolvedValue(
       axiosResponse(collectionDocument([{ id: 'link_1', url: 'https://x' }])),
