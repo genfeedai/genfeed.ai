@@ -11,6 +11,13 @@ import type {
 
 export const LISTENING_CONTRACT_VERSION = 1 as const;
 
+export type ListeningTopicCollectionState =
+  | 'pending'
+  | 'success'
+  | 'empty'
+  | 'failed'
+  | 'rate_limited';
+
 export interface IListeningTopicSource extends IBaseEntity {
   organizationId: string;
   organization?: IOrganization | string;
@@ -20,6 +27,11 @@ export interface IListeningTopicSource extends IBaseEntity {
   sourceId: string;
   source?: ISocialSource | string;
   platform: ListeningSourcePlatform;
+  collectionState?: ListeningTopicCollectionState;
+  collectionCursor?: string | null;
+  lastCollectedAt?: string | null;
+  lastCollectionError?: string | null;
+  rateLimitedAt?: string | null;
 }
 
 export interface IListeningTopic extends IBaseEntity {
@@ -160,6 +172,11 @@ export interface IListeningTopicSourceDocument {
   topicId: string;
   sourceId: string;
   platform: ListeningSourcePlatform;
+  collectionState: ListeningTopicCollectionState;
+  collectionCursor?: string | null;
+  lastCollectedAt?: Date | null;
+  lastCollectionError?: string | null;
+  rateLimitedAt?: Date | null;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;

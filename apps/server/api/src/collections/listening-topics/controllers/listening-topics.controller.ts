@@ -1,10 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CollectListeningTopicDto } from '@api/collections/listening-topics/dto/collect-listening-topic.dto';
 import { CreateListeningTopicDto } from '@api/collections/listening-topics/dto/create-listening-topic.dto';
 import {
   ListeningEvidenceQueryDto,
   ListeningTopicsQueryDto,
 } from '@api/collections/listening-topics/dto/listening-topics-query.dto';
 import { UpdateListeningTopicDto } from '@api/collections/listening-topics/dto/update-listening-topic.dto';
+import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
@@ -23,6 +25,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -39,6 +43,7 @@ import type { Request } from 'express';
 export class ListeningTopicsController {
   constructor(
     private readonly listeningTopicsService: ListeningTopicsService,
+    private readonly listeningTopicCollectorService: ListeningTopicCollectorService,
   ) {}
 
   @Get()
@@ -75,6 +80,24 @@ export class ListeningTopicsController {
   ) {
     const context = resolveRequiredBrandRequestContext(user, query);
     const topic = await this.listeningTopicsService.findOneScoped(id, context);
+    return serializeSingle(request, ListeningTopicSerializer, topic);
+  }
+
+  @Post(':id/collect')
+  @HttpCode(HttpStatus.OK)
+  async collect(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
+    @Param('id') id: string,
+    @Body() body: CollectListeningTopicDto,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    const topic = await this.listeningTopicCollectorService.collectScoped(
+      id,
+      body,
+      context,
+    );
     return serializeSingle(request, ListeningTopicSerializer, topic);
   }
 

@@ -1,4 +1,5 @@
 import { ListeningTopicsController } from '@api/collections/listening-topics/controllers/listening-topics.controller';
+import type { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import type { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import { resolveRequiredBrandRequestContext } from '@api/helpers/utils/auth/auth.util';
 
@@ -40,8 +41,12 @@ describe('ListeningTopicsController', () => {
     removeScoped: vi.fn(),
     updateScoped: vi.fn(),
   };
+  const collectorService = {
+    collectScoped: vi.fn(),
+  };
   const controller = new ListeningTopicsController(
     service as unknown as ListeningTopicsService,
+    collectorService as unknown as ListeningTopicCollectorService,
   );
 
   beforeEach(() => {
@@ -85,5 +90,34 @@ describe('ListeningTopicsController', () => {
       },
       query,
     );
+  });
+
+  it('collects a topic inside the authenticated tenant and brand scope', async () => {
+    const query = { brand: 'brand-1' } as never;
+    const body = { limit: 40 };
+    collectorService.collectScoped.mockResolvedValue({ id: 'topic-1' });
+
+    const result = await controller.collect(
+      request,
+      user,
+      query,
+      'topic-1',
+      body,
+    );
+
+    expect(resolveRequiredBrandRequestContext).toHaveBeenCalledWith(
+      user,
+      query,
+    );
+    expect(collectorService.collectScoped).toHaveBeenCalledWith(
+      'topic-1',
+      body,
+      {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    );
+    expect(result).toEqual({ data: { id: 'topic-1' } });
   });
 });
