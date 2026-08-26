@@ -51,6 +51,100 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       video: { label: 'Generated Video', type: 'video' },
     },
   },
+  talkingHeadScript: {
+    category: 'ai',
+    configSchema: {
+      brandVoice: {
+        description: 'Optional brand voice and tone guidance',
+        label: 'Brand Voice',
+        type: 'string',
+      },
+      clipCount: {
+        default: 5,
+        description: 'Number of timed talking-head clips',
+        label: 'Clip Count',
+        max: 20,
+        min: 2,
+        type: 'number',
+      },
+      durationSeconds: {
+        default: 30,
+        description: 'Total spoken duration across all clips',
+        label: 'Duration (seconds)',
+        max: 300,
+        min: 1,
+        type: 'number',
+      },
+      harnessContext: {
+        description: 'Optional serialized brand harness constraints',
+        label: 'Harness Context',
+        type: 'string',
+      },
+      language: {
+        default: 'en',
+        description: 'BCP 47 spoken-language tag',
+        label: 'Language',
+        type: 'string',
+      },
+      productContext: {
+        description: 'Product, offer, audience, and proof context',
+        label: 'Product Context',
+        required: true,
+        type: 'string',
+      },
+      wordsPerSecond: {
+        default: 3.5,
+        description: 'Spoken pacing budget for the selected voice/language',
+        label: 'Words per Second',
+        max: 6,
+        min: 1,
+        type: 'number',
+      },
+    },
+    description:
+      'Generate a duration-accurate talking-head script with hook-first, CTA-last clip segments',
+    icon: 'FileText',
+    inputs: {
+      brandVoice: { label: 'Brand Voice', required: false, type: 'text' },
+      clipCount: { label: 'Clip Count', required: false, type: 'number' },
+      durationSeconds: {
+        label: 'Duration (seconds)',
+        required: false,
+        type: 'number',
+      },
+      harnessContext: {
+        label: 'Harness Context',
+        required: false,
+        type: 'any',
+      },
+      language: { label: 'Language', required: false, type: 'text' },
+      productContext: {
+        label: 'Product Context',
+        required: true,
+        type: 'text',
+      },
+      wordsPerSecond: {
+        label: 'Words per Second',
+        required: false,
+        type: 'number',
+      },
+    },
+    isPremium: true,
+    label: 'Talking-head Script',
+    outputs: {
+      clipCount: { label: 'Clip Count', type: 'number' },
+      fullText: { label: 'Full Script', type: 'text' },
+      script: { label: 'Timed Script', type: 'any' },
+      segments: { label: 'Segments', type: 'any' },
+      totalDurationSeconds: {
+        label: 'Total Duration (seconds)',
+        type: 'number',
+      },
+      totalTargetWordCount: { label: 'Target Words', type: 'number' },
+      totalWordCount: { label: 'Actual Words', type: 'number' },
+      wordsPerSecond: { label: 'Words per Second', type: 'number' },
+    },
+  },
   'ai-enhance': {
     category: 'ai',
     configSchema: {

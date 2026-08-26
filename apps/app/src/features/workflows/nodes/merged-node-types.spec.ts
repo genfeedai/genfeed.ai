@@ -12,6 +12,7 @@ const TEMPLATE_NODE_TYPES = [
   'castPrompt',
   'cast-prompt-generator',
   'soundOverlay',
+  'talkingHeadScript',
   'workflowInput',
   'workflowOutput',
 ] as const;

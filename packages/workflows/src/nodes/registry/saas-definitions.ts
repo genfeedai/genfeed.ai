@@ -14,6 +14,7 @@ import {
   DEFAULT_SEND_DM_DATA,
   DEFAULT_SOCIAL_READ_DATA,
   DEFAULT_SOUND_OVERLAY_DATA,
+  DEFAULT_TALKING_HEAD_SCRIPT_DATA,
   DEFAULT_TREND_HASHTAG_INSPIRATION_DATA,
   DEFAULT_TREND_SOUND_INSPIRATION_DATA,
   DEFAULT_TREND_TRIGGER_DATA,
@@ -44,6 +45,7 @@ export type SaaSNodeType =
   | 'soundOverlay'
   // AI / generation
   | 'hookGenerator'
+  | 'talkingHeadScript'
   | 'trendHashtagInspiration'
   | 'trendSoundInspiration'
   | 'trendVideoInspiration'
@@ -366,6 +368,81 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'slidePrompts', label: 'Slide Prompts', type: 'text' },
     ],
     type: 'hookGenerator',
+  },
+  talkingHeadScript: {
+    category: 'saas',
+    defaultData: DEFAULT_TALKING_HEAD_SCRIPT_DATA as Record<string, unknown>,
+    description:
+      'Generate a duration-accurate talking-head script with hook-first, CTA-last clip segments',
+    icon: 'FileText',
+    inputs: [
+      {
+        id: 'productContext',
+        label: 'Product Context',
+        required: true,
+        type: 'text',
+      },
+      {
+        id: 'brandVoice',
+        label: 'Brand Voice',
+        required: false,
+        type: 'text',
+      },
+      {
+        id: 'harnessContext',
+        label: 'Harness Context',
+        required: false,
+        type: 'object',
+      },
+      {
+        id: 'durationSeconds',
+        label: 'Duration (seconds)',
+        required: false,
+        type: 'number',
+      },
+      {
+        id: 'clipCount',
+        label: 'Clip Count',
+        required: false,
+        type: 'number',
+      },
+      {
+        id: 'wordsPerSecond',
+        label: 'Words per Second',
+        required: false,
+        type: 'number',
+      },
+      {
+        id: 'language',
+        label: 'Language',
+        required: false,
+        type: 'text',
+      },
+    ],
+    label: 'Talking-head Script',
+    outputs: [
+      { id: 'script', label: 'Timed Script', type: 'object' },
+      { id: 'segments', label: 'Segments', type: 'object' },
+      { id: 'fullText', label: 'Full Script', type: 'text' },
+      { id: 'clipCount', label: 'Clip Count', type: 'number' },
+      {
+        id: 'totalDurationSeconds',
+        label: 'Total Duration (seconds)',
+        type: 'number',
+      },
+      {
+        id: 'totalTargetWordCount',
+        label: 'Target Words',
+        type: 'number',
+      },
+      { id: 'totalWordCount', label: 'Actual Words', type: 'number' },
+      {
+        id: 'wordsPerSecond',
+        label: 'Words per Second',
+        type: 'number',
+      },
+    ],
+    type: 'talkingHeadScript',
   },
   trendHashtagInspiration: {
     category: 'input',

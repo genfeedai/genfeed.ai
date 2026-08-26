@@ -14,6 +14,7 @@ export * from './report-delivery';
 export * from './send-dm';
 export * from './social-read';
 export * from './sound-overlay';
+export * from './talking-head-script';
 export * from './trend-hashtag-inspiration';
 // Trend automation nodes - shared types first
 export * from './trend-shared';

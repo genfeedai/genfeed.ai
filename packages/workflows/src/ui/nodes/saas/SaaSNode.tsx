@@ -6,6 +6,77 @@ import { memo } from 'react';
 import { BaseNode } from '../BaseNode';
 
 export const workflowSaaSNodeDefinitions = {
+  talkingHeadScript: {
+    category: 'ai',
+    icon: 'FileText',
+    inputs: [
+      {
+        id: 'productContext',
+        label: 'Product Context',
+        optional: false,
+        type: 'text',
+      },
+      {
+        id: 'brandVoice',
+        label: 'Brand Voice',
+        optional: true,
+        type: 'text',
+      },
+      {
+        id: 'harnessContext',
+        label: 'Harness Context',
+        optional: true,
+        type: 'object',
+      },
+      {
+        id: 'durationSeconds',
+        label: 'Duration (seconds)',
+        optional: true,
+        type: 'number',
+      },
+      {
+        id: 'clipCount',
+        label: 'Clip Count',
+        optional: true,
+        type: 'number',
+      },
+      {
+        id: 'wordsPerSecond',
+        label: 'Words per Second',
+        optional: true,
+        type: 'number',
+      },
+      {
+        id: 'language',
+        label: 'Language',
+        optional: true,
+        type: 'text',
+      },
+    ],
+    label: 'Talking-head Script',
+    outputs: [
+      { id: 'script', label: 'Timed Script', type: 'object' },
+      { id: 'segments', label: 'Segments', type: 'object' },
+      { id: 'fullText', label: 'Full Script', type: 'text' },
+      { id: 'clipCount', label: 'Clip Count', type: 'number' },
+      {
+        id: 'totalDurationSeconds',
+        label: 'Total Duration (seconds)',
+        type: 'number',
+      },
+      {
+        id: 'totalTargetWordCount',
+        label: 'Target Words',
+        type: 'number',
+      },
+      { id: 'totalWordCount', label: 'Actual Words', type: 'number' },
+      {
+        id: 'wordsPerSecond',
+        label: 'Words per Second',
+        type: 'number',
+      },
+    ],
+  },
   trendHashtagInspiration: {
     category: 'ai',
     icon: 'Hash',

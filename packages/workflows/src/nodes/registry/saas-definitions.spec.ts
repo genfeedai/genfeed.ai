@@ -9,6 +9,7 @@ describe('SAAS_NODE_DEFINITIONS', () => {
   it('has expected types', () => {
     expect(Object.keys(SAAS_NODE_DEFINITIONS)).toContain('brand');
     expect(Object.keys(SAAS_NODE_DEFINITIONS)).toContain('publish');
+    expect(Object.keys(SAAS_NODE_DEFINITIONS)).toContain('talkingHeadScript');
   });
 
   it('each has required fields', () => {
@@ -41,6 +42,24 @@ describe('SAAS_NODE_DEFINITIONS', () => {
       expect.arrayContaining([
         expect.objectContaining({ id: 'voice', type: 'text' }),
         expect.objectContaining({ id: 'voiceConfig', type: 'object' }),
+      ]),
+    );
+  });
+
+  it('exposes the typed talking-head script contract to workflow builders', () => {
+    expect(SAAS_NODE_DEFINITIONS.talkingHeadScript.inputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'productContext', required: true }),
+        expect.objectContaining({ id: 'durationSeconds', type: 'number' }),
+        expect.objectContaining({ id: 'clipCount', type: 'number' }),
+        expect.objectContaining({ id: 'wordsPerSecond', type: 'number' }),
+      ]),
+    );
+    expect(SAAS_NODE_DEFINITIONS.talkingHeadScript.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'script', type: 'object' }),
+        expect.objectContaining({ id: 'segments', type: 'object' }),
+        expect.objectContaining({ id: 'fullText', type: 'text' }),
       ]),
     );
   });
