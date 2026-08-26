@@ -43,6 +43,7 @@ export * from './seo-rewrite-executor';
 export * from './seo-score-executor';
 export * from './social-read-executor';
 export * from './sound-overlay-executor';
+export * from './talking-head-script-executor';
 // Text to speech executor
 export * from './text-to-speech-executor';
 export * from './trend-digest-executor';

@@ -128,6 +128,7 @@ describe('getNodeCreditCost', () => {
     expect(getNodeCreditCost('upscale')).toBe(2);
     expect(getNodeCreditCost('caption')).toBe(1);
     expect(getNodeCreditCost('generateMusic')).toBe(8);
+    expect(getNodeCreditCost('talkingHeadScript')).toBe(3);
   });
 
   it('should return 0 for unknown node types', () => {
@@ -373,6 +374,7 @@ describe('DEFAULT_CREDIT_COSTS', () => {
     expect(DEFAULT_CREDIT_COSTS.generateMusic).toBe(8);
     expect(DEFAULT_CREDIT_COSTS.imageGen).toBe(5);
     expect(DEFAULT_CREDIT_COSTS.videoGen).toBe(10);
+    expect(DEFAULT_CREDIT_COSTS.talkingHeadScript).toBe(3);
   });
 
   it('should have zero cost for free node types', () => {

@@ -18,8 +18,9 @@ describe('workflow SaaS node React Flow mapping', () => {
     }
   });
 
-  it('covers the trend inspiration nodes implemented in the engine', () => {
+  it('covers the generic SaaS nodes implemented in the engine', () => {
     expect(Object.keys(workflowSaaSNodeDefinitions).sort()).toEqual([
+      'talkingHeadScript',
       'trendHashtagInspiration',
       'trendSoundInspiration',
       'trendVideoInspiration',

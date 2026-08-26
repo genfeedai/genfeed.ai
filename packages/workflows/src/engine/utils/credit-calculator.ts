@@ -61,6 +61,7 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   postReply: 1, // [ESTIMATED] comparable to caption
   seoRewrite: 3, // [ESTIMATED] LLM rewrite; comparable to generateArticle
   seoScore: 2, // [ESTIMATED] LLM-assisted scoring pass; lighter than a full rewrite
+  talkingHeadScript: 3, // Full structured script generation; comparable to generateArticle
   trendHashtagInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
   trendSoundInspiration: 1, // [ESTIMATED] cached trend lookup / sound selection
   trendVideoInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
@@ -268,6 +269,7 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   lipSync: 'ai',
   seoRewrite: 'ai',
   seoScore: 'ai',
+  talkingHeadScript: 'ai',
   textToSpeech: 'ai',
   trendHashtagInspiration: 'ai',
   trendSoundInspiration: 'ai',

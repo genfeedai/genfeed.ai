@@ -39,4 +39,28 @@ describe('node-registry-adapter', () => {
       value: { label: 'Value', type: 'image' },
     });
   });
+
+  it('exposes talking-head script generation to the workflow builder and agent graph generator', () => {
+    const definition = getNodeDefinition('talkingHeadScript');
+
+    expect(definition).toMatchObject({
+      category: 'processing',
+      inputs: {
+        brandVoice: { required: false, type: 'text' },
+        clipCount: { required: false, type: 'number' },
+        durationSeconds: { required: false, type: 'number' },
+        harnessContext: { required: false, type: 'any' },
+        productContext: { required: true, type: 'text' },
+        wordsPerSecond: { required: false, type: 'number' },
+      },
+      outputs: {
+        clipCount: { type: 'number' },
+        fullText: { type: 'text' },
+        script: { type: 'any' },
+        segments: { type: 'any' },
+        totalWordCount: { type: 'number' },
+      },
+      type: 'talkingHeadScript',
+    });
+  });
 });

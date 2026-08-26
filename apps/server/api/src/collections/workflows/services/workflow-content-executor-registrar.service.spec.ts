@@ -83,7 +83,147 @@ function runPostGenNode(
   );
 }
 
+function runTalkingHeadScriptNode(openRouterService: {
+  chatCompletion: ReturnType<typeof vi.fn>;
+}) {
+  const engine = new WorkflowEngine();
+
+  new WorkflowContentExecutorRegistrarService(
+    createHelper(),
+    undefined,
+    undefined,
+    undefined,
+    openRouterService as never,
+  ).register(engine);
+
+  return engine.getExecutor('talkingHeadScript')?.(
+    {
+      config: {
+        clipCount: 5,
+        durationSeconds: 30,
+        language: 'en',
+        productContext: 'A content operating system for founder-led brands',
+        wordsPerSecond: 3.5,
+      },
+      id: 'script-1',
+      inputs: [],
+      label: 'Talking-head Script',
+      type: 'talkingHeadScript',
+    },
+    new Map([
+      ['brandVoice', 'Direct and practical'],
+      ['harnessContext', { bannedPhrases: ['game-changing'] }],
+    ]),
+    {
+      organizationId: 'org-1',
+      runId: 'run-1',
+      userId: 'user-1',
+      workflowId: 'wf-1',
+    },
+  );
+}
+
 describe('WorkflowContentExecutorRegistrarService', () => {
+  it('registers talking-head scripts with a forced structured-output contract', async () => {
+    const structuredArguments = JSON.stringify({
+      segments: [
+        {
+          clipIndex: 0,
+          purpose: 'hook',
+          text: 'Your content should compound while you sleep',
+        },
+        {
+          clipIndex: 1,
+          purpose: 'body',
+          text: 'Most teams rebuild the same process every single week',
+        },
+        {
+          clipIndex: 2,
+          purpose: 'body',
+          text: 'Genfeed turns your real voice into repeatable content workflows',
+        },
+        {
+          clipIndex: 3,
+          purpose: 'body',
+          text: 'Plan create review and publish without losing the thread',
+        },
+        {
+          clipIndex: 4,
+          purpose: 'cta',
+          text: 'Build your first content workflow today',
+        },
+      ],
+    });
+    const openRouterService = {
+      chatCompletion: vi.fn().mockResolvedValue({
+        choices: [
+          {
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  function: {
+                    arguments: structuredArguments,
+                    name: 'submit_talking_head_script',
+                  },
+                  id: 'call-1',
+                  type: 'function',
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    };
+
+    const result = (await runTalkingHeadScriptNode(openRouterService)) as {
+      script: { segments: unknown[]; totalTargetWordCount: number };
+    };
+
+    expect(result.script.segments).toHaveLength(5);
+    expect(result.script.totalTargetWordCount).toBe(105);
+    expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool_choice: {
+          function: { name: 'submit_talking_head_script' },
+          type: 'function',
+        },
+        tools: [
+          expect.objectContaining({
+            function: expect.objectContaining({
+              name: 'submit_talking_head_script',
+              parameters: expect.objectContaining({
+                additionalProperties: false,
+                properties: {
+                  segments: expect.objectContaining({
+                    maxItems: 5,
+                    minItems: 5,
+                  }),
+                },
+              }),
+            }),
+          }),
+        ],
+      }),
+    );
+    const call = openRouterService.chatCompletion.mock.calls[0]?.[0];
+    const userMessage = call.messages.find(
+      (message: { role: string }) => message.role === 'user',
+    );
+    expect(userMessage?.content).toContain('Direct and practical');
+    expect(userMessage?.content).toContain('game-changing');
+    expect(userMessage?.content).toContain('"targetWordCount": 21');
+  });
+
+  it('registers the talking-head executor even when OpenRouter is unavailable', () => {
+    const engine = new WorkflowEngine();
+    new WorkflowContentExecutorRegistrarService(createHelper()).register(
+      engine,
+    );
+
+    expect(engine.getRegisteredNodeTypes()).toContain('talkingHeadScript');
+  });
+
   it('persists a domain platform from a Prisma SCREAMING credential', async () => {
     const postsService = {
       create: vi.fn().mockResolvedValue({
