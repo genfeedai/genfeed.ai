@@ -123,6 +123,8 @@ export {
 export { PostPublishQueueService } from './queues/post-publish/post-publish-queue.service';
 export {
   SERVER_TOKENS,
+  type ServerActivityCreateInput,
+  type ServerActivityWriter,
   type ServerBrandMemorySync,
   type ServerByokResolver,
   type ServerConfig,

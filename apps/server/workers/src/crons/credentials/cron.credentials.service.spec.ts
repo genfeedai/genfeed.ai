@@ -1,4 +1,3 @@
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -10,6 +9,7 @@ import { LinkedInService } from '@server/services/integrations/linkedin/services
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 
 describe('CronCredentialsService', () => {
