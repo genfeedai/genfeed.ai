@@ -1,4 +1,5 @@
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { ErrorCode } from '@genfeedai/enums';
 import {
   HttpException,
@@ -93,10 +94,35 @@ function throwValidationFailed(detail: string): never {
   });
 }
 
+function readKnownImageGenerationResultError(
+  error: string | undefined,
+): string | null {
+  const detail = error?.trim();
+  if (!detail) {
+    return null;
+  }
+
+  return Object.values(IMAGE_GENERATION_RESULT_ERROR).some(
+    (knownError) => knownError === detail,
+  )
+    ? detail
+    : null;
+}
+
+function throwGenerationResultUnavailable(detail: string): never {
+  ErrorResponse.throw({
+    code: ErrorCode.SERVICE_UNAVAILABLE,
+    detail,
+    status: HttpStatus.BAD_GATEWAY,
+    title: 'Generation result unavailable',
+  });
+}
+
 /**
  * Confirmed UI actions used to wrap every tool failure as 500, including
  * swallowed upstream 401/403/400s. Auth and validation failures stay on the
- * existing ErrorResponse 4xx path; unexpected failures remain 500.
+ * existing ErrorResponse 4xx path, known unusable generation results stay on
+ * a structured upstream-failure path, and unexpected failures remain 500.
  */
 export function throwFailedUiActionResult(
   error: string | undefined,
@@ -113,6 +139,10 @@ export function throwFailedUiActionResult(
   if (inferValidationFailure(error)) {
     throwValidationFailed(readValidationDetail(error));
   }
+  const generationResultError = readKnownImageGenerationResultError(error);
+  if (generationResultError) {
+    throwGenerationResultUnavailable(generationResultError);
+  }
   if (/Cancelled by user/i.test(error ?? '')) {
     ErrorResponse.conflict('generation', 'Cancelled by user');
   }
@@ -125,7 +155,11 @@ export function rethrowUiActionError(error: unknown): never {
       throw error;
     }
     const message = readHttpExceptionMessage(error);
-    if (message && inferAuthFailureStatus(message)) {
+    if (
+      message &&
+      (inferAuthFailureStatus(message) ||
+        readKnownImageGenerationResultError(message))
+    ) {
       throwFailedUiActionResult(message, message);
     }
     throw error;
@@ -153,6 +187,9 @@ export function rethrowUiActionError(error: unknown): never {
   }
   if (inferValidationFailure(message)) {
     throwFailedUiActionResult(message, 'Request validation failed.');
+  }
+  if (readKnownImageGenerationResultError(message)) {
+    throwFailedUiActionResult(message, 'Image generation result unavailable.');
   }
   throw error;
 }

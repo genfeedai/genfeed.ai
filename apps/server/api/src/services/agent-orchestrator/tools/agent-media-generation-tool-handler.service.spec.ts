@@ -415,6 +415,59 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
     expect(result.error).toMatch(/CDN URL|asset id/i);
   });
 
+  it('does not expose a completed image result from outside the configured CDN', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: {
+          cdnUrl: 'https://private-provider.example/output.png',
+          status: 'GENERATED',
+        },
+        id: 'ingredient-1',
+      },
+    });
+
+    const result = await handler.generateImage(
+      { prompt: 'logo for genfeed.ai' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      error: 'Image generation finished without a usable CDN URL.',
+      success: false,
+    });
+    expect(JSON.stringify(result)).not.toContain('private-provider.example');
+  });
+
+  it('recovers a configured CDN URL from s3Key when an explicit URL is unusable', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: {
+          cdnUrl: 'https://private-provider.example/output.png',
+          s3Key: 'images/output.png',
+          status: 'GENERATED',
+        },
+        id: 'ingredient-1',
+      },
+    });
+
+    const result = await handler.generateImage(
+      { prompt: 'logo for genfeed.ai' },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      data: {
+        url: 'https://cdn.example.com/images/output.png',
+      },
+      success: true,
+    });
+    expect(result.nextActions?.[0]).toMatchObject({
+      images: ['https://cdn.example.com/images/output.png'],
+    });
+  });
+
   it('forwards the thread scope brandId to POST /v1/images', async () => {
     const { handler, internalApi } = createHandler();
     internalApi.callInternalApi.mockResolvedValue({

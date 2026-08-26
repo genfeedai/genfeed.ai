@@ -1,5 +1,10 @@
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 
+export const IMAGE_GENERATION_RESULT_ERROR = {
+  MISSING_ASSET_ID: 'Image generation did not return an asset id.',
+  UNUSABLE_CDN_URL: 'Image generation finished without a usable CDN URL.',
+} as const;
+
 export function isPlainMediaResponseRecord(
   value: unknown,
 ): value is Record<string, unknown> {
@@ -59,4 +64,42 @@ export function readMediaAssetUrl(
 
   const cdnBaseUrl = ingredientsEndpoint.replace(/\/ingredients\/?$/, '');
   return `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
+}
+
+export function readUsableCdnAssetUrl(
+  response: Record<string, unknown>,
+  ingredientsEndpoint: string,
+): string | undefined {
+  const candidates = [
+    readMediaResponseString(response, 'cdnUrl'),
+    readMediaResponseString(response, 'ingredientUrl'),
+    readMediaResponseString(response, 'url'),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+  const s3Key = readMediaResponseString(response, 's3Key');
+  if (s3Key) {
+    const cdnBaseUrl = ingredientsEndpoint.replace(/\/ingredients\/?$/, '');
+    candidates.push(`${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`);
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const assetUrl = new URL(candidate);
+      const configuredCdnUrl = new URL(ingredientsEndpoint);
+      const isHttpAsset =
+        assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:';
+      const hasAssetPath = assetUrl.pathname !== '/';
+      const hasNoEmbeddedCredentials = !assetUrl.username && !assetUrl.password;
+
+      if (
+        isHttpAsset &&
+        assetUrl.origin === configuredCdnUrl.origin &&
+        hasAssetPath &&
+        hasNoEmbeddedCredentials
+      ) {
+        return candidate;
+      }
+    } catch {}
+  }
+
+  return undefined;
 }

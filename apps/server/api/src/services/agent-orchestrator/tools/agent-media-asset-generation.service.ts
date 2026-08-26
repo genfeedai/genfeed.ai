@@ -1,7 +1,9 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import {
+  IMAGE_GENERATION_RESULT_ERROR,
   readMediaAssetUrl,
   readMediaResponseString,
+  readUsableCdnAssetUrl,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -210,18 +212,32 @@ export class AgentMediaAssetGenerationService {
     }
 
     const id = readMediaResponseString(response, 'id');
-    const cdnUrl = readMediaAssetUrl(
+    const cdnUrl = readUsableCdnAssetUrl(
       response,
       this.configService.ingredientsEndpoint,
     );
+    const responseStatus = readMediaResponseString(response, 'status')
+      ?.trim()
+      .toLowerCase();
     if (!id) {
       this.loggerService.warn(
         `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
       );
       return this.buildImageGenerationIncompleteResult({
-        error: 'Image generation did not return an asset id.',
+        error: IMAGE_GENERATION_RESULT_ERROR.MISSING_ASSET_ID,
         promptPreview,
         status: Status.PROCESSING,
+      });
+    }
+
+    if (!cdnUrl && responseStatus !== Status.PROCESSING) {
+      this.loggerService.warn(
+        `generateImage returned no usable CDN asset for org=${ctx.organizationId} id=${id}`,
+      );
+      return this.buildImageGenerationIncompleteResult({
+        error: IMAGE_GENERATION_RESULT_ERROR.UNUSABLE_CDN_URL,
+        promptPreview,
+        status: Status.FAILED,
       });
     }
 
