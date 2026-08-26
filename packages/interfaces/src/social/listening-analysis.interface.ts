@@ -1,5 +1,8 @@
 import type { IBaseEntity, IBrand, IOrganization } from '../index';
-import type { IListeningTopic } from './listening-topic.interface';
+import type {
+  IListeningEvidence,
+  IListeningTopic,
+} from './listening-topic.interface';
 
 export const LISTENING_ANALYSIS_METHODOLOGY_VERSION =
   'deterministic-keyword-v1' as const;
@@ -11,6 +14,16 @@ export type ListeningSignalType =
   | 'comparative';
 
 export type ListeningSignalStatus = 'sufficient' | 'insufficient_evidence';
+
+export type ListeningThemeReviewState =
+  | 'unreviewed'
+  | 'acknowledged'
+  | 'deferred';
+
+export type ReviewListeningThemeState = Exclude<
+  ListeningThemeReviewState,
+  'unreviewed'
+>;
 
 export type ListeningInsufficiencyReason =
   | 'missing_evidence'
@@ -43,6 +56,9 @@ export interface IListeningTheme extends IBaseEntity {
   previousWindowEnd: string;
   evidenceIds: string[];
   idempotencyKey: string;
+  reviewState: ListeningThemeReviewState;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
 }
 
 export interface IListeningSignal extends IBaseEntity {
@@ -86,6 +102,9 @@ export interface IListeningThemeDocument {
   previousWindowEnd: Date;
   evidenceIds: string[];
   idempotencyKey: string;
+  reviewState: ListeningThemeReviewState;
+  reviewedAt?: Date | null;
+  reviewedBy?: string | null;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -138,3 +157,24 @@ export interface InsufficientListeningAnalysisResult
 export type ListeningAnalysisResult =
   | SufficientListeningAnalysisResult
   | InsufficientListeningAnalysisResult;
+
+export interface ISocialIntelligenceTopicBundle {
+  topic: IListeningTopic;
+  themes: IListeningTheme[];
+  signals: IListeningSignal[];
+  evidence: IListeningEvidence[];
+}
+
+export interface ListeningInboxScope {
+  organizationId: string;
+  brandId: string;
+}
+
+export type SocialIntelligenceInboxState =
+  | 'loading'
+  | 'empty'
+  | 'ready'
+  | 'partial'
+  | 'forbidden'
+  | 'rate_limited'
+  | 'failed';

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { AnalyzeListeningTopicDto } from '@api/collections/listening-topics/dto/analyze-listening-topic.dto';
 import type { ListeningAnalysisQueryDto } from '@api/collections/listening-topics/dto/listening-topics-query.dto';
+import type { ReviewListeningThemeDto } from '@api/collections/listening-topics/dto/review-listening-theme.dto';
 import type {
   ListeningSignalDocument,
   ListeningThemeDocument,
@@ -64,6 +65,9 @@ type EvidenceCluster = {
 
 type PersistenceDelegate = {
   count?: (args: Record<string, unknown>) => Promise<number>;
+  findFirst?: (
+    args: Record<string, unknown>,
+  ) => Promise<Record<string, unknown> | null>;
   findMany?: (args: Record<string, unknown>) => Promise<unknown[]>;
   updateMany?: (args: Record<string, unknown>) => Promise<unknown>;
   upsert?: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
@@ -86,7 +90,9 @@ type ListeningAnalysisDatabase = {
     findMany: (args: Record<string, unknown>) => Promise<AnalysisEvidence[]>;
   };
   listeningSignal: Required<Pick<PersistenceDelegate, 'count' | 'findMany'>>;
-  listeningTheme: Required<Pick<PersistenceDelegate, 'count' | 'findMany'>>;
+  listeningTheme: Required<
+    Pick<PersistenceDelegate, 'count' | 'findFirst' | 'findMany' | 'updateMany'>
+  >;
   listeningTopic: {
     findFirst: (args: Record<string, unknown>) => Promise<AnalysisTopic | null>;
   };
@@ -222,17 +228,9 @@ export class ListeningTopicAnalysisService {
       }),
       this.db.listeningTheme.count({ where }),
     ]);
-    const docs = records.map((record) => {
-      const typed = record as Record<string, unknown> & {
-        evidence?: Array<{ evidenceId: string }>;
-      };
-      return {
-        ...typed,
-        evidenceIds: (typed.evidence ?? [])
-          .map(({ evidenceId }) => evidenceId)
-          .sort(),
-      } as unknown as ListeningThemeDocument;
-    });
+    const docs = records.map((record) =>
+      toThemeDocumentWithEvidence(record as Record<string, unknown>),
+    );
 
     return {
       docs,
@@ -272,6 +270,52 @@ export class ListeningTopicAnalysisService {
       pages: Math.max(1, Math.ceil(total / limit)),
       total,
     };
+  }
+
+  async reviewThemeScoped(
+    topicId: string,
+    themeId: string,
+    input: ReviewListeningThemeDto,
+    context: IListeningScope,
+    reviewedAt = new Date(),
+  ): Promise<ListeningThemeDocument> {
+    await this.findTopicScoped(topicId, context);
+    if (!context.userId) {
+      throw new BadRequestException('Authenticated user context is required');
+    }
+
+    const where = scopedWhere(context.organizationId, {
+      brandId: context.brandId,
+      id: themeId,
+      topicId,
+    });
+    const result = await this.db.listeningTheme.updateMany({
+      data: {
+        reviewState: input.state,
+        reviewedAt,
+        reviewedBy: context.userId,
+      },
+      where,
+    });
+    const count = (result as { count?: number }).count ?? 0;
+    if (count !== 1) {
+      throw new NotFoundException({ message: 'Listening theme not found' });
+    }
+
+    const record = await this.db.listeningTheme.findFirst({
+      include: {
+        evidence: {
+          orderBy: { evidenceId: 'asc' },
+          select: { evidenceId: true },
+        },
+      },
+      where,
+    });
+    if (!record) {
+      throw new NotFoundException({ message: 'Listening theme not found' });
+    }
+
+    return toThemeDocumentWithEvidence(record);
   }
 
   private async findTopicScoped(
@@ -772,6 +816,19 @@ function toThemeDocument(
     evidenceIds,
     id: String(record.id),
     updatedAt: (record.updatedAt as Date | undefined) ?? now,
+  } as unknown as ListeningThemeDocument;
+}
+
+function toThemeDocumentWithEvidence(
+  record: Record<string, unknown>,
+): ListeningThemeDocument {
+  const typed = record as Record<string, unknown> & {
+    evidence?: Array<{ evidenceId: string }>;
+  };
+  const { evidence, ...theme } = typed;
+  return {
+    ...theme,
+    evidenceIds: (evidence ?? []).map(({ evidenceId }) => evidenceId).sort(),
   } as unknown as ListeningThemeDocument;
 }
 

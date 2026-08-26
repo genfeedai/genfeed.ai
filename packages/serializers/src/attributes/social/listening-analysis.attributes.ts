@@ -14,6 +14,9 @@ export const listeningThemeAttributes = createEntityAttributes([
   'previousWindowEnd',
   'evidenceIds',
   'idempotencyKey',
+  'reviewState',
+  'reviewedAt',
+  'reviewedBy',
 ]);
 
 export const listeningSignalAttributes = createEntityAttributes([

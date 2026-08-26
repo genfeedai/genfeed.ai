@@ -29,6 +29,20 @@ vi.mock('@hooks/data/analytics/use-insights/use-insights', () => ({
   })),
 }));
 
+vi.mock('./social-intelligence-inbox', () => ({
+  default: ({
+    brandId,
+    organizationId,
+  }: {
+    brandId?: string;
+    organizationId: string;
+  }) => (
+    <div>
+      Social intelligence scope {organizationId}/{brandId ?? 'none'}
+    </div>
+  ),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: vi.fn(() => ({
@@ -53,6 +67,12 @@ describe('InsightsOverview', () => {
   it('should render without crashing', () => {
     const { container } = render(<InsightsOverview />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('mounts the social intelligence inbox inside the analytics scope', () => {
+    render(<InsightsOverview brandId="brand-123" />);
+
+    expect(screen.getByText(/Social intelligence scope/)).toBeInTheDocument();
   });
 
   it('renders an unavailable state when predictive analytics fails', () => {

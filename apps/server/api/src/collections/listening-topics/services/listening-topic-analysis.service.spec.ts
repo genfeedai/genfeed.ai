@@ -52,6 +52,7 @@ describe('ListeningTopicAnalysisService', () => {
   };
   const listeningTheme = {
     count: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     updateMany: vi.fn(),
     upsert: vi.fn(),
@@ -323,5 +324,71 @@ describe('ListeningTopicAnalysisService', () => {
     );
     expect(listeningTheme.count).toHaveBeenCalledWith({ where: scopedWhere });
     expect(listeningSignal.count).toHaveBeenCalledWith({ where: scopedWhere });
+  });
+
+  it('persists a scoped review while preserving the complete evidence set', async () => {
+    const reviewedAt = new Date('2026-08-26T14:00:00.000Z');
+    listeningTheme.updateMany.mockResolvedValueOnce({ count: 1 });
+    listeningTheme.findFirst.mockResolvedValueOnce({
+      brandId: 'brand-1',
+      evidence: [{ evidenceId: 'evidence-2' }, { evidenceId: 'evidence-1' }],
+      id: 'theme-1',
+      organizationId: 'org-1',
+      reviewState: 'acknowledged',
+      reviewedAt,
+      reviewedBy: 'legacyBase62UserId',
+      topicId: 'topic-1',
+    });
+
+    const result = await service.reviewThemeScoped(
+      'topic-1',
+      'theme-1',
+      { state: 'acknowledged' },
+      { ...context, userId: 'legacyBase62UserId' },
+      reviewedAt,
+    );
+
+    const scope = {
+      brandId: 'brand-1',
+      id: 'theme-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      topicId: 'topic-1',
+    };
+    expect(listeningTheme.updateMany).toHaveBeenCalledWith({
+      data: {
+        reviewState: 'acknowledged',
+        reviewedAt,
+        reviewedBy: 'legacyBase62UserId',
+      },
+      where: scope,
+    });
+    expect(listeningTheme.findFirst).toHaveBeenCalledWith({
+      include: {
+        evidence: {
+          orderBy: { evidenceId: 'asc' },
+          select: { evidenceId: true },
+        },
+      },
+      where: scope,
+    });
+    expect(result.evidenceIds).toEqual(['evidence-1', 'evidence-2']);
+    expect(listeningThemeEvidence.deleteMany).not.toHaveBeenCalled();
+    expect(listeningThemeEvidence.createMany).not.toHaveBeenCalled();
+  });
+
+  it('does not review a theme outside the authenticated tenant and brand', async () => {
+    listeningTheme.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(
+      service.reviewThemeScoped(
+        'topic-1',
+        'foreign-theme',
+        { state: 'deferred' },
+        context,
+      ),
+    ).rejects.toThrow('Listening theme not found');
+
+    expect(listeningTheme.findFirst).not.toHaveBeenCalled();
   });
 });

@@ -12,8 +12,15 @@ const migration = readFileSync(
   ),
   'utf8',
 );
+const reviewMigration = readFileSync(
+  join(
+    prismaDir,
+    'migrations/20260826210000_add_listening_theme_review/migration.sql',
+  ),
+  'utf8',
+);
 
-describe('attributable listening analysis persistence (#1796)', () => {
+describe('attributable listening analysis persistence (#1796, #1797)', () => {
   it('keeps themes, explicit evidence joins, and signals scoped and idempotent', () => {
     expect(schema).toContain('model ListeningTheme {');
     expect(schema).toContain('model ListeningThemeEvidence {');
@@ -56,5 +63,19 @@ describe('attributable listening analysis persistence (#1796)', () => {
     expect(migration).toContain(
       'FOREIGN KEY ("evidenceId", "organizationId", "brandId", "topicId")',
     );
+  });
+
+  it('persists an operator review without changing theme evidence attribution', () => {
+    expect(schema).toContain('reviewState          String');
+    expect(schema).toContain('reviewedAt           DateTime?');
+    expect(schema).toContain('reviewedBy           String?');
+    expect(schema).toContain('@relation("listening_theme_reviewed_by"');
+    expect(reviewMigration).toContain('ADD COLUMN "reviewState" TEXT');
+    expect(reviewMigration).toContain('ADD COLUMN "reviewedAt" TIMESTAMP(3)');
+    expect(reviewMigration).toContain('ADD COLUMN "reviewedBy" TEXT');
+    expect(reviewMigration).toContain('listening_themes_review_state_check');
+    expect(reviewMigration).toContain('listening_themes_review_audit_check');
+    expect(reviewMigration).toContain('listening_themes_reviewed_by_fkey');
+    expect(reviewMigration).not.toContain('listening_theme_evidence');
   });
 });
