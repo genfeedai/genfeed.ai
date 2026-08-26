@@ -2,6 +2,10 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import {
+  createIngredientDocumentFixture,
+  createPaginatedFixture,
+} from '@api-test/fixtures/ingredient-document.fixture';
+import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
@@ -104,33 +108,25 @@ describe('PublicImagesController', () => {
 
   describe('findPublicImages', () => {
     it('should return public images', async () => {
-      const mockImages = {
-        docs: [
-          {
+      const mockImages = createPaginatedFixture(
+        [
+          createIngredientDocumentFixture({
             id: 'image-1',
             category: IngredientCategory.IMAGE,
             scope: AssetScope.PUBLIC,
             status: IngredientStatus.GENERATED,
             url: 'https://example.com/image1.jpg',
-          },
-          {
+          }),
+          createIngredientDocumentFixture({
             id: 'image-2',
             category: IngredientCategory.IMAGE,
             scope: AssetScope.PUBLIC,
             status: IngredientStatus.GENERATED,
             url: 'https://example.com/image2.jpg',
-          },
+          }),
         ],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: 2,
-        totalPages: 1,
-      };
+        { limit: 10 },
+      );
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
@@ -165,10 +161,7 @@ describe('PublicImagesController', () => {
     });
 
     it('should filter by account when provided', async () => {
-      const mockImages = {
-        docs: [],
-        totalDocs: 0,
-      };
+      const mockImages = createPaginatedFixture([]);
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
@@ -191,10 +184,7 @@ describe('PublicImagesController', () => {
 
     it('should filter by tag when provided', async () => {
       const tag = 'nature';
-      const mockImages = {
-        docs: [],
-        totalDocs: 0,
-      };
+      const mockImages = createPaginatedFixture([]);
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
@@ -218,18 +208,7 @@ describe('PublicImagesController', () => {
     });
 
     it('should handle empty results', async () => {
-      const mockImages = {
-        docs: [],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: 0,
-        totalPages: 0,
-      };
+      const mockImages = createPaginatedFixture([]);
 
       imagesService.findAll.mockResolvedValue(mockImages);
 
@@ -246,13 +225,13 @@ describe('PublicImagesController', () => {
 
   describe('getImageMetadata', () => {
     it('should return a public image by id', async () => {
-      const mockImage = {
+      const mockImage = createIngredientDocumentFixture({
         id: imageId,
         category: IngredientCategory.IMAGE,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
         url: 'https://example.com/image.jpg',
-      };
+      });
 
       imagesService.findOne.mockResolvedValue(mockImage);
 
@@ -306,13 +285,13 @@ describe('PublicImagesController', () => {
 
   describe('getImage (image.jpg download)', () => {
     it('should stream a public image', async () => {
-      const mockImage = {
+      const mockImage = createIngredientDocumentFixture({
         id: imageId,
         category: IngredientCategory.IMAGE,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
         url: 'https://example.com/image.jpg',
-      };
+      });
 
       imagesService.findOne.mockResolvedValue(mockImage);
       filesClientService.getFileFromS3.mockResolvedValue(
@@ -346,13 +325,13 @@ describe('PublicImagesController', () => {
     });
 
     it('should return 404 when S3 file not found', async () => {
-      const mockImage = {
+      const mockImage = createIngredientDocumentFixture({
         id: imageId,
         category: IngredientCategory.IMAGE,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
         url: 'https://example.com/image.jpg',
-      };
+      });
 
       imagesService.findOne.mockResolvedValue(mockImage);
       filesClientService.getFileFromS3.mockRejectedValue(

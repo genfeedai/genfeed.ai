@@ -540,6 +540,74 @@
     "removeAriaLabel": "Remove {label}",
     "title": "Posting times"
   },
+  "costUsage": {
+    "actions": {
+      "exportCsv": "Export CSV",
+      "refresh": "Refresh"
+    },
+    "brandFallback": "Brand",
+    "brandTitle": "{brand} brand costs",
+    "description": "Actual provider cost and customer-facing credits are reported separately.",
+    "errors": {
+      "export": "Failed to export cost report",
+      "load": "Failed to load cost report",
+      "loadTitle": "Could not load cost data",
+      "tryRefresh": "{message}. Try Refresh.",
+      "unknown": "Unknown error"
+    },
+    "filters": {
+      "allBrands": "All brands",
+      "brand": "Brand",
+      "dateRange": "Date range",
+      "lastDays": "Last {days} days"
+    },
+    "metrics": {
+      "byok": {
+        "description": "Tracked at zero platform vendor cost",
+        "label": "BYOK generations"
+      },
+      "creditsUsed": {
+        "description": "Customer-facing usage meter",
+        "label": "Credits used"
+      },
+      "generations": {
+        "description": "{llm} LLM · {media} media",
+        "label": "Generations"
+      },
+      "providerCost": {
+        "description": "Actual platform vendor spend",
+        "label": "Provider cost"
+      }
+    },
+    "notifications": {
+      "exported": "Cost report exported"
+    },
+    "organizationTitle": "Organization generation costs",
+    "tables": {
+      "brandSplit": {
+        "emptyDescription": "Brand-attributed provider cost and credits will appear here.",
+        "label": "Cost split by brand"
+      },
+      "emptyLabel": "No generation costs yet",
+      "headers": {
+        "brand": "Brand",
+        "byok": "BYOK",
+        "credits": "Credits",
+        "creditsUsed": "Credits used",
+        "generations": "Generations",
+        "providerCost": "Provider cost",
+        "providerModel": "Provider / model",
+        "type": "Type",
+        "when": "When"
+      },
+      "ledger": {
+        "emptyDescription": "Provider cost and credit events in this scope will appear here.",
+        "label": "Generation ledger"
+      }
+    },
+    "title": "Cost & Usage",
+    "yes": "Yes"
+  },
   "outreachCampaign": {
     "deliveryTime": "Delivery time:",
     "description": "Description:",
@@ -551,6 +619,10 @@
     "timezone": "Timezone:",
     "tone": "Tone:",
     "type": "Type:"
+  },
+  "workspaceOverview": {
+    "openReview": "Open Review",
+    "requestChangesPrompt": "Please revise this task from the workspace inbox."
   },
   "workflows": {
     "castPrompt": {

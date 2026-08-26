@@ -1100,6 +1100,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'listeningTopicSources',
       'listeningTopics',
       'livestreamBotSessions',
+      'llmVendorCosts',
+      'mediaVendorCosts',
       'members',
       'monitoredAccounts',
       'newsletters',
@@ -2598,6 +2600,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   LlmVendorCost: {
     allFields: [
+      'brand',
+      'brandId',
       'completionTokens',
       'createdAt',
       'id',
@@ -2617,6 +2621,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {},
     relationIdFields: {
+      brand: 'brandId',
       organization: 'organizationId',
     },
   },
@@ -2673,9 +2678,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   MediaVendorCost: {
     allFields: [
+      'brand',
+      'brandId',
       'category',
       'createdAt',
       'id',
+      'idempotencyKey',
       'ingredientId',
       'isByok',
       'isDeleted',
@@ -2691,6 +2699,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {},
     relationIdFields: {
+      brand: 'brandId',
       organization: 'organizationId',
     },
   },

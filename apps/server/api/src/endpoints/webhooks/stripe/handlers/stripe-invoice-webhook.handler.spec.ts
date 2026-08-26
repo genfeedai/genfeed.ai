@@ -54,13 +54,29 @@ describe('StripeInvoiceWebhookHandler', () => {
   };
   const billingAccountService = { resolveWebhookOrganization: vi.fn() };
 
-  function invoiceWith(overrides: Record<string, unknown>): Stripe.Invoice {
+  function stripeResponse<T extends object>(resource: T): Stripe.Response<T> {
     return {
+      ...resource,
+      lastResponse: {
+        headers: {},
+        requestId: 'req_test',
+        statusCode: 200,
+      },
+    };
+  }
+
+  function invoiceWith(
+    overrides: Record<string, unknown>,
+  ): Stripe.Response<Stripe.Invoice> {
+    const invoice = {
       billing_reason: 'subscription_cycle',
       id: 'in_123',
       metadata: {},
+      object: 'invoice',
       ...overrides,
-    } as unknown as Stripe.Invoice;
+    } as Stripe.Invoice;
+
+    return stripeResponse(invoice);
   }
 
   const monthlySubscription = {

@@ -827,57 +827,9 @@
     {
       "code": 2345,
       "count": 3,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients-folder-assignment.controller.spec.ts",
-      "fingerprint": "2e71e61cc3dfd5f9cc92",
-      "message": "Argument of type '{ folderId: string; id: string; brandId: string; isDeleted: boolean; organizationId: string; userId: string; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ folderId: string; id: string; brandId: string; isDeleted: boolean; organizationId: string; userId: string; }' is missing the following properties from type 'IngredientDocument': category, createdAt, updatedAt, status, and 60 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients-folder-assignment.controller.spec.ts",
-      "fingerprint": "c590dc6889433206a58c",
-      "message": "Argument of type '{ id: string; brandId: string; folderId: null; isDeleted: boolean; organizationId: string; userId: string; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; brandId: string; folderId: null; isDeleted: boolean; organizationId: string; userId: string; }' is missing the following properties from type 'IngredientDocument': category, createdAt, updatedAt, status, and 60 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients-folder-assignment.controller.spec.ts",
-      "fingerprint": "fc5d77e92f81331b6fba",
-      "message": "Argument of type '{ brandId: string; id: string; folderId: null; isDeleted: boolean; organizationId: string; userId: string; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ brandId: string; id: string; folderId: null; isDeleted: boolean; organizationId: string; userId: string; }' is missing the following properties from type 'IngredientDocument': category, createdAt, updatedAt, status, and 60 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
       "file": "apps/server/api/src/collections/ingredients/controllers/ingredients-relationships.controller.spec.ts",
       "fingerprint": "a2f75424680cb5768955",
       "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients.controller.spec.ts",
-      "fingerprint": "e6fd8c835a97fcba82aa",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'MetadataDocument'.   Type '{}' is missing the following properties from type 'MetadataDocument': error, externalId, result, description, and 21 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients.controller.spec.ts",
-      "fingerprint": "8aa0f04c1352b5b5eb39",
-      "message": "Type '{ id: string; }' is missing the following properties from type 'IngredientDocument': category, isDeleted, createdAt, updatedAt, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients.controller.spec.ts",
-      "fingerprint": "aaa4c43ade428f9fe727",
-      "message": "Type '{ id: string; }' is missing the following properties from type 'MetadataDocument': error, externalId, result, description, and 20 more.",
       "workspace": "api"
     },
     {
@@ -1937,30 +1889,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts",
-      "fingerprint": "0d386964c857af1d426e",
-      "message": "Argument of type '{ docs: never[]; totalDocs: number; }' is not assignable to parameter of type 'AggregatePaginateResult<IngredientDocument>'.   Type '{ docs: never[]; totalDocs: number; }' is missing the following properties from type 'AggregatePaginateResult<IngredientDocument>': limit, totalPages, pagingCounter, hasPrevPage, hasNextPage",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts",
-      "fingerprint": "a14a5e94401740e83001",
-      "message": "Argument of type '{ docs: { id: string; category: IngredientCategory; scope: AssetScope; status: IngredientStatus; url: string; }[]; hasNextPage: boolean; ... 7 more ...; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<IngredientDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; category: IngredientCategory; scope: Scope; status: IngredientStatus; url: string; }[]' is not assignable to type 'IngredientDocument[]'.       Type '{ id: string; category: IngredientCategory; scope: Scope; status: IngredientStatus; url: string; }' is missing the following properties from type 'IngredientDocument': isDeleted, createdAt, updatedAt, userId, and 63 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts",
-      "fingerprint": "b71c409339820035103b",
-      "message": "Argument of type '{ id: string; category: IngredientCategory; scope: AssetScope; status: IngredientStatus; url: string; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; category: IngredientCategory; scope: Scope; status: IngredientStatus; url: string; }' is missing the following properties from type 'IngredientDocument': isDeleted, createdAt, updatedAt, userId, and 63 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 4,
       "file": "apps/server/api/src/endpoints/public/controllers/images/public.images.controller.spec.ts",
@@ -1990,46 +1918,6 @@
       "file": "apps/server/api/src/endpoints/public/controllers/models/public.models.controller.spec.ts",
       "fingerprint": "f5e89f1b1b0cccb7747a",
       "message": "Conversion of type '[input: unknown, options: AggregationOptions]' to type '[{ where: Record<string, unknown>; }]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Source has 2 element(s) but target allows only 1.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",
-      "fingerprint": "2bce92b483010e1f963e",
-      "message": "Argument of type '{ docs: { brandId: string; id: string; }[]; page: number; totalDocs: number; }' is not assignable to parameter of type 'AggregatePaginateResult<{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }>'.   Type '{ docs: { brandId: string; id: string; }[]; page: number; totalDocs: number; }' is missing the following properties from type 'AggregatePaginateResult<{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }>': limit, totalPages, pagingCounter, hasPrevPage, hasNextPage",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",
-      "fingerprint": "577886254b50b4bb9ebe",
-      "message": "Argument of type '{ docs: { id: string; metadata: { tags: string[]; }; }[]; page: number; totalDocs: number; }' is not assignable to parameter of type 'AggregatePaginateResult<{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }>'.   Type '{ docs: { id: string; metadata: { tags: string[]; }; }[]; page: number; totalDocs: number; }' is missing the following properties from type 'AggregatePaginateResult<{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }>': limit, totalPages, pagingCounter, hasPrevPage, hasNextPage",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",
-      "fingerprint": "c397fcb2306c04f7ecb9",
-      "message": "Argument of type '{ id: string; status: IngredientStatus; title: string; }' is not assignable to parameter of type '{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }'.   Type '{ id: string; status: IngredientStatus; title: string; }' is missing the following properties from type '{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }': category, isDeleted, createdAt, scope, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",
-      "fingerprint": "c4442debfa0bc746fa31",
-      "message": "Argument of type '{ docs: { id: string; title: string; }[]; page: number; totalDocs: number; }' is not assignable to parameter of type 'AggregatePaginateResult<{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }>'.   Type '{ docs: { id: string; title: string; }[]; page: number; totalDocs: number; }' is missing the following properties from type 'AggregatePaginateResult<{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }>': limit, totalPages, pagingCounter, hasPrevPage, hasNextPage",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",
-      "fingerprint": "ceb702b2bc7d6c51da67",
-      "message": "Argument of type '{ id: string; status: IngredientStatus; }' is not assignable to parameter of type '{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }'.   Type '{ id: string; status: IngredientStatus; }' is missing the following properties from type '{ category: IngredientCategory; isDeleted: boolean; createdAt: Date; id: string; scope: AssetScope; updatedAt: Date; userId: string | null; ... 63 more ...; transformations: TransformationCategory[]; }': category, isDeleted, createdAt, scope, and 65 more.",
       "workspace": "api"
     },
     {
@@ -3622,30 +3510,6 @@
       "file": "apps/server/api/src/services/telegram-bot/telegram-bot.controller.spec.ts",
       "fingerprint": "ce8f8869fb40dbb5780b",
       "message": "Conversion of type '{ activeConversations: number; allowedUsers: number; connectedChats: number; engineReady: boolean; hasDefaultContext: boolean; running: boolean; workflowsLoaded: number; }' to type '{ mode: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'mode' is missing in type '{ activeConversations: number; allowedUsers: number; connectedChats: number; engineReady: boolean; hasDefaultContext: boolean; running: boolean; workflowsLoaded: number; }' but required in type '{ mode: string; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
-      "fingerprint": "2c7a4368e5128c7c35a2",
-      "message": "Argument of type '{ id: string; status: IngredientStatus.FAILED; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; status: IngredientStatus.FAILED; }' is missing the following properties from type 'IngredientDocument': category, isDeleted, createdAt, updatedAt, and 64 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
-      "fingerprint": "32897b3fd652e808a054",
-      "message": "Argument of type '{ id: string; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; }' is missing the following properties from type 'IngredientDocument': category, isDeleted, createdAt, updatedAt, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 5,
-      "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
-      "fingerprint": "ab44b0468bf31cb49a25",
-      "message": "Argument of type '{ id: string; status: IngredientStatus.GENERATED; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; status: IngredientStatus.GENERATED; }' is missing the following properties from type 'IngredientDocument': category, isDeleted, createdAt, updatedAt, and 64 more.",
       "workspace": "api"
     },
     {

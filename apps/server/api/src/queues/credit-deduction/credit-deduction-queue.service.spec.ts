@@ -1,4 +1,5 @@
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { ActivitySource } from '@genfeedai/enums';
 import type { CreditDeductionJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Queue } from 'bullmq';
@@ -130,7 +131,7 @@ describe('CreditDeductionQueueService', () => {
         idempotencyKey: 'agent-media-action-1',
         organizationId: 'org-123',
         settlementAssetId: 'asset-1',
-        source: 'image-generation',
+        source: ActivitySource.IMAGE_GENERATION,
         type: 'deduct-credits',
         userId: 'user-456',
       };

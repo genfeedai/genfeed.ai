@@ -265,11 +265,15 @@ const createImageGenerationService = () => {
     emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
     emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
   };
+  const mediaGenerationCostService = {
+    recordGenerationCost: vi.fn().mockResolvedValue(undefined),
+  };
   const providerDispatchService = new ImageGenerationProviderDispatchService(
     activitiesService as never,
     failedGenerationService as never,
     filesClientService as never,
     generationEventWebhookService as never,
+    mediaGenerationCostService as never,
     imagesService as never,
     loggerService,
     metadataService as never,

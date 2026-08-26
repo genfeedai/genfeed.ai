@@ -29,6 +29,7 @@ import {
 } from '@ui/primitives/select';
 import { Text } from '@ui/typography/text';
 import { Download, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const ALL_BRANDS_VALUE = '__all_brands__';
@@ -59,10 +60,8 @@ function buildDateQuery(days: number): Pick<ICostReportQuery, 'from' | 'to'> {
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message
-    ? error.message
-    : 'Unknown error';
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function downloadCsv(data: ArrayBuffer): void {
@@ -79,6 +78,7 @@ function downloadCsv(data: ArrayBuffer): void {
 }
 
 export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
+  const translate = useTranslations('pages.costUsage');
   const { brands, isReady, selectedBrand } = useBrand();
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [rangeDays, setRangeDays] = useState(DEFAULT_RANGE_DAYS);
@@ -126,24 +126,24 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   const loadError = summaryQuery.error ?? entriesQuery.error;
 
   const brandColumns: TableColumn<ICostReportBrandTotals>[] = [
-    { header: 'Brand', key: 'brandLabel' },
+    { header: translate('tables.headers.brand'), key: 'brandLabel' },
     {
-      header: 'Provider cost',
+      header: translate('tables.headers.providerCost'),
       key: 'providerCostUsd',
       render: (row) => formatCurrency(row.providerCostUsd),
     },
     {
-      header: 'Credits used',
+      header: translate('tables.headers.creditsUsed'),
       key: 'creditsUsed',
       render: (row) => formatCredits(row.creditsUsed),
     },
     {
-      header: 'Generations',
+      header: translate('tables.headers.generations'),
       key: 'generationCount',
       render: (row) => row.generationCount.toLocaleString(),
     },
     {
-      header: 'BYOK',
+      header: translate('tables.headers.byok'),
       key: 'byokCount',
       render: (row) => row.byokCount.toLocaleString(),
     },
@@ -151,34 +151,34 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
 
   const entryColumns: TableColumn<ICostReportEntry>[] = [
     {
-      header: 'When',
+      header: translate('tables.headers.when'),
       key: 'createdAt',
       render: (row) => formatDate(new Date(row.createdAt)),
     },
-    { header: 'Type', key: 'entryType' },
-    { header: 'Brand', key: 'brandLabel' },
+    { header: translate('tables.headers.type'), key: 'entryType' },
+    { header: translate('tables.headers.brand'), key: 'brandLabel' },
     {
-      header: 'Provider / model',
+      header: translate('tables.headers.providerModel'),
       key: 'provider',
       render: (row) =>
         [row.provider, row.model].filter(Boolean).join(' / ') || '—',
     },
     {
-      header: 'Provider cost',
+      header: translate('tables.headers.providerCost'),
       key: 'providerCostUsd',
       render: (row) =>
         row.providerCostMicros > 0 ? formatCurrency(row.providerCostUsd) : '—',
     },
     {
-      header: 'Credits',
+      header: translate('tables.headers.credits'),
       key: 'creditsUsed',
       render: (row) =>
         row.creditsUsed > 0 ? formatCredits(row.creditsUsed) : '—',
     },
     {
-      header: 'BYOK',
+      header: translate('tables.headers.byok'),
       key: 'isByok',
-      render: (row) => (row.isByok ? 'Yes' : '—'),
+      render: (row) => (row.isByok ? translate('yes') : '—'),
     },
   ];
 
@@ -192,13 +192,15 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
     try {
       const service = await getCostsService();
       downloadCsv(await service.exportCsv(reportQuery));
-      NotificationsService.getInstance().success('Cost report exported');
+      NotificationsService.getInstance().success(
+        translate('notifications.exported'),
+      );
     } catch (error) {
       logger.error('Failed to export cost report', {
         error,
-        message: errorMessage(error),
+        message: errorMessage(error, translate('errors.unknown')),
       });
-      NotificationsService.getInstance().error('Failed to export cost report');
+      NotificationsService.getInstance().error(translate('errors.export'));
     } finally {
       setIsExporting(false);
     }
@@ -208,32 +210,33 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
     if (!loadError) return;
     logger.error('Failed to load cost report', {
       error: loadError,
-      message: errorMessage(loadError),
+      message: errorMessage(loadError, translate('errors.unknown')),
     });
-    NotificationsService.getInstance().error('Failed to load cost report');
-  }, [loadError]);
+    NotificationsService.getInstance().error(translate('errors.load'));
+  }, [loadError, translate]);
 
   return (
     <div className="flex flex-col gap-4 pb-10">
-      <h1 className="sr-only">Cost & Usage</h1>
+      <h1 className="sr-only">{translate('title')}</h1>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Text as="h2" size="lg" weight="semibold">
             {lockedBrandId
-              ? `${lockedBrand?.label ?? 'Brand'} brand costs`
-              : 'Organization generation costs'}
+              ? translate('brandTitle', {
+                  brand: lockedBrand?.label ?? translate('brandFallback'),
+                })
+              : translate('organizationTitle')}
           </Text>
           <Text size="sm" color="muted">
-            Actual provider cost and customer-facing credits are reported
-            separately.
+            {translate('description')}
           </Text>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           <div className="min-w-36">
             <Label htmlFor="cost-filter-range" className="sr-only">
-              Date range
+              {translate('filters.dateRange')}
             </Label>
             <Select
               value={String(rangeDays)}
@@ -242,15 +245,23 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
               <SelectTrigger
                 id="cost-filter-range"
                 className="h-9 min-w-36"
-                aria-label="Date range"
+                aria-label={translate('filters.dateRange')}
               >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-                <SelectItem value="366">Last 366 days</SelectItem>
+                <SelectItem value="7">
+                  {translate('filters.lastDays', { days: 7 })}
+                </SelectItem>
+                <SelectItem value="30">
+                  {translate('filters.lastDays', { days: 30 })}
+                </SelectItem>
+                <SelectItem value="90">
+                  {translate('filters.lastDays', { days: 90 })}
+                </SelectItem>
+                <SelectItem value="366">
+                  {translate('filters.lastDays', { days: 366 })}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -258,7 +269,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
           {!lockedBrandId ? (
             <div className="min-w-40">
               <Label htmlFor="cost-filter-brand" className="sr-only">
-                Brand
+                {translate('filters.brand')}
               </Label>
               <Select
                 value={selectedBrandId || ALL_BRANDS_VALUE}
@@ -269,12 +280,14 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                 <SelectTrigger
                   id="cost-filter-brand"
                   className="h-9 min-w-40"
-                  aria-label="Brand"
+                  aria-label={translate('filters.brand')}
                 >
-                  <SelectValue placeholder="All brands" />
+                  <SelectValue placeholder={translate('filters.allBrands')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL_BRANDS_VALUE}>All brands</SelectItem>
+                  <SelectItem value={ALL_BRANDS_VALUE}>
+                    {translate('filters.allBrands')}
+                  </SelectItem>
                   {brands.map((brand) => (
                     <SelectItem key={brand.id} value={brand.id}>
                       {brand.label || brand.slug || brand.id}
@@ -293,7 +306,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
             isDisabled={isExporting}
           >
             <Download className="mr-2 size-4" aria-hidden />
-            Export CSV
+            {translate('actions.exportCsv')}
           </Button>
           <Button
             variant={ButtonVariant.SECONDARY}
@@ -306,7 +319,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
               className={`mr-2 size-4 ${isRefreshing ? 'animate-spin' : ''}`}
               aria-hidden
             />
-            Refresh
+            {translate('actions.refresh')}
           </Button>
         </div>
       </div>
@@ -317,65 +330,70 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
           bodyClassName="gap-3 p-4"
         >
           <Text size="sm" weight="medium">
-            Could not load cost data
+            {translate('errors.loadTitle')}
           </Text>
           <Text size="sm" color="muted">
-            {errorMessage(loadError)}. Try Refresh.
+            {translate('errors.tryRefresh', {
+              message: errorMessage(loadError, translate('errors.unknown')),
+            })}
           </Text>
         </Card>
       ) : null}
 
       <MetricCardGrid columns={4}>
         <MetricCard
-          label="Provider cost"
+          label={translate('metrics.providerCost.label')}
           value={summary ? formatCurrency(summary.total.providerCostUsd) : '—'}
-          description="Actual platform vendor spend"
+          description={translate('metrics.providerCost.description')}
           isLoading={summaryQuery.isLoading}
         />
         <MetricCard
-          label="Credits used"
+          label={translate('metrics.creditsUsed.label')}
           value={summary ? formatCredits(summary.total.creditsUsed) : '—'}
-          description="Customer-facing usage meter"
+          description={translate('metrics.creditsUsed.description')}
           isLoading={summaryQuery.isLoading}
         />
         <MetricCard
-          label="Generations"
+          label={translate('metrics.generations.label')}
           value={summary?.total.generationCount.toLocaleString() ?? '—'}
           description={
             summary
-              ? `${summary.total.llmCount} LLM · ${summary.total.mediaCount} media`
+              ? translate('metrics.generations.description', {
+                  llm: summary.total.llmCount,
+                  media: summary.total.mediaCount,
+                })
               : undefined
           }
           isLoading={summaryQuery.isLoading}
         />
         <MetricCard
-          label="BYOK generations"
+          label={translate('metrics.byok.label')}
           value={summary?.total.byokCount.toLocaleString() ?? '—'}
-          description="Tracked at zero platform vendor cost"
+          description={translate('metrics.byok.description')}
           isLoading={summaryQuery.isLoading}
         />
       </MetricCardGrid>
 
       {!lockedBrandId ? (
         <AppTable
-          label="Cost split by brand"
+          label={translate('tables.brandSplit.label')}
           columns={brandColumns}
           items={summary?.byBrand ?? []}
           isLoading={summaryQuery.isLoading}
           getRowKey={(row) => row.brandId ?? '__unattributed__'}
-          emptyLabel="No generation costs yet"
-          emptyDescription="Brand-attributed provider cost and credits will appear here."
+          emptyLabel={translate('tables.emptyLabel')}
+          emptyDescription={translate('tables.brandSplit.emptyDescription')}
         />
       ) : null}
 
       <AppTable
-        label="Generation ledger"
+        label={translate('tables.ledger.label')}
         columns={entryColumns}
         items={entriesQuery.data ?? []}
         isLoading={isLoading}
         getRowKey={(row) => `${row.entryType}:${row.id}`}
-        emptyLabel="No generation costs yet"
-        emptyDescription="Provider cost and credit events in this scope will appear here."
+        emptyLabel={translate('tables.emptyLabel')}
+        emptyDescription={translate('tables.ledger.emptyDescription')}
       />
     </div>
   );

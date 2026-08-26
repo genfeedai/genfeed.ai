@@ -3,6 +3,10 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import {
+  createIngredientDocumentFixture,
+  createPaginatedFixture,
+} from '@api-test/fixtures/ingredient-document.fixture';
 import { AssetScope, IngredientStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -103,14 +107,10 @@ describe('PublicMusicsController', () => {
   describe('findPublicMusics', () => {
     it('should return public musics list', async () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
-      const mockMusics = {
-        docs: [
-          { id: 'music1', title: 'Song 1' },
-          { id: 'music2', title: 'Song 2' },
-        ],
-        page: 1,
-        totalDocs: 2,
-      };
+      const mockMusics = createPaginatedFixture([
+        createIngredientDocumentFixture({ id: 'music1', title: 'Song 1' }),
+        createIngredientDocumentFixture({ id: 'music2', title: 'Song 2' }),
+      ]);
 
       musicsService.findAll.mockResolvedValue(mockMusics);
 
@@ -130,11 +130,9 @@ describe('PublicMusicsController', () => {
     it('should filter by brand when provided', async () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
       const brandId = testId('brand');
-      const mockMusics = {
-        docs: [{ brandId, id: 'music1' }],
-        page: 1,
-        totalDocs: 1,
-      };
+      const mockMusics = createPaginatedFixture([
+        createIngredientDocumentFixture({ brandId, id: 'music1' }),
+      ]);
 
       musicsService.findAll.mockResolvedValue(mockMusics);
 
@@ -149,11 +147,12 @@ describe('PublicMusicsController', () => {
     it('should filter by tag when provided', async () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
       const tag = 'electronic';
-      const mockMusics = {
-        docs: [{ id: 'music1', metadata: { tags: ['electronic'] } }],
-        page: 1,
-        totalDocs: 1,
-      };
+      const mockMusics = createPaginatedFixture([
+        createIngredientDocumentFixture({
+          id: 'music1',
+          metadata: { tags: ['electronic'] },
+        }),
+      ]);
 
       musicsService.findAll.mockResolvedValue(mockMusics);
 
@@ -171,11 +170,11 @@ describe('PublicMusicsController', () => {
   describe('getMusicMetadata', () => {
     it('should return music metadata for valid id', async () => {
       const musicId = testId('music');
-      const mockMusic = {
+      const mockMusic = createIngredientDocumentFixture({
         id: musicId,
         status: IngredientStatus.GENERATED,
         title: 'Test Song',
-      };
+      });
 
       musicsService.findOne.mockResolvedValue(mockMusic);
 
@@ -240,10 +239,10 @@ describe('PublicMusicsController', () => {
   describe('getMusic', () => {
     it('should stream music file successfully', async () => {
       const musicId = testId('music');
-      const mockMusic = {
+      const mockMusic = createIngredientDocumentFixture({
         id: musicId,
         status: IngredientStatus.GENERATED,
-      };
+      });
 
       musicsService.findOne.mockResolvedValue(mockMusic);
       filesClientService.getFileFromS3.mockResolvedValue(mockStream);
@@ -284,10 +283,10 @@ describe('PublicMusicsController', () => {
 
     it('should handle S3 file retrieval error', async () => {
       const musicId = testId('music');
-      const mockMusic = {
+      const mockMusic = createIngredientDocumentFixture({
         id: musicId,
         status: IngredientStatus.GENERATED,
-      };
+      });
 
       musicsService.findOne.mockResolvedValue(mockMusic);
       filesClientService.getFileFromS3.mockRejectedValue(new Error('S3 error'));

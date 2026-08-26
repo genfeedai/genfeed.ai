@@ -56,7 +56,11 @@ describe('MediaVendorCostLedgerService', () => {
         vendorCostMicros: 2_400_000,
       },
       update: {},
-      where: { idempotencyKey: 'media:org-1:ing-1' },
+      where: {
+        idempotencyKey: 'media:org-1:ing-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 
