@@ -18,6 +18,7 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@server/services/integrations/publishers/interfaces/publisher.interface';
+import type { Mocked } from 'vitest';
 import { BasePublisherService } from './base-publisher.service';
 
 type TestCommentResult = { commentId?: string | null } | null | undefined;

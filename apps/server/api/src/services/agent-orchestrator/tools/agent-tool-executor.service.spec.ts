@@ -87,6 +87,7 @@ describe('AgentToolExecutorService', () => {
     } as unknown as LoggerService;
 
     const configService = {
+      ingredientsEndpoint: 'https://cdn.example.test/ingredients',
       get: vi.fn().mockReturnValue('http://localhost:3010'),
     };
 

@@ -168,6 +168,7 @@ export class ListeningTopicCollectorService {
             collected.provider,
             collectedAt,
           );
+          // tenant-scope-ignore: topicId is tenant-owned and globally unique; isDeleted is omitted so recollection reactivates matching tombstoned evidence
           await transaction.listeningEvidence.upsert({
             create: evidence,
             update: {
@@ -204,7 +205,11 @@ export class ListeningTopicCollectorService {
             lastCollectionError: null,
             rateLimitedAt: null,
           },
-          where: sourceStateWhere(topic, topicSource),
+          where: scopedWhere(topic.organizationId, {
+            brandId: topic.brandId,
+            id: topicSource.id,
+            topicId: topic.id,
+          }),
         });
         await transaction.listeningTopic.update({
           data: { lastCollectedAt: collectedAt },
@@ -232,7 +237,11 @@ export class ListeningTopicCollectorService {
           lastCollectionError: null,
           rateLimitedAt: null,
         },
-        where: sourceStateWhere(topic, topicSource),
+        where: scopedWhere(topic.organizationId, {
+          brandId: topic.brandId,
+          id: topicSource.id,
+          topicId: topic.id,
+        }),
       });
       await transaction.listeningTopic.update({
         data: { lastCollectedAt: collectedAt },
@@ -260,7 +269,11 @@ export class ListeningTopicCollectorService {
         lastCollectionError: message,
         rateLimitedAt: collectionState === 'rate_limited' ? failedAt : null,
       },
-      where: sourceStateWhere(topic, topicSource),
+      where: scopedWhere(topic.organizationId, {
+        brandId: topic.brandId,
+        id: topicSource.id,
+        topicId: topic.id,
+      }),
     });
   }
 }
@@ -399,17 +412,6 @@ function sanitizeMetrics(
       (entry): entry is [string, number] => typeof entry[1] === 'number',
     ),
   );
-}
-
-function sourceStateWhere(
-  topic: CollectorTopic,
-  topicSource: CollectorTopicSource,
-) {
-  return scopedWhere(topic.organizationId, {
-    brandId: topic.brandId,
-    id: topicSource.id,
-    topicId: topic.id,
-  });
 }
 
 function toCollectorPlatform(platform: string): SocialSourcePlatform {

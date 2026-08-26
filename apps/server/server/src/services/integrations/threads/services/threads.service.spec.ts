@@ -13,6 +13,13 @@ import {
 } from '@server/services/integrations/threads/services/threads.service';
 import { of } from 'rxjs';
 
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: vi.fn((value: string) => value),
+    encrypt: vi.fn((value: string) => value),
+  },
+}));
+
 describe('ThreadsService', () => {
   let service: ThreadsService;
 

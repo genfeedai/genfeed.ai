@@ -11,6 +11,7 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Film, Sparkles, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import type { ClipsApiService } from '../services/clips-api.service';
@@ -35,6 +36,7 @@ export default function ClipsProgressView({
   project,
   selectedCount,
 }: ClipsProgressViewProps) {
+  const t = useTranslations('pages.studioClips');
   const [feedback, setFeedback] = useState('');
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [isDecisionSubmitting, setIsDecisionSubmitting] = useState(false);
@@ -203,11 +205,10 @@ export default function ClipsProgressView({
         <Card bodyClassName="space-y-4 p-5" className="mb-6">
           <div>
             <h3 className="text-sm font-medium text-foreground">
-              Hook approval
+              {t('hookApproval')}
             </h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Check face, voice, and style before spending credits on the
-              remaining clips.
+              {t('hookApprovalDescription')}
             </p>
           </div>
           <Textarea
@@ -232,7 +233,7 @@ export default function ClipsProgressView({
               onClick={() => void submitDecision('request_changes')}
               icon={<Sparkles className="size-3.5" />}
             >
-              Request changes
+              {t('requestChanges')}
             </Button>
             <Button
               size={ButtonSize.SM}
@@ -243,7 +244,7 @@ export default function ClipsProgressView({
               onClick={() => void submitDecision('approve')}
               icon={<Check className="size-3.5" />}
             >
-              Approve hook
+              {t('approveHook')}
             </Button>
             <Button
               size={ButtonSize.SM}
@@ -254,7 +255,7 @@ export default function ClipsProgressView({
               onClick={() => void submitDecision('reject')}
               icon={<X className="size-3.5" />}
             >
-              Reject run
+              {t('rejectRun')}
             </Button>
           </div>
         </Card>

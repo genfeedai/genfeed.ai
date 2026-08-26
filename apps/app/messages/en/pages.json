@@ -38,6 +38,17 @@
       "watchCompetitor": "Watch competitor"
     }
   },
+  "brandKitReview": {
+    "candidateTokenNotice": "Candidate only · not a Genfeed product token",
+    "sourceEvidence": "Source evidence"
+  },
+  "brandKitSettings": {
+    "brandMissing": "Brand not found.",
+    "manualAdjustments": "Manual adjustments",
+    "manualDescription": "Add owned guidance and reference assets after reviewing the scan.",
+    "reviewDescription": "Review extracted and inferred evidence before accepting it. Candidate colors stay separate from Genfeed product tokens.",
+    "reviewTitle": "Review brand evidence"
+  },
   "platforms": {
     "home": {
       "accountsLabel": "Connected accounts",
@@ -101,12 +112,17 @@
   },
   "studioClips": {
     "allProjects": "All projects",
+    "approveHook": "Approve hook",
     "description": "Split long-form videos into clips. Open a source to review every generated clip.",
     "edit": "Edit",
     "generationFailed": "Generation failed. The clip will be retried automatically.",
+    "hookApproval": "Hook approval",
+    "hookApprovalDescription": "Check face, voice, and style before spending credits on the remaining clips.",
     "inLibrary": "In Library",
     "mediaReadinessFailed": "This clip did not pass media readiness checks.",
     "publish": "Publish",
+    "rejectRun": "Reject run",
+    "requestChanges": "Request changes",
     "reviewRequired": "Review required",
     "retryLibraryLink": "Retry Library link"
   },
@@ -150,6 +166,12 @@
     "reprompt": "Reprompt",
     "repromptGenerationAria": "Reprompt {type} generation: {prompt}",
     "runOutputs": "{count} outputs",
+    "savedLooks": {
+      "description": "Shared with everyone working in this brand.",
+      "empty": "No saved Looks yet.",
+      "loading": "Loading saved Looks…",
+      "title": "Saved Looks"
+    },
     "selectGenerationAria": "Inspect {type} generation: {prompt}",
     "remixOutput": {
       "description": "These settings are saved to this remix run before generation.",
@@ -256,6 +278,18 @@
       "risky": "Risky",
       "warming": "Warming"
     }
+  },
+  "socialIntelligence": {
+    "currentWindow": "Current window",
+    "description": "Review attributable listening themes before creating downstream work.",
+    "excludedSources": "Excluded / missing: {sources}",
+    "includedSources": "Included: {sources}",
+    "monitoredSources": "{count, plural, one {# monitored source} other {# monitored sources}}",
+    "openSource": "Open source",
+    "previousWindow": "Previous window",
+    "responseUnavailable": "Response unavailable for this evidence",
+    "sourceCoverage": "Source coverage",
+    "title": "Social intelligence inbox"
   },
   "socialWarmup": {
     "accountHandle": "@{handle}",
@@ -623,7 +657,43 @@
     "type": "Type:"
   },
   "workspaceOverview": {
+    "clipContinuitySummary": "Clip {index}: character {character}, outfit {outfit}, product {product}",
+    "continuityStatus": "Continuity: {status}",
+    "evidenceNumber": "Evidence {number}",
+    "inspector": {
+      "activeRuns": "{count, plural, one {# active run} other {# active runs}}",
+      "approvals": "Approvals: {count}",
+      "assessmentSkipped": "Assessment skipped: {reason}",
+      "brand": "Brand: {value}",
+      "characterConfidence": "Character: {verdict} ({confidence})",
+      "clipNumber": "Clip {number}",
+      "completed": "Completed",
+      "created": "Created",
+      "driftFindings": "{count, plural, one {# drift finding} other {# drift findings}}",
+      "evidenceFrame": "Evidence frame {number}",
+      "generatedContent": "Generated content: {count}",
+      "issue": "Issue: {value}",
+      "openReportThread": "Open report thread",
+      "organization": "Organization: {value}",
+      "outfitConfidence": "Outfit: {verdict} ({confidence})",
+      "outputs": "Outputs: {count}",
+      "percentComplete": "{percent}% complete",
+      "priority": "Priority: {value}",
+      "productConfidence": "Product: {verdict} ({confidence})",
+      "progress": "Progress",
+      "reportLocationDescription": "This task's report lives in the linked agent thread, not in the workspace task record itself.",
+      "reportThreads": "Report threads: {count}",
+      "reviewState": "Review state: {value}",
+      "routing": "Routing",
+      "runs": "Runs: {count}",
+      "thread": "Thread: {value}",
+      "updated": "Updated"
+    },
+    "liveRuns": "Live runs",
+    "noActiveTasks": "No active workspace tasks right now.",
+    "openInbox": "Open Inbox",
     "openReview": "Open Review",
+    "recentOutputsEmpty": "Recent outputs will appear here once the workspace starts routing work.",
     "requestChangesPrompt": "Please revise this task from the workspace inbox."
   },
   "workflows": {

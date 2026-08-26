@@ -24,6 +24,7 @@ import {
   Send,
   XCircle,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface AgentTransferProvenanceCardProps {
@@ -49,6 +50,7 @@ export function AgentTransferProvenanceCard({
   onCopy,
   onUiAction,
 }: AgentTransferProvenanceCardProps): ReactElement {
+  const translate = useTranslations('agent.transferProvenance');
   const transfer = readTransfer(action);
   const direction =
     transfer?.direction ??
@@ -191,7 +193,7 @@ export function AgentTransferProvenanceCard({
           onClick={() => void copy()}
         >
           <Clipboard className="size-3.5" />
-          Copy
+          {translate('copy')}
         </Button>
         {counterpartId ? (
           <Button
@@ -202,7 +204,7 @@ export function AgentTransferProvenanceCard({
           >
             <a href={`/agent/${encodeURIComponent(counterpartId)}`}>
               <ExternalLink className="size-3.5" />
-              Open conversation
+              {translate('openConversation')}
             </a>
           </Button>
         ) : null}

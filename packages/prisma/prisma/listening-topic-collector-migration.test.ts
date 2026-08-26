@@ -15,9 +15,7 @@ const migration = readFileSync(
 
 describe('listening topic collector persistence (#1795)', () => {
   it('keeps recoverable collection state on each topic source', () => {
-    expect(schema).toContain(
-      'collectionState     String    @default("pending")',
-    );
+    expect(schema).toMatch(/collectionState\s+String\s+@default\("pending"\)/);
     expect(schema).toContain('collectionCursor    String?');
     expect(schema).toContain('lastCollectedAt     DateTime?');
     expect(schema).toContain('lastCollectionError String?');

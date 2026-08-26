@@ -11,6 +11,7 @@ import {
 } from '@server/server.dependencies';
 import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { of, throwError } from 'rxjs';
+import type { Mocked } from 'vitest';
 
 vi.mock('@libs/utils/encryption/encryption.util');
 

@@ -354,20 +354,21 @@ export class ListeningTopicAnalysisService {
     themes: ListeningThemeDocument[];
   }> {
     return this.db.$transaction(async (transaction) => {
-      const scope = {
-        analysisKey,
-        brandId: context.brandId,
-        isDeleted: false,
-        organizationId: context.organizationId,
-        topicId,
-      };
       await transaction.listeningTheme.updateMany({
         data: { isDeleted: true },
-        where: scope,
+        where: scopedWhere(context.organizationId, {
+          analysisKey,
+          brandId: context.brandId,
+          topicId,
+        }),
       });
       await transaction.listeningSignal.updateMany({
         data: { isDeleted: true },
-        where: scope,
+        where: scopedWhere(context.organizationId, {
+          analysisKey,
+          brandId: context.brandId,
+          topicId,
+        }),
       });
 
       const themes: ListeningThemeDocument[] = [];
@@ -390,6 +391,7 @@ export class ListeningTopicAnalysisService {
           previousWindowStart: window.previousStart,
           topicId,
         };
+        // tenant-scope-ignore: organizationId is pinned by the compound key; isDeleted is omitted so rerunning the analysis reactivates its tombstoned theme
         const record = await transaction.listeningTheme.upsert({
           create: themeData,
           update: {
@@ -465,6 +467,7 @@ export class ListeningTopicAnalysisService {
           topicId,
           value: calculation.value,
         };
+        // tenant-scope-ignore: organizationId is pinned by the compound key; isDeleted is omitted so rerunning the analysis reactivates its tombstoned signal
         const record = await transaction.listeningSignal.upsert({
           create: signalData,
           update: {

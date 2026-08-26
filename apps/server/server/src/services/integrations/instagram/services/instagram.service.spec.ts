@@ -8,6 +8,7 @@ import {
 } from '@server/server.dependencies';
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { of, throwError } from 'rxjs';
+import type { Mock } from 'vitest';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {

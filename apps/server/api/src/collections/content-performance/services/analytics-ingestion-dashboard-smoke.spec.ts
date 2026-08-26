@@ -5,6 +5,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PostAnalytics } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { ServerPrisma } from '@server/server.dependencies';
 
 type AnalyticsRow = Pick<
   PostAnalytics,
@@ -380,7 +381,7 @@ describe('analytics ingestion to dashboard smoke path', () => {
       youtubeService as never,
     );
     const performanceSummaryService = new PerformanceSummaryService(
-      prisma as unknown as PrismaService,
+      prisma as unknown as ServerPrisma,
     );
 
     await postAnalyticsService.trackPostAnalytics(

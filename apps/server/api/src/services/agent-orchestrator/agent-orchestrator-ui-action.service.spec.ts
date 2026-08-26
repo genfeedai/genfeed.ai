@@ -204,7 +204,7 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
         userId: USER_ID,
       }),
     );
-    expect(result.message.content).toBe('Image generated.');
+    expect(result.message.content).toBe('Image generation accepted.');
   });
 
   it('forwards the outputs count on confirmed generate-media', async () => {

@@ -1,9 +1,9 @@
 import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { ServerPrisma } from '@server/server.dependencies';
 
 describe('AnalyticsSyncService', () => {
   const organizationId = 'org-1';
@@ -76,7 +76,7 @@ describe('AnalyticsSyncService', () => {
     brandMemorySyncService.detectThresholdAlerts.mockResolvedValue([]);
 
     service = new AnalyticsSyncService(
-      prisma as unknown as PrismaService,
+      prisma as unknown as ServerPrisma,
       brandMemorySyncService as unknown as BrandMemorySyncService,
       logger as unknown as LoggerService,
     );

@@ -26,9 +26,7 @@ const indexName = 'assets_brand_kit_ranking_idx';
 describe('brand-kit Asset ranking index (#2761)', () => {
   it('documents the raw partial index without declaring a redundant full Prisma index', () => {
     expect(schemaSource).toContain(indexName);
-    expect(schemaSource).toContain(
-      'Prisma cannot represent its WHERE predicate.',
-    );
+    expect(schemaSource).toContain('Prisma cannot represent their WHERE');
     expect(schemaSource).not.toContain(`map: "${indexName}"`);
   });
 
@@ -56,8 +54,8 @@ describe('brand-kit Asset ranking index (#2761)', () => {
     expect(resolverSource).not.toMatch(
       /asset\."category"::text = ANY\(\$\{rankedCategories\}/,
     );
-    expect(resolverSource).toContain(
-      'PARTITION BY asset."parentBrandId", asset."category"',
+    expect(resolverSource).toMatch(
+      /PARTITION BY\s+asset\."parentBrandId",\s+asset\."category"/,
     );
     expect(resolverSource).toContain(
       'ORDER BY asset."updatedAt" DESC, asset."id" ASC',
