@@ -345,12 +345,10 @@ test.describe('Clip Factory', () => {
     ).toBeVisible();
 
     await authenticatedPage
-      .getByRole('textbox')
-      .first()
+      .getByDisplayValue(mockHighlights[0].title)
       .fill('Edited Hook Title');
     await authenticatedPage
-      .locator('textarea')
-      .first()
+      .getByDisplayValue(mockHighlights[0].summary)
       .fill('Edited hook summary for generation.');
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
     await authenticatedPage.getByLabel(/voice id/i).fill('heygen-voice-1');
