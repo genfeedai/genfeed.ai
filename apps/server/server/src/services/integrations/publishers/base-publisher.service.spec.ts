@@ -4,22 +4,21 @@
  *              createSuccessResult(), sanitizeDescription() via a concrete mock subclass.
  */
 
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
-import type {
-  MediaInfo,
-  PublishContext,
-  PublishResult,
-  ThreadChild,
-} from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import {
   CredentialPlatform,
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { ServerLogger } from '@server/server.dependencies';
+import type {
+  MediaInfo,
+  PublishContext,
+  PublisherPostInput,
+  PublishResult,
+  ThreadChild,
+} from '@server/services/integrations/publishers/interfaces/publisher.interface';
+import { BasePublisherService } from './base-publisher.service';
 
 type TestCommentResult = { commentId?: string | null } | null | undefined;
 
@@ -52,7 +51,7 @@ class TestPublisher extends BasePublisherService {
   }
 
   // Expose protected methods for testing
-  public testExtractMediaInfo(post: PostEntity): MediaInfo {
+  public testExtractMediaInfo(post: PublisherPostInput): MediaInfo {
     return this.extractMediaInfo(post);
   }
 
@@ -103,17 +102,21 @@ const mockPostId = testId('post');
 const mockIngredientId1 = testId('ingredient');
 const mockIngredientId2 = testId('ingredient', 2);
 
-function makePost(overrides: Partial<PostEntity> = {}): PostEntity {
+function makePost(
+  overrides: Partial<PublisherPostInput> = {},
+): PublisherPostInput {
   return {
     category: PostCategory.TEXT,
     description: 'Hello world',
     id: mockPostId,
     ingredients: [],
+    label: 'Test post',
+    scheduledDate: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,
-  } as unknown as PostEntity;
+  };
 }
 
-function makeContext(post: PostEntity): PublishContext {
+function makeContext(post: PublisherPostInput): PublishContext {
   return {
     settings: {},
     brandId: 'brand-1',
@@ -129,19 +132,19 @@ function makeContext(post: PostEntity): PublishContext {
 
 describe('BasePublisherService', () => {
   let publisher: TestPublisher;
-  let mockLogger: vi.Mocked<LoggerService>;
-  let mockConfig: vi.Mocked<ConfigService>;
+  let mockLogger: vi.Mocked<ServerLogger>;
+  let mockConfig: { ingredientsEndpoint: string };
 
   beforeEach(() => {
     mockLogger = {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as unknown as vi.Mocked<LoggerService>;
+    } as unknown as vi.Mocked<ServerLogger>;
 
     mockConfig = {
       ingredientsEndpoint: 'https://cdn.example.com',
-    } as unknown as vi.Mocked<ConfigService>;
+    };
 
     publisher = new TestPublisher(mockConfig, mockLogger);
   });

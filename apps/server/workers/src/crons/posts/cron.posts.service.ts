@@ -1,7 +1,6 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import type { PublishResult } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -9,7 +8,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
-import { PublishApprovalsService } from '@genfeedai/server';
+import { PublishApprovalsService, type PublishResult } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

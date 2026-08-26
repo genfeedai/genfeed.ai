@@ -1,6 +1,5 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import type { PublishResult } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -8,6 +7,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IChannelTargetError } from '@genfeedai/interfaces';
+import type { PublishResult } from '@genfeedai/server';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
 const RETRYABLE_ERROR_PATTERNS = [

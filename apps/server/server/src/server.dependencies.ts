@@ -11,6 +11,17 @@ export type {
   ServerLinkedInTrendResolver,
 } from './services/integrations/linkedin/linkedin-trends.port';
 export type {
+  IPublisher,
+  MediaInfo,
+  PostValidationResult,
+  PublishContext,
+  PublisherPostInput,
+  PublishResult,
+  ThreadChild,
+} from './services/integrations/publishers/interfaces/publisher.interface';
+export { WORKFLOW_APPROVED_SCHEDULE_SETTING } from './services/integrations/publishers/interfaces/publisher.interface';
+export type { ServerPublisherFactory } from './services/integrations/publishers/publisher-factory.port';
+export type {
   ServerYoutubeUploader,
   YoutubeUploadPostInput,
 } from './services/integrations/youtube/youtube-uploads.port';
@@ -32,6 +43,7 @@ export const SERVER_TOKENS = {
   postAnalytics: 'SERVER_POST_ANALYTICS',
   posts: 'SERVER_POSTS',
   prisma: 'SERVER_PRISMA',
+  publisherFactory: 'SERVER_PUBLISHER_FACTORY',
   tiktok: 'SERVER_TIKTOK',
   twitter: 'SERVER_TWITTER',
   youtube: 'SERVER_YOUTUBE',

@@ -3,7 +3,6 @@ import { FacebookPublisherService } from '@api/services/integrations/publishers/
 import { FanvuePublisherService } from '@api/services/integrations/publishers/fanvue-publisher.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
 import { InstagramPublisherService } from '@api/services/integrations/publishers/instagram-publisher.service';
-import { IPublisher } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
@@ -20,13 +19,14 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/enums';
+import type { IPublisher, ServerPublisherFactory } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
 /**
  * Factory service to get the appropriate publisher for a platform
  */
 @Injectable()
-export class PublisherFactoryService {
+export class PublisherFactoryService implements ServerPublisherFactory {
   private readonly publishers: Map<CredentialPlatform, IPublisher>;
 
   constructor(
