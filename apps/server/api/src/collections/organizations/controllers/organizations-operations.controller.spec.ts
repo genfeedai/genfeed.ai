@@ -20,13 +20,14 @@ describe('OrganizationsOperationsController', () => {
     vi.clearAllMocks();
   });
 
-  it('preserves the switch route and original OpenAPI identity', () => {
+  it('activates organizations via PATCH and preserves the original OpenAPI identity', () => {
     const handler =
       OrganizationsOperationsController.prototype.switchOrganization;
 
-    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('switch/:id');
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(':id/activate');
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).not.toBe('switch/:id');
     expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
-      RequestMethod.POST,
+      RequestMethod.PATCH,
     );
     expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
       operationId: 'OrganizationsController.switchOrganization',

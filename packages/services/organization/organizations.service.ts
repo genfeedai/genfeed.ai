@@ -513,10 +513,10 @@ export class OrganizationsService extends BaseService<Organization> {
     brand: { id: string; label: string };
   }> {
     return await this.instance
-      .post<{
+      .patch<{
         organization: { id: string; label: string };
         brand: { id: string; label: string };
-      }>(`/switch/${orgId}`)
+      }>(`/${orgId}/activate`)
       .then((res) => res.data);
   }
 

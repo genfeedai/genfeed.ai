@@ -1,5 +1,5 @@
 import type { OrganizationOption } from '@genfeedai/interfaces';
-import { get, post } from './client';
+import { get, patch } from './client';
 
 export interface SwitchOrganizationResponse {
   organization: {
@@ -17,5 +17,5 @@ export async function listMyOrganizations(): Promise<OrganizationOption[]> {
 }
 
 export async function switchOrganization(id: string): Promise<SwitchOrganizationResponse> {
-  return post<SwitchOrganizationResponse>(`/organizations/switch/${id}`, {});
+  return patch<SwitchOrganizationResponse>(`/organizations/${id}/activate`);
 }

@@ -301,16 +301,17 @@ describe('OrganizationsService HTTP methods', () => {
       expect(result.id).toBe('member_2');
     });
 
-    it('switchOrganization POSTs to /switch/:orgId', async () => {
+    it('switchOrganization PATCHes /:orgId/activate', async () => {
       const payload = {
         brand: { id: 'brand_1', label: 'Brand' },
         organization: { id: orgId, label: 'Org' },
       };
-      http.post.mockResolvedValue(axiosResponse(payload));
+      http.patch.mockResolvedValue(axiosResponse(payload));
 
       const result = await service.switchOrganization(orgId);
 
-      expect(http.post).toHaveBeenCalledWith(`/switch/${orgId}`);
+      expect(http.patch).toHaveBeenCalledWith(`/${orgId}/activate`);
+      expect(http.post).not.toHaveBeenCalledWith(`/switch/${orgId}`);
       expect(result).toEqual(payload);
     });
 

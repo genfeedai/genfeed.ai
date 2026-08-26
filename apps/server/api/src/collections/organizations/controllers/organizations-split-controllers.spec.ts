@@ -22,8 +22,8 @@ describe('Organizations split controllers', () => {
     [
       OrganizationsOperationsController,
       'switchOrganization',
-      'switch/:id',
-      RequestMethod.POST,
+      ':id/activate',
+      RequestMethod.PATCH,
     ],
   ] as const)(
     'preserves %s.%s route metadata',
@@ -40,6 +40,16 @@ describe('Organizations split controllers', () => {
       ).toMatchObject({ summary: methodName });
     },
   );
+
+  it('does not expose the legacy organization switch POST route', () => {
+    const handler =
+      OrganizationsOperationsController.prototype.switchOrganization;
+
+    expect({
+      method: Reflect.getMetadata(METHOD_METADATA, handler),
+      path: Reflect.getMetadata(PATH_METADATA, handler),
+    }).not.toEqual({ method: RequestMethod.POST, path: 'switch/:id' });
+  });
 
   it('preserves the moved route OpenAPI operation id', () => {
     expect(
