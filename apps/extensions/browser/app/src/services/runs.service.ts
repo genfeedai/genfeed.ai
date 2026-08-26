@@ -66,7 +66,9 @@ export class RunsService extends HTTPBaseService {
   }
 
   async executeRun(runId: string): Promise<RunRecord> {
-    const response = await this.instance.post<RunRecord>(`/${runId}/execute`);
+    const response = await this.instance.patch<RunRecord>(`/${runId}`, {
+      status: 'running',
+    });
     return response.data;
   }
 

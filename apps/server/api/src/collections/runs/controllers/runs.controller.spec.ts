@@ -166,7 +166,81 @@ describe('RunsController', () => {
       organizationId,
     );
     expect(mockRunsService.updateRun).not.toHaveBeenCalled();
+    expect(mockRunsService.executeRun).not.toHaveBeenCalled();
     expect(result).toEqual(mockRun);
+  });
+
+  it('executes a run via PATCH { status: running } without applying extra update fields', async () => {
+    const mockRun = { _id: 'run-execute', status: RunStatus.RUNNING };
+    mockRunsService.executeRun.mockResolvedValue(mockRun);
+
+    const result = await controller.update(
+      {
+        organizationId: organizationId,
+        userId: userId,
+      } as never,
+      { headers: {} } as never,
+      'run-execute',
+      {
+        error: 'ignored for the execute transition',
+        output: { ignored: true },
+        progress: 50,
+        status: RunStatus.RUNNING,
+      },
+    );
+
+    expect(mockRunsService.executeRun).toHaveBeenCalledWith(
+      'run-execute',
+      organizationId,
+    );
+    expect(mockRunsService.cancelRun).not.toHaveBeenCalled();
+    expect(mockRunsService.updateRun).not.toHaveBeenCalled();
+    expect(result).toEqual(mockRun);
+  });
+
+  it('uses the generic update service for non-command status and field updates', async () => {
+    const dto = {
+      output: { assetId: 'asset-1' },
+      progress: 100,
+      status: RunStatus.COMPLETED,
+    };
+    const mockRun = { _id: 'run-update', ...dto };
+    mockRunsService.updateRun.mockResolvedValue(mockRun);
+
+    const result = await controller.update(
+      {
+        organizationId: organizationId,
+        userId: userId,
+      } as never,
+      { headers: {} } as never,
+      'run-update',
+      dto,
+    );
+
+    expect(mockRunsService.updateRun).toHaveBeenCalledWith(
+      'run-update',
+      organizationId,
+      dto,
+    );
+    expect(mockRunsService.cancelRun).not.toHaveBeenCalled();
+    expect(mockRunsService.executeRun).not.toHaveBeenCalled();
+    expect(result).toEqual(mockRun);
+  });
+
+  it('throws NotFoundException when execution cannot find the run', async () => {
+    mockRunsService.executeRun.mockResolvedValue(null);
+
+    await expect(
+      controller.update(
+        {
+          organizationId: organizationId,
+          userId: userId,
+        } as never,
+        { headers: {} } as never,
+        'missing-run',
+        { status: RunStatus.RUNNING },
+      ),
+    ).rejects.toThrow('Run');
   });
 
   it('should maintain identical create contract across TG/CLI/Extension/IDE surfaces and all run actions', async () => {
