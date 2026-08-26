@@ -211,6 +211,9 @@ describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.searchParamsString = '';
+    mocks.replace.mockImplementation((nextHref: string) => {
+      mocks.searchParamsString = nextHref.split('?')[1] ?? '';
+    });
     mocks.studioEnabled = true;
     mocks.resolveAuthToken.mockResolvedValue('token-1');
     mocks.subscribe.mockReturnValue(vi.fn());
@@ -360,6 +363,7 @@ describe('WorkspacePageContent', () => {
 
   it('keeps the task inspector closed while URL cleanup is pending', async () => {
     mocks.searchParamsString = 'taskId=task-1';
+    mocks.replace.mockImplementation(() => {});
 
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 
