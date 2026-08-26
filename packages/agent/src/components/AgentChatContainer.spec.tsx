@@ -1795,6 +1795,68 @@ describe('AgentChatContainer', () => {
     );
   });
 
+  it('ignores a duplicate UI action while the first request is pending', async () => {
+    let resolveAction: ((value: Record<string, unknown>) => void) | undefined;
+    const pendingAction = new Promise<Record<string, unknown>>((resolve) => {
+      resolveAction = resolve;
+    });
+    const respondToUiAction = vi.fn(() => pendingAction);
+    const apiService = createApiService({ respondToUiAction });
+
+    storeState.pendingInputRequest = null;
+    storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
+    storeState.messages = [
+      buildAssistantMessage({
+        content: 'Install this workflow?',
+        id: 'm-action-pending',
+        metadata: {
+          uiActions: [
+            {
+              ctas: [
+                {
+                  action: 'confirm_install_official_workflow',
+                  label: 'Confirm install',
+                  payload: { sourceId: 'template-1' },
+                },
+              ],
+              id: 'workflow-created-pending',
+              title: 'Install official workflow?',
+              type: 'workflow_created_card',
+            },
+          ],
+        },
+      }),
+    ];
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    const confirmButton = screen.getByRole('button', {
+      name: 'Confirm install',
+    });
+    fireEvent.click(confirmButton);
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(respondToUiAction).toHaveBeenCalledTimes(1));
+    expect(storeState.setError).not.toHaveBeenCalledWith(
+      'A UI action is already in progress.',
+    );
+
+    resolveAction?.({
+      contextVersion: 1,
+      creditsRemaining: 48,
+      creditsUsed: 0,
+      message: { content: 'Installed.', metadata: {}, role: 'assistant' },
+      threadId: 'thread-1',
+      toolCalls: [],
+    });
+
+    await waitFor(() => {
+      expect(storeState.addMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ content: 'Installed.' }),
+      );
+    });
+  });
+
   it('replaces a brandless thread scope with the confirmed created brand', async () => {
     const apiService = createApiService({
       respondToUiAction: vi.fn().mockResolvedValue({

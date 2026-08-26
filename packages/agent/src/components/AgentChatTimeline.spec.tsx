@@ -232,4 +232,23 @@ describe('AgentChatTimeline failure card', () => {
 
     expect(screen.queryByRole('alert')).toBeNull();
   });
+
+  it('makes pending structured actions inert while busy', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        isBusy
+        pendingUiActions={[
+          {
+            id: 'pending-schedule',
+            title: 'Schedule post',
+            type: 'schedule_post_card',
+          } as never,
+        ]}
+        timeline={[]}
+      />,
+    );
+
+    expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
+  });
 });

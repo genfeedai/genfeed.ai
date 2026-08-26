@@ -368,6 +368,7 @@ function AgentChatMessageInner({
             key={`ui-action-${completionSummaryAction.id}`}
             action={completionSummaryAction}
             apiService={apiService}
+            isDisabled={isBusy}
             isReadOnly={isReadOnly}
             onCopy={onCopy}
             onOAuthConnect={onOAuthConnect}
@@ -387,6 +388,7 @@ function AgentChatMessageInner({
               key={`ui-action-${action.id}`}
               action={action}
               apiService={apiService}
+              isDisabled={isBusy}
               isReadOnly={isReadOnly}
               onCopy={onCopy}
               onOAuthConnect={onOAuthConnect}
