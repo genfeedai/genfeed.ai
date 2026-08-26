@@ -256,19 +256,8 @@ function FullCalendarMount({
       }
 
       try {
-        const [
-          coreModule,
-          timeGridModule,
-          dayGridModule,
-          listModule,
-          interactionModule,
-          themeModule,
-        ] = await Promise.all([
-          import('fullcalendar'),
-          import('fullcalendar/timegrid'),
-          import('fullcalendar/daygrid'),
-          import('fullcalendar/list'),
-          import('fullcalendar/interaction'),
+        const [calendarModule, themeModule] = await Promise.all([
+          import('fullcalendar/all'),
           import('fullcalendar/themes/classic'),
         ]);
 
@@ -276,16 +265,13 @@ function FullCalendarMount({
           return;
         }
 
-        const CalendarCtor = resolveFullCalendarConstructor(coreModule);
+        const CalendarCtor = resolveFullCalendarConstructor(calendarModule);
         calendar = new CalendarCtor(elementRef.current, {
           ...options,
-          plugins: [
-            resolveFullCalendarPlugin(themeModule),
-            resolveFullCalendarPlugin(timeGridModule),
-            resolveFullCalendarPlugin(dayGridModule),
-            resolveFullCalendarPlugin(listModule),
-            resolveFullCalendarPlugin(interactionModule),
-          ],
+          // The official `all` constructor registers the interaction and view
+          // plugins together. Keeping that graph intact avoids split ESM
+          // namespaces being registered as plugins by production bundlers.
+          plugins: [resolveFullCalendarPlugin(themeModule)],
         }) as FullCalendarInstance;
         calendarRef.current = calendar;
         calendar.render();

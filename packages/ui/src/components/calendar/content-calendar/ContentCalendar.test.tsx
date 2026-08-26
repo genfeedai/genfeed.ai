@@ -95,39 +95,11 @@ const calendarMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('fullcalendar', async () => {
+vi.mock('fullcalendar/all', async () => {
   await calendarMocks.waitForImportGate();
   return {
     Calendar: calendarMocks.Calendar,
     default: calendarMocks.Calendar,
-  };
-});
-
-vi.mock('fullcalendar/timegrid', async () => {
-  await calendarMocks.waitForImportGate();
-  return {
-    default: { name: 'timegrid' },
-  };
-});
-
-vi.mock('fullcalendar/daygrid', async () => {
-  await calendarMocks.waitForImportGate();
-  return {
-    default: { name: 'daygrid' },
-  };
-});
-
-vi.mock('fullcalendar/list', async () => {
-  await calendarMocks.waitForImportGate();
-  return {
-    default: { name: 'list' },
-  };
-});
-
-vi.mock('fullcalendar/interaction', async () => {
-  await calendarMocks.waitForImportGate();
-  return {
-    default: { name: 'interaction' },
   };
 });
 
