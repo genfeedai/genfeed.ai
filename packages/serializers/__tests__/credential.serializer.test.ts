@@ -39,6 +39,22 @@ describe('CredentialSerializer', () => {
     ]);
   });
 
+  it('never serializes OAuth 1.0a token secrets', () => {
+    const output = CredentialSerializer.serialize({
+      accessToken: 'access-token',
+      accessTokenSecret: 'access-token-secret',
+      id: 'cred-1',
+      oauthToken: 'request-token',
+      oauthTokenSecret: 'request-token-secret',
+      platform: 'X_ADS',
+    }) as { data: { attributes: Record<string, unknown> } };
+
+    expect(output.data.attributes).not.toHaveProperty('accessToken');
+    expect(output.data.attributes).not.toHaveProperty('accessTokenSecret');
+    expect(output.data.attributes).not.toHaveProperty('oauthToken');
+    expect(output.data.attributes).not.toHaveProperty('oauthTokenSecret');
+  });
+
   it('maps a collection of Prisma-shaped credentials', () => {
     const output = CredentialSerializer.serialize([
       { id: 'cred-1', platform: 'INSTAGRAM' },

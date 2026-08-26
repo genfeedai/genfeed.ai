@@ -82,13 +82,16 @@ describe('PausedXAdsCampaignDraftService', () => {
       status: 'ready' as const,
     },
   };
+  const oauthCredentials = {
+    accessToken: 'legacy-plaintext-token',
+    accessTokenSecret: 'legacy-plaintext-token-secret',
+  };
 
   beforeEach(() => {
     vi.resetAllMocks();
     prisma.credential.findFirst.mockResolvedValue({
       accessToken: 'legacy-plaintext-token',
-      grantedScopes: ['ads.read', 'ads.write', 'offline.access'],
-      grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+      accessTokenSecret: 'legacy-plaintext-token-secret',
       id: 'credential-1',
     });
     prisma.post.findFirst.mockResolvedValue({
@@ -144,7 +147,7 @@ describe('PausedXAdsCampaignDraftService', () => {
     const result = await service.prepare(input);
 
     expect(xAdsService.createCampaign).toHaveBeenCalledWith(
-      'legacy-plaintext-token',
+      oauthCredentials,
       'act-123',
       expect.objectContaining({
         entityStatus: 'PAUSED',
@@ -152,7 +155,7 @@ describe('PausedXAdsCampaignDraftService', () => {
       }),
     );
     expect(xAdsService.listPublishedTweets).toHaveBeenCalledWith(
-      'legacy-plaintext-token',
+      oauthCredentials,
       'act-123',
       ['tweet-1'],
     );
@@ -166,7 +169,7 @@ describe('PausedXAdsCampaignDraftService', () => {
       }),
     );
     expect(xAdsService.createLineItem).toHaveBeenCalledWith(
-      'legacy-plaintext-token',
+      oauthCredentials,
       'act-123',
       expect.objectContaining({
         campaignId: 'campaign-1',
@@ -174,7 +177,7 @@ describe('PausedXAdsCampaignDraftService', () => {
       }),
     );
     expect(xAdsService.createPromotedTweet).toHaveBeenCalledWith(
-      'legacy-plaintext-token',
+      oauthCredentials,
       'act-123',
       { lineItemId: 'line-item-1', tweetId: 'tweet-1' },
     );
@@ -225,15 +228,16 @@ describe('PausedXAdsCampaignDraftService', () => {
     expect(xAdsService.createCampaign).not.toHaveBeenCalled();
   });
 
-  it('rejects missing ads.write before the first X Ads provider call', async () => {
+  it('rejects a missing OAuth token secret before the first X Ads provider call', async () => {
     prisma.credential.findFirst.mockResolvedValue({
       accessToken: 'legacy-plaintext-token',
-      grantedScopes: ['ads.read'],
-      grantedScopesCapturedAt: new Date('2026-08-20T09:00:00.000Z'),
+      accessTokenSecret: null,
       id: 'credential-1',
     });
 
-    await expect(service.prepare(input)).rejects.toThrow('ads.write');
+    await expect(service.prepare(input)).rejects.toThrow(
+      'selected X Ads credential is unavailable',
+    );
 
     expect(xAdsService.getAdAccounts).not.toHaveBeenCalled();
     expect(xAdsService.createCampaign).not.toHaveBeenCalled();

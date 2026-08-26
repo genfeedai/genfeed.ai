@@ -115,11 +115,10 @@ export const twitterSchema = {
  * are absent, mirroring googleAdsSchema).
  */
 export const xAdsSchema = {
-  X_ADS_CLIENT_ID: Joi.string().optional().allow(''),
-  X_ADS_CLIENT_SECRET: Joi.string().optional().allow(''),
+  X_ADS_API_KEY: Joi.string().optional().allow(''),
+  X_ADS_API_SECRET: Joi.string().optional().allow(''),
   X_ADS_REDIRECT_URI: Joi.string().uri().optional().allow(''),
-  // Explicit operator attestations only. They do not enable the repository
-  // transport while its reviewed contract-fixture blocker remains in code.
+  // Explicit operator attestations remain independent from authentication.
   X_ADS_REPOSITORY_COMMERCIAL_USE_APPROVED: Joi.string()
     .valid('true', 'false')
     .optional(),

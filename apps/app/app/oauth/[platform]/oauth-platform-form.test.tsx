@@ -113,6 +113,24 @@ describe('OAuthPlatformForm', () => {
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
   });
 
+  it('forwards the X Ads OAuth 1.0a request token and verifier', async () => {
+    mocks.searchParams = new URLSearchParams({
+      oauth_token: 'request-token',
+      oauth_verifier: 'oauth-verifier',
+      return_to: '/settings/publishing',
+    });
+
+    render(<OAuthPlatformForm platform="x-ads" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        oauthToken: 'request-token',
+        oauthVerifier: 'oauth-verifier',
+      });
+    });
+    expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+  });
+
   it('waits for the authenticated session to hydrate before verifying', async () => {
     mocks.authIdentity = {
       isLoaded: false,

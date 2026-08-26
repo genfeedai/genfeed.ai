@@ -1,24 +1,12 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
 import { BadGatewayException, BadRequestException } from '@nestjs/common';
-import { of } from 'rxjs';
 import { XAdsService } from './x-ads.service';
 
-vi.mock('@libs/utils/encryption/encryption.util', () => ({
-  EncryptionUtil: { decrypt: vi.fn(() => 'decrypted-refresh-token') },
-}));
-
-const axiosResponse = <T>(data: T) =>
-  of({
-    config: {} as never,
-    data,
-    headers: {},
-    status: 200,
-    statusText: 'OK',
-  });
+const oauthCredentials = {
+  accessToken: 'access-token',
+  accessTokenSecret: 'access-token-secret',
+};
 
 const campaignWire = (id: string) => ({
   created_at: '2026-08-01T00:00:00Z',
@@ -72,12 +60,7 @@ const recordedStatsMetrics = {
 } as const;
 
 describe('XAdsService', () => {
-  let credentialsService: {
-    findOne: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-    resolveBrandAccount: ReturnType<typeof vi.fn>;
-  };
-  let httpService: {
+  let adsClient: {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
     put: ReturnType<typeof vi.fn>;
@@ -86,29 +69,17 @@ describe('XAdsService', () => {
     error: ReturnType<typeof vi.fn>;
   };
   let oauthService: {
-    refreshAccessToken: ReturnType<typeof vi.fn>;
+    createAdsClient: ReturnType<typeof vi.fn>;
   };
   let service: XAdsService;
   let now: number;
 
   beforeEach(() => {
-    credentialsService = {
-      findOne: vi.fn(),
-      patch: vi.fn(),
-      // Multi-account resolution routes through `resolveBrandAccount`; the
-      // double answers with whatever `findOne` is primed to return so the
-      // existing cases keep describing one connected account.
-      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        (credentialsService.findOne as vi.Mock)(options),
-      ),
-    };
-    httpService = { get: vi.fn(), post: vi.fn(), put: vi.fn() };
+    adsClient = { get: vi.fn(), post: vi.fn(), put: vi.fn() };
     loggerService = { error: vi.fn() };
-    oauthService = { refreshAccessToken: vi.fn() };
+    oauthService = { createAdsClient: vi.fn(() => adsClient) };
 
     service = new XAdsService(
-      credentialsService as unknown as CredentialsService,
-      httpService as unknown as HttpService,
       loggerService as unknown as LoggerService,
       oauthService as unknown as XAdsOAuthService,
     );
@@ -127,130 +98,120 @@ describe('XAdsService', () => {
 
   describe('pagination', () => {
     it('collects every ad-account page using next_cursor', async () => {
-      httpService.get
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [
-              {
-                approval_status: 'ACCEPTED',
-                currency: 'USD',
-                id: 'account-1',
-                name: 'Account one',
-                timezone: 'UTC',
-              },
-            ],
-            next_cursor: 'account-cursor',
-          }),
-        )
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [
-              {
-                approval_status: 'ACCEPTED',
-                currency: 'EUR',
-                id: 'account-2',
-                name: 'Account two',
-                timezone: 'Europe/Malta',
-              },
-            ],
-            next_cursor: null,
-          }),
-        );
+      adsClient.get
+        .mockResolvedValueOnce({
+          data: [
+            {
+              approval_status: 'ACCEPTED',
+              currency: 'USD',
+              id: 'account-1',
+              name: 'Account one',
+              timezone: 'UTC',
+            },
+          ],
+          next_cursor: 'account-cursor',
+        })
+        .mockResolvedValueOnce({
+          data: [
+            {
+              approval_status: 'ACCEPTED',
+              currency: 'EUR',
+              id: 'account-2',
+              name: 'Account two',
+              timezone: 'Europe/Malta',
+            },
+          ],
+          next_cursor: null,
+        });
 
-      const result = await service.getAdAccounts('access-token');
+      const result = await service.getAdAccounts(oauthCredentials);
 
       expect(result.map(({ id }) => id)).toEqual(['account-1', 'account-2']);
-      expect(httpService.get).toHaveBeenNthCalledWith(
+      expect(oauthService.createAdsClient).toHaveBeenCalledWith(
+        oauthCredentials,
+      );
+      expect(adsClient.get).toHaveBeenNthCalledWith(
         2,
-        'https://ads-api.x.com/12/accounts',
-        expect.objectContaining({ params: { cursor: 'account-cursor' } }),
+        'accounts',
+        { cursor: 'account-cursor' },
+        { timeout: 15_000 },
       );
     });
 
     it('collects every funding-instrument page using next_cursor', async () => {
-      httpService.get
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [
-              {
-                currency: 'USD',
-                entity_status: 'ACTIVE',
-                id: 'fi-1',
-                type: 'CREDIT_CARD',
-              },
-            ],
-            next_cursor: 'funding-cursor',
-          }),
-        )
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [
-              {
-                currency: 'USD',
-                entity_status: 'PAUSED',
-                id: 'fi-2',
-                type: 'CREDIT_CARD',
-              },
-            ],
-            next_cursor: null,
-          }),
-        );
+      adsClient.get
+        .mockResolvedValueOnce({
+          data: [
+            {
+              currency: 'USD',
+              entity_status: 'ACTIVE',
+              id: 'fi-1',
+              type: 'CREDIT_CARD',
+            },
+          ],
+          next_cursor: 'funding-cursor',
+        })
+        .mockResolvedValueOnce({
+          data: [
+            {
+              currency: 'USD',
+              entity_status: 'PAUSED',
+              id: 'fi-2',
+              type: 'CREDIT_CARD',
+            },
+          ],
+          next_cursor: null,
+        });
 
       const result = await service.getFundingInstruments(
-        'access-token',
+        oauthCredentials,
         'account-1',
       );
 
       expect(result.map(({ id }) => id)).toEqual(['fi-1', 'fi-2']);
-      expect(httpService.get).toHaveBeenNthCalledWith(
+      expect(adsClient.get).toHaveBeenNthCalledWith(
         2,
-        'https://ads-api.x.com/12/accounts/account-1/funding_instruments',
-        expect.objectContaining({ params: { cursor: 'funding-cursor' } }),
+        'accounts/account-1/funding_instruments',
+        { cursor: 'funding-cursor' },
+        { timeout: 15_000 },
       );
     });
 
     it('collects every campaign page using next_cursor', async () => {
-      httpService.get
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [campaignWire('campaign-1')],
-            next_cursor: 'campaign-cursor',
-          }),
-        )
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [campaignWire('campaign-2')],
-            next_cursor: null,
-          }),
-        );
+      adsClient.get
+        .mockResolvedValueOnce({
+          data: [campaignWire('campaign-1')],
+          next_cursor: 'campaign-cursor',
+        })
+        .mockResolvedValueOnce({
+          data: [campaignWire('campaign-2')],
+          next_cursor: null,
+        });
 
-      const result = await service.listCampaigns('access-token', 'account-1');
+      const result = await service.listCampaigns(oauthCredentials, 'account-1');
 
       expect(result.map(({ id }) => id)).toEqual(['campaign-1', 'campaign-2']);
-      expect(httpService.get).toHaveBeenNthCalledWith(
+      expect(adsClient.get).toHaveBeenNthCalledWith(
         2,
-        'https://ads-api.x.com/12/accounts/account-1/campaigns',
-        expect.objectContaining({ params: { cursor: 'campaign-cursor' } }),
+        'accounts/account-1/campaigns',
+        { cursor: 'campaign-cursor' },
+        { timeout: 15_000 },
       );
     });
 
     it('preserves line-item filters while following next_cursor', async () => {
-      httpService.get
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [lineItemWire('line-item-1')],
-            next_cursor: 'line-item-cursor',
-          }),
-        )
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [lineItemWire('line-item-2')],
-            next_cursor: null,
-          }),
-        );
+      adsClient.get
+        .mockResolvedValueOnce({
+          data: [lineItemWire('line-item-1')],
+          next_cursor: 'line-item-cursor',
+        })
+        .mockResolvedValueOnce({
+          data: [lineItemWire('line-item-2')],
+          next_cursor: null,
+        });
 
       const result = await service.listLineItems(
-        'access-token',
+        oauthCredentials,
         'account-1',
         'campaign-1',
       );
@@ -259,110 +220,90 @@ describe('XAdsService', () => {
         'line-item-1',
         'line-item-2',
       ]);
-      expect(httpService.get).toHaveBeenNthCalledWith(
+      expect(adsClient.get).toHaveBeenNthCalledWith(
         2,
-        'https://ads-api.x.com/12/accounts/account-1/line_items',
-        expect.objectContaining({
-          params: {
-            campaign_ids: 'campaign-1',
-            cursor: 'line-item-cursor',
-          },
-        }),
+        'accounts/account-1/line_items',
+        { campaign_ids: 'campaign-1', cursor: 'line-item-cursor' },
+        { timeout: 15_000 },
       );
     });
 
     it('preserves promoted-tweet filters while following next_cursor', async () => {
-      httpService.get
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [promotedTweetWire('promoted-1')],
-            next_cursor: 'promoted-cursor',
-          }),
-        )
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [promotedTweetWire('promoted-2')],
-            next_cursor: null,
-          }),
-        );
+      adsClient.get
+        .mockResolvedValueOnce({
+          data: [promotedTweetWire('promoted-1')],
+          next_cursor: 'promoted-cursor',
+        })
+        .mockResolvedValueOnce({
+          data: [promotedTweetWire('promoted-2')],
+          next_cursor: null,
+        });
 
       const result = await service.listPromotedTweets(
-        'access-token',
+        oauthCredentials,
         'account-1',
         'line-item-1',
       );
 
       expect(result.map(({ id }) => id)).toEqual(['promoted-1', 'promoted-2']);
-      expect(httpService.get).toHaveBeenNthCalledWith(
+      expect(adsClient.get).toHaveBeenNthCalledWith(
         2,
-        'https://ads-api.x.com/12/accounts/account-1/promoted_tweets',
-        expect.objectContaining({
-          params: {
-            cursor: 'promoted-cursor',
-            line_item_ids: 'line-item-1',
-          },
-        }),
+        'accounts/account-1/promoted_tweets',
+        { cursor: 'promoted-cursor', line_item_ids: 'line-item-1' },
+        { timeout: 15_000 },
       );
     });
 
     it('collects published Tweets for the account promotable user', async () => {
-      httpService.get
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [{ id_str: 'tweet-1' }],
-            next_cursor: 'tweet-cursor',
-          }),
-        )
-        .mockReturnValueOnce(
-          axiosResponse({
-            data: [{ id_str: 'tweet-2' }],
-            next_cursor: null,
-          }),
-        );
+      adsClient.get
+        .mockResolvedValueOnce({
+          data: [{ id_str: 'tweet-1' }],
+          next_cursor: 'tweet-cursor',
+        })
+        .mockResolvedValueOnce({
+          data: [{ id_str: 'tweet-2' }],
+          next_cursor: null,
+        });
 
       const result = await service.listPublishedTweets(
-        'access-token',
+        oauthCredentials,
         'account-1',
         ['tweet-1', 'tweet-2'],
       );
 
       expect(result).toEqual([{ id: 'tweet-1' }, { id: 'tweet-2' }]);
-      expect(httpService.get).toHaveBeenNthCalledWith(
+      expect(adsClient.get).toHaveBeenNthCalledWith(
         2,
-        'https://ads-api.x.com/12/accounts/account-1/tweets',
-        expect.objectContaining({
-          params: {
-            cursor: 'tweet-cursor',
-            timeline_type: 'ALL',
-            trim_user: true,
-            tweet_ids: 'tweet-1,tweet-2',
-            tweet_type: 'PUBLISHED',
-          },
-        }),
+        'accounts/account-1/tweets',
+        {
+          cursor: 'tweet-cursor',
+          timeline_type: 'ALL',
+          trim_user: 'true',
+          tweet_ids: 'tweet-1,tweet-2',
+          tweet_type: 'PUBLISHED',
+        },
+        { timeout: 15_000 },
       );
     });
   });
 
   describe('write wire contracts', () => {
     it('sends campaign writes as query parameters without a JSON body', async () => {
-      httpService.post.mockReturnValue(
-        axiosResponse({ data: campaignWire('campaign-1') }),
-      );
+      adsClient.post.mockResolvedValue({ data: campaignWire('campaign-1') });
 
-      await service.createCampaign('access-token', 'account-1', {
+      await service.createCampaign(oauthCredentials, 'account-1', {
         dailyBudgetAmountLocalMicro: 5_000_000,
         entityStatus: 'PAUSED',
         fundingInstrumentId: 'fi-1',
         name: 'Campaign one',
       });
 
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://ads-api.x.com/12/accounts/account-1/campaigns',
+      expect(adsClient.post).toHaveBeenCalledWith(
+        'accounts/account-1/campaigns',
         undefined,
         {
-          headers: { Authorization: 'Bearer access-token' },
-          params: {
-            daily_budget_amount_local_micro: 5_000_000,
+          query: {
+            daily_budget_amount_local_micro: '5000000',
             entity_status: 'PAUSED',
             funding_instrument_id: 'fi-1',
             name: 'Campaign one',
@@ -373,21 +314,23 @@ describe('XAdsService', () => {
     });
 
     it('sends campaign updates as query parameters without a JSON body', async () => {
-      httpService.put.mockReturnValue(
-        axiosResponse({ data: campaignWire('campaign-1') }),
+      adsClient.put.mockResolvedValue({ data: campaignWire('campaign-1') });
+
+      await service.updateCampaign(
+        oauthCredentials,
+        'account-1',
+        'campaign-1',
+        {
+          entityStatus: 'PAUSED',
+          name: 'Renamed campaign',
+        },
       );
 
-      await service.updateCampaign('access-token', 'account-1', 'campaign-1', {
-        entityStatus: 'PAUSED',
-        name: 'Renamed campaign',
-      });
-
-      expect(httpService.put).toHaveBeenCalledWith(
-        'https://ads-api.x.com/12/accounts/account-1/campaigns/campaign-1',
+      expect(adsClient.put).toHaveBeenCalledWith(
+        'accounts/account-1/campaigns/campaign-1',
         undefined,
         {
-          headers: { Authorization: 'Bearer access-token' },
-          params: {
+          query: {
             entity_status: 'PAUSED',
             name: 'Renamed campaign',
           },
@@ -397,11 +340,9 @@ describe('XAdsService', () => {
     });
 
     it('sends line-item arrays and daily budget in the documented query shape', async () => {
-      httpService.post.mockReturnValue(
-        axiosResponse({ data: lineItemWire('line-item-1') }),
-      );
+      adsClient.post.mockResolvedValue({ data: lineItemWire('line-item-1') });
 
-      await service.createLineItem('access-token', 'account-1', {
+      await service.createLineItem(oauthCredentials, 'account-1', {
         campaignId: 'campaign-1',
         dailyBudgetAmountLocalMicro: 5_000_000,
         entityStatus: 'PAUSED',
@@ -411,13 +352,12 @@ describe('XAdsService', () => {
         productType: 'PROMOTED_TWEETS',
       });
 
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://ads-api.x.com/12/accounts/account-1/line_items',
+      expect(adsClient.post).toHaveBeenCalledWith(
+        'accounts/account-1/line_items',
         undefined,
         expect.objectContaining({
-          headers: { Authorization: 'Bearer access-token' },
-          params: expect.objectContaining({
-            daily_budget_amount_local_micro: 5_000_000,
+          query: expect.objectContaining({
+            daily_budget_amount_local_micro: '5000000',
             placements: 'ALL_ON_TWITTER,TWITTER_PROFILE',
           }),
         }),
@@ -426,7 +366,7 @@ describe('XAdsService', () => {
 
     it('rejects targeting criteria that the line-item endpoint cannot encode', async () => {
       await expect(
-        service.createLineItem('access-token', 'account-1', {
+        service.createLineItem(oauthCredentials, 'account-1', {
           campaignId: 'campaign-1',
           entityStatus: 'PAUSED',
           name: 'Line item one',
@@ -435,32 +375,29 @@ describe('XAdsService', () => {
           targeting: { countries: ['US'] },
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
-      expect(httpService.post).not.toHaveBeenCalled();
+      expect(adsClient.post).not.toHaveBeenCalled();
     });
 
     it('selects the first promoted tweet from the batch response', async () => {
-      httpService.post.mockReturnValue(
-        axiosResponse({
-          data: [
-            promotedTweetWire('promoted-1'),
-            promotedTweetWire('promoted-2'),
-          ],
-        }),
-      );
+      adsClient.post.mockResolvedValue({
+        data: [
+          promotedTweetWire('promoted-1'),
+          promotedTweetWire('promoted-2'),
+        ],
+      });
 
       const result = await service.createPromotedTweet(
-        'access-token',
+        oauthCredentials,
         'account-1',
         { lineItemId: 'line-item-1', tweetId: 'tweet-1' },
       );
 
       expect(result.id).toBe('promoted-1');
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://ads-api.x.com/12/accounts/account-1/promoted_tweets',
+      expect(adsClient.post).toHaveBeenCalledWith(
+        'accounts/account-1/promoted_tweets',
         undefined,
         expect.objectContaining({
-          headers: { Authorization: 'Bearer access-token' },
-          params: {
+          query: {
             line_item_id: 'line-item-1',
             tweet_ids: 'tweet-1',
           },
@@ -469,10 +406,10 @@ describe('XAdsService', () => {
     });
 
     it('fails when X returns an empty promoted-tweet batch', async () => {
-      httpService.post.mockReturnValue(axiosResponse({ data: [] }));
+      adsClient.post.mockResolvedValue({ data: [] });
 
       await expect(
-        service.createPromotedTweet('access-token', 'account-1', {
+        service.createPromotedTweet(oauthCredentials, 'account-1', {
           lineItemId: 'line-item-1',
           tweetId: 'tweet-1',
         }),
@@ -483,14 +420,13 @@ describe('XAdsService', () => {
   describe('reporting', () => {
     it('chunks at 20 IDs and requests every current placement and required metric group', async () => {
       const entityIds = Array.from({ length: 21 }, (_, index) => `pt-${index}`);
-      httpService.get.mockImplementation((_url, options) => {
-        const requestParams = options.params as Record<string, string>;
+      adsClient.get.mockImplementation((_url, requestParams) => {
         const requestedIds = requestParams.entity_ids.split(',');
         const shouldReturnRows =
           requestParams.metric_groups === 'ENGAGEMENT,BILLING' &&
           requestParams.placement === 'ALL_ON_TWITTER';
 
-        return axiosResponse({
+        return Promise.resolve({
           data: shouldReturnRows
             ? [
                 {
@@ -503,17 +439,17 @@ describe('XAdsService', () => {
       });
 
       const result = await service.getPromotedTweetStats(
-        'access-token',
+        oauthCredentials,
         'account-1',
         entityIds,
         { endDate: '2026-08-23', startDate: '2026-08-16' },
       );
 
       expect(result.map(({ id }) => id)).toEqual(['pt-0', 'pt-20']);
-      expect(httpService.get).toHaveBeenCalledTimes(12);
+      expect(adsClient.get).toHaveBeenCalledTimes(12);
 
-      const requests = httpService.get.mock.calls.map(
-        (call) => call[1]?.params as Record<string, string>,
+      const requests = adsClient.get.mock.calls.map(
+        (call) => call[1] as Record<string, string>,
       );
       expect(
         requests.every(({ entity_ids: ids }) => ids.split(',').length <= 20),
@@ -534,8 +470,7 @@ describe('XAdsService', () => {
     });
 
     it('maps the recorded conversion object and sums all three placement responses', async () => {
-      httpService.get.mockImplementation((_url, options) => {
-        const requestParams = options.params as Record<string, string>;
+      adsClient.get.mockImplementation((_url, requestParams) => {
         const isConversion = requestParams.metric_groups === 'WEB_CONVERSION';
         const isAllOnX = requestParams.placement === 'ALL_ON_TWITTER';
         const isTrend = requestParams.placement === 'TREND';
@@ -562,13 +497,13 @@ describe('XAdsService', () => {
                 }
               : {};
 
-        return axiosResponse({
+        return Promise.resolve({
           data: [{ id: 'pt-1', id_data: [{ metrics }] }],
         });
       });
 
       const result = await service.getPromotedTweetStats(
-        'access-token',
+        oauthCredentials,
         'account-1',
         ['pt-1'],
         { endDate: '2026-08-23', startDate: '2026-08-16' },
@@ -592,19 +527,19 @@ describe('XAdsService', () => {
     });
 
     it('splits the default 30-day range into contiguous end-exclusive windows', async () => {
-      httpService.get.mockReturnValue(axiosResponse({ data: [] }));
+      adsClient.get.mockResolvedValue({ data: [] });
 
       await service.getCampaignStats(
-        'access-token',
+        oauthCredentials,
         'account-1',
         ['campaign-1'],
         { endDate: '2026-08-31', startDate: '2026-08-01' },
       );
 
-      expect(httpService.get).toHaveBeenCalledTimes(30);
+      expect(adsClient.get).toHaveBeenCalledTimes(30);
       const windows = new Set(
-        httpService.get.mock.calls.map((call) => {
-          const requestParams = call[1]?.params as Record<string, string>;
+        adsClient.get.mock.calls.map((call) => {
+          const requestParams = call[1] as Record<string, string>;
           return `${requestParams.start_time}/${requestParams.end_time}`;
         }),
       );
@@ -621,121 +556,83 @@ describe('XAdsService', () => {
 
     it('rejects reporting boundaries that are not whole hours', async () => {
       await expect(
-        service.getCampaignStats('access-token', 'account-1', ['campaign-1'], {
-          endDate: '2026-08-23T00:30:00Z',
-          startDate: '2026-08-01T00:00:00Z',
-        }),
+        service.getCampaignStats(
+          oauthCredentials,
+          'account-1',
+          ['campaign-1'],
+          {
+            endDate: '2026-08-23T00:30:00Z',
+            startDate: '2026-08-01T00:00:00Z',
+          },
+        ),
       ).rejects.toBeInstanceOf(BadRequestException);
-      expect(httpService.get).not.toHaveBeenCalled();
+      expect(adsClient.get).not.toHaveBeenCalled();
     });
 
     it('does not call X when there are no entity IDs', async () => {
       await expect(
-        service.getCampaignStats('access-token', 'account-1', [], {
+        service.getCampaignStats(oauthCredentials, 'account-1', [], {
           endDate: '2026-08-23',
           startDate: '2026-08-01',
         }),
       ).resolves.toEqual([]);
-      expect(httpService.get).not.toHaveBeenCalled();
+      expect(adsClient.get).not.toHaveBeenCalled();
     });
   });
 
   describe('error semantics', () => {
-    it('refreshes an active scoped credential and persists its granted scopes', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        id: 'credential-1',
-        refreshToken: 'encrypted-refresh-token',
-      });
-      credentialsService.patch.mockResolvedValue({ id: 'credential-1' });
-      oauthService.refreshAccessToken.mockResolvedValue({
-        accessToken: 'new-access-token',
-        expiresIn: 3_600,
-        refreshToken: 'new-refresh-token',
-        scope: 'offline.access ads.write ads.read',
-      });
-
-      await service.refreshToken('organization-1', 'brand-1');
-
-      expect(oauthService.refreshAccessToken).toHaveBeenCalledWith(
-        'decrypted-refresh-token',
-      );
-      expect(credentialsService.patch).toHaveBeenCalledWith(
-        'credential-1',
-        expect.objectContaining({
-          accessToken: 'new-access-token',
-          grantedScopes: ['ads.read', 'ads.write', 'offline.access'],
-          isConnected: true,
-          isDeleted: false,
-          refreshToken: 'new-refresh-token',
-        }),
-      );
-    });
-
-    it('uses NotFoundException when no scoped X Ads credential exists', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-
-      await expect(
-        service.refreshToken('organization-1', 'brand-1'),
-      ).rejects.toBeInstanceOf(NotFoundException);
-      // Token repair addresses the brand's account through the multi-account
-      // resolver and has to see rows a failed refresh already disconnected.
-      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
-        brandId: 'brand-1',
-        credentialId: undefined,
-        isDisconnectedIncluded: true,
-        organizationId: 'organization-1',
-        platform: 'x_ads',
-      });
-    });
-
-    it('uses BadRequestException when the credential cannot be refreshed', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        id: 'credential-1',
-        refreshToken: null,
-      });
-
-      await expect(
-        service.refreshToken('organization-1', 'brand-1'),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-
     it.each([{ data: null }, { request: {} }])(
       'uses BadGatewayException for malformed provider envelopes',
       async (envelope) => {
-        httpService.get.mockReturnValue(axiosResponse(envelope));
+        adsClient.get.mockResolvedValue(envelope);
 
         await expect(
-          service.listCampaigns('access-token', 'account-1'),
+          service.listCampaigns(oauthCredentials, 'account-1'),
         ).rejects.toBeInstanceOf(BadGatewayException);
       },
     );
+
+    it('logs sanitized provider metadata without OAuth credentials or response bodies', async () => {
+      adsClient.get.mockRejectedValue(
+        new Error('access-token access-token-secret provider-body'),
+      );
+
+      await expect(
+        service.getAdAccounts(oauthCredentials),
+      ).rejects.toBeInstanceOf(Error);
+
+      expect(loggerService.error).toHaveBeenCalledWith(expect.any(String), {
+        name: 'Error',
+      });
+      expect(JSON.stringify(loggerService.error.mock.calls)).not.toContain(
+        'access-token-secret',
+      );
+    });
   });
 
   it('serializes concurrent rate-limit reservations', async () => {
     vi.restoreAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date(1_000));
-    httpService.get.mockReturnValue(
-      axiosResponse({ data: [campaignWire('campaign-1')] }),
-    );
+    adsClient.get.mockResolvedValue({ data: [campaignWire('campaign-1')] });
 
     const requests = [
-      service.listCampaigns('access-token', 'account-1'),
-      service.listCampaigns('access-token', 'account-1'),
-      service.listCampaigns('access-token', 'account-1'),
+      service.listCampaigns(oauthCredentials, 'account-1'),
+      service.listCampaigns(oauthCredentials, 'account-1'),
+      service.listCampaigns(oauthCredentials, 'account-1'),
     ];
 
     await vi.advanceTimersByTimeAsync(0);
-    expect(httpService.get).toHaveBeenCalledTimes(1);
+    expect(adsClient.get).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(249);
-    expect(httpService.get).toHaveBeenCalledTimes(1);
+    expect(adsClient.get).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(1);
-    expect(httpService.get).toHaveBeenCalledTimes(2);
+    expect(adsClient.get).toHaveBeenCalledTimes(2);
 
     await vi.advanceTimersByTimeAsync(250);
-    expect(httpService.get).toHaveBeenCalledTimes(3);
+    expect(adsClient.get).toHaveBeenCalledTimes(3);
     await Promise.all(requests);
   });
 });

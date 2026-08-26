@@ -773,6 +773,79 @@ describe('CredentialsService', () => {
 
       expect(prisma.credential.findFirst).not.toHaveBeenCalled();
     });
+
+    it('resolves an OAuth 1.0a request token by hash inside the caller scope', async () => {
+      prisma.credential.findFirst.mockResolvedValueOnce({
+        brandId,
+        id: 'credential-1',
+        organizationId: orgId,
+        userId: 'u1',
+      });
+
+      const credential = await service.findPendingOAuth1Credential(
+        'request-token',
+        'x-ads' as never,
+        { organizationId: orgId, userId: 'u1' },
+      );
+
+      expect(prisma.credential.findFirst).toHaveBeenCalledWith({
+        where: {
+          isConnected: false,
+          isDeleted: false,
+          oauthTokenHash:
+            '3dc30238bf4b801c0cb801511cfdda3a9a9d767f737068df3f5f76c3a32a8eac',
+          organizationId: orgId,
+          platform: 'X_ADS',
+          updatedAt: { gte: expect.any(Date) },
+          userId: 'u1',
+        },
+      });
+      expect(credential).toEqual(
+        expect.objectContaining({ id: 'credential-1' }),
+      );
+    });
+
+    it('stores the OAuth 1.0a request token encrypted with a lookup hash', async () => {
+      await service.attachOAuth1RequestToken(
+        'credential-1',
+        'x-ads' as never,
+        { organizationId: orgId, userId: 'u1' },
+        'request-token',
+        'request-token-secret',
+      );
+
+      const update = prisma.credential.updateMany.mock.calls[0][0];
+      const data = update.data as Record<string, string>;
+      expect(update.where).toEqual({
+        id: 'credential-1',
+        isConnected: false,
+        isDeleted: false,
+        organizationId: orgId,
+        platform: 'X_ADS',
+        userId: 'u1',
+      });
+      expect(data.oauthTokenHash).toBe(
+        '3dc30238bf4b801c0cb801511cfdda3a9a9d767f737068df3f5f76c3a32a8eac',
+      );
+      expect(crypto.decrypt(data.oauthToken)).toBe('request-token');
+      expect(crypto.decrypt(data.oauthTokenSecret)).toBe(
+        'request-token-secret',
+      );
+    });
+
+    it('fails when the pending credential is outside the caller scope', async () => {
+      prisma.credential.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.attachOAuth1RequestToken(
+          'foreign-credential',
+          'x-ads' as never,
+          { organizationId: orgId, userId: 'u1' },
+          'request-token',
+          'request-token-secret',
+        ),
+      ).rejects.toThrow('Pending credential');
+    });
   });
 
   describe('credential tags', () => {

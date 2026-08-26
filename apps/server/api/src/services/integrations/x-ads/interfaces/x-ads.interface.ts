@@ -2,10 +2,15 @@ export type XAdsEntityStatus = 'ACTIVE' | 'PAUSED' | 'DRAFT';
 
 export interface XAdsOAuthTokens {
   accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  scope?: string;
+  accessTokenSecret: string;
+  screenName?: string;
+  userId?: string;
 }
+
+export type XAdsRequestCredentials = Pick<
+  XAdsOAuthTokens,
+  'accessToken' | 'accessTokenSecret'
+>;
 
 export interface XAdsAccount {
   id: string;

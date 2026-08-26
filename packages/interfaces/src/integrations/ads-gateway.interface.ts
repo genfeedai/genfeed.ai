@@ -115,6 +115,7 @@ export interface AdsAdapterContext {
   brandId?: string;
   credentialId: string;
   accessToken: string;
+  accessTokenSecret?: string;
   refreshToken?: string;
   adAccountId: string;
   loginCustomerId?: string;

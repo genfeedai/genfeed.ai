@@ -1,5 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   XAdsAccount,
   XAdsApiResponse,
@@ -13,37 +11,40 @@ import type {
   XAdsLineItem,
   XAdsPromotedTweet,
   XAdsReportingParams,
+  XAdsRequestCredentials,
   XAdsTweet,
 } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
-import { CredentialPlatform } from '@genfeedai/enums';
-import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpService } from '@nestjs/axios';
 import {
   BadGatewayException,
   BadRequestException,
+  HttpException,
   Injectable,
 } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 
 type XAdsReportingEntity = 'CAMPAIGN' | 'LINE_ITEM' | 'PROMOTED_TWEET';
 const X_ADS_STATS_MAX_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+function safeXAdsErrorMetadata(error: unknown): {
+  name: string;
+  status?: number;
+} {
+  if (error instanceof HttpException) {
+    return { name: error.name, status: error.getStatus() };
+  }
+  return { name: error instanceof Error ? error.name : 'UnknownError' };
+}
+
 /**
- * X Ads API v12 client (REST) plus token refresh. Mirrors the internals of
- * `TikTokAdsService` (base URL / header / rate-limit helpers) and the
- * `GoogleAdsService.refreshToken` shape (a plain service method, not an
- * organic-social disconnect flow), but authenticates via the shared
- * `twitter-api-v2` OAuth 2.0 PKCE client (`XAdsOAuthService`), since X Ads
- * shares its OAuth provider with organic X.
+ * X Ads API v12 client. Every provider call goes through the OAuth 1.0a Ads
+ * client created from the X Ads application key plus the credential's access
+ * token and secret. OAuth 2.0 bearer and refresh semantics are intentionally
+ * absent from this surface.
  */
 @Injectable()
 export class XAdsService {
-  private static readonly API_VERSION = '12';
-  private static readonly BASE_URL = 'https://ads-api.x.com';
   private static readonly RATE_LIMIT_DELAY_MS = 250;
   private static readonly PUBLISHED_TWEET_ID_LIMIT = 200;
   private static readonly STATS_ENTITY_ID_LIMIT = 20;
@@ -62,67 +63,13 @@ export class XAdsService {
   private rateLimitQueue: Promise<void> = Promise.resolve();
 
   constructor(
-    private readonly credentialsService: CredentialsService,
-    private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
     private readonly xAdsOAuthService: XAdsOAuthService,
   ) {}
 
-  async refreshToken(
-    organizationId: string,
-    brandId: string,
-    credentialId?: string,
-  ): Promise<Record<string, unknown>> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const credential = await this.credentialsService.resolveBrandAccount({
-      brandId,
-      credentialId,
-      // Token repair has to find the row even after a failed refresh
-      // flipped `isConnected` off.
-      isDisconnectedIncluded: true,
-      organizationId,
-      platform: CredentialPlatform.X_ADS,
-    });
-
-    if (!credential) {
-      throw new NotFoundException('X Ads credential');
-    }
-
-    if (!credential.refreshToken) {
-      throw new BadRequestException(
-        'X Ads credential does not include a refresh token',
-      );
-    }
-
-    try {
-      const decryptedRefreshToken = EncryptionUtil.decrypt(
-        credential.refreshToken,
-      );
-
-      const { accessToken, refreshToken, expiresIn, scope } =
-        await this.xAdsOAuthService.refreshAccessToken(decryptedRefreshToken);
-
-      return await this.credentialsService.patch(credential.id, {
-        accessToken,
-        accessTokenExpiry: expiresIn
-          ? new Date(Date.now() + expiresIn * 1000)
-          : undefined,
-        isConnected: true,
-        isDeleted: false,
-        refreshToken,
-        ...buildGrantedScopesCredentialPatch(scope),
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      await this.credentialsService.patch(credential.id, {
-        isConnected: false,
-      });
-      throw error;
-    }
-  }
-
-  async getAdAccounts(accessToken: string): Promise<XAdsAccount[]> {
+  async getAdAccounts(
+    credentials: XAdsRequestCredentials,
+  ): Promise<XAdsAccount[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -132,7 +79,7 @@ export class XAdsService {
         timezone: string;
         currency: string;
         approval_status: string;
-      }>(accessToken, '/accounts');
+      }>(credentials, '/accounts');
 
       return response.map((account) => ({
         approvalStatus: account.approval_status,
@@ -142,13 +89,16 @@ export class XAdsService {
         timezone: account.timezone,
       }));
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async getFundingInstruments(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
   ): Promise<XAdsFundingInstrument[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -159,7 +109,7 @@ export class XAdsService {
         type: string;
         entity_status: XAdsEntityStatus;
         currency: string;
-      }>(accessToken, `/accounts/${accountId}/funding_instruments`);
+      }>(credentials, `/accounts/${accountId}/funding_instruments`);
 
       return response.map((instrument) => ({
         currency: instrument.currency,
@@ -168,32 +118,38 @@ export class XAdsService {
         type: instrument.type,
       }));
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async listCampaigns(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
   ): Promise<XAdsCampaign[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       const response = await this.makePaginatedRequest<XAdsCampaignWireShape>(
-        accessToken,
+        credentials,
         `/accounts/${accountId}/campaigns`,
       );
 
       return response.map(mapWireCampaign);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async createCampaign(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     params: XAdsCreateCampaignParams,
   ): Promise<XAdsCampaign> {
@@ -201,7 +157,7 @@ export class XAdsService {
 
     try {
       const wireCampaign = await this.makePostRequest<XAdsCampaignWireShape>(
-        accessToken,
+        credentials,
         `/accounts/${accountId}/campaigns`,
         {
           daily_budget_amount_local_micro: params.dailyBudgetAmountLocalMicro,
@@ -216,13 +172,16 @@ export class XAdsService {
 
       return mapWireCampaign(wireCampaign);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async updateCampaign(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     campaignId: string,
     params: Partial<XAdsCreateCampaignParams>,
@@ -231,7 +190,7 @@ export class XAdsService {
 
     try {
       const wireCampaign = await this.makePutRequest<XAdsCampaignWireShape>(
-        accessToken,
+        credentials,
         `/accounts/${accountId}/campaigns/${campaignId}`,
         {
           daily_budget_amount_local_micro: params.dailyBudgetAmountLocalMicro,
@@ -245,13 +204,16 @@ export class XAdsService {
 
       return mapWireCampaign(wireCampaign);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async listLineItems(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     campaignId?: string,
   ): Promise<XAdsLineItem[]> {
@@ -259,20 +221,23 @@ export class XAdsService {
 
     try {
       const response = await this.makePaginatedRequest<XAdsLineItemWireShape>(
-        accessToken,
+        credentials,
         `/accounts/${accountId}/line_items`,
         { campaign_ids: campaignId },
       );
 
       return response.map(mapWireLineItem);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async createLineItem(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     params: XAdsCreateLineItemParams,
   ): Promise<XAdsLineItem> {
@@ -286,7 +251,7 @@ export class XAdsService {
       }
 
       const wireLineItem = await this.makePostRequest<XAdsLineItemWireShape>(
-        accessToken,
+        credentials,
         `/accounts/${accountId}/line_items`,
         {
           bid_amount_local_micro: params.bidAmountLocalMicro,
@@ -305,13 +270,16 @@ export class XAdsService {
 
       return mapWireLineItem(wireLineItem);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async listPromotedTweets(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     lineItemId?: string,
   ): Promise<XAdsPromotedTweet[]> {
@@ -320,20 +288,23 @@ export class XAdsService {
     try {
       const response =
         await this.makePaginatedRequest<XAdsPromotedTweetWireShape>(
-          accessToken,
+          credentials,
           `/accounts/${accountId}/promoted_tweets`,
           { line_item_ids: lineItemId },
         );
 
       return response.map(mapWirePromotedTweet);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async createPromotedTweet(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     params: XAdsCreatePromotedTweetParams,
   ): Promise<XAdsPromotedTweet> {
@@ -342,7 +313,7 @@ export class XAdsService {
     try {
       const wirePromotedTweets = await this.makePostRequest<
         XAdsPromotedTweetWireShape[]
-      >(accessToken, `/accounts/${accountId}/promoted_tweets`, {
+      >(credentials, `/accounts/${accountId}/promoted_tweets`, {
         line_item_id: params.lineItemId,
         tweet_ids: [params.tweetId],
       });
@@ -356,7 +327,10 @@ export class XAdsService {
 
       return mapWirePromotedTweet(wirePromotedTweet);
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
@@ -367,7 +341,7 @@ export class XAdsService {
    * for promotion through that account.
    */
   async listPublishedTweets(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     tweetIds: string[],
   ): Promise<XAdsTweet[]> {
@@ -385,7 +359,7 @@ export class XAdsService {
           index + XAdsService.PUBLISHED_TWEET_ID_LIMIT,
         );
         const response = await this.makePaginatedRequest<{ id_str: string }>(
-          accessToken,
+          credentials,
           `/accounts/${accountId}/tweets`,
           {
             timeline_type: 'ALL',
@@ -399,19 +373,22 @@ export class XAdsService {
 
       return tweets;
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
   }
 
   async getCampaignStats(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     campaignIds: string[],
     params: XAdsReportingParams,
   ): Promise<XAdsInsightsRow[]> {
     return this.getStats(
-      accessToken,
+      credentials,
       accountId,
       'CAMPAIGN',
       campaignIds,
@@ -420,13 +397,13 @@ export class XAdsService {
   }
 
   async getLineItemStats(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     lineItemIds: string[],
     params: XAdsReportingParams,
   ): Promise<XAdsInsightsRow[]> {
     return this.getStats(
-      accessToken,
+      credentials,
       accountId,
       'LINE_ITEM',
       lineItemIds,
@@ -435,13 +412,13 @@ export class XAdsService {
   }
 
   async getPromotedTweetStats(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     promotedTweetIds: string[],
     params: XAdsReportingParams,
   ): Promise<XAdsInsightsRow[]> {
     return this.getStats(
-      accessToken,
+      credentials,
       accountId,
       'PROMOTED_TWEET',
       promotedTweetIds,
@@ -450,7 +427,7 @@ export class XAdsService {
   }
 
   private async getStats(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     accountId: string,
     entity: XAdsReportingEntity,
     entityIds: string[],
@@ -485,7 +462,7 @@ export class XAdsService {
           for (const placement of XAdsService.STATS_PLACEMENTS) {
             for (const metricGroups of XAdsService.STATS_METRIC_GROUPS) {
               const response = await this.makeRequest<XAdsStatsWireShape[]>(
-                accessToken,
+                credentials,
                 `/stats/accounts/${accountId}`,
                 {
                   end_time: window.endTime,
@@ -545,15 +522,12 @@ export class XAdsService {
         startTime,
       }));
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeXAdsErrorMetadata(error),
+      );
       throw error;
     }
-  }
-
-  private getHeaders(accessToken: string): Record<string, string> {
-    return {
-      Authorization: `Bearer ${accessToken}`,
-    };
   }
 
   private async rateLimit(): Promise<void> {
@@ -572,12 +546,12 @@ export class XAdsService {
   }
 
   private async makeRequest<T>(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     path: string,
     params?: Record<string, unknown>,
   ): Promise<T> {
     const envelope = await this.makeRequestEnvelope<T>(
-      accessToken,
+      credentials,
       path,
       params,
     );
@@ -585,7 +559,7 @@ export class XAdsService {
   }
 
   private async makePaginatedRequest<T>(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     path: string,
     params: Record<string, unknown> = {},
   ): Promise<T[]> {
@@ -594,7 +568,7 @@ export class XAdsService {
 
     do {
       const envelope = await this.makeRequestEnvelope<T[]>(
-        accessToken,
+        credentials,
         path,
         cursor ? { ...params, cursor } : params,
       );
@@ -613,68 +587,71 @@ export class XAdsService {
   }
 
   private async makeRequestEnvelope<T>(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     path: string,
     params?: Record<string, unknown>,
   ): Promise<XAdsApiResponse<T>> {
     await this.rateLimit();
 
-    const response = await firstValueFrom(
-      this.httpService.get<XAdsApiResponse<T>>(
-        `${XAdsService.BASE_URL}/${XAdsService.API_VERSION}${path}`,
-        {
-          headers: this.getHeaders(accessToken),
-          params: this.toQueryParams(params),
-          timeout: 15000,
-        },
-      ),
-    );
-
-    return response.data;
+    return this.xAdsOAuthService
+      .createAdsClient(credentials)
+      .get<XAdsApiResponse<T>>(
+        this.normalizePath(path),
+        this.toQueryParams(params),
+        { timeout: 15_000 },
+      );
   }
 
   private async makePostRequest<T>(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     path: string,
     params: Record<string, unknown>,
   ): Promise<T> {
     await this.rateLimit();
 
-    const response = await firstValueFrom(
-      this.httpService.post<XAdsApiResponse<T>>(
-        `${XAdsService.BASE_URL}/${XAdsService.API_VERSION}${path}`,
-        undefined,
-        {
-          headers: this.getHeaders(accessToken),
-          params: this.toQueryParams(params),
-          timeout: 15000,
-        },
-      ),
-    );
+    const envelope = await this.xAdsOAuthService
+      .createAdsClient(credentials)
+      .post<XAdsApiResponse<T>>(this.normalizePath(path), undefined, {
+        query: this.toQueryParams(params),
+        timeout: 15_000,
+      });
 
-    return this.validateResponse(response.data);
+    return this.validateResponse(envelope);
   }
 
   private async makePutRequest<T>(
-    accessToken: string,
+    credentials: XAdsRequestCredentials,
     path: string,
     params: Record<string, unknown>,
   ): Promise<T> {
     await this.rateLimit();
 
-    const response = await firstValueFrom(
-      this.httpService.put<XAdsApiResponse<T>>(
-        `${XAdsService.BASE_URL}/${XAdsService.API_VERSION}${path}`,
-        undefined,
-        {
-          headers: this.getHeaders(accessToken),
-          params: this.toQueryParams(params),
-          timeout: 15000,
-        },
-      ),
-    );
+    const envelope = await this.xAdsOAuthService
+      .createAdsClient(credentials)
+      .put<XAdsApiResponse<T>>(this.normalizePath(path), undefined, {
+        query: this.toQueryParams(params),
+        timeout: 15_000,
+      });
 
-    return this.validateResponse(response.data);
+    return this.validateResponse(envelope);
+  }
+
+  private normalizePath(path: string): string {
+    return path.replace(/^\/+/, '');
+  }
+
+  private toQueryParams(
+    params: Record<string, unknown> | undefined,
+  ): Record<string, string> {
+    return Object.fromEntries(
+      Object.entries(params ?? {}).flatMap(([key, value]) => {
+        if (value === undefined) {
+          return [];
+        }
+
+        return [[key, Array.isArray(value) ? value.join(',') : String(value)]];
+      }),
+    );
   }
 
   private validateResponse<T>(envelope: XAdsApiResponse<T>): T {
@@ -682,20 +659,6 @@ export class XAdsService {
       throw new BadGatewayException('X Ads API returned an empty response');
     }
     return envelope.data;
-  }
-
-  private toQueryParams(
-    params: Record<string, unknown> | undefined,
-  ): Record<string, unknown> {
-    return Object.fromEntries(
-      Object.entries(params ?? {}).flatMap(([key, value]) => {
-        if (value === undefined) {
-          return [];
-        }
-
-        return [[key, Array.isArray(value) ? value.join(',') : value]];
-      }),
-    );
   }
 }
 
