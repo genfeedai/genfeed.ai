@@ -6,7 +6,7 @@ import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Search, Sparkles, Upload, Youtube } from 'lucide-react';
+import { CirclePlay, Search, Sparkles, Upload } from 'lucide-react';
 
 import ClipModeSelector from './ClipModeSelector';
 
@@ -54,7 +54,7 @@ export default function ClipsInputForm({
                   ? 'border-primary bg-primary/10 text-foreground'
                   : 'border-border bg-secondary text-muted-foreground'
               }`}
-              icon={<Youtube className="size-4" />}
+              icon={<CirclePlay className="size-4" />}
               label="YouTube URL"
             />
             <Button
