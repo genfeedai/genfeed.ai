@@ -150,9 +150,32 @@ test.describe('Onboarding Flow', () => {
       await page.waitForStep(1);
       await page.skipStep();
 
-      // Skip completes onboarding, so the root resolver enters the regular
-      // organization-scoped agent instead of reopening the onboarding thread.
-      await page.assertAgentHandoff(orgPath(APP_ROUTES.AGENT.ROOT));
+      // Production returns to root after completing onboarding. The normal
+      // request boundary resolves that root into a scoped destination; the
+      // mocked-auth bypass intentionally leaves this client transition at `/`.
+      await expect
+        .poll(() => new URL(onboardingPage.url()).pathname)
+        .toBe(APP_ROUTES.ROOT);
+
+      const completion = await onboardingPage.evaluate(async (apiEndpoint) => {
+        const response = await fetch(`${apiEndpoint}/auth/bootstrap`);
+        const payload = (await response.json()) as {
+          access?: { isOnboardingCompleted?: boolean };
+          currentUser?: { isOnboardingCompleted?: boolean };
+        };
+
+        return {
+          access: payload.access?.isOnboardingCompleted,
+          currentUser: payload.currentUser?.isOnboardingCompleted,
+          ok: response.ok,
+        };
+      }, ONBOARDING_API_ENDPOINT);
+
+      expect(completion).toEqual({
+        access: true,
+        currentUser: true,
+        ok: true,
+      });
     });
   });
 

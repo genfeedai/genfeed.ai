@@ -163,35 +163,14 @@ test.describe('Library Media Types', () => {
         .poll(() => new URL(authenticatedPage.url()).pathname)
         .toBe(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
 
-      // Search input, filter buttons, or sort controls
-      const hasSearch = await authenticatedPage
-        .locator(
-          'input[type="search"],' +
-            ' input[placeholder*="Search"],' +
-            ' input[placeholder*="search"],' +
-            ' [data-testid="search-input"],' +
-            ' [data-testid="search"]',
-        )
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      const hasFilter = await authenticatedPage
-        .locator(
-          '[data-testid="filter"],' +
-            ' [data-testid="filter-button"],' +
-            ' button:has-text("Filter"),' +
-            ' button:has-text("Sort")',
-        )
-        .or(authenticatedPage.getByText(/^Search$/i))
-        .first()
-        .isVisible()
-        .catch(() => false);
-
-      expect(
-        hasSearch || hasFilter,
-        'Expected search input or filter button to be visible',
-      ).toBe(true);
+      const search = authenticatedPage.getByRole('textbox', {
+        name: 'Search',
+      });
+      await expect(search).toBeVisible();
+      await expect(search).toHaveAttribute(
+        'placeholder',
+        "Search this brand's assets",
+      );
     });
   });
 
