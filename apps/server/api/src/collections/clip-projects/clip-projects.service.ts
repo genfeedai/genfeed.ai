@@ -17,7 +17,10 @@ import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
 } from '@genfeedai/helpers';
-import type { ClipReferenceFrameSet } from '@genfeedai/interfaces';
+import type {
+  ClipReferenceFrameSet,
+  ClipSourceContract,
+} from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -26,6 +29,10 @@ type ClipProjectWriteDto = Partial<
   CreateClipProjectDto & UpdateClipProjectDto
 > &
   Record<string, unknown>;
+
+type ClipProjectCreateInput = CreateClipProjectDto & {
+  readonly source?: ClipSourceContract;
+};
 
 const PROJECT_SCALAR_KEYS = new Set([
   'brandId',
@@ -65,7 +72,7 @@ export class ClipProjectsService extends BaseService<
   }
 
   override async create(
-    createDto: CreateClipProjectDto,
+    createDto: ClipProjectCreateInput,
     populate: PopulateInput = [],
   ): Promise<ClipProjectDocument> {
     return await super.create(
