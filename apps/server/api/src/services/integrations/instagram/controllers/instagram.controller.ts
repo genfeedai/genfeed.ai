@@ -15,6 +15,10 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import {
+  getSafeInstagramOAuthErrorLog,
+  throwMappedInstagramOAuthError,
+} from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
@@ -169,7 +173,12 @@ export class InstagramController {
     @Body() createCredentialVerifyDto: Partial<CreateCredentialVerifyDto>,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, createCredentialVerifyDto);
+    this.loggerService.log(url, {
+      hasCode: Boolean(createCredentialVerifyDto.code),
+      hasState: Boolean(createCredentialVerifyDto.state),
+    });
+    let failureStage = 'request_validation';
+
     try {
       const { code, state } = createCredentialVerifyDto;
 
@@ -180,6 +189,7 @@ export class InstagramController {
         });
       }
 
+      failureStage = 'credential_lookup';
       const existingCredential =
         await this.credentialsService.findPendingOAuthCredential(
           state,
@@ -187,27 +197,34 @@ export class InstagramController {
         );
 
       if (!existingCredential) {
-        return returnNotFound('Pending OAuth credential', state);
+        return returnNotFound(
+          'Pending OAuth credential',
+          'for this OAuth state',
+        );
       }
 
       // 1. Exchange code for short-lived user access token
+      failureStage = 'configuration';
       const appId = this.configService.get('INSTAGRAM_APP_ID');
       const appSecret = this.configService.get('INSTAGRAM_APP_SECRET');
 
-      if (!appId || !appSecret) {
-        this.loggerService.error(`${url} - Missing app credentials`);
-        return returnBadRequest({
-          detail: 'Instagram app credentials are not configured',
-          title: 'Configuration error',
-        });
+      if (
+        !appId ||
+        !appSecret ||
+        isUnconfiguredSecret(appId) ||
+        isUnconfiguredSecret(appSecret)
+      ) {
+        throw new ServiceUnavailableException(
+          'Instagram OAuth is not configured for this deployment.',
+        );
       }
 
       // Authorization codes expire quickly (10-60 seconds) and can only be used once
       // The redirect_uri must match EXACTLY (including protocol, domain, path, trailing slashes)
-      let tokenRes: AxiosResponse<InstagramShortLivedTokenResponse>;
-      try {
-        // Use POST method as per OAuth 2.0 specification and Facebook's recommendation
-        tokenRes = await firstValueFrom(
+      failureStage = 'short_lived_token';
+      // Use POST method as per OAuth 2.0 specification and Facebook's recommendation
+      const tokenRes: AxiosResponse<InstagramShortLivedTokenResponse> =
+        await firstValueFrom(
           this.httpService.post(
             `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
             null,
@@ -221,79 +238,6 @@ export class InstagramController {
             },
           ),
         );
-      } catch (error: unknown) {
-        // Extract error details - Facebook/Instagram errors can be nested multiple levels
-        // Structure can be: error.response.data.error.error.error
-        const response = (
-          error as {
-            response?: { data?: Record<string, unknown>; status?: number };
-          }
-        )?.response;
-        let errorData = response?.data;
-        if (errorData?.error) {
-          // @ts-expect-error TS2322
-          errorData = errorData.error;
-          // Handle double nesting
-          if (errorData?.error) {
-            // @ts-expect-error TS2322
-            errorData = errorData.error;
-          }
-        }
-
-        const errorCode = errorData?.code;
-        const errorMessage = errorData?.message;
-        const errorType = errorData?.type;
-        const errorSubcode = errorData?.error_subcode;
-
-        this.loggerService.error(`${url} - Failed to exchange code for token`, {
-          error: errorData,
-          errorCode,
-          errorSubcode,
-          errorType,
-          hasCode: !!code,
-          httpCode: response?.status,
-          redirectUri: this.redirectUri,
-        });
-
-        // Handle specific Facebook Graph API errors
-        if (errorCode === 190) {
-          // Code 190 can mean different things:
-          // - Invalid or expired authorization code
-          // - Redirect URI mismatch
-          // - Code already used
-          return returnBadRequest({
-            detail:
-              errorMessage ||
-              'Invalid or expired authorization code. The code may have expired, been used already, or the redirect URI does not match. Please try connecting again.',
-            title: 'Authentication failed',
-          });
-        }
-
-        if (errorCode === 102) {
-          return returnBadRequest({
-            detail:
-              errorMessage ||
-              'Session expired or invalid. Please reconnect your Instagram account.',
-            title: 'Authentication failed',
-          });
-        }
-
-        // Handle redirect URI mismatch (common cause)
-        if (
-          errorCode === 100 ||
-          // @ts-expect-error TS2339
-          errorMessage?.toLowerCase().includes('redirect_uri')
-        ) {
-          return returnBadRequest({
-            detail:
-              errorMessage ||
-              'Redirect URI mismatch. The redirect URI used in the authorization request must exactly match the one used in the token exchange.',
-            title: 'Configuration error',
-          });
-        }
-
-        throw error;
-      }
 
       const shortLivedToken = tokenRes.data.access_token;
 
@@ -310,9 +254,9 @@ export class InstagramController {
       }
 
       // 2. Exchange short-lived token for long-lived token
-      let longTokenRes: AxiosResponse<InstagramLongLivedTokenResponse>;
-      try {
-        longTokenRes = await firstValueFrom(
+      failureStage = 'long_lived_token';
+      const longTokenRes: AxiosResponse<InstagramLongLivedTokenResponse> =
+        await firstValueFrom(
           this.httpService.get(
             `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
             {
@@ -325,50 +269,6 @@ export class InstagramController {
             },
           ),
         );
-      } catch (error: unknown) {
-        this.loggerService.error(
-          `${url} - Failed to exchange token for long-lived token`,
-          {
-            code: (
-              error as {
-                response?: { data?: Record<string, unknown>; status?: number };
-              }
-            )?.response?.status,
-            error:
-              (
-                error as {
-                  response?: {
-                    data?: Record<string, unknown>;
-                    status?: number;
-                  };
-                }
-              )?.response?.data || (error as Error)?.message,
-          },
-        );
-
-        // Handle specific Facebook Graph API errors
-        const graphError = (
-          error as {
-            response?: {
-              data?: { error?: { code?: number; message?: string } };
-              status?: number;
-            };
-          }
-        )?.response?.data?.error;
-        const errorCode = graphError?.code;
-        const errorMessage = graphError?.message ?? (error as Error)?.message;
-
-        if (errorCode === 190 || errorCode === 102) {
-          return returnBadRequest({
-            detail:
-              errorMessage ||
-              'Invalid OAuth access token. The authorization may have expired. Please reconnect your Instagram account.',
-            title: 'Authentication failed',
-          });
-        }
-
-        throw error;
-      }
 
       const { access_token, expires_in } = longTokenRes.data || {};
       const scope = tokenRes.data.scope ?? longTokenRes.data?.scope;
@@ -382,6 +282,7 @@ export class InstagramController {
 
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
+      failureStage = 'credential_persist';
       let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
@@ -415,47 +316,20 @@ export class InstagramController {
       } catch (signalError: unknown) {
         this.loggerService.warn(
           `${url} authorized signal refresh failed after connection`,
-          signalError,
+          getSafeInstagramOAuthErrorLog(signalError),
         );
       }
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
-      // Handle expired/invalid token errors from Facebook Graph API
-      // Error code 190: Access token expired
-      // Error code 102: Session key invalid or no longer valid
-      const response =
-        (
-          error as {
-            response?: { data?: Record<string, unknown>; status?: number };
-          }
-        )?.response ||
-        (error as { error?: { response?: { data?: Record<string, unknown> } } })
-          ?.error?.response;
-      const errorData = response?.data as Record<string, unknown> | undefined;
-      const nestedError = errorData?.error as
-        | Record<string, unknown>
-        | undefined;
-      const errorCode =
-        nestedError?.code ||
-        errorData?.error_code ||
-        (
-          error as {
-            error?: { response?: { data?: { error?: { code?: number } } } };
-          }
-        )?.error?.response?.data?.error?.code;
-
-      if (errorCode === 190 || errorCode === 102) {
-        return returnBadRequest({
-          detail:
-            'Your Instagram connection has expired. Please reconnect your Instagram account.',
-          title: 'Authentication failed',
-        });
-      }
-
-      return returnInternalServerError('Failed to verify Instagram OAuth');
+      this.loggerService.error(`${url} failed`, {
+        stage: failureStage,
+        ...getSafeInstagramOAuthErrorLog(error),
+      });
+      return throwMappedInstagramOAuthError(
+        error,
+        'Failed to verify Instagram OAuth',
+      );
     }
   }
 
