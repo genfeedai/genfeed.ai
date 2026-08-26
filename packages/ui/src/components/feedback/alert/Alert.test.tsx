@@ -1,23 +1,69 @@
-import { render } from '@testing-library/react';
+import { AlertCategory } from '@genfeedai/enums';
+import { fireEvent, render, screen } from '@testing-library/react';
 import Alert from '@ui/feedback/alert/Alert';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('Alert', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<Alert />);
-    expect(container.firstChild).toBeInTheDocument();
+  it('renders information as a polite status region', () => {
+    render(<Alert>Information</Alert>);
+
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<Alert />);
-    expect(container.firstChild).toBeInTheDocument();
+  it.each([AlertCategory.ERROR, AlertCategory.WARNING])(
+    'renders %s as an assertive alert region',
+    (type) => {
+      render(<Alert type={type}>{type}</Alert>);
+
+      expect(screen.getByRole('alert')).not.toHaveAttribute('aria-live');
+    },
+  );
+
+  it.each([AlertCategory.INFO, AlertCategory.SUCCESS])(
+    'renders %s as a polite status region',
+    (type) => {
+      render(<Alert type={type}>{type}</Alert>);
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
+    },
+  );
+
+  it('keeps severity, content, and close action in separate grid columns', () => {
+    const handleClose = vi.fn();
+
+    const { container } = render(
+      <Alert onClose={handleClose} type={AlertCategory.ERROR}>
+        Data save failed
+      </Alert>,
+    );
+
+    const rootElement = screen.getByRole('alert');
+    const severitySlot = container.querySelector('[data-slot="alert-icon"]');
+    const closeButton = screen.getByRole('button', { name: 'Dismiss alert' });
+
+    expect(rootElement).toHaveClass(
+      'grid',
+      'grid-cols-[auto_minmax(0,1fr)_auto]',
+    );
+    expect(severitySlot).toHaveAttribute('aria-hidden', 'true');
+    expect(severitySlot).toHaveClass('shrink-0');
+    expect(closeButton).toHaveClass('size-7', 'shrink-0');
+
+    fireEvent.click(closeButton);
+    expect(handleClose).toHaveBeenCalledOnce();
   });
 
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<Alert />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass('rounded-lg');
-    expect(rootElement).toHaveClass('relative');
+  it('preserves custom icon geometry inside the non-triggering icon slot', () => {
+    const { container } = render(
+      <Alert icon={<svg className="size-7" data-testid="custom-alert-icon" />}>
+        Custom icon
+      </Alert>,
+    );
+
+    const severitySlot = container.querySelector('[data-slot="alert-icon"]');
+    const customIcon = screen.getByTestId('custom-alert-icon');
+
+    expect(severitySlot?.tagName).toBe('SPAN');
+    expect(customIcon).toHaveClass('size-7');
   });
 });

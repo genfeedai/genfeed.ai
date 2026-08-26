@@ -3,7 +3,7 @@ import type { ComponentPropsWithoutRef } from 'react';
 import { cn } from '../lib/utils';
 
 const alertVariants = cva(
-  'relative w-full rounded-md border p-4 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:translate-y-[-3px] [&:has(svg)]:pl-11',
+  'relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-md border p-4 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current',
   {
     defaultVariants: {
       variant: 'default',
@@ -24,15 +24,22 @@ const alertVariants = cva(
 function Alert({
   className,
   variant = 'default',
+  role,
+  'aria-live': ariaLive,
   ...props
 }: ComponentPropsWithoutRef<'div'> & VariantProps<typeof alertVariants>) {
+  const resolvedVariant = variant ?? 'default';
+  const isAssertive =
+    resolvedVariant === 'destructive' || resolvedVariant === 'warning';
+  const resolvedRole = role ?? (isAssertive ? 'alert' : 'status');
+  const resolvedAriaLive =
+    ariaLive ?? (role === undefined && !isAssertive ? 'polite' : undefined);
+
   return (
     <div
-      role="alert"
-      className={cn(
-        alertVariants({ variant: variant ?? 'default' }),
-        className,
-      )}
+      aria-live={resolvedAriaLive}
+      role={resolvedRole}
+      className={cn(alertVariants({ variant: resolvedVariant }), className)}
       {...props}
     />
   );
@@ -41,7 +48,10 @@ function Alert({
 function AlertTitle({ className, ...props }: ComponentPropsWithoutRef<'h5'>) {
   return (
     <h5
-      className={cn('mb-1 font-medium leading-none tracking-tight', className)}
+      className={cn(
+        'col-start-2 mb-1 font-medium leading-none tracking-tight',
+        className,
+      )}
       {...props}
     />
   );
@@ -53,7 +63,7 @@ function AlertDescription({
 }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={cn('text-sm [&_p]:leading-relaxed', className)}
+      className={cn('col-start-2 text-sm [&_p]:leading-relaxed', className)}
       {...props}
     />
   );
