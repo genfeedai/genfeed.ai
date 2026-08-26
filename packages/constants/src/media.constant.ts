@@ -19,6 +19,8 @@ export const VIDEO_MERGE_LIMITS = {
 } as const;
 
 export const CLIP_REFERENCE_FRAME_MAX_CANDIDATES = 5;
+/** Maximum source duration accepted by clip ingestion and materialization. */
+export const CLIP_SOURCE_MAX_DURATION_SECONDS = 6 * 60 * 60;
 /** Supports materializing multi-hour clip sources before downstream processing. */
 export const YT_DLP_PROCESS_TIMEOUT_MS = 30 * 60_000;
 export const CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS =

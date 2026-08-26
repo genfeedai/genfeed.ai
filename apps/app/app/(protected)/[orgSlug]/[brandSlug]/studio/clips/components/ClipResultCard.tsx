@@ -32,7 +32,7 @@ interface ClipResultCardProps {
   projectId: string;
 }
 
-const STATUS_CONFIG: Record<ClipStatus, { label: string; color: string }> = {
+const STATUS_CONFIG: Record<ClipStatus, { label?: string; color: string }> = {
   captioning: {
     color: 'bg-info/10 text-info border-transparent',
     label: 'Captioning',
@@ -40,6 +40,9 @@ const STATUS_CONFIG: Record<ClipStatus, { label: string; color: string }> = {
   completed: {
     color: 'bg-success/10 text-success border-transparent',
     label: 'Ready',
+  },
+  degraded: {
+    color: 'bg-warning/10 text-warning border-transparent',
   },
   extracting: {
     color: 'bg-warning/10 text-warning border-transparent',
@@ -194,7 +197,7 @@ export default function ClipResultCard({
             variant="outline"
             className={`rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wider ${statusConfig.color}`}
           >
-            {statusConfig.label}
+            {statusConfig.label ?? t('reviewRequired')}
           </Badge>
           {clip.clipType && (
             <Badge
@@ -357,10 +360,12 @@ export default function ClipResultCard({
       )}
       {clip.status === 'degraded' && (
         <div className="mt-auto pt-2">
-          <p className="text-xs font-medium text-amber-600">Review required</p>
+          <p className="text-xs font-medium text-warning">
+            {t('reviewRequired')}
+          </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {clip.mediaValidation?.issues.join(' ') ??
-              'This clip did not pass media readiness checks.'}
+              t('mediaReadinessFailed')}
           </p>
         </div>
       )}

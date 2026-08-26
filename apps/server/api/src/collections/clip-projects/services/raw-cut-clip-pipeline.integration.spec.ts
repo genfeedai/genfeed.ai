@@ -234,7 +234,7 @@ describe('raw-cut clip pipeline integration', () => {
       ingredientId: 'clip-result-1',
       organizationId: ORGANIZATION_ID,
       params: {
-        captionContent: '1\n00:00:02,000 --> 00:00:06,000\nKeep this caption',
+        captionContent: '1\n00:00:01,960 --> 00:00:06,120\nKeep this caption',
         duration: 14,
         endTime: 24,
         inputPath: undefined,
@@ -306,7 +306,7 @@ describe('raw-cut clip pipeline integration', () => {
       ingredientId: 'clip-result-1',
       organizationId: ORGANIZATION_ID,
       params: {
-        captionContent: '1\n00:00:02,000 --> 00:00:06,000\nKeep this caption',
+        captionContent: '1\n00:00:01,960 --> 00:00:06,120\nKeep this caption',
         s3Key: 'videos/clip-result-1-portrait.mp4',
       },
       room: undefined,

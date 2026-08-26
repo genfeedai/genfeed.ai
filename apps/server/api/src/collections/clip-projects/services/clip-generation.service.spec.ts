@@ -474,6 +474,45 @@ describe('ClipGenerationService', () => {
     );
   });
 
+  it('does not count an inline completion when its terminal transition is stale', async () => {
+    Object.assign(provider, { providerName: 'genfeedai' as const });
+    provider.generateVideo.mockResolvedValue({
+      jobId: 'genfeedai-clip-clip-result-1',
+      providerName: 'genfeedai',
+      status: 'completed',
+      videoUrl: 'https://cdn.genfeed.ai/clips/clip-result-1.mp4',
+    });
+    clipResultsService.transitionProviderTerminal.mockResolvedValue(false);
+    const clipLibraryLinkService = {
+      linkReadyClip: vi.fn().mockResolvedValue({ status: 'linked' }),
+    };
+    const clipProjectsService = {
+      reconcileTerminalState: vi.fn().mockResolvedValue({}),
+    };
+    service = new ClipGenerationService(
+      clipResultsService as unknown as ClipResultsService,
+      avatarVideoService as unknown as AvatarVideoService,
+      rawCutClipService as unknown as RawCutClipService,
+      logger,
+      undefined,
+      clipLibraryLinkService as never,
+      clipProjectsService as never,
+    );
+
+    const result = await service.generateClips(
+      makeInput({
+        avatarId: undefined,
+        provider: 'genfeedai',
+        referenceImageUrl: 'https://cdn.example.com/character.png',
+        voiceId: undefined,
+      }),
+    );
+
+    expect(result).not.toHaveProperty('completedClipCount');
+    expect(clipLibraryLinkService.linkReadyClip).not.toHaveBeenCalled();
+    expect(clipProjectsService.reconcileTerminalState).not.toHaveBeenCalled();
+  });
+
   it('should mark clip as failed when provider errors', async () => {
     provider.generateVideo.mockRejectedValueOnce(new Error('API timeout'));
 

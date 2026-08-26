@@ -140,16 +140,17 @@ export class ClipAnalyzeProcessor extends WorkerHost {
         data.source?.kind === 'youtube' ? 'downloading' : 'extracting',
       );
 
+      const sourceUrl = sourceArtifact?.mediaUrl ?? data.youtubeUrl;
       const extraction: AudioExtractionResult =
         data.source?.contentType?.startsWith('audio/')
-          ? { audioUrl: data.youtubeUrl }
+          ? { audioUrl: sourceUrl }
           : await this.downloadAudio(
-              data.youtubeUrl,
+              sourceUrl,
               data.orgId,
               data.userId,
               projectId,
               data.source?.ingredientId,
-              data.source?.artifact?.storageKey,
+              sourceArtifact?.storageKey,
             );
       const { audioUrl } = extraction;
       if (extraction.sourceArtifact) {
@@ -233,7 +234,7 @@ export class ClipAnalyzeProcessor extends WorkerHost {
 
         try {
           referenceFrames = await this.extractReferenceFrames(
-            sourceArtifact?.mediaUrl ?? data.youtubeUrl,
+            sourceArtifact?.mediaUrl ?? sourceUrl,
             data.orgId,
             data.userId,
             projectId,
@@ -310,9 +311,7 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     projectId: string,
     timestamps: number[],
   ): Promise<ClipReferenceFrameSet> {
-    const filesUrl =
-      this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://localhost:3012';
+    const filesUrl = this.getFilesServiceUrl();
 
     const response = await firstValueFrom(
       this.httpService.post(
@@ -350,9 +349,7 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     ingredientId?: string,
     sourceS3Key?: string,
   ): Promise<AudioExtractionResult> {
-    const filesUrl =
-      this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://localhost:3012';
+    const filesUrl = this.getFilesServiceUrl();
 
     const response = await firstValueFrom(
       this.httpService.post(
@@ -380,6 +377,18 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     }
 
     return this.waitForAudioJob(filesUrl, jobId);
+  }
+
+  private getFilesServiceUrl(): string {
+    const configuredFilesUrl = this.configService.get(
+      'GENFEEDAI_MICROSERVICES_FILES_URL',
+    ) as string | undefined;
+    if (!configuredFilesUrl && !this.configService.isDevelopment) {
+      throw new Error(
+        'GENFEEDAI_MICROSERVICES_FILES_URL is not configured — clip analysis cannot reach the files service',
+      );
+    }
+    return configuredFilesUrl || 'http://localhost:3012';
   }
 
   /**

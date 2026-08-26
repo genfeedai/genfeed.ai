@@ -167,7 +167,7 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       data,
       'video-to-audio',
       undefined,
-      data.id,
+      getRawCutJobId(data),
     );
   }
 

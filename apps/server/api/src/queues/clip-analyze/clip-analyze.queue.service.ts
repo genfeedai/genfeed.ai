@@ -40,7 +40,12 @@ export class ClipAnalyzeQueueService {
       );
     }
 
-    await job.updateData({ ...job.data, source });
+    const sourceUrl = source.artifact?.mediaUrl;
+    await job.updateData({
+      ...job.data,
+      ...(sourceUrl ? { youtubeUrl: sourceUrl } : {}),
+      source,
+    });
     await job.retry();
     return job.id ?? jobId;
   }

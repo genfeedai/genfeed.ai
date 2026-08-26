@@ -44,14 +44,33 @@ export function handleClipProjectsTool(
       return textJsonResult('Started clip analysis', result);
     },
     create_clip_project_from_youtube: async (a) => {
+      const avatarId = optionalString(a, 'avatarId');
+      const avatarProvider = optionalString(a, 'avatarProvider') ?? 'heygen';
+      const brandId = optionalString(a, 'brandId');
+      const voiceId = optionalString(a, 'voiceId');
+      if (avatarProvider === 'genfeedai' && !brandId) {
+        throw new Error(
+          'brandId is required for a GenfeedAI managed clip factory',
+        );
+      }
+      if (
+        avatarProvider !== 'genfeedai' &&
+        !brandId &&
+        (!avatarId || !voiceId)
+      ) {
+        throw new Error(
+          'avatarId and voiceId, or a brandId with saved defaults, are required for HeyGen and Argil clip factories',
+        );
+      }
       const result = await client.createClipProjectFromYoutube({
-        avatarId: requiredString(a, 'avatarId'),
-        avatarProvider: optionalString(a, 'avatarProvider'),
+        avatarId,
+        avatarProvider,
+        brandId,
         language: optionalString(a, 'language'),
         maxClips: optionalNumber(a, 'maxClips'),
         minViralityScore: optionalNumber(a, 'minViralityScore'),
         name: optionalString(a, 'name'),
-        voiceId: requiredString(a, 'voiceId'),
+        voiceId,
         youtubeUrl: requiredString(a, 'youtubeUrl'),
       });
 
@@ -109,8 +128,7 @@ function generateClipsParams(
   const voiceId = optionalString(args, 'voiceId');
 
   // Avatar-mode inputs are enforced here rather than in the tool's JSON schema
-  // so that raw-cut (which needs neither) works untouched once the API accepts
-  // `mode` (#1238). Until then only avatar mode is functional.
+  // because raw-cut needs neither identity field.
   if (mode === 'avatar' && (!avatarId || !voiceId)) {
     throw new Error('avatarId and voiceId are required for avatar mode');
   }

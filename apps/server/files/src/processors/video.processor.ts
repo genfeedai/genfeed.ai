@@ -16,6 +16,7 @@ import {
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
+import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
 import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -800,7 +801,7 @@ export class VideoProcessor extends WorkerHost {
           : undefined;
         if (
           sourceDurationSeconds !== undefined &&
-          sourceDurationSeconds > 6 * 60 * 60
+          sourceDurationSeconds > CLIP_SOURCE_MAX_DURATION_SECONDS
         ) {
           throw new Error('Clip sources may be up to 6 hours long.');
         }

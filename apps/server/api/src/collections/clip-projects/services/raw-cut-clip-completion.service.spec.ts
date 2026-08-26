@@ -378,6 +378,46 @@ describe('RawCutClipCompletionService', () => {
     expect(clipLibraryLinkService.linkReadyClip).not.toHaveBeenCalled();
   });
 
+  it('keeps media validation retryable when inspection is unavailable', async () => {
+    clipResultsService.findOne.mockResolvedValue(
+      makeClip({
+        providerJobId: 'raw-cut-caption-clip-1',
+        status: 'captioning',
+      }),
+    );
+    filesClientService.inspectVideoQa.mockRejectedValue(
+      new Error('Files service unavailable'),
+    );
+
+    await expect(
+      service.handleCompletion({
+        ingredientId: 'clip-1',
+        organizationId: 'org-1',
+        result: {
+          jobId: 'raw-cut-caption-clip-1',
+          jobType: 'add-captions',
+          s3Key: 'videos/clip-1.mp4',
+          url: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+        },
+        status: Status.COMPLETED,
+      }),
+    ).rejects.toThrow('Files service unavailable');
+
+    expect(clipResultsService.patch).toHaveBeenCalledTimes(1);
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      {
+        captionedVideoS3Key: 'videos/clip-1.mp4',
+        captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+        status: 'validating',
+      },
+      [],
+      'org-1',
+    );
+    expect(clipLibraryLinkService.linkReadyClip).not.toHaveBeenCalled();
+    expect(clipProjectsService.reconcileTerminalState).not.toHaveBeenCalled();
+  });
+
   it('isolates a failed media job to its clip result', async () => {
     clipResultsService.findOne.mockResolvedValue(makeClip());
 

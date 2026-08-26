@@ -20,7 +20,9 @@ vi.mock('next-intl', () => ({
       generationFailed:
         'Generation failed. The clip will be retried automatically.',
       inLibrary: 'In Library',
+      mediaReadinessFailed: 'This clip did not pass media readiness checks.',
       publish: 'Publish',
+      reviewRequired: 'Review required',
       retryLibraryLink: 'Retry Library link',
     };
     return copy[key] ?? key;
@@ -359,5 +361,20 @@ describe('ClipResultCard', () => {
 
     expect(screen.getByText('Failed')).toBeInTheDocument();
     expect(screen.getByText(/Generation failed/)).toBeInTheDocument();
+  });
+
+  it('shows a review-required badge and localized fallback for degraded clips', () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({ status: 'degraded' })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    expect(screen.getAllByText('Review required')).toHaveLength(2);
+    expect(
+      screen.getByText('This clip did not pass media readiness checks.'),
+    ).toBeInTheDocument();
   });
 });

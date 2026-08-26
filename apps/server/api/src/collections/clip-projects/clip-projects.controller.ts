@@ -10,6 +10,7 @@ import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import type { ResolvedClipReference } from '@api/collections/clip-projects/services/clip-reference-generation.util';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
@@ -269,7 +270,7 @@ export class ClipProjectsController {
           organizationId,
         )
       : [];
-    const reference =
+    const reference: ResolvedClipReference =
       mode === 'avatar'
         ? this.clipGenerationRequestService.resolveProjectReference({
             mode,

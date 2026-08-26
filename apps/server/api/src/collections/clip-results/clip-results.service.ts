@@ -139,11 +139,14 @@ export class ClipResultsService extends BaseService<
       isDeleted: false,
       ...(organizationId !== undefined ? { organizationId } : {}),
     });
+    if (!existing) {
+      throw new NotFoundException('ClipResult', id);
+    }
     const existingData = this.readRecord(
-      (existing as Record<string, unknown> | null)?.data,
+      (existing as Record<string, unknown>).data,
     );
     const canonicalId =
-      typeof existing?.id === 'string' && existing.id.length > 0
+      typeof existing.id === 'string' && existing.id.length > 0
         ? existing.id
         : id;
 

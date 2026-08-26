@@ -687,34 +687,30 @@ export class RawCutClipCompletionService {
     let videoCodec: string | null = null;
     let width: number | null = null;
 
-    try {
-      const inspection = await this.filesClientService.inspectVideoQa({
-        blackDurationSeconds: 0.5,
-        freezeDurationSeconds: 2,
-        isContactSheetEnabled: false,
-        videoUrl: url,
-      });
-      decodeOk = inspection.decodeOk;
-      const probe = JSON.parse(inspection.probeJson) as {
-        format?: { duration?: string | number };
-        streams?: Array<{
-          codec_name?: string;
-          codec_type?: string;
-          height?: number;
-          width?: number;
-        }>;
-      };
-      const streams = Array.isArray(probe.streams) ? probe.streams : [];
-      const video = streams.find((stream) => stream.codec_type === 'video');
-      hasAudio = streams.some((stream) => stream.codec_type === 'audio');
-      height = this.readNumber(video?.height) ?? null;
-      width = this.readNumber(video?.width) ?? null;
-      videoCodec = this.readString(video?.codec_name) ?? null;
-      const rawDuration = Number(probe.format?.duration);
-      durationSeconds = Number.isFinite(rawDuration) ? rawDuration : null;
-    } catch {
-      issues.push('Media preflight could not inspect the rendered clip.');
-    }
+    const inspection = await this.filesClientService.inspectVideoQa({
+      blackDurationSeconds: 0.5,
+      freezeDurationSeconds: 2,
+      isContactSheetEnabled: false,
+      videoUrl: url,
+    });
+    decodeOk = inspection.decodeOk;
+    const probe = JSON.parse(inspection.probeJson) as {
+      format?: { duration?: string | number };
+      streams?: Array<{
+        codec_name?: string;
+        codec_type?: string;
+        height?: number;
+        width?: number;
+      }>;
+    };
+    const streams = Array.isArray(probe.streams) ? probe.streams : [];
+    const video = streams.find((stream) => stream.codec_type === 'video');
+    hasAudio = streams.some((stream) => stream.codec_type === 'audio');
+    height = this.readNumber(video?.height) ?? null;
+    width = this.readNumber(video?.width) ?? null;
+    videoCodec = this.readString(video?.codec_name) ?? null;
+    const rawDuration = Number(probe.format?.duration);
+    durationSeconds = Number.isFinite(rawDuration) ? rawDuration : null;
 
     if (!decodeOk) issues.push('Rendered video is not decodable.');
     if (width !== 1080 || height !== 1920) {

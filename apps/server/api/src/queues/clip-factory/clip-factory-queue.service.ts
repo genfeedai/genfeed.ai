@@ -54,6 +54,7 @@ export class ClipFactoryQueueService {
 
       if (
         data.avatarProvider === 'genfeedai' &&
+        !data.referenceImageUrl &&
         !data.runReferences?.some(
           (reference) =>
             reference.role === 'character' && reference.url.length > 0,
@@ -91,7 +92,12 @@ export class ClipFactoryQueueService {
       );
     }
 
-    await job.updateData({ ...job.data, source });
+    const sourceUrl = source.artifact?.mediaUrl;
+    await job.updateData({
+      ...job.data,
+      ...(sourceUrl ? { youtubeUrl: sourceUrl } : {}),
+      source,
+    });
     await job.retry();
     return job.id ?? jobId;
   }

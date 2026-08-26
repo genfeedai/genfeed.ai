@@ -493,7 +493,7 @@ export class ClipGenerationService {
         }
 
         if (terminal) {
-          await this.completeInlineProviderResult({
+          const completed = await this.completeInlineProviderResult({
             clipResultId,
             organizationId: orgId,
             projectId,
@@ -501,7 +501,9 @@ export class ClipGenerationService {
             providerName: failureProviderName,
             videoUrl: terminal.videoUrl,
           });
-          completedClipCount += 1;
+          if (completed) {
+            completedClipCount += 1;
+          }
         }
 
         providerJobIds.push(jobId);
@@ -553,7 +555,7 @@ export class ClipGenerationService {
     providerJobId: string;
     providerName: string;
     videoUrl: string;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const transitioned =
       await this.clipResultsService.transitionProviderTerminal({
         clipResultId: input.clipResultId,
@@ -563,7 +565,7 @@ export class ClipGenerationService {
         videoUrl: input.videoUrl,
       });
     if (!transitioned) {
-      return;
+      return false;
     }
 
     await this.clipLibraryLinkService?.linkReadyClip({
@@ -574,6 +576,7 @@ export class ClipGenerationService {
       input.projectId,
       input.organizationId,
     );
+    return true;
   }
 
   /**

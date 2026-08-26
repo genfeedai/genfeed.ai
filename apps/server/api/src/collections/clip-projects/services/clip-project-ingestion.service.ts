@@ -17,6 +17,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
+import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import {
@@ -27,7 +28,6 @@ import {
 } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-const MAX_CLIP_SOURCE_DURATION_SECONDS = 6 * 60 * 60;
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 
 export interface ClipProjectAnalysisResult {
@@ -382,10 +382,23 @@ export class ClipProjectIngestionService {
     }
 
     const durationSeconds = ingredient.metadata?.duration;
-    const sizeBytes = ingredient.metadata?.size ?? source.sizeBytes;
-    if (typeof sizeBytes !== 'number' || !Number.isFinite(sizeBytes)) {
+    const sizeBytes = ingredient.metadata?.size;
+    if (
+      typeof sizeBytes !== 'number' ||
+      !Number.isFinite(sizeBytes) ||
+      sizeBytes <= 0
+    ) {
       throw new BadRequestException(
         'The uploaded clip source size is unavailable.',
+      );
+    }
+    if (
+      typeof durationSeconds !== 'number' ||
+      !Number.isFinite(durationSeconds) ||
+      durationSeconds <= 0
+    ) {
+      throw new BadRequestException(
+        'The uploaded clip source duration is unavailable.',
       );
     }
     if (sizeBytes > MAX_CLIP_SOURCE_SIZE_BYTES) {
@@ -396,10 +409,7 @@ export class ClipProjectIngestionService {
         'The uploaded clip source is not supported audio or video media.',
       );
     }
-    if (
-      typeof durationSeconds === 'number' &&
-      durationSeconds > MAX_CLIP_SOURCE_DURATION_SECONDS
-    ) {
+    if (durationSeconds > CLIP_SOURCE_MAX_DURATION_SECONDS) {
       throw new BadRequestException('Clip sources may be up to 6 hours long.');
     }
 
@@ -530,9 +540,16 @@ export class ClipProjectIngestionService {
           user.organizationId,
         )
       : [];
+    const reference = this.clipGenerationRequestService.resolveProjectReference(
+      {
+        mode,
+        project,
+        provider,
+      },
+    );
     this.clipGenerationRequestService.assertProviderRequirements(
       provider,
-      {},
+      reference,
       runReferences,
       mode,
     );
@@ -565,6 +582,7 @@ export class ClipProjectIngestionService {
       mode,
       orgId: user.organizationId,
       projectId,
+      referenceImageUrl: reference.referenceImageUrl,
       runReferences,
       source,
       userId,

@@ -186,6 +186,7 @@ describe('FFmpegService', () => {
         '/out.mp4',
         dimensions,
         onProgress,
+        undefined,
       );
     });
 

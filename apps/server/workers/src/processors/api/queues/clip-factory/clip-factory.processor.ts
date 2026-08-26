@@ -64,6 +64,7 @@ export class ClipFactoryProcessor extends WorkerHost {
     const { data } = job;
     const { projectId } = data;
     let sourceCompleted = false;
+    let sourceArtifact = data.source?.artifact;
     const mode = data.mode ?? DEFAULT_CLIP_RESULT_MODE;
     const runReferences = Object.freeze(
       (data.runReferences ?? []).map((reference) =>
@@ -94,6 +95,7 @@ export class ClipFactoryProcessor extends WorkerHost {
       if (
         mode === 'avatar' &&
         data.avatarProvider === 'genfeedai' &&
+        !data.referenceImageUrl &&
         !runReferences.some(
           (reference) =>
             reference.role === 'character' && reference.url.length > 0,
@@ -118,20 +120,22 @@ export class ClipFactoryProcessor extends WorkerHost {
         data.source?.kind === 'youtube' ? 'downloading' : 'extracting',
       );
 
+      const sourceUrl = sourceArtifact?.mediaUrl ?? data.youtubeUrl;
       const extraction: AudioExtractionResult =
         data.source?.contentType?.startsWith('audio/')
-          ? { audioUrl: data.youtubeUrl }
+          ? { audioUrl: sourceUrl }
           : await this.downloadAudio(
-              data.youtubeUrl,
+              sourceUrl,
               data.orgId,
               data.userId,
               projectId,
               data.source?.ingredientId,
-              data.source?.artifact?.storageKey,
+              sourceArtifact?.storageKey,
             );
       const { audioUrl } = extraction;
       if (extraction.sourceArtifact) {
-        await this.persistSourceArtifact(data, extraction.sourceArtifact);
+        sourceArtifact = extraction.sourceArtifact;
+        await this.persistSourceArtifact(data, sourceArtifact);
       }
       await this.updateProject(projectId, { progress: 15 }, data.orgId);
       await this.updateSource(data, 'ready-for-transcription');
@@ -213,9 +217,10 @@ export class ClipFactoryProcessor extends WorkerHost {
         orgId: data.orgId,
         projectId,
         provider: data.avatarProvider,
+        referenceImageUrl: data.referenceImageUrl,
         runReferences,
-        sourceVideoS3Key: data.source?.artifact?.storageKey,
-        sourceVideoUrl: data.source?.artifact?.mediaUrl ?? data.youtubeUrl,
+        sourceVideoS3Key: sourceArtifact?.storageKey,
+        sourceVideoUrl: sourceArtifact?.mediaUrl ?? sourceUrl,
         transcriptSegments: transcription.segments,
         transcriptText: transcription.text,
         userId: data.userId,

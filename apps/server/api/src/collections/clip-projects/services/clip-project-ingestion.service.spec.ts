@@ -46,6 +46,7 @@ describe('ClipProjectIngestionService', () => {
   let clipGenerationRequestService: {
     assertCompleteAvatarIdentity: ReturnType<typeof vi.fn>;
     assertProviderRequirements: ReturnType<typeof vi.fn>;
+    resolveProjectReference: ReturnType<typeof vi.fn>;
     resolveRunReferences: ReturnType<typeof vi.fn>;
   };
   let clipIdentityResolutionService: {
@@ -88,6 +89,7 @@ describe('ClipProjectIngestionService', () => {
         }
       }),
       assertProviderRequirements: vi.fn(),
+      resolveProjectReference: vi.fn().mockReturnValue({}),
       resolveRunReferences: vi.fn().mockResolvedValue([]),
     };
     clipIdentityResolutionService = {
@@ -696,6 +698,131 @@ describe('ClipProjectIngestionService', () => {
       service.finalizeUpload(currentUser as never, 'project-1'),
     ).rejects.toThrow('Clip sources may be up to 10 GB.');
     expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('does not trust the client-declared upload size when storage metadata omits it', async () => {
+    clipProjectsService.findOne.mockResolvedValue({
+      id: 'project-1',
+      organizationId: 'org-1',
+      settings: { flow: 'review' },
+      source: {
+        contentType: 'video/mp4',
+        filename: 'source.mp4',
+        flow: 'review',
+        ingredientId: 'ingredient-1',
+        kind: 'upload',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        sizeBytes: 100,
+        status: 'uploading',
+      },
+    } as ClipProjectDocument);
+    ingredientsService.findOne.mockResolvedValue({
+      id: 'ingredient-1',
+      metadata: { duration: 3600 },
+      mimeType: 'video/mp4',
+      status: 'UPLOADED',
+    });
+
+    await expect(
+      service.finalizeUpload(currentUser as never, 'project-1'),
+    ).rejects.toThrow('uploaded clip source size is unavailable');
+    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('requires authoritative duration metadata before queueing an upload', async () => {
+    clipProjectsService.findOne.mockResolvedValue({
+      id: 'project-1',
+      organizationId: 'org-1',
+      settings: { flow: 'review' },
+      source: {
+        contentType: 'video/mp4',
+        filename: 'source.mp4',
+        flow: 'review',
+        ingredientId: 'ingredient-1',
+        kind: 'upload',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        sizeBytes: 100,
+        status: 'uploading',
+      },
+    } as ClipProjectDocument);
+    ingredientsService.findOne.mockResolvedValue({
+      id: 'ingredient-1',
+      metadata: { size: 4_000_000_000 },
+      mimeType: 'video/mp4',
+      status: 'UPLOADED',
+    });
+
+    await expect(
+      service.finalizeUpload(currentUser as never, 'project-1'),
+    ).rejects.toThrow('uploaded clip source duration is unavailable');
+    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('validates a managed upload against its selected project reference', async () => {
+    const reference = {
+      application: {
+        mode: 'avatar',
+        nativeField: 'imageUrl',
+        provider: 'genfeedai',
+        state: 'applied',
+      },
+      referenceImageUrl: 'https://cdn.test/reference.jpg',
+    };
+    clipGenerationRequestService.resolveProjectReference.mockReturnValue(
+      reference,
+    );
+    clipProjectsService.findOne.mockResolvedValue({
+      id: 'project-1',
+      organizationId: 'org-1',
+      settings: {
+        avatarProvider: 'genfeedai',
+        flow: 'quick',
+        mode: 'avatar',
+      },
+      source: {
+        artifact: {
+          contentType: 'video/mp4',
+          mediaUrl: 'https://cdn.test/source.mp4',
+          storageKey: 'videos/source.mp4',
+        },
+        contentType: 'video/mp4',
+        filename: 'source.mp4',
+        flow: 'quick',
+        ingredientId: 'ingredient-1',
+        kind: 'upload',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        sizeBytes: 100,
+        status: 'uploading',
+      },
+    } as ClipProjectDocument);
+    ingredientsService.findOne.mockResolvedValue({
+      id: 'ingredient-1',
+      metadata: { duration: 3600, size: 4_000_000_000 },
+      mimeType: 'video/mp4',
+      status: 'UPLOADED',
+    });
+
+    await service.finalizeUpload(currentUser as never, 'project-1');
+
+    expect(
+      clipGenerationRequestService.resolveProjectReference,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'avatar', provider: 'genfeedai' }),
+    );
+    expect(
+      clipGenerationRequestService.assertProviderRequirements,
+    ).toHaveBeenCalledWith('genfeedai', reference, [], 'avatar');
+    expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referenceImageUrl: 'https://cdn.test/reference.jpg',
+      }),
+    );
   });
 
   it('retries only the failed deterministic source job', async () => {

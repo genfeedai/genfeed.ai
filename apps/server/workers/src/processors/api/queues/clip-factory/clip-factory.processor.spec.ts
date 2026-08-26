@@ -187,6 +187,66 @@ describe('ClipFactoryProcessor', () => {
     );
   });
 
+  it('transcribes an uploaded audio source from its current durable artifact', async () => {
+    httpService.post.mockReset();
+    httpService.post.mockReturnValue(of(highlightsResponse));
+    const data = makeJobData({
+      source: {
+        artifact: {
+          contentType: 'audio/mpeg',
+          mediaUrl: 'https://cdn.example.com/current-audio.mp3',
+          storageKey: 'audio/current-audio.mp3',
+        },
+        contentType: 'audio/mpeg',
+        fingerprint: 'sha256:audio',
+        flow: 'quick',
+        kind: 'upload',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        status: 'queued',
+        updatedAt: '2026-08-27T00:00:00.000Z',
+      },
+      youtubeUrl: 'https://cdn.example.com/stale-audio.mp3',
+    });
+
+    await processor.process(makeJob(data));
+
+    expect(whisperService.transcribeUrl).toHaveBeenCalledWith(
+      'https://cdn.example.com/current-audio.mp3',
+      'en',
+    );
+    expect(httpService.post).not.toHaveBeenCalledWith(
+      expect.stringContaining('/v1/files/process/video'),
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it('routes a newly materialized artifact into clip generation', async () => {
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          result: {
+            outputUrl: 'https://cdn.example.com/audio.mp3',
+            sourceS3Key: 'clips/sources/project-123.mp4',
+            sourceUrl: 'https://cdn.example.com/source.mp4',
+          },
+          status: 'completed',
+        },
+      }),
+    );
+
+    await processor.process(makeJob(makeJobData()));
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceVideoS3Key: 'clips/sources/project-123.mp4',
+        sourceVideoUrl: 'https://cdn.example.com/source.mp4',
+      }),
+    );
+  });
+
   it('should filter highlights by minViralityScore', async () => {
     const lowScoreResponse = {
       data: {
@@ -302,6 +362,26 @@ describe('ClipFactoryProcessor', () => {
 
     expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
       expect.objectContaining({ runReferences }),
+    );
+  });
+
+  it('threads the selected project reference into managed generation', async () => {
+    await processor.process(
+      makeJob(
+        makeJobData({
+          avatarId: undefined,
+          avatarProvider: 'genfeedai',
+          referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+          runReferences: [],
+          voiceId: undefined,
+        }),
+      ),
+    );
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+      }),
     );
   });
 

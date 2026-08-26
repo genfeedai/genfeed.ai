@@ -25,12 +25,14 @@ describe('ClipAnalyzeQueueService', () => {
   let service: ClipAnalyzeQueueService;
   let queue: {
     add: ReturnType<typeof vi.fn>;
+    getJob: ReturnType<typeof vi.fn>;
   };
   let logger: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
     queue = {
       add: vi.fn().mockResolvedValue({ id: 'clip-analyze-project-abc' }),
+      getJob: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -130,6 +132,47 @@ describe('ClipAnalyzeQueueService', () => {
       await expect(service.enqueue(makeJobData())).rejects.toThrow(
         'Redis down',
       );
+    });
+  });
+
+  describe('retry', () => {
+    it('refreshes the job with the current durable source artifact', async () => {
+      const retry = vi.fn().mockResolvedValue(undefined);
+      const updateData = vi.fn().mockResolvedValue(undefined);
+      queue.getJob.mockResolvedValue({
+        data: makeJobData({ youtubeUrl: 'https://cdn.test/source-old.mp4' }),
+        getState: vi.fn().mockResolvedValue('failed'),
+        id: 'clip-analyze-project-abc',
+        retry,
+        updateData,
+      });
+      const source = {
+        artifact: {
+          contentType: 'video/mp4',
+          mediaUrl: 'https://cdn.test/source-replacement.mp4',
+          storageKey: 'videos/source-replacement.mp4',
+        },
+        fingerprint: 'sha256:replacement',
+        flow: 'review' as const,
+        kind: 'upload' as const,
+        maxRetries: 3,
+        retryCount: 1,
+        schemaVersion: 1 as const,
+        status: 'queued' as const,
+        updatedAt: '2026-08-27T00:00:00.000Z',
+      };
+
+      await expect(service.retry('project-abc', source)).resolves.toBe(
+        'clip-analyze-project-abc',
+      );
+
+      expect(updateData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source,
+          youtubeUrl: 'https://cdn.test/source-replacement.mp4',
+        }),
+      );
+      expect(retry).toHaveBeenCalledOnce();
     });
   });
 });

@@ -222,6 +222,42 @@ describe('ClipAnalyzeProcessor', () => {
     expect(transcriptPatch?.[1]?.transcriptSrt).toBe(mockTranscription.srt);
   });
 
+  it('transcribes an uploaded audio source from its current durable artifact', async () => {
+    httpService.post.mockReturnValue(of(mockHighlightsResponse) as never);
+    const data: ClipAnalyzeJobData = {
+      ...mockJobData,
+      source: {
+        artifact: {
+          contentType: 'audio/mpeg',
+          mediaUrl: 'https://cdn.test/current-audio.mp3',
+          storageKey: 'audio/current-audio.mp3',
+        },
+        contentType: 'audio/mpeg',
+        fingerprint: 'sha256:audio',
+        flow: 'review',
+        kind: 'upload',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        status: 'queued',
+        updatedAt: '2026-08-27T00:00:00.000Z',
+      },
+      youtubeUrl: 'https://cdn.test/stale-audio.mp3',
+    };
+
+    await processor.process(createMockJob(data));
+
+    expect(whisperService.transcribeUrl).toHaveBeenCalledWith(
+      'https://cdn.test/current-audio.mp3',
+      'en',
+    );
+    expect(httpService.post).not.toHaveBeenCalledWith(
+      expect.stringContaining('/v1/files/process/video'),
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
   it('should derive bounded reference timestamps from accepted highlights', async () => {
     setupHttpMocks();
     await processor.process(createMockJob());
@@ -300,5 +336,43 @@ describe('ClipAnalyzeProcessor', () => {
       .filter(Boolean);
     expect(statusUpdates).not.toContain('clipping');
     expect(statusUpdates).not.toContain('generating');
+  });
+
+  describe('files service URL resolution', () => {
+    it('fails loud outside development when the files service URL is unset', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_MICROSERVICES_FILES_URL' ? undefined : 'api-key',
+      );
+      Object.assign(configService, { isDevelopment: false });
+
+      await expect(processor.process(createMockJob())).rejects.toThrow(
+        'GENFEEDAI_MICROSERVICES_FILES_URL is not configured',
+      );
+
+      expect(httpService.post).not.toHaveBeenCalled();
+    });
+
+    it('uses the development fallback for audio and reference extraction', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GENFEEDAI_MICROSERVICES_FILES_URL' ? undefined : 'api-key',
+      );
+      Object.assign(configService, { isDevelopment: true });
+      setupHttpMocks();
+
+      await processor.process(createMockJob());
+
+      expect(httpService.post).toHaveBeenNthCalledWith(
+        1,
+        'http://localhost:3012/v1/files/process/video',
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(httpService.post).toHaveBeenNthCalledWith(
+        3,
+        'http://localhost:3012/v1/files/process/video',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
   });
 });

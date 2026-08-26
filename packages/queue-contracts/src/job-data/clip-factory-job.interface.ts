@@ -72,6 +72,8 @@ export interface ClipFactoryJobData {
   userId: string;
   /** Immutable tenant-authorized references resolved before credit checks. */
   runReferences?: readonly ClipFactoryRunReference[];
+  /** Tenant-authorized project frame selected before the job is queued. */
+  referenceImageUrl?: string;
   /** Durable source lifecycle for authenticated Studio projects. */
   source?: ClipSourceContract;
 }

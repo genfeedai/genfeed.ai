@@ -186,7 +186,7 @@ describe('ClipsApiService', () => {
     );
   });
 
-  it('prepares, finalizes, and retries a durable uploaded source', async () => {
+  it('prepares and finalizes a durable uploaded source', async () => {
     fetchMock
       .mockResolvedValueOnce(
         new Response(
@@ -207,17 +207,6 @@ describe('ClipsApiService', () => {
             estimatedClips: 6,
             projectId: 'clip-project-upload',
             status: 'analyzing',
-          }),
-          { status: 202 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            batchJobId: 'clip-analyze-clip-project-upload',
-            estimatedClips: 6,
-            projectId: 'clip-project-upload',
-            status: 'queued',
           }),
           { status: 202 },
         ),
@@ -243,10 +232,6 @@ describe('ClipsApiService', () => {
     await expect(
       service.finalizeUpload('clip-project-upload'),
     ).resolves.toMatchObject({ status: 'analyzing' });
-    await expect(
-      service.retrySource('clip-project-upload'),
-    ).resolves.toMatchObject({ status: 'queued' });
-
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'https://api.test/v1/clip-projects/from-upload',
@@ -260,8 +245,29 @@ describe('ClipsApiService', () => {
       'https://api.test/v1/clip-projects/clip-project-upload/source/finalize',
       expect.objectContaining({ method: 'POST' }),
     );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      3,
+  });
+
+  it('retries a source after the server marks its lifecycle as failed', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          batchJobId: 'clip-analyze-clip-project-upload',
+          estimatedClips: 6,
+          projectId: 'clip-project-upload',
+          status: 'queued',
+        }),
+        { status: 202 },
+      ),
+    );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-upload-retry'),
+    );
+
+    await expect(
+      service.retrySource('clip-project-upload'),
+    ).resolves.toMatchObject({ status: 'queued' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/v1/clip-projects/clip-project-upload/source/retry',
       expect.objectContaining({ method: 'POST' }),
     );

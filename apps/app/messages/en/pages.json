@@ -105,7 +105,9 @@
     "edit": "Edit",
     "generationFailed": "Generation failed. The clip will be retried automatically.",
     "inLibrary": "In Library",
+    "mediaReadinessFailed": "This clip did not pass media readiness checks.",
     "publish": "Publish",
+    "reviewRequired": "Review required",
     "retryLibraryLink": "Retry Library link"
   },
   "studioGenerate": {

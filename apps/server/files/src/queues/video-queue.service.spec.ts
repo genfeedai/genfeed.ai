@@ -98,6 +98,27 @@ describe('VideoQueueService', () => {
     );
   });
 
+  it('does not deduplicate ordinary audio extraction jobs by request id', async () => {
+    const data = {
+      createdAt: new Date(),
+      id: 'clip-audio-project-1',
+      ingredientId: 'project-1',
+      metadata: { websocketUrl: '/clips/project-1' },
+      organizationId: 'org-1',
+      params: { inputPath: 'https://cdn.test/source.mp4' },
+      type: JOB_TYPES.VIDEO_TO_AUDIO,
+      userId: 'user-1',
+    } as VideoJobData;
+
+    await service.addVideoToAudioJob(data);
+
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.VIDEO_TO_AUDIO,
+      data,
+      expect.not.objectContaining({ jobId: expect.anything() }),
+    );
+  });
+
   it('queues clip reference extraction with the bounded job type', async () => {
     const data = {
       createdAt: new Date(),

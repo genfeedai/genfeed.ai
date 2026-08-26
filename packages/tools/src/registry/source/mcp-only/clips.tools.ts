@@ -8,14 +8,9 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
  * clips, and read project/clip status + results — the same lifecycle the API
  * and frontend expose.
  *
- * Mode forward-compat: `generate_clips` advertises a `mode` (`avatar` |
- * `raw-cut`). Only `avatar` is functional today — the raw-cut generate contract
- * (#1238) is still in flight. The tool is shaped so raw-cut slots in with no
- * rewrite: the API's ValidationPipe strips the unknown `mode` field until #1238
- * lands, at which point the same request starts honoring it. Avatar-mode inputs
- * (`avatarId`/`voiceId`) are enforced conditionally in the handler rather than
- * as JSON-schema `required`, so raw-cut (which needs neither) works untouched
- * once the API supports it.
+ * `generate_clips` advertises both supported modes (`avatar` | `raw-cut`).
+ * Provider-specific avatar inputs are enforced conditionally in the handler
+ * rather than as unconditional JSON-schema requirements.
  */
 export const MCP_CLIP_TOOLS: SourceTool[] = [
   {
@@ -66,13 +61,18 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
     parameters: {
       properties: {
         avatarId: {
-          description: 'Avatar ID for clip generation',
+          description: 'Avatar ID required by HeyGen and Argil',
           type: 'string',
         },
         avatarProvider: {
           default: 'heygen',
           description: 'Avatar video provider to use',
           enum: ['heygen', 'argil', 'genfeedai'],
+          type: 'string',
+        },
+        brandId: {
+          description:
+            'Brand whose saved character reference and identity defaults should be used',
           type: 'string',
         },
         language: {
@@ -99,7 +99,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         voiceId: {
-          description: 'Voice ID for clip generation',
+          description: 'Voice ID required by HeyGen and Argil',
           type: 'string',
         },
         youtubeUrl: {
@@ -107,7 +107,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
           type: 'string',
         },
       },
-      required: ['youtubeUrl', 'avatarId', 'voiceId'],
+      required: ['youtubeUrl'],
       type: 'object',
     },
     requiredRole: 'user',
