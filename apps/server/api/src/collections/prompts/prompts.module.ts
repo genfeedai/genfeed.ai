@@ -10,7 +10,9 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
 import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
+import { PromptsTransformationsController } from '@api/collections/prompts/controllers/prompts-transformations.controller';
 import { PromptsCoreModule } from '@api/collections/prompts/prompts-core.module';
+import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -23,7 +25,11 @@ import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [PromptsController, PromptsOperationsController],
+  controllers: [
+    PromptsTransformationsController,
+    PromptsOperationsController,
+    PromptsController,
+  ],
   exports: [PromptsCoreModule],
   imports: [
     PromptsCoreModule,
@@ -40,6 +46,6 @@ import { Module } from '@nestjs/common';
     TemplatesModule,
     WhisperModule,
   ],
-  providers: [CreditsGuard, CreditsInterceptor],
+  providers: [PromptTransformationService, CreditsGuard, CreditsInterceptor],
 })
 export class PromptsModule {}

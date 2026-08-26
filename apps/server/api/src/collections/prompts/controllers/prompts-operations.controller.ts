@@ -1,30 +1,15 @@
 /**
  * Prompts Operations Controller
- * Handles prompt operation routes:
- * - Parse prompts
- * - Generate remix prompts
- * - Enhance prompts
- * - Voice to speech conversion
- * - Generate tweet replies
+ * Handles voice transcription and tweet reply generation.
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateTweetReplyDto } from '@api/collections/prompts/dto/create-tweet-reply.dto';
-import { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
-import {
-  isCinematicPromptCategory,
-  loadCinematicLexiconGuidance,
-} from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -33,19 +18,9 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
-import {
-  returnNotFound,
-  serializeSingle,
-} from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
-import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import {
-  ActivityKey,
   ActivitySource,
   AssetScope,
   ModelCategory,
@@ -54,29 +29,22 @@ import {
   PromptTemplateKey,
   ReplyLength,
   ReplyTone,
-  Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
-import { PromptSerializer } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   BadRequestException,
   Body,
   Controller,
   Optional,
-  Param,
   Post,
-  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import type { Request } from 'express';
 
 interface UploadedBinaryFile {
   buffer: Buffer;
@@ -85,459 +53,26 @@ interface UploadedBinaryFile {
   size: number;
 }
 
-function toPromptBrandContext(
-  brand: BrandDocument | null | undefined,
-): IPromptBrandContext | undefined {
-  if (!brand) {
-    return undefined;
-  }
-
-  return {
-    backgroundColor: brand.backgroundColor ?? undefined,
-    description: brand.description ?? undefined,
-    label: brand.label ?? undefined,
-    primaryColor: brand.primaryColor ?? undefined,
-    secondaryColor: brand.secondaryColor ?? undefined,
-    text: brand.text ?? undefined,
-  };
-}
-
 @AutoSwagger()
 @Controller('prompts')
 @UseInterceptors(CreditsInterceptor)
 @UseGuards(RolesGuard)
 export class PromptsOperationsController {
-  private readonly constructorName: string = String(this.constructor.name);
-
   constructor(
-    private readonly activitiesService: ActivitiesService,
-    private readonly configService: ConfigService,
-    private readonly brandsService: BrandsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly loggerService: LoggerService,
+    readonly loggerService: LoggerService,
     private readonly replicateService: ReplicateService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly promptsService: PromptsService,
-    private readonly websocketService: NotificationsPublisherService,
     private readonly whisperService: WhisperService,
     @Optional() private readonly templatesService?: TemplatesService,
   ) {}
-
-  @Post('parse')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async parse(
-    @Body() createParsePromptDto: ParsePromptDto,
-    @CurrentUser() user: User,
-  ) {
-    let selectedBrand: BrandDocument | undefined;
-    if (isEntityId(createParsePromptDto.brandId)) {
-      const brand = await this.brandsService.findOne({
-        id: createParsePromptDto.brandId,
-        OR: [
-          { userId: user.userId ?? user.id },
-          { organizationId: user.organizationId },
-        ],
-      });
-      selectedBrand = brand ?? undefined;
-    }
-
-    const { promptString, normalizedType } = PromptParser.parsePrompt(
-      this.configService,
-      {
-        brand: toPromptBrandContext(selectedBrand),
-        category: createParsePromptDto.category,
-        originalPrompt: createParsePromptDto.original,
-      },
-    );
-
-    return { normalizedType, promptString };
-  }
-
-  @Post(':promptId/remix')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
-  @Credits({
-    description: 'Remix prompt generation using AI',
-    modelKey: DEFAULT_MINI_TEXT_MODEL,
-    source: ActivitySource.PROMPT_REMIX,
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createRemix(
-    @Req() request: Request,
-    @Param('promptId') promptId: string,
-    @CurrentUser() user: User,
-  ) {
-    const chargedCredits =
-      (
-        request as Request & {
-          creditsConfig?: { amount?: number };
-        }
-      ).creditsConfig?.amount ?? 0;
-    const prompt = await this.promptsService.findOne({
-      id: promptId,
-    });
-
-    if (!prompt || prompt.userId !== (user.userId ?? user.id)) {
-      return returnNotFound(this.constructorName, promptId);
-    }
-
-    const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
-    const selectedBrand = promptBrandId
-      ? ((await this.brandsService.findOne({
-          id: promptBrandId,
-        })) ?? undefined)
-      : undefined;
-
-    const { promptString, normalizedType } = PromptParser.parsePrompt(
-      this.configService,
-      {
-        brand: toPromptBrandContext(selectedBrand),
-        category: prompt.category ? String(prompt.category) : '',
-        originalPrompt: prompt.original,
-      },
-    );
-
-    const data = await this.promptsService.create(
-      new PromptEntity({
-        brandId: prompt.brandId,
-        category: normalizedType,
-        organizationId: prompt.organizationId,
-        original: prompt.original,
-        scope: prompt?.scope,
-        status: PromptStatus.PROCESSING,
-        userId: prompt.userId,
-      }),
-    );
-
-    const url = `${this.constructorName} postRemixResponse`;
-
-    let userPrompt: string;
-    const systemPromptKey =
-      PromptParser.getSystemPromptTemplateKey(normalizedType);
-
-    if (this.templatesService) {
-      try {
-        await this.templatesService.getRenderedPrompt(
-          systemPromptKey,
-          {},
-          user.organizationId,
-        );
-        userPrompt = await this.templatesService.getRenderedPrompt(
-          PromptTemplateKey.REMIX,
-          {
-            category: normalizedType,
-            promptString,
-          },
-          user.organizationId,
-        );
-      } catch (error) {
-        this.loggerService.warn('Template not found, using fallback', {
-          category: normalizedType,
-          error,
-          key: systemPromptKey,
-        });
-
-        try {
-          const promptObj = JSON.parse(promptString);
-          userPrompt = promptObj.prompt || promptString;
-        } catch {
-          userPrompt = promptString;
-        }
-      }
-    } else {
-      try {
-        const promptObj = JSON.parse(promptString);
-        userPrompt = promptObj.prompt || promptString;
-      } catch {
-        userPrompt = promptString;
-      }
-    }
-
-    // Create activity for prompt remix start
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: promptBrandId ?? user.brandId,
-        key: ActivityKey.PROMPT_REMIX_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.PROMPT_REMIX,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          promptId: data.id.toString(),
-          sourcePromptId: promptId,
-          type: 'remix',
-        }),
-      }),
-    );
-
-    // Emit background-task-update WebSocket event for activities dropdown
-    await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity.id.toString(),
-      label: 'Prompt Remix',
-      progress: 0,
-      room: getUserRoomName(user.id),
-      status: 'processing',
-      taskId: data.id.toString(),
-      userId: user.id,
-    });
-
-    this.promptBuilderService
-      .buildPrompt(
-        DEFAULT_MINI_TEXT_MODEL,
-        {
-          maxTokens: TEXT_GENERATION_LIMITS.promptRemix,
-          modelCategory: ModelCategory.TEXT,
-          prompt: userPrompt,
-          promptTemplate: PromptTemplateKey.TEXT_ENHANCEMENT,
-          systemPromptTemplate: systemPromptKey,
-          temperature: 0.8,
-        },
-        user.organizationId,
-      )
-      .then(({ input }) =>
-        this.replicateService.generateTextCompletionSync(
-          DEFAULT_MINI_TEXT_MODEL,
-          input,
-        ),
-      )
-      .then(async (result) => {
-        this.loggerService.log(`${url} succeeded`, { result });
-
-        await this.promptsService.patch(data.id, {
-          enhanced: result,
-          status: PromptStatus.GENERATED,
-        });
-
-        // Update activity to completed
-        await this.activitiesService.patch(activity.id.toString(), {
-          key: ActivityKey.PROMPT_REMIX_COMPLETED,
-          value: JSON.stringify({
-            progress: 100,
-            promptId: data.id.toString(),
-            sourcePromptId: promptId,
-            type: 'remix',
-          }),
-        });
-
-        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
-          result,
-          status: Status.COMPLETED,
-        });
-
-        return result;
-      })
-      .catch(async (error: unknown) => {
-        this.loggerService.error(`${url} failed`, error);
-
-        // Update activity to failed
-        await this.activitiesService.patch(activity.id.toString(), {
-          key: ActivityKey.PROMPT_REMIX_FAILED,
-          value: JSON.stringify({
-            error: (error as Error)?.message || 'An error occurred',
-            promptId: data.id.toString(),
-            sourcePromptId: promptId,
-            type: 'remix',
-          }),
-        });
-
-        // Refund credits since AI call failed
-        try {
-          const refundExpiresAt = new Date();
-          refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1); // Expire in 1 year
-
-          await this.creditsUtilsService.refundOrganizationCredits(
-            user.organizationId,
-            chargedCredits,
-            'prompt-remix-refund',
-            'Remix prompt generation failed - credit refund',
-            refundExpiresAt,
-          );
-
-          this.loggerService.log('Credits refunded successfully', {
-            amount: chargedCredits,
-            organizationId: user.organizationId,
-            userId: user.userId ?? user.id,
-          });
-        } catch (refundError: unknown) {
-          this.loggerService.error('Failed to refund credits', {
-            error: refundError,
-            organizationId: user.organizationId,
-            userId: user.userId ?? user.id,
-          });
-        }
-
-        await this.promptsService.patch(data.id, {
-          status: PromptStatus.FAILED,
-        });
-
-        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
-          error: (error as Error)?.message || 'An error occurred',
-          status: Status.FAILED,
-        });
-      });
-
-    return serializeSingle(request, PromptSerializer, data);
-  }
-
-  @Post(':promptId/enhance')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
-  @Credits({
-    description: 'Prompt enhancement using AI',
-    modelKey: DEFAULT_MINI_TEXT_MODEL,
-    source: ActivitySource.PROMPT_ENHANCEMENT,
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async enhanceExisting(
-    @Req() request: Request,
-    @Param('promptId') promptId: string,
-    @CurrentUser() user: User,
-  ) {
-    const prompt = await this.promptsService.findOne({
-      id: promptId,
-    });
-
-    if (!prompt || prompt.userId !== (user.userId ?? user.id)) {
-      return returnNotFound(this.constructorName, promptId);
-    }
-
-    const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
-    const selectedBrand = promptBrandId
-      ? ((await this.brandsService.findOne({
-          id: promptBrandId,
-        })) ?? undefined)
-      : undefined;
-
-    const { promptString, normalizedType } = PromptParser.parsePrompt(
-      this.configService,
-      {
-        brand: toPromptBrandContext(selectedBrand),
-        category: prompt.category ? String(prompt.category) : '',
-        originalPrompt: prompt.original,
-      },
-    );
-
-    // Create activity for prompt enhance start
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId: promptBrandId ?? user.brandId,
-        key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.PROMPT_ENHANCEMENT,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          promptId: promptId,
-          type: 'enhance',
-        }),
-      }),
-    );
-
-    // Emit background-task-update WebSocket event for activities dropdown
-    await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity.id.toString(),
-      label: 'Prompt Enhance',
-      progress: 0,
-      room: getUserRoomName(user.id),
-      status: 'processing',
-      taskId: promptId,
-      userId: user.id,
-    });
-
-    try {
-      const systemPromptKey =
-        PromptParser.getSystemPromptTemplateKey(normalizedType);
-      if (this.templatesService) {
-        try {
-          await this.templatesService.getRenderedPrompt(
-            systemPromptKey,
-            {},
-            user.organizationId,
-          );
-        } catch (error) {
-          this.loggerService.warn('Template not found, using fallback', {
-            category: normalizedType,
-            error,
-            key: systemPromptKey,
-          });
-        }
-      }
-
-      let userPrompt: string;
-      try {
-        const promptObj = JSON.parse(promptString);
-        userPrompt = promptObj.prompt || promptString;
-      } catch {
-        userPrompt = promptString;
-      }
-
-      const cinematicGuidance = isCinematicPromptCategory(normalizedType)
-        ? loadCinematicLexiconGuidance()
-        : '';
-
-      const { input } = await this.promptBuilderService.buildPrompt(
-        DEFAULT_MINI_TEXT_MODEL,
-        {
-          maxTokens: TEXT_GENERATION_LIMITS.promptEnhancement,
-          modelCategory: ModelCategory.TEXT,
-          prompt: userPrompt,
-          promptTemplate: PromptTemplateKey.TEXT_ENHANCEMENT,
-          systemPromptTemplate: systemPromptKey,
-          ...(cinematicGuidance
-            ? { systemPromptSuffix: cinematicGuidance }
-            : {}),
-          temperature: 0.8,
-        },
-        user.organizationId,
-      );
-
-      const result = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_MINI_TEXT_MODEL,
-        input,
-      );
-
-      await this.promptsService.patch(promptId, {
-        enhanced: result,
-        status: PromptStatus.GENERATED,
-      });
-
-      // Update activity to completed
-      await this.activitiesService.patch(activity.id.toString(), {
-        key: ActivityKey.PROMPT_ENHANCE_COMPLETED,
-        value: JSON.stringify({
-          progress: 100,
-          promptId: promptId,
-          type: 'enhance',
-        }),
-      });
-
-      const updatedPrompt = await this.promptsService.findOne({
-        id: promptId,
-      });
-      return serializeSingle(request, PromptSerializer, updatedPrompt);
-    } catch (error: unknown) {
-      // Update activity to failed
-      await this.activitiesService.patch(activity.id.toString(), {
-        key: ActivityKey.PROMPT_ENHANCE_FAILED,
-        value: JSON.stringify({
-          error: (error as Error)?.message || 'An error occurred',
-          promptId: promptId,
-          type: 'enhance',
-        }),
-      });
-
-      await this.promptsService.patch(promptId, {
-        status: PromptStatus.FAILED,
-      });
-
-      throw new BadRequestException(
-        (error as Error)?.message || 'Failed to enhance prompt',
-      );
-    }
-  }
 
   @Post('voice-to-speech')
   @Public()
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: 25 * 1024 * 1024, // 25MB max for voice files
+        fileSize: 25 * 1024 * 1024,
       },
     }),
   )
@@ -630,13 +165,10 @@ export class PromptsOperationsController {
         },
         user.organizationId,
       );
-
       const result = await this.replicateService.generateTextCompletionSync(
         DEFAULT_MINI_TEXT_MODEL,
         input,
       );
-
-      // Store the prompt in the database for tracking
       const promptEntity = new PromptEntity({
         category: 'tweet-reply' as unknown as PromptCategory,
         enhanced: result,
