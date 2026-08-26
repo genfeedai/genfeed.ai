@@ -110,8 +110,11 @@ export function createWorkflowApiService(
   return {
     approve(workflowId, state, signal) {
       return request<TransitionResponse>(
-        `/api/agent-workflows/${workflowId}/approve`,
-        { body: JSON.stringify(state), method: 'POST' },
+        `/api/agent-workflows/${workflowId}`,
+        {
+          body: JSON.stringify({ event: 'approve', ...state }),
+          method: 'PATCH',
+        },
         signal,
       );
     },
@@ -132,8 +135,11 @@ export function createWorkflowApiService(
 
     forceAdvance(workflowId, signal) {
       return request<TransitionResponse>(
-        `/api/agent-workflows/${workflowId}/force-advance`,
-        { method: 'POST' },
+        `/api/agent-workflows/${workflowId}`,
+        {
+          body: JSON.stringify({ event: 'advance', force: true }),
+          method: 'PATCH',
+        },
         signal,
       );
     },
@@ -147,16 +153,22 @@ export function createWorkflowApiService(
 
     rollback(workflowId, targetPhase, signal) {
       return request<TransitionResponse>(
-        `/api/agent-workflows/${workflowId}/rollback`,
-        { body: JSON.stringify({ targetPhase }), method: 'POST' },
+        `/api/agent-workflows/${workflowId}`,
+        {
+          body: JSON.stringify({ event: 'rollback', targetPhase }),
+          method: 'PATCH',
+        },
         signal,
       );
     },
 
     transition(workflowId, state, signal) {
       return request<TransitionResponse>(
-        `/api/agent-workflows/${workflowId}/transition`,
-        { body: JSON.stringify(state), method: 'POST' },
+        `/api/agent-workflows/${workflowId}`,
+        {
+          body: JSON.stringify({ event: 'advance', ...state }),
+          method: 'PATCH',
+        },
         signal,
       );
     },
