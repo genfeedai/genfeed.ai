@@ -192,9 +192,15 @@ test.describe('Logout Flow', () => {
     test('should show loading state during logout', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
+      const resolveSignOut = await openPendingLogout(authenticatedPage);
 
       await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
+      expect(new URL(authenticatedPage.url()).pathname).toBe(APP_ROUTES.LOGOUT);
+
+      resolveSignOut();
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(APP_ROUTES.LOGIN);
     });
 
     test('should show confirmation message on successful logout', async ({
