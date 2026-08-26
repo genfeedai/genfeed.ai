@@ -10,7 +10,7 @@ export interface PlatformConfig {
 export const PLATFORM_CONFIG: Record<string, PlatformConfig> = {
   instagram: { color: 'bg-pink-500', label: 'Instagram' },
   linkedin: { color: 'bg-blue-700', label: 'LinkedIn' },
-  tiktok: { color: 'bg-black', label: 'TikTok' },
+  tiktok: { color: 'bg-platform-tiktok', label: 'TikTok' },
   twitter: { color: 'bg-blue-400', label: 'X (Twitter)' },
   youtube: { color: 'bg-red-600', label: 'YouTube' },
 };

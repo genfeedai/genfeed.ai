@@ -88,7 +88,7 @@ function EditorToolbar({
   onBack,
 }: EditorToolbarProps) {
   return (
-    <div className="flex items-center justify-between border-b border-white/[0.08] bg-card px-4 py-2">
+    <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
       {/* Left section - Navigation & Project info */}
       <div className="flex items-center gap-4">
         <Button
@@ -178,7 +178,7 @@ function EditorToolbar({
       {/* Right section - Tools & Actions */}
       <div className="flex items-center gap-3">
         {/* Add Track buttons */}
-        <div className="flex items-center gap-1 border-r border-white/[0.08] pr-3">
+        <div className="flex items-center gap-1 border-r border-border pr-3">
           <Button
             withWrapper={false}
             variant={ButtonVariant.GHOST}

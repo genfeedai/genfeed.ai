@@ -1,7 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,6 +14,7 @@ import type {
   TaskLinkedEntityModel,
   TaskStatus,
 } from '@services/management/tasks.service';
+import Badge from '@ui/display/badge/Badge';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
 import {
@@ -55,17 +56,6 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   in_progress: 'In Progress',
   in_review: 'In Review',
   todo: 'To Do',
-};
-
-const STATUS_COLORS: Record<TaskStatus, string> = {
-  backlog: 'bg-muted text-white/50',
-  blocked: 'bg-red-500/20 text-red-400',
-  cancelled: 'bg-muted/50 text-white/30',
-  done: 'bg-emerald-500/20 text-emerald-400',
-  failed: 'bg-red-500/20 text-red-500',
-  in_progress: 'bg-blue-500/20 text-blue-400',
-  in_review: 'bg-amber-500/20 text-amber-400',
-  todo: 'bg-accent text-white/70',
 };
 
 interface IssueOverlayProps {
@@ -161,14 +151,9 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
   const statusBadge = useMemo(
     () =>
       issue ? (
-        <span
-          className={cn(
-            'rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
-            STATUS_COLORS[issue.status],
-          )}
-        >
+        <Badge status={issue.status} size={ComponentSize.SM}>
           {STATUS_LABELS[issue.status]}
-        </span>
+        </Badge>
       ) : null,
     [issue],
   );
@@ -190,10 +175,10 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
       <div className="space-y-4 p-4">
         {issue.description && (
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
               Description
             </h3>
-            <div className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">
+            <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
               {issue.description}
             </div>
           </div>
@@ -201,7 +186,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
 
         {issue.linkedEntities?.length > 0 && (
           <div>
-            <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+            <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
               <Link className="size-3.5" />
               Linked ({issue.linkedEntities.length})
             </h3>
@@ -229,18 +214,18 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
         )}
 
         <div>
-          <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+          <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
             <MessageCircle className="size-3.5" />
             Comments ({comments.length})
           </h3>
 
           {comments.length > 0 ? (
-            <div className="rounded border border-white/5">
+            <div className="rounded border border-border">
               {!showAllComments && hiddenCommentCount > 0 && (
                 <Button
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
-                  className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-2xs text-white/40 transition-colors hover:bg-muted/40 hover:text-white/60"
+                  className="flex w-full items-center justify-center gap-1.5 border-b border-border py-2 text-2xs text-gray-800 transition-colors hover:bg-muted/40 hover:text-foreground"
                   onClick={() =>
                     setCommentVisibility({ issueId, showAll: true })
                   }
@@ -255,7 +240,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                 return (
                   <div
                     key={comment.id}
-                    className="border-b border-white/5 px-3 py-2.5 last:border-b-0"
+                    className="border-b border-border px-3 py-2.5 last:border-b-0"
                   >
                     <div className="mb-1.5 flex items-center gap-2">
                       <div
@@ -263,7 +248,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                           'flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
                           isAgent
                             ? 'bg-blue-500/15 text-blue-400'
-                            : 'bg-muted text-white/50',
+                            : 'bg-muted text-muted-foreground',
                         )}
                       >
                         {isAgent ? (
@@ -275,16 +260,16 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
                       <span
                         className={cn(
                           'text-xs font-medium',
-                          isAgent ? 'text-blue-400' : 'text-white/60',
+                          isAgent ? 'text-blue-400' : 'text-muted-foreground',
                         )}
                       >
                         {isAgent ? 'Agent' : 'User'}
                       </span>
-                      <span className="text-2xs text-white/25">
+                      <span className="text-2xs text-gray-800">
                         {getRelativeTime(comment.createdAt)}
                       </span>
                     </div>
-                    <div className="whitespace-pre-wrap pl-7 text-sm leading-relaxed text-white/80">
+                    <div className="whitespace-pre-wrap pl-7 text-sm leading-relaxed text-foreground">
                       {comment.body}
                     </div>
                   </div>
@@ -292,7 +277,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
               })}
             </div>
           ) : (
-            <div className="rounded border border-dashed border-white/10 py-4 text-center text-xs text-white/25">
+            <div className="rounded border border-dashed border-border py-4 text-center text-xs text-gray-800">
               No comments yet
             </div>
           )}

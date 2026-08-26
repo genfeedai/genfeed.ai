@@ -129,19 +129,19 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
             >
               <div className="flex items-center gap-4">
                 {/* White numbered badge */}
-                <span className="text-white/20 text-xs font-black w-6">
+                <span className="text-gray-800 text-xs font-black w-6">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 {/* Icon circle */}
                 <div className="size-10 rounded-full bg-muted flex items-center justify-center">
-                  <Building2 className="size-5 text-white/60" />
+                  <Building2 className="size-5 text-muted-foreground" />
                 </div>
                 {/* Name and metadata */}
                 <div>
                   <div className="font-bold text-sm uppercase">
                     {org.organization.name}
                   </div>
-                  <div className="text-white/40 text-xs uppercase tracking-widest">
+                  <div className="text-gray-800 text-xs uppercase tracking-widest">
                     {orgTypes[index % orgTypes.length]}
                   </div>
                 </div>
@@ -157,7 +157,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
                       ? 'bg-success/10 text-success'
                       : org.growth < 0
                         ? 'bg-destructive/10 text-destructive'
-                        : 'bg-muted text-white/60',
+                        : 'bg-muted text-muted-foreground',
                   )}
                 >
                   {org.growth > 0 ? '+' : ''}
@@ -173,7 +173,7 @@ function LeaderboardCard({ data, isLoading }: LeaderboardCardProps) {
       <Button
         type="button"
         variant={ButtonVariant.SECONDARY}
-        className="w-full mt-6 py-4 border border-white/10 text-xs font-black uppercase tracking-widest text-white/60 hover:bg-muted/70 transition-colors"
+        className="w-full mt-6 py-4 border border-border text-xs font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/70 transition-colors"
       >
         View All Entities
       </Button>
@@ -269,7 +269,7 @@ function QuickActionsGrid() {
               className="h-full text-left transition-[transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:shadow-border-strong"
               data-testid="admin-overview-quick-action"
             >
-              <div className="mt-6 flex items-center justify-between border-t border-white/[0.08] pt-4 text-sm text-white/55">
+              <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-sm text-muted-foreground">
                 <span>{card.cta}</span>
                 <span className="text-foreground transition-colors group-hover:text-primary">
                   Open

@@ -175,7 +175,7 @@ export default function WorkflowExecutionsPage() {
     return (
       <div className="min-h-screen bg-background">
         <main className="mx-auto max-w-7xl px-6 py-8">
-          <div className="overflow-hidden border border-white/[0.08]">
+          <div className="overflow-hidden border border-border">
             <div className="bg-muted/50 px-4 py-3 flex gap-8">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
@@ -187,7 +187,7 @@ export default function WorkflowExecutionsPage() {
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="flex gap-8 border-t border-white/[0.08] px-4 py-3"
+                className="flex gap-8 border-t border-border px-4 py-3"
               >
                 <div className="h-4 w-32 animate-pulse rounded bg-muted" />
                 <div className="h-4 w-16 animate-pulse rounded-full bg-muted" />
@@ -244,7 +244,7 @@ export default function WorkflowExecutionsPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-hidden border border-white/[0.08]">
+            <div className="overflow-hidden border border-border">
               <Table className="w-full">
                 <TableHeader className="bg-muted/50">
                   <TableRow>

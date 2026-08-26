@@ -18,8 +18,8 @@ export function AgentUiActionCard({
           <span
             className={`rounded px-1.5 py-0.5 text-2xs ${
               action.riskLevel === 'high'
-                ? 'bg-red-100 text-red-700'
-                : 'bg-amber-100 text-amber-700'
+                ? 'bg-destructive/10 text-destructive'
+                : 'bg-warning/10 text-warning'
             }`}
           >
             {action.riskLevel}

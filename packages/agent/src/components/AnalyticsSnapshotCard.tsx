@@ -6,6 +6,7 @@ import { extractAnalyticsPeriod } from '@genfeedai/agent/utils/extract-analytics
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
@@ -150,7 +151,7 @@ export function AnalyticsSnapshotCard({
   const analyticsHref = orgHref('/analytics/overview');
 
   return (
-    <div className="relative isolate my-2 overflow-hidden rounded-xl border border-border bg-background-secondary shadow-sm">
+    <Card className="my-2 isolate" bodyClassName="gap-0 p-0">
       <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
         <ChartColumn className="size-5 shrink-0 text-primary" />
         <h3 className="min-w-0 flex-1 text-sm font-semibold text-foreground">
@@ -170,11 +171,11 @@ export function AnalyticsSnapshotCard({
                   type="button"
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
-                  size={ButtonSize.SM}
+                  size={ButtonSize.XS}
                   aria-selected={isActive}
                   role="tab"
                   className={cn(
-                    'h-7 rounded-md px-2.5 text-2xs font-medium',
+                    'px-2.5 text-2xs font-medium',
                     isActive
                       ? 'bg-foreground/10 text-foreground'
                       : 'text-muted-foreground hover:text-foreground',
@@ -242,7 +243,7 @@ export function AnalyticsSnapshotCard({
             {metrics.map((metric) => (
               <div
                 key={metric.label}
-                className="rounded-lg border border-border/60 bg-background p-3"
+                className="rounded-md border border-border/60 bg-tertiary p-3"
               >
                 <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
                   {metric.icon}
@@ -256,7 +257,9 @@ export function AnalyticsSnapshotCard({
                     <span
                       className={cn(
                         'flex items-center text-xs',
-                        metric.change >= 0 ? 'text-green-500' : 'text-red-500',
+                        metric.change >= 0
+                          ? 'text-success'
+                          : 'text-destructive',
                       )}
                     >
                       {metric.change >= 0 ? (
@@ -299,7 +302,7 @@ export function AnalyticsSnapshotCard({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

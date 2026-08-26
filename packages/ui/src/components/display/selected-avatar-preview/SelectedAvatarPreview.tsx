@@ -28,7 +28,7 @@ export default function SelectedAvatarPreview({
       }
       density="compact"
     >
-      <div className="relative size-14 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+      <div className="relative size-14 overflow-hidden rounded-xl border border-border bg-tertiary">
         <Image
           alt={imageAlt}
           className="object-cover"

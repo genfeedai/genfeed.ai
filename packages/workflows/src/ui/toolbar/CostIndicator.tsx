@@ -1,5 +1,6 @@
 'use client';
 
+import { statusBadge, statusIcon } from '@genfeedai/ui';
 import { DollarSign } from 'lucide-react';
 import { useMemo } from 'react';
 import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
@@ -18,6 +19,7 @@ export function CostIndicator() {
 
   const displayCost =
     isRunning && actualCost > 0 ? actualCost : breakdown.total;
+  const RunningIcon = statusIcon.running;
 
   if (breakdown.items.length === 0) return null;
 
@@ -32,7 +34,12 @@ export function CostIndicator() {
       <DollarSign className="size-3.5" />
       <span className="font-mono text-xs">{formatCost(displayCost)}</span>
       {isRunning && actualCost > 0 && (
-        <span className="size-1.5 rounded-full bg-success" />
+        <span
+          className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-2xs ${statusBadge.running}`}
+        >
+          <RunningIcon className="size-3" aria-hidden />
+          <span>Running</span>
+        </span>
       )}
     </Button>
   );

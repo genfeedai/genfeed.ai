@@ -41,7 +41,7 @@ export function WorkflowCreatedCard({
   );
 
   return (
-    <div className="my-2 overflow-hidden border border-emerald-500/20 bg-background">
+    <div className="my-2 overflow-hidden border border-success/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <CircleCheck className="size-5 text-emerald-500" />
         <div>
@@ -121,7 +121,7 @@ export function WorkflowCreatedCard({
                   onClick={() => {
                     void handleActionClick(actionName, cta.payload);
                   }}
-                  className="inline-flex items-center gap-1.5 bg-emerald-500 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 bg-success px-3 py-2 text-xs font-medium text-success-foreground transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span>{buttonLabel}</span>
                 </Button>

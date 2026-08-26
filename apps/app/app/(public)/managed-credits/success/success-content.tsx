@@ -201,8 +201,8 @@ function ManagedCreditsSuccessContentInner() {
     <AuthFormLayout>
       <div className="mx-auto w-full max-w-xl">
         <div className="mb-8 text-center">
-          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-            <Key className="size-5 text-white/60" />
+          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-background-tertiary">
+            <Key className="size-5 text-muted-foreground" />
           </div>
           <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
             Managed credits ready
@@ -284,7 +284,7 @@ function KeyBlock({
   value: string;
 }) {
   return (
-    <div className="border-t border-white/[0.08] pt-5">
+    <div className="border-t border-border pt-5">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {label}
@@ -305,7 +305,7 @@ function KeyBlock({
       <Code
         display="block"
         size="sm"
-        className="max-h-40 whitespace-pre-wrap break-all border border-white/10 text-white/70"
+        className="max-h-40 whitespace-pre-wrap break-all border border-border text-muted-foreground"
       >
         {value}
       </Code>

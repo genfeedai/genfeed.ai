@@ -16,7 +16,7 @@ export function GenerationActionCardQualityBadge({
 }: GenerationActionCardQualityBadgeProps): ReactElement | null {
   if (score >= 8) {
     return (
-      <div className="flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+      <div className="flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
         ✨ Quality: {score}/10
       </div>
     );
@@ -25,7 +25,7 @@ export function GenerationActionCardQualityBadge({
   if (score < 6) {
     return (
       <div className="space-y-1">
-        <div className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+        <div className="flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
           ⚠️ Quality: {score}/10
         </div>
         {feedback && feedback.length > 0 && (
@@ -36,7 +36,7 @@ export function GenerationActionCardQualityBadge({
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
             onClick={onRegenerate}
-            className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
+            className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/15"
           >
             <RefreshCw className="size-3" />
             Regenerate
@@ -48,7 +48,7 @@ export function GenerationActionCardQualityBadge({
 
   // Score 6-7: neutral display
   return (
-    <div className="flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+    <div className="flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
       Quality: {score}/10
     </div>
   );

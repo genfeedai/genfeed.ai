@@ -51,13 +51,13 @@ function BatchWorkflowPageContent() {
 
       <main className="mx-auto max-w-7xl px-6 py-8">
         {error && (
-          <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="mb-6 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
 
         {(isBootstrapping || isLoadingJob) && (
-          <div className="mb-6 rounded-xl shadow-border bg-card/80 px-4 py-3 text-sm text-muted-foreground">
+          <div className="mb-6 rounded-md bg-secondary px-4 py-3 text-sm text-muted-foreground shadow-border">
             {isLoadingJob
               ? 'Loading batch job…'
               : 'Loading workflows and recent jobs…'}

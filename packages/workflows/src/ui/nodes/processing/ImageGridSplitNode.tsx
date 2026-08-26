@@ -264,7 +264,11 @@ function OutputGallery({
                 unoptimized
               />
             </button>
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">
+            <div
+              className={
+                'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1' /* design-system-allow-content-color */
+              }
+            >
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -273,12 +277,22 @@ function OutputGallery({
                   e.stopPropagation();
                   onDownload(index);
                 }}
-                className="size-6 bg-white/20 hover:bg-white/30"
+                className={
+                  'size-6 bg-white/20 hover:bg-white/30' /* design-system-allow-content-color */
+                }
               >
-                <Download className="size-3 text-white" />
+                <Download
+                  className={
+                    'size-3 text-white' /* design-system-allow-content-color */
+                  }
+                />
               </Button>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-2xs text-center py-0.5">
+            <div
+              className={
+                'absolute bottom-0 left-0 right-0 bg-black/50 text-white text-2xs text-center py-0.5' /* design-system-allow-content-color */
+              }
+            >
               {index + 1}
             </div>
           </div>
@@ -298,7 +312,9 @@ function OutputGallery({
             variant="ghost"
             size="icon-sm"
             onClick={onPreviewClose}
-            className="absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white"
+            className={
+              'absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white' /* design-system-allow-content-color */
+            }
           >
             ×
           </Button>

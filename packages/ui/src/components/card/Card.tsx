@@ -8,14 +8,14 @@ import { memo } from 'react';
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]: 'shadow-border bg-card text-card-foreground',
-  [CardVariant.WHITE]: 'border border-black/[0.08] bg-white text-black',
-  [CardVariant.BLACK]: 'border border-white/[0.08] bg-black text-white',
+  [CardVariant.WHITE]: 'border border-border bg-card text-card-foreground',
+  [CardVariant.BLACK]: 'border border-border bg-card text-card-foreground',
 };
 
 const INTERACTIVE_VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]: 'hover:shadow-border-strong',
-  [CardVariant.WHITE]: 'hover:border-black/[0.14]',
-  [CardVariant.BLACK]: 'hover:border-white/[0.16]',
+  [CardVariant.WHITE]: 'hover:border-border-strong',
+  [CardVariant.BLACK]: 'hover:border-border-strong',
 };
 
 const Card = memo(function Card({
@@ -34,6 +34,7 @@ const Card = memo(function Card({
   id,
   label,
   description,
+  isDisabled,
   onClick,
   'data-testid': dataTestId,
 }: CardProps) {
@@ -47,6 +48,7 @@ const Card = memo(function Card({
     VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
     onClick && 'cursor-pointer',
+    isDisabled && 'cursor-not-allowed opacity-60',
     onClick && INTERACTIVE_VARIANT_CLASSES[variant],
     className,
   );
@@ -119,6 +121,7 @@ const Card = memo(function Card({
         data-testid={dataTestId}
         id={id}
         onClick={onClick}
+        isDisabled={isDisabled}
         className={cardClasses}
         type="button"
         variant={ButtonVariant.UNSTYLED}

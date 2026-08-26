@@ -57,9 +57,9 @@ export function WorkflowExecuteCardStatusPanel({
   if (status === 'done') {
     return (
       <div className="space-y-2">
-        <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-          <CircleCheck className="size-4 text-green-600 dark:text-green-400" />
-          <span className="text-sm text-green-700 dark:text-green-300">
+        <div className="flex items-center gap-2 border border-success/20 bg-success/10 px-3 py-2  ">
+          <CircleCheck className="size-4 text-success " />
+          <span className="text-sm text-success ">
             Workflow executed successfully
           </span>
         </div>

@@ -33,7 +33,7 @@ function formatValue(value: unknown, type: string): string {
 
 export function SettingRow({ label, value, type, onEdit }: SettingRowProps) {
   return (
-    <tr className="border-b border-white/[0.08]">
+    <tr className="border-b border-border">
       <td className="px-4 py-3">{label}</td>
       <td className="px-4 py-3">
         <span className="font-mono text-sm">{formatValue(value, type)}</span>

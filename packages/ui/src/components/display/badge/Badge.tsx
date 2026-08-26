@@ -1,10 +1,13 @@
 import { ComponentSize } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IBadgeStatusConfig } from '@genfeedai/interfaces/ui/badge-status-config.interface';
 import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
 import { Badge as PrimitiveBadge } from '@ui/primitives/badge';
+import {
+  type StatusKey,
+  statusBadge,
+  statusIcon,
+} from '@ui/tokens/status-colors';
 import type { VariantProps } from 'class-variance-authority';
-import { Calendar, CircleCheck, CircleX, Clock, RefreshCw } from 'lucide-react';
 
 import { badgeVariants } from './badge.variants';
 
@@ -47,56 +50,91 @@ const BADGE_SIZE_MAP: Record<
 
 /**
  * Get complete badge configuration from status string
- * Returns variant, icon, label, and animation state
+ * Returns the canonical status key, visual variant, and default label.
  */
-function getStatusConfig(status: string): IBadgeStatusConfig {
+interface BadgeStatusConfig {
+  canonicalStatus?: StatusKey;
+  label?: string;
+  variant?: BadgeProps['variant'];
+}
+
+function getCanonicalStatusVariant(status: StatusKey): BadgeProps['variant'] {
+  const tone = statusBadge[status];
+  if (tone.includes('text-success')) {
+    return 'success';
+  }
+  if (tone.includes('text-destructive')) {
+    return 'error';
+  }
+  if (tone.includes('text-warning')) {
+    return 'warning';
+  }
+  if (tone.includes('text-info')) {
+    return 'info';
+  }
+  return 'secondary';
+}
+
+function getCanonicalStatusLabel(status: StatusKey): string {
+  return status
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getStatusConfig(status: string): BadgeStatusConfig {
   const normalizedStatus = status.toLowerCase().trim();
 
+  if (normalizedStatus in statusBadge) {
+    const canonicalStatus = normalizedStatus as StatusKey;
+    return {
+      canonicalStatus,
+      label: getCanonicalStatusLabel(canonicalStatus),
+      variant: getCanonicalStatusVariant(canonicalStatus),
+    };
+  }
+
   switch (normalizedStatus) {
-    case 'completed':
     case 'published':
-    case 'active':
     case 'success':
       return {
-        icon: <CircleCheck className="size-3" />,
+        canonicalStatus: 'completed',
         label: 'Completed',
         variant: 'success',
       };
 
     case 'scheduled':
       return {
-        icon: <Calendar className="size-3" />,
+        canonicalStatus: 'pending',
         label: 'Scheduled',
-        shouldSpin: false,
+        variant: 'info',
+      };
+
+    case 'info':
+      return {
+        canonicalStatus: 'running',
+        label: 'Information',
         variant: 'info',
       };
 
     case 'processing':
-    case 'running':
     case 'uploading':
       return {
-        icon: <RefreshCw className="size-3" />,
+        canonicalStatus: 'running',
         label: 'Processing',
-        shouldSpin: true,
         variant: 'accent',
       };
 
-    case 'pending':
-    case 'paused':
     case 'inactive':
     case 'warning':
       return {
-        icon: <Clock className="size-3" />,
+        canonicalStatus: 'pending',
         label: 'Pending',
         variant: 'secondary',
       };
 
-    case 'failed':
-    case 'error':
-    case 'cancelled':
     case 'canceled':
       return {
-        icon: <CircleX className="size-3" />,
+        canonicalStatus: 'cancelled',
         label: 'Failed',
         variant: 'error',
       };
@@ -106,7 +144,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'unlisted':
     case 'skipped':
       return {
-        icon: <Clock className="size-3" />,
+        canonicalStatus: 'planned',
         label: 'Draft',
         variant: 'ghost',
       };
@@ -160,7 +198,7 @@ function getStatusConfig(status: string): IBadgeStatusConfig {
     case 'validated':
     case 'operational':
       return {
-        icon: <CircleCheck className="size-3" />,
+        canonicalStatus: 'active',
         label: 'Operational',
         variant: 'validated',
       };
@@ -194,7 +232,10 @@ export default function Badge({
   // If status is provided, get complete status configuration
   const statusConfig = status ? getStatusConfig(status) : null;
   const effectiveVariant = statusConfig?.variant ?? variant;
-  const effectiveIcon = statusConfig?.icon ?? icon;
+  const StatusIcon = statusConfig?.canonicalStatus
+    ? statusIcon[statusConfig.canonicalStatus]
+    : null;
+  const effectiveIcon = StatusIcon ? <StatusIcon /> : icon;
   // Explicit children always win over statusConfig's canned label so product
   // surfaces can pair a status tone (e.g. completed/failed) with their own
   // copy ("Approved" / "Rejected") without Badge overwriting it.
@@ -211,6 +252,7 @@ export default function Badge({
         typeof badgeVariants
       >['variant'],
     }),
+    statusConfig?.canonicalStatus && statusBadge[statusConfig.canonicalStatus],
     className,
     backgroundColor && `bg-${backgroundColor}`,
     textColor && `text-${textColor}`,
@@ -224,18 +266,8 @@ export default function Badge({
           effectiveVariant as keyof typeof PRIMITIVE_VARIANT_MAP
         ] ?? 'default'
       }
+      icon={effectiveIcon}
     >
-      {effectiveIcon && (
-        <span
-          className={cn(
-            'flex-shrink-0',
-            statusConfig?.shouldSpin && 'animate-spin',
-          )}
-        >
-          {effectiveIcon}
-        </span>
-      )}
-
       {value !== undefined ? (
         <span className="font-semibold">{value}</span>
       ) : (

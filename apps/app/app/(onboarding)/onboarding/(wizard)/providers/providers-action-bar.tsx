@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { OnboardingAccessMode } from '@genfeedai/interfaces';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -52,8 +53,11 @@ export default function ProvidersActionBar({
 
   return (
     <>
-      <div className="provider-card opacity-0 flex flex-col gap-4 border border-white/[0.08] bg-white/[0.02] p-5 md:flex-row md:items-center md:justify-between md:p-6">
-        <div className="text-sm text-white/45">{guidance}</div>
+      <Card
+        className="provider-card opacity-0"
+        bodyClassName="flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between md:p-6"
+      >
+        <div className="text-sm text-muted-foreground">{guidance}</div>
 
         <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row">
           {surface === 'desktop-local' ? (
@@ -78,7 +82,7 @@ export default function ProvidersActionBar({
                 onClick={(event) => {
                   onByokClick(event);
                 }}
-                className={`inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
+                className={`inline-flex w-full items-center justify-center rounded-full border border-border bg-background-tertiary px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-border-strong hover:bg-hover md:w-auto ${
                   selectedMode === 'byok' ? CURRENT_RING : ''
                 }`}
               >
@@ -129,13 +133,13 @@ export default function ProvidersActionBar({
               }
               disabled={loading || pendingMode !== null}
               wrapperClassName="w-full md:w-auto"
-              className={`w-full rounded-full border border-white/10 bg-white/[0.03] text-white/75 hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto ${
+              className={`w-full rounded-full border border-border bg-background-tertiary text-foreground hover:border-border-strong hover:bg-hover md:w-auto ${
                 selectedMode === 'cloud' ? CURRENT_RING : ''
               }`}
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       <div className="provider-card opacity-0 flex items-center justify-between gap-4 pt-2">
         <Button
@@ -144,12 +148,12 @@ export default function ProvidersActionBar({
           withWrapper={false}
           onClick={onBack}
           icon={<ArrowLeft className="size-4" />}
-          className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
+          className="h-8 rounded-full border border-border bg-background-tertiary px-4 text-muted-foreground hover:border-border-strong hover:bg-hover hover:text-foreground"
         >
           Back
         </Button>
 
-        <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-2xs font-black uppercase tracking-[0.2em] text-white/60">
+        <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-border bg-background-tertiary px-4 text-2xs font-black uppercase tracking-[0.2em] text-muted-foreground">
           <Sparkles className="size-3" />
           Step 2 of 3
         </div>

@@ -141,7 +141,7 @@ export default function EditorLayout({
           </div>
 
           {/* Timeline area */}
-          <div className="h-64 shrink-0 border-t border-white/[0.08] overflow-hidden">
+          <div className="h-64 shrink-0 border-t border-border overflow-hidden">
             <EditorTimeline
               tracks={project.tracks}
               currentFrame={currentFrame}
@@ -166,7 +166,7 @@ export default function EditorLayout({
             selectedClipId={selectedClipId}
             onTrackUpdate={onTrackUpdate}
           />
-          <div className="border-t border-white/[0.08]">
+          <div className="border-t border-border">
             <EditorPropertiesPanel
               tracks={project.tracks}
               fps={project.settings.fps}

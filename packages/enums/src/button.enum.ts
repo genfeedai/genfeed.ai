@@ -13,6 +13,8 @@ export enum ButtonSize {
   SM = 'sm',
   LG = 'lg',
   XS = 'xs',
+  /** 28px icon-only control for genuinely dense chrome. */
+  MICRO = 'micro',
   ICON = 'icon',
   PUBLIC = 'public',
 }

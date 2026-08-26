@@ -87,14 +87,14 @@ export function AgentCommandList({
 
   if (items.length === 0) {
     return (
-      <div className="border border-white/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
+      <div className="border border-foreground/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
         No commands found
       </div>
     );
   }
 
   return (
-    <div className="w-80 max-w-[calc(100vw-2rem)] max-h-64 overflow-y-auto border border-white/[0.12] bg-background shadow-lg">
+    <div className="w-80 max-w-[calc(100vw-2rem)] max-h-64 overflow-y-auto border border-foreground/[0.12] bg-background shadow-lg">
       {items.map((item, index) => (
         <Button
           variant={ButtonVariant.UNSTYLED}

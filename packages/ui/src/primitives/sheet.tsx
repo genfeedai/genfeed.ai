@@ -23,7 +23,7 @@ function SheetOverlay({
   return (
     <SheetPrimitive.Overlay
       className={cn(
-        'gen-sheet-overlay fixed inset-0 z-50 bg-black/80',
+        'gen-sheet-overlay fixed inset-0 z-50 bg-black/80', // design-system-allow-content-color -- modal scrim
         className,
       )}
       {...props}

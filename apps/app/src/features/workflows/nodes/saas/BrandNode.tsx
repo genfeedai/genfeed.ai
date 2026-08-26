@@ -133,15 +133,15 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
               <div className="flex items-center gap-1">
                 <span>Colors:</span>
                 <span
-                  className="inline-block size-3 rounded-full border border-white/[0.08]"
+                  className="inline-block size-3 rounded-full border border-border"
                   style={{ backgroundColor: data.resolvedColors.primary }}
                 />
                 <span
-                  className="inline-block size-3 rounded-full border border-white/[0.08]"
+                  className="inline-block size-3 rounded-full border border-border"
                   style={{ backgroundColor: data.resolvedColors.secondary }}
                 />
                 <span
-                  className="inline-block size-3 rounded-full border border-white/[0.08]"
+                  className="inline-block size-3 rounded-full border border-border"
                   style={{ backgroundColor: data.resolvedColors.accent }}
                 />
               </div>

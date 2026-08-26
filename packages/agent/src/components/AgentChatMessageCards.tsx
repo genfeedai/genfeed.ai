@@ -146,7 +146,7 @@ export function OAuthConnectCard({
         })}
       </div>
       {connectError ? (
-        <p className="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">
+        <p className="mt-2 text-xs text-destructive " role="alert">
           {connectError}
         </p>
       ) : null}

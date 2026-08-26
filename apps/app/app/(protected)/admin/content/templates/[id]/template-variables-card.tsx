@@ -22,7 +22,7 @@ export default function TemplateVariablesCard({ variables }: Props) {
         {variables.map((variable) => (
           <div
             key={variable.id}
-            className="border-b border-white/[0.08] pb-4 last:border-b-0 last:pb-0"
+            className="border-b border-border pb-4 last:border-b-0 last:pb-0"
           >
             <div className="flex items-center gap-2 mb-2">
               <Code size="md" className="bg-background">

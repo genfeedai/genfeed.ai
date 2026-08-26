@@ -69,7 +69,11 @@ export default function ChildrenList({
 
               {/* Label overlay */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1">
-                <span className="text-white text-2xs font-medium truncate block">
+                <span
+                  className={
+                    'block truncate text-2xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
+                  }
+                >
                   {metadata.label || child.id.slice(0, 8)}
                 </span>
               </div>
@@ -81,7 +85,7 @@ export default function ChildrenList({
                   variant={ButtonVariant.UNSTYLED}
                   onClick={() => onRemoveChild(child.id)}
                   isDisabled={isSaving}
-                  className="absolute top-1 right-1 rounded-md bg-error p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-error-focus disabled:opacity-50"
+                  className="absolute right-1 top-1 rounded-md bg-destructive p-0.5 text-destructive-foreground opacity-0 transition-opacity hover:bg-destructive/80 group-hover:opacity-100 disabled:opacity-50"
                   ariaLabel="Remove child"
                 >
                   <X className="size-3" />

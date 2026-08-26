@@ -325,7 +325,10 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
                 e.stopPropagation();
                 setShowColorPicker(!showColorPicker);
               }}
-              className={clsx('p-1 size-auto hover:bg-white/10', colors.text)}
+              className={clsx(
+                'size-auto p-1 hover:bg-foreground/10',
+                colors.text,
+              )}
               title="Change group color"
             >
               <Palette className="size-4" />
@@ -360,7 +363,10 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               e.stopPropagation();
               toggleGroupLock(group.id);
             }}
-            className={clsx('p-1 size-auto hover:bg-white/10', colors.text)}
+            className={clsx(
+              'size-auto p-1 hover:bg-foreground/10',
+              colors.text,
+            )}
             title={group.isLocked ? 'LockOpen group' : 'Lock group'}
           >
             {group.isLocked ? (
@@ -376,7 +382,10 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               e.stopPropagation();
               deleteGroup(group.id);
             }}
-            className={clsx('p-1 size-auto hover:bg-white/10', colors.text)}
+            className={clsx(
+              'size-auto p-1 hover:bg-foreground/10',
+              colors.text,
+            )}
             title="Delete group"
           >
             <Trash2 className="size-4" />

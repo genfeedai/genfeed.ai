@@ -23,9 +23,9 @@ const SIZE_CLASSES = {
 } as const;
 
 const VARIANT_CLASSES = {
-  [BentoVariant.BLACK]: 'bg-black text-white',
+  [BentoVariant.BLACK]: 'bg-card text-card-foreground',
   [BentoVariant.DEFAULT]: 'bg-card text-card-foreground',
-  [BentoVariant.WHITE]: 'bg-white text-black',
+  [BentoVariant.WHITE]: 'bg-white text-black', // design-system-allow-content-color -- explicit fixed-content variant
 } as const;
 
 const BentoItem = memo(function BentoItem({

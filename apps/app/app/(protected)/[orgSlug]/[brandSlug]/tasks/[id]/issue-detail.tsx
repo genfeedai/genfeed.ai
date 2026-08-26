@@ -47,17 +47,6 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'To Do',
 };
 
-const STATUS_COLORS: Record<TaskStatus, string> = {
-  backlog: 'bg-muted text-white/50',
-  blocked: 'bg-red-500/20 text-red-400',
-  cancelled: 'bg-muted/50 text-white/30',
-  done: 'bg-emerald-500/20 text-emerald-400',
-  failed: 'bg-red-500/20 text-red-500',
-  in_progress: 'bg-blue-500/20 text-blue-400',
-  in_review: 'bg-amber-500/20 text-amber-400',
-  todo: 'bg-accent text-white/70',
-};
-
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
   critical: 'Critical',
   high: 'High',
@@ -68,8 +57,8 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'text-red-400',
   high: 'text-orange-400',
-  low: 'text-white/40',
-  medium: 'text-white/60',
+  low: 'text-gray-800',
+  medium: 'text-muted-foreground',
 };
 
 const ENTITY_MODEL_LABELS: Record<TaskLinkedEntityModel, string> = {
@@ -311,8 +300,8 @@ export default function IssueDetail({
       <Container>
         <Card>
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <TriangleAlert className="mb-3 size-8 text-white/20" />
-            <p className="text-sm text-white/50">Issue not found</p>
+            <TriangleAlert className="mb-3 size-8 text-gray-800" />
+            <p className="text-sm text-muted-foreground">Issue not found</p>
             <Link
               href={APP_ROUTES.WORKSPACE.TASKS}
               className="mt-3 text-xs text-muted-foreground hover:text-foreground"
@@ -330,7 +319,7 @@ export default function IssueDetail({
       <div className="mb-4">
         <Link
           href={APP_ROUTES.WORKSPACE.TASKS}
-          className="inline-flex items-center gap-1 text-xs text-white/40 transition-colors hover:text-white/60"
+          className="inline-flex items-center gap-1 text-xs text-gray-800 transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3" />
           Back to issues
@@ -345,7 +334,6 @@ export default function IssueDetail({
             status={issue.status}
             priority={issue.priority}
             title={issue.title}
-            statusColors={STATUS_COLORS}
             statusLabels={STATUS_LABELS}
             priorityColors={PRIORITY_COLORS}
             priorityLabels={PRIORITY_LABELS}
@@ -355,10 +343,10 @@ export default function IssueDetail({
           {issue.description ? (
             <Card>
               <div className="p-4">
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
                   Description
                 </h3>
-                <div className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">
+                <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                   {issue.description}
                 </div>
               </div>
@@ -367,7 +355,6 @@ export default function IssueDetail({
 
           <IssueSubIssuesCard
             subIssues={children}
-            statusColors={STATUS_COLORS}
             statusLabels={STATUS_LABELS}
           />
 
@@ -392,7 +379,6 @@ export default function IssueDetail({
         {/* Sidebar */}
         <IssueSidebar
           issue={issue}
-          statusColors={STATUS_COLORS}
           statusLabels={STATUS_LABELS}
           statusTransitions={STATUS_TRANSITIONS}
           priorityColors={PRIORITY_COLORS}

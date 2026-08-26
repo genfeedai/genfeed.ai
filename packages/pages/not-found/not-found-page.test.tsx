@@ -13,11 +13,16 @@ describe('NotFoundPage', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('fills the available layout region with a deep-black background', () => {
+  it('fills the available layout region with the semantic background', () => {
     const { container } = render(<NotFoundPage />);
     const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toHaveClass('h-full', 'w-full', 'flex-1', 'bg-black');
-    expect(rootElement).not.toHaveClass('container', 'bg-background');
+    expect(rootElement).toHaveClass(
+      'h-full',
+      'w-full',
+      'flex-1',
+      'bg-background',
+    );
+    expect(rootElement).not.toHaveClass('container', 'bg-black');
   });
 
   it('does not stack a full viewport on top of the app shell chrome', () => {
@@ -27,12 +32,12 @@ describe('NotFoundPage', () => {
     expect(rootElement).toHaveClass('min-h-0', 'overflow-hidden');
   });
 
-  it('uses a high-contrast home CTA on the black shell', () => {
+  it('uses the semantic primary treatment for the home CTA', () => {
     const { getByRole } = render(
       <NotFoundPage homeHref="/" homeLabel="Go to Workspace" />,
     );
     const cta = getByRole('link', { name: 'Go to Workspace' });
-    expect(cta).toHaveClass('bg-white', 'text-black');
-    expect(cta).not.toHaveClass('bg-primary');
+    expect(cta).toHaveClass('bg-primary', 'text-primary-foreground');
+    expect(cta).not.toHaveClass('bg-white', 'text-black');
   });
 });

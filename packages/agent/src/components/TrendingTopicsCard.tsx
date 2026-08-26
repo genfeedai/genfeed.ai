@@ -67,7 +67,7 @@ export function TrendingTopicsCard({
                 onClick={() =>
                   onCreatePost?.({ id: trend.id, label: trend.label })
                 }
-                className="ml-2 flex shrink-0 items-center gap-1 rounded bg-orange-50 px-2 py-1 text-2xs font-medium text-orange-600 transition-colors hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50"
+                className="ml-2 flex shrink-0 items-center gap-1 rounded bg-warning/10 px-2 py-1 text-2xs font-medium text-warning transition-colors hover:bg-warning/10   "
               >
                 <SquarePen className="size-3" />
                 Create Post

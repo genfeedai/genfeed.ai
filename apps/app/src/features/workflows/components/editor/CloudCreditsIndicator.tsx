@@ -9,6 +9,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import Badge from '@ui/display/badge/Badge';
 import { CreditCard } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -68,9 +69,9 @@ export function CloudCreditsIndicator() {
       <span className="font-mono text-xs">
         {formatNumberWithCommas(displayCredits)} credits
       </span>
-      {isRunning && actualCostUsd > 0 && (
-        <span className="size-1.5 rounded-full bg-green-500" />
-      )}
+      {isRunning && actualCostUsd > 0 ? (
+        <Badge status="running">Running</Badge>
+      ) : null}
     </div>
   );
 }

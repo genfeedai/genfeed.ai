@@ -156,8 +156,7 @@ export default function BotToggle({
               key={item.label}
               className={cn(
                 'flex items-center justify-between py-2',
-                index < configItems.length - 1 &&
-                  'border-b border-white/[0.08]',
+                index < configItems.length - 1 && 'border-b border-border',
               )}
             >
               <span className="text-sm">{item.label}</span>

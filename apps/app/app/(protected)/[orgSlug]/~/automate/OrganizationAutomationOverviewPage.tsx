@@ -149,7 +149,7 @@ function OrganizationAutomationBrandCard({
           <CardIcon
             icon={Workflow}
             className={cn(
-              'flex h-10 w-10 items-center justify-center border border-white/[0.12]',
+              'flex h-10 w-10 items-center justify-center border border-border',
               'bg-indigo-500/12 text-indigo-300',
             )}
             iconClassName="h-5 w-5"
@@ -179,7 +179,7 @@ function OrganizationAutomationBrandCard({
         </ul>
       </div>
 
-      <div className="border-t border-white/[0.06] pt-4">
+      <div className="border-t border-border pt-4">
         <Button
           asChild
           variant={ButtonVariant.SECONDARY}

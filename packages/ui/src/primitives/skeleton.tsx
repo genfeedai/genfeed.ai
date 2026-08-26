@@ -8,7 +8,7 @@ function Skeleton({ className, ...props }: ComponentPropsWithoutRef<'output'>) {
     <output
       aria-busy="true"
       className={cn(
-        'relative overflow-hidden animate-pulse rounded-md bg-white/[0.06]',
+        'relative overflow-hidden animate-pulse rounded-md bg-muted',
         'before:absolute before:inset-0',
         'before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent',
         'before:animate-shimmer',

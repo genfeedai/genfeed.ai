@@ -9,8 +9,6 @@ export { default as Masonry } from '@ui/display/masonry/Masonry';
 export { default as PlatformBadge } from '@ui/display/platform-badge/PlatformBadge';
 export { default as SelectedAvatarPreview } from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
 export { Skeleton } from '@ui/display/skeleton/skeleton';
-// Status
-export { default as StatusDot } from '@ui/display/status-dot/StatusDot';
 export { default as Table } from '@ui/display/table/Table';
 export { default as TrendBadge } from '@ui/display/trend-badge/TrendBadge';
 

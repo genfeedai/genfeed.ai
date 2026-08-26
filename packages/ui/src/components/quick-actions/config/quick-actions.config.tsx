@@ -466,7 +466,7 @@ export const createDeleteAction = (
     handler,
     {
       dividerBefore: true,
-      icon: <Trash2 className={`${ICON_CLASS} text-white`} />,
+      icon: <Trash2 className={`${ICON_CLASS} text-destructive`} />,
       id: 'delete',
       label: 'Delete',
       showInMenu: true,
@@ -620,7 +620,7 @@ export const createMarkValidatedAction = (
   return {
     icon: (
       <CircleCheck
-        className={`size-4 ${isValidated ? 'text-success' : 'text-white'}`}
+        className={`size-4 ${isValidated ? 'text-success' : 'text-foreground'}`}
       />
     ),
     id: 'mark-validated',
@@ -649,7 +649,7 @@ export const createMarkRejectedAction = (
   return {
     icon: (
       <X
-        className={`size-4 ${isRejected ? 'text-destructive' : 'text-white'}`}
+        className={`size-4 ${isRejected ? 'text-destructive' : 'text-foreground'}`}
       />
     ),
     id: 'mark-rejected',

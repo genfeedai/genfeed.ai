@@ -195,7 +195,11 @@ function CloudImageInputNodeComponent(props: NodeProps): React.JSX.Element {
 
         {mediaConfig.resolvedUrl ? (
           <div className="space-y-2">
-            <div className="overflow-hidden rounded bg-black/20">
+            <div
+              className={
+                'overflow-hidden rounded bg-black/20' // design-system-allow-content-color
+              }
+            >
               <Image
                 unoptimized
                 src={mediaConfig.resolvedUrl}

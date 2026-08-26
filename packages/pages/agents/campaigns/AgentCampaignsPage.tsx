@@ -1,7 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
@@ -9,6 +9,7 @@ import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaig
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
+import Card from '@ui/card/Card';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
@@ -38,13 +39,6 @@ const STATUS_BADGE_VARIANTS: Record<
   completed: 'default',
   draft: 'secondary',
   paused: 'warning',
-};
-
-const STATUS_DOT_CLASSES: Record<CampaignStatus, string> = {
-  active: 'bg-success animate-pulse',
-  completed: 'bg-success',
-  draft: 'bg-muted-foreground',
-  paused: 'bg-warning',
 };
 
 function formatDate(dateStr: string | undefined): string {
@@ -135,7 +129,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
       : 0;
 
   return (
-    <div className="group relative flex flex-col gap-3 rounded-lg bg-card p-4 shadow-border transition-colors hover:shadow-border-strong">
+    <Card className="group" bodyClassName="gap-3 p-4">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex size-8 items-center justify-center rounded-full border border-border bg-foreground/[0.06]">
@@ -145,17 +139,9 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
             <p className="text-sm font-semibold text-foreground">
               {campaign.label}
             </p>
-            <div className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  'inline-block h-1.5 w-1.5 rounded-full',
-                  STATUS_DOT_CLASSES[campaign.status],
-                )}
-              />
-              <span className="text-2xs text-foreground/45">
-                {campaign.status}
-              </span>
-            </div>
+            <Badge status={campaign.status} size={ComponentSize.SM}>
+              {campaign.status}
+            </Badge>
           </div>
         </div>
         <Button
@@ -204,7 +190,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
           Next run {formatRelativeTime(campaign.nextOrchestratedAt)}
         </p>
       )}
-    </div>
+    </Card>
   );
 }
 

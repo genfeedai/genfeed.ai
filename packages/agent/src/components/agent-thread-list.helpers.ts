@@ -1,6 +1,7 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
+import type { StatusKey } from '@genfeedai/ui';
 
 export { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 export { sortThreads };
@@ -248,9 +249,7 @@ export function getThreadStatusMeta(
   },
 ): {
   label: string;
-  /** running/waiting pulse; failed is solid; null = no disc */
   tone: 'running' | 'warning' | 'failed';
-  shouldPulse: boolean;
 } | null {
   if (
     thread.attentionState === 'needs-input' ||
@@ -259,7 +258,6 @@ export function getThreadStatusMeta(
   ) {
     return {
       label: 'Needs input',
-      shouldPulse: true,
       tone: 'warning',
     };
   }
@@ -267,7 +265,6 @@ export function getThreadStatusMeta(
   if (isThreadActivelyRunning(thread, options)) {
     return {
       label: 'Running',
-      shouldPulse: true,
       tone: 'running',
     };
   }
@@ -275,22 +272,21 @@ export function getThreadStatusMeta(
   if (thread.runStatus === 'failed' || options?.activeRunStatus === 'failed') {
     return {
       label: 'Failed',
-      shouldPulse: false,
       tone: 'failed',
     };
   }
 
-  // Idle / updated / completed: no activity disc (Claude-style).
+  // Idle / updated / completed: no status glyph.
   return null;
 }
 
-export function getThreadStatusDotClass(options: {
+export function getThreadStatusKey(options: {
   attentionState?: AgentThread['attentionState'];
   pendingInputCount?: AgentThread['pendingInputCount'];
   tone?: 'running' | 'warning' | 'failed' | null;
-}): string {
+}): StatusKey {
   if (options.tone === 'failed') {
-    return 'bg-red-400';
+    return 'failed';
   }
 
   if (
@@ -298,15 +294,14 @@ export function getThreadStatusDotClass(options: {
     options.attentionState === 'needs-input' ||
     (options.pendingInputCount ?? 0) > 0
   ) {
-    return 'bg-amber-300';
+    return 'pending_approval';
   }
 
   if (options.tone === 'running' || options.attentionState === 'running') {
-    // Claude-like violet activity disc
-    return 'bg-violet-400';
+    return 'running';
   }
 
-  return 'bg-transparent';
+  return 'idle';
 }
 
 export function getThreadStatusA11yLabel(

@@ -13,7 +13,7 @@ type AgentFullPageMobileBarProps = {
 };
 
 const MOBILE_BAR_BUTTON_CLASS =
-  'inline-flex items-center gap-2 border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground';
+  'inline-flex items-center gap-2 border-foreground/[0.12] bg-foreground/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-foreground/[0.06] hover:text-foreground';
 
 export function AgentFullPageMobileBar({
   showThreadSidebar,
@@ -24,7 +24,7 @@ export function AgentFullPageMobileBar({
   onOpenSetup,
 }: AgentFullPageMobileBarProps): ReactElement {
   return (
-    <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-3 xl:hidden">
+    <div className="flex items-center gap-2 border-b border-foreground/[0.08] px-4 py-3 xl:hidden">
       {showThreadSidebar ? (
         <Button
           variant={ButtonVariant.SECONDARY}

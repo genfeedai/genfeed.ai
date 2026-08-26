@@ -124,7 +124,7 @@ export function AgentSettings({
     <div className="space-y-8">
       {!hasPersistedOverrides && (
         <p
-          className="rounded bg-white/[0.02] px-4 py-3 text-xs text-muted-foreground"
+          className="rounded bg-foreground/[0.02] px-4 py-3 text-xs text-muted-foreground"
           role="status"
         >
           {translate('defaultsBanner')}
@@ -150,7 +150,7 @@ export function AgentSettings({
                 'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
                 generationPriority === option.key
                   ? 'border-primary/40 bg-primary/5'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
+                  : 'border-foreground/[0.08] bg-foreground/[0.02] hover:border-foreground/[0.15] hover:bg-foreground/[0.04]',
               )}
             >
               <div
@@ -158,7 +158,7 @@ export function AgentSettings({
                   'flex size-8 shrink-0 items-center justify-center',
                   generationPriority === option.key
                     ? 'bg-primary/10 text-primary'
-                    : 'bg-white/[0.05] text-muted-foreground',
+                    : 'bg-foreground/[0.05] text-muted-foreground',
                 )}
               >
                 {option.icon}
@@ -197,7 +197,7 @@ export function AgentSettings({
               'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
               selectedModel === ''
                 ? 'border-primary/40 bg-primary/5'
-                : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
+                : 'border-foreground/[0.08] bg-foreground/[0.02] hover:border-foreground/[0.15] hover:bg-foreground/[0.04]',
             )}
           >
             <div className="flex flex-1 flex-col gap-0.5">
@@ -237,13 +237,13 @@ export function AgentSettings({
                   'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
                   selectedModel === model.key
                     ? 'border-primary/40 bg-primary/5'
-                    : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
+                    : 'border-foreground/[0.08] bg-foreground/[0.02] hover:border-foreground/[0.15] hover:bg-foreground/[0.04]',
                 )}
               >
                 <div className="flex flex-1 flex-col gap-0.5">
                   <div className="flex items-center gap-1.5">
                     {isReasoning ? (
-                      <Sparkles className="size-3.5 text-purple-400" />
+                      <Sparkles className="size-3.5 text-primary" />
                     ) : null}
                     <span className="text-sm font-medium text-foreground">
                       {model.label}
@@ -291,7 +291,7 @@ export function AgentSettings({
             placeholder={translate('personaPlaceholder')}
             maxLength={5000}
             rows={6}
-            className="resize-y border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm placeholder:text-foreground/30 focus:border-primary/40"
+            className="resize-y border-foreground/[0.12] bg-foreground/[0.03] px-4 py-3 text-sm placeholder:text-foreground/30 focus:border-primary/40"
           />
           <div className="mt-1 text-right text-2xs text-muted-foreground">
             {persona.length}/5000

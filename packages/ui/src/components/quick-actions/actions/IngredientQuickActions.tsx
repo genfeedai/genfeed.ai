@@ -245,7 +245,7 @@ export default function IngredientQuickActions(
   // controls.
   const dropdownButtonClassName = cn(
     QUICK_ACTION_TRIGGER_CLASS,
-    'text-white/55 hover:text-white hover:bg-white/6',
+    'text-muted-foreground hover:bg-hover hover:text-foreground',
   );
 
   const alignmentClass = align === 'start' ? 'justify-start' : 'justify-end';

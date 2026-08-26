@@ -96,7 +96,7 @@ export function useAgentStrategiesColumns(
 
           return (
             <div className="flex items-center gap-3">
-              <span className="flex size-8 items-center justify-center rounded bg-white/5 text-white/70">
+              <span className="flex size-8 items-center justify-center rounded bg-background-tertiary text-muted-foreground">
                 {icon}
               </span>
               <div className="flex flex-col">

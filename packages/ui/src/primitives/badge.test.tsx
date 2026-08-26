@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { Badge } from '@ui/primitives/badge';
+import { CircleCheck } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 
 describe('Badge', () => {
@@ -46,4 +47,15 @@ describe('Badge', () => {
       expect(badge.className).toContain(bgClass);
     },
   );
+
+  it('renders a first-class leading icon at the badge icon scale', () => {
+    render(
+      <Badge icon={<CircleCheck data-testid="status-icon" />}>Ready</Badge>,
+    );
+
+    const icon = screen.getByTestId('status-icon');
+    expect(icon.parentElement).toHaveAttribute('data-slot', 'badge-icon');
+    expect(icon.parentElement).toHaveAttribute('aria-hidden', 'true');
+    expect(icon.parentElement).toHaveClass('[&_svg]:size-3');
+  });
 });

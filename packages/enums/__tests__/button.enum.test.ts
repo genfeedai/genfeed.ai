@@ -18,8 +18,8 @@ describe('button.enum', () => {
   });
 
   describe('ButtonSize', () => {
-    it('should have 6 members', () => {
-      expect(Object.values(ButtonSize)).toHaveLength(6);
+    it('should have 7 members', () => {
+      expect(Object.values(ButtonSize)).toHaveLength(7);
     });
 
     it('should have correct values', () => {
@@ -27,6 +27,7 @@ describe('button.enum', () => {
       expect(ButtonSize.SM).toBe('sm');
       expect(ButtonSize.LG).toBe('lg');
       expect(ButtonSize.XS).toBe('xs');
+      expect(ButtonSize.MICRO).toBe('micro');
       expect(ButtonSize.ICON).toBe('icon');
       expect(ButtonSize.PUBLIC).toBe('public');
     });

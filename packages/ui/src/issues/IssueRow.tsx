@@ -44,7 +44,7 @@ export function IssueRow({
 
   const content = (
     <>
-      {/* Column 1: Status dot */}
+      {/* Column 1: Status glyph */}
       <span className="shrink-0">
         <StatusIcon status={status} />
       </span>

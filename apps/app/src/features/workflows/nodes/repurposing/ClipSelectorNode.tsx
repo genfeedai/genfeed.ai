@@ -203,7 +203,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
             {data.outputClips.map((clip, index) => (
               <div
                 key={`${clip.startTime}-${clip.endTime}-${clip.score}-${clip.reason}`}
-                className="p-2 border border-white/[0.08] bg-muted/30 text-xs space-y-1"
+                className="p-2 border border-border bg-muted/30 text-xs space-y-1"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Clip {index + 1}</span>

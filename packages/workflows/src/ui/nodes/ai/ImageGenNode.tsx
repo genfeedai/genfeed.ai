@@ -189,20 +189,34 @@ function ImageGenNodeComponent(props: NodeProps) {
                     unoptimized
                   />
 
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  <div
+                    className={
+                      'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center' /* design-system-allow-content-color */
+                    }
+                  >
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="size-6 bg-white/20 hover:bg-white/30"
+                      className={
+                        'size-6 bg-white/20 hover:bg-white/30' /* design-system-allow-content-color */
+                      }
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(i);
                       }}
                     >
-                      <Download className="size-3 text-white" />
+                      <Download
+                        className={
+                          'size-3 text-white' /* design-system-allow-content-color */
+                        }
+                      />
                     </Button>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-2xs text-center py-0.5">
+                  <div
+                    className={
+                      'absolute bottom-0 left-0 right-0 bg-black/50 text-white text-2xs text-center py-0.5' /* design-system-allow-content-color */
+                    }
+                  >
                     {i + 1}
                   </div>
                 </Button>
@@ -224,7 +238,9 @@ function ImageGenNodeComponent(props: NodeProps) {
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setSelectedPreview(null)}
-                    className="absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white"
+                    className={
+                      'absolute top-1 right-1 size-5 bg-black/50 hover:bg-black/70 text-white' /* design-system-allow-content-color */
+                    }
                   >
                     x
                   </Button>
@@ -234,7 +250,11 @@ function ImageGenNodeComponent(props: NodeProps) {
             {nodeData.status === 'processing' && <ProcessingOverlay />}
           </div>
         ) : nodeData.outputImage ? (
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20">
+          <div
+            className={
+              'relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20' /* design-system-allow-content-color */
+            }
+          >
             <Image
               src={nodeData.outputImage}
               alt="Generated image"

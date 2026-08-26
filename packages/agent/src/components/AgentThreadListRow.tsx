@@ -1,6 +1,8 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentThreadStatus, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { statusBadge, statusIcon } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -9,7 +11,6 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { Input } from '@ui/primitives/input';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {
   ArchiveX,
   CornerDownRight,
@@ -20,11 +21,11 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ComponentPropsWithRef, ReactElement, RefObject } from 'react';
+import type { ReactElement, RefObject } from 'react';
 import {
   formatRelativeTime,
   getThreadStatusA11yLabel,
-  getThreadStatusDotClass,
+  getThreadStatusKey,
   getThreadStatusMeta,
   resolveThreadListPreview,
 } from './agent-thread-list.helpers';
@@ -72,7 +73,7 @@ interface AgentThreadListRowProps {
 
 /**
  * Finalist 1 row chrome: dense title+preview+time, square active border,
- * activity disc only when running/waiting/failed (Claude-style pulse).
+ * canonical status glyph only when running/waiting/failed.
  * Archived rows use semantic surface and foreground tokens so the title stays
  * above WCAG AA without opacity stacking dimming every descendant.
  */
@@ -93,47 +94,26 @@ function agentThreadListRowClassName(options: {
 }
 
 function ThreadActivityIndicator({
-  ref,
-  className,
   statusMeta,
   a11yLabel,
-  ...props
-}: Omit<ComponentPropsWithRef<'span'>, 'children'> & {
+}: {
   statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
   a11yLabel: string;
 }): ReactElement {
-  const dotClass = getThreadStatusDotClass({
+  const statusKey = getThreadStatusKey({
     tone: statusMeta.tone,
   });
+  const StatusIcon = statusIcon[statusKey];
 
   return (
-    <span
-      ref={ref}
-      {...props}
-      className={cn(
-        'relative mt-1.5 flex size-2 shrink-0 items-center justify-center',
-        className,
-      )}
-      role="img"
+    <Badge
       aria-label={a11yLabel}
-      // biome-ignore lint/a11y/noNoninteractiveTabindex: The status-only tooltip must be keyboard-focusable without nesting an interactive control inside the thread link.
-      tabIndex={0}
+      className={cn('shrink-0 capitalize', statusBadge[statusKey])}
+      icon={<StatusIcon />}
       title={statusMeta.label}
     >
-      {statusMeta.shouldPulse ? (
-        <span
-          className={cn(
-            'absolute inline-flex size-full animate-ping rounded-full opacity-40',
-            dotClass,
-          )}
-          aria-hidden
-        />
-      ) : null}
-      <span
-        className={cn('relative size-2 rounded-full', dotClass)}
-        aria-hidden
-      />
-    </span>
+      {statusMeta.label}
+    </Badge>
   );
 }
 
@@ -169,7 +149,7 @@ export function AgentThreadListRow({
   // must still render with archived chrome.
   const isArchived =
     isArchivedView || conv.status === AgentThreadStatus.ARCHIVED;
-  // Treat local streaming/busy as running so the disc stays live on the open thread.
+  // Treat local streaming/busy as running so the glyph stays current.
   const statusMetaBase = getThreadStatusMeta(conv, {
     activeRunStatus: activeRunStatus ?? undefined,
     activeThreadId,
@@ -185,7 +165,6 @@ export function AgentThreadListRow({
     (isLocallyWorking
       ? {
           label: 'Running',
-          shouldPulse: true,
           tone: 'running' as const,
         }
       : null);
@@ -201,16 +180,14 @@ export function AgentThreadListRow({
   const generatedAssetUrl = conv.lastGeneratedAssetUrl?.trim() || null;
 
   const activityIndicator = statusMeta ? (
-    <SimpleTooltip label={statusMeta.label} position="top">
-      <ThreadActivityIndicator
-        statusMeta={statusMeta}
-        a11yLabel={statusA11yLabel}
-      />
-    </SimpleTooltip>
+    <ThreadActivityIndicator
+      statusMeta={statusMeta}
+      a11yLabel={statusA11yLabel}
+    />
   ) : null;
 
   const thumbSlot = (
-    <span className="relative mt-0.5 size-8 shrink-0">
+    <span className="mt-0.5 size-8 shrink-0">
       {generatedAssetUrl ? (
         <Image
           alt={`Latest generated output for ${threadTitle}`}
@@ -226,11 +203,6 @@ export function AgentThreadListRow({
           aria-hidden
         />
       )}
-      {activityIndicator ? (
-        <span className="absolute -right-0.5 -top-0.5">
-          {activityIndicator}
-        </span>
-      ) : null}
     </span>
   );
 
@@ -319,6 +291,7 @@ export function AgentThreadListRow({
               >
                 {threadTitle}
               </span>
+              {activityIndicator}
             </div>
             {preview ? (
               <div className="mt-0.5 min-w-0 truncate text-2xs text-foreground/38">

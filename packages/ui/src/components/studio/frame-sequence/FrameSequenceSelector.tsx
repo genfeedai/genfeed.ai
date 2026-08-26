@@ -124,7 +124,7 @@ export default function FrameSequenceSelector({
                   label={<ChevronLeft />}
                   onClick={() => handleMoveFrame(frameIndex, frameIndex - 1)}
                   variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.XS}
+                  size={ButtonSize.MICRO}
                   isDisabled={frameIndex === 0}
                   tooltip="Move earlier"
                 />
@@ -133,7 +133,7 @@ export default function FrameSequenceSelector({
                   label={<ChevronRight />}
                   onClick={() => handleMoveFrame(frameIndex, frameIndex + 1)}
                   variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.XS}
+                  size={ButtonSize.MICRO}
                   isDisabled={frameIndex === frames.length - 1}
                   tooltip="Move later"
                 />
@@ -142,7 +142,7 @@ export default function FrameSequenceSelector({
                   label={<Trash2 />}
                   onClick={() => handleRemoveFrame(frameIndex)}
                   variant={ButtonVariant.DESTRUCTIVE}
-                  size={ButtonSize.XS}
+                  size={ButtonSize.MICRO}
                 />
               </div>
             </div>

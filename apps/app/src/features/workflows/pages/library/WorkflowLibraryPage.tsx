@@ -91,7 +91,7 @@ export default function WorkflowLibraryPage() {
             (skeletonId) => (
               <div
                 key={skeletonId}
-                className="h-64 animate-pulse rounded-lg border border-border bg-card"
+                className="h-64 animate-pulse rounded-card bg-card shadow-border"
               />
             ),
           )}
@@ -216,7 +216,7 @@ export default function WorkflowLibraryPage() {
           {/* New Workflow card */}
           <Button
             asChild
-            className="group flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-card/40 p-4 transition-[border-color,background-color] duration-200 hover:border-border-strong hover:bg-card/60"
+            className="group flex items-center justify-center rounded-card border-2 border-dashed border-border bg-card/40 p-4 transition-[border-color,background-color] duration-200 hover:border-border-strong hover:bg-card/60"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >

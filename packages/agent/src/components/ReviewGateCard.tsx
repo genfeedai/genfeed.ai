@@ -58,8 +58,8 @@ export function ReviewGateCard({
 
   if (acted) {
     return (
-      <div className="border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 my-2">
-        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+      <div className="border border-success/20  bg-success/10  p-4 my-2">
+        <div className="flex items-center gap-2 text-success ">
           <Check className="size-5" />
           <span className="text-sm font-medium">
             Review submitted for {selected.size} item
@@ -83,7 +83,7 @@ export function ReviewGateCard({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
           onClick={selectAll}
-          className="text-blue-500 hover:text-blue-600"
+          className="text-blue-500 hover:text-info"
         >
           Select All
         </Button>
@@ -101,7 +101,7 @@ export function ReviewGateCard({
             key={item.id}
             className={`flex items-center gap-3 p-2 cursor-pointer transition-colors ${
               selected.has(item.id)
-                ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                ? 'bg-info/10  border border-info/20 '
                 : 'bg-muted border border-transparent'
             }`}
           >
@@ -137,7 +137,7 @@ export function ReviewGateCard({
             size={ButtonSize.SM}
             onClick={handleApprove}
             isDisabled={selected.size === 0}
-            className="bg-green-500 text-white hover:bg-green-600"
+            className="bg-success text-success-foreground hover:bg-success/90"
           >
             <Check className="size-3.5" />
             Approve ({selected.size})
@@ -147,7 +147,7 @@ export function ReviewGateCard({
             size={ButtonSize.SM}
             onClick={handleReject}
             isDisabled={selected.size === 0}
-            className="bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400"
+            className="bg-destructive/10 text-destructive hover:bg-destructive/10  "
           >
             <X className="size-3.5" />
             Reject ({selected.size})

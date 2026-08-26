@@ -143,7 +143,7 @@ export default function OrgLandingContent() {
         </div>
         <Button
           asChild
-          className="inline-flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
+          className="inline-flex items-center gap-2 rounded-md bg-foreground/[0.03] px-3.5 py-2 text-sm font-medium text-foreground/70 shadow-border transition hover:shadow-border-strong hover:bg-foreground/[0.06] hover:text-foreground"
           variant={ButtonVariant.DEFAULT}
           withWrapper={false}
         >

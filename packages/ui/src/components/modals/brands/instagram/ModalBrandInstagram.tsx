@@ -171,7 +171,11 @@ export default function ModalBrandInstagram({
       <div className="w-full max-w-2xl">
         <div className="flex items-center gap-2 mb-6">
           <div className="flex size-10 items-center justify-center rounded-full bg-platform-instagram">
-            <InstagramIcon className="text-white text-lg" />
+            <InstagramIcon
+              className={
+                'text-lg text-white' /* design-system-allow-content-color -- platform mark */
+              }
+            />
           </div>
 
           <div>
@@ -239,7 +243,7 @@ export default function ModalBrandInstagram({
                 className={`p-4 cursor-pointer transition-all ${
                   selectedHandle?.id === handle.id
                     ? 'shadow-border-strong bg-primary/10'
-                    : 'hover:bg-white/5'
+                    : 'hover:bg-hover'
                 }`}
                 onClick={() => setSelectedHandle(handle)}
                 type="button"

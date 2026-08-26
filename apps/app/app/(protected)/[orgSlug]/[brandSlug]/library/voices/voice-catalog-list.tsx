@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { Voice } from '@models/ingredients/voice.model';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -28,10 +29,10 @@ export default function VoiceCatalogList({
 
   if (voices.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.02] p-8">
+      <Card className="border-dashed" bodyClassName="p-8">
         <div className="max-w-xl space-y-4">
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="text-lg font-semibold text-foreground">
               {hasActiveFilters
                 ? 'No voices match the current filters'
                 : 'No voices available yet'}
@@ -63,7 +64,7 @@ export default function VoiceCatalogList({
             </Button>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 

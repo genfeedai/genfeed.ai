@@ -79,10 +79,18 @@ function ImageCompareNodeComponent(props: NodeProps) {
             style={{ height: '100%', width: '100%' }}
           />
           {/* Corner labels */}
-          <div className="absolute top-2 left-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none">
+          <div
+            className={
+              'absolute top-2 left-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none' /* design-system-allow-content-color */
+            }
+          >
             A
           </div>
-          <div className="absolute top-2 right-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none">
+          <div
+            className={
+              'absolute top-2 right-2 bg-black/50 text-white text-2xs font-medium px-2 py-1 rounded pointer-events-none' /* design-system-allow-content-color */
+            }
+          >
             B
           </div>
         </div>

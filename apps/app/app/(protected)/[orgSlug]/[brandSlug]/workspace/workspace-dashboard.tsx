@@ -6,16 +6,17 @@ import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
+  ComponentSize,
 } from '@genfeedai/enums';
 import type { IAgentRun, SurfaceSummaryItem } from '@genfeedai/interfaces';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import type { AgentRunStats } from '@genfeedai/types';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
+import Badge from '@ui/display/badge/Badge';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
@@ -78,14 +79,6 @@ function formatStatusLabel(status: AgentExecutionStatus): string {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
-const STATUS_DOT_CLASSES: Record<AgentExecutionStatus, string> = {
-  [AgentExecutionStatus.RUNNING]: 'bg-emerald-400 animate-pulse',
-  [AgentExecutionStatus.PENDING]: 'bg-amber-400 animate-pulse',
-  [AgentExecutionStatus.COMPLETED]: 'bg-emerald-400',
-  [AgentExecutionStatus.FAILED]: 'bg-rose-400',
-  [AgentExecutionStatus.CANCELLED]: 'bg-zinc-400',
-};
-
 /* ------------------------------------------------------------------ */
 /*  Agent Cards (Top section)                                          */
 /* ------------------------------------------------------------------ */
@@ -119,17 +112,9 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
             <p className="text-xs font-semibold text-foreground">
               {agentLabel}
             </p>
-            <div className="flex items-center gap-1.5">
-              <span
-                className={cn(
-                  'inline-block h-1.5 w-1.5 rounded-full',
-                  STATUS_DOT_CLASSES[run.status],
-                )}
-              />
-              <span className="text-2xs uppercase tracking-wide text-foreground/45">
-                {statusLabel}
-              </span>
-            </div>
+            <Badge status={run.status} size={ComponentSize.SM}>
+              {statusLabel}
+            </Badge>
           </div>
         </div>
         <Button
@@ -293,14 +278,6 @@ export function DashboardStatsStrip({
 /*  Recent Activity & Recent Tasks                                     */
 /* ------------------------------------------------------------------ */
 
-function getTaskStatusClass(task: Task): string {
-  if (task.status === 'failed') return 'bg-rose-400';
-  if (task.status === 'in_review' || task.reviewState === 'pending_approval')
-    return 'bg-amber-400';
-  if (task.status === 'done') return 'bg-emerald-400';
-  return 'bg-sky-400 animate-pulse';
-}
-
 function formatTaskEventLabel(task: Task): string {
   const latestEvent = task.eventStream?.at(-1);
   if (!latestEvent) {
@@ -376,16 +353,9 @@ export function DashboardRecentActivity({
               return (
                 <TableRow key={task.id}>
                   <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'inline-block h-1.5 w-1.5 rounded-full',
-                        getTaskStatusClass(task),
-                      )}
-                    />
-                    <span className="sr-only">
+                    <Badge status={task.status} size={ComponentSize.SM}>
                       {task.status.replaceAll('_', ' ')}
-                    </span>
+                    </Badge>
                   </TableCell>
                   <TableCell className="max-w-0 w-full">
                     <div className="truncate text-xs text-foreground">
@@ -477,20 +447,9 @@ export function DashboardRecentTasks({
             {sortedTasks.map((task) => (
               <TableRow key={task.id}>
                 <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
-                  <span
-                    className={cn(
-                      'inline-flex items-center justify-center rounded border px-2 py-0.5 text-2xs font-medium uppercase',
-                      task.status === 'failed'
-                        ? 'bg-destructive/15 text-destructive border-destructive/40'
-                        : task.status === 'in_review'
-                          ? 'bg-warning/15 text-warning border-warning/30'
-                          : task.status === 'done'
-                            ? 'bg-success/15 text-success border-success/30'
-                            : 'bg-info/15 text-info border-info/30',
-                    )}
-                  >
+                  <Badge status={task.status} size={ComponentSize.SM}>
                     {task.status.replaceAll('_', ' ')}
-                  </span>
+                  </Badge>
                 </TableCell>
                 <TableCell className="max-w-0 w-full">
                   <div className="truncate text-xs text-foreground">

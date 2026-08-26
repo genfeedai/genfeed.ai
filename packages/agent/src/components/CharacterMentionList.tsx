@@ -52,14 +52,14 @@ export function CharacterMentionList({
 
   if (items.length === 0) {
     return (
-      <div className="border border-white/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
+      <div className="border border-foreground/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
         {translate('empty')}
       </div>
     );
   }
 
   return (
-    <div className="max-h-48 overflow-y-auto border border-white/[0.12] bg-background shadow-lg">
+    <div className="max-h-48 overflow-y-auto border border-foreground/[0.12] bg-background shadow-lg">
       {items.map((item: CharacterMentionItem, index) => (
         <Button
           variant={ButtonVariant.UNSTYLED}

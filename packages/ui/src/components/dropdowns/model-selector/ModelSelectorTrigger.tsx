@@ -12,21 +12,20 @@ import {
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
-import { ChevronDown, ChevronUp, Cpu, Sparkles } from 'lucide-react';
+import { ChevronsUpDown, Cpu, Sparkles } from 'lucide-react';
 import { type ButtonHTMLAttributes, memo, type Ref } from 'react';
 
 const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
   ref,
   selectedModels,
   isAutoSelected,
-  isOpen,
+  isOpen: _isOpen,
   shouldFlash,
   className,
   autoLabel,
   ...buttonProps
 }: ModelSelectorTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
-  const ChevronIcon = isOpen ? ChevronUp : ChevronDown;
   // Same trigger metrics as ButtonDropdown so a model picker sitting next to an
   // aspect-ratio / duration control lines up instead of standing a few pixels taller.
   const triggerClassName = cn(
@@ -54,7 +53,9 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
       >
         <Sparkles className={cn(SHELL_ICON_CLASS, 'text-primary')} />
         <span className={labelClassName}>{autoLabel ?? 'Auto'}</span>
-        <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
+        <ChevronsUpDown
+          className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
+        />
       </Button>
     );
   }
@@ -68,14 +69,16 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         className={cn(
           triggerClassName,
           'text-foreground/70',
-          shouldFlash && 'animate-pulse !border !border-white/50 !bg-white/10',
+          shouldFlash && 'border-border-strong bg-hover',
         )}
         textTransform="none"
         {...buttonProps}
       >
         <Cpu className={SHELL_ICON_CLASS} />
         <span className={labelClassName}>Select models…</span>
-        <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
+        <ChevronsUpDown
+          className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
+        />
       </Button>
     );
   }
@@ -96,7 +99,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         {...buttonProps}
       >
         <div
-          className="size-4 rounded-sm border border-white/8 flex items-center justify-center text-2xs font-bold shrink-0"
+          className="size-4 rounded-sm border border-border flex items-center justify-center text-2xs font-bold shrink-0"
           style={{
             backgroundColor: `${brandConfig.color}20`,
             color: brandConfig.color,
@@ -111,7 +114,9 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
         </div>
         <span className={labelClassName}>{model.label}</span>
         <ModelSelectorCostBadge costTier={model.costTier} />
-        <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
+        <ChevronsUpDown
+          className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
+        />
       </Button>
     );
   }
@@ -127,7 +132,9 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
     >
       <Cpu className={SHELL_ICON_CLASS} />
       <span className={labelClassName}>{selectedModels.length} models</span>
-      <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
+      <ChevronsUpDown
+        className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
+      />
     </Button>
   );
 });

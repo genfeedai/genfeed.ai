@@ -1,5 +1,7 @@
 'use client';
 
+import Card from '@ui/card/Card';
+
 import ProvidersRowItem from './providers-row-item';
 
 type ProviderRow = {
@@ -14,12 +16,12 @@ type Props = {
 
 export default function ProvidersServerList({ providerRows }: Props) {
   return (
-    <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
+    <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="text-lg font-semibold text-foreground">
           Server-configured providers
         </h2>
-        <p className="mt-2 text-sm text-white/45">
+        <p className="mt-2 text-sm text-muted-foreground">
           These providers are already wired into this install. If one is missing
           here, you can still add your own key later.
         </p>
@@ -37,6 +39,6 @@ export default function ProvidersServerList({ providerRows }: Props) {
           />
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

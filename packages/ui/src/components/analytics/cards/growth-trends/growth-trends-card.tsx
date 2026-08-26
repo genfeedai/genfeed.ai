@@ -12,9 +12,9 @@ import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 function getTrendIcon(direction: TrendDirection) {
   switch (direction) {
     case TrendDirection.UP:
-      return <TrendingUp className="size-4 text-green-500" />;
+      return <TrendingUp className="size-4 text-success" />;
     case TrendDirection.DOWN:
-      return <TrendingDown className="size-4 text-red-500" />;
+      return <TrendingDown className="size-4 text-destructive" />;
     default:
       return <Minus className="size-4 text-muted-foreground" />;
   }
@@ -23,9 +23,9 @@ function getTrendIcon(direction: TrendDirection) {
 function getTrendColor(direction: TrendDirection): string {
   switch (direction) {
     case TrendDirection.UP:
-      return 'text-green-600 dark:text-green-400';
+      return 'text-success';
     case TrendDirection.DOWN:
-      return 'text-red-600 dark:text-red-400';
+      return 'text-destructive';
     default:
       return 'text-muted-foreground';
   }
@@ -108,7 +108,7 @@ export function GrowthTrendsCard({
           </div>
           <div className="text-right">
             <p
-              className={`text-lg font-semibold ${growthData.views.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+              className={`text-lg font-semibold ${growthData.views.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatPercentage(growthData.views.growthPercentage)}
             </p>
@@ -131,7 +131,7 @@ export function GrowthTrendsCard({
           <div>
             <p className="text-xs text-muted-foreground">Change</p>
             <p
-              className={`text-sm font-medium ${growthData.views.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+              className={`text-sm font-medium ${growthData.views.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatCompactNumberIntl(Math.abs(growthData.views.growth))}
             </p>
@@ -150,7 +150,7 @@ export function GrowthTrendsCard({
           </div>
           <div className="text-right">
             <p
-              className={`text-lg font-semibold ${growthData.engagement.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+              className={`text-lg font-semibold ${growthData.engagement.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatPercentage(growthData.engagement.growthPercentage)}
             </p>
@@ -173,7 +173,7 @@ export function GrowthTrendsCard({
           <div>
             <p className="text-xs text-muted-foreground">Change</p>
             <p
-              className={`text-sm font-medium ${growthData.engagement.growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+              className={`text-sm font-medium ${growthData.engagement.growth >= 0 ? 'text-success' : 'text-destructive'}`}
             >
               {formatCompactNumberIntl(Math.abs(growthData.engagement.growth))}
             </p>

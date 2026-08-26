@@ -47,7 +47,7 @@ export function AgentErrorMessage({
     <div
       role="alert"
       className={cn(
-        'flex items-start gap-2 border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300',
+        'flex items-start gap-2 border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive   ',
         className,
       )}
     >
@@ -61,7 +61,7 @@ export function AgentErrorMessage({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         onClick={copyError}
-        className="shrink-0 rounded p-1 text-current hover:bg-red-200/50 dark:hover:bg-red-900/50"
+        className="shrink-0 rounded p-1 text-current hover:bg-red-200/50 "
       >
         {isCopied ? (
           <Check className="size-4" />

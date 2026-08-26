@@ -165,7 +165,11 @@ function VideoInputNodeComponent(props: NodeProps) {
 
       {/* Video Preview or Empty State */}
       {nodeData.video ? (
-        <div className="relative max-h-32 overflow-hidden rounded-md bg-black/20">
+        <div
+          className={
+            'relative max-h-32 overflow-hidden rounded-md bg-black/20' /* design-system-allow-content-color */
+          }
+        >
           <video
             src={nodeData.video}
             aria-label={nodeData.filename || 'Video preview'}
@@ -180,7 +184,11 @@ function VideoInputNodeComponent(props: NodeProps) {
           >
             <X className="size-3" />
           </Button>
-          <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-2xs">
+          <div
+            className={
+              'absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-2xs' /* design-system-allow-content-color */
+            }
+          >
             {nodeData.dimensions &&
               `${nodeData.dimensions.width}x${nodeData.dimensions.height}`}
             {nodeData.duration && ` • ${formatDuration(nodeData.duration)}`}

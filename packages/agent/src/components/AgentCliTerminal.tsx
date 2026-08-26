@@ -637,7 +637,7 @@ export function AgentCliTerminalBody({
           <Input
             aria-label="Terminal search"
             autoFocus
-            className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-2xs text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
+            className="h-6 min-w-0 flex-1 rounded border border-border/50 bg-background/30 px-2 text-2xs text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-success/50"
             onChange={(event) => onSearchQueryChange?.(event.target.value)}
             onKeyDown={handleSearchKeyDown}
             placeholder="Search..."
@@ -646,7 +646,7 @@ export function AgentCliTerminalBody({
           />
           <Button
             aria-label="Close search"
-            className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/55 transition-colors hover:border-emerald-300/50 hover:text-emerald-200"
+            className="h-6 rounded border border-border/60 px-2 text-2xs text-foreground/55 transition-colors hover:border-success/50 hover:text-success"
             label="✕"
             onClick={(event) => {
               event.stopPropagation();
@@ -746,7 +746,7 @@ export function AgentCliTerminalControls({
                     TERMINAL_CONTROL_CLASS,
                     'max-w-[7rem] gap-1.5 px-2',
                     activeSessionId === session.id &&
-                      'border-emerald-300/50 bg-emerald-300/[0.06] text-emerald-200',
+                      'border-success/50 bg-success/[0.06] text-success',
                   )}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -762,7 +762,7 @@ export function AgentCliTerminalControls({
                   aria-label={`Close ${session.kind} session`}
                   className={cn(
                     TERMINAL_ICON_CONTROL_CLASS,
-                    'size-7 hover:border-red-400/45 hover:text-red-300',
+                    'size-7 hover:border-red-400/45 hover:text-destructive',
                   )}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -786,7 +786,7 @@ export function AgentCliTerminalControls({
       >
         <Input
           aria-label="Terminal working directory"
-          className="h-7 min-w-0 flex-1 rounded-md border border-border/50 bg-background/30 px-2 text-2xs leading-none text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-emerald-300/50"
+          className="h-7 min-w-0 flex-1 rounded-md border border-border/50 bg-background/30 px-2 text-2xs leading-none text-foreground/70 outline-none transition-colors placeholder:text-foreground/28 focus:border-success/50"
           onChange={(event) => setCwdInput(event.target.value)}
           onBlur={persistCwdInput}
           placeholder="$HOME or /path/to/project"
@@ -841,8 +841,7 @@ export function AgentCliTerminalControls({
         aria-label="Search terminal"
         className={cn(
           TERMINAL_ICON_CONTROL_CLASS,
-          isSearchOpen &&
-            'border-emerald-300/50 bg-emerald-300/[0.06] text-emerald-200',
+          isSearchOpen && 'border-success/50 bg-success/[0.06] text-success',
         )}
         onClick={(event) => {
           event.stopPropagation();

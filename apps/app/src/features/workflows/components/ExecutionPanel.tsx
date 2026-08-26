@@ -158,8 +158,8 @@ export function ExecutionPanel({
   }, [fetchExecution]);
 
   return (
-    <div className="absolute right-0 top-0 bottom-0 w-96 border-l border-white/[0.08] bg-card shadow-xl">
-      <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+    <div className="absolute right-0 top-0 bottom-0 w-96 border-l border-border bg-card shadow-xl">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="font-semibold">Execution</h2>
         <Button
           variant={ButtonVariant.GHOST}
@@ -193,7 +193,7 @@ export function ExecutionPanel({
           </div>
         ) : execution ? (
           <div className="space-y-4">
-            <div className=" border border-white/[0.08] p-3">
+            <div className="border border-border p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Status</span>
                 <span
@@ -220,7 +220,7 @@ export function ExecutionPanel({
               )}
             </div>
 
-            <div className=" border border-white/[0.08] p-3">
+            <div className="border border-border p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Trigger</span>
                 <span className="text-sm capitalize">{execution.trigger}</span>
@@ -268,7 +268,7 @@ export function ExecutionPanel({
                   {execution.nodeResults.map((result: ExecutionNodeResult) => (
                     <div
                       key={result.nodeId}
-                      className=" border border-white/[0.08] p-3"
+                      className="border border-border p-3"
                     >
                       <div className="mb-1 flex items-center justify-between">
                         <span className="font-medium">{result.nodeId}</span>

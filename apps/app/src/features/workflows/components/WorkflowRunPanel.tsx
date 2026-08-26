@@ -196,8 +196,8 @@ export function WorkflowRunPanel({
   };
 
   return (
-    <aside className="absolute top-0 right-0 bottom-0 flex w-96 flex-col border-l border-white/[0.08] bg-card shadow-xl">
-      <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+    <aside className="absolute top-0 right-0 bottom-0 flex w-96 flex-col border-l border-border bg-card shadow-xl">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <h2 className="font-semibold">Run workflow</h2>
         <Button
           ariaLabel="Close"
@@ -298,7 +298,7 @@ export function WorkflowRunPanel({
           })}
         </div>
 
-        <div className="space-y-3 border-t border-white/[0.08] p-4">
+        <div className="space-y-3 border-t border-border p-4">
           <Checkbox
             isChecked={saveDefaults}
             label={

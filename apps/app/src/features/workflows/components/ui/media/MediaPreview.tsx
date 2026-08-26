@@ -26,7 +26,10 @@ export function MediaPreview({
   muted = true,
   loop = true,
 }: MediaPreviewProps): React.JSX.Element {
-  const containerClass = cn(' overflow-hidden bg-black/20', className);
+  const containerClass = cn(
+    'overflow-hidden bg-black/20', // design-system-allow-content-color
+    className,
+  );
 
   if (type === 'video') {
     return (

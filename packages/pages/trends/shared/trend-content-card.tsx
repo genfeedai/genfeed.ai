@@ -18,6 +18,7 @@ import { ContentRunsService } from '@services/content/content-runs.service';
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -235,7 +236,7 @@ export default function TrendContentCard({
   ]);
 
   return (
-    <article className="overflow-hidden rounded-xl bg-card shadow-border transition-colors hover:shadow-border-strong">
+    <Card className="hover:shadow-border-strong" bodyClassName="gap-0 p-0">
       {previewMediaUrl ? (
         <div className="relative aspect-[16/9] overflow-hidden bg-secondary">
           <Image
@@ -419,6 +420,6 @@ export default function TrendContentCard({
           </DropdownMenu>
         </div>
       </div>
-    </article>
+    </Card>
   );
 }

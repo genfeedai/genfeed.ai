@@ -18,7 +18,7 @@ export function AgentIconStrip({
       className="flex h-full flex-col bg-background"
       style={{ width: AGENT_PANEL_ICON_STRIP_WIDTH }}
     >
-      <div className="flex h-16 items-center justify-end border-b border-white/[0.08] px-2 overflow-visible">
+      <div className="flex h-16 items-center justify-end border-b border-foreground/[0.08] px-2 overflow-visible">
         <Button
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}

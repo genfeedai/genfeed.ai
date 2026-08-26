@@ -65,7 +65,7 @@ const ListingCard = memo(function ListingCard({
         {/* Thumbnail */}
         <div
           className={cn(
-            'relative overflow-hidden bg-black/20 dark:bg-black/20',
+            'relative overflow-hidden bg-muted',
             THUMBNAIL_ASPECT_CLASSES[variant],
           )}
         >
@@ -79,7 +79,7 @@ const ListingCard = memo(function ListingCard({
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/5 to-white/[0.02] dark:from-white/5 dark:to-white/[0.02]">
-              <div className="size-16 bg-white/5 dark:bg-white/5 flex items-center justify-center">
+              <div className="flex size-16 items-center justify-center bg-tertiary">
                 <span className="text-2xl opacity-40">
                   {listing.type === 'workflow'
                     ? '⚡'
@@ -101,7 +101,7 @@ const ListingCard = memo(function ListingCard({
                 'px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-md',
                 isFree
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-white/10 text-white border border-white/20',
+                  : 'border border-border bg-background/70 text-foreground',
               )}
             >
               {formatPrice(listing.price, listing.currency)}
@@ -142,7 +142,7 @@ const ListingCard = memo(function ListingCard({
                     className="rounded-full ring-1 ring-white/10"
                   />
                 ) : (
-                  <div className="size-6 rounded-full bg-white/10 dark:bg-white/10 flex items-center justify-center">
+                  <div className="flex size-6 items-center justify-center rounded-full bg-tertiary">
                     <span className="text-xs text-muted-foreground">
                       {listing.seller.displayName.charAt(0)}
                     </span>

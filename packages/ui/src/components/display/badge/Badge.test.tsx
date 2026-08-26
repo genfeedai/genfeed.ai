@@ -35,4 +35,25 @@ describe('Badge', () => {
     render(<Badge status="completed" />);
     expect(screen.getByText('Completed')).toBeInTheDocument();
   });
+
+  it.each([
+    ['completed', 'bg-success/10', 'text-success'],
+    ['pending', 'bg-warning/10', 'text-warning'],
+    ['running', 'bg-info/10', 'text-info'],
+    ['failed', 'bg-destructive/10', 'text-destructive'],
+    ['approved', 'bg-success/10', 'text-success'],
+    ['blocked', 'bg-destructive/10', 'text-destructive'],
+    ['in_review', 'bg-info/10', 'text-info'],
+  ])(
+    'derives the %s icon and tint from the canonical status contract',
+    (status, bgClass, textClass) => {
+      const { container } = render(<Badge status={status}>{status}</Badge>);
+      const badge = container.firstElementChild;
+
+      expect(badge).toHaveClass(bgClass, textClass);
+      expect(
+        badge?.querySelector('[data-slot="badge-icon"] svg'),
+      ).not.toBeNull();
+    },
+  );
 });

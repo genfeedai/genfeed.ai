@@ -88,7 +88,11 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
         )}
 
         <div className="absolute top-3 left-3">
-          <div className="bg-black/70 backdrop-blur-sm p-2">
+          <div
+            className={
+              'bg-black/70 backdrop-blur-sm p-2' /* design-system-allow-content-color -- media overlay */
+            }
+          >
             {post.platform ? getPlatformIcon(post.platform) : null}
           </div>
         </div>
@@ -101,7 +105,11 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
 
         {primaryIngredient?.metadataDuration && (
           <div className="absolute bottom-3 right-3">
-            <div className="bg-black/70 backdrop-blur-sm px-2 py-1 text-surface text-xs">
+            <div
+              className={
+                'bg-black/70 backdrop-blur-sm px-2 py-1 text-surface text-xs' /* design-system-allow-content-color -- media overlay */
+              }
+            >
               {Math.floor(primaryIngredient.metadataDuration / 60)}:
               {(primaryIngredient.metadataDuration % 60)
                 .toString()

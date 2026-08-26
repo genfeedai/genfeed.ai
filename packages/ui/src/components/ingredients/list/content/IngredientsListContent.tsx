@@ -71,8 +71,16 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
         width={40}
       />
       {isVideo || assetType?.id === 'video' ? (
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-          <Film className="size-3.5 text-white" />
+        <span
+          className={
+            'pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25' /* design-system-allow-content-color -- media overlay */
+          }
+        >
+          <Film
+            className={
+              'size-3.5 text-white' /* design-system-allow-content-color -- media overlay */
+            }
+          />
         </span>
       ) : null}
     </div>

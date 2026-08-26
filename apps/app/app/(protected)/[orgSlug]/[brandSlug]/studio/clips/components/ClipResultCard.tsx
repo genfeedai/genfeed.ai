@@ -225,11 +225,15 @@ export default function ClipResultCard({
       </div>
 
       {clip.status === 'completed' && videoUrl && (
-        <div className="mb-3 aspect-video overflow-hidden rounded-lg bg-black">
+        <div
+          className={
+            'mb-3 aspect-video overflow-hidden rounded-lg bg-black' // design-system-allow-content-color
+          }
+        >
           <VideoPlayer
             ariaLabel={`Preview ${clip.title}`}
             src={videoUrl}
-            className="bg-black"
+            className={'bg-black' /* design-system-allow-content-color */}
             config={{
               autoPlay: false,
               controls: true,

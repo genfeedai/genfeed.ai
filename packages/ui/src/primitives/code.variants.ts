@@ -7,7 +7,7 @@ export const codeVariants = cva('font-mono', {
   },
   variants: {
     display: {
-      block: 'block bg-white/5 overflow-x-auto',
+      block: 'block overflow-x-auto bg-tertiary',
       inline: 'bg-muted px-1.5 py-0.5',
     },
     size: {

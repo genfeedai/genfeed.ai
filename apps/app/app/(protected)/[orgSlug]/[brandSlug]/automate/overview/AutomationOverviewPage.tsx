@@ -196,7 +196,7 @@ function ActivitySignal({
           <CardIcon
             icon={icon}
             className={cn(
-              'flex h-10 w-10 items-center justify-center border border-white/[0.12]',
+              'flex h-10 w-10 items-center justify-center border border-border',
               color,
             )}
             iconClassName="h-5 w-5"
@@ -214,7 +214,7 @@ function ActivitySignal({
         <p className="text-sm leading-6 text-foreground/60">{description}</p>
       </div>
 
-      <div className="border-t border-white/[0.06] pt-4">
+      <div className="border-t border-border pt-4">
         <Button
           asChild
           variant={ButtonVariant.SECONDARY}

@@ -130,15 +130,15 @@ describe('QuickAnalyticsPreview', () => {
       expect(screen.getByText('+8.3%')).toBeInTheDocument();
     });
 
-    it('applies green color for positive growth', () => {
+    it('applies the success role for positive growth', () => {
       const { container } = render(
         <QuickAnalyticsPreview data={mockAnalyticsData} />,
       );
-      const greenElements = container.querySelectorAll('.text-green-600');
-      expect(greenElements.length).toBeGreaterThan(0);
+      const successElements = container.querySelectorAll('.text-success');
+      expect(successElements.length).toBeGreaterThan(0);
     });
 
-    it('applies red color for negative growth', () => {
+    it('applies the destructive role for negative growth', () => {
       const negativeData = {
         ...mockAnalyticsData,
         engagementGrowth: -3.2,
@@ -147,8 +147,9 @@ describe('QuickAnalyticsPreview', () => {
       const { container } = render(
         <QuickAnalyticsPreview data={negativeData} />,
       );
-      const redElements = container.querySelectorAll('.text-red-600');
-      expect(redElements.length).toBeGreaterThan(0);
+      const destructiveElements =
+        container.querySelectorAll('.text-destructive');
+      expect(destructiveElements.length).toBeGreaterThan(0);
     });
 
     it('applies gray color for zero growth', () => {

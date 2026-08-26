@@ -6,13 +6,11 @@ import { SubIssueRow } from './sub-issue-row';
 
 type IssueSubIssuesCardProps = {
   subIssues: Task[];
-  statusColors: Record<TaskStatus, string>;
   statusLabels: Record<TaskStatus, string>;
 };
 
 export default function IssueSubIssuesCard({
   subIssues,
-  statusColors,
   statusLabels,
 }: IssueSubIssuesCardProps) {
   if (subIssues.length === 0) return null;
@@ -23,9 +21,9 @@ export default function IssueSubIssuesCard({
 
   return (
     <Card>
-      <div className="border-b border-white/10 px-4 py-2">
+      <div className="border-b border-border px-4 py-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-white/40">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-800">
             Sub-issues ({subIssues.length})
           </h3>
           <div className="flex items-center gap-2">
@@ -35,19 +33,14 @@ export default function IssueSubIssuesCard({
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-2xs text-white/30">
+            <span className="text-2xs text-gray-800">
               {doneCount}/{subIssues.length}
             </span>
           </div>
         </div>
       </div>
       {subIssues.map((child) => (
-        <SubIssueRow
-          key={child.id}
-          issue={child}
-          statusColors={statusColors}
-          statusLabels={statusLabels}
-        />
+        <SubIssueRow key={child.id} issue={child} statusLabels={statusLabels} />
       ))}
     </Card>
   );

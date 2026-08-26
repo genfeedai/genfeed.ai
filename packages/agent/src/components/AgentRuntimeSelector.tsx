@@ -2,7 +2,6 @@
 
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -10,7 +9,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import {
-  ChevronDown,
+  ChevronsUpDown,
   Monitor,
   Server,
   Sparkles,
@@ -33,22 +32,22 @@ function RuntimeIcon({
   provider,
 }: Pick<AgentRuntimeOption, 'category' | 'provider'>): ReactElement {
   if (category === 'local') {
-    return <Terminal className="size-3.5 text-emerald-300" />;
+    return <Terminal className="size-3.5 text-success" />;
   }
 
   if (provider === 'replicate') {
-    return <Monitor className="size-3.5 text-sky-300" />;
+    return <Monitor className="size-3.5 text-info" />;
   }
 
   if (provider === 'openrouter') {
-    return <Server className="size-3.5 text-amber-300" />;
+    return <Server className="size-3.5 text-warning" />;
   }
 
   if (category === 'auto') {
     return <Zap className="size-3.5 text-primary" />;
   }
 
-  return <Sparkles className="size-3.5 text-violet-300" />;
+  return <Sparkles className="size-3.5 text-primary" />;
 }
 
 export function AgentRuntimeSelector({
@@ -87,12 +86,7 @@ export function AgentRuntimeSelector({
           <span className="text-2xs font-medium text-foreground">
             {selectedRuntime.label}
           </span>
-          <ChevronDown
-            className={cn(
-              'size-3.5 text-foreground/42 transition-transform',
-              open && 'rotate-180',
-            )}
-          />
+          <ChevronsUpDown className="size-3.5 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
 

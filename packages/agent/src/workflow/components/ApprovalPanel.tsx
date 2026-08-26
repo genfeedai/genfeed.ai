@@ -26,8 +26,8 @@ function ApprovalPanelInner() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-1">
-        <ShieldCheck className="size-5 text-blue-400" />
-        <h2 className="text-sm font-semibold text-white/90">
+        <ShieldCheck className="size-5 text-info" />
+        <h2 className="text-sm font-semibold text-foreground/90">
           Select & approve an approach
         </h2>
       </div>
@@ -45,7 +45,7 @@ function ApprovalPanelInner() {
       </div>
 
       {selectedApproach && (
-        <div className="flex items-center gap-3 pt-2 border-t border-white/10">
+        <div className="flex items-center gap-3 pt-2 border-t border-foreground/10">
           <Button
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
@@ -53,7 +53,7 @@ function ApprovalPanelInner() {
             isDisabled={isLocked}
             className={cn(
               'inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all',
-              'bg-emerald-500 text-white hover:bg-emerald-400',
+              'bg-success text-success-foreground hover:bg-success/90',
               'disabled:opacity-40 disabled:cursor-not-allowed',
             )}
           >
@@ -69,7 +69,7 @@ function ApprovalPanelInner() {
               )
             }
             isDisabled={isLocked}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white/60 hover:text-white/80"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-foreground/60 hover:text-foreground/80"
           >
             <MessageSquare className="size-4" />
             Request changes

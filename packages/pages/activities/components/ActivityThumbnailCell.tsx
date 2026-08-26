@@ -52,9 +52,21 @@ export default function ActivityThumbnailCell({
                 unoptimized
               />
               {resultType === IngredientCategory.VIDEO && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/50 transition-colors">
-                  <Play className="size-4 text-white group-hover:hidden" />
-                  <Eye className="size-5 text-white hidden group-hover:block" />
+                <div
+                  className={
+                    'absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/50 transition-colors' /* design-system-allow-content-color */
+                  }
+                >
+                  <Play
+                    className={
+                      'size-4 text-white group-hover:hidden' /* design-system-allow-content-color */
+                    }
+                  />
+                  <Eye
+                    className={
+                      'size-5 text-white hidden group-hover:block' /* design-system-allow-content-color */
+                    }
+                  />
                 </div>
               )}
               {resultType !== IngredientCategory.VIDEO && (
@@ -65,9 +77,15 @@ export default function ActivityThumbnailCell({
                     e.stopPropagation();
                     onViewIngredient(ingredient);
                   }}
-                  className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className={
+                    'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity' /* design-system-allow-content-color */
+                  }
                 >
-                  <Eye className="size-5 text-white" />
+                  <Eye
+                    className={
+                      'size-5 text-white' /* design-system-allow-content-color */
+                    }
+                  />
                 </Button>
               )}
               {resultType === IngredientCategory.VIDEO && (
@@ -132,8 +150,16 @@ export default function ActivityThumbnailCell({
             unoptimized
           />
           {assetInfo.type === 'video' && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <Play className="size-4 text-white" />
+            <div
+              className={
+                'absolute inset-0 flex items-center justify-center bg-black/20' /* design-system-allow-content-color */
+              }
+            >
+              <Play
+                className={
+                  'size-4 text-white' /* design-system-allow-content-color */
+                }
+              />
             </div>
           )}
         </div>

@@ -167,20 +167,20 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
     placeholder: 'Ask me anything...',
     suggestedActions: [
       {
-        icon: createElement(Calendar, { className: 'size-5 text-sky-400' }),
+        icon: createElement(Calendar, { className: 'size-5 text-info' }),
         label: 'Generate posts for this week',
         prompt: 'Generate 20 posts for this week across my connected platforms',
       },
       {
         icon: createElement(ClipboardCheck, {
-          className: 'size-5 text-violet-400',
+          className: 'size-5 text-primary',
         }),
         label: 'Review pending content',
         prompt: "Show me what's waiting for review",
       },
       {
         icon: createElement(ChartColumn, {
-          className: 'size-5 text-emerald-400',
+          className: 'size-5 text-success',
         }),
         label: "Check this week's analytics",
         prompt: 'How did my content perform this week? Show me the analytics',
@@ -605,20 +605,20 @@ const DEFAULT_CONTEXT: PageContextConfig = {
   placeholder: 'Ask me anything...',
   suggestedActions: [
     {
-      icon: createElement(Calendar, { className: 'size-5 text-sky-400' }),
+      icon: createElement(Calendar, { className: 'size-5 text-info' }),
       label: 'Generate posts for this week',
       prompt: 'Generate 20 posts for this week across my connected platforms',
     },
     {
       icon: createElement(ClipboardCheck, {
-        className: 'size-5 text-violet-400',
+        className: 'size-5 text-primary',
       }),
       label: 'Review pending content',
       prompt: "Show me what's waiting for review",
     },
     {
       icon: createElement(ChartColumn, {
-        className: 'size-5 text-emerald-400',
+        className: 'size-5 text-success',
       }),
       label: "Check this week's analytics",
       prompt: 'How did my content perform this week? Show me the analytics',

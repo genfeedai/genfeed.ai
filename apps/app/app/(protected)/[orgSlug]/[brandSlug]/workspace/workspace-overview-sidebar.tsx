@@ -129,7 +129,7 @@ export function WorkspaceOverviewSidebar({
         >
           {taskStreamContent}
 
-          <div className="border-t border-white/[0.06] pt-4">
+          <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between text-sm text-foreground/55">
               <span>Live runs</span>
               <span>{initialActiveRuns.length}</span>

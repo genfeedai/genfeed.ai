@@ -73,8 +73,8 @@ export function BrandVoiceProfileCard({
 
   if (isSaved) {
     return (
-      <div className="my-2 border border-emerald-500/20 bg-background p-4">
-        <div className="flex items-center gap-2 text-emerald-600">
+      <div className="my-2 border border-success/20 bg-background p-4">
+        <div className="flex items-center gap-2 text-success">
           <CircleCheck className="size-5" />
           <span className="text-sm font-medium">
             Brand voice saved to this brand.

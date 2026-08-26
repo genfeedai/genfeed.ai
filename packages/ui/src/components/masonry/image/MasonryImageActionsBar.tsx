@@ -62,7 +62,7 @@ function VoteButton({ image, onVote }: VoteButtonProps): React.ReactElement {
       variant={image.hasVoted ? ButtonVariant.DEFAULT : ButtonVariant.DEFAULT}
       size={ButtonSize.SM}
       className={cn(
-        image.hasVoted && 'bg-success text-white cursor-default',
+        image.hasVoted && 'cursor-default bg-success text-success-foreground',
         image.isVoteAnimating && 'animate-vote',
       )}
     />

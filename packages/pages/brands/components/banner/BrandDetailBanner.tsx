@@ -30,7 +30,11 @@ export default function BrandDetailBanner({
         priority
       />
 
-      <div className="absolute inset-0 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+      <div
+        className={
+          'absolute inset-0 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100' /* design-system-allow-content-color */
+        }
+      >
         <div className="absolute top-2 right-2 flex gap-1.5">
           <Button
             icon={<Upload className="size-3.5" />}

@@ -728,7 +728,7 @@ describe('AgentThreadList', () => {
     expect(screen.queryByRole('region', { name: 'Curie' })).toBeNull();
   });
 
-  it('uses a warning status dot for threads that need input', async () => {
+  it('uses an iconic status pill with a visible label for threads that need input', async () => {
     const thread = createThread('conv-1', 'Needs your reply', {
       pendingInputCount: 1,
     });
@@ -739,19 +739,16 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const statusDot = await screen.findByLabelText(
+    const statusPill = await screen.findByLabelText(
       'Needs input status for Needs your reply',
     );
 
-    // A11y contract: labelled disc with status title — color tokens live in
-    // agent-thread-list.helpers.spec (not disc CSS class coupling here).
-    expect(statusDot).toHaveAttribute('role', 'img');
-    expect(statusDot).toHaveAttribute('title', 'Needs input');
-    // Status is disc-only — no text chip in the dense finalist row.
-    expect(screen.queryByText('Needs input')).not.toBeInTheDocument();
+    expect(statusPill).toHaveTextContent('Needs input');
+    expect(statusPill.querySelector('svg')).toBeInTheDocument();
+    expect(statusPill).toHaveAttribute('title', 'Needs input');
   });
 
-  it('exposes the activity tooltip when the status indicator receives keyboard focus', async () => {
+  it('does not hide the status meaning behind a focus-only tooltip', async () => {
     const thread = createThread('conv-1', 'Needs keyboard help', {
       pendingInputCount: 1,
     });
@@ -766,30 +763,8 @@ describe('AgentThreadList', () => {
       'Needs input status for Needs keyboard help',
     );
 
-    expect(statusIndicator).toHaveAttribute('tabindex', '0');
-    statusIndicator.focus();
-
-    expect(statusIndicator).toHaveFocus();
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Needs input');
-  });
-
-  it('exposes the activity tooltip when a pointer hovers the status indicator', async () => {
-    const thread = createThread('conv-1', 'Needs pointer help', {
-      pendingInputCount: 1,
-    });
-    const apiService = createApiService({
-      getThreads: vi.fn().mockResolvedValue([thread]),
-      unarchiveThread: vi.fn(),
-    });
-
-    render(<AgentThreadList apiService={apiService as never} />);
-
-    const statusIndicator = await screen.findByLabelText(
-      'Needs input status for Needs pointer help',
-    );
-    fireEvent.pointerMove(statusIndicator, { pointerType: 'mouse' });
-
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Needs input');
+    expect(statusIndicator).toHaveTextContent('Needs input');
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('pins a conversation and moves it to the top of the list', async () => {

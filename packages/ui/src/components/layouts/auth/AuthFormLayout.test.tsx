@@ -117,9 +117,11 @@ describe('AuthFormLayout', () => {
       </AuthFormLayout>,
     );
 
-    const card = screen.getByTestId('child').parentElement as HTMLElement;
+    const card = screen
+      .getByTestId('child')
+      .closest('[data-card-index]') as HTMLElement;
     expect(card).toHaveClass('bg-card');
-    expect(card).toHaveClass('rounded-2xl');
+    expect(card).toHaveClass('rounded-card');
     expect(card).toHaveClass('shadow-border');
   });
 });

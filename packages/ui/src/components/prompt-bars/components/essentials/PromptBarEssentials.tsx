@@ -197,7 +197,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             tooltip="Collapse"
             tooltipPosition="left"
             variant={ButtonVariant.GHOST}
-            className="absolute right-2 top-2 size-8 rounded-md border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
+            className="absolute right-2 top-2 size-8 rounded-md border border-border bg-background/20 p-0 text-muted-foreground backdrop-blur-sm hover:bg-hover hover:text-foreground"
             icon={<ChevronUp className="size-4" />}
             data-testid="collapse-button"
           />
@@ -360,14 +360,14 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               )}
 
             {isCollapsible && !isMinimalBar ? (
-              <PromptBarDivider className="h-5 bg-white/10" />
+              <PromptBarDivider className="h-5 bg-border" />
             ) : null}
 
             {!isCollapsible && hasVisibleReferences && firstReference && (
               <Button
                 onClick={onToggleQuickOptions}
                 variant={ButtonVariant.GHOST}
-                className="h-9 px-2 pr-2.5 gap-2 text-white/80 hover:text-white"
+                className="h-9 gap-2 px-2 pr-2.5 text-muted-foreground hover:text-foreground"
                 tooltip={
                   references.length > 1
                     ? `${references.length} references selected`
@@ -401,7 +401,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 variant={ButtonVariant.GHOST}
                 className={cn(
                   iconButtonClass,
-                  isQuickOptionsOpen && 'bg-white/8 text-white',
+                  isQuickOptionsOpen && 'bg-hover text-foreground',
                 )}
                 tooltip={isQuickOptionsOpen ? 'Hide settings' : 'Show settings'}
                 tooltipPosition="top"
@@ -474,7 +474,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                   triggerConfigChange={triggerConfigChange}
                 />
 
-                <PromptBarDivider className="h-5 bg-white/10" />
+                <PromptBarDivider className="h-5 bg-border" />
               </>
             )}
 

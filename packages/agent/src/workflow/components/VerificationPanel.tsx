@@ -29,30 +29,30 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
       className={cn(
         'rounded-lg border p-3 transition-all',
         evidence.passed
-          ? 'border-emerald-500/20 bg-emerald-500/5'
-          : 'border-red-500/20 bg-red-500/5',
+          ? 'border-success/20 bg-success/10'
+          : 'border-destructive/20 bg-destructive/10',
       )}
     >
       <div className="flex items-center gap-2 mb-2">
         <Icon
           className={cn(
             'size-4',
-            evidence.passed ? 'text-emerald-400' : 'text-red-400',
+            evidence.passed ? 'text-success' : 'text-destructive',
           )}
         />
-        <span className="text-sm font-medium text-white/80">
+        <span className="text-sm font-medium text-foreground/80">
           {evidence.title}
         </span>
         {evidence.passed ? (
-          <CircleCheck className="size-4 text-emerald-400 ml-auto" />
+          <CircleCheck className="size-4 text-success ml-auto" />
         ) : (
-          <CircleAlert className="size-4 text-red-400 ml-auto" />
+          <CircleAlert className="size-4 text-destructive ml-auto" />
         )}
       </div>
       <Pre
         variant="ghost"
         size="xs"
-        className="text-white/50 bg-black/20 max-h-40 overflow-y-auto"
+        className="max-h-40 overflow-y-auto bg-background-secondary text-foreground/50"
       >
         {evidence.content}
       </Pre>
@@ -73,10 +73,10 @@ function VerificationPanelInner() {
           <CircleCheck
             className={cn(
               'size-5',
-              allPassed ? 'text-emerald-400' : 'text-white/40',
+              allPassed ? 'text-success' : 'text-foreground/40',
             )}
           />
-          <h2 className="text-sm font-semibold text-white/90">
+          <h2 className="text-sm font-semibold text-foreground/90">
             Verification evidence
           </h2>
         </div>
@@ -85,8 +85,8 @@ function VerificationPanelInner() {
             className={cn(
               'text-xs font-medium px-2 py-0.5 rounded-full',
               allPassed
-                ? 'bg-emerald-500/15 text-emerald-400'
-                : 'bg-red-500/15 text-red-400',
+                ? 'bg-success/10 text-success'
+                : 'bg-destructive/10 text-destructive',
             )}
           >
             {evidence.filter((e) => e.passed).length}/{evidence.length} passed
@@ -95,8 +95,8 @@ function VerificationPanelInner() {
       </div>
 
       {evidence.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-white/10 p-6 text-center">
-          <p className="text-sm text-white/40">
+        <div className="rounded-lg border border-dashed border-foreground/10 p-6 text-center">
+          <p className="text-sm text-foreground/40">
             Waiting for verification evidence from the agent…
           </p>
         </div>
@@ -113,7 +113,7 @@ function VerificationPanelInner() {
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={() => advance('user')}
-          className="w-full py-2.5 text-sm font-semibold bg-emerald-500 text-white rounded-lg hover:bg-emerald-400 transition-colors"
+          className="w-full rounded-lg bg-success py-2.5 text-sm font-semibold text-success-foreground transition-colors hover:bg-success/90"
         >
           Accept & mark complete
         </Button>

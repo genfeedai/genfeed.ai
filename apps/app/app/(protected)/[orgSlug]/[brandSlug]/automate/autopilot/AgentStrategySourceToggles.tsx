@@ -14,7 +14,7 @@ export default function AgentStrategySourceToggles({
   setForm,
 }: AgentStrategySourceTogglesProps) {
   return (
-    <div className="grid gap-3 rounded-lg bg-secondary p-4 shadow-border md:grid-cols-2">
+    <div className="grid gap-3 rounded-md bg-secondary p-4 shadow-border md:grid-cols-2">
       <span className="flex items-center gap-3 text-sm text-foreground">
         <Checkbox
           checked={form.trendWatchersEnabled}

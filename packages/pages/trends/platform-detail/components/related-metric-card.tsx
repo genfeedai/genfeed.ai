@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
+import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 
@@ -23,7 +24,7 @@ export default function RelatedMetricCard({
   title,
 }: RelatedMetricCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-background/80 p-4">
+    <Card bodyClassName="p-4">
       <div className="space-y-2">
         <div className="truncate text-sm font-medium text-foreground">
           {title}
@@ -42,6 +43,6 @@ export default function RelatedMetricCard({
           />
         ) : null}
       </div>
-    </div>
+    </Card>
   );
 }

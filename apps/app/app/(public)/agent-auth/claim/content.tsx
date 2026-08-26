@@ -190,8 +190,11 @@ export default function AgentAuthClaimContent() {
     <AuthFormLayout>
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-            <KeyRound className="size-5 text-white/60" aria-hidden="true" />
+          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-background-tertiary">
+            <KeyRound
+              className="size-5 text-muted-foreground"
+              aria-hidden="true"
+            />
           </div>
           <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
             {translate('title')}
@@ -248,14 +251,14 @@ export default function AgentAuthClaimContent() {
               </p>
             ) : (
               <>
-                <div className="space-y-3 border-b border-white/[0.08] pb-5">
+                <div className="space-y-3 border-b border-border pb-5">
                   <p className="text-sm font-medium">
                     {translate('permissionsTitle')}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {claimDetails.requested_scopes.map((scope) => (
                       <span
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-muted-foreground"
+                        className="rounded-full border border-border bg-background-tertiary px-3 py-1 font-mono text-xs text-muted-foreground"
                         key={scope}
                       >
                         {scope}

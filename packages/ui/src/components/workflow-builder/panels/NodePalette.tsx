@@ -136,12 +136,12 @@ export default function NodePalette({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <span className="font-semibold text-sm">Nodes</span>
         <Button
           type="button"
           variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
+          size={ButtonSize.MICRO}
           onClick={onToggleCollapse}
           ariaLabel="Collapse palette"
           icon={<ChevronLeft className="size-4" />}

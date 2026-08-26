@@ -1,6 +1,7 @@
 'use client';
 
 import type { IAgentRun } from '@genfeedai/interfaces';
+import Badge from '@ui/display/badge/Badge';
 import AgentRunCard from './AgentRunCard';
 
 interface ActiveRunsPanelProps {
@@ -17,7 +18,7 @@ export default function ActiveRunsPanel({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="size-2 animate-pulse rounded-full bg-blue-500" />
+        <Badge status="running">Running</Badge>
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
           Active Runs
         </h2>

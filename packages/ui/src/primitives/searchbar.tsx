@@ -115,7 +115,7 @@ export default function Searchbar({
         <Button
           onClick={handleClear}
           variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
+          size={ButtonSize.MICRO}
           className="absolute right-1 top-1/2 -translate-y-1/2 transform p-1"
           icon={<X className={iconSize} />}
         />

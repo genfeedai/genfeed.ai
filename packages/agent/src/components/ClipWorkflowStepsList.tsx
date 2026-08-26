@@ -25,7 +25,7 @@ const STEP_ORDER: StepKey[] = [
 ];
 
 function toStepStatusClass(status: StepStatus): string {
-  if (status === 'completed') return 'text-green-600';
+  if (status === 'completed') return 'text-success';
   if (status === 'failed') return 'text-destructive';
   if (status === 'running') return 'text-primary';
   return 'text-muted-foreground';

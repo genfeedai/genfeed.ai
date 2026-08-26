@@ -129,7 +129,9 @@ export default function IngredientTabs({
     <>
       <div
         data-testid="ingredient-drawer-overlay"
-        className="fixed inset-0 z-40 bg-black/50"
+        className={
+          'fixed inset-0 z-40 bg-black/50' /* design-system-allow-content-color -- drawer scrim */
+        }
         onClick={onClose}
         aria-hidden="true"
       />

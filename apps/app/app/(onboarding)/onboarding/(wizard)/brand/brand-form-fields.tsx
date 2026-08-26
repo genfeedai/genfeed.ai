@@ -43,9 +43,9 @@ function ChipGroup({
 }) {
   return (
     <div>
-      <p className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-2">
+      <p className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
         {label}
-        <span className="text-white/20 font-normal normal-case tracking-normal ml-1">
+        <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
           (optional)
         </span>
       </p>
@@ -64,8 +64,8 @@ function ChipGroup({
               onClick={() => onChange(isSelected ? '' : option)}
               className={`h-9 border px-3 text-xs font-medium transition ${
                 isSelected
-                  ? 'border-white/35 bg-white/15 text-white'
-                  : 'border-white/[0.08] bg-white/[0.03] text-white/45 hover:border-white/20 hover:text-white/75'
+                  ? 'border-border-strong bg-hover text-foreground'
+                  : 'border-border bg-background-tertiary text-muted-foreground hover:border-border-strong hover:text-foreground'
               }`}
             />
           );
@@ -96,10 +96,10 @@ export default function BrandFormFields({
       <div>
         <label
           htmlFor="brand-name"
-          className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-2"
+          className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
         >
           Name
-          <span className="text-white/25 font-normal normal-case tracking-normal ml-1">
+          <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
             (required)
           </span>
         </label>
@@ -110,7 +110,7 @@ export default function BrandFormFields({
           onChange={(e) => onBrandNameChange(e.target.value)}
           placeholder="Your name or brand"
           required
-          className="h-12 rounded-none border-white/[0.08] bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/20 focus-visible:border-white/30 focus-visible:ring-0"
+          className="h-12 rounded-none border-border bg-background-tertiary px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
         />
       </div>
 
@@ -118,10 +118,10 @@ export default function BrandFormFields({
       <div>
         <label
           htmlFor="organization-name"
-          className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-2"
+          className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
         >
           Organization
-          <span className="text-white/25 font-normal normal-case tracking-normal ml-1">
+          <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
             (required)
           </span>
         </label>
@@ -132,7 +132,7 @@ export default function BrandFormFields({
           onChange={(e) => onOrganizationNameChange(e.target.value)}
           placeholder="Your organization"
           required
-          className="h-12 rounded-none border-white/[0.08] bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/20 focus-visible:border-white/30 focus-visible:ring-0"
+          className="h-12 rounded-none border-border bg-background-tertiary px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
         />
       </div>
 
@@ -140,25 +140,25 @@ export default function BrandFormFields({
       <div>
         <label
           htmlFor="brand-website-url"
-          className="block text-xs font-medium text-white/50 uppercase tracking-wider mb-2"
+          className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
         >
           Website URL
-          <span className="text-white/20 font-normal normal-case tracking-normal ml-1">
+          <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
             (optional)
           </span>
         </label>
         <div className="relative">
-          <Globe className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/30" />
+          <Globe className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-800" />
           <Input
             id="brand-website-url"
             type="url"
             value={websiteUrl}
             onChange={(e) => onWebsiteUrlChange(e.target.value)}
             placeholder="https://yoursite.com"
-            className="h-12 rounded-none border-white/[0.08] bg-white/[0.04] px-4 pl-12 text-sm text-white placeholder:text-white/20 focus-visible:border-white/30 focus-visible:ring-0"
+            className="h-12 rounded-none border-border bg-background-tertiary px-4 pl-12 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
           />
         </div>
-        <p className="text-xs text-white/20 mt-1.5">
+        <p className="text-xs text-gray-800 mt-1.5">
           We&apos;ll extract your brand colors, logo, and voice
         </p>
       </div>

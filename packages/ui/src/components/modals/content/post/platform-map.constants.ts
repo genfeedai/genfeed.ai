@@ -16,7 +16,7 @@ export const platformIcons: Record<string, IconType> = {
 
 export const platformColors: Record<string, string> = {
   instagram: 'text-pink-500',
-  tiktok: 'text-black',
+  tiktok: 'text-black', // design-system-allow-content-color -- platform mark
   twitter: 'text-blue-400',
   youtube: 'text-red-500',
 };

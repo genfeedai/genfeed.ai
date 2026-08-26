@@ -63,7 +63,9 @@ export default function TopbarPublicMobileMenu({
       <Button
         type="button"
         variant={ButtonVariant.UNSTYLED}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className={
+          'absolute inset-0 bg-black/80 backdrop-blur-sm' /* design-system-allow-content-color -- navigation scrim */
+        }
         onClick={onClose}
         ariaLabel="Close menu"
       />

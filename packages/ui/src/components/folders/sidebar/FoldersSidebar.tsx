@@ -174,10 +174,10 @@ function FoldersSidebar({
     <div className="w-full space-y-3">
       <div className="px-1">
         <div>
-          <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-white/35">
+          <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Folders
           </div>
-          <div className="mt-1 text-sm font-medium text-white/78">
+          <div className="mt-1 text-sm font-medium text-foreground">
             Organize reusable assets
           </div>
         </div>
@@ -203,8 +203,8 @@ function FoldersSidebar({
         }
         onClick={() => onSelectFolder?.(null)}
         className={cn(
-          'mb-2 flex h-10 w-full items-center px-3 py-0 border-white/[0.08] bg-white/[0.02] text-white/74 hover:border-white/[0.14] hover:bg-white/[0.04]',
-          !selectedFolderId && 'border-white/[0.16] bg-white/[0.06]',
+          'mb-2 flex h-10 w-full items-center border-border bg-tertiary px-3 py-0 text-muted-foreground hover:border-border-strong hover:bg-hover',
+          !selectedFolderId && 'border-border-strong bg-hover text-foreground',
         )}
         isSelected={!selectedFolderId}
       />
@@ -223,9 +223,9 @@ function FoldersSidebar({
             }
             onClick={() => onSelectFolder?.(folder)}
             className={cn(
-              'flex h-10 w-full items-center px-3 py-0 border-white/[0.08] bg-transparent text-white/72 hover:border-white/[0.14] hover:bg-white/[0.04]',
+              'flex h-10 w-full items-center border-border bg-transparent px-3 py-0 text-muted-foreground hover:border-border-strong hover:bg-hover',
               selectedFolderId === folder.id &&
-                'border-white/[0.16] bg-white/[0.06]',
+                'border-border-strong bg-hover text-foreground',
             )}
             isSelected={selectedFolderId === folder.id}
           />

@@ -91,7 +91,7 @@ export default function AgentRunRow({
         <TableRow>
           <TableCell
             colSpan={6}
-            className="border-b border-white/5 bg-foreground/[0.02]"
+            className="border-b border-border bg-foreground/[0.02]"
           >
             <div className="space-y-4 p-4">
               <div className="flex flex-wrap gap-2 text-xs text-foreground/65">

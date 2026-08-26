@@ -33,7 +33,7 @@ function TimeRuler({
 
   return (
     <div
-      className="relative h-6 border-b border-white/[0.08] bg-muted/50"
+      className="relative h-6 border-b border-border bg-muted/50"
       style={{ width: `${totalFrames * zoom}px` }}
     >
       {markers.map((marker) => (
@@ -85,9 +85,9 @@ function TrackRow({
         : 'Text';
 
   return (
-    <div className="flex border-b border-white/[0.08]">
+    <div className="flex border-b border-border">
       {/* Track header */}
-      <div className="flex w-48 shrink-0 items-center gap-2 border-r border-white/[0.08] bg-card px-3 py-2">
+      <div className="flex w-48 shrink-0 items-center gap-2 border-r border-border bg-card px-3 py-2">
         <span className="rounded bg-muted px-1.5 py-0.5 text-2xs font-semibold uppercase text-foreground/60">
           {trackLabel}
         </span>
@@ -265,7 +265,9 @@ function ClipBlock({
             withWrapper={false}
             tabIndex={-1}
             ariaLabel="Resize clip start"
-            className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"
+            className={
+              'absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20' // design-system-allow-content-color
+            }
             onMouseDown={(e) => handleMouseDown(e, 'resize-start')}
           />
           <Button
@@ -273,7 +275,9 @@ function ClipBlock({
             withWrapper={false}
             tabIndex={-1}
             ariaLabel="Resize clip end"
-            className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"
+            className={
+              'absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20' // design-system-allow-content-color
+            }
             onMouseDown={(e) => handleMouseDown(e, 'resize-end')}
           />
         </>
@@ -289,7 +293,11 @@ function ClipBlock({
 
       {/* Clip label */}
       {clip.durationFrames * zoom > 60 && (
-        <span className="absolute left-14 top-1/2 -translate-y-1/2 truncate text-xs text-white font-medium px-1">
+        <span
+          className={
+            'absolute left-14 top-1/2 -translate-y-1/2 truncate text-xs text-white font-medium px-1' // design-system-allow-content-color
+          }
+        >
           {clip.textOverlay?.text || 'Clip'}
         </span>
       )}
@@ -356,11 +364,11 @@ function EditorTimeline({
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-col overflow-auto border border-white/[0.08] bg-background"
+      className="relative flex flex-col overflow-auto border border-border bg-background"
     >
       {/* Time ruler row */}
       <div className="flex sticky top-0 z-20 bg-background">
-        <div className="w-48 shrink-0 border-r border-b border-white/[0.08] bg-card px-3 py-1">
+        <div className="w-48 shrink-0 border-r border-b border-border bg-card px-3 py-1">
           <span className="text-xs text-muted-foreground">
             {formatTimelineFrameTime(currentFrame, fps)}
           </span>

@@ -167,7 +167,7 @@ export default function ApiStatusProvider({
               </p>
             </div>
 
-            <div className="bg-white/5 p-4 text-left space-y-2">
+            <div className="space-y-2 bg-tertiary p-4 text-left">
               <p className="text-sm font-medium text-foreground/70">
                 Trying to connect to:
               </p>

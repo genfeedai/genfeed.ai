@@ -29,8 +29,7 @@ export default function TextareaLabelActions({
         <Button
           icon={<Copy className="size-3.5" />}
           variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
-          className="h-6 min-h-6 px-1.5"
+          size={ButtonSize.MICRO}
           tooltip={copyTooltip}
           tooltipPosition="top"
           onClick={onCopy}
@@ -46,8 +45,7 @@ export default function TextareaLabelActions({
             )
           }
           variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
-          className="h-6 min-h-6 px-1.5"
+          size={ButtonSize.MICRO}
           tooltip={enhanceTooltip}
           tooltipPosition="top"
           onClick={onEnhance}
@@ -58,8 +56,8 @@ export default function TextareaLabelActions({
           <Button
             icon={<Undo2 className="size-3.5" />}
             variant={ButtonVariant.GHOST}
-            size={ButtonSize.XS}
-            className="h-6 min-h-6 px-1.5 text-muted-foreground"
+            size={ButtonSize.MICRO}
+            className="text-muted-foreground"
             tooltip={undoTooltip}
             tooltipPosition="top"
             onClick={onUndo}

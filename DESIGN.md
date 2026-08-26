@@ -185,7 +185,15 @@ spacing:
   base: 4px
 
 components:
-  # Controls snap to three heights and nothing between them.
+  # Labeled controls snap to 32 / 36 / 40px. A named 28px micro scale is
+  # reserved for icon-only controls in genuinely dense chrome such as table
+  # row actions and compact rails; it is never used for a labeled button.
+  button-micro:
+    backgroundColor: transparent
+    textColor: "{colors.text-secondary}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    height: 28px
   button-default:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.primary-foreground}"
@@ -713,6 +721,26 @@ Section labels are `caption` type, uppercase, `text-muted`.
 
 Google-style popover grid, three columns, icon + label per cell, opened from a
 topbar ghost trigger, grouped into Content and Tools with a subtle divider.
+
+## Iconography
+
+Trailing chevrons describe what a control will do, not merely that something can
+open. The one-question test is: **after the user picks, does the trigger's own
+displayed value change?**
+
+| Affordance | Promise | Use |
+|------------|---------|-----|
+| `ChevronsUpDown` | Replaces the value displayed by the trigger | Organization, brand, and app switchers; Select and combobox triggers; model pickers |
+| `ChevronDown` | Reveals commands or content beneath an unchanged trigger | Action and overflow menus, accordions, disclosures, and apply-style filters |
+
+Both use the existing 14 / 16 / 20px icon scale and a muted foreground role.
+A value-swap glyph is stable while its popover is open; it does not rotate into a
+directional disclosure icon.
+
+Status is never encoded by a generic colored dot alone. A status pill renders a
+status-specific icon alongside its visible label; the semantic tint reinforces
+that meaning but does not carry it. Icon, tint, and canonical status key come from
+`packages/ui/src/tokens/status-colors.ts`. Status chrome does not pulse or glow.
 
 ## Brand OS Surfaces
 

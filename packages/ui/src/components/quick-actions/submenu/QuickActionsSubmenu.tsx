@@ -63,7 +63,7 @@ function SubmenuPortal({
         {actions.map((action, index) => (
           <div key={action.id}>
             {action.dividerBefore && index > 0 && (
-              <div className="my-1 border-t border-white/20" />
+              <div className="my-1 border-t border-border" />
             )}
 
             <Button
@@ -73,10 +73,10 @@ function SubmenuPortal({
               isDisabled={action.isDisabled || action.isLoading}
               className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-300 text-left text-sm font-medium cursor-pointer ${
                 action.isDisabled || action.isLoading
-                  ? 'opacity-50 cursor-not-allowed text-white/50'
+                  ? 'cursor-not-allowed text-muted-foreground opacity-50'
                   : action.variant === 'error'
-                    ? 'text-error hover:bg-error hover:text-white focus:bg-error focus:text-white'
-                    : 'text-white/90 hover:bg-white/20 hover:text-white focus:bg-white/20 focus:text-white'
+                    ? 'text-destructive hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground'
+                    : 'text-foreground hover:bg-hover focus:bg-hover'
               }`}
             >
               {action.icon && (
@@ -182,7 +182,7 @@ export default function QuickActionsSubmenu({
               'transition-all duration-300',
               BG_BLUR,
               BORDER_WHITE_30,
-              'text-white hover:shadow-border-strong',
+              'text-foreground hover:shadow-border-strong',
               className,
             )}
             ariaLabel={label}

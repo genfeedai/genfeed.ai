@@ -40,7 +40,11 @@ export default function ArtifactHistoryOverlay({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogPortal>
         {/* Light scrim — the active conversation stays mounted and visible behind it. */}
-        <DialogOverlay className="bg-black/40 backdrop-blur-[1px]" />
+        <DialogOverlay
+          className={
+            'bg-black/40 backdrop-blur-[1px]' // design-system-allow-content-color
+          }
+        />
         <DialogContent className="max-w-[600px] gap-4 border-border-strong bg-popover">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
@@ -84,7 +88,7 @@ export default function ArtifactHistoryOverlay({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   onClick={() => onOpenVersion(version.id)}
-                  className="flex w-full items-center gap-3.5 rounded-lg bg-background-secondary p-3.5 text-left shadow-border transition-colors hover:bg-accent/50 hover:shadow-border-strong"
+                  className="flex w-full items-center gap-3.5 rounded-md bg-background-secondary p-3.5 text-left shadow-border transition-colors hover:bg-accent/50 hover:shadow-border-strong"
                 >
                   <span className="text-base font-semibold text-foreground">
                     {version.label}

@@ -64,7 +64,7 @@ export default function DropZoneFolder({
       withWrapper={false}
       className={`
         rounded-lg border p-3 transition-colors duration-200 cursor-pointer
-        hover:bg-white/[0.04]
+        hover:bg-hover
         ${className}
         ${
           isDragOver || isSelected

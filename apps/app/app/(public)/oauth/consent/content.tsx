@@ -150,8 +150,8 @@ export default function OAuthConsentContent() {
     <AuthFormLayout>
       <div className="mx-auto w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-white/10 bg-white/5">
-            <Lock className="size-5 text-white/60" />
+          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-background-tertiary">
+            <Lock className="size-5 text-muted-foreground" />
           </div>
           <h1 className="mb-1.5 text-xl font-semibold tracking-tight">
             Authorize Genfeed access
@@ -195,12 +195,12 @@ export default function OAuthConsentContent() {
                   </p>
                 </div>
 
-                <div className="space-y-3 border-y border-white/[0.08] py-5">
+                <div className="space-y-3 border-y border-border py-5">
                   <p className="text-sm font-medium">Wants to access</p>
                   <div className="flex flex-wrap gap-2">
                     {scopeLabels.map((label) => (
                       <span
-                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground"
+                        className="rounded-full border border-border bg-background-tertiary px-3 py-1 text-xs text-muted-foreground"
                         key={label}
                       >
                         {label}

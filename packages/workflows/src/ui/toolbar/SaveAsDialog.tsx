@@ -58,7 +58,9 @@ export function SaveAsDialog({
       <Button
         variant="ghost"
         size="icon-sm"
-        className="absolute inset-0 bg-black/60"
+        className={
+          'absolute inset-0 bg-black/60' /* design-system-allow-content-color */
+        }
         onClick={onClose}
         aria-label="Close save as dialog"
       />

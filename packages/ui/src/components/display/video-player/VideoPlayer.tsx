@@ -56,8 +56,17 @@ function VideoOverlayContent({
           loading={imageLoading}
         />
         {showLoader && !isMetadataLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            <Spinner size={ComponentSize.SM} className="text-white" />
+          <div
+            className={
+              'absolute inset-0 flex items-center justify-center bg-black/20' /* design-system-allow-content-color -- media overlay */
+            }
+          >
+            <Spinner
+              size={ComponentSize.SM}
+              className={
+                'text-white' /* design-system-allow-content-color -- media overlay */
+              }
+            />
           </div>
         )}
       </div>

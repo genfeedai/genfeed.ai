@@ -19,10 +19,10 @@ interface WorkflowTriggerCardProps {
 type CardStatus = 'idle' | 'triggering' | 'done' | 'error';
 
 const STATUS_BADGE: Record<string, string> = {
-  active: 'bg-green-500/10 text-green-600 dark:text-green-400',
+  active: 'bg-success/10 text-success ',
   draft: 'bg-muted text-muted-foreground',
-  inactive: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
-  paused: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
+  inactive: 'bg-warning/10 text-warning ',
+  paused: 'bg-warning/10 text-warning ',
 };
 
 export function WorkflowTriggerCard({
@@ -178,9 +178,9 @@ export function WorkflowTriggerCard({
         {/* Done state */}
         {status === 'done' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
-              <CircleCheck className="size-4 text-green-600 dark:text-green-400" />
-              <span className="text-sm text-green-700 dark:text-green-300">
+            <div className="flex items-center gap-2 border border-success/20 bg-success/10 px-3 py-2  ">
+              <CircleCheck className="size-4 text-success " />
+              <span className="text-sm text-success ">
                 Workflow started successfully
               </span>
             </div>

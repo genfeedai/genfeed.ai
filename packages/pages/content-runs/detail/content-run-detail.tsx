@@ -13,6 +13,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
 import { ContentRunsService } from '@services/content/content-runs.service';
+import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import {
@@ -197,14 +198,16 @@ function Section({
   title: string;
 }) {
   return (
-    <section className="rounded-lg bg-secondary p-5 shadow-border">
-      <div className="mb-4 flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-md bg-card text-foreground/75 shadow-border">
-          {icon}
-        </span>
-        <h2 className="text-sm font-semibold">{title}</h2>
-      </div>
-      {children}
+    <section>
+      <Card bodyClassName="gap-0 p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-md bg-tertiary text-foreground/75 shadow-border">
+            {icon}
+          </span>
+          <h2 className="text-sm font-semibold">{title}</h2>
+        </div>
+        {children}
+      </Card>
     </section>
   );
 }
@@ -424,28 +427,30 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
   const steps = useMemo(() => getTimelineSteps(run), [run]);
 
   return (
-    <aside className="rounded-lg bg-secondary p-5 shadow-border">
-      <h2 className="text-sm font-semibold">Lifecycle</h2>
-      <div className="mt-4 space-y-3">
-        {steps.map((step) => (
-          <div
-            key={step.key}
-            className={`rounded-md px-3 py-3 ${getStepClasses(step.state)}`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium">{step.label}</span>
-              {step.state === 'complete' ? (
-                <CircleCheck className="size-4" />
-              ) : step.state === 'error' ? (
-                <TriangleAlert className="size-4" />
-              ) : (
-                <Clock className="size-4" />
-              )}
+    <aside>
+      <Card bodyClassName="gap-0 p-5">
+        <h2 className="text-sm font-semibold">Lifecycle</h2>
+        <div className="mt-4 space-y-3">
+          {steps.map((step) => (
+            <div
+              key={step.key}
+              className={`rounded-md px-3 py-3 ${getStepClasses(step.state)}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">{step.label}</span>
+                {step.state === 'complete' ? (
+                  <CircleCheck className="size-4" />
+                ) : step.state === 'error' ? (
+                  <TriangleAlert className="size-4" />
+                ) : (
+                  <Clock className="size-4" />
+                )}
+              </div>
+              <p className="mt-1 text-xs opacity-75">{step.description}</p>
             </div>
-            <p className="mt-1 text-xs opacity-75">{step.description}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </Card>
     </aside>
   );
 }
@@ -469,43 +474,45 @@ function NavigationPanel({
   ];
 
   return (
-    <aside className="rounded-lg bg-secondary p-5 shadow-border">
-      <h2 className="text-sm font-semibold">Actions and Views</h2>
-      <div className="mt-4 grid gap-2">
-        <Button
-          ariaLabel="Create remix pack from this content run"
-          className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
-          isLoading={isRemixing}
-          onClick={onCreateRemixPack}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-        >
-          <span className="flex items-center gap-2">
-            <Sparkles className="size-4" />
-            Create Remix Pack
-          </span>
-        </Button>
-        {links.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Button
-              asChild
-              key={item.href}
-              className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            >
-              <Link href={item.href}>
-                <span className="flex items-center gap-2">
-                  <Icon className="size-4" />
-                  {item.label}
-                </span>
-                <span aria-hidden="true">&gt;</span>
-              </Link>
-            </Button>
-          );
-        })}
-      </div>
+    <aside>
+      <Card bodyClassName="gap-0 p-5">
+        <h2 className="text-sm font-semibold">Actions and Views</h2>
+        <div className="mt-4 grid gap-2">
+          <Button
+            ariaLabel="Create remix pack from this content run"
+            className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
+            isLoading={isRemixing}
+            onClick={onCreateRemixPack}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="size-4" />
+              Create Remix Pack
+            </span>
+          </Button>
+          {links.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                asChild
+                key={item.href}
+                className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+              >
+                <Link href={item.href}>
+                  <span className="flex items-center gap-2">
+                    <Icon className="size-4" />
+                    {item.label}
+                  </span>
+                  <span aria-hidden="true">&gt;</span>
+                </Link>
+              </Button>
+            );
+          })}
+        </div>
+      </Card>
     </aside>
   );
 }
@@ -584,40 +591,44 @@ export default function ContentRunDetailPage({
   return (
     <Container>
       <div className="flex flex-col gap-6">
-        <header className="rounded-lg bg-secondary p-5 shadow-border">
-          <div className="flex flex-wrap items-center gap-2">
-            <Pill>{run.status ?? 'unknown'}</Pill>
-            <Pill>{run.skillSlug ?? 'content-run'}</Pill>
-            {run.source ? <Pill>{run.source}</Pill> : null}
-          </div>
-          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold">
-                {getBriefTitle(run.brief)}
-              </h2>
-              <p className="mt-2 text-sm text-foreground/56">{getRunId(run)}</p>
+        <header>
+          <Card bodyClassName="gap-0 p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Pill>{run.status ?? 'unknown'}</Pill>
+              <Pill>{run.skillSlug ?? 'content-run'}</Pill>
+              {run.source ? <Pill>{run.source}</Pill> : null}
             </div>
-            <dl className="grid gap-3 text-sm sm:grid-cols-3">
+            <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <dt className="text-xs text-foreground/48">Created</dt>
-                <dd className="mt-1 text-foreground/80">
-                  {formatDateTime(run.createdAt)}
-                </dd>
+                <h2 className="text-2xl font-semibold">
+                  {getBriefTitle(run.brief)}
+                </h2>
+                <p className="mt-2 text-sm text-foreground/56">
+                  {getRunId(run)}
+                </p>
               </div>
-              <div>
-                <dt className="text-xs text-foreground/48">Credits</dt>
-                <dd className="mt-1 text-foreground/80">
-                  {formatMetric(run.creditsUsed)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-foreground/48">Duration</dt>
-                <dd className="mt-1 text-foreground/80">
-                  {run.duration ? `${run.duration}ms` : '-'}
-                </dd>
-              </div>
-            </dl>
-          </div>
+              <dl className="grid gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <dt className="text-xs text-foreground/48">Created</dt>
+                  <dd className="mt-1 text-foreground/80">
+                    {formatDateTime(run.createdAt)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-foreground/48">Credits</dt>
+                  <dd className="mt-1 text-foreground/80">
+                    {formatMetric(run.creditsUsed)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-foreground/48">Duration</dt>
+                  <dd className="mt-1 text-foreground/80">
+                    {run.duration ? `${run.duration}ms` : '-'}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </Card>
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">

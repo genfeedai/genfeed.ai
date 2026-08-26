@@ -505,8 +505,8 @@ function CliAuthPageContent() {
     <AuthFormLayout>
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center size-12 rounded-xl bg-white/5 border border-white/10 mb-5">
-            <Terminal className="size-5 text-white/60" />
+          <div className="inline-flex items-center justify-center size-12 rounded-xl bg-background-tertiary border border-border mb-5">
+            <Terminal className="size-5 text-muted-foreground" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight mb-1.5">
             {isDesktopMode ? 'Desktop Authentication' : 'CLI Authentication'}
@@ -554,7 +554,7 @@ function CliAuthPageContent() {
                 />
                 {user?.primaryEmailAddress?.emailAddress && (
                   <div className="text-center">
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background-tertiary border border-border text-xs text-muted-foreground">
                       Signed in as {user.primaryEmailAddress.emailAddress}
                     </span>
                   </div>
@@ -669,7 +669,7 @@ function CopyKeyFallback({
   onCopy: () => void;
 }) {
   return (
-    <div className="border-t border-white/[0.08] pt-5 mt-2">
+    <div className="border-t border-border pt-5 mt-2">
       <p className="text-xs text-muted-foreground text-center mb-3">
         If the {isDesktopMode ? 'desktop app' : 'CLI'} doesn&apos;t receive it
         automatically, copy and paste the key:
@@ -678,7 +678,7 @@ function CopyKeyFallback({
         <Code
           display="block"
           size="sm"
-          className="flex-1 border border-white/10 text-white/70 truncate select-all"
+          className="flex-1 border border-border text-muted-foreground truncate select-all"
         >
           {apiKey}
         </Code>

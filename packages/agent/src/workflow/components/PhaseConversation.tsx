@@ -29,29 +29,29 @@ function MessageBubble({
       <span
         className={cn(
           'flex items-center justify-center size-7 rounded-full shrink-0',
-          isAgent ? 'bg-violet-500/15' : 'bg-blue-500/15',
+          isAgent ? 'bg-primary/10' : 'bg-info/10',
         )}
       >
         {isAgent ? (
-          <Bot className="size-4 text-violet-400" />
+          <Bot className="size-4 text-primary" />
         ) : (
-          <User className="size-4 text-blue-400" />
+          <User className="size-4 text-info" />
         )}
       </span>
       <div>
         <div
           className={cn(
-            'px-3 py-2 rounded-xl text-sm text-white/80',
+            'px-3 py-2 rounded-xl text-sm text-foreground/80',
             isAgent
-              ? 'bg-white/5 rounded-tl-sm'
-              : 'bg-blue-500/10 rounded-tr-sm',
+              ? 'bg-foreground/5 rounded-tl-sm'
+              : 'bg-info/10 rounded-tr-sm',
           )}
         >
           {content}
         </div>
         <p
           className={cn(
-            'text-2xs text-white/30 mt-1',
+            'text-2xs text-foreground/30 mt-1',
             isAgent ? 'text-left' : 'text-right',
           )}
         >
@@ -77,11 +77,11 @@ function PhaseSection({ phase }: { phase: WorkflowPhase }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <div className="h-px flex-1 bg-white/10" />
-        <span className="text-2xs font-medium text-white/30 uppercase tracking-wider px-2">
+        <div className="h-px flex-1 bg-foreground/10" />
+        <span className="text-2xs font-medium text-foreground/30 uppercase tracking-wider px-2">
           {PHASE_LABELS[phase]}
         </span>
-        <div className="h-px flex-1 bg-white/10" />
+        <div className="h-px flex-1 bg-foreground/10" />
       </div>
       <div className="flex flex-col gap-3">
         {messages.map((msg) => (
@@ -110,10 +110,10 @@ function PhaseConversationInner() {
   return (
     <div
       ref={scrollRef}
-      className="flex flex-col gap-4 overflow-y-auto max-h-[400px] p-3 rounded-xl bg-black/20 border border-white/5"
+      className="flex max-h-[400px] flex-col gap-4 overflow-y-auto rounded-xl border border-foreground/5 bg-background-secondary p-3"
     >
       {messages.length === 0 ? (
-        <p className="text-sm text-white/30 text-center py-6">
+        <p className="text-sm text-foreground/30 text-center py-6">
           No messages yet
         </p>
       ) : (

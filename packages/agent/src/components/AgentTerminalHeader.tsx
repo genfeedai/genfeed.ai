@@ -5,7 +5,6 @@ import type {
   AgentRuntimeCatalog,
   AgentRuntimeOption,
 } from '@genfeedai/agent/models/agent-runtime.model';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ReactElement } from 'react';
 
 interface AgentTerminalHeaderProps {
@@ -23,16 +22,9 @@ export function AgentTerminalHeader({
 }: AgentTerminalHeaderProps): ReactElement {
   return (
     <div className="flex min-w-0 shrink-0 items-center gap-2 overflow-hidden">
-      <span
-        aria-hidden="true"
-        className={cn(
-          'inline-flex size-1.5 shrink-0 rounded-full',
-          catalog.environmentLabel === 'local'
-            ? 'bg-emerald-400'
-            : 'bg-sky-400',
-        )}
-      />
-      <span className="sr-only">{catalog.environmentLabel}</span>
+      <span className="shrink-0 text-2xs capitalize leading-none text-foreground/55">
+        {catalog.environmentLabel}
+      </span>
       <p className="shrink-0 self-center truncate text-2xs leading-none text-foreground/55">
         {threadLabel || 'New session'}
       </p>

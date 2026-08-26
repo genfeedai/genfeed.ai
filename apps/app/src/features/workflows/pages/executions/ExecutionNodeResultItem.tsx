@@ -62,7 +62,7 @@ export default function ExecutionNodeResultItem({
       </Button>
 
       {isExpanded && (
-        <div className="border-t border-white/[0.08] bg-background/50 px-4 py-3">
+        <div className="border-t border-border bg-background/50 px-4 py-3">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Started:</span>{' '}

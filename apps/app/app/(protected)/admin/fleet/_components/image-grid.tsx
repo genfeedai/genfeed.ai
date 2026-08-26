@@ -212,7 +212,9 @@ export default function ImageGrid({
             <div className="absolute top-2 left-2">
               <Checkbox
                 checked={selectedIds.has(asset.id)}
-                className="size-5 border-white/60 bg-black/30"
+                className={
+                  'size-5 border-white/60 bg-black/30' // design-system-allow-content-color
+                }
                 onCheckedChange={() => handleToggle(asset.id)}
               />
             </div>
@@ -255,7 +257,9 @@ export default function ImageGrid({
         }}
       >
         <DialogPortal>
-          <DialogOverlay className="bg-black/80" />
+          <DialogOverlay
+            className={'bg-black/80' /* design-system-allow-content-color */}
+          />
           <DialogContent
             showCloseButton={false}
             className="flex items-center justify-center border-0 bg-transparent p-0 shadow-none max-w-none w-auto"
@@ -264,7 +268,9 @@ export default function ImageGrid({
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
-              className="absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors"
+              className={
+                'absolute top-4 right-4 p-2 text-white/80 hover:text-white transition-colors' // design-system-allow-content-color
+              }
               onClick={() => setLightboxAsset(null)}
             >
               <X className="size-8" />

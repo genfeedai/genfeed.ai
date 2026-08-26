@@ -164,8 +164,18 @@ export default function StudioGenerateCard({
           className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/35 to-transparent p-3 pr-24 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
           data-asset-details
         >
-          <p className="line-clamp-2 text-xs text-white">{job.prompt}</p>
-          <span className="mt-1 block truncate text-2xs text-white/70">
+          <p
+            className={
+              'line-clamp-2 text-xs text-white' /* design-system-allow-content-color */
+            }
+          >
+            {job.prompt}
+          </p>
+          <span
+            className={
+              'mt-1 block truncate text-2xs text-white/70' /* design-system-allow-content-color */
+            }
+          >
             {job.modelKey || 'Auto'}
           </span>
         </div>
@@ -253,10 +263,24 @@ export default function StudioGenerateCard({
           {label}
         </Badge>
 
-        <div className="flex flex-col gap-2 text-white">
-          <p className="line-clamp-3 text-xs text-white">{job.prompt}</p>
+        <div
+          className={
+            'flex flex-col gap-2 text-white' /* design-system-allow-content-color */
+          }
+        >
+          <p
+            className={
+              'line-clamp-3 text-xs text-white' /* design-system-allow-content-color */
+            }
+          >
+            {job.prompt}
+          </p>
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-[0.625rem] text-white/70">
+            <span
+              className={
+                'truncate text-[0.625rem] text-white/70' /* design-system-allow-content-color */
+              }
+            >
               {job.modelKey || 'Auto'}
             </span>
             <div className="flex items-center gap-1">
@@ -266,7 +290,9 @@ export default function StudioGenerateCard({
                     prompt: job.prompt || job.id,
                     type: label,
                   })}
-                  className="pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white"
+                  className={
+                    'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
+                  }
                   icon={<Trash2 className="size-3.5" />}
                   label={translate('remove')}
                   onClick={() => assetActions.onRemoveGeneration(job)}
@@ -280,7 +306,9 @@ export default function StudioGenerateCard({
                   prompt: job.prompt || job.id,
                   type: label,
                 })}
-                className="pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white"
+                className={
+                  'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
+                }
                 icon={<RotateCcw className="size-3.5" />}
                 label={translate('reprompt')}
                 onClick={() => onReprompt(job)}

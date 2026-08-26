@@ -3,6 +3,7 @@
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AuthFormLayoutProps } from '@genfeedai/props/layout/auth-form-layout.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import Card from '@ui/card/Card';
 import Image from 'next/image';
 
 const LOGO_DIMENSIONS = {
@@ -25,7 +26,7 @@ export default function AuthFormLayout({
   if (logoSize === 'compact') {
     return (
       <main className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground">
-        <div className="w-full max-w-md rounded-2xl bg-card p-6 shadow-border sm:p-10">
+        <Card className="w-full max-w-md" bodyClassName="gap-0 p-6 sm:p-10">
           {title ? (
             <div className="mb-8 flex items-center gap-5">
               {logoUrl && (
@@ -61,7 +62,7 @@ export default function AuthFormLayout({
           )}
 
           {children}
-        </div>
+        </Card>
       </main>
     );
   }

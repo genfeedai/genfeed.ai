@@ -232,7 +232,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
             className={`p-3 border text-sm ${
               isOverLimit
                 ? 'border-red-500 bg-red-50 dark:bg-red-950'
-                : 'border-white/[0.08] bg-muted/30'
+                : 'border-border bg-muted/30'
             }`}
           >
             <p className="whitespace-pre-wrap">{data.outputCaption}</p>
