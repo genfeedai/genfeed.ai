@@ -66,7 +66,7 @@ const look: IStudioLook = {
   brandId: 'brand-a',
   camera: 'saved-camera',
   cameraMovement: 'saved-move',
-  createdAt: new Date(),
+  createdAt: '2026-08-26T00:00:00.000Z',
   id: 'look-a',
   isDeleted: false,
   label: 'Saved',
@@ -77,7 +77,7 @@ const look: IStudioLook = {
   promptTemplate: 'saved-preset',
   scene: 'saved-scene',
   style: 'saved-style',
-  updatedAt: new Date(),
+  updatedAt: '2026-08-26T00:00:00.000Z',
   userId: 'user-1',
 };
 
