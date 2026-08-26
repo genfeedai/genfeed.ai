@@ -398,7 +398,7 @@ describe('StripeInvoiceWebhookHandler', () => {
 
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed to handle invoice paid'),
-        ledgerError,
+        { category: 'reconciliation_failed' },
       );
     });
 

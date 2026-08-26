@@ -1102,7 +1102,7 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
-      LLM_CALL_CONTEXT,
+      { ...LLM_CALL_CONTEXT, brandId: artifactReference.brandId },
     );
   });
 
@@ -2092,7 +2092,7 @@ describe('AgentOrchestratorService', () => {
         model: 'anthropic/claude-opus-5',
       }),
       ORG_ID,
-      LLM_CALL_CONTEXT,
+      { ...LLM_CALL_CONTEXT, brandId: String(strategyBrandId) },
     );
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
       'prepare_generation',
