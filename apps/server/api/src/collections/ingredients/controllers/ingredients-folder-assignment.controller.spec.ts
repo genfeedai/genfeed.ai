@@ -6,6 +6,7 @@ import { IngredientGenerationCancellationService } from '@api/collections/ingred
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -57,14 +58,14 @@ const folder = {
   userId,
 } as FolderDocument;
 
-const ingredient = {
+const ingredient = createIngredientDocumentFixture({
   id: ingredientId,
   brandId,
   folderId: null,
   isDeleted: false,
   organizationId,
   userId,
-};
+});
 
 describe('IngredientsController folder assignment', () => {
   let controller: IngredientsController;

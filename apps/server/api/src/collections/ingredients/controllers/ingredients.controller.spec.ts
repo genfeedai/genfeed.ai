@@ -1,12 +1,12 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
 import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -109,24 +109,26 @@ describe('IngredientsController (cloneIngredient)', () => {
 
   describe('cloneIngredient', () => {
     it('creates a copy and uploads file', async () => {
-      const serviceFindOneSpy = vi.spyOn(service, 'findOne').mockResolvedValue({
-        id: '1',
-        brandId: 'acc',
-        category: IngredientCategory.IMAGE,
-        metadata: {
-          id: 'meta',
-          duration: 0,
-          extension: MetadataExtension.JPEG,
-          height: 200,
-          model: '',
-          prompt: 'prompt',
-          result: 'url',
-          size: 10,
-          style: '',
-          width: 100,
-        },
-        organizationId: 'org',
-      } as unknown as IngredientDocument);
+      const serviceFindOneSpy = vi.spyOn(service, 'findOne').mockResolvedValue(
+        createIngredientDocumentFixture({
+          brandId: 'acc',
+          category: IngredientCategory.IMAGE,
+          id: '1',
+          metadata: {
+            duration: 0,
+            extension: MetadataExtension.JPEG,
+            height: 200,
+            id: 'meta',
+            model: '',
+            prompt: 'prompt',
+            result: 'url',
+            size: 10,
+            style: '',
+            width: 100,
+          },
+          organizationId: 'org',
+        }),
+      );
 
       const sharedServiceSaveDocumentsSpy = vi
         .spyOn(sharedService, 'createMediaDocuments')

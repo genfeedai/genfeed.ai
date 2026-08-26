@@ -7,6 +7,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
+import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
 import { IngredientStatus, Status } from '@genfeedai/enums';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -354,14 +355,18 @@ describe('VideoCompletionService', () => {
         userId: mockUserId.toString(),
       };
 
-      ingredientsService.findOne.mockResolvedValue({
-        id: mockIngredientId,
-        metadataId: mockMetadataId,
-      } as never);
-      ingredientsService.patch.mockResolvedValue({
-        id: mockIngredientId,
-        status: IngredientStatus.GENERATED,
-      });
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          metadataId: mockMetadataId,
+        }),
+      );
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.GENERATED,
+        }),
+      );
 
       // Get the callback function passed to subscribe
       await service.onModuleInit();
@@ -396,10 +401,12 @@ describe('VideoCompletionService', () => {
         userId: mockUserId.toString(),
       };
 
-      ingredientsService.patch.mockResolvedValue({
-        id: mockIngredientId,
-        status: IngredientStatus.FAILED,
-      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.FAILED,
+        }),
+      );
 
       // Get the callback function passed to subscribe
       await service.onModuleInit();
@@ -438,10 +445,12 @@ describe('VideoCompletionService', () => {
         userId: mockUserId.toString(),
       };
 
-      ingredientsService.patch.mockResolvedValue({
-        id: mockIngredientId,
-        status: IngredientStatus.GENERATED,
-      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.GENERATED,
+        }),
+      );
 
       await service.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
@@ -476,14 +485,18 @@ describe('VideoCompletionService', () => {
         userId: mockUserId.toString(),
       };
 
-      ingredientsService.findOne.mockResolvedValue({
-        id: mockIngredientId,
-        metadataId: mockMetadataId,
-      } as never);
-      ingredientsService.patch.mockResolvedValue({
-        id: mockIngredientId,
-        status: IngredientStatus.GENERATED,
-      });
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          metadataId: mockMetadataId,
+        }),
+      );
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.GENERATED,
+        }),
+      );
 
       await service.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
@@ -511,10 +524,12 @@ describe('VideoCompletionService', () => {
         userId: mockUserId.toString(),
       };
 
-      ingredientsService.patch.mockResolvedValue({
-        id: mockIngredientId,
-        status: IngredientStatus.GENERATED,
-      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.GENERATED,
+        }),
+      );
 
       await service.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
@@ -548,14 +563,18 @@ describe('VideoCompletionService', () => {
         userId: mockUserId.toString(),
       };
 
-      ingredientsService.findOne.mockResolvedValue({
-        id: mockIngredientId,
-        metadataId: mockMetadataId,
-      } as never);
-      ingredientsService.patch.mockResolvedValue({
-        id: mockIngredientId,
-        status: IngredientStatus.GENERATED,
-      });
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          metadataId: mockMetadataId,
+        }),
+      );
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.GENERATED,
+        }),
+      );
 
       await service.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
@@ -611,9 +630,9 @@ describe('VideoCompletionService', () => {
         userId: mockUserId.toString(),
       };
 
-      ingredientsService.patch.mockResolvedValue({
-        id: mockIngredientId,
-      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({ id: mockIngredientId }),
+      );
 
       await service.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
