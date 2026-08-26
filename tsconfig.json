@@ -8,7 +8,7 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "paths": {
-      "@e2e/*": ["playwright/e2e/*"]
+      "@e2e/*": ["./playwright/e2e/*"]
     }
   }
 }
