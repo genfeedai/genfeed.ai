@@ -40,6 +40,7 @@ export * from '@serializers/attributes/content/release-attachment.attributes';
 export * from '@serializers/attributes/content/release-group.attributes';
 export * from '@serializers/attributes/content/schedule.attributes';
 export * from '@serializers/attributes/content/speech-transcription.attributes';
+export * from '@serializers/attributes/content/studio-look.attributes';
 export * from '@serializers/attributes/content/template.attributes';
 export * from '@serializers/attributes/content/template-metadata.attributes';
 export * from '@serializers/attributes/content/transcript.attributes';

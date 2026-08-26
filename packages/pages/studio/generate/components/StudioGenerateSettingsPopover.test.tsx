@@ -10,7 +10,28 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
-  useElements: () => ({ moods: [], presets: [], scenes: [], styles: [] }),
+  useElements: () => ({
+    cameraMovements: [],
+    cameras: [],
+    lenses: [],
+    lightings: [],
+    moods: [],
+    presets: [],
+    scenes: [],
+    styles: [],
+  }),
+}));
+
+vi.mock('@pages/studio/generate/hooks/useStudioLooks', () => ({
+  useStudioLooks: () => ({
+    deleteLook: vi.fn(),
+    deletingId: null,
+    error: null,
+    isLoading: false,
+    isSaving: false,
+    looks: [],
+    saveLook: vi.fn(),
+  }),
 }));
 
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateIdentities', () => ({

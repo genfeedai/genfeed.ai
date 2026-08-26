@@ -1,0 +1,17 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const studioLookAttributes = createEntityAttributes([
+  'organizationId',
+  'brandId',
+  'userId',
+  'label',
+  'assetType',
+  'promptTemplate',
+  'style',
+  'mood',
+  'scene',
+  'camera',
+  'lens',
+  'lighting',
+  'cameraMovement',
+]);

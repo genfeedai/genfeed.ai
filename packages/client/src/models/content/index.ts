@@ -9,4 +9,5 @@ export * from './newsletter.model';
 export * from './post.model';
 export * from './posting-set.model';
 export * from './prompt.model';
+export * from './studio-look.model';
 export * from './template.model';

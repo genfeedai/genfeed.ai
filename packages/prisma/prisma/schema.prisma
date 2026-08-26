@@ -623,6 +623,7 @@ model User {
   notificationDeliveries   NotificationDelivery[]
   contentVersionPins       ContentVersionPin[]
   publishApprovals         PublishApproval[]
+  studioLooks              StudioLook[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -781,6 +782,7 @@ model Organization {
   warmupAccounts                WarmupAccount[]
   contentVersionPins            ContentVersionPin[]
   publishApprovals              PublishApproval[]
+  studioLooks                   StudioLook[]
 
   @@index([isDefault])
   @@index([category])
@@ -935,6 +937,7 @@ model Brand {
   outreachCampaigns          OutreachCampaign[]
   bots                       Bot[]
   livestreamBotSessions      LivestreamBotSession[]
+  studioLooks                StudioLook[]
 
   @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@index([isDefault])
@@ -1014,6 +1017,35 @@ model DashboardLayout {
 
   @@unique([organizationId, brandId, pageKey])
   @@map("dashboard_layouts")
+}
+
+/// A named image/video Look shared by every member working in the same brand.
+/// Ownership columns are server-derived from the authenticated request context;
+/// callers never choose them in create or mutation payloads.
+model StudioLook {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  label          String
+  assetType      String
+  promptTemplate String       @default("")
+  style          String       @default("")
+  mood           String       @default("")
+  scene          String       @default("")
+  camera         String       @default("")
+  lens           String       @default("")
+  lighting       String       @default("")
+  cameraMovement String?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "studio_looks_scope_created_idx")
+  @@map("studio_looks")
 }
 
 model Member {

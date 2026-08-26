@@ -41,6 +41,7 @@ export * from '@serializers/configs/content/release-attachment.config';
 export * from '@serializers/configs/content/release-group.config';
 export * from '@serializers/configs/content/schedule.config';
 export * from '@serializers/configs/content/speech-transcription.config';
+export * from '@serializers/configs/content/studio-look.config';
 export * from '@serializers/configs/content/template.config';
 export * from '@serializers/configs/content/transcript.config';
 export * from '@serializers/configs/content/video.config';
