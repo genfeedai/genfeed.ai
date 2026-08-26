@@ -5,6 +5,7 @@ import { buildClipProjectReadiness } from '@api/collections/clip-shared/clip-ter
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConflictException, GoneException, Injectable } from '@nestjs/common';
 
@@ -84,7 +85,7 @@ export class PublicYoutubeClipClaimService {
         await transaction.clipProject.create({
           data: {
             ...(input.brandId ? { brandId: input.brandId } : {}),
-            config: {
+            config: this.toJsonValue({
               highlights: session.highlights,
               language: session.language,
               name: 'Free YouTube clip project',
@@ -127,16 +128,18 @@ export class PublicYoutubeClipClaimService {
               ...(session.transcriptText
                 ? { transcriptText: session.transcriptText }
                 : {}),
-            },
+            }),
             failedClipCount: 0,
             id: projectId,
             organizationId,
             pendingClipCount: 0,
             progress: 100,
-            readiness: buildClipProjectReadiness({
-              status: projectStatus,
-              terminalAt,
-            }),
+            readiness: this.toJsonValue(
+              buildClipProjectReadiness({
+                status: projectStatus,
+                terminalAt,
+              }),
+            ),
             readyClipCount: preview ? 1 : 0,
             status: projectStatus,
             terminalAt,
@@ -217,6 +220,12 @@ export class PublicYoutubeClipClaimService {
       isDeleted: false,
       organizationId,
     });
+  }
+
+  private toJsonValue(value: unknown): Prisma.InputJsonValue {
+    // The JSON round-trip strips undefined values and proves the runtime value
+    // satisfies Prisma's JSON-only persistence boundary before the type cast.
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
   }
 
   private alreadyClaimed(): GoneException {
