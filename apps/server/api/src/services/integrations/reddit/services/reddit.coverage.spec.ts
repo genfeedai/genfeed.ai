@@ -28,13 +28,16 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { CredentialDocument } from '@server/collections/credentials/credential.types';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -55,11 +58,7 @@ const makeCredential = (overrides: Record<string, unknown> = {}) =>
 
 describe('RedditService (coverage)', () => {
   let service: RedditService;
-  let credentialsService: {
-    findOne: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-    resolveBrandAccount: ReturnType<typeof vi.fn>;
-  };
+  let credentialsService: vi.Mocked<ServerCredentialStore>;
   let httpService: {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
@@ -69,7 +68,10 @@ describe('RedditService (coverage)', () => {
     vi.clearAllMocks();
 
     credentialsService = {
+      findAll: vi.fn(),
+      findBrandAccounts: vi.fn(),
       findOne: vi.fn().mockResolvedValue(null),
+      mergeWarmupSignals: vi.fn(),
       patch: vi.fn().mockResolvedValue(makeCredential()),
       // Multi-account resolution routes through `resolveBrandAccount`; the double
       // answers with whatever `findOne` is primed to return so the existing
@@ -77,7 +79,7 @@ describe('RedditService (coverage)', () => {
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
         (credentialsService.findOne as vi.Mock)(options),
       ),
-    };
+    } satisfies vi.Mocked<ServerCredentialStore>;
 
     httpService = {
       get: vi.fn(),
@@ -101,7 +103,10 @@ describe('RedditService (coverage)', () => {
             }),
           },
         },
-        { provide: CredentialsService, useValue: credentialsService },
+        {
+          provide: SERVER_TOKENS.credentials,
+          useValue: credentialsService,
+        },
         { provide: HttpService, useValue: httpService },
       ],
     }).compile();

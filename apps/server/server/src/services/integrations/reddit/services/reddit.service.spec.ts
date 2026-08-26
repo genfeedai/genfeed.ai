@@ -1,19 +1,26 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
 import { of } from 'rxjs';
+import { RedditService } from './reddit.service';
 
 describe('RedditService', () => {
   let service: RedditService;
-  let credentialsService: CredentialsService;
+  let credentialsService: ServerCredentialStore;
   let httpService: HttpService;
 
   beforeEach(async () => {
     const credentialsMock = {
+      findAll: vi.fn(),
+      findBrandAccounts: vi.fn(),
       findOne: vi.fn(),
+      mergeWarmupSignals: vi.fn(),
       patch: vi.fn(),
       // Multi-account resolution routes through `resolveBrandAccount`; the double
       // answers with whatever `findOne` is primed to return so the existing
@@ -21,7 +28,7 @@ describe('RedditService', () => {
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
         credentialsMock.findOne(options),
       ),
-    };
+    } satisfies ServerCredentialStore;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -41,7 +48,7 @@ describe('RedditService', () => {
           },
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: credentialsMock,
         },
         {
@@ -52,7 +59,9 @@ describe('RedditService', () => {
     }).compile();
 
     service = module.get<RedditService>(RedditService);
-    credentialsService = module.get<CredentialsService>(CredentialsService);
+    credentialsService = module.get<ServerCredentialStore>(
+      SERVER_TOKENS.credentials,
+    );
     httpService = module.get<HttpService>(HttpService);
   });
 
@@ -108,7 +117,7 @@ describe('RedditService', () => {
       credentialId: 'cred-2',
       isDisconnectedIncluded: true,
       organizationId: orgId,
-      platform: 'reddit',
+      platform: CredentialPlatform.REDDIT,
     });
   });
 
