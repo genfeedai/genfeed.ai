@@ -206,6 +206,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../ui/src/semantic/$1'),
       },
       {
+        find: /^@ui\/tokens\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/tokens/$1'),
+      },
+      {
+        find: '@ui/tokens',
+        replacement: path.resolve(__dirname, '../ui/src/tokens'),
+      },
+      {
         find: '@ui/primitives',
         replacement: path.resolve(__dirname, '../ui/src/primitives'),
       },
