@@ -150,9 +150,14 @@ test.describe('Workspace — deep interactions', () => {
       .getByText('Launch caption', { exact: true });
     await expect(historyItem).toBeVisible();
     await historyItem.click();
-    await expect(
-      authenticatedPage.getByTestId('workspace-task-inspector'),
-    ).toBeVisible();
+    const inspector = authenticatedPage.getByTestId('workspace-task-inspector');
+    await expect(inspector).toBeVisible();
+    const inspectorDialog = authenticatedPage
+      .getByRole('dialog')
+      .filter({ has: inspector });
+    await expect(inspectorDialog).toBeVisible();
+    await inspectorDialog.getByRole('button', { name: 'Close' }).click();
+    await expect(inspectorDialog).toBeHidden();
 
     const primaryAction = authenticatedPage
       .getByTestId('desktop-sidebar-rail')
