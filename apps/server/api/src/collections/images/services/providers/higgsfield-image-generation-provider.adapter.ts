@@ -6,7 +6,6 @@ import type {
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { calculateAspectRatio } from '@genfeedai/helpers';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Higgsfield Soul text-to-image. `generateTextToImage` queues the job and
@@ -16,7 +15,6 @@ import { Injectable } from '@nestjs/common';
  * and finalize the ingredient the same way every other `external-id` provider
  * does, with no additional wiring.
  */
-@Injectable()
 export class HiggsFieldImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter
 {
