@@ -70,11 +70,17 @@ test('Playwright full-tier nightly workflow exists as a standalone reporter', ()
 
   assert.doesNotMatch(
     workflow,
-    /--reporter=blob/,
+    /^\s*run:.*--reporter=blob/m,
     'CLI --reporter=blob replaces config reporters and drops results.json',
   );
   assert.match(workflow, /nightly-playwright-full-failure-reporter\.mjs/);
-  assert.match(workflow, /NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL/);
+  assert.match(workflow, /reportNightlyPlaywrightFullFailure/);
+  assert.match(workflow, /resolveNightlyPlaywrightFullFailures/);
+  assert.match(workflow, /^ {2}nightly-recovery-report:/m);
+  assert.match(
+    workflow,
+    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
+  );
 });
 
 test('full-suite.yml and daily-production-deploy.yml do not depend on the reporting-only full tier', () => {
@@ -166,12 +172,26 @@ test('canonical e2e tier contract documents core, authed, and full', () => {
   assert.equal(apiPackageJson.scripts['test:e2e:full'] !== undefined, true);
 });
 
-test('CI workflow contracts run the Playwright full-tier tests', () => {
-  const ci = readWorkflow('ci.yml');
-  assert.match(ci, /scripts\/ci\/playwright-full-nightly\.test\.mjs/);
-  assert.match(ci, /scripts\/playwright-e2e-tiers\.test\.mjs/);
-  assert.match(
-    ci,
-    /scripts\/ci\/nightly-playwright-full-failure-reporter\.test\.mjs/,
+test('the existing executable-contract aggregate includes focused scheduled reporter tests', () => {
+  const packageJson = JSON.parse(
+    readFileSync(path.join(REPOSITORY_ROOT, 'package.json'), 'utf8'),
   );
+  const aggregate = packageJson.scripts['test:executable-contracts'];
+  const adjacentContract = readFileSync(
+    path.join(REPOSITORY_ROOT, 'scripts/ci/pr-validation-workflows.test.mjs'),
+    'utf8',
+  );
+
+  assert.match(aggregate, /scripts\/ci\/pr-validation-workflows\.test\.mjs/);
+  for (const focusedTest of [
+    'scheduled-failure-tracker.test.mjs',
+    'nightly-e2e-failure-reporter.test.mjs',
+    'nightly-playwright-full-failure-reporter.test.mjs',
+    'coverage-failure-reporter.test.mjs',
+  ]) {
+    assert.match(
+      adjacentContract,
+      new RegExp(focusedTest.replaceAll('.', '\\.')),
+    );
+  }
 });

@@ -241,11 +241,12 @@ jobs:
       !cancelled()
       && github.event_name == 'schedule'
       && (needs.e2e-frontend-full.result == 'failure'
-        || needs.e2e-frontend-full.result == 'cancelled')
+        || needs.e2e-frontend-full.result == 'cancelled'
+        || needs.summarize.result == 'failure'
+        || needs.summarize.result == 'cancelled')
     concurrency:
       group: nightly-playwright-full-failure-reporter
       cancel-in-progress: false
-      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -264,18 +265,24 @@ jobs:
           name: playwright-full-tier-summary
           path: playwright/artifacts/report/
 
-      - name: Open, reopen, or update the Playwright full-tier tracker
+      - name: Create or update the bounded Playwright full-tier tracker
+        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
+          SUMMARY_RESULT: ${{ needs.summarize.result }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
             const fs = require('node:fs');
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
             const {
-              NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL,
+              buildPlaywrightFullExcerpt,
               reportNightlyPlaywrightFullFailure,
             } = await import(
               pathToFileURL(
@@ -300,17 +307,78 @@ jobs:
                 `- Failed: ${summary.failedFileCount ?? 'n/a'}`,
               ].join('\n');
             }
-            const body = [
-              'The scheduled Playwright **full** tier failed.',
-              '',
-              `- Result: ${process.env.FULL_TIER_RESULT}`,
-              `- Label: ${NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL}`,
-              `- Run: ${process.env.RUN_URL}`,
-              '',
+            const excerpt = buildPlaywrightFullExcerpt({
+              result: process.env.FULL_TIER_RESULT,
               inventory,
-              '',
-              'This issue auto-updates on each red full-tier nightly. Close it once the nightly is green again.',
-              'This tracker is distinct from `nightly-e2e-failure` (core + authed).',
-            ].join('\n');
+            });
+            const summaryFailed = ['failure', 'cancelled'].includes(
+              process.env.SUMMARY_RESULT,
+            );
             const { owner, repo } = context.repo;
-            await reportNightlyPlaywrightFullFailure({ github, owner, repo, body });
+            await reportNightlyPlaywrightFullFailure({
+              github,
+              owner,
+              repo,
+              failedJob: summaryFailed ? 'summarize' : 'e2e-frontend-full',
+              excerpt: summaryFailed
+                ? 'Missing Playwright full-tier summary report or artifact.'
+                : excerpt,
+              sha: process.env.SOURCE_SHA,
+              runId: Number(process.env.RUN_ID),
+              runAttempt: Number(process.env.RUN_ATTEMPT),
+              runUrl: process.env.RUN_URL,
+              core,
+            });
+
+  nightly-recovery-report:
+    name: Record nightly Playwright full-tier recovery
+    needs: [e2e-frontend-full, summarize]
+    if: >-
+      !cancelled()
+      && github.event_name == 'schedule'
+      && needs.e2e-frontend-full.result == 'success'
+      && needs.summarize.result == 'success'
+    concurrency:
+      group: nightly-playwright-full-failure-reporter
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Record one consecutive scheduled green
+        continue-on-error: true
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { resolveNightlyPlaywrightFullFailures } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/nightly-playwright-full-failure-reporter.mjs',
+                ),
+              ).href,
+            );
+            const { owner, repo } = context.repo;
+            await resolveNightlyPlaywrightFullFailures({
+              github,
+              owner,
+              repo,
+              sha: process.env.SOURCE_SHA,
+              runId: Number(process.env.RUN_ID),
+              runUrl: process.env.RUN_URL,
+              core,
+            });

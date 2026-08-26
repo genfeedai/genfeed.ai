@@ -1,0 +1,310 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import {
+  buildScheduledFailureBody,
+  classifyScheduledFailure,
+  computeFailureFingerprint,
+  PUBLIC_EXCERPT_LIMIT,
+  parseTrackerState,
+  recordScheduledWorkflowGreen,
+  reportScheduledFailure,
+} from './scheduled-failure-tracker.mjs';
+
+function githubFixture() {
+  const issues = [];
+  const calls = { comments: [], graphql: [], labels: [], updates: [] };
+  let nextNumber = 100;
+  const listForRepo = async () => ({ data: issues });
+  const github = {
+    paginate: async (_endpoint, options) =>
+      issues.filter(
+        (issue) =>
+          (options.state === 'all' || issue.state === options.state) &&
+          issue.labels.includes(options.labels),
+      ),
+    rest: {
+      issues: {
+        listForRepo,
+        getLabel: async () => ({ data: {} }),
+        createLabel: async () => ({ data: {} }),
+        create: async (input) => {
+          const issue = {
+            ...input,
+            labels: [],
+            number: nextNumber++,
+            node_id: `NODE_${nextNumber}`,
+            state: 'open',
+          };
+          issues.push(issue);
+          return { data: issue };
+        },
+        addLabels: async (input) => {
+          calls.labels.push(input);
+          const issue = issues.find(
+            ({ number }) => number === input.issue_number,
+          );
+          issue.labels = [...new Set([...issue.labels, ...input.labels])];
+          return { data: issue.labels.map((name) => ({ name })) };
+        },
+        get: async ({ issue_number }) => ({
+          data: issues.find(({ number }) => number === issue_number),
+        }),
+        update: async (input) => {
+          calls.updates.push(input);
+          const issue = issues.find(
+            ({ number }) => number === input.issue_number,
+          );
+          Object.assign(issue, input);
+          return { data: issue };
+        },
+        createComment: async (input) => {
+          calls.comments.push(input);
+          return { data: {} };
+        },
+      },
+    },
+    graphql: async (query, variables) => {
+      calls.graphql.push({ query, variables });
+      return query.includes('addProjectV2ItemById')
+        ? { addProjectV2ItemById: { item: { id: 'ITEM_1' } } }
+        : {
+            updateProjectV2ItemFieldValue: { projectV2Item: { id: 'ITEM_1' } },
+          };
+    },
+  };
+  return { calls, github, issues };
+}
+
+function failure(overrides = {}) {
+  return {
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    trackerLabel: 'nightly-test-failure',
+    trackerDescription: 'Scheduled test failures',
+    workflowIdentity: '.github/workflows/nightly.yml',
+    failedJob: 'test-full',
+    excerpt: 'AssertionError: expected 200, received 500',
+    sha: '1111111111111111111111111111111111111111',
+    runId: 10,
+    runUrl: 'https://github.test/runs/10',
+    occurredAt: '2026-08-20T01:00:00.000Z',
+    ...overrides,
+  };
+}
+
+test('classifies deterministic failure classes', () => {
+  assert.equal(
+    classifyScheduledFailure('Expected 2, received 3').failureClass,
+    'test-assertion',
+  );
+  assert.equal(
+    classifyScheduledFailure('Coverage below threshold').failureClass,
+    'coverage-threshold',
+  );
+  assert.equal(
+    classifyScheduledFailure('ENOENT: coverage report missing').failureClass,
+    'missing-report',
+  );
+  assert.equal(
+    classifyScheduledFailure('Hosted runner network unavailable').failureClass,
+    'runner-infrastructure',
+  );
+  assert.equal(
+    classifyScheduledFailure('Something novel happened').failureClass,
+    'unknown',
+  );
+});
+
+test('redacts credentials and bounds every public excerpt', () => {
+  const evidence = classifyScheduledFailure(
+    `authorization: Bearer ghp_${'a'.repeat(40)}\npassword=hunter2\n${'x'.repeat(2_000)}`,
+  ).publicExcerpt;
+  assert.ok(evidence.length <= PUBLIC_EXCERPT_LIMIT);
+  assert.doesNotMatch(evidence, /hunter2|ghp_/u);
+  assert.match(evidence, /\[REDACTED\]/u);
+  assert.match(evidence, /excerpt truncated/u);
+});
+
+test('fingerprint is stable across volatile SHAs, URLs, counts, and timestamps', () => {
+  const first = classifyScheduledFailure(
+    'AssertionError at spec.ts:42:9 on 2026-08-20T01:02:03Z run https://example.test/10 expected 2 received 3',
+  );
+  const second = classifyScheduledFailure(
+    'AssertionError at spec.ts:99:2 on 2026-08-21T02:03:04Z run https://example.test/11 expected 4 received 5',
+  );
+  assert.equal(
+    computeFailureFingerprint({
+      workflowIdentity: 'nightly.yml',
+      failedJob: 'test-full',
+      failureClass: first.failureClass,
+      signature: first.signature,
+    }),
+    computeFailureFingerprint({
+      workflowIdentity: 'nightly.yml',
+      failedJob: 'test-full',
+      failureClass: second.failureClass,
+      signature: second.signature,
+    }),
+  );
+});
+
+test('body carries a parseable marker and implementation-ready bounded contract', () => {
+  const state = {
+    ...failure(),
+    fingerprint: 'abc123',
+    failureClass: 'test-assertion',
+    occurrences: 2,
+    firstSeenAt: '2026-08-20T01:00:00.000Z',
+    lastSeenAt: '2026-08-21T01:00:00.000Z',
+    firstSha: '1111111111111111111111111111111111111111',
+    lastSha: '2222222222222222222222222222222222222222',
+    firstRunUrl: 'https://github.test/runs/10',
+    lastRunUrl: 'https://github.test/runs/11',
+    greenStreak: 0,
+    status: 'active',
+  };
+  const body = buildScheduledFailureBody({
+    state,
+    excerpt: 'AssertionError: expected 2, received 3',
+    reproduction: 'Dispatch nightly.yml.',
+  });
+  assert.equal(parseTrackerState(body).fingerprint, 'abc123');
+  assert.match(body, /Occurrences: \*\*2\*\*/u);
+  assert.match(body, /Acceptance criteria/u);
+  assert.match(body, /Verification plan/u);
+  assert.match(body, /111111111111/u);
+  assert.match(body, /222222222222/u);
+});
+
+test('recurrence updates one issue with occurrence and first/last run evidence', async () => {
+  const fixture = githubFixture();
+  const first = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure(),
+  });
+  const second = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      sha: '2222222222222222222222222222222222222222',
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+      occurredAt: '2026-08-21T01:00:00.000Z',
+    }),
+  });
+  assert.equal(first.action, 'created');
+  assert.equal(second.action, 'updated');
+  assert.equal(fixture.issues.length, 1);
+  const state = parseTrackerState(fixture.issues[0].body);
+  assert.equal(state.occurrences, 2);
+  assert.equal(state.firstRunUrl, 'https://github.test/runs/10');
+  assert.equal(state.lastRunUrl, 'https://github.test/runs/11');
+});
+
+test('transient runner noise stays closed until recurrence threshold with visible reason', async () => {
+  const fixture = githubFixture();
+  const first = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({ excerpt: 'Hosted runner network unavailable' }),
+  });
+  assert.equal(first.action, 'suppressed');
+  assert.match(first.reason, /requires 2 consecutive occurrences/u);
+  assert.equal(fixture.issues[0].state, 'closed');
+  assert.equal(fixture.issues[0].labels.includes('codex:automation'), false);
+
+  const second = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      excerpt: 'Hosted runner network unavailable',
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+      occurredAt: '2026-08-21T01:00:00.000Z',
+    }),
+  });
+  assert.equal(second.action, 'promoted');
+  assert.equal(fixture.issues[0].state, 'open');
+  assert.equal(fixture.issues[0].labels.includes('codex:automation'), true);
+});
+
+test('a scheduled green resets a suppressed transient recurrence streak', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({ excerpt: 'Hosted runner network unavailable' }),
+  });
+  const green = await recordScheduledWorkflowGreen({
+    github: fixture.github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    trackerLabel: 'nightly-test-failure',
+    workflowIdentity: '.github/workflows/nightly.yml',
+    sha: '2222222222222222222222222222222222222222',
+    runId: 11,
+    runUrl: 'https://github.test/runs/11',
+  });
+  assert.equal(green.action, 'reset-suppression');
+
+  const next = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      excerpt: 'Hosted runner network unavailable',
+      runId: 12,
+      runUrl: 'https://github.test/runs/12',
+    }),
+  });
+  assert.equal(next.action, 'suppressed');
+  assert.equal(parseTrackerState(fixture.issues[0].body).occurrences, 2);
+});
+
+test('three consecutive greens close the canonical tracker, never the first two', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  const green = (runId) =>
+    recordScheduledWorkflowGreen({
+      github: fixture.github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      trackerLabel: 'nightly-test-failure',
+      workflowIdentity: '.github/workflows/nightly.yml',
+      sha: String(runId).repeat(40).slice(0, 40),
+      runId,
+      runUrl: `https://github.test/runs/${runId}`,
+      occurredAt: `2026-08-${20 + runId}T01:00:00.000Z`,
+    });
+  assert.equal((await green(1)).action, 'recovering');
+  assert.equal(fixture.issues[0].state, 'open');
+  assert.equal((await green(2)).action, 'recovering');
+  assert.equal(fixture.issues[0].state, 'open');
+  assert.equal((await green(3)).action, 'closed');
+  assert.equal(fixture.issues[0].state, 'closed');
+  assert.equal(fixture.calls.comments.length, 1);
+});
+
+test('concurrent creates converge on the oldest canonical tracker', async () => {
+  const fixture = githubFixture();
+  let releases = 0;
+  let releaseBoth;
+  const barrier = new Promise((resolve) => {
+    releaseBoth = resolve;
+  });
+  const originalCreate = fixture.github.rest.issues.create;
+  fixture.github.rest.issues.create = async (input) => {
+    const result = await originalCreate(input);
+    releases += 1;
+    if (releases === 2) releaseBoth();
+    await barrier;
+    return result;
+  };
+
+  await Promise.all([
+    reportScheduledFailure({ github: fixture.github, ...failure() }),
+    reportScheduledFailure({
+      github: fixture.github,
+      ...failure({ runId: 11, runUrl: 'https://github.test/runs/11' }),
+    }),
+  ]);
+  const open = fixture.issues.filter((issue) => issue.state === 'open');
+  assert.equal(open.length, 1);
+  assert.equal(open[0].number, 100);
+  assert.equal(parseTrackerState(open[0].body).occurrences, 2);
+});

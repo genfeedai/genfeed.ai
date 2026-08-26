@@ -499,15 +499,10 @@ jobs:
           path: playwright/artifacts/results/
           retention-days: 7
 
-  # Nightly-only failure reporter. The scheduled E2E run is the flake alarm; when
-  # it goes red, open (or update) ONE tracking issue so a broken nightly can't rot
-  # unseen — the whole reason the authed job could sit red for 5+ June nightlies.
-  # Dedup order: comment on the open labelled issue; else paginate every closed
-  # labelled issue and REOPEN the one with the newest eligible closed_at within
-  # the 30-day reopen window; else create. Reopening matters because closing the
-  # tracker while the suite is still red used to spawn a fresh duplicate on the
-  # next red nightly (#1448, #1626, #1891). Only a genuinely absent/stale tracker
-  # creates a new issue.
+  # Nightly-only failure reporter. Each failed job becomes one stable fingerprint;
+  # repeated runs update its canonical bounded tracker, while the sibling recovery
+  # job closes it only after three consecutive scheduled greens. Reporter failures
+  # stay visible on their own step without replacing the source job result.
   # Runs ONLY on the standalone cron: a workflow_call from the deploy path inherits
   # the caller's event, so github.event_name is 'schedule' solely for the nightly.
   # Deploy gating is untouched. Keys off the aggregated gate AND the two
@@ -536,7 +531,6 @@ jobs:
     concurrency:
       group: nightly-e2e-failure-reporter
       cancel-in-progress: false
-      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -548,14 +542,19 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Open, reopen, or update the nightly-failure issue
+      - name: Create or update bounded nightly-failure trackers
+        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GATE_RESULT: ${{ needs.e2e-gate.result }}
           AUTHED_RESULT: ${{ needs.e2e-frontend-authed.result }}
           API_FULL_RESULT: ${{ needs.e2e-api-full.result }}
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
@@ -567,26 +566,95 @@ jobs:
                 ),
               ).href,
             );
-            const failed = [];
+            const failures = [];
             if (process.env.GATE_RESULT === 'failure') {
-              failed.push('core gate (route coverage / frontend shards / API E2E)');
+              failures.push({
+                failedJob: 'e2e-gate',
+                excerpt: 'Test suite failed: core E2E gate (route coverage, frontend shards, or API E2E).',
+              });
             }
             if (process.env.AUTHED_RESULT === 'failure') {
-              failed.push('authed E2E (real Better Auth)');
+              failures.push({
+                failedJob: 'e2e-frontend-authed',
+                excerpt: 'Test suite failed: authenticated E2E with real Better Auth.',
+              });
             }
             if (process.env.API_FULL_RESULT === 'failure') {
-              failed.push('API E2E full tier');
+              failures.push({
+                failedJob: 'e2e-api-full',
+                excerpt: 'Test suite failed: API E2E full tier.',
+              });
             }
             if (process.env.API_FULL_RESULT === 'cancelled') {
-              failed.push('API E2E full tier (cancelled — hung or timed out)');
+              failures.push({
+                failedJob: 'e2e-api-full',
+                excerpt: 'Timed out: API E2E full tier was cancelled after hanging or exceeding its job limit.',
+              });
             }
-            const body = [
-              'The scheduled (nightly) E2E run failed.',
-              '',
-              `- Failed: ${failed.join(', ')}`,
-              `- Run: ${process.env.RUN_URL}`,
-              '',
-              'This issue auto-updates on each red nightly. Close it once the nightly is green again.',
-            ].join('\n');
             const { owner, repo } = context.repo;
-            await reportNightlyE2eFailure({ github, owner, repo, body });
+            await reportNightlyE2eFailure({
+              github,
+              owner,
+              repo,
+              failures,
+              sha: process.env.SOURCE_SHA,
+              runId: Number(process.env.RUN_ID),
+              runAttempt: Number(process.env.RUN_ATTEMPT),
+              runUrl: process.env.RUN_URL,
+              core,
+            });
+
+  nightly-recovery-report:
+    name: Record nightly E2E recovery
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full]
+    if: >-
+      !cancelled()
+      && github.event_name == 'schedule'
+      && needs.e2e-gate.result == 'success'
+      && (needs.e2e-frontend-authed.result == 'success'
+        || needs.e2e-frontend-authed.result == 'skipped')
+      && needs.e2e-api-full.result == 'success'
+    concurrency:
+      group: nightly-e2e-failure-reporter
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Record one consecutive scheduled green
+        continue-on-error: true
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { resolveNightlyE2eFailures } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/nightly-e2e-failure-reporter.mjs',
+                ),
+              ).href,
+            );
+            const { owner, repo } = context.repo;
+            await resolveNightlyE2eFailures({
+              github,
+              owner,
+              repo,
+              sha: process.env.SOURCE_SHA,
+              runId: Number(process.env.RUN_ID),
+              runUrl: process.env.RUN_URL,
+              core,
+            });
