@@ -8,13 +8,13 @@
  * `user_confirmed`; no platform may gain automated engagement.
  */
 
+import { getCurrentSocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
 import {
   CredentialPlatform,
   formatPlatformLabel,
   parsePlatform,
 } from '@genfeedai/enums';
 import { z } from 'zod';
-import { getCurrentSocialWarmupBlueprint } from './social-warmup-blueprint.contract';
 
 export const SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON = '2026-08-14';
 

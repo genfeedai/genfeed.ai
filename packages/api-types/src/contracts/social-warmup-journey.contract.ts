@@ -6,12 +6,12 @@
  * reach, distribution, or safety.
  */
 
-import { SocialWarmupSignalStatus } from '@genfeedai/enums';
 import type {
   SocialWarmupBlueprint,
   SocialWarmupProvenance,
   SocialWarmupRequirement,
-} from './social-warmup-blueprint.contract';
+} from '@api-types/contracts/social-warmup-blueprint.contract';
+import { SocialWarmupSignalStatus } from '@genfeedai/enums';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MAX_HOLD_CHECK_TITLES = 3;

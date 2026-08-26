@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { Platform } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Textarea } from '@ui/primitives/textarea';
 import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,11 +24,11 @@ vi.mock('@ui/prompt-editor/PromptEditor', () => ({
     value?: string;
   }) {
     return (
-      <textarea
+      <Textarea
         aria-label="Prompt"
         className={className}
         data-testid={testId}
-        disabled={isDisabled}
+        isDisabled={isDisabled}
         onChange={(event) => onValueChange?.(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' && !event.shiftKey) {

@@ -716,6 +716,7 @@
       "devDependencies": {
         "@typescript/native": "npm:typescript@7.0.2",
         "openapi-typescript": "7.13.0",
+        "tsc-alias": "1.9.2",
       },
     },
     "packages/auth-client": {

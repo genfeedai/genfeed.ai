@@ -72,6 +72,19 @@ describe('CredentialPostingTimesEditor', () => {
     );
   });
 
+  it('renders catalog-backed visible and accessible control labels', async () => {
+    render(<CredentialPostingTimesEditor credentialId="credential-1" />);
+
+    await screen.findByText('09:00');
+
+    expect(
+      screen.getByRole('button', { name: 'Remove 09:00' }),
+    ).toHaveTextContent('Remove');
+    expect(screen.getByLabelText('New posting time')).toBeInTheDocument();
+    expect(screen.getByText('Add a time')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
+  });
+
   it('adds a posting time and persists it', async () => {
     render(<CredentialPostingTimesEditor credentialId="credential-1" />);
 
