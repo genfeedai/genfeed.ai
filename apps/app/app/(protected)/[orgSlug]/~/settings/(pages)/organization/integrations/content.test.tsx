@@ -65,6 +65,7 @@ vi.mock('@services/organization/organizations.service', () => ({
 }));
 
 vi.mock('lucide-react', () => ({
+  Archive: () => <span data-testid="hi-archive" />,
   CircleCheck: () => <span data-testid="hi-circle-check" />,
   ChevronDown: () => <span data-testid="hi-chevron-down" />,
   ChevronRight: () => <span data-testid="hi-chevron-right" />,
