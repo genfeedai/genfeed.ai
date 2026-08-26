@@ -5,7 +5,8 @@ Deterministically enforces working agreements that used to live only as prose:
   1. Trunk is PR-only — no pushes to master/main.
   2. Bun only — npm/npx/yarn/pnpm are blocked.
   3. No `vercel` without an existing .vercel/project.json link.
-  4. .env* files never get staged or committed (public repo).
+  4. .env* files never get staged or committed (public repo) — except the
+     committed placeholder templates (.env.example and friends).
 
 Contract: stdin receives {"tool_name","tool_input":{"command"}}. Exit 2 blocks
 the call and feeds stderr back to the agent so it can self-correct.
@@ -22,6 +23,21 @@ import sys
 # Matches only at command position (start of string or after && || ; | \( ),
 # so quoted mentions — commit messages, PR bodies — don't false-positive.
 COMMAND_POSITION = r"(?:^|&&|\|\||[;|(])\s*"
+
+# `.env.example` is the one placeholder convention this repo uses (12 tracked
+# files, and the only suffix `scripts/env-check.ts` knows about). They document
+# the shape of an env file, carry no values, and are tracked on purpose —
+# blocking them meant a var could be deleted from the schema but never from the
+# file contributors copy.
+ENV_TEMPLATE_SUFFIX = ".example"
+
+
+def is_env_secret_path(path: str) -> bool:
+    """True for an env file that could carry real values, False for a template."""
+    basename = path.rsplit("/", 1)[-1].strip("\"'")
+    if not basename.startswith(".env"):
+        return False
+    return not basename.endswith(ENV_TEMPLATE_SUFFIX)
 
 
 def block(message: str) -> None:
@@ -104,18 +120,28 @@ def main() -> None:
                 "`vercel link` unattended; ask Vincent first (www/CLAUDE.md rule)."
             )
 
-    # 4. .env* never staged or committed — this repo is public.
-    if re.search(COMMAND_POSITION + r"git\b[^;&|]*\badd\b[^;&|]*\.env", command):
-        block(
-            "staging .env* files is forbidden — never commit env files "
-            "(public repo; a leak is indexed before rotation)."
-        )
+    # 4. .env* never staged or committed — this repo is public. Placeholder
+    # templates (.env.example and friends) are exempt: they hold no values and
+    # are already tracked, so keeping them editable is the safe behaviour.
+    add_command = re.search(COMMAND_POSITION + r"git\b[^;&|]*\badd\b([^;&|]*)", command)
+    if add_command:
+        secret_args = [
+            arg
+            for arg in re.findall(r"\S*\.env\S*", add_command.group(1))
+            if is_env_secret_path(arg)
+        ]
+        if secret_args:
+            block(
+                f"staging env files ({', '.join(secret_args)}) is forbidden — "
+                "never commit env files (public repo; a leak is indexed before "
+                "rotation). Placeholder templates like .env.example are allowed."
+            )
     if re.search(COMMAND_POSITION + r"git\b[^;&|]*\bcommit\b", command):
         staged = git(project_dir, "diff", "--cached", "--name-only")
         env_files = [
             line
             for line in staged.splitlines()
-            if re.search(r"(^|/)\.env", line)
+            if re.search(r"(^|/)\.env", line) and is_env_secret_path(line)
         ]
         if env_files:
             block(

@@ -5,10 +5,10 @@ import type { CreateSubscriptionPreviewDto } from '@api/collections/subscription
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -74,7 +74,14 @@ describe('SubscriptionsController', () => {
     warn: vi.fn(),
   };
 
-  const mockConfigGet = vi.fn().mockReturnValue('');
+  // Credit grants resolve from the subscription's own Stripe price, so the
+  // spec fixes what each price includes rather than a global env allowance.
+  const mockCreditGrantService = {
+    logUnresolvedGrant: vi.fn(),
+    resolveMonthlyCredits: vi.fn().mockResolvedValue(null),
+    resolvePlanCredits: vi.fn().mockResolvedValue(null),
+    resolveTierFromPriceId: vi.fn().mockReturnValue(null),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -93,8 +100,8 @@ describe('SubscriptionsController', () => {
           useValue: mockOrganizationsService,
         },
         {
-          provide: ConfigService,
-          useValue: { get: mockConfigGet },
+          provide: SubscriptionCreditGrantService,
+          useValue: mockCreditGrantService,
         },
         {
           provide: LoggerService,
@@ -114,7 +121,9 @@ describe('SubscriptionsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-    mockConfigGet.mockReturnValue('');
+    mockCreditGrantService.resolveMonthlyCredits.mockResolvedValue(null);
+    mockCreditGrantService.resolvePlanCredits.mockResolvedValue(null);
+    mockCreditGrantService.resolveTierFromPriceId.mockReturnValue(null);
     mockOrganizationsService.find.mockResolvedValue([]);
   });
 
@@ -231,6 +240,7 @@ describe('SubscriptionsController', () => {
         currentPeriodEnd: new Date('2026-03-31T00:00:00.000Z'),
         plan: SubscriptionPlan.MONTHLY,
       });
+      mockCreditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
 
       const result = await controller.getCreditsBreakdown(mockUser, request);
 
@@ -245,7 +255,7 @@ describe('SubscriptionsController', () => {
         expect.objectContaining({
           ...creditsData,
           ...cycleMetrics,
-          planLimit: 35_000,
+          planLimit: 5_900,
         }),
       );
     });
@@ -311,18 +321,25 @@ describe('SubscriptionsController', () => {
       ...overrides,
     });
 
+    const creditsByPrice: Record<string, number> = {
+      price_pro_monthly: 5_900,
+      price_pro_yearly: 5_900,
+      price_scale_monthly: 60_000,
+    };
+    const tiersByPrice: Record<string, string> = {
+      price_enterprise_monthly: 'enterprise',
+      price_pro_monthly: 'pro',
+      price_pro_yearly: 'pro',
+      price_scale_monthly: 'scale',
+    };
+
     beforeEach(() => {
-      mockConfigGet.mockImplementation((key: string) => {
-        const map: Record<string, string> = {
-          STRIPE_MONTHLY_CREDITS: '35000',
-          STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY:
-            'price_enterprise_monthly',
-          STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: 'price_pro_monthly',
-          STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: 'price_pro_yearly',
-          STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: 'price_scale_monthly',
-        };
-        return map[key] ?? '';
-      });
+      mockCreditGrantService.resolveMonthlyCredits.mockImplementation(
+        async (stripePriceId: string) => creditsByPrice[stripePriceId] ?? null,
+      );
+      mockCreditGrantService.resolveTierFromPriceId.mockImplementation(
+        (stripePriceId: string) => tiersByPrice[stripePriceId] ?? null,
+      );
 
       mockOrganizationsService.find.mockResolvedValue([
         { id: 'org_1', name: 'Acme Inc' },
@@ -338,7 +355,7 @@ describe('SubscriptionsController', () => {
         totalPages: 1,
       });
       mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        6_000,
+        2_950,
       );
 
       const result = await controller.getCreditUsage(defaultQuery);
@@ -347,18 +364,18 @@ describe('SubscriptionsController', () => {
       expect(result.data).toHaveLength(1);
       expect(result.data[0]).toEqual(
         expect.objectContaining({
-          balance: 6_000,
+          balance: 2_950,
           isMaxedOut: false,
           isUnderUsing: false,
           organizationId: 'org_1',
           organizationName: 'Acme Inc',
-          planLimit: 8_000,
+          planLimit: 5_900,
           tier: 'pro',
-          usedCredits: 2_000,
+          usedCredits: 2_950,
         }),
       );
-      expect(result.data[0]?.usedPercent).toBeCloseTo(25, 5);
-      expect(result.data[0]?.remainingPercent).toBeCloseTo(75, 5);
+      expect(result.data[0]?.usedPercent).toBeCloseTo(50, 5);
+      expect(result.data[0]?.remainingPercent).toBeCloseTo(50, 5);
     });
 
     it('resolves the scale tier plan limit from the Stripe price id', async () => {
@@ -378,16 +395,16 @@ describe('SubscriptionsController', () => {
         { id: 'org_2', name: 'Scale Co' },
       ]);
       mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        80_000,
+        60_000,
       );
 
       const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
-          balance: 80_000,
+          balance: 60_000,
           isUnderUsing: true,
-          planLimit: 80_000,
+          planLimit: 60_000,
           tier: 'scale',
           usedCredits: 0,
           usedPercent: 0,
@@ -395,7 +412,7 @@ describe('SubscriptionsController', () => {
       );
     });
 
-    it('falls back to the configured monthly credits when the tier cannot be resolved', async () => {
+    it('reports a zero plan limit when the price carries no resolvable grant', async () => {
       mockSubscriptionsService.findAll.mockResolvedValue({
         docs: [
           buildSubscription({
@@ -419,11 +436,11 @@ describe('SubscriptionsController', () => {
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
-          isMaxedOut: true,
-          planLimit: 35_000,
+          isMaxedOut: false,
+          planLimit: 0,
           tier: null,
-          usedCredits: 35_000,
-          usedPercent: 100,
+          usedCredits: 0,
+          usedPercent: 0,
         }),
       );
     });
@@ -480,17 +497,17 @@ describe('SubscriptionsController', () => {
         { id: 'org_no_cycle', name: 'No Cycle Org' },
       ]);
       mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        4_000,
+        2_950,
       );
 
       const result = await controller.getCreditUsage(defaultQuery);
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
-          balance: 4_000,
+          balance: 2_950,
           currentPeriodEnd: null,
-          planLimit: 8_000,
-          usedCredits: 4_000,
+          planLimit: 5_900,
+          usedCredits: 2_950,
         }),
       );
       expect(result.data[0]?.usedPercent).toBeCloseTo(50, 5);

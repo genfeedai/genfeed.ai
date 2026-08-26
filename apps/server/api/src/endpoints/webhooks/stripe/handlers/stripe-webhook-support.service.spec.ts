@@ -5,6 +5,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
@@ -62,6 +63,12 @@ describe('StripeWebhookSupportService', () => {
     invalidateForOrganization: vi.fn(),
     invalidateForUser: vi.fn(),
   };
+  const creditGrantService = {
+    logUnresolvedGrant: vi.fn(),
+    resolveMonthlyCredits: vi.fn(),
+    resolvePlanCredits: vi.fn(),
+    resolveTierFromPriceId: vi.fn().mockReturnValue(null),
+  };
 
   const priceConfig: Record<string, string> = {
     STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'price_enterprise',
@@ -73,6 +80,7 @@ describe('StripeWebhookSupportService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     configService.get.mockReturnValue(undefined);
+    creditGrantService.resolveTierFromPriceId.mockReturnValue(null);
     cacheService.exists.mockResolvedValue(false);
     cacheService.generateKey.mockImplementation((namespace, ...parts) =>
       [namespace, ...parts].join(':'),
@@ -94,6 +102,10 @@ describe('StripeWebhookSupportService', () => {
         { provide: LoggerService, useValue: loggerService },
         { provide: PrismaService, useValue: prisma },
         { provide: ActivitiesService, useValue: activitiesService },
+        {
+          provide: SubscriptionCreditGrantService,
+          useValue: creditGrantService,
+        },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         {
           provide: OrganizationSettingsService,
@@ -687,20 +699,18 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('resolveTierFromPriceId', () => {
-    it('maps configured prices to tiers', () => {
-      configService.get.mockImplementation((key: string) => priceConfig[key]);
+    // The mapping itself is owned and tested by SubscriptionCreditGrantService;
+    // a second copy here is what let a webhook and a grant disagree on a tier.
+    it('delegates the mapping to the credit grant service', () => {
+      creditGrantService.resolveTierFromPriceId.mockReturnValue(
+        SubscriptionTier.SCALE,
+      );
 
-      expect(service.resolveTierFromPriceId('price_pro')).toBe(
-        SubscriptionTier.PRO,
-      );
-      expect(service.resolveTierFromPriceId('price_pro_yearly')).toBe(
-        SubscriptionTier.PRO,
-      );
       expect(service.resolveTierFromPriceId('price_scale')).toBe(
         SubscriptionTier.SCALE,
       );
-      expect(service.resolveTierFromPriceId('price_enterprise')).toBe(
-        SubscriptionTier.ENTERPRISE,
+      expect(creditGrantService.resolveTierFromPriceId).toHaveBeenCalledWith(
+        'price_scale',
       );
     });
 

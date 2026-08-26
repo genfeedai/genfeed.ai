@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import {
   ActivityKey,
@@ -7,8 +8,6 @@ import {
   SubscriptionStatus,
 } from '@genfeedai/enums';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
-import { TIER_INCLUDED_MONTHLY_CREDITS } from '@genfeedai/pricing';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -82,26 +81,26 @@ type DuplicateLogDetails = {
 @Injectable()
 export class StripeSubscriptionCreditReconcilerService {
   constructor(
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly supportService: StripeWebhookSupportService,
   ) {}
 
   async reconcile(
     input: SubscriptionCreditReconciliationInput,
   ): Promise<boolean> {
-    const context = this.prepareContext(input);
+    const context = await this.prepareContext(input);
     return context ? await this.reconcileContext(context) : false;
   }
 
-  private prepareContext(
+  private async prepareContext(
     input: SubscriptionCreditReconciliationInput,
-  ): SubscriptionCreditReconciliationContext | null {
+  ): Promise<SubscriptionCreditReconciliationContext | null> {
     const organizationId = input.subscription.organizationId ?? '';
 
     if (organizationId) {
-      return this.requireEligibleStatus({ ...input, organizationId });
+      return await this.requireEligibleStatus({ ...input, organizationId });
     }
 
     this.loggerService.warn(
@@ -116,13 +115,13 @@ export class StripeSubscriptionCreditReconcilerService {
     return null;
   }
 
-  private requireEligibleStatus(
+  private async requireEligibleStatus(
     context: SubscriptionCreditReconciliationInput & {
       organizationId: string;
     },
-  ): SubscriptionCreditReconciliationContext | null {
+  ): Promise<SubscriptionCreditReconciliationContext | null> {
     if (this.isEligibleStatus(context)) {
-      return this.requireCreditAllocation(context);
+      return await this.requireCreditAllocation(context);
     }
 
     this.loggerService.log(
@@ -152,12 +151,12 @@ export class StripeSubscriptionCreditReconcilerService {
     );
   }
 
-  private requireCreditAllocation(
+  private async requireCreditAllocation(
     context: SubscriptionCreditReconciliationInput & {
       organizationId: string;
     },
-  ): SubscriptionCreditReconciliationContext | null {
-    const creditsToAdd = this.resolvePlanCredits(context.subscription);
+  ): Promise<SubscriptionCreditReconciliationContext | null> {
+    const creditsToAdd = await this.resolvePlanCredits(context.subscription);
     if (creditsToAdd > 0) {
       return this.requireCreditReference({ ...context, creditsToAdd });
     }
@@ -173,6 +172,10 @@ export class StripeSubscriptionCreditReconcilerService {
         trigger: context.trigger,
       },
     );
+    this.creditGrantService.logUnresolvedGrant(context.url, {
+      organizationId: context.organizationId,
+      stripePriceId: context.subscription.stripePriceId,
+    });
     return null;
   }
 
@@ -436,48 +439,20 @@ export class StripeSubscriptionCreditReconcilerService {
     });
   }
 
-  private resolvePlanCredits(
+  /**
+   * The grant comes from the subscription's own Stripe price. A price we cannot
+   * resolve yields 0, which the caller reports as a skipped reconciliation —
+   * never a default allowance, which would grant credits unrelated to what the
+   * customer actually bought.
+   */
+  private async resolvePlanCredits(
     subscription: Pick<ISubscriptionOssReadModel, 'plan' | 'stripePriceId'>,
-  ): number {
-    const tierMonthlyCredits = this.resolveTierMonthlyCredits(
+  ): Promise<number> {
+    const credits = await this.creditGrantService.resolvePlanCredits(
+      subscription.plan,
       subscription.stripePriceId,
     );
-    if (subscription.plan === SubscriptionPlan.MONTHLY) {
-      return this.resolveMonthlyCredits(tierMonthlyCredits);
-    }
-    if (subscription.plan === SubscriptionPlan.YEARLY) {
-      return this.resolveYearlyCredits(tierMonthlyCredits);
-    }
-    return 0;
-  }
-
-  private resolveTierMonthlyCredits(
-    stripePriceId?: string | null,
-  ): number | undefined {
-    if (!stripePriceId) {
-      return undefined;
-    }
-
-    const tier = this.supportService.resolveTierFromPriceId(stripePriceId);
-    return tier ? TIER_INCLUDED_MONTHLY_CREDITS[tier] : undefined;
-  }
-
-  private resolveMonthlyCredits(tierMonthlyCredits?: number): number {
-    return tierMonthlyCredits ?? this.resolveConfiguredMonthlyCredits();
-  }
-
-  private resolveYearlyCredits(tierMonthlyCredits?: number): number {
-    return tierMonthlyCredits === undefined
-      ? this.resolveConfiguredYearlyCredits()
-      : tierMonthlyCredits * 12;
-  }
-
-  private resolveConfiguredMonthlyCredits(): number {
-    return Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000;
-  }
-
-  private resolveConfiguredYearlyCredits(): number {
-    return Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
+    return credits ?? 0;
   }
 
   private logDuplicateFromContext(

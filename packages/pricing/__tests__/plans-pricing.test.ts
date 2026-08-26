@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   AVATAR_CREDIT_COSTS,
   applyMargin,
+  BASE_PROVIDER_COST_FRACTION,
   BYOK_CREDIT_VALUE_DOLLARS,
   BYOK_FEE_PER_CREDIT,
   BYOK_FEE_PERCENTAGE,
@@ -94,21 +95,50 @@ describe('plan price formatting', () => {
   });
 
   it('formats included credits per tier', () => {
-    expect(formatPlanIncludedCredits('pro')).toBe('8,000 credits');
-    expect(formatPlanIncludedCredits('scale')).toBe('80,000 credits');
+    expect(formatPlanIncludedCredits('pro')).toBe('5,900 credits');
+    expect(formatPlanIncludedCredits('scale')).toBe('60,000 credits');
     expect(formatPlanIncludedCredits('payg')).toBe('');
     expect(formatPlanIncludedCredits('enterprise')).toBe('');
   });
 
   it('builds PLAN_COPY tokens from the same sources', () => {
     expect(PLAN_COPY.pro).toEqual({
-      includedCredits: '8,000 credits',
+      creditRateAdvantage: '~17%',
+      includedCredits: '5,900 credits',
+      includedCreditsValue: '$59',
       monthlyPrice: '$49/month',
       name: 'Pro',
       nameWithPrice: 'Pro ($49/month)',
       priceLabel: '$49/mo',
     });
     expect(PLAN_COPY.enterprise.nameWithPrice).toBe('Enterprise (custom)');
+  });
+
+  it('leaves derived credit-rate copy empty for tiers without a priced grant', () => {
+    expect(PLAN_COPY.payg.creditRateAdvantage).toBe('');
+    expect(PLAN_COPY.payg.includedCreditsValue).toBe('');
+    expect(PLAN_COPY.enterprise.creditRateAdvantage).toBe('');
+    expect(PLAN_COPY.enterprise.includedCreditsValue).toBe('');
+  });
+
+  it('prices every paid tier to the same credit bonus over the PAYG rate', () => {
+    // The bonus and the margin are one dial: margin = 1 - 0.3 * (1 + bonus).
+    // Holding both paid tiers at the same bonus holds them at the same margin.
+    for (const tier of ['pro', 'scale'] as const) {
+      const { includedCredits, price } = getPlanByTier(tier);
+
+      expect(includedCredits).toBeTypeOf('number');
+      expect(price).toBeTypeOf('number');
+
+      const bonus =
+        (Number(includedCredits) * BYOK_CREDIT_VALUE_DOLLARS) / Number(price) -
+        1;
+      const margin = 1 - BASE_PROVIDER_COST_FRACTION * (1 + bonus);
+
+      expect(bonus).toBeGreaterThanOrEqual(0.18);
+      expect(bonus).toBeLessThanOrEqual(0.22);
+      expect(margin).toBeGreaterThanOrEqual(0.63);
+    }
   });
 
   it('formats standalone prices', () => {
@@ -261,7 +291,7 @@ describe('pricing constants', () => {
   it('embeds the included-credit grant into the subscription feature copy', () => {
     const proFeature = getProPlan().features[0];
 
-    expect(proFeature).toContain('8,000 credits included monthly');
+    expect(proFeature).toContain('5,900 credits included monthly');
     expect(getProPlan().includedCredits).toBe(
       TIER_INCLUDED_MONTHLY_CREDITS.pro,
     );

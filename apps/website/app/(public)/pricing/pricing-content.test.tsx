@@ -1,6 +1,7 @@
 import {
   formatOutputs,
   formatPrice,
+  getPlanByTier,
   getProPlan,
   getScalePlan,
 } from '@genfeedai/pricing';
@@ -111,7 +112,7 @@ describe('PricingContent launch pricing', () => {
 
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
-      expect(screen.getByText('8,000 credits included')).toBeInTheDocument();
+      expect(screen.getByText('5,900 credits included')).toBeInTheDocument();
     });
   });
 
@@ -131,6 +132,33 @@ describe('PricingContent launch pricing', () => {
     );
     expect(
       getPriceQualifier({ ...scalePlan, includedCredits: undefined }),
-    ).toBe('Unlimited seats');
+    ).toBe('Monthly subscription');
+  });
+
+  it('says nothing but the credit grant under the price', () => {
+    // Seats, organizations, and API access are bullets. Repeating any of them
+    // here is what made the Scale card read "Unlimited seats" twice.
+    expect(getPriceQualifier(getScalePlan())).toBe('60,000 credits included');
+    expect(getPriceQualifier(getProPlan())).toBe('5,900 credits included');
+    expect(getPriceQualifier(getPlanByTier('payg'))).toBe(
+      'Credits at $0.01 each',
+    );
+  });
+
+  it('keeps the pricing cards comparable row by row', () => {
+    // The rendered bullets are a comparison axis, not a feature dump: every
+    // card answers the same five questions in the same order.
+    const rendered = (tier: Parameters<typeof getPlanByTier>[0]) =>
+      getPlanByTier(tier).features.slice(0, 5);
+
+    for (const tier of ['payg', 'pro', 'scale', 'enterprise'] as const) {
+      const [credits, seats, organizations, brands, api] = rendered(tier);
+
+      expect(credits).toMatch(/credit/i);
+      expect(seats).toMatch(/seat/i);
+      expect(organizations).toMatch(/organization/i);
+      expect(brands).toMatch(/brands and connected channels/i);
+      expect(api).toMatch(/API/);
+    }
   });
 });

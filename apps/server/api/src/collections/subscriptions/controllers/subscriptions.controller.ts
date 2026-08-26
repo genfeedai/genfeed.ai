@@ -5,6 +5,7 @@ import { ChangePlanDto } from '@api/collections/subscriptions/dto/change-plan.dt
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -14,14 +15,12 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionPlan } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   OrganizationCreditUsageResponse,
 } from '@genfeedai/interfaces';
-import { TIER_INCLUDED_MONTHLY_CREDITS } from '@genfeedai/pricing';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -78,7 +77,7 @@ interface CreditsBreakdownResponse {
 export class SubscriptionsController {
   constructor(
     readonly _loggerService: LoggerService,
-    private readonly configService: ConfigService,
+    private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationsService: OrganizationsService,
@@ -211,16 +210,14 @@ export class SubscriptionsController {
         this.subscriptionsService.findByOrganizationId(organizationId),
       ]);
 
-      let planLimit = 0;
-      const subscriptionPlan = subscription?.plan ?? undefined;
-
-      if (subscriptionPlan === SubscriptionPlan.YEARLY) {
-        planLimit =
-          Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
-      } else if (subscriptionPlan === SubscriptionPlan.MONTHLY) {
-        planLimit =
-          Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000;
-      }
+      // planLimit is the meter's denominator, so it reports what this
+      // subscription's own Stripe price includes. An unresolvable price leaves
+      // it at 0 and the meter renders no percentage rather than a fictional one.
+      const planLimit =
+        (await this.creditGrantService.resolvePlanCredits(
+          subscription?.plan,
+          subscription?.stripePriceId,
+        )) ?? 0;
 
       const cycleWindow = this.getCycleWindow(subscription ?? null);
       const cycleMetrics = cycleWindow
@@ -346,70 +343,19 @@ export class SubscriptionsController {
     }
   }
 
-  /**
-   * Resolve a Stripe price ID to a credit-allotment tier. Reimplemented locally
-   * (rather than injecting StripeWebhookSupportService, which lives in
-   * apps/server/api/src/endpoints/webhooks/stripe/handlers/ and is not wired
-   * into this module's provider graph) to avoid a new DI dependency for four
-   * ConfigService lookups.
-   */
-  private resolveTierFromPriceId(
-    stripePriceId: string | null | undefined,
-  ): SubscriptionTier | null {
-    if (!stripePriceId) {
-      return null;
-    }
-
-    const priceToTier: Record<string, SubscriptionTier> = {};
-    const proPrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
-    );
-    const proYearlyPrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
-    );
-    const scalePrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY',
-    );
-    const enterprisePrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',
-    );
-
-    if (proPrice) {
-      priceToTier[proPrice] = SubscriptionTier.PRO;
-    }
-    if (proYearlyPrice) {
-      priceToTier[proYearlyPrice] = SubscriptionTier.PRO;
-    }
-    if (scalePrice) {
-      priceToTier[scalePrice] = SubscriptionTier.SCALE;
-    }
-    if (enterprisePrice) {
-      priceToTier[enterprisePrice] = SubscriptionTier.ENTERPRISE;
-    }
-
-    return priceToTier[stripePriceId] ?? null;
-  }
-
-  /** planLimit is never 0/undefined: tier-mapped credits win, otherwise the
-   * STRIPE_MONTHLY_CREDITS config fallback (default 35_000, matching
-   * getCreditsBreakdown's existing monthly fallback), guaranteeing safe
-   * division in usedPercent. */
-  private resolvePlanLimit(tier: SubscriptionTier | null): number {
-    if (tier && TIER_INCLUDED_MONTHLY_CREDITS[tier]) {
-      return TIER_INCLUDED_MONTHLY_CREDITS[tier];
-    }
-
-    return Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000;
-  }
-
   private async buildCreditUsageRow(
     subscription: SubscriptionRowSource,
     organizationNameById: Map<string, string>,
   ): Promise<OrganizationCreditUsageResponse['data'][number]> {
     const organizationId = subscription.organizationId;
 
-    const tier = this.resolveTierFromPriceId(subscription.stripePriceId);
-    const planLimit = this.resolvePlanLimit(tier);
+    const tier = this.creditGrantService.resolveTierFromPriceId(
+      subscription.stripePriceId,
+    );
+    const planLimit =
+      (await this.creditGrantService.resolveMonthlyCredits(
+        subscription.stripePriceId,
+      )) ?? 0;
 
     const balance = organizationId
       ? await this.creditsUtilsService.getOrganizationCreditsBalance(
@@ -417,11 +363,13 @@ export class SubscriptionsController {
         )
       : 0;
 
-    const usedCredits = Math.max(0, planLimit - balance);
-    const usedPercent = Math.min(
-      100,
-      Math.max(0, (usedCredits / planLimit) * 100),
-    );
+    // A price with no resolvable grant reports 0% used rather than dividing by
+    // zero; the admin list shows the row so the gap is visible, not hidden.
+    const usedCredits = planLimit > 0 ? Math.max(0, planLimit - balance) : 0;
+    const usedPercent =
+      planLimit > 0
+        ? Math.min(100, Math.max(0, (usedCredits / planLimit) * 100))
+        : 0;
     const remainingPercent = 100 - usedPercent;
 
     return {

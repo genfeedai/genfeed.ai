@@ -41,7 +41,7 @@ export const useCases: UseCase[] = [
     ],
     pricing: {
       recommended: 'pro',
-      why: `Free to start with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}) makes avatar, voice, and publishing output ~40% cheaper.`,
+      why: `Free to start with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}) makes avatar, voice, and publishing output ${PLAN_COPY.pro.creditRateAdvantage} cheaper.`,
     },
     results: [
       `Cost per influencer drops from $10K/mo to ${PLAN_COPY.pro.priceLabel}`,
