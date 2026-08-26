@@ -75,6 +75,38 @@ describe('StripeService', () => {
         }),
       );
     });
+
+    it('stamps trusted organization identity on the session and subscription', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess',
+        } as unknown as Stripe.Checkout.Session);
+
+      await service.createPaymentSession(
+        'cust',
+        'pro_id',
+        'http://origin',
+        1,
+        undefined,
+        { organizationId: 'org_1' },
+      );
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            billing_account_type: 'organization',
+            billing_organization_id: 'org_1',
+          }),
+          subscription_data: expect.objectContaining({
+            metadata: expect.objectContaining({
+              billing_account_type: 'organization',
+              billing_organization_id: 'org_1',
+            }),
+          }),
+        }),
+      );
+    });
   });
 
   describe('PAYG metadata.credits (flat top-up, no bonus)', () => {

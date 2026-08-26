@@ -77,6 +77,18 @@ export function extractInvoiceSubscriptionId(
   return undefined;
 }
 
+export function extractInvoiceSubscriptionMetadata(
+  invoice: StripeInvoice,
+): Record<string, string> | undefined {
+  return (
+    invoice as unknown as {
+      parent?: {
+        subscription_details?: { metadata?: Record<string, string> };
+      };
+    }
+  ).parent?.subscription_details?.metadata;
+}
+
 export function buildCombinedMetadata(
   metadata: StripeMetadata,
   onParseWarning: MetadataParseWarning,

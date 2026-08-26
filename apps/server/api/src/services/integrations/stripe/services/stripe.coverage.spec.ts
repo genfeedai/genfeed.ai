@@ -153,6 +153,21 @@ describe('StripeService — coverage spec', () => {
       );
     });
 
+    it('accepts an otherwise valid Pro price without credit metadata so the published tier fallback applies', async () => {
+      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
+        active: true,
+        currency: 'usd',
+        id: 'pro_id',
+        metadata: {},
+        recurring: { interval: 'month', interval_count: 1 },
+        unit_amount: 4_900,
+      } as unknown as Stripe.Response<Stripe.Price>);
+
+      await expect(
+        service.validateSubscriptionPriceForTier('pro_id', 'pro'),
+      ).resolves.toBeUndefined();
+    });
+
     it.each([
       ['inactive', { active: false }],
       ['wrong currency', { currency: 'eur' }],

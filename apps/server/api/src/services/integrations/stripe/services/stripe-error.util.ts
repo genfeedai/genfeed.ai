@@ -45,10 +45,16 @@ export function isStripeSignatureVerificationError(error: unknown): boolean {
 
 export function classifyStripeFailure(error: unknown): StripeFailureCategory {
   const code = getStripeErrorCode(error);
+  const type = asStripeLikeError(error)?.type;
   if (code === 'resource_missing') {
     return 'customer_missing';
   }
-  if (code === 'rate_limit' || code === 'api_connection_error') {
+  if (
+    code === 'rate_limit' ||
+    code === 'api_connection_error' ||
+    type === 'StripeConnectionError' ||
+    type === 'StripeRateLimitError'
+  ) {
     return 'provider_unavailable';
   }
   if (error instanceof StripeBillingConfigurationError) {

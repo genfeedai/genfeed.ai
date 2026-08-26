@@ -2,7 +2,11 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { extractInvoiceSubscriptionId } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
+import {
+  extractInvoiceSubscriptionId,
+  extractInvoiceSubscriptionMetadata,
+} from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
+import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   ActivitySource,
@@ -29,6 +33,7 @@ export class StripeInvoiceWebhookHandler {
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly supportService: StripeWebhookSupportService,
     private readonly creditReconciler: StripeSubscriptionCreditReconcilerService,
+    private readonly billingAccountService: OrganizationBillingAccountService,
   ) {}
 
   async handleInvoicePaid(invoice: StripeInvoice, url: string): Promise<void> {
@@ -55,25 +60,42 @@ export class StripeInvoiceWebhookHandler {
         );
       }
 
-      const subscription = await this.subscriptionsService.findOne({
+      let subscription = await this.subscriptionsService.findOne({
         stripeSubscriptionId: stripeSubscriptionId,
       });
 
       if (!subscription) {
-        return this.loggerService.warn(
-          `${url} subscription not found for invoice`,
-          {
-            invoiceId: invoice.id,
-            stripeSubscriptionId,
-          },
-        );
+        const customerId =
+          typeof invoice.customer === 'string'
+            ? invoice.customer
+            : invoice.customer?.id;
+        if (!customerId) {
+          throw new Error('Invoice billing identity unavailable');
+        }
+        const organizationId =
+          await this.billingAccountService.resolveWebhookOrganization(
+            customerId,
+            extractInvoiceSubscriptionMetadata(invoice),
+          );
+        subscription =
+          await this.subscriptionsService.findByOrganizationId(organizationId);
       }
 
-      // Update subscription status
+      if (!subscription) {
+        throw new Error('Subscription reconciliation target unavailable');
+      }
+      if (
+        subscription.stripeSubscriptionId &&
+        subscription.stripeSubscriptionId !== stripeSubscriptionId
+      ) {
+        throw new Error('Subscription reconciliation identity conflict');
+      }
+
       const updatedSubscription = await this.subscriptionsService.patch(
         String(subscription.id),
         {
           status: SubscriptionStatus.ACTIVE,
+          stripeSubscriptionId,
         },
       );
 
@@ -107,7 +129,9 @@ export class StripeInvoiceWebhookHandler {
         stripeSubscriptionId,
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed to handle invoice paid`, error);
+      this.loggerService.error(`${url} failed to handle invoice paid`, {
+        category: 'reconciliation_failed',
+      });
       throw error;
     }
   }
@@ -196,8 +220,9 @@ export class StripeInvoiceWebhookHandler {
     } catch (error: unknown) {
       this.loggerService.error(
         `${url} failed to handle invoice payment failed`,
-        error,
+        { category: 'reconciliation_failed' },
       );
+      throw error;
     }
   }
 

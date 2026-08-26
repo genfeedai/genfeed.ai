@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { BILLING_ACCOUNT_METADATA } from '@api/services/integrations/stripe/services/billing-account-metadata.constant';
 import {
   classifyStripeFailure,
   isStripeResourceMissingError,
@@ -102,12 +103,7 @@ export class StripeService {
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    const isProductionCloud =
-      this.configService.get('NODE_ENV') === 'production' &&
-      ['1', 'true'].includes(
-        String(this.configService.get('GENFEED_CLOUD')).toLowerCase(),
-      );
-    if (!isProductionCloud || isSelfHostedDeployment()) {
+    if (!this.isProductionCloud() || isSelfHostedDeployment()) {
       return;
     }
 
@@ -148,16 +144,22 @@ export class StripeService {
     }
 
     const contract = SUBSCRIPTION_PRICE_CONTRACTS[tier];
+    const rawIncludedMonthlyCredits =
+      price.metadata?.[INCLUDED_MONTHLY_CREDITS_METADATA_KEY];
     const includedMonthlyCredits = parseIncludedMonthlyCredits(
-      price.metadata?.[INCLUDED_MONTHLY_CREDITS_METADATA_KEY],
+      rawIncludedMonthlyCredits,
     );
+    const matchesCreditGrant =
+      rawIncludedMonthlyCredits === undefined ||
+      rawIncludedMonthlyCredits === '' ||
+      includedMonthlyCredits === contract.includedMonthlyCredits;
     const matchesContract =
       price.active === true &&
       price.currency === contract.currency &&
       price.recurring?.interval === contract.interval &&
       price.recurring.interval_count === 1 &&
       price.unit_amount === contract.unitAmount &&
-      includedMonthlyCredits === contract.includedMonthlyCredits;
+      matchesCreditGrant;
 
     if (!matchesContract) {
       this.loggerService.error(
@@ -176,6 +178,15 @@ export class StripeService {
 
   private isStripePriceId(value: unknown): value is string {
     return typeof value === 'string' && /^price_[A-Za-z0-9]+$/.test(value);
+  }
+
+  private isProductionCloud(): boolean {
+    return (
+      this.configService.get('NODE_ENV') === 'production' &&
+      ['1', 'true'].includes(
+        String(this.configService.get('GENFEED_CLOUD')).toLowerCase(),
+      )
+    );
   }
 
   private resolveConfiguredSubscriptionTier(
@@ -590,12 +601,35 @@ export class StripeService {
       // hard-fail checkout — callers re-create and rebind.
       if (isStripeResourceMissingError(error)) {
         this.loggerService.warn(`${url} customer missing on Stripe account`, {
-          customerId,
+          category: 'customer_missing',
         });
         return null;
       }
 
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(`${url} failed`, {
+        category: classifyStripeFailure(error),
+      });
+      throw error;
+    }
+  }
+
+  public async findOrganizationCustomers(
+    organizationId: string,
+  ): Promise<StripeCustomer[]> {
+    const escapedOrganizationId = organizationId.replaceAll("'", "\\'");
+    try {
+      const result = await this.stripe.customers.search({
+        limit: 10,
+        query: `metadata['organizationId']:'${escapedOrganizationId}' AND metadata['type']:'organization'`,
+      });
+      return result.data.filter(
+        (customer) => !customer.deleted,
+      ) as StripeCustomer[];
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} organization customer search failed`,
+        { category: classifyStripeFailure(error) },
+      );
       throw error;
     }
   }
@@ -618,7 +652,9 @@ export class StripeService {
         return_url: returnUrl,
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(`${url} failed`, {
+        category: classifyStripeFailure(error),
+      });
       throw error;
     }
   }
@@ -690,6 +726,7 @@ export class StripeService {
     origin: string,
     quantity: number = 1000,
     redirectUrls?: { success: string; cancel: string },
+    billingContext?: { organizationId: string },
   ): Promise<StripeCheckoutSession> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -714,7 +751,7 @@ export class StripeService {
       if (isSubscription) {
         const configuredTier =
           this.resolveConfiguredSubscriptionTier(stripePriceId);
-        if (configuredTier) {
+        if (configuredTier && this.isProductionCloud()) {
           await this.validateSubscriptionPriceForTier(
             stripePriceId,
             configuredTier,
@@ -829,6 +866,24 @@ export class StripeService {
               plan_type: 'custom',
             },
           };
+        }
+
+        if (billingContext) {
+          const billingMetadata = {
+            [BILLING_ACCOUNT_METADATA.organizationId]:
+              billingContext.organizationId,
+            [BILLING_ACCOUNT_METADATA.type]: 'organization',
+          };
+          sessionConfig.metadata = {
+            ...sessionConfig.metadata,
+            ...billingMetadata,
+          };
+          if (sessionConfig.subscription_data) {
+            sessionConfig.subscription_data.metadata = {
+              ...sessionConfig.subscription_data.metadata,
+              ...billingMetadata,
+            };
+          }
         }
       }
 

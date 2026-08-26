@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -8,10 +7,13 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   returnBadRequest,
-  returnInternalServerError,
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import {
+  BillingAccountResolutionError,
+  OrganizationBillingAccountService,
+} from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { isEEEnabled } from '@genfeedai/config';
@@ -31,6 +33,7 @@ import {
   Post,
   Query,
   Req,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -49,7 +52,7 @@ export class StripeController {
     private readonly loggerService: LoggerService,
     private readonly organizationsService: OrganizationsService,
     private readonly lifecycleEmailService: LifecycleEmailService,
-    private readonly customersService: CustomersService,
+    private readonly billingAccountService: OrganizationBillingAccountService,
   ) {}
 
   /**
@@ -62,14 +65,11 @@ export class StripeController {
     organizationId: string,
     subscription: { stripeCustomerId?: string | null },
   ): Promise<string | null> {
-    const organizationCustomer =
-      await this.customersService.findByOrganizationId(organizationId);
-
-    if (organizationCustomer) {
-      return organizationCustomer.stripeCustomerId ?? null;
-    }
-
-    return subscription.stripeCustomerId ?? null;
+    const account = await this.billingAccountService.resolveExisting(
+      organizationId,
+      subscription,
+    );
+    return account.stripeCustomerId;
   }
 
   @Post('checkout')
@@ -116,15 +116,24 @@ export class StripeController {
         user.organizationId,
       );
 
-      if (!subscription) {
-        const organization = await this.organizationsService.findOne({
-          id: user.organizationId,
+      const organization = await this.organizationsService.findOne({
+        id: user.organizationId,
+        isDeleted: false,
+      });
+      if (!organization) {
+        return returnNotFound('Organization', user.organizationId);
+      }
+
+      const billingAccount =
+        await this.billingAccountService.resolveOrProvision({
+          billingEmail: email,
+          organizationId: user.organizationId,
+          organizationLabel: organization.label,
+          stripeCustomerId: subscription?.stripeCustomerId,
+          userId: dbUser.id.toString(),
         });
 
-        if (!organization) {
-          return returnNotFound('Organization', user.organizationId);
-        }
-
+      if (!subscription) {
         subscription = await this.subscriptionsService.createForOrganization(
           organization,
           email,
@@ -141,55 +150,12 @@ export class StripeController {
             }
           : undefined;
 
-      // Stale stripeCustomerId from another Stripe account (e.g. Vitae / old
-      // local key) must be recreated on the active Genfeed account.
-      let replacedStripeCustomerId: string | null = null;
-      const customer = await this.customersService.provisionForOrganization(
-        user.organizationId,
-        async (currentStripeCustomerId) => {
-          const liveCustomer = currentStripeCustomerId
-            ? await this.stripeService.retrieveCustomer(currentStripeCustomerId)
-            : null;
-          if (liveCustomer) {
-            return liveCustomer.id;
-          }
+      const stripeCustomerId = billingAccount.stripeCustomerId;
 
-          const organization = await this.organizationsService.findOne({
-            id: user.organizationId,
-            isDeleted: false,
-          });
-          if (!organization) {
-            return returnNotFound('Organization', user.organizationId);
-          }
-
-          replacedStripeCustomerId = currentStripeCustomerId;
-          const recreated = await this.stripeService.createOrganizationCustomer(
-            organization.label,
-            email,
-            organization.id.toString(),
-            dbUser.id.toString(),
-            currentStripeCustomerId,
-          );
-          return recreated.id;
-        },
-      );
-      const stripeCustomerId = customer.stripeCustomerId;
-
-      if (subscription.customerId !== String(customer.id)) {
+      if (subscription.customerId !== billingAccount.customerId) {
         await this.subscriptionsService.patch(subscription.id, {
-          customerId: String(customer.id),
+          customerId: billingAccount.customerId,
         });
-      }
-
-      if (replacedStripeCustomerId !== null) {
-        this.loggerService.warn(
-          `${url} recreated missing Stripe customer for org checkout`,
-          {
-            organizationId: user.organizationId,
-            previousStripeCustomerId: replacedStripeCustomerId,
-            stripeCustomerId,
-          },
-        );
       }
 
       if (!stripeCustomerId) {
@@ -205,6 +171,7 @@ export class StripeController {
         origin,
         quantity,
         redirectUrls,
+        { organizationId: user.organizationId },
       );
 
       await this.lifecycleEmailService.recordCheckoutStarted({
@@ -221,8 +188,13 @@ export class StripeController {
         throw error;
       }
 
+      if (error instanceof BillingAccountResolutionError) {
+        this.loggerService.warn(`${url} billing identity unavailable`, {
+          category: error.category,
+          code: error.code,
+        });
+      }
       return returnBadRequest({
-        error: (error as Error)?.message,
         message: 'Failed to create checkout session',
         success: false,
       });
@@ -274,34 +246,38 @@ export class StripeController {
         user.organizationId,
       );
 
-      if (!subscription) {
-        const organization = await this.organizationsService.findOne({
-          id: user.organizationId,
+      const organization = await this.organizationsService.findOne({
+        id: user.organizationId,
+        isDeleted: false,
+      });
+      if (!organization) {
+        return returnNotFound('Organization', user.organizationId);
+      }
+
+      const billingAccount =
+        await this.billingAccountService.resolveOrProvision({
+          billingEmail: email,
+          organizationId: user.organizationId,
+          organizationLabel: organization.label,
+          stripeCustomerId: subscription?.stripeCustomerId,
+          userId: dbUser.id.toString(),
         });
 
-        if (!organization) {
-          return returnNotFound('Organization', user.organizationId);
-        }
-
+      if (!subscription) {
         subscription = await this.subscriptionsService.createForOrganization(
           organization,
           email,
           dbUser.id.toString(),
         );
       }
-      const stripeCustomerId = await this.resolveOrgStripeCustomerId(
-        user.organizationId,
-        subscription,
-      );
-      if (!stripeCustomerId) {
-        return returnBadRequest({
-          message: 'Subscription is missing stripeCustomerId',
-          success: false,
+      if (subscription.customerId !== billingAccount.customerId) {
+        await this.subscriptionsService.patch(subscription.id, {
+          customerId: billingAccount.customerId,
         });
       }
 
       const result = await this.stripeService.createSetupCheckoutSession(
-        stripeCustomerId,
+        billingAccount.stripeCustomerId,
         `${origin}/agent/onboarding`,
         `${origin}${isEEEnabled() ? '/onboarding/providers' : '/onboarding/brand'}`,
       );
@@ -313,7 +289,6 @@ export class StripeController {
       }
 
       return returnBadRequest({
-        error: (error as Error)?.message,
         message: 'Failed to create setup checkout session',
         success: false,
       });
@@ -387,9 +362,27 @@ export class StripeController {
       if (error instanceof HttpException) {
         throw error;
       }
-      return returnInternalServerError(
-        `Failed to get billing portal URL: ${(error as Error)?.message}`,
-      );
+      const category =
+        error instanceof BillingAccountResolutionError
+          ? error.category
+          : 'provider_rejected';
+      this.loggerService.error(`${url} billing portal unavailable`, {
+        category,
+      });
+      if (
+        error instanceof BillingAccountResolutionError &&
+        error.code !== 'billing_provider_unavailable'
+      ) {
+        return returnBadRequest({
+          code: error.code,
+          message: 'Billing account needs repair before the portal can open',
+          success: false,
+        });
+      }
+      throw new ServiceUnavailableException({
+        code: 'billing_provider_unavailable',
+        message: 'Billing portal is temporarily unavailable',
+      });
     }
   }
 }

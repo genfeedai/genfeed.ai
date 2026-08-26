@@ -43,6 +43,7 @@ describe('UserStripeController', () => {
     createUserCustomer: ReturnType<typeof vi.fn>;
     createUserPaymentSession: ReturnType<typeof vi.fn>;
     getUserBillingPortalUrl: ReturnType<typeof vi.fn>;
+    retrieveCustomer: ReturnType<typeof vi.fn>;
   };
   let usersService: {
     findOne: ReturnType<typeof vi.fn>;
@@ -95,6 +96,10 @@ describe('UserStripeController', () => {
       getUserBillingPortalUrl: vi
         .fn()
         .mockResolvedValue({ url: 'https://billing.stripe.com' }),
+      retrieveCustomer: vi.fn().mockResolvedValue({
+        id: 'cus_existing',
+        metadata: { type: 'user', userId: dbUserId },
+      }),
     };
 
     usersService = {
@@ -299,7 +304,7 @@ describe('UserStripeController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should throw NOT_FOUND when user has no stripeCustomerId', async () => {
+    it('should return a client error when user has no stripeCustomerId', async () => {
       usersService.findOne.mockResolvedValueOnce({
         ...mockDbUser,
         stripeCustomerId: undefined,
@@ -307,6 +312,27 @@ describe('UserStripeController', () => {
       await expect(
         controller.getBillingPortalUrl(mockUser, mockRequest),
       ).rejects.toThrow(HttpException);
+    });
+
+    it('returns a sanitized service-unavailable response for provider failures', async () => {
+      stripeService.retrieveCustomer.mockRejectedValueOnce(
+        new Error('raw provider payload'),
+      );
+
+      const error = await controller
+        .getBillingPortalUrl(mockUser, mockRequest)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+      expect(
+        JSON.stringify((error as HttpException).getResponse()),
+      ).not.toContain('raw provider payload');
+      expect(JSON.stringify(loggerService.error.mock.calls)).not.toContain(
+        'raw provider payload',
+      );
     });
   });
 
