@@ -26,7 +26,9 @@ import type {
   EventInput,
   Calendar as FullCalendarInstance,
 } from 'fullcalendar';
+import { Calendar as FullCalendar } from 'fullcalendar/all';
 import 'fullcalendar/skeleton.css';
+import classicThemePlugin from 'fullcalendar/themes/classic';
 import 'fullcalendar/themes/classic/palette.css';
 import 'fullcalendar/themes/classic/theme.css';
 import { useTranslations } from 'next-intl';
@@ -39,10 +41,6 @@ import {
   useState,
 } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import {
-  resolveFullCalendarConstructor,
-  resolveFullCalendarPlugin,
-} from './resolve-fullcalendar-constructor';
 
 interface FullCalendarHostProps {
   options: CalendarOptions;
@@ -242,59 +240,36 @@ function FullCalendarMount({
   onError,
   options,
 }: FullCalendarHostProps & { onError: (error: Error) => void }) {
-  const calendarRef = useRef<FullCalendarInstance | null>(null);
   const elementRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let calendar: FullCalendarInstance | null = null;
-    const abortController = new AbortController();
-    const { signal } = abortController;
+    const element = elementRef.current;
 
-    async function loadCalendar() {
-      if (!elementRef.current || signal.aborted) {
-        return;
-      }
-
-      try {
-        const [calendarModule, themeModule] = await Promise.all([
-          import('fullcalendar/all'),
-          import('fullcalendar/themes/classic'),
-        ]);
-
-        if (signal.aborted || !elementRef.current) {
-          return;
-        }
-
-        const CalendarCtor = resolveFullCalendarConstructor(calendarModule);
-        calendar = new CalendarCtor(elementRef.current, {
-          ...options,
-          // The official `all` constructor registers the interaction and view
-          // plugins together. Keeping that graph intact avoids split ESM
-          // namespaces being registered as plugins by production bundlers.
-          plugins: [resolveFullCalendarPlugin(themeModule)],
-        }) as FullCalendarInstance;
-        calendarRef.current = calendar;
-        calendar.render();
-      } catch (error) {
-        if (signal.aborted) {
-          return;
-        }
-        onError(
-          error instanceof Error
-            ? error
-            : new Error('Unable to load FullCalendar component'),
-        );
-      }
+    if (!element) {
+      return;
     }
 
-    void loadCalendar();
+    try {
+      // Static named imports remove the production ESM namespace ambiguity
+      // that made lazy-loaded constructors and plugins differ by bundler.
+      // Construction remains effect-only, so FullCalendar never touches the
+      // DOM during server rendering.
+      calendar = new FullCalendar(element, {
+        ...options,
+        plugins: [classicThemePlugin],
+      }) as FullCalendarInstance;
+      calendar.render();
+    } catch (error) {
+      onError(
+        error instanceof Error
+          ? error
+          : new Error('Unable to load FullCalendar component'),
+      );
+    }
 
     return () => {
-      abortController.abort();
       calendar?.destroy();
-      if (calendarRef.current === calendar) {
-        calendarRef.current = null;
-      }
     };
   }, [onError, options]);
 
@@ -308,11 +283,7 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
   if (loadError) {
     return (
       <ErrorFallback
-        description={
-          process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true'
-            ? loadError.message
-            : 'The schedule grid could not start. Try again, or open the list view.'
-        }
+        description="The schedule grid could not start. Try again, or open the list view."
         error={loadError}
         resetErrorBoundary={() => {
           setLoadError(null);
