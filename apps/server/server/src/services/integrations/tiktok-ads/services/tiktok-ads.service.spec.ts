@@ -2,6 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
+import type { Mocked } from 'vitest';
 
 import { TikTokAdsService } from './tiktok-ads.service';
 

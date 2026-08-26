@@ -13,6 +13,7 @@ import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant'
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 
 interface StudioLooksPanelProps {
@@ -26,6 +27,7 @@ export default function StudioLooksPanel({
   settings,
   type,
 }: StudioLooksPanelProps): ReactElement {
+  const translate = useTranslations('pages.studioGenerate.savedLooks');
   const [label, setLabel] = useState('');
   const {
     deleteLook,
@@ -47,9 +49,11 @@ export default function StudioLooksPanel({
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-3">
       <div>
-        <p className="text-xs font-medium text-foreground">Saved Looks</p>
+        <p className="text-xs font-medium text-foreground">
+          {translate('title')}
+        </p>
         <p className="text-xs text-muted-foreground">
-          Shared with everyone working in this brand.
+          {translate('description')}
         </p>
       </div>
 
@@ -77,10 +81,10 @@ export default function StudioLooksPanel({
 
       {isLoading ? (
         <p className="text-xs text-muted-foreground" role="status">
-          Loading saved Looks…
+          {translate('loading')}
         </p>
       ) : looks.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No saved Looks yet.</p>
+        <p className="text-xs text-muted-foreground">{translate('empty')}</p>
       ) : (
         <div className="flex max-h-32 flex-col gap-0.5 overflow-y-auto">
           {looks.map((look) => (

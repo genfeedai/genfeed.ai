@@ -124,6 +124,13 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform recovery for deterministic raw-cut clip jobs after missed Redis pub/sub events or API restarts.',
   },
   {
+    file: 'apps/server/api/src/services/clip-orchestrator/clip-continuity-finalization.service.ts',
+    id: 'clip-continuity-finalization-recovery',
+    methodName: 'processPendingRuns',
+    reason:
+      'Platform recovery for durable continuity QA requests retained in the shared state store after missed events or API restarts.',
+  },
+  {
     file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',

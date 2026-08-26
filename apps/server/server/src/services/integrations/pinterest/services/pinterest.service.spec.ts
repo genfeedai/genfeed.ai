@@ -7,6 +7,7 @@ import {
   type ServerCredentialStore,
 } from '@server/server.dependencies';
 import { of } from 'rxjs';
+import type { Mock } from 'vitest';
 import { PinterestService } from './pinterest.service';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({

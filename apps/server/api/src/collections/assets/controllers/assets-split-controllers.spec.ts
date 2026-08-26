@@ -85,7 +85,7 @@ describe('Assets split controllers', () => {
         AssetsIngestionController.prototype,
         'createFromIngredient',
       ),
-    ).toEqual([Object, Object, CreateFromIngredientDto]);
+    ).toEqual([uploadParameterTypes[0], Object, CreateFromIngredientDto]);
 
     const routeArguments = Reflect.getMetadata(
       ROUTE_ARGS_METADATA,

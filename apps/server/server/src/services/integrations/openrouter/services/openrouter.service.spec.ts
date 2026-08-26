@@ -9,6 +9,7 @@ import type {
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
+import type { Mocked } from 'vitest';
 import { OpenRouterService } from './openrouter.service';
 
 const makeAxiosResponse = <T>(data: T): AxiosResponse<T> => ({

@@ -9,6 +9,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   PersistedReviewDecision,
+  ReferenceImageCategory,
 } from '@genfeedai/enums';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -151,6 +152,7 @@ describe('BrandRemixRunsService', () => {
         {
           id: 'brand-reference-1',
           label: 'Product reference',
+          referenceCategory: ReferenceImageCategory.PRODUCT,
           role: 'reference',
           url: 'https://signed.example/reference?token=must-not-persist',
         },
@@ -411,6 +413,12 @@ describe('BrandRemixRunsService', () => {
           settleCreditsExternally: true,
         }),
         expect.any(Function),
+        expect.arrayContaining([
+          expect.objectContaining({
+            assetId: 'brand-reference-1',
+            role: 'product',
+          }),
+        ]),
       );
     });
 
@@ -880,6 +888,12 @@ describe('BrandRemixRunsService', () => {
           settleCreditsExternally: true,
         }),
         expect.any(Function),
+        expect.arrayContaining([
+          expect.objectContaining({
+            assetId: 'brand-reference-1',
+            role: 'product',
+          }),
+        ]),
       );
       expect(result.execution).toMatchObject({
         actualCount: 0,
@@ -1115,6 +1129,12 @@ describe('BrandRemixRunsService', () => {
           settleCreditsExternally: true,
         }),
         expect.any(Function),
+        expect.arrayContaining([
+          expect.objectContaining({
+            assetId: 'brand-reference-1',
+            role: 'product',
+          }),
+        ]),
       );
     });
 

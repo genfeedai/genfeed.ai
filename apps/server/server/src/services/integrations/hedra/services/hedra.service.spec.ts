@@ -4,6 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApiKeyHelperService } from '@server/services/api-key/api-key-helper.service';
 import { of } from 'rxjs';
+import type { Mock } from 'vitest';
 import { HedraService } from './hedra.service';
 
 describe('HedraService', () => {

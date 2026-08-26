@@ -347,19 +347,22 @@ export class SourcePostsService {
       userId: context.userId,
       visibility: PostVisibility.PUBLIC,
     };
-    const post = attribution
-      ? await this.db.post.upsert({
-          create: data,
-          update: {},
-          where: {
-            organizationId_targetIdempotencyKey: {
-              organizationId: context.organizationId,
-              targetIdempotencyKey,
-            },
+    if (attribution) {
+      // tenant-scope-ignore: organizationId is pinned by the compound idempotency key; isDeleted is omitted so the draft can reactivate a tombstone
+      const post = await this.db.post.upsert({
+        create: data,
+        update: { isDeleted: false },
+        where: {
+          organizationId_targetIdempotencyKey: {
+            organizationId: context.organizationId,
+            targetIdempotencyKey,
           },
-        })
-      : await this.db.post.create({ data });
+        },
+      });
+      return { draftId: post.id, post };
+    }
 
+    const post = await this.db.post.create({ data });
     return { draftId: post.id, post };
   }
 

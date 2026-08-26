@@ -308,7 +308,12 @@ describe('AssetIngestionService', () => {
 
     await expect(
       service.createFromIngredient(user, ingredientDto),
-    ).rejects.toThrow('Only images can be set as logo or banner');
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'Only images can be set as logo or banner',
+        title: 'Validation Error',
+      },
+    });
     expect(metadataService.findOne).not.toHaveBeenCalled();
   });
 
@@ -327,7 +332,12 @@ describe('AssetIngestionService', () => {
 
     await expect(
       service.createFromIngredient(user, ingredientDto),
-    ).rejects.toThrow('Ingredient metadata not found');
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'Ingredient metadata not found',
+        title: 'Validation Error',
+      },
+    });
     expect(filesClientService.copyInS3).not.toHaveBeenCalled();
   });
 
@@ -336,9 +346,13 @@ describe('AssetIngestionService', () => {
 
     await expect(
       service.createFromIngredient(user, ingredientDto),
-    ).rejects.toThrow(
-      'Failed to copy ingredient file. The source file may not exist or there was an S3 error.',
-    );
+    ).rejects.toMatchObject({
+      response: {
+        detail:
+          'Failed to copy ingredient file. The source file may not exist or there was an S3 error.',
+        title: 'Validation Error',
+      },
+    });
 
     expect(assetsService.remove).toHaveBeenCalledWith(assetId);
     expect(cacheService.invalidateByTags).not.toHaveBeenCalled();

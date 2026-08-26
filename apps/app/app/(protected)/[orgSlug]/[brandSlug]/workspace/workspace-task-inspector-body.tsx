@@ -7,6 +7,7 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -45,13 +46,14 @@ export function WorkspaceTaskInspectorBody({
   onUnkeepOutput,
   task,
 }: WorkspaceTaskInspectorBodyProps) {
+  const translate = useTranslations('pages.workspaceOverview');
   const continuityQa = getTaskContinuityQa(task);
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <Card bodyClassName="space-y-2 p-4">
           <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/35">
-            Routing
+            {translate('inspector.routing')}
           </p>
           <p className="text-sm text-foreground">
             {task.routingSummary ?? 'Auto-routed by workspace orchestration.'}
@@ -59,28 +61,35 @@ export function WorkspaceTaskInspectorBody({
         </Card>
         <Card bodyClassName="space-y-2 p-4">
           <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-foreground/35">
-            Progress
+            {translate('inspector.progress')}
           </p>
           <div className="space-y-1 text-sm text-foreground/60">
             <p>{task.progress?.stage ?? 'queued'}</p>
-            <p>{task.progress?.percent ?? 0}% complete</p>
             <p>
-              {task.progress?.activeRunCount ?? 0} active run
-              {task.progress?.activeRunCount === 1 ? '' : 's'}
+              {translate('inspector.percentComplete', {
+                percent: task.progress?.percent ?? 0,
+              })}
+            </p>
+            <p>
+              {translate('inspector.activeRuns', {
+                count: task.progress?.activeRunCount ?? 0,
+              })}
             </p>
             {task.progress?.message ? <p>{task.progress.message}</p> : null}
             <p className="flex items-center gap-2">
               <Clock className="size-4" />
-              Updated {formatTaskTimestamp(task)}
+              {translate('inspector.updated')} {formatTaskTimestamp(task)}
             </p>
             {task.createdAt ? (
               <p>
-                Created <ClientFormattedDate value={task.createdAt} />
+                {translate('inspector.created')}{' '}
+                <ClientFormattedDate value={task.createdAt} />
               </p>
             ) : null}
             {task.completedAt ? (
               <p>
-                Completed <ClientFormattedDate value={task.completedAt} />
+                {translate('inspector.completed')}{' '}
+                <ClientFormattedDate value={task.completedAt} />
               </p>
             ) : null}
           </div>
@@ -106,12 +115,15 @@ export function WorkspaceTaskInspectorBody({
               <AlertTriangle className="size-4 text-amber-300" />
             ) : null}
             {continuityQa.status.replace('_', ' ')} ·{' '}
-            {continuityQa.summary.driftClipCount} drift finding
-            {continuityQa.summary.driftClipCount === 1 ? '' : 's'}
+            {translate('inspector.driftFindings', {
+              count: continuityQa.summary.driftClipCount,
+            })}
           </p>
           {continuityQa.skipReason ? (
             <p className="text-foreground/55">
-              Assessment skipped: {continuityQa.skipReason.replaceAll('_', ' ')}
+              {translate('inspector.assessmentSkipped', {
+                reason: continuityQa.skipReason.replaceAll('_', ' '),
+              })}
             </p>
           ) : null}
           {continuityQa.clips.map((clip) => (
@@ -119,18 +131,28 @@ export function WorkspaceTaskInspectorBody({
               key={clip.clipId}
               className="space-y-1 rounded-md border border-border/70 p-3"
             >
-              <p className="font-semibold">Clip {clip.clipIndex + 1}</p>
-              <p>
-                Character: {clip.character.verdict} (
-                {formatConfidence(clip.character.confidence)})
+              <p className="font-semibold">
+                {translate('inspector.clipNumber', {
+                  number: clip.clipIndex + 1,
+                })}
               </p>
               <p>
-                Outfit: {clip.outfit.verdict} (
-                {formatConfidence(clip.outfit.confidence)})
+                {translate('inspector.characterConfidence', {
+                  confidence: formatConfidence(clip.character.confidence),
+                  verdict: clip.character.verdict,
+                })}
               </p>
               <p>
-                Product: {clip.product.verdict} (
-                {formatConfidence(clip.product.confidence)})
+                {translate('inspector.outfitConfidence', {
+                  confidence: formatConfidence(clip.outfit.confidence),
+                  verdict: clip.outfit.verdict,
+                })}
+              </p>
+              <p>
+                {translate('inspector.productConfidence', {
+                  confidence: formatConfidence(clip.product.confidence),
+                  verdict: clip.product.verdict,
+                })}
               </p>
               {clip.errors.map((error) => (
                 <p
@@ -148,7 +170,9 @@ export function WorkspaceTaskInspectorBody({
                   rel="noreferrer"
                   className="mr-3 inline-block underline underline-offset-2"
                 >
-                  Evidence frame {index + 1}
+                  {translate('inspector.evidenceFrame', {
+                    number: index + 1,
+                  })}
                 </Link>
               ))}
             </div>
@@ -179,10 +203,7 @@ export function WorkspaceTaskInspectorBody({
           label="Report location"
           bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
         >
-          <p>
-            This task&apos;s report lives in the linked agent thread, not in the
-            workspace task record itself.
-          </p>
+          <p>{translate('inspector.reportLocationDescription')}</p>
           <Button
             asChild
             variant={ButtonVariant.SECONDARY}
@@ -192,7 +213,7 @@ export function WorkspaceTaskInspectorBody({
             <Link
               href={`${APP_ROUTES.AGENT.ROOT}/${linkedRunSummary.reportThreadId}`}
             >
-              Open report thread
+              {translate('inspector.openReportThread')}
             </Link>
           </Button>
         </Card>
@@ -221,43 +242,70 @@ export function WorkspaceTaskInspectorBody({
           label="Task metadata"
           bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
         >
-          <p>Priority: {task.priority}</p>
+          <p>{translate('inspector.priority', { value: task.priority })}</p>
           <p>
-            Review state: {task.reviewState?.replaceAll('_', ' ') ?? 'none'}
+            {translate('inspector.reviewState', {
+              value: task.reviewState?.replaceAll('_', ' ') ?? 'none',
+            })}
           </p>
-          <p>Organization: {task.organizationId}</p>
-          {task.brandId ? <p>Brand: {task.brandId}</p> : null}
+          <p>
+            {translate('inspector.organization', {
+              value: task.organizationId,
+            })}
+          </p>
+          {task.brandId ? (
+            <p>{translate('inspector.brand', { value: task.brandId })}</p>
+          ) : null}
         </Card>
 
         <Card
           label="Linked records"
           bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
         >
-          <p>Runs: {task.linkedRunIds?.length ?? 0}</p>
+          <p>
+            {translate('inspector.runs', {
+              count: task.linkedRunIds?.length ?? 0,
+            })}
+          </p>
           {task.linkedIssueId ? (
             <p>
-              Issue:{' '}
-              {linkedIssueSummary.isLoading
-                ? 'Loading…'
-                : (linkedIssueSummary.identifier ?? 'Unavailable')}
+              {translate('inspector.issue', {
+                value: linkedIssueSummary.isLoading
+                  ? 'Loading…'
+                  : (linkedIssueSummary.identifier ?? 'Unavailable'),
+              })}
             </p>
           ) : null}
-          <p>Outputs: {task.linkedOutputIds?.length ?? 0}</p>
           <p>
-            Report threads:{' '}
-            {linkedRunSummary.isLoading
-              ? 'Loading…'
-              : linkedRunSummary.reportThreadCount}
+            {translate('inspector.outputs', {
+              count: task.linkedOutputIds?.length ?? 0,
+            })}
           </p>
           <p>
-            Generated content:{' '}
-            {linkedRunSummary.isLoading
-              ? 'Loading…'
-              : linkedRunSummary.generatedContentCount}
+            {translate('inspector.reportThreads', {
+              count: linkedRunSummary.isLoading
+                ? 'Loading…'
+                : linkedRunSummary.reportThreadCount,
+            })}
           </p>
-          <p>Approvals: {task.linkedApprovalIds?.length ?? 0}</p>
+          <p>
+            {translate('inspector.generatedContent', {
+              count: linkedRunSummary.isLoading
+                ? 'Loading…'
+                : linkedRunSummary.generatedContentCount,
+            })}
+          </p>
+          <p>
+            {translate('inspector.approvals', {
+              count: task.linkedApprovalIds?.length ?? 0,
+            })}
+          </p>
           {task.planningThreadId ? (
-            <p className="truncate">Thread: {task.planningThreadId}</p>
+            <p className="truncate">
+              {translate('inspector.thread', {
+                value: task.planningThreadId,
+              })}
+            </p>
           ) : null}
         </Card>
       </div>

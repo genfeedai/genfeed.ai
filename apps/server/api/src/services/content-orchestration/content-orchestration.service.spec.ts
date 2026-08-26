@@ -390,6 +390,7 @@ describe('ContentOrchestrationService', () => {
           model: MusicTaskModel.ELEVENLABS,
           text: 'Hello',
           type: 'text-to-speech',
+          voiceId: 'voice-1',
         },
         {
           duration: 5,

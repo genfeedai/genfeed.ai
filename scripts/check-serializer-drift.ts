@@ -90,6 +90,10 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'viewsGrowth',
   ],
   'agent-campaign:AgentCampaign': [],
+  'agent-transfer:AgentTransfer': [
+    'destinationThreadTitle',
+    'sourceThreadTitle',
+  ],
   'agent-strategy:AgentStrategy': [
     'autoPublishConfidenceThreshold',
     'creditsUsedToday',
@@ -180,7 +184,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'version',
   ],
   'credit-transactions:CreditTransaction': [],
-  'credential:Credential': ['accountHealth'],
   'distribution:Distribution': ['errorMessage', 'publishedAt'],
   'editor-project:EditorProject': ['name'],
   'fanvue-content:FanvueContent': [
@@ -360,6 +363,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'subscribedAt',
     'utm',
   ],
+  'studio-look:StudioLook': [],
   'subscription:Subscription': [],
   'task-comment:TaskComment': [],
   'task:Task': [],

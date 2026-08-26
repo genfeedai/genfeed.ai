@@ -9,6 +9,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { TasksPlanningController } from '@api/collections/tasks/controllers/tasks-planning.controller';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
+import { testId } from '@helpers/testing/test-id.helper';
 import { UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -21,10 +22,11 @@ describe('TasksPlanningController', () => {
     taskPlanningService as unknown as TaskPlanningService,
   );
   const request = { originalUrl: '/api/tasks/task-1/children' } as Request;
+  const userId = testId('workspace-user');
   const user = {
     id: 'legacy-user-id',
     organizationId: 'org-1',
-    userId: '507f1f77bcf86cd799439011',
+    userId,
   } as User;
 
   afterEach(() => {
@@ -45,7 +47,7 @@ describe('TasksPlanningController', () => {
     expect(taskPlanningService.openPlanningThread).toHaveBeenCalledWith(
       'task-1',
       'org-1',
-      '507f1f77bcf86cd799439011',
+      userId,
     );
   });
 
@@ -62,7 +64,7 @@ describe('TasksPlanningController', () => {
     expect(taskPlanningService.createFollowUpTasks).toHaveBeenCalledWith(
       'task-1',
       'org-1',
-      '507f1f77bcf86cd799439011',
+      userId,
     );
   });
 

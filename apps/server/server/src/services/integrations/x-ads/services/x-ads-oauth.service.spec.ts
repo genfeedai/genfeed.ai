@@ -1,3 +1,5 @@
+import type { Mocked } from 'vitest';
+
 const mockGenerateAuthLink = vi.fn();
 const mockLogin = vi.fn();
 const mockAdsClient = {

@@ -82,14 +82,6 @@
     },
     {
       "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/collections/agent-runs/controllers/agent-runs.controller.spec.ts",
-      "fingerprint": "2c01794f8ee7e14bfd60",
-      "message": "Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/collections/agent-runs/controllers/agent-runs.controller.spec.ts",
       "fingerprint": "d19637373d777aac03f0",
@@ -2646,14 +2638,6 @@
       "file": "apps/server/api/src/services/content-optimization/content-optimization.service.spec.ts",
       "fingerprint": "872e53bffe20d28aaa85",
       "message": "Property 'debug' is missing in type '{ error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<Procedure | Constructable>; }' but required in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
-      "fingerprint": "043c1d4b71f74675ed11",
-      "message": "Type '{ model: any; text: string; type: \"text-to-speech\"; }' is not assignable to type 'PipelineStep'.   Property 'voiceId' is missing in type '{ model: any; text: string; type: \"text-to-speech\"; }' but required in type 'TextToSpeechStep'.",
       "workspace": "api"
     },
     {
