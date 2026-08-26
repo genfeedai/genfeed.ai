@@ -24,11 +24,12 @@ import sys
 # so quoted mentions — commit messages, PR bodies — don't false-positive.
 COMMAND_POSITION = r"(?:^|&&|\|\||[;|(])\s*"
 
-# Placeholder templates are the documented shape of an env file, carry no
-# values, and are tracked on purpose — .env.example, .env.local.example,
-# .env.sample, .env.template. Blocking them meant a var could be deleted from
-# the schema but never from the file contributors copy.
-ENV_TEMPLATE_SUFFIXES = (".example", ".sample", ".template", ".dist")
+# `.env.example` is the one placeholder convention this repo uses (12 tracked
+# files, and the only suffix `scripts/env-check.ts` knows about). They document
+# the shape of an env file, carry no values, and are tracked on purpose —
+# blocking them meant a var could be deleted from the schema but never from the
+# file contributors copy.
+ENV_TEMPLATE_SUFFIX = ".example"
 
 
 def is_env_secret_path(path: str) -> bool:
@@ -36,7 +37,7 @@ def is_env_secret_path(path: str) -> bool:
     basename = path.rsplit("/", 1)[-1].strip("\"'")
     if not basename.startswith(".env"):
         return False
-    return not basename.endswith(ENV_TEMPLATE_SUFFIXES)
+    return not basename.endswith(ENV_TEMPLATE_SUFFIX)
 
 
 def block(message: str) -> None:
