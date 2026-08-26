@@ -4,8 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
-const organizationService = vi.hoisted(() => ({
-  getMyOrganizations: vi.fn(),
+const routedOrganization = vi.hoisted(() => ({
+  organizations: [
+    { id: 'org-1', isActive: true, label: 'Acme', slug: 'acme' },
+    { id: 'org-2', isActive: false, label: 'Other', slug: 'other' },
+  ],
+  status: 'matched',
   switchOrganization: vi.fn(),
 }));
 const store = vi.hoisted(() => ({
@@ -50,9 +54,12 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => organizationService,
-}));
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => routedOrganization,
+  }),
+);
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -163,10 +170,14 @@ describe('useConversationScopeControls', () => {
     store.upsertThread.mockReset();
     router.push.mockReset();
     router.replace.mockReset();
-    organizationService.getMyOrganizations.mockResolvedValue([
-      { id: 'org-1', isActive: true, label: 'Acme', slug: 'acme' },
-      { id: 'org-2', isActive: false, label: 'Other', slug: 'other' },
-    ]);
+    routedOrganization.status = 'matched';
+    routedOrganization.switchOrganization.mockReset();
+    routedOrganization.switchOrganization.mockImplementation(
+      async (organizationId: string) =>
+        routedOrganization.organizations.find(
+          (organization) => organization.id === organizationId,
+        )?.slug ?? null,
+    );
     api.updateThreadContextEffect.mockResolvedValue({
       ...activeThread,
       brandId: 'brand-b',
@@ -240,6 +251,6 @@ describe('useConversationScopeControls', () => {
     expect(
       screen.getByRole('button', { name: 'Start clean thread' }),
     ).toBeDisabled();
-    expect(organizationService.switchOrganization).not.toHaveBeenCalled();
+    expect(routedOrganization.switchOrganization).not.toHaveBeenCalled();
   });
 });

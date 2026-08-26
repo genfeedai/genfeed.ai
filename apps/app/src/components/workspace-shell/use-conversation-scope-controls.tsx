@@ -18,10 +18,9 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
-import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Button } from '@ui/primitives/button';
@@ -207,9 +206,11 @@ export function useConversationScopeControls({
     brands,
     organizationId: globalOrganizationId,
   } = useBrand();
-  const getOrganizationsService = useAuthedService((token: string) =>
-    OrganizationsService.getInstance(token),
-  );
+  const {
+    organizations,
+    status: organizationContextStatus,
+    switchOrganization: switchRoutedOrganization,
+  } = useRoutedOrganization();
   const activeRunStatus = useAgentChatStore((state) => state.activeRunStatus);
   const isGenerating = useAgentChatStore((state) => state.isGenerating);
   const resetActiveConversationState = useAgentChatStore(
@@ -217,8 +218,9 @@ export function useConversationScopeControls({
   );
   const setActiveThread = useAgentChatStore((state) => state.setActiveThread);
   const upsertThread = useAgentChatStore((state) => state.upsertThread);
-  const [organizations, setOrganizations] = useState<OrganizationOption[]>([]);
-  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true);
+  const isLoadingOrganizations =
+    organizationContextStatus === 'loading' ||
+    organizationContextStatus === 'switching';
   const [isMutating, setIsMutating] = useState(false);
   const [pendingChange, setPendingChange] = useState<PendingScopeChange | null>(
     null,
@@ -267,31 +269,6 @@ export function useConversationScopeControls({
       staleContext.threadId === activeThread.id &&
       staleContext.contextVersion > activeThread.contextVersion,
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const service = await getOrganizationsService();
-        const nextOrganizations = await service.getMyOrganizations();
-        if (!cancelled) {
-          setOrganizations(nextOrganizations);
-          setScopeError(null);
-        }
-      } catch {
-        if (!cancelled) {
-          setScopeError('Authorized organizations could not be loaded.');
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingOrganizations(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [getOrganizationsService]);
 
   const observeLatestThread = useCallback(async () => {
     if (!activeThread) {
@@ -493,14 +470,14 @@ export function useConversationScopeControls({
       setIsMutating(true);
       setScopeError(null);
       try {
-        const service = await getOrganizationsService();
-        await service.switchOrganization(organization.id);
+        const confirmedSlug = await switchRoutedOrganization(organization.id);
+        if (!confirmedSlug) {
+          throw new Error('Organization switch was not confirmed');
+        }
         clearConversationComposerDraft(currentDraftScopeKey);
         setActiveThread(null);
         resetActiveConversationState();
-        window.location.assign(
-          buildOrganizationNewThreadHref(organization.slug),
-        );
+        window.location.assign(buildOrganizationNewThreadHref(confirmedSlug));
       } catch {
         setScopeError('Organization switch was rejected.');
         setIsMutating(false);
@@ -508,10 +485,10 @@ export function useConversationScopeControls({
     },
     [
       currentDraftScopeKey,
-      getOrganizationsService,
       organizations,
       resetActiveConversationState,
       setActiveThread,
+      switchRoutedOrganization,
     ],
   );
 

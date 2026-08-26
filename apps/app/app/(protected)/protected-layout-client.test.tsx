@@ -28,4 +28,17 @@ describe('app/(protected)/protected-layout-client.tsx', () => {
     expect(source).toContain('DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG');
     expect(source).toContain('REMOTE_FEATURE_FLAG_KEYS');
   });
+
+  it('gates the protected provider tree on confirmed routed organization context', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'app/(protected)/protected-layout-client.tsx'),
+      'utf8',
+    );
+
+    expect(source).toContain('<RoutedOrganizationProvider>');
+    expect(source).toContain('<RoutedOrganizationBoundary>');
+    expect(source.indexOf('<RoutedOrganizationBoundary>')).toBeLessThan(
+      source.indexOf('<AppProtectedLayout'),
+    );
+  });
 });

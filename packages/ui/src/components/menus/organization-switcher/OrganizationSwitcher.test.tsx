@@ -10,6 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPush = vi.fn();
 const mockGetMyOrganizations = vi.fn();
 const mockSwitchOrganization = vi.fn();
+let mockOrganizations: typeof TWO_ORGS | Array<(typeof TWO_ORGS)[number]> = [];
+let mockConfirmedOrganizationId: string | null = 'org_1';
+let mockOrganizationStatus = 'matched';
 let mockParams: { orgSlug?: string } = { orgSlug: 'acme-org' };
 let mockPathname = '/acme-org/~/agent/new';
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
@@ -35,6 +38,18 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
     switchOrganization: mockSwitchOrganization,
   }),
 }));
+
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => ({
+      confirmedOrganizationId: mockConfirmedOrganizationId,
+      organizations: mockOrganizations,
+      status: mockOrganizationStatus,
+      switchOrganization: mockSwitchOrganization,
+    }),
+  }),
+);
 
 vi.mock(
   '@genfeedai/hooks/data/subscription/use-subscription/use-subscription',
@@ -119,16 +134,13 @@ describe('OrganizationSwitcher', () => {
     capturedOnSelect = undefined;
     mockIsSubscriptionActive = true;
     mockSubscriptionTier = 'scale';
+    mockOrganizationStatus = 'matched';
     mockParams = { orgSlug: 'acme-org' };
     mockPathname = '/acme-org/~/agent/new';
     mockGetMyOrganizations.mockReset();
     mockSwitchOrganization.mockReset();
-    mockSwitchOrganization.mockResolvedValue({
-      brand: { id: 'brand_1', label: 'Default' },
-      organization: { id: 'org_1', label: 'Acme Org' },
-    });
     mockPush.mockReset();
-    mockGetMyOrganizations.mockResolvedValue([
+    mockOrganizations = [
       {
         brand: null,
         id: 'org_1',
@@ -137,7 +149,15 @@ describe('OrganizationSwitcher', () => {
         label: 'Acme Org',
         slug: 'acme-org',
       },
-    ]);
+    ];
+    mockConfirmedOrganizationId = 'org_1';
+    mockSwitchOrganization.mockImplementation(async (organizationId) => {
+      return (
+        mockOrganizations.find(
+          (organization) => organization.id === organizationId,
+        )?.slug ?? null
+      );
+    });
 
     // jsdom does not implement navigation; provide sp'able assign/reload.
     Object.defineProperty(window, 'location', {
@@ -196,7 +216,7 @@ describe('OrganizationSwitcher', () => {
 
   it('allows organization creation when a capped plan only belongs to another org', async () => {
     mockSubscriptionTier = 'pro';
-    mockGetMyOrganizations.mockResolvedValue([
+    mockOrganizations = [
       {
         brand: null,
         id: 'org_member',
@@ -205,7 +225,8 @@ describe('OrganizationSwitcher', () => {
         label: 'Client Org',
         slug: 'client-org',
       },
-    ]);
+    ];
+    mockConfirmedOrganizationId = 'org_member';
 
     renderSwitcher();
 
@@ -247,22 +268,22 @@ describe('OrganizationSwitcher', () => {
     expect(avatar).not.toHaveClass('rounded-full');
   });
 
-  it('passes a completed error state when organizations fail to load', async () => {
-    mockGetMyOrganizations.mockRejectedValue(new Error('boom'));
+  it('passes the context loading state to the dropdown', async () => {
+    mockOrganizationStatus = 'loading';
+    mockOrganizations = [];
+    mockConfirmedOrganizationId = null;
 
     renderSwitcher();
 
-    await waitFor(() => {
-      expect(capturedIsLoading).toBe(false);
-    });
-
+    expect(capturedIsLoading).toBe(true);
     expect(capturedItems).toEqual([]);
-    expect(capturedEmptyMessage).toBe('Failed to load organizations');
+    expect(capturedEmptyMessage).toBe('No organizations');
   });
 
-  it('marks the org matching the current URL slug active, overriding stale server isActive', async () => {
+  it('marks only the organization confirmed by routed context active', async () => {
     mockParams = { orgSlug: 'alpha' };
-    mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
+    mockOrganizations = TWO_ORGS;
+    mockConfirmedOrganizationId = 'org_alpha';
 
     renderSwitcher();
 
@@ -276,9 +297,10 @@ describe('OrganizationSwitcher', () => {
     expect(bravo?.isActive).toBe(false);
   });
 
-  it('falls back to server isActive when no orgSlug is in the route', async () => {
+  it('uses confirmed context rather than optimistic route state', async () => {
     mockParams = {};
-    mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
+    mockOrganizations = TWO_ORGS;
+    mockConfirmedOrganizationId = 'org_bravo';
 
     renderSwitcher();
 
@@ -292,9 +314,9 @@ describe('OrganizationSwitcher', () => {
     expect(bravo?.isActive).toBe(true);
   });
 
-  it('marks the only organization active when route and server metadata are unresolved', async () => {
+  it('does not infer an active organization when context is unresolved', async () => {
     mockParams = { orgSlug: 'default' };
-    mockGetMyOrganizations.mockResolvedValue([
+    mockOrganizations = [
       {
         brand: null,
         id: 'org_solo',
@@ -303,7 +325,8 @@ describe('OrganizationSwitcher', () => {
         label: 'Solo Org',
         slug: 'solo-org',
       },
-    ]);
+    ];
+    mockConfirmedOrganizationId = null;
 
     renderSwitcher();
 
@@ -312,18 +335,15 @@ describe('OrganizationSwitcher', () => {
     });
 
     expect(capturedItems[0]).toEqual(
-      expect.objectContaining({
-        id: 'org_solo',
-        isActive: true,
-        label: 'Solo Org',
-      }),
+      expect.objectContaining({ id: 'org_solo', isActive: false }),
     );
   });
 
   it('persists the switch and client-navigates to the same surface in the target org', async () => {
     mockParams = { orgSlug: 'alpha' };
     mockPathname = '/alpha/moonrise/library/assets';
-    mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
+    mockOrganizations = TWO_ORGS;
+    mockConfirmedOrganizationId = 'org_alpha';
 
     renderSwitcher();
 
@@ -343,7 +363,8 @@ describe('OrganizationSwitcher', () => {
 
   it('ignores selecting the already-active org', async () => {
     mockParams = { orgSlug: 'alpha' };
-    mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
+    mockOrganizations = TWO_ORGS;
+    mockConfirmedOrganizationId = 'org_alpha';
 
     renderSwitcher();
 

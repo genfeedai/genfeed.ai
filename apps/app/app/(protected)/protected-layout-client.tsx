@@ -7,6 +7,7 @@ import {
   DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/constants';
+import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
@@ -18,6 +19,7 @@ import {
 } from '@/lib/analytics';
 import { getCoreAppFeatureFlagFallbacks } from '@/lib/core-apps';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import RoutedOrganizationBoundary from './routed-organization-boundary';
 
 const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
 const REMOTE_FEATURE_FLAG_KEYS = [
@@ -74,9 +76,13 @@ export default function ProtectedLayoutClient({
         SessionKeepAlive for the nanostores STORE_UNMOUNT_DELAY details.
       */}
       <SessionKeepAlive />
-      <AppProtectedLayout initialBootstrap={initialBootstrap}>
-        <ErrorBoundary>{children}</ErrorBoundary>
-      </AppProtectedLayout>
+      <RoutedOrganizationProvider>
+        <RoutedOrganizationBoundary>
+          <AppProtectedLayout initialBootstrap={initialBootstrap}>
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </AppProtectedLayout>
+        </RoutedOrganizationBoundary>
+      </RoutedOrganizationProvider>
     </FeatureFlagProvider>
   );
 }

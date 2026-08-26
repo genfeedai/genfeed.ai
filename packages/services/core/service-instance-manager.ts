@@ -101,6 +101,14 @@ export class ServiceInstanceManager<TInstance> {
     this.instances.clear();
   }
 
+  forEach(callback: (instance: TInstance) => void): void {
+    for (const instancesForService of this.instances.values()) {
+      for (const instance of instancesForService.values()) {
+        callback(instance);
+      }
+    }
+  }
+
   clearByToken(serviceKey: unknown, token: string): void {
     const instancesForService = this.instances.get(serviceKey);
     if (!instancesForService) {

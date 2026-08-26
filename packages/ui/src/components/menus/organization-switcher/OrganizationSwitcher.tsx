@@ -5,6 +5,7 @@ import {
   createOrganizationAppRoute,
   getOrgSwitchHref,
 } from '@genfeedai/constants';
+import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -24,72 +25,13 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronsUpDown, Settings } from 'lucide-react';
-import { useParams, usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useReducer } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useCallback } from 'react';
 
 import { useCreateOrganizationModal } from './use-create-organization-modal';
 
-interface OrgEntry {
-  id: string;
-  label: string;
-  slug: string;
-  isActive: boolean;
-  isOwner?: boolean;
-  brand: { id: string; label: string } | null;
-}
-
-interface SwitcherState {
-  error: string | null;
-  isLoading: boolean;
-  isSwitching: boolean;
-  orgs: OrgEntry[];
-}
-
 interface OrganizationSwitcherProps {
   subscriptionTier?: string | null;
-}
-
-type SwitcherAction =
-  | { type: 'ORGS_LOADED'; orgs: OrgEntry[] }
-  | { type: 'LOAD_FAILED' }
-  | { type: 'SWITCH_START' }
-  | { type: 'SWITCH_DONE' }
-  | { type: 'SWITCH_FAILED' };
-
-const INITIAL_SWITCHER_STATE: SwitcherState = {
-  error: null,
-  isLoading: true,
-  isSwitching: false,
-  orgs: [],
-};
-
-function switcherReducer(
-  state: SwitcherState,
-  action: SwitcherAction,
-): SwitcherState {
-  switch (action.type) {
-    case 'ORGS_LOADED':
-      return { ...state, error: null, isLoading: false, orgs: action.orgs };
-    case 'LOAD_FAILED':
-      return {
-        ...state,
-        error: 'Failed to load organizations',
-        isLoading: false,
-        orgs: [],
-      };
-    case 'SWITCH_START':
-      return { ...state, isSwitching: true };
-    case 'SWITCH_DONE':
-      return { ...state, isSwitching: false };
-    case 'SWITCH_FAILED':
-      return {
-        ...state,
-        error: 'Failed to switch organization',
-        isSwitching: false,
-      };
-    default:
-      return state;
-  }
 }
 
 export default function OrganizationSwitcher({
@@ -99,51 +41,17 @@ export default function OrganizationSwitcher({
     OrganizationsService.getInstance(token),
   );
   const { isSubscriptionActive } = useSubscription();
-  const params = useParams<{ orgSlug?: string }>();
   const pathname = usePathname() ?? APP_ROUTES.ROOT;
   const { push } = useRouter();
-  const currentOrgSlug =
-    typeof params?.orgSlug === 'string' ? params.orgSlug : undefined;
-
-  const [{ error, isLoading, isSwitching, orgs }, dispatch] = useReducer(
-    switcherReducer,
-    INITIAL_SWITCHER_STATE,
-  );
+  const {
+    confirmedOrganizationId: activeOrgId,
+    organizations: orgs,
+    status,
+    switchOrganization,
+  } = useRoutedOrganization();
+  const isLoading = status === 'loading';
+  const isSwitching = status === 'switching';
   const createModal = useCreateOrganizationModal(getOrgsService);
-
-  // Fetch orgs on mount so the active org label is available immediately
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const svc = await getOrgsService();
-        const data = await svc.getMyOrganizations();
-        if (!cancelled) {
-          dispatch({ orgs: data, type: 'ORGS_LOADED' });
-        }
-      } catch {
-        if (!cancelled) {
-          dispatch({ type: 'LOAD_FAILED' });
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [getOrgsService]);
-
-  // Mirror the brand switcher: the active org is the one you're actually
-  // viewing (URL slug), so the checkmark and trigger label stay in sync with
-  // the route. Fall back to the server's isActive (derived from
-  // lastUsedOrganizationId) on non-org routes like /admin or /settings where no
-  // orgSlug param exists.
-  const activeOrgId =
-    (currentOrgSlug && orgs.find((o) => o.slug === currentOrgSlug)?.id) ||
-    orgs.find((o) => o.isActive)?.id ||
-    (orgs.length === 1 ? orgs[0]?.id : null) ||
-    null;
   const activeOrg = orgs.find((o) => o.id === activeOrgId);
   const organizationLimit = getOrganizationLimitForTier(subscriptionTier);
   const hasOwnershipMetadata = orgs.some(
@@ -165,26 +73,17 @@ export default function OrganizationSwitcher({
       }
       const target = orgs.find((organization) => organization.id === orgId);
       if (!target?.slug) {
-        dispatch({ type: 'SWITCH_FAILED' });
         return;
       }
-      dispatch({ type: 'SWITCH_START' });
-      try {
-        const svc = await getOrgsService();
-        await svc.switchOrganization(orgId);
-        // Client navigation remounts the page under the new org slug and
-        // keeps the app shell. A document assign would reload sidebar,
-        // providers, and the whole tree.
-        push(getOrgSwitchHref(target.slug, pathname));
-        dispatch({ type: 'SWITCH_DONE' });
-      } catch {
-        dispatch({ type: 'SWITCH_FAILED' });
+      const confirmedSlug = await switchOrganization(orgId);
+      if (confirmedSlug) {
+        push(getOrgSwitchHref(confirmedSlug, pathname));
       }
     },
-    [activeOrgId, getOrgsService, isSwitching, orgs, pathname, push],
+    [activeOrgId, isSwitching, orgs, pathname, push, switchOrganization],
   );
 
-  const displayLabel = error ?? activeOrg?.label ?? 'Organization';
+  const displayLabel = activeOrg?.label ?? 'Organization';
   return (
     <>
       <SwitcherDropdown
@@ -213,12 +112,7 @@ export default function OrganizationSwitcher({
             <div className={SWITCHER_AVATAR_CLASSNAME}>
               {displayLabel.charAt(0).toUpperCase()}
             </div>
-            <span
-              className={cn(
-                SWITCHER_LABEL_CLASSNAME,
-                error && 'text-destructive',
-              )}
-            >
+            <span className={SWITCHER_LABEL_CLASSNAME}>
               {isSwitching ? 'Switching\u2026' : displayLabel}
             </span>
             <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} />
@@ -227,7 +121,7 @@ export default function OrganizationSwitcher({
         onSelect={(id) => void handleSwitch(id)}
         isDisabled={isSwitching}
         isLoading={isLoading}
-        emptyMessage={error ?? 'No organizations'}
+        emptyMessage="No organizations"
         hasSearch={orgs.length >= 5}
         footerActions={
           canCreateOrganization
