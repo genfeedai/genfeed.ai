@@ -12,9 +12,11 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { OrganizationsMembersController } from '@api/collections/organizations/controllers/organizations-members.controller';
+import { OrganizationsOperationsController } from '@api/collections/organizations/controllers/organizations-operations.controller';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
@@ -32,11 +34,12 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
-    OrganizationsController,
     OrganizationsIntegrationsController,
     OrganizationsMembersController,
+    OrganizationsOperationsController,
     OrganizationsRelationshipsController,
     OrganizationsSettingsController,
+    OrganizationsController,
   ],
   exports: [OrganizationsCoreModule],
   imports: [
@@ -61,6 +64,6 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
     WebhookClientModule,
   ],
-  providers: [MemberCreditsGuard],
+  providers: [MemberCreditsGuard, OrganizationsOperationsService],
 })
 export class OrganizationsModule {}
