@@ -388,11 +388,13 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         expect.objectContaining({
           balance: 0,
           currentPeriodEnd: null,
-          isMaxedOut: true,
+          isMaxedOut: false,
           isUnderUsing: false,
           organizationName: 'N/A',
+          remainingPercent: 100,
           status: null,
-          usedPercent: 100,
+          usedCredits: 0,
+          usedPercent: 0,
         }),
       );
     });

@@ -150,6 +150,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './src'),
       },
       {
+        find: '@api-test',
+        replacement: path.resolve(serviceDir, './test'),
+      },
+      {
         find: '@genfeedai/server',
         replacement: path.resolve(serviceDir, '../server/src'),
       },

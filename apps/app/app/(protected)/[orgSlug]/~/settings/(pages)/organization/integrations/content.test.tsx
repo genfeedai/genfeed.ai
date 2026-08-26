@@ -70,6 +70,7 @@ vi.mock('lucide-react', () => ({
   ChevronDown: () => <span data-testid="hi-chevron-down" />,
   ChevronRight: () => <span data-testid="hi-chevron-right" />,
   Clipboard: () => <span data-testid="hi-clipboard-document" />,
+  ListTodo: () => <span data-testid="hi-list-todo" />,
   Plus: () => <span data-testid="hi-plus" />,
   RefreshCw: () => <span data-testid="hi-arrow-path" />,
   Trash2: () => <span data-testid="hi-trash" />,
