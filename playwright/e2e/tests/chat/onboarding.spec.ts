@@ -53,6 +53,8 @@ async function mockActiveRuns(page: Page): Promise<void> {
 async function mockThreadBundle(
   page: Page,
   thread: {
+    brandId?: string;
+    contextVersion?: number;
     id: string;
     messageContent?: string;
     messageMetadata?: Record<string, unknown>;
@@ -60,6 +62,8 @@ async function mockThreadBundle(
   },
 ): Promise<void> {
   const threadResource = {
+    brandId: thread.brandId ?? null,
+    contextVersion: thread.contextVersion ?? 1,
     createdAt: '2026-03-10T10:00:00.000Z',
     id: thread.id,
     status: 'active',
@@ -127,6 +131,8 @@ async function mockThreadBundle(
 async function mockThreads(
   page: Page,
   threads: Array<{
+    brandId?: string;
+    contextVersion?: number;
     id: string;
     messageContent?: string;
     messageMetadata?: Record<string, unknown>;
@@ -138,6 +144,8 @@ async function mockThreads(
       body: JSON.stringify(
         buildJsonApiCollection(
           threads.map((thread) => ({
+            brandId: thread.brandId ?? null,
+            contextVersion: thread.contextVersion ?? 1,
             createdAt: '2026-03-10T10:00:00.000Z',
             id: thread.id,
             status: 'active',
@@ -185,6 +193,8 @@ test.describe('Agent Onboarding', () => {
 
     await mockThreads(authenticatedPage, [
       {
+        brandId: 'brand-voice-1',
+        contextVersion: 1,
         id: threadId,
         messageContent: 'I drafted a voice profile for your approval.',
         messageMetadata: {
@@ -396,6 +406,8 @@ test.describe('Agent Onboarding', () => {
 
     expect(uiActionRequest).toEqual({
       action: 'confirm_save_brand_voice_profile',
+      brandId: 'brand-voice-1',
+      expectedContextVersion: 1,
       payload: {
         brandId: 'brand-voice-1',
         sourceActionId: 'brand-voice-card-e2e',
