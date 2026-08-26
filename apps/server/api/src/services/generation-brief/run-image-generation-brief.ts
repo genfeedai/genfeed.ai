@@ -15,6 +15,7 @@ import {
 } from '@api-types/contracts/generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ImageTaskModel } from '@genfeedai/enums';
+import { ServiceUnavailableException } from '@nestjs/common';
 
 export interface RunImageGenerationBriefInput {
   avoid?: string[];
@@ -81,15 +82,20 @@ export function runImageGenerationBrief(
 
   const entry = getImageGenerationBriefRegistryEntry(support.modelKey);
   if (!entry) {
-    throw new Error(
-      `No registered generation brief compiler for model "${support.modelKey}".`,
+    throw new ServiceUnavailableException(
+      `Generation brief compiler configuration is unavailable for model "${support.modelKey}".`,
     );
   }
 
-  const fidelityMode = resolveImageGenerationFidelityMode({
-    brandingMode: input.brandingMode,
-    isBrandingEnabled: input.isBrandingEnabled,
-  });
+  // Operator-supplied avoid terms are independent of brand styling. They must
+  // remain active even when branding is off so compilers with a native
+  // negative-prompt field can preserve them at dispatch.
+  const fidelityMode = input.avoid?.some((value) => value.trim().length > 0)
+    ? 'guided'
+    : resolveImageGenerationFidelityMode({
+        brandingMode: input.brandingMode,
+        isBrandingEnabled: input.isBrandingEnabled,
+      });
   const brief = assembleImageGenerationBrief({
     avoid: input.avoid,
     composition: input.composition,

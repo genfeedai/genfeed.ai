@@ -1,6 +1,9 @@
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { runImageGenerationBrief } from '@api/services/generation-brief';
+import {
+  runImageGenerationBrief,
+  toRedactedGenerationBriefProviderData,
+} from '@api/services/generation-brief';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -59,7 +62,12 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       const prompt = typeof params.prompt === 'string' ? params.prompt : '';
       const height = typeof params.height === 'number' ? params.height : 1080;
       const width = typeof params.width === 'number' ? params.width : 1920;
+      const negativePrompt =
+        typeof params.negativePrompt === 'string'
+          ? params.negativePrompt
+          : undefined;
       const compiled = runImageGenerationBrief({
+        avoid: negativePrompt ? [negativePrompt] : undefined,
         height,
         model: model as string,
         objective: prompt,
@@ -86,10 +94,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             {
               height,
               modelCategory: ModelCategory.IMAGE,
-              negativePrompt:
-                typeof params.negativePrompt === 'string'
-                  ? params.negativePrompt
-                  : undefined,
+              negativePrompt,
               prompt,
               references,
               seed: typeof params.seed === 'number' ? params.seed : undefined,
@@ -110,8 +115,14 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           category: IngredientCategory.IMAGE,
           extension: MetadataExtension.JPG,
           externalId: null,
+          generationPrompt: prompt,
+          generationSource: compiled.generationSource,
           model: model as string,
+          negativePrompt,
           organizationId: context.organizationId,
+          providerData: toRedactedGenerationBriefProviderData(
+            compiled.evidence,
+          ),
           userId: context.userId,
         },
         resultUrl: (ingredientId) =>
@@ -120,6 +131,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       });
 
       return {
+        generationBriefEvidence: compiled.evidence,
+        generationSource: compiled.generationSource,
         id: pendingOutput.ingredientId,
         imageUrl: this.helper.buildImageIngredientUrl(
           pendingOutput.ingredientId,
