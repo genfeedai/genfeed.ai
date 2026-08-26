@@ -5,6 +5,7 @@ import type {
   IMediaVendorCostRangeQuery,
   IMediaVendorCostRecordInput,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -39,7 +40,9 @@ export class MediaVendorCostLedgerService {
       await this.prisma.mediaVendorCost.upsert({
         create: data,
         update: {},
-        where: { idempotencyKey: data.idempotencyKey },
+        where: scopedWhere(input.organizationId, {
+          idempotencyKey: data.idempotencyKey,
+        }),
       });
       return;
     }
