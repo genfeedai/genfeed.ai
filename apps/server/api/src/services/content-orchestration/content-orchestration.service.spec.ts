@@ -1,3 +1,4 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
@@ -28,6 +29,7 @@ vi.mock('@sentry/nestjs', () => ({
 describe('ContentOrchestrationService', () => {
   let service: ContentOrchestrationService;
   let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
+  let mockBrandsService: Record<string, ReturnType<typeof vi.fn>>;
   let mockPersonasService: Record<string, ReturnType<typeof vi.fn>>;
   let mockPublisherService: Record<string, ReturnType<typeof vi.fn>>;
   let mockSharedService: Record<string, ReturnType<typeof vi.fn>>;
@@ -69,6 +71,20 @@ describe('ContentOrchestrationService', () => {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
+    };
+
+    mockBrandsService = {
+      resolveBrandKitAssets: vi.fn().mockResolvedValue({
+        references: [
+          {
+            id: 'product-reference',
+            label: 'Matte black bottle with gold cap',
+            referenceCategory: 'PRODUCT',
+            role: 'reference',
+            url: 'https://cdn.example.com/references/product-reference',
+          },
+        ],
+      }),
     };
 
     mockPersonasService = {
@@ -118,6 +134,7 @@ describe('ContentOrchestrationService', () => {
       providers: [
         ContentOrchestrationService,
         { provide: LoggerService, useValue: mockLogger },
+        { provide: BrandsService, useValue: mockBrandsService },
         { provide: PersonasService, useValue: mockPersonasService },
         { provide: PersonaPublisherService, useValue: mockPublisherService },
         { provide: SharedService, useValue: mockSharedService },
@@ -142,6 +159,24 @@ describe('ContentOrchestrationService', () => {
       expect(result.postIds).toEqual(['post-1', 'post-2']);
       expect(result.timings).toBeDefined();
       expect(mockStepExecutorService.execute).toHaveBeenCalledTimes(2);
+    });
+
+    it('resolves semantic references once and threads the same set through every step', async () => {
+      await service.generateAndPublish(baseConfig);
+
+      expect(mockBrandsService.resolveBrandKitAssets).toHaveBeenCalledOnce();
+      const firstReferences =
+        mockStepExecutorService.execute.mock.calls[0]?.[1].runReferences;
+      const secondReferences =
+        mockStepExecutorService.execute.mock.calls[1]?.[1].runReferences;
+      expect(firstReferences).toBe(secondReferences);
+      expect(firstReferences).toEqual([
+        {
+          assetId: 'product-reference',
+          description: 'Matte black bottle with gold cap',
+          role: 'product',
+        },
+      ]);
     });
 
     it('should create ingredient for each step result', async () => {
@@ -350,7 +385,11 @@ describe('ContentOrchestrationService', () => {
     it('should throw when image-to-video follows non-image step without imageUrl', () => {
       const invalidSteps: PipelineStep[] = [
         { model: ImageTaskModel.FAL, type: 'text-to-image' },
-        { model: 'elevenlabs' as any, text: 'Hello', type: 'text-to-speech' },
+        {
+          model: MusicTaskModel.ELEVENLABS,
+          text: 'Hello',
+          type: 'text-to-speech',
+        },
         {
           duration: 5,
           model: VideoTaskModel.HIGGSFIELD,
@@ -408,7 +447,7 @@ describe('ContentOrchestrationService', () => {
 
   describe('generateAndPublish - publishMode variations', () => {
     it('should publish only final ingredient when publishMode is final', async () => {
-      const result = await service.generateAndPublish({
+      await service.generateAndPublish({
         ...baseConfig,
         publishMode: 'final',
       });
@@ -432,7 +471,7 @@ describe('ContentOrchestrationService', () => {
     });
 
     it('should publish all ingredients when publishMode is all', async () => {
-      const result = await service.generateAndPublish({
+      await service.generateAndPublish({
         ...baseConfig,
         publishMode: 'all',
       });
@@ -494,6 +533,22 @@ describe('ContentOrchestrationService', () => {
       expect(result.summary.failed).toBe(1);
       expect(result.results[0].status).toBe('failed');
     });
+  });
+
+  it('resolves batch references once before dispatching all items', async () => {
+    await service.runBatchForPersona({
+      brandId: baseConfig.brandId,
+      count: 2,
+      items: [
+        { prompt: 'Prompt 1', steps },
+        { prompt: 'Prompt 2', steps },
+      ],
+      organizationId: baseConfig.organizationId,
+      personaId: baseConfig.personaId,
+      userId: baseConfig.userId,
+    });
+
+    expect(mockBrandsService.resolveBrandKitAssets).toHaveBeenCalledOnce();
   });
 
   // ── Sentry Performance Tracing ─────────────────────────────────────────────

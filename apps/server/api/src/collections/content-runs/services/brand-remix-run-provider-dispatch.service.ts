@@ -26,6 +26,7 @@ import {
   type BrandRemixRunConfig,
   brandRemixRunConfigSchema,
 } from '@api-types/contracts/brand-remix-run.contract';
+import type { ImageGenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import { sourcePostVariationCredits } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
@@ -62,6 +63,12 @@ export class BrandRemixRunProviderDispatchService {
       );
     }
     const references = draft.references.map((reference) => reference.assetId);
+    const runReferences = params.config.execution?.generationBrief.references;
+    if (!runReferences) {
+      throw new ConflictException(
+        'Canonical generation references are missing.',
+      );
+    }
     const dimensions = remixDimensions(draft.output.aspectRatio);
     const prompt = this.compileProviderPrompt(params.config);
 
@@ -84,6 +91,10 @@ export class BrandRemixRunProviderDispatchService {
         params.onPlaceholderCreated,
         params.placeholderScope,
         params.onCreditsPrepared,
+        runReferences.filter(
+          (reference): reference is ImageGenerationBriefReference =>
+            reference.role !== 'first_frame' && reference.role !== 'last_frame',
+        ),
       );
       return this.generatedAssetId(response);
     }
@@ -110,6 +121,7 @@ export class BrandRemixRunProviderDispatchService {
         params.onPlaceholderCreated,
         params.placeholderScope,
         params.onCreditsPrepared,
+        runReferences,
       );
       return this.generatedAssetId(response);
     }

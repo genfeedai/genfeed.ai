@@ -21,6 +21,7 @@ describe('toBrandKitAssetRelations', () => {
       references: [
         {
           id: 'asset-ref',
+          referenceCategory: 'PRODUCT',
           role: 'reference',
           url: 'https://cdn.example.com/references/asset-ref',
         },
@@ -49,6 +50,7 @@ describe('toBrandKitAssetRelations', () => {
           displayName: undefined,
           id: 'asset-ref',
           mimeType: undefined,
+          referenceCategory: 'PRODUCT',
         },
       ],
     });

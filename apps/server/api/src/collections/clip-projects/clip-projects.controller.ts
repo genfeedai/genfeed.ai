@@ -115,6 +115,12 @@ export class ClipProjectsController {
     const identity = mode === 'avatar' ? resolvedIdentity : undefined;
 
     this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
+    const runReferences = dto.brandId
+      ? await this.clipGenerationRequestService.resolveRunReferences(
+          dto.brandId,
+          orgId,
+        )
+      : [];
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -161,6 +167,7 @@ export class ClipProjectsController {
       mode,
       orgId,
       projectId,
+      runReferences,
       userId,
       voiceId: identity?.voiceId,
       youtubeUrl: dto.youtubeUrl,
@@ -318,6 +325,7 @@ export class ClipProjectsController {
       persistedHighlights,
       project,
       reference,
+      runReferences,
       selectedHighlights: selectedEditedHighlights,
     } = await this.clipGenerationRequestService.prepare({
       dto,
@@ -348,6 +356,7 @@ export class ClipProjectsController {
       ...(reference.application
         ? { referenceProvenance: reference.application.provenance }
         : {}),
+      runReferences,
       sourceVideoS3Key: project.sourceVideoS3Key,
       sourceVideoUrl: project.sourceVideoUrl,
       transcriptSegments: Array.isArray(project.transcriptSegments)

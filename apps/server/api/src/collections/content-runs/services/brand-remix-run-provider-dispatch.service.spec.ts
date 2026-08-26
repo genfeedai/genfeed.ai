@@ -151,6 +151,66 @@ describe('BrandRemixRunProviderDispatchService', () => {
         text: expect.stringContaining('Create an original Instagram execution'),
       }),
     );
+    expect(imageGenerationService.generateImage.mock.calls[0]?.[6]).toEqual(
+      makeConfig().execution?.generationBrief.references,
+    );
+  });
+
+  it('threads the immutable run references into every video dispatch', async () => {
+    videoGenerationService.generateVideo.mockResolvedValue({
+      data: { id: 'video-1', type: 'ingredient' },
+    });
+    const base = makeConfig();
+    const config = brandRemixRunConfigSchema.parse({
+      ...base,
+      draft: {
+        ...base.draft,
+        output: { aspectRatio: '9:16', count: 1, kind: 'video' },
+        references: [
+          {
+            assetId: 'character-sheet',
+            role: 'character',
+            source: 'brand_default',
+          },
+          {
+            assetId: 'product-still',
+            description: 'Matte black bottle with gold cap',
+            role: 'product',
+            source: 'brand_default',
+          },
+        ],
+      },
+      execution: {
+        ...base.execution,
+        generationBrief: {
+          ...base.execution?.generationBrief,
+          mediaKind: 'video',
+          output: { aspectRatio: '9:16', durationSeconds: 8 },
+          references: [
+            { assetId: 'character-sheet', role: 'character' },
+            {
+              assetId: 'product-still',
+              description: 'Matte black bottle with gold cap',
+              role: 'product',
+            },
+          ],
+        },
+      },
+    });
+
+    await dispatch.dispatchVariant({
+      brandId: 'brand-1',
+      config,
+      onCreditsPrepared: async () => undefined,
+      onPlaceholderCreated: async () => undefined,
+      placeholderScope: { groupId: 'run-1', groupIndex: 0 },
+      request: {} as never,
+      user: { organizationId: 'org-1', userId: 'user-1' } as never,
+    });
+
+    expect(videoGenerationService.generateVideo.mock.calls[0]?.[6]).toEqual(
+      config.execution?.generationBrief.references,
+    );
   });
 
   it('refuses avatar dispatch without a configured identity', async () => {

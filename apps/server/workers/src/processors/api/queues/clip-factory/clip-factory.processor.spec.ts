@@ -272,6 +272,23 @@ describe('ClipFactoryProcessor', () => {
     );
   });
 
+  it('threads the immutable queue references into every generated clip', async () => {
+    const runReferences = Object.freeze([
+      Object.freeze({
+        assetId: 'product-1',
+        description: 'Ceramic mug in glacier blue',
+        role: 'product' as const,
+        url: 'https://cdn.example.com/product.png',
+      }),
+    ]);
+
+    await processor.process(makeJob(makeJobData({ runReferences })));
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({ runReferences }),
+    );
+  });
+
   it('should pass raw-cut source and transcript context to clip generation', async () => {
     await processor.process(makeJob(makeJobData({ mode: 'raw-cut' })));
 

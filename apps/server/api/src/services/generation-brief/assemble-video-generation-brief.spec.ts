@@ -3,6 +3,32 @@ import { resolveVideoGenerationFidelityMode } from '@api/services/generation-bri
 import { describe, expect, it } from 'vitest';
 
 describe('assembleVideoGenerationBrief', () => {
+  it('preserves semantic run references across every clip brief', () => {
+    const brief = assembleVideoGenerationBrief({
+      fidelityMode: 'guided',
+      objective: 'Show the product in use',
+      references: [
+        { assetId: 'character-sheet', role: 'character' },
+        {
+          assetId: 'product-still',
+          description: 'Matte black bottle with gold cap',
+          role: 'product',
+        },
+        { assetId: 'outfit-style', role: 'style' },
+      ],
+    });
+
+    expect(brief.references).toEqual([
+      { assetId: 'character-sheet', role: 'character' },
+      {
+        assetId: 'product-still',
+        description: 'Matte black bottle with gold cap',
+        role: 'product',
+      },
+      { assetId: 'outfit-style', role: 'style' },
+    ]);
+  });
+
   it('normalizes an unbranded video request into a versioned brief', () => {
     const brief = assembleVideoGenerationBrief({
       durationSeconds: 5,

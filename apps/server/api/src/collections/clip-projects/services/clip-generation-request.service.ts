@@ -1,3 +1,5 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type {
   GenerateClipHighlightDto,
@@ -7,6 +9,7 @@ import type {
   ClipProjectDocument,
   ClipProjectHighlight,
 } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { ClipRunGenerationReference } from '@api/collections/clip-projects/services/clip-generation.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import {
   type ResolvedClipReference,
@@ -35,6 +38,7 @@ export interface PreparedClipGeneration {
   persistedHighlights: ClipProjectHighlight[];
   project: ClipProjectDocument;
   reference: ResolvedClipReference;
+  runReferences: readonly ClipRunGenerationReference[];
   selectedHighlights: ClipProjectHighlight[];
 }
 
@@ -50,6 +54,7 @@ export class ClipGenerationRequestService {
   constructor(
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
+    private readonly brandsService: BrandsService,
   ) {}
 
   async prepare({
@@ -61,6 +66,7 @@ export class ClipGenerationRequestService {
 
     const project = await this.clipProjectsService.findOne({
       id: projectId,
+      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -91,6 +97,10 @@ export class ClipGenerationRequestService {
             voiceId: dto.voiceId,
           })
         : undefined;
+
+    const runReferences = project.brandId
+      ? await this.resolveRunReferences(project.brandId, organizationId)
+      : [];
 
     this.assertCompleteAvatarIdentity(identity);
 
@@ -124,8 +134,30 @@ export class ClipGenerationRequestService {
       persistedHighlights,
       project,
       reference,
+      runReferences,
       selectedHighlights,
     };
+  }
+
+  async resolveRunReferences(
+    brandId: string,
+    organizationId: string,
+  ): Promise<readonly ClipRunGenerationReference[]> {
+    const brandKit = await this.brandsService.resolveBrandKitAssets(
+      brandId,
+      organizationId,
+    );
+    const urlsById = new Map(
+      brandKit.references.map((reference) => [reference.id, reference.url]),
+    );
+    return Object.freeze(
+      toBrandGenerationReferences(brandKit).map((reference) =>
+        Object.freeze({
+          ...reference,
+          url: urlsById.get(reference.assetId) as string,
+        }),
+      ),
+    );
   }
 
   private applyHighlightEdits(

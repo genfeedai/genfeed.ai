@@ -12,6 +12,7 @@ import type {
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
@@ -47,6 +48,7 @@ export class VideoGenerationService {
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
     placeholderScope?: GenerationPlaceholderScope,
     onCreditsPrepared?: () => Promise<void>,
+    runReferences?: readonly GenerationBriefReference[],
   ): Promise<JsonApiSingleResponse> {
     const resolved = await this.preparationService.resolve(
       user,
@@ -99,6 +101,7 @@ export class VideoGenerationService {
     const context = await this.preparationService.prepare(
       resolved,
       placeholderScope,
+      runReferences,
     );
     try {
       await onPlaceholderCreated?.(context.ingredientData.id.toString());

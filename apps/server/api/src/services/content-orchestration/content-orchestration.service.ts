@@ -1,3 +1,5 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
@@ -46,6 +48,7 @@ export interface BatchPipelineConfig {
     scheduledDate?: Date;
   }>;
   platforms?: string[];
+  runReferences?: PipelineConfig['runReferences'];
 }
 
 @Injectable()
@@ -54,6 +57,7 @@ export class ContentOrchestrationService {
 
   constructor(
     private readonly loggerService: LoggerService,
+    private readonly brandsService: BrandsService,
     private readonly personasService: PersonasService,
     private readonly personaPublisherService: PersonaPublisherService,
     private readonly sharedService: SharedService,
@@ -137,6 +141,9 @@ export class ContentOrchestrationService {
       config.personaId,
       config.organizationId,
     );
+    const runReferences =
+      config.runReferences ??
+      (await this.resolveRunReferences(config.brandId, config.organizationId));
 
     let status: PipelineRunStatus = 'running';
     const stepOutcomes: StepOutcome[] = [];
@@ -164,6 +171,7 @@ export class ContentOrchestrationService {
               globalPrompt: config.prompt,
               organizationId: config.organizationId,
               previousResult,
+              runReferences,
             }),
         );
 
@@ -325,6 +333,9 @@ export class ContentOrchestrationService {
     });
 
     const results: PipelineResultV2[] = [];
+    const runReferences =
+      config.runReferences ??
+      (await this.resolveRunReferences(config.brandId, config.organizationId));
     let completed = 0;
     let failed = 0;
 
@@ -337,6 +348,7 @@ export class ContentOrchestrationService {
           platforms: config.platforms,
           prompt: item.prompt,
           publishMode: item.publishMode,
+          runReferences,
           scheduledDate: item.scheduledDate,
           steps: item.steps,
           userId: config.userId,
@@ -420,6 +432,7 @@ export class ContentOrchestrationService {
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
       id: personaId,
+      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -428,5 +441,16 @@ export class ContentOrchestrationService {
     }
 
     return persona;
+  }
+
+  private async resolveRunReferences(
+    brandId: string,
+    organizationId: string,
+  ): Promise<PipelineConfig['runReferences']> {
+    const brandKit = await this.brandsService.resolveBrandKitAssets(
+      brandId,
+      organizationId,
+    );
+    return toBrandGenerationReferences(brandKit);
   }
 }

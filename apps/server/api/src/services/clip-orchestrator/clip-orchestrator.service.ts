@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
 import {
   CLIP_ORCHESTRATOR_EVENTS,
   type ClipRunConfirmationEvent,
@@ -13,6 +15,7 @@ import {
 } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import { ClipRunStepDto } from '@api/services/clip-orchestrator/dto/clip-run-step.dto';
 import { StartClipRunDto } from '@api/services/clip-orchestrator/dto/start-clip-run.dto';
+import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
@@ -33,6 +36,7 @@ export interface ClipRun {
   currentState: ClipRunState;
   confirmationRequired: boolean;
   skipMerging: boolean;
+  runReferences: readonly GenerationBriefReference[];
   steps: ClipRunStepDto[];
   error?: string;
   metadata?: Record<string, unknown>;
@@ -51,6 +55,7 @@ export class ClipOrchestratorService {
   constructor(
     private readonly eventEmitter: EventEmitter2,
     private readonly stateStore: ClipOrchestratorStateStore,
+    private readonly brandsService: BrandsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -61,6 +66,14 @@ export class ClipOrchestratorService {
    * Start a new clip orchestration run.
    */
   async startRun(dto: StartClipRunDto): Promise<ClipRun> {
+    const runReferences = dto.brandId
+      ? toBrandGenerationReferences(
+          await this.brandsService.resolveBrandKitAssets(
+            dto.brandId,
+            dto.organizationId,
+          ),
+        )
+      : Object.freeze([]);
     const run: ClipRun = {
       confirmationRequired: dto.confirmationRequired ?? false,
       createdAt: new Date(),
@@ -69,6 +82,7 @@ export class ClipOrchestratorService {
       metadata: dto.metadata,
       organizationId: dto.organizationId,
       projectId: dto.projectId,
+      runReferences,
       skipMerging: dto.skipMerging ?? false,
       steps: [],
       updatedAt: new Date(),
@@ -383,6 +397,11 @@ function reviveClipRun(run: ClipRun): ClipRun {
   return {
     ...run,
     createdAt: new Date(run.createdAt),
+    runReferences: Object.freeze(
+      (run.runReferences ?? []).map((reference) =>
+        Object.freeze({ ...reference }),
+      ),
+    ),
     steps: run.steps.map((step) => ({
       ...step,
       completedAt: step.completedAt ? new Date(step.completedAt) : undefined,

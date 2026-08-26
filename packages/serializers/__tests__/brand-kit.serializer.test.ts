@@ -160,4 +160,29 @@ describe('Brand Kit JSON:API contract', () => {
       },
     });
   });
+
+  it('serializes a persisted reference category in import results', () => {
+    const output = BrandKitAssetImportSerializer.serialize({
+      brandId: 'brand-1',
+      diagnostics: [],
+      failedCandidateIds: [],
+      id: 'brand-1',
+      importedAssetIds: ['asset-reference'],
+      results: [
+        {
+          assetId: 'asset-reference',
+          diagnostics: [],
+          referenceCategory: 'PRODUCT',
+          role: 'reference',
+          status: 'imported',
+        },
+      ],
+      skippedCandidateIds: [],
+      status: 'accepted',
+    });
+
+    expect(output.data.attributes.results).toEqual([
+      expect.objectContaining({ referenceCategory: 'PRODUCT' }),
+    ]);
+  });
 });

@@ -16,6 +16,7 @@ export interface AssembleImageGenerationBriefInput {
   lighting?: string;
   objective: string;
   referenceIds?: string[];
+  references?: readonly ImageGenerationBriefReference[];
   requestedText?: string[];
   scene?: string;
   subjects?: string[];
@@ -75,12 +76,12 @@ export function assembleImageGenerationBrief(
     });
   }
 
-  const references: ImageGenerationBriefReference[] = uniqueTexts(
-    input.referenceIds,
-  ).map((assetId) => ({
-    assetId,
-    role: 'subject' as const,
-  }));
+  const references: ImageGenerationBriefReference[] = input.references
+    ? [...input.references]
+    : uniqueTexts(input.referenceIds).map((assetId) => ({
+        assetId,
+        role: 'subject' as const,
+      }));
 
   const width = input.width;
   const height = input.height;

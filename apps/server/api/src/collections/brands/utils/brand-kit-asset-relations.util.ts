@@ -15,6 +15,9 @@ function toAssetRelation(
     displayName: asset.label,
     id: asset.id,
     mimeType: asset.mimeType,
+    ...(asset.referenceCategory
+      ? { referenceCategory: asset.referenceCategory }
+      : {}),
   };
 }
 

@@ -90,6 +90,35 @@ describe('ClipResultSerializer — raw-cut contract', () => {
     ).not.toMatch(/https?:\/\/|apiKey|providerResponse/);
   });
 
+  it('exposes the immutable run references attached to the clip brief', () => {
+    const generationBrief = {
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: {
+        objective: 'Show the product in use',
+        requestedText: [],
+        subjects: [],
+      },
+      mediaKind: 'video',
+      output: { durationSeconds: 8 },
+      provenance: [{ field: 'references.product-1', source: 'reference' }],
+      references: [
+        {
+          assetId: 'product-1',
+          description: 'Ceramic mug in glacier blue',
+          role: 'product',
+        },
+      ],
+      version: 1,
+    };
+    const output = ClipResultSerializer.serialize({
+      generationBrief,
+      id: 'ckclipresult00000000000005',
+    }) as SerializedResource;
+
+    expect(output.data.attributes.generationBrief).toEqual(generationBrief);
+  });
+
   it('exposes the canonical Library ingredient link without signed media secrets', () => {
     const output = ClipResultSerializer.serialize({
       id: 'ckclipresult00000000000004',

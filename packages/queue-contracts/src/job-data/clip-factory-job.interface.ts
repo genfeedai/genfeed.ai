@@ -38,6 +38,20 @@ export const CLIP_FACTORY_JOB_NAME = 'clip-factory-run';
 /** Default concurrency — one long-running pipeline per worker. */
 export const CLIP_FACTORY_CONCURRENCY = 2;
 
+export interface ClipFactoryRunReference {
+  assetId: string;
+  description?: string;
+  role:
+    | 'subject'
+    | 'character'
+    | 'product'
+    | 'style'
+    | 'composition'
+    | 'first_frame'
+    | 'last_frame';
+  url: string;
+}
+
 export interface ClipFactoryJobData {
   projectId: string;
   youtubeUrl: string;
@@ -54,4 +68,6 @@ export interface ClipFactoryJobData {
   language: string;
   orgId: string;
   userId: string;
+  /** Immutable tenant-authorized references resolved before credit checks. */
+  runReferences?: readonly ClipFactoryRunReference[];
 }

@@ -21,6 +21,7 @@ export interface AssembleVideoGenerationBriefInput {
   motion?: string;
   objective: string;
   referenceIds?: string[];
+  references?: readonly GenerationBriefReference[];
   requestedText?: string[];
   scene?: string;
   subjects?: string[];
@@ -93,12 +94,12 @@ export function assembleVideoGenerationBrief(
   }
 
   const referenceIds = uniqueTexts(input.referenceIds);
-  const references: GenerationBriefReference[] = referenceIds.map(
-    (assetId, index) => ({
-      assetId,
-      role: index === 0 ? ('first_frame' as const) : ('subject' as const),
-    }),
-  );
+  const references: GenerationBriefReference[] = input.references
+    ? [...input.references]
+    : referenceIds.map((assetId, index) => ({
+        assetId,
+        role: index === 0 ? ('first_frame' as const) : ('subject' as const),
+      }));
 
   const endFrameId = optionalText(input.endFrameId);
   if (endFrameId) {

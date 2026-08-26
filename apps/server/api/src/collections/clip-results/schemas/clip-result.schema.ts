@@ -1,3 +1,4 @@
+import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import {
   CLIP_RESULT_STATUSES,
   type ClipLibraryLinkStatus,
@@ -23,6 +24,7 @@ export interface ClipResultDocument extends ClipResultRecord {
   mode: ClipResultMode | string;
   readiness: ClipReadinessContract | Record<string, unknown>;
   referenceProvenance?: ClipReferenceProvenance;
+  generationBrief?: VideoGenerationBrief;
   status: SharedClipResultStatus | string;
   terminalAt?: Date | null;
   // Raw-cut data contract. Persisted in the `data` blob and flattened by the

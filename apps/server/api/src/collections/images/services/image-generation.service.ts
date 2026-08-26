@@ -41,7 +41,10 @@ import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type {
+  ImageGenerationBrief,
+  ImageGenerationBriefReference,
+} from '@api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   IngredientCategory,
@@ -108,6 +111,7 @@ export class ImageGenerationService {
     onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
     placeholderScope?: GenerationPlaceholderScope,
     onCreditsPrepared?: () => Promise<void>,
+    runReferences?: readonly ImageGenerationBriefReference[],
   ): Promise<JsonApiSingleResponse> {
     const {
       brand,
@@ -204,6 +208,7 @@ export class ImageGenerationService {
       model,
       promptOriginalText,
       referenceIds,
+      runReferences,
       style,
       width,
     });
@@ -415,6 +420,7 @@ export class ImageGenerationService {
     model: string;
     promptOriginalText: string;
     referenceIds: string[];
+    runReferences?: readonly ImageGenerationBriefReference[];
     style?: string;
     width: number;
   }): {
@@ -447,6 +453,7 @@ export class ImageGenerationService {
         model: params.model,
         objective: params.promptOriginalText,
         referenceIds: params.referenceIds,
+        references: params.runReferences,
         scene: params.createImageDto.scene,
         seed: params.createImageDto.seed,
         surface: 'studio',

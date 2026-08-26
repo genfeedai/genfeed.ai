@@ -4,7 +4,10 @@ import { getImageGenerationBriefRegistryEntry } from '@api/services/generation-b
 import { assertRedactedGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { resolveImageGenerationBriefSupport } from '@api/services/generation-brief/resolve-image-generation-brief-support';
 import { resolveImageGenerationFidelityMode } from '@api/services/generation-brief/resolve-image-generation-fidelity-mode';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type {
+  ImageGenerationBrief,
+  ImageGenerationBriefReference,
+} from '@api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefPersistedEvidence,
   GenerationBriefSurface,
@@ -27,6 +30,7 @@ export interface RunImageGenerationBriefInput {
   model: string;
   objective: string;
   referenceIds?: string[];
+  references?: readonly ImageGenerationBriefReference[];
   scene?: string;
   seed?: number;
   surface: GenerationBriefSurface;
@@ -104,6 +108,7 @@ export function runImageGenerationBrief(
     lighting: input.lighting,
     objective: input.objective,
     referenceIds: input.referenceIds,
+    references: input.references,
     scene: input.scene,
     visualDirection: input.visualDirection,
     visualDirectionSource: 'user',

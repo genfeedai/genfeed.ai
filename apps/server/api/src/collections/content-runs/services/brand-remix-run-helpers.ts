@@ -3,10 +3,7 @@ import {
   type GenerationDimensions,
   MAX_ERROR_LENGTH,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import type {
-  BrandRemixDraft,
-  BrandRemixSourceSnapshot,
-} from '@api-types/contracts/brand-remix-run.contract';
+import type { BrandRemixSourceSnapshot } from '@api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
@@ -230,18 +227,4 @@ export function remixDimensions(aspectRatio: string): GenerationDimensions {
 
 export function remixAvatarAspectRatio(value: string): '1:1' | '9:16' | '16:9' {
   return value === '16:9' || value === '1:1' ? value : '9:16';
-}
-
-export function remixBrandAssetRole(
-  label?: string,
-): BrandRemixDraft['references'][number]['role'] {
-  const normalized = label?.toLowerCase() ?? '';
-  if (normalized.includes('product')) return 'product';
-  if (normalized.includes('character') || normalized.includes('person')) {
-    return 'character';
-  }
-  if (normalized.includes('composition') || normalized.includes('layout')) {
-    return 'composition';
-  }
-  return 'style';
 }

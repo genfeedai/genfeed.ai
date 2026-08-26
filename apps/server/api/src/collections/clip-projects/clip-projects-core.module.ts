@@ -8,6 +8,7 @@
  * ClipProjectsModule re-exports everything from here and adds the queue modules.
  */
 
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
@@ -38,6 +39,7 @@ import { Module } from '@nestjs/common';
     RawCutClipService,
   ],
   imports: [
+    BrandsCoreModule,
     CaptionsModule,
     ClipResultsModule,
     CreditsModule,

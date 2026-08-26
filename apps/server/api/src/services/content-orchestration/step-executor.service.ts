@@ -9,6 +9,7 @@ import type {
 } from '@api/services/content-orchestration/pipeline.interfaces';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
+import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import {
   ByokProvider,
   ImageTaskModel,
@@ -26,6 +27,7 @@ export interface StepExecutionContext {
   organizationId: string;
   previousResult?: StepResult;
   globalPrompt?: string;
+  runReferences?: readonly GenerationBriefReference[];
 }
 
 interface ReplicatePredictionOutput {
