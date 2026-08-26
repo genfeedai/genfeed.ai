@@ -1,40 +1,19 @@
-import { BotsService } from '@api/collections/bots/services/bots.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MembersService } from '@api/collections/members/services/members.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
-  AdminBrandsQueryDto,
-  AdminOrgsQueryDto,
   AnalyticsDateRangeDto,
   AnalyticsFilterQueryDto,
   GrowthQueryDto,
-  LeaderboardQueryDto,
   TopContentQueryDto,
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
-import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CacheService } from '@api/services/cache/services/cache.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { BotStatus } from '@genfeedai/enums';
-import {
-  type ISubscriptionsService,
-  SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {
@@ -54,14 +33,7 @@ describe('AnalyticsController', () => {
   let controller: AnalyticsController;
   let analyticsService: vi.Mocked<AnalyticsService>;
   let analyticsExportService: vi.Mocked<AnalyticsExportService>;
-  let entityLeaderboardService: vi.Mocked<EntityLeaderboardService>;
   let businessAnalyticsService: vi.Mocked<BusinessAnalyticsService>;
-  let botsService: vi.Mocked<BotsService>;
-  let brandsService: vi.Mocked<BrandsService>;
-  let ingredientsService: vi.Mocked<IngredientsService>;
-  let postsService: vi.Mocked<PostsService>;
-  let subscriptionsService: vi.Mocked<ISubscriptionsService>;
-  let usersService: vi.Mocked<UsersService>;
   let tiktokService: vi.Mocked<TiktokService>;
   let twitterService: vi.Mocked<TwitterService>;
   let youtubeService: vi.Mocked<YoutubeService>;
@@ -103,36 +75,9 @@ describe('AnalyticsController', () => {
     analyticsExportService = {
       exportData: vi.fn(),
     } as unknown as vi.Mocked<AnalyticsExportService>;
-    entityLeaderboardService = {
-      getBrandsLeaderboard: vi.fn(),
-      getBrandsWithStats: vi.fn(),
-      getOrganizationsLeaderboard: vi.fn(),
-      getOrganizationsWithStats: vi.fn(),
-    } as unknown as vi.Mocked<EntityLeaderboardService>;
     businessAnalyticsService = {
       getBusinessAnalytics: vi.fn(),
     } as unknown as vi.Mocked<BusinessAnalyticsService>;
-
-    brandsService = {
-      findAll: vi.fn(),
-    } as unknown as vi.Mocked<BrandsService>;
-    botsService = {
-      find: vi.fn().mockResolvedValue([]),
-      findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
-      findOne: vi.fn(),
-    } as unknown as vi.Mocked<BotsService>;
-    postsService = {
-      findAll: vi.fn(),
-    } as unknown as vi.Mocked<PostsService>;
-    subscriptionsService = {
-      findAll: vi.fn(),
-    } as unknown as vi.Mocked<ISubscriptionsService>;
-    usersService = {
-      findAll: vi.fn(),
-    } as unknown as vi.Mocked<UsersService>;
-    ingredientsService = {
-      findAll: vi.fn(),
-    } as unknown as vi.Mocked<IngredientsService>;
 
     tiktokService = {
       getTrends: vi.fn(),
@@ -151,72 +96,15 @@ describe('AnalyticsController', () => {
       controllers: [AnalyticsController],
       providers: [
         { provide: LoggerService, useValue: loggerService },
-        {
-          provide: MembersService,
-          useValue: { find: vi.fn().mockResolvedValue([]), findOne: vi.fn() },
-        },
-        {
-          provide: CacheService,
-          useValue: {
-            del: vi.fn(),
-            get: vi.fn().mockResolvedValue(null),
-            set: vi.fn(),
-          },
-        },
-        {
-          provide: BotsService,
-          useValue: botsService,
-        },
-        {
-          provide: CreditTransactionsService,
-          useValue: { getUsageMetrics: vi.fn().mockResolvedValue({}) },
-        },
-        {
-          provide: ModelsService,
-          useValue: {
-            find: vi.fn().mockResolvedValue([]),
-            findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
-            findOne: vi.fn(),
-          },
-        },
-        {
-          provide: OrganizationsService,
-          useValue: {
-            find: vi.fn().mockResolvedValue([]),
-            findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
-            findOne: vi.fn(),
-          },
-        },
-        {
-          provide: WorkflowsService,
-          useValue: {
-            find: vi.fn().mockResolvedValue([]),
-            findAll: vi.fn().mockResolvedValue({ data: [], total: 0 }),
-            findOne: vi.fn(),
-          },
-        },
-        {
-          provide: InstagramService,
-          useValue: { getAccountAnalytics: vi.fn().mockResolvedValue({}) },
-        },
         { provide: AnalyticsService, useValue: analyticsService },
         {
           provide: AnalyticsExportService,
           useValue: analyticsExportService,
         },
         {
-          provide: EntityLeaderboardService,
-          useValue: entityLeaderboardService,
-        },
-        {
           provide: BusinessAnalyticsService,
           useValue: businessAnalyticsService,
         },
-        { provide: BrandsService, useValue: brandsService },
-        { provide: IngredientsService, useValue: ingredientsService },
-        { provide: PostsService, useValue: postsService },
-        { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
-        { provide: UsersService, useValue: usersService },
         { provide: TiktokService, useValue: tiktokService },
         { provide: TwitterService, useValue: twitterService },
         { provide: YoutubeService, useValue: youtubeService },
@@ -236,53 +124,6 @@ describe('AnalyticsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('findAll', () => {
-    it('should aggregate totals across services', async () => {
-      subscriptionsService.findAll.mockResolvedValueOnce({ total: 4 } as never);
-      usersService.findAll.mockResolvedValueOnce({ total: 8 } as never);
-      postsService.findAll.mockResolvedValueOnce({ total: 12 } as never);
-      brandsService.findAll.mockResolvedValueOnce({ total: 3 } as never);
-      ingredientsService.findAll
-        .mockResolvedValueOnce({ total: 5 } as never)
-        .mockResolvedValueOnce({ total: 9 } as never);
-
-      const query = {} as unknown as BaseQueryDto;
-      const result = await controller.findAll(mockRequest, query);
-
-      expect(subscriptionsService.findAll).toHaveBeenCalled();
-      expect(usersService.findAll).toHaveBeenCalled();
-      expect(postsService.findAll).toHaveBeenCalled();
-      expect(brandsService.findAll).toHaveBeenCalled();
-      expect(ingredientsService.findAll).toHaveBeenCalledTimes(2);
-      expect(ingredientsService.findAll.mock.calls[0][0]).toEqual({
-        where: { category: 'VIDEO' },
-      });
-      expect(ingredientsService.findAll.mock.calls[1][0]).toEqual({
-        where: { category: 'IMAGE' },
-      });
-      expect(result).toBeDefined();
-    });
-
-    it('counts active bots with the Bot.status column, not the removed enabled field', async () => {
-      const query = {} as unknown as BaseQueryDto;
-
-      await controller.findAll(mockRequest, query);
-
-      expect(botsService.findAll).toHaveBeenCalledWith(
-        {
-          where: {
-            isDeleted: false,
-            status: BotStatus.ACTIVE,
-          },
-        },
-        expect.any(Object),
-      );
-      expect(botsService.findAll.mock.calls[0][0].where).not.toHaveProperty(
-        'enabled',
-      );
-    });
   });
 
   describe('exportData', () => {
@@ -377,115 +218,6 @@ describe('AnalyticsController', () => {
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('tiktok failed'),
         expect.any(Error),
-      );
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe('leaderboards', () => {
-    it('should return organization leaderboard', async () => {
-      entityLeaderboardService.getOrganizationsLeaderboard.mockResolvedValueOnce(
-        [],
-      );
-
-      const query = {
-        endDate: '2025-01-31',
-        limit: 10,
-        sort: 'engagement',
-        startDate: '2025-01-01',
-      } as unknown as LeaderboardQueryDto;
-
-      const result = await controller.getOrganizationsLeaderboard(
-        mockRequest,
-        query,
-      );
-
-      expect(
-        entityLeaderboardService.getOrganizationsLeaderboard,
-      ).toHaveBeenCalledWith('2025-01-01', '2025-01-31', 'engagement', 10);
-      expect(result).toBeDefined();
-    });
-
-    it('should return organization stats', async () => {
-      entityLeaderboardService.getOrganizationsWithStats.mockResolvedValueOnce({
-        data: [],
-        pagination: { limit: 20, page: 1, total: 0, totalPages: 0 },
-      } as never);
-
-      const query = {
-        endDate: '2025-01-31',
-        limit: 20,
-        page: 1,
-        sort: 'engagement',
-        startDate: '2025-01-01',
-      } as unknown as AdminOrgsQueryDto;
-
-      const result = await controller.getOrganizationsWithStats(
-        mockRequest,
-        query,
-      );
-
-      expect(
-        entityLeaderboardService.getOrganizationsWithStats,
-      ).toHaveBeenCalledWith('2025-01-01', '2025-01-31', 1, 20, 'engagement');
-      expect(result).toBeDefined();
-    });
-
-    it('should return brand leaderboard', async () => {
-      entityLeaderboardService.getBrandsLeaderboard.mockResolvedValueOnce([]);
-
-      const query = {
-        endDate: '2025-01-31',
-        limit: 5,
-        sort: 'engagement',
-        startDate: '2025-01-01',
-      } as unknown as LeaderboardQueryDto;
-
-      const result = await controller.getBrandsLeaderboard(
-        mockRequest.user as never,
-        mockRequest,
-        query,
-      );
-
-      expect(
-        entityLeaderboardService.getBrandsLeaderboard,
-      ).toHaveBeenCalledWith(
-        '2025-01-01',
-        '2025-01-31',
-        'engagement',
-        5,
-        undefined,
-      );
-      expect(result).toBeDefined();
-    });
-
-    it('should return brand stats', async () => {
-      entityLeaderboardService.getBrandsWithStats.mockResolvedValueOnce({
-        data: [],
-        pagination: { limit: 15, page: 2, total: 0, totalPages: 0 },
-      } as never);
-
-      const query = {
-        endDate: '2025-01-31',
-        limit: 15,
-        page: 2,
-        sort: 'engagement',
-        startDate: '2025-01-01',
-      } as unknown as AdminBrandsQueryDto;
-
-      const result = await controller.getBrandsWithStats(
-        mockRequest.user as never,
-        mockRequest,
-        query,
-      );
-
-      expect(entityLeaderboardService.getBrandsWithStats).toHaveBeenCalledWith(
-        '2025-01-01',
-        '2025-01-31',
-        2,
-        15,
-        'engagement',
-        undefined,
       );
       expect(result).toBeDefined();
     });

@@ -15,6 +15,8 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
+import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
@@ -28,7 +30,7 @@ import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AnalyticsController],
+  controllers: [AnalyticsAdminController, AnalyticsController],
   exports: [AnalyticsService],
   imports: [
     // Core modules
@@ -58,6 +60,7 @@ import { Module } from '@nestjs/common';
     YoutubeModule,
   ],
   providers: [
+    AnalyticsAdminSummaryService,
     AnalyticsService,
     AnalyticsExportService,
     BusinessAnalyticsService,
