@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "issue": 1850,
+  "mode": "operating",
+  "measurement": {
+    "sampleUnit": "distinct-latest-pr-head",
+    "scope": "changed-scope",
+    "startTimestamp": "workflow-created-at",
+    "endTimestamp": "tests-gate-completed-at",
+    "minimumSuccessfulHeads": 50,
+    "percentileMethod": "nearest-rank"
+  },
+  "operatingBudgetMinutes": {
+    "median": 10,
+    "p95": 20
+  },
+  "ratchetTargetMinutes": {
+    "median": 8,
+    "p95": 15
+  },
+  "runnerWaste": {
+    "minimumReductionPercent": 50,
+    "sampleUnit": "superseded-runner-minutes",
+    "baselineRule": "Use one fixed pre-change window and compare the same workflows, events, and exact-head disposition definitions after the change.",
+    "incompleteEvidence": "does-not-pass"
+  },
+  "fullSuite": {
+    "status": "observe-separately",
+    "minimumSuccessfulHeadsBeforeBudgetAdoption": 50
+  },
+  "mergeGroup": {
+    "status": "observe-separately",
+    "minimumSuccessfulHeadsBeforeBudgetAdoption": 50
+  },
+  "exclusions": {
+    "allowed": ["documented-github-wide-runner-incident"],
+    "internalRunnerSaturation": "included",
+    "failedCancelledOrIncomplete": "never-counted-as-passing"
+  },
+  "changeRule": "Latency budgets may only tighten. Any increase requires a reviewed contract diff, linked evidence, and an appended history entry.",
+  "history": [
+    {
+      "adoptedAt": "2026-08-26",
+      "issue": 1850,
+      "operatingBudgetMinutes": {
+        "median": 10,
+        "p95": 20
+      },
+      "ratchetTargetMinutes": {
+        "median": 8,
+        "p95": 15
+      },
+      "runnerWasteMinimumReductionPercent": 50,
+      "note": "Adopts a fair operating envelope for the current changed-scope CI path while retaining the original 8/15 latency objective as the next ratchet target. Forced-full and merge-group paths require independent samples."
+    }
+  ]
+}
