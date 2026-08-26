@@ -10,6 +10,7 @@ import {
   createPlatformHomeRoute,
   getOrgSwitchHref,
   isPersonalSettingsPath,
+  isUserFacingAppPathname,
   LEGACY_APP_ROUTES,
   parseScopedAppPath,
   resolveArtifactEditorBackHref,
@@ -40,6 +41,40 @@ describe('routes.constant', () => {
     for (const routePrefix of Object.values(APP_ROUTE_PREFIXES)) {
       expect(routePrefix.startsWith('/')).toBe(true);
     }
+  });
+
+  it.each([
+    '/',
+    '/onboarding/brand',
+    '/oauth/cli',
+    '/settings/personal',
+    '/acme/~',
+    '/acme/moonrise/workspace/overview',
+  ])('recognizes the user-facing auth continuation %s', (pathname) => {
+    expect(isUserFacingAppPathname(pathname)).toBe(true);
+  });
+
+  it.each([
+    '/api/version',
+    '/%61pi/version',
+    '/api%252Fversion',
+    '/v1/auth/get-session',
+    '/trpc/session',
+    '/_next/static/app.js',
+    '/serwist/sw.js',
+    '/ingest',
+    '/monitoring',
+    '/acme',
+    '/robots.txt',
+    '/.well-known/openid-configuration',
+    '/acme/.well-known/workspace',
+    '/login',
+    '/logout',
+    '/sign-up',
+    '//evil.example/path',
+    '/\\evil.example/path',
+  ])('rejects the non-product auth continuation %s', (pathname) => {
+    expect(isUserFacingAppPathname(pathname)).toBe(false);
   });
 
   it('keeps legacy long-form aliases separate from the project editor', () => {

@@ -118,6 +118,10 @@ export function buildBetterAuthAdvancedOptions({
   'cookieDomain' | 'ipAddressHeaders'
 >): NonNullable<BetterAuthOptions['advanced']> {
   return {
+    // Keep auth-owned records inside Genfeed's canonical entity-ID contract.
+    // Better Auth otherwise injects mixed-case base62 IDs that the API's entity
+    // boundaries do not recognize; UUID generation works across every adapter.
+    database: { generateId: 'uuid' },
     ...(ipAddressHeaders && ipAddressHeaders.length > 0
       ? { ipAddress: { ipAddressHeaders } }
       : {}),

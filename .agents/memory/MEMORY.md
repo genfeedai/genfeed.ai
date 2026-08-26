@@ -5,6 +5,7 @@ Keep it that way: this file is auto-loaded into every request.
 
 ## Rules (permanent — user corrections)
 
+- [better_auth_user_ids_are_opaque](rules/better_auth_user_ids_are_opaque.md) — authenticated user IDs span legacy Better Auth base62 values and new UUIDs; authorize them as opaque canonical users.id values
 - [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
 - [trunk_pr_workflow](trunk_pr_workflow.md) — short-lived branches → PR; `master` is PR-only; secret-scan every commit
 - [feedback_explicit_immediate_pr_merge](feedback_explicit_immediate_pr_merge.md) — explicit merge-without-checks orders use a per-PR admin bypass; never aggregate first
