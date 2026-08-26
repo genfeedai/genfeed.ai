@@ -98,6 +98,7 @@ import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-en
 import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
 import { SpeechModule } from '@api/collections/speech/speech.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
+import { StudioLooksModule } from '@api/collections/studio-looks/studio-looks.module';
 import { SubscriptionAttributionsModule } from '@api/collections/subscription-attributions/subscription-attributions.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
@@ -358,6 +359,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SocialWarmupEnrollmentsModule,
     SourcePostsModule,
     StreaksModule,
+    StudioLooksModule,
     // Billing collection modules — same code in every image; the runtime gate
     // in `@api/common/subscriptions/billing.providers` picks real vs community
     // bindings. Always registered: their string tokens back always-on

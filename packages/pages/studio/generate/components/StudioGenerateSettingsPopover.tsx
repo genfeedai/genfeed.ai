@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant, RouterPriority } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioGenerateSettingsPopoverProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
+import StudioLooksPanel from '@pages/studio/generate/components/StudioLooksPanel';
 import { useStudioGenerateIdentities } from '@pages/studio/generate/hooks/useStudioGenerateIdentities';
 import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import {
@@ -434,6 +435,11 @@ function StandardStudioGenerateSettingsPopover({
                     />
                   </SettingRow>
                 ) : null}
+                <StudioLooksPanel
+                  onApply={onChange}
+                  settings={settings}
+                  type={type === 'video' ? 'video' : 'image'}
+                />
               </>
             ) : null}
 

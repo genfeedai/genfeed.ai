@@ -7,6 +7,33 @@ import type {
 import type { ReactNode } from 'react';
 import type { IIngredient, IQueryParams } from '../index';
 
+export type StudioLookAssetType = 'image' | 'video';
+
+/** Every visual field captured by a named, brand-shared Studio Look. */
+export interface StudioLookPayload {
+  camera: string;
+  /** Present only for video Looks. Image Looks always persist this as null. */
+  cameraMovement?: string | null;
+  lens: string;
+  lighting: string;
+  mood: string;
+  promptTemplate: string;
+  scene: string;
+  style: string;
+}
+
+export interface IStudioLook extends StudioLookPayload {
+  assetType: StudioLookAssetType;
+  brandId: string;
+  createdAt: Date;
+  id: string;
+  isDeleted: boolean;
+  label: string;
+  organizationId: string;
+  updatedAt: Date;
+  userId: string;
+}
+
 export interface FormDropdownOption {
   key: string | number;
   label: string;
