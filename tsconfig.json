@@ -7,7 +7,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "baseUrl": ".",
     "paths": {
       "@e2e/*": ["playwright/e2e/*"]
     }
