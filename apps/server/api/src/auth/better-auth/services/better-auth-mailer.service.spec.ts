@@ -47,6 +47,35 @@ describe('BetterAuthMailerService', () => {
     expect(html).toContain('If you did not request this sign-in link');
   });
 
+  it('rewrites a magic-link API callback to the app root before delivery', async () => {
+    const notificationsService = {
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
+    };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: false,
+    };
+    const logger = { log: vi.fn() };
+    const service = new BetterAuthMailerService(
+      configService as never,
+      notificationsService as never,
+      logger as never,
+    );
+    const url =
+      'https://api.genfeed.ai/v1/auth/magic-link/verify?token=tok&callbackURL=https%3A%2F%2Fapp.genfeed.ai%2Fapi%2Fversion';
+
+    await service.sendMagicLink({
+      email: 'user@example.com',
+      token: 'tok',
+      url,
+    });
+
+    const html = notificationsService.deliverEmail.mock.calls[0]?.[0]
+      .html as string;
+    expect(html).toContain('callbackURL=https%3A%2F%2Fapp.genfeed.ai%2F');
+    expect(html).not.toContain('%2Fapi%2Fversion');
+  });
+
   it('sends signup magic links with account creation copy', async () => {
     const notificationsService = {
       deliverEmail: vi.fn().mockResolvedValue('email_123'),

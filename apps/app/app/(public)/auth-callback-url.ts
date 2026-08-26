@@ -1,3 +1,4 @@
+import { isApplicationAuthCallbackPathname } from '@genfeedai/auth-client/callback';
 import {
   extractBrandDomain,
   resolveSelectedPlanParam,
@@ -14,12 +15,25 @@ type AuthCallbackURLOptions = {
 function getExplicitAuthCallbackURL(
   searchParams: Pick<URLSearchParams, 'get'>,
 ): string | null {
-  return (
+  const callbackURL =
     searchParams.get('callbackUrl') ||
     searchParams.get('return_to') ||
     searchParams.get('redirect_url') ||
-    null
-  );
+    null;
+
+  return callbackURL && hasApplicationCallbackPath(callbackURL)
+    ? callbackURL
+    : null;
+}
+
+function hasApplicationCallbackPath(callbackURL: string): boolean {
+  try {
+    return isApplicationAuthCallbackPathname(
+      new URL(callbackURL, 'https://app.genfeed.ai').pathname,
+    );
+  } catch {
+    return false;
+  }
 }
 
 function parsePositiveIntegerParam(value?: string | null): string | null {
@@ -117,6 +131,10 @@ export function toAbsoluteAuthCallbackURL(callbackURL: string): string {
   // Trusted desktop deep links (e.g. genfeedai-desktop://auth) pass through.
   if (ALLOWED_DEEP_LINK_SCHEMES.some((scheme) => lower.startsWith(scheme))) {
     return callbackURL;
+  }
+
+  if (!hasApplicationCallbackPath(callbackURL)) {
+    return fallback;
   }
 
   // Protocol-relative URLs (//evil.com) bypass origin checks — reject.

@@ -1,3 +1,4 @@
+import { isApplicationAuthCallbackPathname } from '@genfeedai/auth-client/callback';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
   hasAgentFirstOnboarding,
@@ -1025,6 +1026,7 @@ function getSafeSignedInCallbackPath(req: NextRequest): string | null {
     const pathOnly = raw.split('?')[0] ?? raw;
     if (
       pathOnly === '/' ||
+      !isApplicationAuthCallbackPathname(pathOnly) ||
       pathOnly.startsWith('/login') ||
       pathOnly.startsWith('/logout') ||
       pathOnly.startsWith('/sign-up')
@@ -1042,6 +1044,7 @@ function getSafeSignedInCallbackPath(req: NextRequest): string | null {
     const pathWithSearch = `${parsed.pathname}${parsed.search}`;
     if (
       parsed.pathname === '/' ||
+      !isApplicationAuthCallbackPathname(parsed.pathname) ||
       parsed.pathname.startsWith('/login') ||
       parsed.pathname.startsWith('/logout') ||
       parsed.pathname.startsWith('/sign-up')

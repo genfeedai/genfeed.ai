@@ -90,4 +90,29 @@ describe('auth callback URL helpers', () => {
       toAbsoluteAuthCallbackURL('data:text/html,<script>alert(1)</script>'),
     ).toBe(root);
   });
+
+  it.each([
+    '/api/version',
+    '/api%2Fversion',
+    '/%61pi/version',
+    '/v1/auth/get-session',
+    '/trpc/session',
+    '/_next/static/chunk.js',
+    'https://app.genfeed.ai/api/version',
+  ])('rejects non-application callback destination %s', (callbackURL) => {
+    const params = new URLSearchParams({ callbackUrl: callbackURL });
+    const root = `${window.location.origin}/`;
+
+    expect(getAuthCallbackURL(params)).toBe('/');
+    expect(toAbsoluteAuthCallbackURL(callbackURL)).toBe(root);
+  });
+
+  it('uses the signup fallback when an explicit callback targets an API route', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams('callbackUrl=%2Fapi%2Fversion'), {
+        defaultCallbackURL: '/onboarding/post-signup',
+        includeOnboardingHandoffParams: true,
+      }),
+    ).toBe('/onboarding/post-signup');
+  });
 });

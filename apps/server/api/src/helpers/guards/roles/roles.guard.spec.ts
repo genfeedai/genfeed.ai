@@ -364,4 +364,26 @@ describe('RolesGuard', () => {
       expect.any(Array),
     );
   });
+
+  it('authorizes an opaque Better Auth user id from active membership', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+    mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
+
+    const userId = 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6';
+    const context = createContext({
+      organizationId: TOKEN_ORGANIZATION_ID,
+      userId,
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isActive: true,
+        isDeleted: false,
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId,
+      }),
+      expect.any(Array),
+    );
+  });
 });

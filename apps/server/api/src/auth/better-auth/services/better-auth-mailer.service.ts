@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { isApplicationAuthCallbackPathname } from '@genfeedai/auth-client/callback';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -37,6 +38,28 @@ export function resolveBrowserAuthActionUrl(
 
     action.protocol = app.protocol;
     action.host = app.host;
+
+    const appRoot = new URL('/', app).toString();
+    for (const callbackParam of [
+      'callbackURL',
+      'newUserCallbackURL',
+      'errorCallbackURL',
+    ]) {
+      const callbackURL = action.searchParams.get(callbackParam);
+      if (!callbackURL) {
+        continue;
+      }
+
+      try {
+        const callback = new URL(callbackURL, appRoot);
+        if (!isApplicationAuthCallbackPathname(callback.pathname)) {
+          action.searchParams.set(callbackParam, appRoot);
+        }
+      } catch {
+        action.searchParams.set(callbackParam, appRoot);
+      }
+    }
+
     return action.toString();
   } catch {
     return actionUrl;

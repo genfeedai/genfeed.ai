@@ -286,6 +286,22 @@ describe('proxy', () => {
     );
   });
 
+  it('ignores an API callbackUrl when redirecting a signed-in user', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/login', {
+        search: '?callbackUrl=%2Fapi%2Fversion',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+  });
+
   it('honors org settings callbackUrl after session restore through /login', async () => {
     const { default: proxy } = await import('./proxy');
 
