@@ -1,11 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
-import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
-import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
-import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
-import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
@@ -16,25 +11,15 @@ import { RedditService } from '@api/services/integrations/reddit/services/reddit
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('CredentialsController', () => {
   let controller: CredentialsController;
-  let accountHealthService: Record<string, ReturnType<typeof vi.fn>>;
-  let accountPublishingContextService: Record<string, ReturnType<typeof vi.fn>>;
-  let credentialPublishingReadinessService: Record<
-    string,
-    ReturnType<typeof vi.fn>
-  >;
-  let credentialPostingTimesService: Record<string, ReturnType<typeof vi.fn>>;
   let credentialsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
-  let organizationsService: Record<string, ReturnType<typeof vi.fn>>;
   let instagramService: Record<string, ReturnType<typeof vi.fn>>;
-  let quotaService: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = testId('user');
   const orgId = testId('org');
@@ -58,63 +43,7 @@ describe('CredentialsController', () => {
     refreshToken: vi.fn().mockResolvedValue({}),
   });
 
-  const accountHealthSummary = {
-    assessedAt: '2026-06-30T10:00:00.000Z',
-    credentialId: credId,
-    holdPublishing: true,
-    holdReason: 'twitter publishing is held because account warmup is warming.',
-    label: 'X Account',
-    override: { isActive: false },
-    platform: CredentialPlatform.TWITTER,
-    riskLevel: 'medium',
-    score: 56,
-    signals: {
-      connectedDays: 1,
-      profileSignals: 2,
-      publishedPosts: 0,
-      recentFailures: 0,
-    },
-    state: 'warming',
-    thresholds: {
-      maxRecentFailures: 0,
-      minConnectedDays: 10,
-      minProfileSignals: 2,
-      minPublishedPosts: 4,
-    },
-  };
-
-  const brandReadiness = {
-    appReviewStatus: 'unknown',
-    callbackUrlStatus: 'pass',
-    canSchedule: true,
-    checkedAt: '2026-06-30T10:00:00.000Z',
-    credentialId: credId,
-    diagnostics: [],
-    isRetryable: false,
-    permissionScopeStatus: 'unknown',
-    providerKey: CredentialPlatform.TWITTER,
-    quotaStatus: 'unknown',
-    state: 'publish_capable',
-    tokenFreshness: 'pass',
-  };
-
   beforeEach(() => {
-    accountHealthService = {
-      assessCredentialHealth: vi.fn().mockResolvedValue(accountHealthSummary),
-      confirmManualOverride: vi.fn().mockResolvedValue({
-        ...accountHealthSummary,
-        holdPublishing: false,
-        override: { isActive: true },
-      }),
-      listBrandHealth: vi.fn().mockResolvedValue([accountHealthSummary]),
-    };
-    credentialPostingTimesService = {
-      add: vi.fn(),
-      findNextSlot: vi.fn(),
-      list: vi.fn(),
-      remove: vi.fn(),
-      replace: vi.fn(),
-    };
     credentialsService = {
       create: vi.fn(),
       find: vi.fn().mockResolvedValue([]),
@@ -125,52 +54,21 @@ describe('CredentialsController', () => {
       createAndAttachTag: vi.fn(),
       updateExternalProfile: vi.fn(),
     };
-    accountPublishingContextService = {
-      resolve: vi.fn().mockResolvedValue({
-        account: {
-          id: credId,
-          label: 'X Account',
-          platform: CredentialPlatform.TWITTER,
-        },
-        constraints: {
-          notes: [],
-          supportsDirectPublishing: true,
-          supportsRichArticleCopy: false,
-          supportsThreads: true,
-          usesWeightedCharacters: true,
-        },
-        promptHints: [],
-        publishability: 'publishable',
-        recentPosts: [],
-        surface: 'post',
-      }),
-    };
-    credentialPublishingReadinessService = {
-      resolveForBrand: vi.fn().mockResolvedValue([brandReadiness]),
-    };
     brandsService = { findOne: vi.fn() };
-    organizationsService = { findOne: vi.fn() };
     instagramService = {
       ...createMockPlatformService(),
       getInstagramPages: vi.fn().mockResolvedValue([]),
     };
-    quotaService = { checkQuota: vi.fn() };
 
     controller = new CredentialsController(
-      accountHealthService as unknown as AccountHealthService,
-      accountPublishingContextService as unknown as AccountPublishingContextService,
       brandsService as unknown as BrandsService,
-      credentialPostingTimesService as unknown as CredentialPostingTimesService,
-      credentialPublishingReadinessService as unknown as CredentialPublishingReadinessService,
       credentialsService as unknown as CredentialsService,
       createMockPlatformService() as unknown as FacebookService,
       createMockPlatformService() as unknown as GoogleAdsService,
       createMockPlatformService() as unknown as GoogleSearchConsoleService,
       instagramService as unknown as InstagramService,
       createMockPlatformService() as unknown as LinkedInService,
-      organizationsService as unknown as OrganizationsService,
       createMockPlatformService() as unknown as PinterestService,
-      quotaService as unknown as QuotaService,
       createMockPlatformService() as unknown as RedditService,
       createMockPlatformService() as unknown as TiktokService,
       createMockPlatformService() as unknown as TwitterService,
@@ -222,175 +120,6 @@ describe('CredentialsController', () => {
       await expect(controller.findOne(mockRequest, missingId)).rejects.toThrow(
         HttpException,
       );
-    });
-  });
-
-  describe('getMentions', () => {
-    it('should return deduplicated mentions', async () => {
-      credentialsService.find.mockResolvedValue([
-        {
-          id: credId,
-          externalHandle: '@user1',
-          externalName: 'User One',
-          platform: CredentialPlatform.TWITTER,
-        },
-        {
-          id: credId,
-          externalHandle: '@user1',
-          externalName: 'User One',
-          platform: CredentialPlatform.TWITTER,
-        },
-        {
-          id: credId,
-          externalHandle: '@user2',
-          externalName: 'User Two',
-          platform: CredentialPlatform.INSTAGRAM,
-        },
-      ]);
-
-      const result = await controller.getMentions(mockUser);
-
-      expect(result.mentions).toHaveLength(2);
-    });
-
-    it('maps Prisma SCREAMING platforms onto domain mention platforms', async () => {
-      credentialsService.find.mockResolvedValue([
-        {
-          id: credId,
-          externalHandle: '@mapped',
-          externalName: 'Mapped',
-          platform: 'TWITTER',
-        },
-      ]);
-
-      const result = await controller.getMentions(mockUser);
-
-      expect(result.mentions).toEqual([
-        expect.objectContaining({
-          handle: '@mapped',
-          platform: CredentialPlatform.TWITTER,
-        }),
-      ]);
-      expect(result.mentions[0]?.platform).toBe('twitter');
-    });
-
-    it('should skip credentials without a handle', async () => {
-      credentialsService.find.mockResolvedValue([
-        {
-          id: credId,
-          externalHandle: null,
-          platform: CredentialPlatform.TWITTER,
-        },
-      ]);
-
-      const result = await controller.getMentions(mockUser);
-
-      expect(result.mentions).toHaveLength(0);
-    });
-  });
-
-  describe('listBrandPublishingReadiness', () => {
-    it('resolves readiness for the brand within the caller organization', async () => {
-      const result = await controller.listBrandPublishingReadiness(
-        'brand-1',
-        mockUser,
-      );
-
-      expect(
-        credentialPublishingReadinessService.resolveForBrand,
-      ).toHaveBeenCalledWith(orgId, 'brand-1');
-      expect(result).toEqual([brandReadiness]);
-    });
-
-    it('returns an empty list rather than failing when the brand has no channels', async () => {
-      credentialPublishingReadinessService.resolveForBrand.mockResolvedValue(
-        [],
-      );
-
-      await expect(
-        controller.listBrandPublishingReadiness('brand-1', mockUser),
-      ).resolves.toEqual([]);
-    });
-  });
-
-  describe('getPublishingContext', () => {
-    it('resolves account publishing context for the current brand and organization', async () => {
-      const user = {
-        ...mockUser,
-        brandId: 'brand-1',
-        organizationId: orgId,
-        userId: userId,
-      } as never;
-
-      const result = await controller.getPublishingContext(
-        credId,
-        'x-article',
-        user,
-      );
-
-      expect(accountPublishingContextService.resolve).toHaveBeenCalledWith({
-        brandId: 'brand-1',
-        credentialId: credId,
-        organizationId: orgId,
-        surface: 'x-article',
-      });
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe('account health', () => {
-    const user = {
-      ...mockUser,
-      brandId: 'brand-1',
-      organizationId: orgId,
-      userId: userId,
-    } as never;
-
-    it('lists account health for a brand', async () => {
-      const result = await controller.listBrandAccountHealth('brand-1', user);
-
-      expect(accountHealthService.listBrandHealth).toHaveBeenCalledWith(
-        orgId,
-        'brand-1',
-      );
-      expect(result).toEqual([accountHealthSummary]);
-    });
-
-    it('assesses account health for the current brand and organization', async () => {
-      const result = await controller.assessAccountHealth(
-        credId,
-        { thresholds: { minPublishedPosts: 1 } },
-        user,
-      );
-
-      expect(accountHealthService.assessCredentialHealth).toHaveBeenCalledWith({
-        brandId: 'brand-1',
-        credentialId: credId,
-        organizationId: orgId,
-        request: { thresholds: { minPublishedPosts: 1 } },
-      });
-      expect(result).toEqual(accountHealthSummary);
-    });
-
-    it('confirms a manual account health override with the local user id', async () => {
-      const request = {
-        confirm: true,
-        reason: 'operator reviewed guidance',
-      } as const;
-
-      const result = await controller.overrideAccountHealth(
-        credId,
-        request,
-        user,
-      );
-
-      expect(accountHealthService.confirmManualOverride).toHaveBeenCalledWith({
-        credentialId: credId,
-        organizationId: orgId,
-        request,
-        userId,
-      });
-      expect(result.override.isActive).toBe(true);
     });
   });
 
@@ -468,20 +197,14 @@ describe('CredentialsController', () => {
         refreshToken: vi.fn().mockRejectedValue(new Error('Token expired')),
       };
       const failController = new CredentialsController(
-        accountHealthService as unknown as AccountHealthService,
-        accountPublishingContextService as unknown as AccountPublishingContextService,
         brandsService as unknown as BrandsService,
-        credentialPostingTimesService as unknown as CredentialPostingTimesService,
-        credentialPublishingReadinessService as unknown as CredentialPublishingReadinessService,
         credentialsService as unknown as CredentialsService,
         createMockPlatformService() as unknown as FacebookService,
         createMockPlatformService() as unknown as GoogleAdsService,
         createMockPlatformService() as unknown as GoogleSearchConsoleService,
         instagramService as unknown as InstagramService,
         createMockPlatformService() as unknown as LinkedInService,
-        organizationsService as unknown as OrganizationsService,
         createMockPlatformService() as unknown as PinterestService,
-        quotaService as unknown as QuotaService,
         createMockPlatformService() as unknown as RedditService,
         createMockPlatformService() as unknown as TiktokService,
         failingTwitter as unknown as TwitterService,
@@ -618,98 +341,6 @@ describe('CredentialsController', () => {
         orgId,
         userId,
         { label: 'Creator' },
-      );
-    });
-  });
-
-  describe('getQuotaStatus', () => {
-    it('should return quota status for a credential', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        id: credId,
-      });
-      organizationsService.findOne.mockResolvedValue({
-        id: orgId,
-        label: 'Test Org',
-      });
-      quotaService.checkQuota.mockResolvedValue({
-        limit: 500,
-        remaining: 100,
-      });
-
-      const result = await controller.getQuotaStatus(credId, mockUser);
-
-      expect(result.data.type).toBe('quota-status');
-      expect(result.data.attributes).toEqual({
-        limit: 500,
-        remaining: 100,
-      });
-    });
-
-    it('should throw NOT_FOUND when credential not found for quota', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-
-      await expect(controller.getQuotaStatus(credId, mockUser)).rejects.toThrow(
-        HttpException,
-      );
-    });
-
-    it('should throw NOT_FOUND when organization not found for quota', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        id: credId,
-      });
-      organizationsService.findOne.mockResolvedValue(null);
-
-      await expect(controller.getQuotaStatus(credId, mockUser)).rejects.toThrow(
-        HttpException,
-      );
-    });
-  });
-
-  describe('posting times', () => {
-    it('lists posting times for the tenant credential', async () => {
-      credentialPostingTimesService.list.mockResolvedValue([
-        { hour: 9, minute: 0 },
-      ]);
-
-      await expect(
-        controller.listPostingTimes(credId, mockUser),
-      ).resolves.toEqual({
-        times: [{ hour: 9, minute: 0 }],
-      });
-      expect(credentialPostingTimesService.list).toHaveBeenCalledWith(
-        orgId,
-        credId,
-      );
-    });
-
-    it('adds a posting time through the write endpoint', async () => {
-      credentialPostingTimesService.add.mockResolvedValue([
-        { hour: 9, minute: 0 },
-        { hour: 18, minute: 0 },
-      ]);
-
-      await expect(
-        controller.addPostingTime(credId, { hour: 18, minute: 0 }, mockUser),
-      ).resolves.toEqual({
-        times: [
-          { hour: 9, minute: 0 },
-          { hour: 18, minute: 0 },
-        ],
-      });
-    });
-
-    it('returns not-found from find-next-slot when no times exist', async () => {
-      credentialPostingTimesService.findNextSlot.mockResolvedValue({
-        found: false,
-      });
-
-      await expect(
-        controller.findNextPostingSlot(credId, {}, mockUser),
-      ).resolves.toEqual({ found: false });
-      expect(credentialPostingTimesService.findNextSlot).toHaveBeenCalledWith(
-        orgId,
-        credId,
-        undefined,
       );
     });
   });
