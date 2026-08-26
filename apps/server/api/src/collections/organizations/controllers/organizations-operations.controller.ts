@@ -4,7 +4,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @AutoSwagger()
@@ -17,7 +17,7 @@ export class OrganizationsOperationsController {
     private readonly operationsService: OrganizationsOperationsService,
   ) {}
 
-  @Post('switch/:id')
+  @Patch(':id/activate')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'OrganizationsController.switchOrganization',
