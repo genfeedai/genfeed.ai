@@ -62,8 +62,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     category: 'Pricing',
     questions: [
       {
-        answer:
-          'Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ~40% better rate, paid API access, and shared team seats.',
+        answer: `Credits buy output: 1 credit is one cent at the pay-as-you-go rate. Signing up is free, so you only pay for what you generate. Subscriptions include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate, paid API access, and shared team seats.`,
         question: 'How does pricing work?',
       },
       {

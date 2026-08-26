@@ -5,6 +5,7 @@ import {
   creditPackPrice,
   creditPackTotalCredits,
   getProPlan,
+  PLAN_COPY,
   WEBSITE_CREDIT_PACKS,
 } from '@genfeedai/pricing';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
@@ -17,7 +18,7 @@ import Link from 'next/link';
 
 const CREDIT_EXPLAINERS = [
   'Credits buy output: images, reels, ads, articles, voice',
-  'Subscriptions include monthly credits at a ~40% better rate',
+  `Subscriptions include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate`,
   'The router always picks the best model, so you never pay to experiment',
 ] as const;
 
@@ -76,7 +77,7 @@ export default function HomeCredits(): React.ReactElement {
         </div>
 
         {proPlan.launchNote ? (
-          <Text className="mt-8 text-center text-xs font-semibold uppercase tracking-widest text-surface/50">
+          <Text className="mt-8 text-center text-xs font-medium text-surface/50">
             {proPlan.launchNote}
           </Text>
         ) : null}

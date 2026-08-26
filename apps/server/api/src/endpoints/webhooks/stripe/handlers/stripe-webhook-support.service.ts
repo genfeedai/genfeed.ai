@@ -5,6 +5,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import type {
   StripeMetadata,
   StripeRecurringInterval,
@@ -80,6 +81,7 @@ export class StripeWebhookSupportService {
     private readonly prisma: PrismaService,
 
     private readonly activitiesService: ActivitiesService,
+    private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly organizationsService: OrganizationsService,
@@ -559,35 +561,13 @@ export class StripeWebhookSupportService {
     return SubscriptionPlan.MONTHLY;
   }
 
+  /**
+   * Price-to-tier mapping has one owner. It decides both the tier shown to a
+   * customer and the credits granted to them, so a second copy here would let
+   * a webhook attribute a subscription to a tier the grant path disagrees with.
+   */
   resolveTierFromPriceId(stripePriceId: string): SubscriptionTier | null {
-    const priceToTier: Record<string, SubscriptionTier> = {};
-
-    const proPrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
-    );
-    const proYearlyPrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
-    );
-    const scalePrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY',
-    );
-    const enterprisePrice = this.configService.get(
-      'STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',
-    );
-
-    if (proPrice) {
-      priceToTier[proPrice] = SubscriptionTier.PRO;
-    }
-    if (proYearlyPrice) {
-      priceToTier[proYearlyPrice] = SubscriptionTier.PRO;
-    }
-    if (scalePrice) {
-      priceToTier[scalePrice] = SubscriptionTier.SCALE;
-    }
-    if (enterprisePrice) {
-      priceToTier[enterprisePrice] = SubscriptionTier.ENTERPRISE;
-    }
-    return priceToTier[stripePriceId] ?? null;
+    return this.creditGrantService.resolveTierFromPriceId(stripePriceId);
   }
 
   async updateOrganizationTierAndModels(

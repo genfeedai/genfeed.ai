@@ -9,8 +9,11 @@
  *   pay-as-you-go rate (~70% margin on provider cost, see applyMargin)
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Subscriptions sell a better credit rate, not access: included monthly
- *   credits are priced at ~50% margin (Pro $49 → 8,000 credits ≈ $80 of
- *   PAYG output; Scale $499 → 80,000 credits ≈ $800 of PAYG output)
+ *   credits carry a ~20% bonus over the pay-as-you-go rate (Pro $49 → 5,900
+ *   credits ≈ $59 of PAYG output; Scale $499 → 60,000 credits ≈ $600 of PAYG
+ *   output). The bonus and the margin are one dial:
+ *   margin = 1 - 0.3 * (1 + bonus), so a ~20% bonus holds ~64% margin on both
+ *   paid tiers. Size the bonus against the list price, never the launch coupon.
  * - Seats are never a usage meter: FREE/BYOK is solo (1 seat); every paid tier
  *   (Pro, Scale, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
@@ -118,11 +121,50 @@ const PLAN_PRICES = {
   scale: 499,
 } as const satisfies Record<PlanTier, number | null>;
 
-/** Monthly included credits per paid subscription tier (source of truth for credit grants). */
+/**
+ * Monthly included credits per paid subscription tier.
+ *
+ * Published fallback only. The authoritative grant for a live subscription is
+ * the `included_monthly_credits` metadata on its Stripe price, so operators and
+ * self-hosted deployments can price without a code change. These values are used
+ * when a price carries no metadata but its tier is known.
+ *
+ * Each tier is sized to a ~20% credit bonus over the $0.01 PAYG rate, which
+ * holds ~64% margin (see the margin identity in the file header).
+ */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
-  pro: 8_000,
-  scale: 80_000,
+  pro: 5_900,
+  scale: 60_000,
 };
+
+/**
+ * Metadata key on a Stripe price that carries its monthly credit grant.
+ *
+ * This is the authoritative source: whoever owns the Stripe account decides how
+ * many credits a price includes, and a self-hosted operator can reprice without
+ * touching code or redeploying. Set it on every recurring price, e.g.
+ * `stripe prices update price_xxx --metadata included_monthly_credits=5900`.
+ */
+export const INCLUDED_MONTHLY_CREDITS_METADATA_KEY = 'included_monthly_credits';
+
+/**
+ * Reads a credit grant out of Stripe price metadata, which is always a string
+ * map and may hold anything an operator typed. Returns null for anything that
+ * is not a positive whole number, so callers fail closed on a typo instead of
+ * granting `NaN` or a negative balance.
+ */
+export function parseIncludedMonthlyCredits(value: unknown): number | null {
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
+}
 
 /**
  * BYOK Platform Fee Configuration
@@ -275,13 +317,16 @@ export const websitePlans: WebsitePlanProps[] = [
     cta: 'Start Free',
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=payg`,
     description: 'Free account with pay-per-output credits',
+    // The first five bullets are the comparison axis rendered on the pricing
+    // card and are deliberately parallel across every tier: credits, seats,
+    // organizations, brands and channels, API. Tier-specific extras follow.
     features: [
-      'No monthly fee, buy credits and spend on any format',
       'Credits at the standard rate (1 credit = $0.01)',
-      'Best model auto-routed for every job',
-      'Unlimited brand kits',
-      'Unlimited connected channels',
+      '1 seat',
       '1 organization',
+      'Unlimited brands and connected channels',
+      'App access only (no API)',
+      'Best model auto-routed for every job',
       'Multi-platform publishing',
       'Email support',
     ],
@@ -303,19 +348,18 @@ export const websitePlans: WebsitePlanProps[] = [
     description: 'Monthly subscription with included credits at a better rate',
     features: [
       includedCreditsFeature('pro'),
-      'Included credits ~40% cheaper than the standard rate',
-      'Best model auto-routed for every job',
-      'Unlimited brands',
-      'Unlimited connected channels',
+      'Unlimited seats',
       '1 organization',
+      'Unlimited brands and connected channels',
       'API access (standard rate limits)',
+      'Best model auto-routed for every job',
       'Top up with credit packs anytime',
       'Email support',
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
     interval: 'month',
     label: PLAN_LABELS.pro,
-    launchNote: `Launch pricing (code EARLYGENFEED) for the first 12 months, then $${PLAN_PRICES.pro}/month`,
+    launchNote: `EARLYGENFEED · 12 months, then $${PLAN_PRICES.pro}/mo`,
     launchPrice: 39,
     outputs: null,
     price: PLAN_PRICES.pro,
@@ -334,14 +378,13 @@ export const websitePlans: WebsitePlanProps[] = [
     description: 'One studio for teams, organizations, and brands',
     features: [
       includedCreditsFeature('scale'),
-      'Unlimited team seats',
-      'Shared credit pool with budgets',
-      'Multi-organization account model',
-      'Unlimited brands',
-      'Roles and shared approvals',
+      'Unlimited seats',
+      'Multiple organizations, one shared credit pool',
+      'Unlimited brands and connected channels',
       'API access (higher rate limits)',
-      'Priority support (24hr)',
+      'Roles, budgets, and shared approvals',
       'Advanced analytics',
+      'Priority support (24hr)',
     ],
     includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
@@ -362,14 +405,14 @@ export const websitePlans: WebsitePlanProps[] = [
     ctaHref: CALENDLY_URL,
     description: 'Custom studio, governance, and support',
     features: [
-      'Custom output terms',
-      'Unlimited team seats',
-      'Unlimited organizations and brand kits',
+      'Custom credit terms',
+      'Unlimited seats',
+      'Unlimited organizations',
+      'Unlimited brands and connected channels',
       'Full API access (custom rate limits + SLA)',
       'White-label (custom domain + branding)',
-      'Dedicated Slack support',
       'SSO & team management',
-      'Dedicated account manager',
+      'Dedicated account manager and Slack support',
       'SLA 99.9% uptime',
     ],
     interval: 'month',
@@ -462,7 +505,7 @@ export function formatPlanMonthlyPrice(tier: PlanTier): string {
 }
 
 /**
- * Included monthly credits for prose, e.g. "8,000 credits". Empty string for
+ * Included monthly credits for prose, e.g. "5,900 credits". Empty string for
  * tiers that grant no monthly credits.
  */
 export function formatPlanIncludedCredits(tier: PlanTier): string {
@@ -476,11 +519,48 @@ export function formatPlanIncludedCredits(tier: PlanTier): string {
 }
 
 /**
+ * Pay-as-you-go value of a tier's included credits, e.g. "$59". Empty string
+ * for tiers that grant no monthly credits.
+ */
+export function formatPlanIncludedCreditsValue(tier: PlanTier): string {
+  const { includedCredits } = getPlanByTier(tier);
+
+  if (includedCredits == null) {
+    return '';
+  }
+
+  return `$${formatPricingNumber(includedCredits * BYOK_CREDIT_VALUE_DOLLARS)}`;
+}
+
+/**
+ * How much cheaper a tier's included credits are than the standard PAYG rate,
+ * e.g. "~17%". Derived from the tier's own price and credit grant so repricing
+ * a plan can never leave a stale percentage in marketing copy. Empty string for
+ * tiers with no price or no monthly credits.
+ */
+export function formatPlanCreditRateAdvantage(tier: PlanTier): string {
+  const { includedCredits, price } = getPlanByTier(tier);
+
+  if (includedCredits == null || !price) {
+    return '';
+  }
+
+  const effectiveRate = price / includedCredits;
+  const advantage = 1 - effectiveRate / BYOK_CREDIT_VALUE_DOLLARS;
+
+  return `~${Math.round(advantage * 100)}%`;
+}
+
+/**
  * Ready-to-interpolate copy tokens for one plan.
  */
 export interface PlanCopyProps {
-  /** Included monthly credits in prose, e.g. "8,000 credits" ('' when none). */
+  /** How much cheaper included credits are than PAYG, e.g. "~17%" ('' when none). */
+  creditRateAdvantage: string;
+  /** Included monthly credits in prose, e.g. "5,900 credits" ('' when none). */
   includedCredits: string;
+  /** PAYG value of the included credits, e.g. "$59" ('' when none). */
+  includedCreditsValue: string;
   /** Prose price, e.g. "$49/month", "free", "custom". */
   monthlyPrice: string;
   /** Display name, e.g. "Pro". */
@@ -496,7 +576,9 @@ function buildPlanCopy(tier: PlanTier): PlanCopyProps {
   const monthlyPrice = formatPlanMonthlyPrice(tier);
 
   return {
+    creditRateAdvantage: formatPlanCreditRateAdvantage(tier),
     includedCredits: formatPlanIncludedCredits(tier),
+    includedCreditsValue: formatPlanIncludedCreditsValue(tier),
     monthlyPrice,
     name,
     nameWithPrice: `${name} (${monthlyPrice})`,

@@ -11,15 +11,19 @@ export enum SubscriptionPlan {
 }
 
 /**
- * Subscription tiers (credit-based)
- * See: https://github.com/genfeedai/cloud/issues?q=is%3Aissue+pricing
+ * Subscription tiers (credit-based).
+ *
+ * Prices and credit grants deliberately live nowhere near this enum: the grant
+ * is Stripe price metadata at runtime, with `TIER_INCLUDED_MONTHLY_CREDITS` in
+ * `@genfeedai/pricing` as the published fallback. Repeating either here only
+ * produces comments that go stale on the next reprice.
  */
 export enum SubscriptionTier {
   FREE = 'free',
   BYOK = 'byok', // Bring Your Own Key — free tier
-  PRO = 'pro', // $49/month - Pro/"Creator" card, 8,000 credits
-  SCALE = 'scale', // $499/month - Scale/"Cloud Teams" card, 80,000 credits
-  ENTERPRISE = 'enterprise', // custom
+  PRO = 'pro',
+  SCALE = 'scale',
+  ENTERPRISE = 'enterprise', // custom terms, contact sales
 }
 
 /**

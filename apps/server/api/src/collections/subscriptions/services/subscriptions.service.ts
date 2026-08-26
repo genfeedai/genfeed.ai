@@ -4,6 +4,7 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import type { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
@@ -26,7 +27,6 @@ import type {
 } from '@genfeedai/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -106,7 +106,7 @@ export class SubscriptionsService
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
-    private readonly configService: ConfigService,
+    private readonly creditGrantService: SubscriptionCreditGrantService,
     private readonly stripeService: StripeService,
     private readonly customersService: CustomersService,
     @Inject(forwardRef(() => CreditsUtilsService))
@@ -374,20 +374,27 @@ export class SubscriptionsService
       // Sync subscription state to DB
       await this.syncSubscriptionState(updatedSubscription);
 
-      // Reset credits to the new allocation when the plan changes.
+      // Reset credits to the new allocation when the plan changes. The new
+      // allocation is whatever the customer's new Stripe price includes — a
+      // price we cannot resolve leaves the existing balance alone rather than
+      // resetting it to a default unrelated to what they now pay.
       const previousPlan = subscription.plan ?? undefined;
       if (newPlan !== previousPlan) {
-        let creditsForNewPlan = 0;
-        let source = 'subscription_change';
+        const creditsForNewPlan =
+          (await this.creditGrantService.resolvePlanCredits(
+            newPlan,
+            newPriceId,
+          )) ?? 0;
+        const source =
+          newPlan === SubscriptionPlan.YEARLY
+            ? 'change_to_yearly'
+            : 'change_to_monthly';
 
-        if (newPlan === SubscriptionPlan.MONTHLY) {
-          creditsForNewPlan =
-            Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000;
-          source = 'change_to_monthly';
-        } else if (newPlan === SubscriptionPlan.YEARLY) {
-          creditsForNewPlan =
-            Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
-          source = 'change_to_yearly';
+        if (creditsForNewPlan <= 0) {
+          this.creditGrantService.logUnresolvedGrant(url, {
+            organizationId,
+            stripePriceId: newPriceId,
+          });
         }
 
         if (creditsForNewPlan > 0) {

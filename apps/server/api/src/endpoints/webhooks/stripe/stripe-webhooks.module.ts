@@ -11,6 +11,7 @@ import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/use
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
+import { SubscriptionCreditGrantModule } from '@api/common/subscriptions/subscription-credit-grant.module';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
@@ -41,6 +42,7 @@ const BaseModule = createServiceModule(StripeWebhookService, {
     OrganizationsModule,
     StripeModule,
     SubscriptionAttributionsModule,
+    SubscriptionCreditGrantModule,
     SubscriptionsModule,
     UserSubscriptionsModule,
     UserSetupModule,

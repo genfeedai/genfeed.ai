@@ -2,6 +2,7 @@ import type { CreditsUtilsService } from '@api/collections/credits/services/cred
 import type { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
+import type { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   StripeCustomer,
@@ -12,7 +13,6 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
@@ -128,7 +128,12 @@ describe('SubscriptionsService', () => {
     >;
   };
   let creditsUtilsService: { resetOrganizationCredits: MockFn };
-  let configService: { get: MockFn };
+  let creditGrantService: {
+    logUnresolvedGrant: MockFn;
+    resolveMonthlyCredits: MockFn;
+    resolvePlanCredits: MockFn;
+    resolveTierFromPriceId: MockFn;
+  };
   let logger: { debug: MockFn; error: MockFn; log: MockFn; warn: MockFn };
   let service: SubscriptionsService;
 
@@ -177,7 +182,12 @@ describe('SubscriptionsService', () => {
       upsertForOrganization: vi.fn(),
     };
     creditsUtilsService = { resetOrganizationCredits: vi.fn() };
-    configService = { get: vi.fn().mockReturnValue(undefined) };
+    creditGrantService = {
+      logUnresolvedGrant: vi.fn(),
+      resolveMonthlyCredits: vi.fn().mockResolvedValue(null),
+      resolvePlanCredits: vi.fn().mockResolvedValue(null),
+      resolveTierFromPriceId: vi.fn().mockReturnValue(null),
+    };
     logger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -192,7 +202,7 @@ describe('SubscriptionsService', () => {
         subscription: subscriptionDelegate,
       } as unknown as PrismaService,
       logger as unknown as LoggerService,
-      configService as unknown as ConfigService,
+      creditGrantService as unknown as SubscriptionCreditGrantService,
       stripeService as unknown as StripeService,
       customersService as unknown as CustomersService,
       creditsUtilsService as unknown as CreditsUtilsService,
@@ -656,9 +666,7 @@ describe('SubscriptionsService', () => {
       subscriptionDelegate.update.mockResolvedValue(
         buildSubscription({ plan: SubscriptionPlan.YEARLY }),
       );
-      configService.get.mockImplementation((key: string) =>
-        key === 'STRIPE_YEARLY_CREDITS' ? '600000' : undefined,
-      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(600_000);
 
       const result = await service.changeSubscriptionPlan(
         ORGANIZATION_ID,
@@ -682,6 +690,10 @@ describe('SubscriptionsService', () => {
           stripePriceId: 'price_yearly_pro',
         }),
       );
+      expect(creditGrantService.resolvePlanCredits).toHaveBeenCalledWith(
+        SubscriptionPlan.YEARLY,
+        'price_yearly_pro',
+      );
       expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
         ORGANIZATION_ID,
         600_000,
@@ -697,7 +709,7 @@ describe('SubscriptionsService', () => {
       );
     });
 
-    it('falls back to the default yearly credit allocation when config is unset', async () => {
+    it('leaves the balance alone and warns when the new price has no resolvable grant', async () => {
       stripeService.changeSubscriptionPlan.mockResolvedValue(
         buildStripeSubscription({ priceId: 'price_annual' }),
       );
@@ -705,11 +717,17 @@ describe('SubscriptionsService', () => {
 
       await service.changeSubscriptionPlan(ORGANIZATION_ID, 'price_year_2026');
 
-      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
-        ORGANIZATION_ID,
-        500_000,
-        'change_to_yearly',
+      // Resetting to a made-up default would overwrite a real balance with a
+      // number the customer never bought; the plan change still goes through.
+      expect(
+        creditsUtilsService.resetOrganizationCredits,
+      ).not.toHaveBeenCalled();
+      expect(creditGrantService.logUnresolvedGrant).toHaveBeenCalledWith(
         expect.any(String),
+        expect.objectContaining({
+          organizationId: ORGANIZATION_ID,
+          stripePriceId: 'price_year_2026',
+        }),
       );
     });
 
@@ -721,9 +739,7 @@ describe('SubscriptionsService', () => {
         buildStripeSubscription({ status: 'trialing' }),
       );
       subscriptionDelegate.update.mockResolvedValue(buildSubscription());
-      configService.get.mockImplementation((key: string) =>
-        key === 'STRIPE_MONTHLY_CREDITS' ? '35000' : undefined,
-      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
 
       await service.changeSubscriptionPlan(
         ORGANIZATION_ID,
@@ -744,7 +760,7 @@ describe('SubscriptionsService', () => {
       );
       expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
         ORGANIZATION_ID,
-        35_000,
+        5_900,
         'change_to_monthly',
         expect.any(String),
       );

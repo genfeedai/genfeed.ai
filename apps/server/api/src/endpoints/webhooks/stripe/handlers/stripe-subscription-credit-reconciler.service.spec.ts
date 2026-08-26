@@ -1,13 +1,9 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import {
-  SubscriptionPlan,
-  SubscriptionStatus,
-  SubscriptionTier,
-} from '@genfeedai/enums';
+import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,8 +11,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('StripeSubscriptionCreditReconcilerService', () => {
   let service: StripeSubscriptionCreditReconcilerService;
 
-  const configService = { get: vi.fn() };
   const loggerService = { log: vi.fn(), warn: vi.fn() };
+  const creditGrantService = {
+    logUnresolvedGrant: vi.fn(),
+    resolvePlanCredits: vi.fn(),
+  };
   const creditsUtilsService = {
     addOrganizationCreditsWithExpiration: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
@@ -26,7 +25,6 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
     hasSubscriptionCreditGrant: vi.fn(),
     isUniqueConstraintError: vi.fn(),
     recordCreditsActivity: vi.fn(),
-    resolveTierFromPriceId: vi.fn(),
     setHasEverHadCredits: vi.fn(),
   };
 
@@ -46,18 +44,20 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    configService.get.mockReturnValue(undefined);
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(8_000);
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(5_900);
+    creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
     supportService.hasSubscriptionCreditGrant.mockResolvedValue(false);
     supportService.isUniqueConstraintError.mockReturnValue(false);
-    supportService.resolveTierFromPriceId.mockReturnValue(SubscriptionTier.PRO);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StripeSubscriptionCreditReconcilerService,
-        { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
+        {
+          provide: SubscriptionCreditGrantService,
+          useValue: creditGrantService,
+        },
         { provide: StripeWebhookSupportService, useValue: supportService },
       ],
     }).compile();
@@ -97,7 +97,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
       creditsUtilsService.addOrganizationCreditsWithExpiration,
     ).toHaveBeenCalledWith(
       'org_1',
-      8_000,
+      5_900,
       SubscriptionPlan.MONTHLY,
       expect.stringContaining('monthly'),
       expect.any(Date),
@@ -307,5 +307,34 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
         url: 'test',
       }),
     ).rejects.toBe(ledgerError);
+  });
+
+  it('grants nothing and tells an operator when the price carries no credit grant', async () => {
+    creditGrantService.resolvePlanCredits.mockResolvedValue(null);
+
+    await expect(
+      service.reconcile({
+        billingReason: 'subscription_create',
+        periodEnd,
+        periodStart,
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: monthlySubscription,
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        trigger: 'customer.subscription.created',
+        url: 'test',
+      }),
+    ).resolves.toBe(false);
+
+    expect(
+      creditsUtilsService.addOrganizationCreditsWithExpiration,
+    ).not.toHaveBeenCalled();
+    expect(creditGrantService.logUnresolvedGrant).toHaveBeenCalledWith('test', {
+      organizationId: 'org_1',
+      stripePriceId: 'price_pro',
+    });
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('reconciliation skipped'),
+      expect.objectContaining({ outcome: 'no_credit_allocation' }),
+    );
   });
 });

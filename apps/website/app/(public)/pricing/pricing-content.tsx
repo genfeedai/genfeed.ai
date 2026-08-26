@@ -54,7 +54,7 @@ const FAQ_ITEMS = [
     question: 'Do I need to choose AI models?',
   },
   {
-    answer: `${PLAN_COPY.pro.nameWithPrice} includes ${PLAN_COPY.pro.includedCredits} (about $80 of pay-as-you-go output), unlimited brand kits, unlimited connected channels, and API access. ${PLAN_COPY.scale.nameWithPrice} includes unlimited seats, ${PLAN_COPY.scale.includedCredits} in a shared pool, multi-organization control, and approvals.`,
+    answer: `${PLAN_COPY.pro.nameWithPrice} includes ${PLAN_COPY.pro.includedCredits} (about ${PLAN_COPY.pro.includedCreditsValue} of pay-as-you-go output), unlimited brand kits, unlimited connected channels, and API access. ${PLAN_COPY.scale.nameWithPrice} includes unlimited seats, ${PLAN_COPY.scale.includedCredits} in a shared pool, multi-organization control, and approvals.`,
     question: 'What do subscriptions add?',
   },
   {
@@ -117,26 +117,25 @@ function getOrderedPlans() {
   return PLAN_ORDER.map((tier) => getPlanByTier(tier));
 }
 
+/**
+ * The single line under the price. It says one thing only: how many credits the
+ * plan gives you. Everything else about the plan (seats, organizations, API) is
+ * a bullet, so this line stays scannable and never duplicates the feature list.
+ */
 export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
-    return 'No monthly fee, buy credit packs as you go';
+    return 'Credits at $0.01 each';
   }
 
   if (plan.type === 'subscription') {
-    const hasUnlimitedSeats = plan.tier === 'scale';
-
     if (plan.includedCredits == null) {
-      return hasUnlimitedSeats ? 'Unlimited seats' : 'Monthly subscription';
+      return 'Monthly subscription';
     }
 
-    const credits = formatNumberWithCommas(plan.includedCredits);
-
-    return hasUnlimitedSeats
-      ? `Unlimited seats + ${credits} credits`
-      : `${credits} credits included`;
+    return `${formatNumberWithCommas(plan.includedCredits)} credits included`;
   }
 
-  return 'Custom terms';
+  return 'Custom credit terms';
 }
 
 function getPlanSummary(plan: (typeof websitePlans)[number]): string {
@@ -171,7 +170,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description={`${PLAN_COPY.payg.name} covers bursty campaigns with zero commitment. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} include monthly credits at a ~40% better rate; ${PLAN_COPY.scale.name} adds multi-organization workflows.`}
+            description={`${PLAN_COPY.payg.name} covers bursty campaigns with zero commitment. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate; ${PLAN_COPY.scale.name} adds multi-organization workflows.`}
             className="[&_h2]:text-5xl mb-4"
           />
           <NeuralGrid columns={3} className="gsap-grid">
@@ -242,8 +241,10 @@ export default function PricingContent() {
                   </div>
 
                   {plan.launchNote ? (
-                    <div className="mb-8 text-xs font-semibold uppercase tracking-widest text-surface/60">
-                      {plan.launchNote}
+                    <div className="mb-8">
+                      <span className="inline-flex items-center rounded-full border border-edge/15 px-2.5 py-1 text-xs font-medium text-surface/55">
+                        {plan.launchNote}
+                      </span>
                     </div>
                   ) : null}
 

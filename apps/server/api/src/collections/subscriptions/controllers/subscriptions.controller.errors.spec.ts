@@ -3,10 +3,10 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -66,7 +66,12 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
     log: MockFn;
     warn: MockFn;
   };
-  let configGet: MockFn;
+  let creditGrantService: {
+    logUnresolvedGrant: MockFn;
+    resolveMonthlyCredits: MockFn;
+    resolvePlanCredits: MockFn;
+    resolveTierFromPriceId: MockFn;
+  };
 
   beforeEach(async () => {
     subscriptionsService = {
@@ -91,7 +96,14 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       log: vi.fn(),
       warn: vi.fn(),
     };
-    configGet = vi.fn().mockReturnValue('');
+    // Nothing resolves by default: the price decides the grant, and a price we
+    // cannot read grants nothing rather than a deployment-wide allowance.
+    creditGrantService = {
+      logUnresolvedGrant: vi.fn(),
+      resolveMonthlyCredits: vi.fn().mockResolvedValue(null),
+      resolvePlanCredits: vi.fn().mockResolvedValue(null),
+      resolveTierFromPriceId: vi.fn().mockReturnValue(null),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SubscriptionsController],
@@ -99,7 +111,10 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         { provide: SubscriptionsService, useValue: subscriptionsService },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         { provide: OrganizationsService, useValue: organizationsService },
-        { provide: ConfigService, useValue: { get: configGet } },
+        {
+          provide: SubscriptionCreditGrantService,
+          useValue: creditGrantService,
+        },
         { provide: LoggerService, useValue: loggerService },
       ],
     })
@@ -224,10 +239,8 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
   });
 
   describe('plan limits and billing-cycle windows', () => {
-    it('uses the configured yearly allocation and a 12-month cycle window', async () => {
-      configGet.mockImplementation((key: string) =>
-        key === 'STRIPE_YEARLY_CREDITS' ? '600000' : '',
-      );
+    it('uses the yearly allocation from the price and a 12-month cycle window', async () => {
+      creditGrantService.resolvePlanCredits.mockResolvedValue(600_000);
       creditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         { credits: [], total: 120_000 },
       );
@@ -241,6 +254,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         organizationId: ORGANIZATION_ID,
         plan: SubscriptionPlan.YEARLY,
         status: SubscriptionStatus.ACTIVE,
+        stripePriceId: 'price_pro_yearly',
       });
 
       const result = await controller.getCreditsBreakdown(
@@ -248,6 +262,10 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         contextRequest(ORGANIZATION_ID),
       );
 
+      expect(creditGrantService.resolvePlanCredits).toHaveBeenCalledWith(
+        SubscriptionPlan.YEARLY,
+        'price_pro_yearly',
+      );
       expect(creditsUtilsService.getCycleRemainingMetrics).toHaveBeenCalledWith(
         ORGANIZATION_ID,
         new Date('2026-03-31T00:00:00.000Z'),
@@ -261,12 +279,13 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       expect(result.data.remainingPercent).toBe(20);
     });
 
-    it('defaults the yearly allocation to 500k when the config is unset', async () => {
+    it('reports no plan limit when the yearly price carries no resolvable grant', async () => {
       subscriptionsService.findByOrganizationId.mockResolvedValue({
         currentPeriodEnd: null,
         id: 'sub_1',
         organizationId: ORGANIZATION_ID,
         plan: SubscriptionPlan.YEARLY,
+        stripePriceId: 'price_unknown',
       });
 
       const result = await controller.getCreditsBreakdown(
@@ -274,7 +293,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         contextRequest(ORGANIZATION_ID),
       );
 
-      expect(result.data.planLimit).toBe(500_000);
+      expect(result.data.planLimit).toBe(0);
       expect(
         creditsUtilsService.getCycleRemainingMetrics,
       ).not.toHaveBeenCalled();
@@ -305,10 +324,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
   });
 
   describe('admin credit usage', () => {
-    it('reports a null tier for a subscription with no Stripe price', async () => {
-      configGet.mockImplementation((key: string) =>
-        key === 'STRIPE_MONTHLY_CREDITS' ? '35000' : '',
-      );
+    it('reports a null tier and no plan limit for a subscription with no Stripe price', async () => {
       subscriptionsService.findAll.mockResolvedValue({
         docs: [
           {
@@ -336,7 +352,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
           organizationName: 'Acme Inc',
-          planLimit: 35_000,
+          planLimit: 0,
           status: SubscriptionStatus.ACTIVE,
           tier: null,
           usedCredits: 0,
