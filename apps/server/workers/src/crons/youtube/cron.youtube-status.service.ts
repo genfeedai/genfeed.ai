@@ -6,7 +6,6 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   CredentialPlatform,
@@ -18,6 +17,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostVisibility> = {

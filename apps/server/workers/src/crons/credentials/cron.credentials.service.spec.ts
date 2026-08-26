@@ -1,4 +1,3 @@
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -10,6 +9,7 @@ import { PinterestService } from '@server/services/integrations/pinterest/servic
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 
 describe('CronCredentialsService', () => {

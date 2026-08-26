@@ -1,4 +1,4 @@
-import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
+import { YoutubeOAuth2Util } from '@server/shared/utils/youtube-oauth/youtube-oauth.util';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('googleapis', () => {
@@ -30,9 +30,13 @@ describe('YoutubeOAuth2Util', () => {
         'client-secret',
         'https://example.com/callback',
       );
+      const clientView = client as unknown as {
+        clientId: string;
+        redirectUri: string;
+      };
       expect(client).toBeDefined();
-      expect(client.clientId).toBe('client-id');
-      expect(client.redirectUri).toBe('https://example.com/callback');
+      expect(clientView.clientId).toBe('client-id');
+      expect(clientView.redirectUri).toBe('https://example.com/callback');
     });
 
     it('returns an object with OAuth2 interface', () => {

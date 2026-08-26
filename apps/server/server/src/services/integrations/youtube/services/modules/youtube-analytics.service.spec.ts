@@ -1,8 +1,8 @@
-import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
-import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import type { IYouTubeVideoStats } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { YoutubeAnalyticsService } from '@server/services/integrations/youtube/services/modules/youtube-analytics.service';
+import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
 
 // Mock googleapis at module level
 const mockChannelsList = vi.fn();

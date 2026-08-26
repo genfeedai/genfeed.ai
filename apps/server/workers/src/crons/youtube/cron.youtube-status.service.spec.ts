@@ -3,7 +3,6 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   PostStatus,
@@ -12,6 +11,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 

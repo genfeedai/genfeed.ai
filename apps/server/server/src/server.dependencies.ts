@@ -10,6 +10,10 @@ export type {
   ServerLinkedInTrend,
   ServerLinkedInTrendResolver,
 } from './services/integrations/linkedin/linkedin-trends.port';
+export type {
+  ServerYoutubeUploader,
+  YoutubeUploadPostInput,
+} from './services/integrations/youtube/youtube-uploads.port';
 
 export const SERVER_TOKENS = {
   activities: 'SERVER_ACTIVITIES',
@@ -31,6 +35,7 @@ export const SERVER_TOKENS = {
   tiktok: 'SERVER_TIKTOK',
   twitter: 'SERVER_TWITTER',
   youtube: 'SERVER_YOUTUBE',
+  youtubeUploads: 'SERVER_YOUTUBE_UPLOADS',
   brandMemorySync: 'SERVER_BRAND_MEMORY_SYNC',
 } as const;
 

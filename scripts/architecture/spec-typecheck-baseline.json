@@ -3153,30 +3153,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/youtube/services/modules/youtube-auth.service.spec.ts",
-      "fingerprint": "bf48b4b06f1b0ebd8a6d",
-      "message": "Argument of type '{ credentials: Record<string, unknown>; getAccessToken: Mock<Procedure>; setCredentials: Mock<Procedure>; }' is not assignable to parameter of type 'OAuth2Client'.   Type '{ credentials: Record<string, unknown>; getAccessToken: Mock<Procedure>; setCredentials: Mock<Procedure>; }' is missing the following properties from type 'OAuth2Client': certificateCache, certificateExpiry, certificateCacheFormat, refreshTokenPromises, and 54 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2571,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/youtube/services/modules/youtube-comments.service.spec.ts",
-      "fingerprint": "534425740dd18fcb119f",
-      "message": "Object is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/youtube/services/youtube.service.spec.ts",
-      "fingerprint": "d21ae45636c255015786",
-      "message": "Argument of type 'CredentialEntity' is not assignable to parameter of type 'YoutubeVideoMetadata'.   Types of property 'description' are incompatible.     Type 'string | null' is not assignable to type 'string | undefined'.       Type 'null' is not assignable to type 'string | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 18048,
       "count": 12,
       "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
@@ -3390,22 +3366,6 @@
       "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "f74aa425abc9e1fa3505",
       "message": "Expected 0-1 type arguments, but got 2.",
-      "workspace": "api"
-    },
-    {
-      "code": 2341,
-      "count": 1,
-      "file": "apps/server/api/src/shared/utils/youtube-oauth/youtube-oauth.util.spec.ts",
-      "fingerprint": "078df322ce6816b17b56",
-      "message": "Property 'redirectUri' is private and only accessible within class 'OAuth2Client'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 1,
-      "file": "apps/server/api/src/shared/utils/youtube-oauth/youtube-oauth.util.spec.ts",
-      "fingerprint": "de491094bb165c66236f",
-      "message": "Property 'clientId' does not exist on type 'OAuth2Client'. Did you mean '_clientId'?",
       "workspace": "api"
     },
     {

@@ -1,8 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
@@ -15,10 +13,15 @@ import { PostVisibility } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type {
+  ServerYoutubeUploader,
+  YoutubeUploadPostInput,
+} from '@server/server.dependencies';
+import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
 import { google, type youtube_v3 } from 'googleapis';
 
 @Injectable()
-export class YoutubeUploadService {
+export class YoutubeUploadService implements ServerYoutubeUploader {
   private readonly constructorName = this.constructor.name;
   private readonly youtubeAPI: ReturnType<typeof google.youtube>;
 
@@ -57,7 +60,7 @@ export class YoutubeUploadService {
     organizationId: string,
     brandId: string,
     videoId: string,
-    post: PostEntity,
+    post: YoutubeUploadPostInput,
     settings: ChannelTargetSettings = {},
     credentialId?: string,
   ): Promise<string> {

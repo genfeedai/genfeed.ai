@@ -1,34 +1,35 @@
 // Break circular dependencies: both YoutubeAnalyticsService and YoutubeMetadataService import YoutubeService
 vi.mock(
-  '@api/services/integrations/youtube/services/modules/youtube-analytics.service',
+  '@server/services/integrations/youtube/services/modules/youtube-analytics.service',
   () => ({
     YoutubeAnalyticsService: vi.fn(),
   }),
 );
 
 vi.mock(
-  '@api/services/integrations/youtube/services/modules/youtube-metadata.service',
+  '@server/services/integrations/youtube/services/modules/youtube-metadata.service',
   () => ({
     YoutubeMetadataService: vi.fn(),
   }),
 );
 
-import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
-import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
-import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
-import { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
-import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { ConfigService } from '@libs/config/config.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerYoutubeUploader,
+} from '@server/server.dependencies';
+import { YoutubeAnalyticsService } from '@server/services/integrations/youtube/services/modules/youtube-analytics.service';
+import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
+import { YoutubeCommentsService } from '@server/services/integrations/youtube/services/modules/youtube-comments.service';
+import { YoutubeMetadataService } from '@server/services/integrations/youtube/services/modules/youtube-metadata.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 
 describe('YoutubeService', () => {
   let service: YoutubeService;
   let authService: vi.Mocked<YoutubeAuthService>;
   let metadataService: vi.Mocked<YoutubeMetadataService>;
-  let uploadService: vi.Mocked<YoutubeUploadService>;
+  let uploadService: vi.Mocked<ServerYoutubeUploader>;
   let analyticsService: vi.Mocked<YoutubeAnalyticsService>;
 
   beforeEach(async () => {
@@ -43,7 +44,7 @@ describe('YoutubeService', () => {
 
     uploadService = {
       uploadVideo: vi.fn(),
-    } as unknown as vi.Mocked<YoutubeUploadService>;
+    } as unknown as vi.Mocked<ServerYoutubeUploader>;
 
     analyticsService = {
       getChannelDetails: vi.fn(),
@@ -61,7 +62,7 @@ describe('YoutubeService', () => {
         },
         { provide: YoutubeAuthService, useValue: authService },
         { provide: YoutubeMetadataService, useValue: metadataService },
-        { provide: YoutubeUploadService, useValue: uploadService },
+        { provide: SERVER_TOKENS.youtubeUploads, useValue: uploadService },
         { provide: YoutubeAnalyticsService, useValue: analyticsService },
         { provide: YoutubeCommentsService, useValue: { postComment: vi.fn() } },
       ],
@@ -71,9 +72,7 @@ describe('YoutubeService', () => {
   });
 
   it('should delegate metadata calls', async () => {
-    metadataService.getVideoMetadata.mockResolvedValue({
-      id: 'abc',
-    } as unknown as CredentialEntity);
+    metadataService.getVideoMetadata.mockResolvedValue({ id: 'abc' });
 
     await service.getVideoMetadata('abc');
     expect(metadataService.getVideoMetadata).toHaveBeenCalledWith('abc');
@@ -89,12 +88,11 @@ describe('YoutubeService', () => {
   });
 
   it('should delegate upload operations', async () => {
-    await service.uploadVideo(
-      'org',
-      'brand',
-      'video',
-      {} as unknown as PostEntity,
-    );
+    await service.uploadVideo('org', 'brand', 'video', {
+      description: '',
+      label: '',
+      scheduledDate: new Date(),
+    });
     expect(uploadService.uploadVideo).toHaveBeenCalled();
   });
 
