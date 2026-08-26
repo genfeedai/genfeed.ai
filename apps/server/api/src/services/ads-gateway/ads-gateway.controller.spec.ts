@@ -19,6 +19,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import { INVALID_ADS_INSIGHTS_DATE_RANGE_MESSAGE } from '@api/services/ads-gateway/ads-insights-range.util';
 import {
   CredentialPlatform,
@@ -97,6 +98,7 @@ describe('AdsGatewayController', () => {
         { provide: AdsGatewayService, useValue: adsGatewayService },
         { provide: CredentialsService, useValue: credentialsService },
         { provide: LoggerService, useValue: logger },
+        AdsGatewayRequestContextService,
       ],
     })
       .overrideGuard(RolesGuard)

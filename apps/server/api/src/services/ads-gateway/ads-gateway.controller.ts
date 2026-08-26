@@ -1,52 +1,27 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
-import {
-  INVALID_CAMPAIGN_STATUS_MESSAGE,
-  isAcceptedCampaignStatus,
-} from '@api/services/ads-gateway/ads-campaign-status.util';
-import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import {
   type AdsInsightsDateQuery,
   parseAdsInsightsQuery,
 } from '@api/services/ads-gateway/ads-insights-range.util';
-import {
-  ApiKeyScope,
-  MemberRole,
-  toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import type {
-  AdsAdapterContext,
-  AdsInsightsParams,
-  AdsPlatform,
-  CreateAdInput,
-  CreateAdSetInput,
-  CreateCampaignInput,
-  UpdateCampaignInput,
-} from '@genfeedai/interfaces';
+import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import type { AdsInsightsParams } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
-  Body,
   Controller,
   Get,
   Param,
-  Post,
-  Put,
   Query,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-
-const VALID_PLATFORMS: AdsPlatform[] = ['meta', 'google', 'tiktok', 'x'];
 
 /** Session roles allowed to read tenant ads analytics. */
 const ADS_READ_ROLES = [
@@ -54,9 +29,6 @@ const ADS_READ_ROLES = [
   MemberRole.ADMIN,
   MemberRole.ANALYTICS,
 ] as const;
-
-/** Session roles allowed to write paid-media drafts. */
-const ADS_WRITE_ROLES = [MemberRole.OWNER, MemberRole.ADMIN] as const;
 
 /**
  * API-key scopes are cumulative with the role check above — `RolesGuard` still
@@ -67,12 +39,6 @@ const ADS_READ_SCOPES = [
   ApiKeyScope.ANALYTICS_READ,
   ApiKeyScope.ADMIN,
 ] as const;
-const ADS_WRITE_SCOPES = [ApiKeyScope.ADMIN] as const;
-
-interface AdsCredentialAuth {
-  accessToken: string;
-  accessTokenSecret?: string;
-}
 
 @AutoSwagger()
 @Controller('ads')
@@ -82,7 +48,7 @@ export class AdsGatewayController {
 
   constructor(
     private readonly adsGatewayService: AdsGatewayService,
-    private readonly credentialsService: CredentialsService,
+    private readonly requestContextService: AdsGatewayRequestContextService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -104,7 +70,6 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started`);
 
-    const reqCtx = extractRequestContext(user);
     const platforms = platformsStr.split(',');
     const credentialIds = credentialIdsStr.split(',');
     const adAccountIds = adAccountIdsStr.split(',');
@@ -120,7 +85,7 @@ export class AdsGatewayController {
     }
 
     const validPlatforms = platforms.map((platform) =>
-      this.validatePlatform(platform),
+      this.requestContextService.validatePlatform(platform),
     );
     const insightsParams = this.buildInsightsParams({
       datePreset,
@@ -128,26 +93,20 @@ export class AdsGatewayController {
       until,
     });
 
-    const credentialAuths = await Promise.all(
-      validPlatforms.map((platform, index) =>
-        this.resolveCredentialAuth(
-          credentialIds[index],
-          reqCtx.organizationId,
+    const contexts = await Promise.all(
+      validPlatforms.map(async (platform, index) => ({
+        ctx: await this.requestContextService.createAdapterContext(
+          user,
           platform,
+          {
+            adAccountId: adAccountIds[index],
+            credentialId: credentialIds[index],
+            loginCustomerId: loginCustomerIds?.[index],
+          },
         ),
-      ),
+        platform,
+      })),
     );
-
-    const contexts = validPlatforms.map((platform, i) => ({
-      ctx: this.buildContext({
-        ...credentialAuths[i],
-        adAccountId: adAccountIds[i],
-        credentialId: credentialIds[i],
-        loginCustomerId: loginCustomerIds?.[i],
-        organizationId: reqCtx.organizationId,
-      }),
-      platform,
-    }));
 
     return this.adsGatewayService.comparePlatforms(contexts, insightsParams);
   }
@@ -164,21 +123,17 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const validPlatform = this.requestContextService.validatePlatform(platform);
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      {
+        adAccountId: '',
+        credentialId,
+        loginCustomerId,
+      },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId: '',
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.getAdAccounts(ctx);
   }
@@ -196,21 +151,13 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const validPlatform = this.requestContextService.validatePlatform(platform);
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      { adAccountId, credentialId, loginCustomerId },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.listCampaigns(ctx);
   }
@@ -232,26 +179,18 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
+    const validPlatform = this.requestContextService.validatePlatform(platform);
     const insightsParams = this.buildInsightsParams({
       datePreset,
       since,
       until,
     });
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      { adAccountId, credentialId, loginCustomerId },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.getCampaignInsights(ctx, campaignId, insightsParams);
   }
@@ -273,26 +212,18 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
+    const validPlatform = this.requestContextService.validatePlatform(platform);
     const insightsParams = this.buildInsightsParams({
       datePreset,
       since,
       until,
     });
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      { adAccountId, credentialId, loginCustomerId },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.getAdSetInsights(ctx, adSetId, insightsParams);
   }
@@ -314,26 +245,18 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
+    const validPlatform = this.requestContextService.validatePlatform(platform);
     const insightsParams = this.buildInsightsParams({
       datePreset,
       since,
       until,
     });
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      { adAccountId, credentialId, loginCustomerId },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.getAdInsights(ctx, adId, insightsParams);
   }
@@ -354,21 +277,13 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const validPlatform = this.requestContextService.validatePlatform(platform);
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      { adAccountId, credentialId, loginCustomerId },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.getTopPerformers(ctx, {
       datePreset,
@@ -391,21 +306,13 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const validPlatform = this.requestContextService.validatePlatform(platform);
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      { adAccountId, credentialId, loginCustomerId },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.listAdSets(ctx, campaignId);
   }
@@ -424,208 +331,18 @@ export class AdsGatewayController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${caller} started for ${platform}`);
 
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
+    const validPlatform = this.requestContextService.validatePlatform(platform);
+    const ctx = await this.requestContextService.createAdapterContext(
+      user,
       validPlatform,
+      { adAccountId, credentialId, loginCustomerId },
     );
     const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
 
     return adapter.listAds(ctx, adSetId);
   }
 
-  // ─── Write Endpoints ──────────────────────────────────────────────────────
-
-  @Post(':platform/campaigns')
-  @RolesDecorator(...ADS_WRITE_ROLES)
-  @RequiredScopes(...ADS_WRITE_SCOPES)
-  async createCampaign(
-    @CurrentUser() user: User,
-    @Param('platform') platform: string,
-    @Body()
-    body: {
-      credentialId: string;
-      adAccountId: string;
-      loginCustomerId?: string;
-    } & CreateCampaignInput,
-  ) {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${caller} started for ${platform}`);
-
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    this.assertPausedOnlyStatus(body.status);
-    const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const { credentialId, adAccountId, loginCustomerId, ...input } = body;
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
-      validPlatform,
-    );
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
-
-    return adapter.createCampaign(ctx, input);
-  }
-
-  @Put(':platform/campaigns/:campaignId')
-  @RolesDecorator(...ADS_WRITE_ROLES)
-  @RequiredScopes(...ADS_WRITE_SCOPES)
-  async updateCampaign(
-    @CurrentUser() user: User,
-    @Param('platform') platform: string,
-    @Param('campaignId') campaignId: string,
-    @Body()
-    body: {
-      credentialId: string;
-      adAccountId: string;
-      loginCustomerId?: string;
-    } & UpdateCampaignInput,
-  ) {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${caller} started for ${platform}`);
-
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    this.assertPausedOnlyStatus(body.status);
-    const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const { credentialId, adAccountId, loginCustomerId, ...input } = body;
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
-      validPlatform,
-    );
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
-
-    return adapter.updateCampaign(ctx, campaignId, input);
-  }
-
-  @Post(':platform/adsets')
-  @RolesDecorator(...ADS_WRITE_ROLES)
-  @RequiredScopes(...ADS_WRITE_SCOPES)
-  async createAdSet(
-    @CurrentUser() user: User,
-    @Param('platform') platform: string,
-    @Body()
-    body: {
-      credentialId: string;
-      adAccountId: string;
-      loginCustomerId?: string;
-    } & CreateAdSetInput,
-  ) {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${caller} started for ${platform}`);
-
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const { credentialId, adAccountId, loginCustomerId, ...input } = body;
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
-      validPlatform,
-    );
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
-
-    return adapter.createAdSet(ctx, input);
-  }
-
-  @Post(':platform/ads')
-  @RolesDecorator(...ADS_WRITE_ROLES)
-  @RequiredScopes(...ADS_WRITE_SCOPES)
-  async createAd(
-    @CurrentUser() user: User,
-    @Param('platform') platform: string,
-    @Body()
-    body: {
-      credentialId: string;
-      adAccountId: string;
-      loginCustomerId?: string;
-    } & CreateAdInput,
-  ) {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${caller} started for ${platform}`);
-
-    const reqCtx = extractRequestContext(user);
-    const validPlatform = this.validatePlatform(platform);
-    const adapter = this.adsGatewayService.getAdapter(validPlatform);
-    const { credentialId, adAccountId, loginCustomerId, ...input } = body;
-    const credentialAuth = await this.resolveCredentialAuth(
-      credentialId,
-      reqCtx.organizationId,
-      validPlatform,
-    );
-    const ctx = this.buildContext({
-      ...credentialAuth,
-      adAccountId,
-      credentialId,
-      loginCustomerId,
-      organizationId: reqCtx.organizationId,
-    });
-
-    return adapter.createAd(ctx, input);
-  }
-
   // ─── Private Helpers ──────────────────────────────────────────────────────
-
-  private async resolveCredentialAuth(
-    credentialId: string,
-    organizationId: string,
-    platform: AdsPlatform,
-  ): Promise<AdsCredentialAuth> {
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      isConnected: true,
-      isDeleted: false,
-      organizationId,
-      platform: toPrismaCredentialPlatform(mapAdsCredentialPlatform(platform)),
-    });
-
-    if (!credential?.accessToken) {
-      throw new UnauthorizedException(
-        `Credential ${credentialId} not found or missing access token`,
-      );
-    }
-
-    if (platform === 'x' && !credential.accessTokenSecret) {
-      throw new UnauthorizedException(
-        `Credential ${credentialId} not found or missing access token secret`,
-      );
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret: credential.accessTokenSecret
-        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-        : undefined,
-    };
-  }
 
   /**
    * Runs before credential resolution and adapter lookup so malformed,
@@ -638,44 +355,5 @@ export class AdsGatewayController {
     }
 
     return parsed.params;
-  }
-
-  /**
-   * Runs before credential resolution and adapter lookup so an activating
-   * status never reaches a token, a provider, or a queue.
-   */
-  private assertPausedOnlyStatus(status: unknown): void {
-    if (!isAcceptedCampaignStatus(status)) {
-      throw new BadRequestException(INVALID_CAMPAIGN_STATUS_MESSAGE);
-    }
-  }
-
-  private validatePlatform(platform: string): AdsPlatform {
-    if (!VALID_PLATFORMS.includes(platform as AdsPlatform)) {
-      throw new BadRequestException(
-        `Invalid platform: ${platform}. Must be one of: ${VALID_PLATFORMS.join(', ')}`,
-      );
-    }
-    return platform as AdsPlatform;
-  }
-
-  private buildContext(params: {
-    credentialId: string;
-    accessToken: string;
-    accessTokenSecret?: string;
-    adAccountId: string;
-    loginCustomerId?: string;
-    organizationId: string;
-    brandId?: string;
-  }): AdsAdapterContext {
-    return {
-      accessToken: params.accessToken,
-      accessTokenSecret: params.accessTokenSecret,
-      adAccountId: params.adAccountId,
-      brandId: params.brandId,
-      credentialId: params.credentialId,
-      loginCustomerId: params.loginCustomerId,
-      organizationId: params.organizationId,
-    };
   }
 }

@@ -5,6 +5,8 @@ import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.
 import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
+import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { TikTokAdsModule } from '@api/services/integrations/tiktok-ads/tiktok-ads.module';
@@ -14,7 +16,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AdsGatewayController],
+  controllers: [AdsGatewayWriteController, AdsGatewayController],
   exports: [AdsGatewayService],
   imports: [
     CredentialsCoreModule,
@@ -27,6 +29,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AdsGatewayService,
+    AdsGatewayRequestContextService,
     MetaAdsAdapter,
     GoogleAdsAdapter,
     TikTokAdsAdapter,
