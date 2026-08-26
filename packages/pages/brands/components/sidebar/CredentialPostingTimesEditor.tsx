@@ -105,7 +105,7 @@ export default function CredentialPostingTimesEditor({
                   {label}
                 </span>
                 <Button
-                  aria-label={`Remove ${label}`}
+                  aria-label={translate('removeAriaLabel', { label })}
                   className="h-7 px-2 text-2xs"
                   isDisabled={isSaving}
                   onClick={() => {
@@ -127,10 +127,10 @@ export default function CredentialPostingTimesEditor({
       )}
       <div className="flex items-end gap-2">
         <Input
-          aria-label="New posting time"
+          aria-label={translate('newPostingTime')}
           className="h-8"
           isDisabled={isSaving}
-          label="Add a time"
+          label={translate('addTime')}
           onChange={(event) => setDraft(event.target.value)}
           type="time"
           value={draft}

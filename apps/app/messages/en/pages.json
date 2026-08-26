@@ -532,9 +532,12 @@
   },
   "credentialPostingTimes": {
     "add": "Add",
+    "addTime": "Add a time",
     "empty": "No posting times yet.",
     "help": "Day view uses these clock times as rows. You can still schedule outside them.",
+    "newPostingTime": "New posting time",
     "remove": "Remove",
+    "removeAriaLabel": "Remove {label}",
     "title": "Posting times"
   },
   "outreachCampaign": {
