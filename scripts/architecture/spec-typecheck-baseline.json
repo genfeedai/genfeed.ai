@@ -2873,14 +2873,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/mastodon/services/mastodon.service.spec.ts",
-      "fingerprint": "b4b09d0e285f4d4c7a5e",
-      "message": "Argument of type '(k: string) => string' is not assignable to parameter of type '(key: keyof ApiEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'k' and 'key' are incompatible.     Type 'keyof ApiEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
       "code": 2713,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/openai-llm/services/openai-llm.service.spec.ts",
