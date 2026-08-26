@@ -1,10 +1,10 @@
-import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
+import { GoogleAdsOAuthService } from './google-ads-oauth.service';
 
 describe('GoogleAdsOAuthService', () => {
   let service: GoogleAdsOAuthService;

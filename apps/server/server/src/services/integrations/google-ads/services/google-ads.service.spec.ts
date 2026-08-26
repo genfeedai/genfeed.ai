@@ -1,8 +1,12 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
+import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -16,17 +20,19 @@ const customerId = '123-456-789';
 const cleanCustomerId = '123456789';
 
 /** Wraps data in Observable-like format expected by firstValueFrom */
-const makeHttpResponse = <T>(data: T) => of({ data });
+const makeHttpResponse = <T>(data: T) => of({ data } as AxiosResponse<T>);
 
 describe('GoogleAdsService', () => {
   let service: GoogleAdsService;
   let httpService: vi.Mocked<HttpService>;
-  let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
 
   beforeEach(async () => {
     const credentialsMock = {
+      findAll: vi.fn(),
+      findBrandAccounts: vi.fn(),
       findOne: vi.fn(),
+      mergeWarmupSignals: vi.fn(),
       patch: vi.fn(),
       // Multi-account resolution routes through `resolveBrandAccount`; the double
       // answers with whatever `findOne` is primed to return so the existing
@@ -34,7 +40,7 @@ describe('GoogleAdsService', () => {
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
         credentialsMock.findOne(options),
       ),
-    };
+    } satisfies ServerCredentialStore;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -46,7 +52,7 @@ describe('GoogleAdsService', () => {
           },
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: credentialsMock,
         },
         {
@@ -69,7 +75,6 @@ describe('GoogleAdsService', () => {
 
     service = module.get(GoogleAdsService);
     httpService = module.get(HttpService);
-    configService = module.get(ConfigService);
     loggerService = module.get(LoggerService);
 
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
@@ -80,7 +85,7 @@ describe('GoogleAdsService', () => {
       }
 
       return 0 as unknown as ReturnType<typeof setTimeout>;
-    }) as typeof setTimeout);
+    }) as unknown as typeof setTimeout);
   });
 
   afterEach(() => {
