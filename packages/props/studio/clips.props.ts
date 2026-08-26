@@ -75,6 +75,7 @@ export interface ClipResult {
   ingredientId?: string | null;
   libraryLinkStatus?: ClipLibraryLinkStatus;
   libraryLinkError?: string | null;
+  mediaValidation?: ClipRawCutMediaValidationContract;
   mode?: ClipResultMode;
   duration: number;
   startTime: number;

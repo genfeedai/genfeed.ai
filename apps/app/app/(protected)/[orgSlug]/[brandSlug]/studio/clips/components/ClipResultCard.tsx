@@ -56,6 +56,14 @@ const STATUS_CONFIG: Record<ClipStatus, { label?: string; color: string }> = {
     color: 'bg-secondary text-muted-foreground border-transparent',
     label: 'Queued',
   },
+  reframing: {
+    color: 'bg-info/10 text-info border-transparent',
+    label: 'Framing',
+  },
+  validating: {
+    color: 'bg-info/10 text-info border-transparent',
+    label: 'Validating',
+  },
 };
 
 function ViralityBadge({ score }: ViralityBadgeProps) {
