@@ -63,7 +63,7 @@ export class TasksPlanningController {
   private requireMetadataUserId(user: User): string {
     const metadataUserId = user.userId ?? user.id;
 
-    if (!metadataUserId || !/^[0-9a-f]{24}$/i.test(metadataUserId)) {
+    if (!metadataUserId) {
       throw new UnauthorizedException(
         'Missing workspace user context. Please sign in again.',
       );

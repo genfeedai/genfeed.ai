@@ -4,6 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ClipsApiService } from '../services/clips-api.service';
 import ClipsProgressView from './ClipsProgressView';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 function renderApproval() {
   const clipsService = {
     submitHookApproval: vi.fn().mockResolvedValue({

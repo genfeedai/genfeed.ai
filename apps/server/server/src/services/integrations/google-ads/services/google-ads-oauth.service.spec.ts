@@ -78,7 +78,7 @@ describe('GoogleAdsOAuthService', () => {
     });
 
     it('refuses to start OAuth when client id is a placeholder', () => {
-      configService.get.mockImplementation((key: string) =>
+      configService.get.mockImplementation((key) =>
         String(key) === 'GOOGLE_ADS_CLIENT_ID'
           ? 'PLACEHOLDER_NOT_CONFIGURED'
           : CONFIG_VALUES[String(key)],

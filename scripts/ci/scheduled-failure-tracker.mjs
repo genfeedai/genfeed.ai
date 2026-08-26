@@ -273,18 +273,25 @@ function mergeTrackerStates(trackers, fallback) {
   const latest = [...states].sort((a, b) =>
     String(b.lastSeenAt).localeCompare(String(a.lastSeenAt)),
   )[0];
+  // A concurrent reconciler may already have folded these same duplicate
+  // issues into its stored count. Summing would count that cohort twice.
+  const occurrences = Math.max(
+    states.length,
+    ...states.map((state) => Math.max(1, Number(state.occurrences) || 1)),
+  );
 
   return {
     ...fallback,
-    occurrences: states.reduce(
-      (total, state) => total + Math.max(1, Number(state.occurrences) || 1),
-      0,
-    ),
+    occurrences,
     firstSeenAt: earliest.firstSeenAt,
     firstSha: earliest.firstSha,
+    firstRunId: earliest.firstRunId,
+    firstRunAttempt: earliest.firstRunAttempt,
     firstRunUrl: earliest.firstRunUrl,
     lastSeenAt: latest.lastSeenAt,
     lastSha: latest.lastSha,
+    lastRunId: latest.lastRunId,
+    lastRunAttempt: latest.lastRunAttempt,
     lastRunUrl: latest.lastRunUrl,
   };
 }
