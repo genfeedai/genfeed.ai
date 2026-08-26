@@ -27,7 +27,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
-    "types": ["bun", "node"]
+    "types": ["node"]
   },
   "exclude": ["node_modules", "dist", "tests"],
   "include": ["src/**/*"]
