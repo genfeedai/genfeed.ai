@@ -227,14 +227,15 @@ describe('ThreadsController', () => {
       const result = await controller.connect(mockRequest, mockUser, {
         brandId: mockBrandId,
       });
-      const providerUrl = new URL(result.url);
 
-      expect(providerUrl.searchParams.get('client_id')).toBe(
-        'threads-client-id',
-      );
-      expect(providerUrl.searchParams.get('redirect_uri')).toBe(
-        'https://app.genfeed.ai/oauth/threads',
-      );
+      expect(result).toEqual({
+        url:
+          'https://threads.net/oauth/authorize' +
+          '?client_id=threads-client-id' +
+          '&redirect_uri=https%3A%2F%2Fapp.genfeed.ai%2Foauth%2Fthreads' +
+          '&scope=threads_basic%2Cthreads_content_publish%2Cthreads_manage_insights%2Cthreads_manage_replies%2Cthreads_read_replies' +
+          '&response_type=code&state=opaque-oauth-state',
+      });
     });
   });
 
