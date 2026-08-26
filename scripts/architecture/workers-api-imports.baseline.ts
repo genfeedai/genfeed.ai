@@ -124,7 +124,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/distribution/telegram/telegram-distribution.module',
   '@api/services/distribution/telegram/telegram-distribution.service',
   '@api/services/integrations/facebook/facebook.module',
-  '@api/services/integrations/facebook/services/facebook.service',
   '@api/services/integrations/fleet/fleet.module',
   '@api/services/integrations/fleet/fleet.service',
   '@api/services/integrations/google-ads/google-ads.module',

@@ -1,11 +1,14 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
+import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { of, throwError } from 'rxjs';
 
 describe('FacebookService', () => {
@@ -23,8 +26,10 @@ describe('FacebookService', () => {
   };
 
   const mockCredentialsService = {
-    create: vi.fn(),
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
     findOne: vi.fn(),
+    mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
     // Multi-account resolution routes through `resolveBrandAccount`; the double
     // answers with whatever `findOne` is primed to return so the existing
@@ -32,8 +37,7 @@ describe('FacebookService', () => {
     resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
       (mockCredentialsService.findOne as vi.Mock)(options),
     ),
-    update: vi.fn(),
-  };
+  } satisfies ServerCredentialStore;
 
   const mockLoggerService = {
     debug: vi.fn(),
@@ -56,7 +60,7 @@ describe('FacebookService', () => {
           useValue: mockConfigService,
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: mockCredentialsService,
         },
         {
