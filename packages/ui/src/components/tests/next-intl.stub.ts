@@ -46,7 +46,7 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
           return path;
         }
 
-        const next = node[segment];
+        const next: MessageNode | undefined = node[segment];
 
         if (next === undefined) {
           return path;
