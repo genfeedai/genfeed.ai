@@ -364,4 +364,58 @@ describe('RolesGuard', () => {
       expect.any(Array),
     );
   });
+
+  it('authorizes an opaque Better Auth user id from active membership', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+    mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
+
+    const userId = 'A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6';
+    const context = createContext({
+      organizationId: TOKEN_ORGANIZATION_ID,
+      userId,
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isActive: true,
+        isDeleted: false,
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId,
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it.each([undefined, null, '', 123])(
+    'rejects malformed Better Auth user context %s before membership lookup',
+    async (userId) => {
+      vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+
+      const context = createContext({
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId,
+      });
+
+      await expectForbidden(guard.canActivate(context));
+      expect(mockMembersService.findOne).not.toHaveBeenCalled();
+    },
+  );
+
+  it('authorizes a UUID Better Auth user id from active membership', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+    mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
+
+    const userId = '123e4567-e89b-42d3-a456-426614174000';
+    const context = createContext({
+      organizationId: TOKEN_ORGANIZATION_ID,
+      userId,
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ userId }),
+      expect.any(Array),
+    );
+  });
 });

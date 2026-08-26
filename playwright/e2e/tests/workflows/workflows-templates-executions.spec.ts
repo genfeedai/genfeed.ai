@@ -252,29 +252,38 @@ test.describe('Workflow templates & executions interactions', () => {
   });
 
   test('empty templates state renders without errors', async ({
-    automationPage,
+    authenticatedPage,
   }) => {
-    // automationPage pre-mocks empty templates; navigate to the gallery.
-    await automationPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES, {
+    await mockWorkflowCrud(authenticatedPage, []);
+    await mockWorkflowExecutions(authenticatedPage, []);
+    await mockWorkflowTemplates(authenticatedPage, []);
+
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(automationPage).toHaveURL(/\/automate\/workflows\/templates/);
-    await expect(automationPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(automationPage);
+    await expect(authenticatedPage).toHaveURL(
+      /\/automate\/workflows\/templates/,
+    );
+    await expect(authenticatedPage.locator('body')).toBeVisible();
+    await expectNoErrorOverlay(authenticatedPage);
   });
 
   test('empty executions state renders without errors', async ({
-    automationPage,
+    authenticatedPage,
   }) => {
-    await automationPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS, {
+    await mockWorkflowCrud(authenticatedPage, []);
+    await mockWorkflowExecutions(authenticatedPage, []);
+    await mockWorkflowTemplates(authenticatedPage, []);
+
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(automationPage).toHaveURL(
+    await expect(authenticatedPage).toHaveURL(
       /\/automate\/workflows\/executions$/,
     );
-    await expect(automationPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(automationPage);
+    await expect(authenticatedPage.locator('body')).toBeVisible();
+    await expectNoErrorOverlay(authenticatedPage);
   });
 });

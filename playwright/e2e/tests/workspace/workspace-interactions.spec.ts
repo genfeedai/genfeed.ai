@@ -120,9 +120,25 @@ test.describe('Workspace — deep interactions', () => {
       authenticatedPage.getByTestId('workspace-new-task'),
     ).toHaveCount(0);
 
-    const primaryAction = authenticatedPage.getByTestId(
-      'sidebar-primary-action',
+    // Touch the overview snapshot + recent-output panels before moving to the
+    // inbox surface that owns the task-composer event listener.
+    await tryClick(
+      authenticatedPage,
+      '[data-testid="workspace-recent-outputs"] a',
     );
+    await tryClick(
+      authenticatedPage,
+      '[data-testid="workspace-history-preview"] [data-testid="workspace-task-row"]',
+    );
+
+    await assertRouteRenders(
+      authenticatedPage,
+      APP_ROUTES.WORKSPACE.INBOX_UNREAD,
+    );
+
+    const primaryAction = authenticatedPage
+      .getByTestId('desktop-sidebar-rail')
+      .getByTestId('sidebar-primary-action');
     await expect(primaryAction).toBeVisible();
     await primaryAction.click();
     await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
@@ -132,16 +148,6 @@ test.describe('Workspace — deep interactions', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: 'Create Task' }),
     ).toBeVisible();
-
-    // Touch the snapshot + recent-output panels.
-    await tryClick(
-      authenticatedPage,
-      '[data-testid="workspace-recent-outputs"] a',
-    );
-    await tryClick(
-      authenticatedPage,
-      '[data-testid="workspace-history-preview"] [data-testid="workspace-task-row"]',
-    );
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

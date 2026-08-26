@@ -1,6 +1,6 @@
 import Joi from 'joi';
 
-import { conditionalRequired } from '../helpers';
+import { conditionalRequired, UNCONFIGURED_SECRET_SENTINEL } from '../helpers';
 
 /**
  * YouTube OAuth (required in cloud, optional in self-hosted)
@@ -176,6 +176,24 @@ export const fanvueSchema = {
 };
 
 /**
+ * Threads API (optional everywhere until a provider app is provisioned).
+ * Runtime OAuth guards fail closed when the three OAuth values are incomplete.
+ */
+export const threadsSchema = {
+  THREADS_API_VERSION: Joi.string().optional().allow(''),
+  THREADS_CLIENT_ID: Joi.string().optional().allow(''),
+  THREADS_CLIENT_SECRET: Joi.string().optional().allow(''),
+  THREADS_GRAPH_URL: Joi.string()
+    .uri()
+    .optional()
+    .allow('', UNCONFIGURED_SECRET_SENTINEL),
+  THREADS_REDIRECT_URI: Joi.string()
+    .uri()
+    .optional()
+    .allow('', UNCONFIGURED_SECRET_SENTINEL),
+};
+
+/**
  * Slack API (optional integration)
  */
 export const slackSchema = {
@@ -263,6 +281,7 @@ export const allSocialSchema = {
   ...linkedinSchema,
   ...mediumSchema,
   ...fanvueSchema,
+  ...threadsSchema,
   ...slackSchema,
   ...wordpressSchema,
   ...snapchatSchema,

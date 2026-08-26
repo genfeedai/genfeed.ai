@@ -586,7 +586,9 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     'api',
     'desktop',
     'forgot-password',
+    'ingest',
     'managed-credits',
+    'monitoring',
     'onboarding',
     'reset-password',
     'serwist',
@@ -615,6 +617,83 @@ export function parseScopedAppPath(pathname: string): {
   }
 
   return { brandSlug: parts[1] ?? '', orgSlug: first };
+}
+
+const AUTH_CONTINUATION_ROUTE_PREFIXES = [
+  ...Object.values(APP_ROUTE_PREFIXES),
+  APP_ROUTES.CONNECT,
+  APP_ROUTES.OAUTH,
+  APP_ROUTES.ONBOARDING.ROOT,
+  '/agent-auth',
+  '/desktop/local',
+  '/managed-credits',
+  '/request-access',
+  LEGACY_APP_ROUTES.TASKS,
+  LEGACY_APP_ROUTES.WORKFLOWS,
+] as const;
+const AUTH_CONTINUATION_SCOPE_SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+function decodeAppPathname(pathname: string): string | null {
+  let decoded = pathname;
+
+  try {
+    for (let pass = 0; pass < 3; pass += 1) {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) {
+        break;
+      }
+      decoded = next;
+    }
+  } catch {
+    return null;
+  }
+
+  if (
+    !decoded.startsWith('/') ||
+    decoded.startsWith('//') ||
+    decoded.includes('\\') ||
+    [...decoded].some((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint <= 31 || codePoint === 127;
+    })
+  ) {
+    return null;
+  }
+
+  return decoded;
+}
+
+/**
+ * Whether a pathname is a user-facing Genfeed navigation destination.
+ *
+ * Authentication continuations use this positive product-route boundary so
+ * infrastructure endpoints and future runtime mounts cannot become post-login
+ * destinations merely because they share the app origin.
+ */
+export function isUserFacingAppPathname(pathname: string): boolean {
+  const decoded = decodeAppPathname(pathname);
+  if (!decoded) {
+    return false;
+  }
+
+  if (decoded === APP_ROUTES.ROOT) {
+    return true;
+  }
+
+  const normalized = decoded.toLowerCase();
+  if (
+    AUTH_CONTINUATION_ROUTE_PREFIXES.some(
+      (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`),
+    )
+  ) {
+    return true;
+  }
+
+  const scope = parseScopedAppPath(normalized);
+  return (
+    AUTH_CONTINUATION_SCOPE_SLUG_RE.test(scope.orgSlug) &&
+    (!scope.brandSlug || AUTH_CONTINUATION_SCOPE_SLUG_RE.test(scope.brandSlug))
+  );
 }
 
 /** Brand-relative path to a destination hub: `/platforms/instagram`. */

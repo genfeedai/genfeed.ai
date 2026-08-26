@@ -53,6 +53,8 @@ async function mockActiveRuns(page: Page): Promise<void> {
 async function mockThreadBundle(
   page: Page,
   thread: {
+    brandId?: string;
+    contextVersion?: number;
     id: string;
     messageContent?: string;
     messageMetadata?: Record<string, unknown>;
@@ -60,6 +62,8 @@ async function mockThreadBundle(
   },
 ): Promise<void> {
   const threadResource = {
+    brandId: thread.brandId ?? null,
+    contextVersion: thread.contextVersion ?? 1,
     createdAt: '2026-03-10T10:00:00.000Z',
     id: thread.id,
     status: 'active',
@@ -127,6 +131,8 @@ async function mockThreadBundle(
 async function mockThreads(
   page: Page,
   threads: Array<{
+    brandId?: string;
+    contextVersion?: number;
     id: string;
     messageContent?: string;
     messageMetadata?: Record<string, unknown>;
@@ -138,6 +144,8 @@ async function mockThreads(
       body: JSON.stringify(
         buildJsonApiCollection(
           threads.map((thread) => ({
+            brandId: thread.brandId ?? null,
+            contextVersion: thread.contextVersion ?? 1,
             createdAt: '2026-03-10T10:00:00.000Z',
             id: thread.id,
             status: 'active',
@@ -185,6 +193,8 @@ test.describe('Agent Onboarding', () => {
 
     await mockThreads(authenticatedPage, [
       {
+        brandId: 'brand-voice-1',
+        contextVersion: 1,
         id: threadId,
         messageContent: 'I drafted a voice profile for your approval.',
         messageMetadata: {
@@ -241,9 +251,11 @@ test.describe('Agent Onboarding', () => {
       },
     ]);
 
-    await authenticatedPage.route('**/agent/chat', async (route) => {
+    await authenticatedPage.route('**/agent/threads/turns', async (route) => {
       await route.fulfill({
         body: JSON.stringify({
+          brandId: 'brand-voice-1',
+          contextVersion: 1,
           creditsRemaining: 118,
           creditsUsed: 2,
           message: {
@@ -318,6 +330,8 @@ test.describe('Agent Onboarding', () => {
 
         await route.fulfill({
           body: JSON.stringify({
+            brandId: 'brand-voice-1',
+            contextVersion: 1,
             creditsRemaining: 118,
             creditsUsed: 0,
             message: {
@@ -346,15 +360,6 @@ test.describe('Agent Onboarding', () => {
     await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding(?:[/?#]|$)/);
-    const hasOnboardingCrash = await authenticatedPage
-      .getByText('Something went wrong')
-      .first()
-      .isVisible()
-      .catch(() => false);
-    test.skip(
-      hasOnboardingCrash,
-      'Agent onboarding host still errors in mocked app-core; login-less shell is covered above.',
-    );
     const composer = authenticatedPage
       .locator(
         '[data-testid="agent-chat-input-shell"] [contenteditable="true"]',
@@ -366,6 +371,15 @@ test.describe('Agent Onboarding', () => {
     );
     await composer.press('Enter');
 
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`/agent/onboarding/${threadId}$`),
+    );
+
+    // Prove the promoted thread route is durable, then interact with the
+    // server-hydrated card. The route transition and the initial local turn
+    // deliberately overlap; reloading removes that transient hand-off from
+    // the action assertion while covering the user-critical resume path.
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`/agent/onboarding/${threadId}$`),
     );
@@ -392,6 +406,8 @@ test.describe('Agent Onboarding', () => {
 
     expect(uiActionRequest).toEqual({
       action: 'confirm_save_brand_voice_profile',
+      brandId: 'brand-voice-1',
+      expectedContextVersion: 1,
       payload: {
         brandId: 'brand-voice-1',
         sourceActionId: 'brand-voice-card-e2e',

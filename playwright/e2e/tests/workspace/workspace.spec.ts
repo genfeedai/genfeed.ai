@@ -51,9 +51,9 @@ test.describe('Workspace', () => {
     await expect(
       authenticatedPage.getByRole('link', { name: 'Inbox' }).first(),
     ).toBeVisible();
-    const primaryAction = authenticatedPage.getByTestId(
-      'sidebar-primary-action',
-    );
+    const primaryAction = authenticatedPage
+      .getByTestId('desktop-sidebar-rail')
+      .getByTestId('sidebar-primary-action');
     await expect(primaryAction).toBeVisible();
     await primaryAction.click();
 

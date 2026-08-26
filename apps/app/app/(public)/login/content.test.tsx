@@ -82,7 +82,13 @@ vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
 }));
 
 const getEmailInput = () => screen.getByRole('textbox', { name: /^Email/ });
-const absoluteCallback = (path: string) => `${window.location.origin}${path}`;
+const absoluteCallback = (path: string) => {
+  if (path === '/') {
+    return `${window.location.origin}/`;
+  }
+
+  return `${window.location.origin}/?callbackUrl=${encodeURIComponent(path)}`;
+};
 
 describe('LoginPage', () => {
   const originalLocation = window.location;

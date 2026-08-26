@@ -14,6 +14,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
@@ -23,7 +24,15 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  Post,
+  Req,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
@@ -42,8 +51,6 @@ interface ThreadsLongLivedTokenResponse {
 @Controller('services/threads')
 export class ThreadsController {
   private readonly constructorName: string = String(this.constructor.name);
-
-  private readonly redirectUri: string;
 
   private readonly graphUrl: string = 'https://graph.threads.net';
   private readonly apiVersion: string;
@@ -65,7 +72,6 @@ export class ThreadsController {
     private readonly threadsService: ThreadsService,
     private readonly loggerService: LoggerService,
   ) {
-    this.redirectUri = this.configService.get('THREADS_REDIRECT_URI') ?? '';
     this.apiVersion = this.configService.get('THREADS_API_VERSION') || 'v1.0';
   }
 
@@ -94,6 +100,8 @@ export class ThreadsController {
       });
     }
 
+    const { clientId, redirectUri } = this.getOAuthConfig();
+
     const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
       user.userId ?? user.id,
@@ -106,17 +114,12 @@ export class ThreadsController {
       },
     );
 
-    const appId = this.configService.get('THREADS_CLIENT_ID');
-
-    this.loggerService.log(`${url} - Generating OAuth URL`, {
-      appId: appId ? 'configured' : 'missing',
-      redirectUri: this.redirectUri,
-    });
+    this.loggerService.log(`${url} - Generating OAuth URL`);
 
     // Threads OAuth endpoint
     const authUrl =
-      `https://threads.net/oauth/authorize?client_id=${appId}` +
-      `&redirect_uri=${encodeURIComponent(this.redirectUri)}` +
+      `https://threads.net/oauth/authorize?client_id=${clientId}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&scope=${encodeURIComponent(this.scope.join(','))}` +
       `&response_type=code&state=${encodeURIComponent(state)}`;
 
@@ -158,16 +161,7 @@ export class ThreadsController {
 
       const { organizationId } = existingCredential;
 
-      const appId = this.configService.get('THREADS_CLIENT_ID');
-      const appSecret = this.configService.get('THREADS_CLIENT_SECRET');
-
-      if (!appId || !appSecret) {
-        this.loggerService.error(`${url} - Missing app credentials`);
-        return returnBadRequest({
-          detail: 'Threads app credentials are not configured',
-          title: 'Configuration error',
-        });
-      }
+      const { clientId, clientSecret, redirectUri } = this.getOAuthConfig();
 
       // Exchange code for short-lived token
       let tokenRes: AxiosResponse<ThreadsShortLivedTokenResponse>;
@@ -178,11 +172,11 @@ export class ThreadsController {
             null,
             {
               params: {
-                client_id: appId,
-                client_secret: appSecret,
+                client_id: clientId,
+                client_secret: clientSecret,
                 code,
                 grant_type: OAuthGrantType.AUTHORIZATION_CODE,
-                redirect_uri: this.redirectUri,
+                redirect_uri: redirectUri,
               },
             },
           ),
@@ -226,7 +220,7 @@ export class ThreadsController {
           this.httpService.get(`${this.graphUrl}/access_token`, {
             params: {
               access_token: shortLivedToken,
-              client_secret: appSecret,
+              client_secret: clientSecret,
               grant_type: OAuthGrantType.TH_EXCHANGE_TOKEN,
             },
           }),
@@ -289,6 +283,9 @@ export class ThreadsController {
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       return returnInternalServerError('Failed to verify Threads OAuth');
     }
   }
@@ -304,5 +301,32 @@ export class ThreadsController {
       this.loggerService.error(`${url} failed`, error);
       return returnInternalServerError('Failed to fetch Threads trends');
     }
+  }
+
+  private getOAuthConfig(): {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+  } {
+    const clientId = this.configService.get('THREADS_CLIENT_ID')?.trim();
+    const clientSecret = this.configService
+      .get('THREADS_CLIENT_SECRET')
+      ?.trim();
+    const redirectUri = this.configService.get('THREADS_REDIRECT_URI')?.trim();
+
+    if (
+      !clientId ||
+      isUnconfiguredSecret(clientId) ||
+      !clientSecret ||
+      isUnconfiguredSecret(clientSecret) ||
+      !redirectUri ||
+      isUnconfiguredSecret(redirectUri)
+    ) {
+      throw new ServiceUnavailableException(
+        'Threads OAuth is not configured for this deployment.',
+      );
+    }
+
+    return { clientId, clientSecret, redirectUri };
   }
 }

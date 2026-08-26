@@ -1,3 +1,4 @@
+import { resolveAuthContinuation } from '@genfeedai/auth-client/callback';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
   hasAgentFirstOnboarding,
@@ -256,25 +257,23 @@ function redirectDroppingSearch(req: NextRequest, pathname: string) {
  * search; `callbackUrl` is the exact param the login surface consumes
  * (`getAuthCallbackURL` reads `callbackUrl` | `return_to` | `redirect_url`).
  *
- * The destination is inherently same-origin (it is the incoming request's own
- * path), but we still only forward a single-slash-rooted path — mirroring the
- * open-redirect guards in `createSafeRedirectUrl` and, on the consuming side,
- * `toAbsoluteAuthCallbackURL`. The bare root `/` and any `/login*` path are
- * skipped: `/` is already the login flow's default callback (`ROOT_CALLBACK_URL`)
- * so encoding it is redundant noise, and a `/login` destination would be a
- * self-referential loop.
+ * `resolveAuthContinuation` applies the product-route allowlist at the source.
+ * Better Auth later returns to the fixed root callback; this value is carried
+ * as data and consumed only after the new session is confirmed.
  */
 function redirectToLoginPreservingDestination(req: NextRequest) {
   const url = createSafeRedirectUrl(req, '/login');
   const { pathname, search } = req.nextUrl;
   const destination = `${pathname}${search}`;
-  const isPreservableDestination =
-    destination.startsWith('/') &&
-    !destination.startsWith('//') &&
-    pathname !== '/' &&
-    !pathname.startsWith('/login');
-  if (isPreservableDestination) {
-    url.searchParams.set('callbackUrl', destination);
+  const continuation = resolveAuthContinuation(
+    pathname === APP_ROUTES.ROOT
+      ? req.nextUrl.searchParams.get('callbackUrl') ||
+          req.nextUrl.searchParams.get('return_to') ||
+          req.nextUrl.searchParams.get('redirect_url')
+      : destination,
+  );
+  if (continuation?.startsWith('/') && continuation !== '/') {
+    url.searchParams.set('callbackUrl', continuation);
   }
   return NextResponse.redirect(url);
 }
@@ -1007,8 +1006,9 @@ async function getBetterAuthBearerToken(
 }
 
 /**
- * Same-origin post-login destination from `callbackUrl` / `return_to` /
- * `redirect_url`. Rejects protocol-relative and off-origin targets.
+ * Product continuation from `callbackUrl` / `return_to` / `redirect_url`.
+ * Absolute web URLs, runtime paths, and auth-loop routes are rejected by the
+ * shared resolver.
  */
 function getSafeSignedInCallbackPath(req: NextRequest): string | null {
   const raw =
@@ -1020,38 +1020,10 @@ function getSafeSignedInCallbackPath(req: NextRequest): string | null {
     return null;
   }
 
-  // Relative app path only — absolute URLs are validated via createSafeRedirectUrl.
-  if (raw.startsWith('/') && !raw.startsWith('//')) {
-    const pathOnly = raw.split('?')[0] ?? raw;
-    if (
-      pathOnly === '/' ||
-      pathOnly.startsWith('/login') ||
-      pathOnly.startsWith('/logout') ||
-      pathOnly.startsWith('/sign-up')
-    ) {
-      return null;
-    }
-    return raw;
-  }
-
-  try {
-    const parsed = new URL(raw);
-    if (parsed.origin !== req.nextUrl.origin) {
-      return null;
-    }
-    const pathWithSearch = `${parsed.pathname}${parsed.search}`;
-    if (
-      parsed.pathname === '/' ||
-      parsed.pathname.startsWith('/login') ||
-      parsed.pathname.startsWith('/logout') ||
-      parsed.pathname.startsWith('/sign-up')
-    ) {
-      return null;
-    }
-    return pathWithSearch;
-  } catch {
-    return null;
-  }
+  const continuation = resolveAuthContinuation(raw);
+  return continuation?.startsWith('/') && continuation !== '/'
+    ? continuation
+    : null;
 }
 
 async function redirectSignedInUserToDefaultRoute(
@@ -1060,8 +1032,8 @@ async function redirectSignedInUserToDefaultRoute(
   cacheKey?: string | null,
   isDesktopSurface = false,
 ): Promise<NextResponse | null> {
-  // Prefer an explicit post-auth destination (session restore / API bounce
-  // back through /login?callbackUrl=…). Do this before onboarding defaulting
+  // Prefer an explicit post-auth destination from session restore through
+  // /login?callbackUrl=…. Do this before onboarding defaulting
   // so deep links like /settings/credits survive a cold reload.
   const callbackPath = getSafeSignedInCallbackPath(req);
   if (callbackPath) {
@@ -1222,6 +1194,15 @@ async function routeBetterAuthRequest(
     options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
   if (!token) {
     return redirectToLoginPreservingDestination(req);
+  }
+
+  // Better Auth always returns browser sign-ins to `/`. A validated product
+  // continuation is carried as data on that fixed callback and consumed only
+  // after the session token has been confirmed here.
+  const callbackPath =
+    pathname === APP_ROUTES.ROOT ? getSafeSignedInCallbackPath(req) : null;
+  if (callbackPath) {
+    return NextResponse.redirect(createSafeRedirectUrl(req, callbackPath));
   }
 
   // Desktop stays exempt from proxy-driven onboarding redirects: a

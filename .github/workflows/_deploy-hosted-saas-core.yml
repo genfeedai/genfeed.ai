@@ -646,6 +646,7 @@ jobs:
             "mcp-health|https://mcp.${DOMAIN}/v1/health|\"status\":\"ok\""
             "notifications-health|https://notifications.${DOMAIN}/v1/health|\"status\":\"ok\""
             "app-login|https://${APP_HOST}/login|"
+            "app-auth-proxy|https://${APP_HOST}/v1/auth/get-session|null"
             "website-home|https://${WEB_HOST}|"
           )
           if [ -n "${DOCS_HOST}" ]; then

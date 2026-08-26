@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   BetterAuthMailerService,
   buildAuthLinkCorrelationId,
+  resolveBrowserAuthActionUrl,
 } from './better-auth-mailer.service';
 
 const LINK_ID_PATTERN = /^[a-f0-9]{12}$/;
@@ -45,6 +46,78 @@ describe('BetterAuthMailerService', () => {
       'https://app.genfeed.ai/v1/auth/magic-link/verify?token=tok&amp;callbackURL=https%3A%2F%2Fapp.genfeed.ai%2F',
     );
     expect(html).toContain('If you did not request this sign-in link');
+  });
+
+  it('rewrites a magic-link API callback to the app root before delivery', async () => {
+    const notificationsService = {
+      deliverEmail: vi.fn().mockResolvedValue('email_123'),
+    };
+    const configService = {
+      get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: false,
+    };
+    const logger = { log: vi.fn() };
+    const service = new BetterAuthMailerService(
+      configService as never,
+      notificationsService as never,
+      logger as never,
+    );
+    const url =
+      'https://api.genfeed.ai/v1/auth/magic-link/verify?token=tok&callbackURL=https%3A%2F%2Fapp.genfeed.ai%2Fapi%2Fversion';
+
+    await service.sendMagicLink({
+      email: 'user@example.com',
+      token: 'tok',
+      url,
+    });
+
+    const html = notificationsService.deliverEmail.mock.calls[0]?.[0]
+      .html as string;
+    expect(html).toContain('callbackURL=%2F');
+    expect(html).not.toContain('%2Fapi%2Fversion');
+  });
+
+  it('sanitizes a callback even when the deployment app URL is absent', () => {
+    expect(
+      resolveBrowserAuthActionUrl(
+        'https://api.example.test/v1/auth/magic-link/verify?token=tok&callbackURL=%2Fapi%2Fversion',
+        undefined,
+      ),
+    ).toContain('callbackURL=%2F');
+  });
+
+  it('preserves a fixed absolute callback when the deployment app URL is absent', () => {
+    const callbackURL =
+      'https://selfhost.example/?callbackUrl=%2Facme%2F~%2Fworkspace%2Foverview';
+    const resolved = resolveBrowserAuthActionUrl(
+      `https://selfhost.example/v1/auth/magic-link/verify?token=tok&callbackURL=${encodeURIComponent(callbackURL)}`,
+      undefined,
+    );
+
+    expect(new URL(resolved).searchParams.get('callbackURL')).toBe(callbackURL);
+  });
+
+  it.each(['/\\evil.example/', 'https://app.genfeed.ai@evil.example/'])(
+    'sanitizes the authority-confusing callback %s',
+    (callbackURL) => {
+      const resolved = resolveBrowserAuthActionUrl(
+        `https://api.genfeed.ai/v1/auth/magic-link/verify?token=tok&callbackURL=${encodeURIComponent(callbackURL)}`,
+        callbackURL.startsWith('/') ? 'https://app.genfeed.ai' : undefined,
+      );
+
+      expect(new URL(resolved).searchParams.get('callbackURL')).toBe('/');
+    },
+  );
+
+  it('preserves the fixed root callback with a valid product continuation', () => {
+    const callbackURL =
+      'https://app.genfeed.ai/?callbackUrl=%2Fdefault%2F~%2Fsettings%2Fcredits';
+    const resolved = resolveBrowserAuthActionUrl(
+      `https://api.genfeed.ai/v1/auth/magic-link/verify?token=tok&callbackURL=${encodeURIComponent(callbackURL)}`,
+      'https://app.genfeed.ai',
+    );
+
+    expect(new URL(resolved).searchParams.get('callbackURL')).toBe(callbackURL);
   });
 
   it('sends signup magic links with account creation copy', async () => {
@@ -136,8 +209,9 @@ describe('BetterAuthMailerService', () => {
       notificationsService as never,
       logger as never,
     );
-    const url =
-      'https://app.genfeed.ai/reset-password?token=reset&callbackUrl=https%3A%2F%2Fapp.genfeed.ai%2F';
+    const resetPage =
+      'https://app.genfeed.ai/reset-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321';
+    const url = `https://api.genfeed.ai/v1/auth/reset-password/reset?callbackURL=${encodeURIComponent(resetPage)}`;
 
     await service.sendResetPassword({
       token: 'reset',
@@ -156,7 +230,7 @@ describe('BetterAuthMailerService', () => {
     expect(html).toContain('Reset your password');
     expect(html).toContain('Reset password');
     expect(html).toContain(
-      'https://app.genfeed.ai/reset-password?token=reset&amp;callbackUrl=https%3A%2F%2Fapp.genfeed.ai%2F',
+      `https://app.genfeed.ai/v1/auth/reset-password/reset?callbackURL=${encodeURIComponent(resetPage).replaceAll('&', '&amp;')}`,
     );
     expect(html).toContain(
       'If you did not request a Genfeed.ai password reset',

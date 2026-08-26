@@ -696,8 +696,10 @@ describe('createBetterAuthInstance source', () => {
 });
 
 describe('buildBetterAuthAdvancedOptions', () => {
-  it('keeps host-scoped cookies when cookieDomain env is unset', () => {
-    expect(buildBetterAuthAdvancedOptions({})).toEqual({});
+  it('generates canonical UUIDs for Better Auth records', () => {
+    expect(buildBetterAuthAdvancedOptions({})).toEqual({
+      database: { generateId: 'uuid' },
+    });
   });
 
   it('shares the cookie only when cookieDomain is provided', () => {
@@ -705,6 +707,7 @@ describe('buildBetterAuthAdvancedOptions', () => {
       buildBetterAuthAdvancedOptions({ cookieDomain: '.genfeed.ai' }),
     ).toEqual({
       crossSubDomainCookies: { domain: '.genfeed.ai', enabled: true },
+      database: { generateId: 'uuid' },
     });
   });
 });

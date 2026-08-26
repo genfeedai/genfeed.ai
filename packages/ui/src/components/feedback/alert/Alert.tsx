@@ -4,13 +4,13 @@ import type { AlertProps } from '@genfeedai/props/ui/ui.props';
 import { Alert as PrimitiveAlert } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { cva } from 'class-variance-authority';
-import { CircleAlert, CircleCheck, CircleX, Info } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleX, Info, X } from 'lucide-react';
 
 /**
  * CVA alert variants with semantic color options
  */
 const alertVariants = cva(
-  'relative w-full rounded-lg border px-4 py-3 flex items-center gap-3 [&>svg]:h-5 [&>svg]:w-5 [&>svg]:shrink-0',
+  'relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border px-4 py-3',
   {
     defaultVariants: {
       variant: 'default',
@@ -18,13 +18,10 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: 'bg-background text-foreground border-white/[0.08]',
-        error:
-          'bg-destructive/10 text-destructive border-destructive/20 [&>svg]:text-destructive',
-        info: 'bg-info/10 text-info border-info/20 [&>svg]:text-info',
-        success:
-          'bg-success/10 text-success border-success/20 [&>svg]:text-success',
-        warning:
-          'bg-warning/10 text-warning border-warning/20 [&>svg]:text-warning',
+        error: 'bg-destructive/10 text-destructive border-destructive/20',
+        info: 'bg-info/10 text-info border-info/20',
+        success: 'bg-success/10 text-success border-success/20',
+        warning: 'bg-warning/10 text-warning border-warning/20',
       },
     },
   },
@@ -55,22 +52,32 @@ export default function Alert({
   onClose,
 }: AlertProps) {
   const variant = TYPE_TO_VARIANT[type] ?? 'info';
+  const resolvedIcon = icon ?? DEFAULT_ICONS[variant];
 
   return (
     <PrimitiveAlert
       className={cn(alertVariants({ variant }), className)}
       variant={variant === 'error' ? 'destructive' : variant}
     >
-      {icon ?? DEFAULT_ICONS[variant]}
+      <span
+        aria-hidden="true"
+        className={cn('shrink-0', icon == null && '[&>svg]:size-5')}
+        data-slot="alert-icon"
+      >
+        {resolvedIcon}
+      </span>
 
-      <div className="flex-1">{children}</div>
+      <div className="min-w-0">{children}</div>
 
       {onClose && (
         <Button
-          label={<CircleX />}
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.SM}
+          ariaLabel="Dismiss alert"
+          className="size-7 shrink-0 text-current hover:text-current"
+          icon={<X className="size-4" />}
           onClick={onClose}
+          size={ButtonSize.ICON}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
         />
       )}
     </PrimitiveAlert>
