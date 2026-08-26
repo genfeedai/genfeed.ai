@@ -115,7 +115,8 @@ describe('CostUsagePage', () => {
       screen.getByRole('heading', { name: 'Cost & Usage' }),
     ).toBeInTheDocument();
     expect(screen.getAllByText('Provider cost').length).toBeGreaterThan(0);
-    expect(screen.getByText('$2.75')).toBeInTheDocument();
+    expect(screen.getByText('$2.75', { selector: 'p' })).toBeInTheDocument();
+    expect(screen.getByText('$2.75', { selector: 'td' })).toBeInTheDocument();
     expect(screen.getAllByText('Credits used').length).toBeGreaterThan(0);
     expect(
       screen.getByRole('heading', { name: 'Cost split by brand' }),
