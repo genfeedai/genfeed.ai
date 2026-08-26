@@ -7,6 +7,7 @@ import {
   ListeningEvidenceQueryDto,
   ListeningTopicsQueryDto,
 } from '@api/collections/listening-topics/dto/listening-topics-query.dto';
+import { ReviewListeningThemeDto } from '@api/collections/listening-topics/dto/review-listening-theme.dto';
 import { UpdateListeningTopicDto } from '@api/collections/listening-topics/dto/update-listening-topic.dto';
 import { serializeListeningAnalysis } from '@api/collections/listening-topics/helpers/listening-analysis-response.helper';
 import { ListeningTopicAnalysisService } from '@api/collections/listening-topics/services/listening-topic-analysis.service';
@@ -124,6 +125,25 @@ export class ListeningTopicsController {
       context,
     );
     return serializeListeningAnalysis(request, result);
+  }
+
+  @Patch(':topicId/themes/:themeId/review')
+  async reviewTheme(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
+    @Param('topicId') topicId: string,
+    @Param('themeId') themeId: string,
+    @Body() body: ReviewListeningThemeDto,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    const theme = await this.listeningTopicAnalysisService.reviewThemeScoped(
+      topicId,
+      themeId,
+      body,
+      context,
+    );
+    return serializeSingle(request, ListeningThemeSerializer, theme);
   }
 
   @Patch(':id')

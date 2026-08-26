@@ -51,6 +51,7 @@ describe('ListeningTopicsController', () => {
     analyzeScoped: vi.fn(),
     listSignalsScoped: vi.fn(),
     listThemesScoped: vi.fn(),
+    reviewThemeScoped: vi.fn(),
   };
   const controller = new ListeningTopicsController(
     service as unknown as ListeningTopicsService,
@@ -192,5 +193,42 @@ describe('ListeningTopicsController', () => {
       context,
       query,
     );
+  });
+
+  it('reviews a theme with the authenticated opaque user id and brand scope', async () => {
+    const query = { brandId: 'brand-1' } as never;
+    const body = { state: 'deferred' } as const;
+    analysisService.reviewThemeScoped.mockResolvedValue({
+      evidenceIds: ['evidence-1'],
+      id: 'theme-1',
+      reviewState: 'deferred',
+      reviewedBy: 'user-1',
+    });
+
+    const result = await controller.reviewTheme(
+      request,
+      user,
+      query,
+      'topic-1',
+      'theme-1',
+      body,
+    );
+
+    expect(analysisService.reviewThemeScoped).toHaveBeenCalledWith(
+      'topic-1',
+      'theme-1',
+      body,
+      {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    );
+    expect(result).toEqual({
+      data: expect.objectContaining({
+        evidenceIds: ['evidence-1'],
+        reviewState: 'deferred',
+      }),
+    });
   });
 });

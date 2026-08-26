@@ -30,6 +30,7 @@ import { CircleCheck, Lightbulb, RefreshCw, Sparkles } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useState } from 'react';
+import SocialIntelligenceInbox from './social-intelligence-inbox';
 
 const _TrendAnalysisCard = dynamic(
   () => import('@ui/analytics/insights/trend-analysis-card/TrendAnalysisCard'),
@@ -50,7 +51,7 @@ const InsightsOverview = memo(function InsightsOverview({
   aiConfig,
 }: InsightsOverviewProps) {
   const router = useRouter();
-  const { brandId: scopedBrandId } = useCollectionScope();
+  const { brandId: scopedBrandId, organizationId } = useCollectionScope();
   const brandId = propBrandId || scopedBrandId;
 
   const {
@@ -170,6 +171,11 @@ const InsightsOverview = memo(function InsightsOverview({
             </div>
           </Card>
         ) : null}
+
+        <SocialIntelligenceInbox
+          brandId={brandId}
+          organizationId={organizationId}
+        />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

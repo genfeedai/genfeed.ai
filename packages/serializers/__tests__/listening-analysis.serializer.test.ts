@@ -24,6 +24,9 @@ describe('listening analysis serializers', () => {
       label: 'ai agents',
       methodologyVersion: 'deterministic-keyword-v1',
       organizationId: 'org-1',
+      reviewState: 'acknowledged',
+      reviewedAt: '2026-08-26T12:30:00.000Z',
+      reviewedBy: 'legacyBase62UserId',
       topicId: 'topic-1',
     }) as SerializedDocument;
 
@@ -37,6 +40,9 @@ describe('listening analysis serializers', () => {
     expect(output.data.attributes.currentWindowEnd).toBe(
       '2026-08-26T12:00:00.000Z',
     );
+    expect(output.data.attributes.reviewState).toBe('acknowledged');
+    expect(output.data.attributes.reviewedAt).toBe('2026-08-26T12:30:00.000Z');
+    expect(output.data.attributes.reviewedBy).toBe('legacyBase62UserId');
   });
 
   it('preserves sufficient source coverage and the numeric value', () => {

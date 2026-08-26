@@ -583,6 +583,7 @@ model User {
   socialSources            SocialSource[]
   sourcePosts              SourcePost[]
   listeningTopics          ListeningTopic[]
+  listeningThemeReviews    ListeningTheme[]            @relation("listening_theme_reviewed_by")
   socialWarmupEnrollments  SocialWarmupEnrollment[]
   socialWarmupEvents       SocialWarmupEvent[]
   votes                    Vote[]
@@ -4317,6 +4318,10 @@ model ListeningTheme {
   previousWindowStart DateTime
   previousWindowEnd   DateTime
   idempotencyKey      String
+  reviewState          String       @default("unreviewed")
+  reviewedAt           DateTime?
+  reviewedBy           String?
+  reviewer             User?        @relation("listening_theme_reviewed_by", fields: [reviewedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
   isDeleted           Boolean      @default(false)
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
