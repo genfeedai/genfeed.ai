@@ -14,6 +14,29 @@ import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import Stripe from 'stripe';
 
+function stripeResponse<T extends object>(resource: T): Stripe.Response<T> {
+  return {
+    ...resource,
+    lastResponse: {
+      headers: {},
+      requestId: 'req_test',
+      statusCode: 200,
+    },
+  };
+}
+
+function checkoutSessionResponse(
+  id: string,
+  url: string | null = null,
+): Stripe.Response<Stripe.Checkout.Session> {
+  const session = {
+    id,
+    object: 'checkout.session',
+    url,
+  } as Stripe.Checkout.Session;
+  return stripeResponse(session);
+}
+
 describe('StripeService', () => {
   let service: StripeService;
 
@@ -58,9 +81,7 @@ describe('StripeService', () => {
     it('should pass quantity to stripe checkout', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -79,9 +100,7 @@ describe('StripeService', () => {
     it('stamps trusted organization identity on the session and subscription', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -113,9 +132,7 @@ describe('StripeService', () => {
     it('sets metadata.credits to the preset amount for the $1,000 pack (100,000)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -137,9 +154,7 @@ describe('StripeService', () => {
     it('sets metadata.credits to the preset amount for the $50 pack (5,000)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -161,9 +176,7 @@ describe('StripeService', () => {
     it('sets metadata.credits equal to quantity for a custom (non-preset) amount', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -185,9 +198,7 @@ describe('StripeService', () => {
     it('does not apply discounts/coupons, uses allow_promotion_codes', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -207,9 +218,7 @@ describe('StripeService', () => {
     it('rejects a below-minimum quantity (999 credits) without calling Stripe', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await expect(
         service.createPaymentSession('cust', 'payg_id', 'http://origin', 999),
@@ -220,9 +229,7 @@ describe('StripeService', () => {
     it('accepts the minimum quantity (1,000 credits = $10)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -241,9 +248,7 @@ describe('StripeService', () => {
     it('accepts the maximum quantity (1,000,000 credits = $10,000)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession(
         'cust',
@@ -262,9 +267,7 @@ describe('StripeService', () => {
     it('rejects an above-maximum quantity (1,000,001 credits) without calling Stripe', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await expect(
         service.createPaymentSession(
@@ -280,9 +283,7 @@ describe('StripeService', () => {
     it('enforces the same bounds on the managed PAYG checkout (below min)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess_managed',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess_managed'));
 
       await expect(
         service.createManagedPaymentSession({
@@ -297,9 +298,7 @@ describe('StripeService', () => {
     it('enforces the same bounds on the managed PAYG checkout (above max)', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess_managed',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess_managed'));
 
       await expect(
         service.createManagedPaymentSession({
@@ -316,9 +315,7 @@ describe('StripeService', () => {
     it('always opens allow_promotion_codes and never force-applies discounts', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await service.createPaymentSession('cust', 'pro_id', 'http://origin');
 
@@ -357,9 +354,7 @@ describe('StripeService', () => {
 
       const createSpy = vi
         .spyOn(scopedService.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await scopedService.createPaymentSession(
         'cust',
@@ -402,9 +397,7 @@ describe('StripeService', () => {
 
       const createSpy = vi
         .spyOn(scopedService.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await scopedService.createPaymentSession(
         'cust',
@@ -448,9 +441,7 @@ describe('StripeService', () => {
 
       const createSpy = vi
         .spyOn(scopedService.stripe.checkout.sessions, 'create')
-        .mockResolvedValue({
-          id: 'sess',
-        } as unknown as Stripe.Checkout.Session);
+        .mockResolvedValue(checkoutSessionResponse('sess'));
 
       await scopedService.createPaymentSession(
         'cust',
@@ -470,9 +461,11 @@ describe('StripeService', () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
         .mockResolvedValue({
-          id: 'sess_managed',
-          url: 'https://checkout.stripe.com/pay/managed',
-        } as unknown as Stripe.Checkout.Session);
+          ...checkoutSessionResponse(
+            'sess_managed',
+            'https://checkout.stripe.com/pay/managed',
+          ),
+        });
 
       await service.createManagedPaymentSession({
         email: 'managed@example.com',

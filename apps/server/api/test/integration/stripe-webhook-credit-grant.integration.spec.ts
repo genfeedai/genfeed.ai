@@ -34,14 +34,24 @@
 
 // Allow skipping this file when the Prisma DB is not available
 // Set SKIP_PRISMA_DB=true to skip all tests in this file
+type SkippableSuiteFn = (name: string, fn: () => void | Promise<void>) => void;
+type SkippableSuite = SkippableSuiteFn & { skip?: SkippableSuiteFn };
+interface GlobalWithTestOverrides {
+  describe: SkippableSuiteFn;
+  it: SkippableSuiteFn;
+  test: SkippableSuiteFn;
+}
+
 if (process.env.SKIP_PRISMA_DB === 'true') {
-  const g: any = global as any;
-  const d: any = (global as any).describe;
-  g.describe = ((name: string, fn: any) =>
-    d?.skip ? d.skip(name, fn) : describe(name, fn)) as any;
-  const i: any = (global as any).it;
-  g.it = ((name: string, fn: any) =>
-    i?.skip ? i.skip(name, fn) : it(name, fn)) as any;
+  const g = global as unknown as GlobalWithTestOverrides;
+  const originalDescribe = describe as unknown as SkippableSuite;
+  const originalIt = it as unknown as SkippableSuite;
+  g.describe = (name, fn) =>
+    originalDescribe.skip
+      ? originalDescribe.skip(name, fn)
+      : describe(name, fn);
+  g.it = (name, fn) =>
+    originalIt.skip ? originalIt.skip(name, fn) : it(name, fn);
   g.test = g.it;
 }
 
@@ -63,6 +73,7 @@ import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
+import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -223,6 +234,10 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           useValue: buildSubscriptionsServiceStub(subscriptionsById),
         },
         {
+          provide: OrganizationBillingAccountService,
+          useValue: { resolveWebhookOrganization: vi.fn() },
+        },
+        {
           provide: UsersService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
@@ -285,7 +300,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    await moduleRef?.close();
   });
 
   beforeEach(async () => {

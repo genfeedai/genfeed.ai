@@ -620,6 +620,10 @@
     "tone": "Tone:",
     "type": "Type:"
   },
+  "workspaceOverview": {
+    "openReview": "Open Review",
+    "requestChangesPrompt": "Please revise this task from the workspace inbox."
+  },
   "workflows": {
     "castPrompt": {
       "action": "Action",

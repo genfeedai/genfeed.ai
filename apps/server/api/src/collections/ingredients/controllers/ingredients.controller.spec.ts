@@ -6,7 +6,10 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
+import {
+  createIngredientDocumentFixture,
+  createMetadataDocumentFixture,
+} from '@api-test/fixtures/ingredient-document.fixture';
 import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -133,8 +136,8 @@ describe('IngredientsController (cloneIngredient)', () => {
       const sharedServiceSaveDocumentsSpy = vi
         .spyOn(sharedService, 'createMediaDocuments')
         .mockResolvedValue({
-          ingredientData: { id: '2' },
-          metadataData: { id: 'meta2' },
+          ingredientData: createIngredientDocumentFixture({ id: '2' }),
+          metadataData: createMetadataDocumentFixture({ id: 'meta2' }),
         });
 
       const filesClientServiceUploadToS3Spy = vi
@@ -143,7 +146,7 @@ describe('IngredientsController (cloneIngredient)', () => {
 
       const metadataServicePatchSpy = vi
         .spyOn(metadataService, 'patch')
-        .mockResolvedValue({});
+        .mockResolvedValue(createMetadataDocumentFixture());
 
       const result = await controller.cloneIngredient(
         mockRequest,

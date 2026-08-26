@@ -16,6 +16,7 @@ import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, ClipboardCheck, Inbox } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ReviewInboxSummary } from './workspace-task.helpers';
@@ -56,6 +57,7 @@ export function WorkspaceOverviewSidebar({
   replaceTaskSearchParam,
   setSelectedTaskId,
 }: WorkspaceOverviewSidebarProps) {
+  const translate = useTranslations('pages.workspaceOverview');
   const isStudioEnabled = useFeatureFlag('studio');
   const { href, orgHref } = useOrgUrl();
   const availableAdvancedTools = ADVANCED_TOOLS.filter(
@@ -82,7 +84,7 @@ export function WorkspaceOverviewSidebar({
               mutateTask(taskId, (service) =>
                 service.requestChanges(
                   taskId,
-                  'Please revise this task from the workspace inbox.',
+                  translate('requestChangesPrompt'),
                 ),
               )
             }
@@ -148,7 +150,9 @@ export function WorkspaceOverviewSidebar({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
             >
-              <Link href={href(APP_ROUTES.PUBLISH.REVIEW)}>Open Review</Link>
+              <Link href={href(APP_ROUTES.PUBLISH.REVIEW)}>
+                {translate('openReview')}
+              </Link>
             </Button>
           }
           bodyClassName="p-4"
