@@ -95,8 +95,12 @@ export class WorkflowEngineExecutorHelperService {
     extension: MetadataExtension;
     organizationId: string;
     userId: string;
+    generationPrompt?: string;
+    generationSource?: string;
     model?: string;
+    negativePrompt?: string;
     parentIngredientId?: string;
+    providerData?: Record<string, unknown>;
     references?: Array<string | undefined>;
     transformations?: TransformationCategory[];
     externalId?: string | null;
@@ -116,9 +120,13 @@ export class WorkflowEngineExecutorHelperService {
         brandId: args.brandId,
         category: args.category,
         extension: args.extension,
+        generationPrompt: args.generationPrompt,
+        generationSource: args.generationSource,
         model: args.model,
+        negativePrompt: args.negativePrompt,
         organizationId: args.organizationId,
         parentId: args.parentIngredientId || undefined,
+        providerData: args.providerData,
         sourceIds: (args.references ?? []).filter(
           (reference): reference is string => typeof reference === 'string',
         ),

@@ -1,5 +1,6 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -88,5 +89,42 @@ describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', ()
       isDeleted: false,
       organizationId,
     });
+  });
+});
+
+describe('WorkflowEngineExecutorHelperService.createWorkflowOutputIngredient', () => {
+  it('forwards canonical generation provenance to media persistence', async () => {
+    const createMediaDocumentsInternal = vi.fn().mockResolvedValue({
+      ingredientData: { id: 'ingredient-1' },
+      metadataData: { id: 'metadata-1' },
+    });
+    const service = new WorkflowEngineExecutorHelperService(
+      {} as ConfigService,
+      { createMediaDocumentsInternal } as never,
+      { patch: vi.fn() } as never,
+      { patch: vi.fn() } as never,
+    );
+
+    await service.createWorkflowOutputIngredient({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      extension: MetadataExtension.JPG,
+      generationPrompt: 'A launch poster',
+      generationSource: 'generation-brief:v1:workflow',
+      model: 'qwen-image',
+      negativePrompt: 'watermark',
+      organizationId: 'org-1',
+      providerData: { compilerId: 'qwen-image-image-compiler' },
+      userId: 'user-1',
+    });
+
+    expect(createMediaDocumentsInternal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generationPrompt: 'A launch poster',
+        generationSource: 'generation-brief:v1:workflow',
+        negativePrompt: 'watermark',
+        providerData: { compilerId: 'qwen-image-image-compiler' },
+      }),
+    );
   });
 });
