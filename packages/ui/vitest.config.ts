@@ -10,6 +10,7 @@ const UI_FLOWS_SRC = path.resolve(UI_SRC, './flows.ts');
 const UI_GENERATORS_SRC = path.resolve(UI_SRC, './generators');
 const UI_MODALS_SRC = path.resolve(UI_SRC, './modals');
 const UI_SEMANTIC_SRC = path.resolve(UI_SRC, './semantic');
+const UI_TOKENS_SRC = path.resolve(UI_SRC, './tokens');
 const XYFLOW_REACT_MOCK = path.resolve(
   __dirname,
   './tests/__mocks__/xyflow-react.tsx',
@@ -292,6 +293,14 @@ export default defineConfig({
       {
         find: '@ui/semantic',
         replacement: UI_SEMANTIC_SRC,
+      },
+      {
+        find: /^@ui\/tokens\/(.*)$/,
+        replacement: path.resolve(UI_TOKENS_SRC, '$1'),
+      },
+      {
+        find: '@ui/tokens',
+        replacement: UI_TOKENS_SRC,
       },
       {
         find: /^@ui\/styles\/(.*)$/,
