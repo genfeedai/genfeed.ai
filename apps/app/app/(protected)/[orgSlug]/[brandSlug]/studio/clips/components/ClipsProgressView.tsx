@@ -39,8 +39,9 @@ export default function ClipsProgressView({
   } | null>(null);
   const serverApproval = project.hookApproval;
   const approval =
-    submittedApproval?.sourceAttempt === serverApproval?.attempt &&
-    submittedApproval?.sourceState === serverApproval?.state
+    submittedApproval &&
+    submittedApproval.sourceAttempt === serverApproval?.attempt &&
+    submittedApproval.sourceState === serverApproval?.state
       ? submittedApproval.status
       : serverApproval;
 
