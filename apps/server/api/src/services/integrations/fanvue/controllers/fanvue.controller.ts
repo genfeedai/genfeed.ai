@@ -20,11 +20,16 @@ import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -33,7 +38,6 @@ export class FanvueController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly fanvueService: FanvueService,
@@ -66,6 +70,8 @@ export class FanvueController {
       });
     }
 
+    this.fanvueService.requireConfigured();
+
     // Generate PKCE pair
     const { codeVerifier, codeChallenge } = this.fanvueService.generatePkce();
 
@@ -81,12 +87,7 @@ export class FanvueController {
       },
     );
 
-    const clientId = this.configService.get('FANVUE_CLIENT_ID');
-
-    this.loggerService.log(`${url} - Generating OAuth URL with PKCE`, {
-      clientId: clientId ? 'configured' : 'missing',
-      redirectUri: this.configService.get('FANVUE_REDIRECT_URI'),
-    });
+    this.loggerService.log(`${url} - Generating OAuth URL with PKCE`);
 
     const authUrl = this.fanvueService.buildAuthUrl(state, codeChallenge);
 
@@ -197,6 +198,10 @@ export class FanvueController {
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
+
+      if (error instanceof ServiceUnavailableException) {
+        throw error;
+      }
 
       const errorData = (
         error as { response?: { data?: Record<string, string> } }

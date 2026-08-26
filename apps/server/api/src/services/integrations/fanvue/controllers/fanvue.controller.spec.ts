@@ -8,6 +8,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -53,6 +54,7 @@ describe('FanvueController', () => {
     exchangeCodeForTokens: ReturnType<typeof vi.fn>;
     generatePkce: ReturnType<typeof vi.fn>;
     getUserProfile: ReturnType<typeof vi.fn>;
+    requireConfigured: ReturnType<typeof vi.fn>;
   };
 
   const orgId = testId('org');
@@ -132,6 +134,7 @@ describe('FanvueController', () => {
               handle: 'testcreator',
               uuid: 'fanvue-uuid-1',
             }),
+            requireConfigured: vi.fn(),
           },
         },
         {
@@ -169,6 +172,7 @@ describe('FanvueController', () => {
         id: brandId,
         organizationId: orgId,
       });
+      expect(fanvueService.requireConfigured).toHaveBeenCalledOnce();
       expect(fanvueService.generatePkce).toHaveBeenCalled();
       expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         expect.anything(),
@@ -199,6 +203,22 @@ describe('FanvueController', () => {
         errors: [expect.objectContaining({ status: '400' })],
       });
       expect(fanvueService.generatePkce).not.toHaveBeenCalled();
+    });
+
+    it('fails closed before generating or persisting PKCE state', async () => {
+      fanvueService.requireConfigured.mockImplementation(() => {
+        throw new ServiceUnavailableException(
+          'Fanvue OAuth is not configured for this deployment.',
+        );
+      });
+
+      await expect(
+        controller.connect(mockReq, mockUser, { brandId } as never),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+      expect(fanvueService.generatePkce).not.toHaveBeenCalled();
+      expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
+      expect(fanvueService.buildAuthUrl).not.toHaveBeenCalled();
     });
   });
 
@@ -315,6 +335,27 @@ describe('FanvueController', () => {
 
       expect(result).toEqual({
         errors: [expect.objectContaining({ status: '400' })],
+      });
+    });
+
+    it('preserves a sanitized configuration error from token exchange', async () => {
+      credentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'test-object-id',
+        oauthToken: 'encrypted-verifier',
+      });
+      fanvueService.exchangeCodeForTokens.mockRejectedValue(
+        new ServiceUnavailableException(
+          'Fanvue OAuth is not configured for this deployment.',
+        ),
+      );
+
+      await expect(
+        controller.verify(mockReq, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        } as never),
+      ).rejects.toMatchObject({
+        message: 'Fanvue OAuth is not configured for this deployment.',
       });
     });
 

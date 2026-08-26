@@ -176,6 +176,18 @@ export const fanvueSchema = {
 };
 
 /**
+ * Threads API (optional everywhere until a provider app is provisioned).
+ * Runtime OAuth guards fail closed when the three OAuth values are incomplete.
+ */
+export const threadsSchema = {
+  THREADS_API_VERSION: Joi.string().optional().allow(''),
+  THREADS_CLIENT_ID: Joi.string().optional().allow(''),
+  THREADS_CLIENT_SECRET: Joi.string().optional().allow(''),
+  THREADS_GRAPH_URL: Joi.string().uri().optional().allow(''),
+  THREADS_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+};
+
+/**
  * Slack API (optional integration)
  */
 export const slackSchema = {
@@ -263,6 +275,7 @@ export const allSocialSchema = {
   ...linkedinSchema,
   ...mediumSchema,
   ...fanvueSchema,
+  ...threadsSchema,
   ...slackSchema,
   ...wordpressSchema,
   ...snapchatSchema,

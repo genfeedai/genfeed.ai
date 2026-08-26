@@ -70,6 +70,8 @@
     "build:prod": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill && nest build api-articles-seed && cd api && (bun run sentry:sourcemaps || true)",
     "backfill:post-status:dry": "bun run scripts/backfill-post-status.ts",
     "backfill:post-status:live": "bun run scripts/backfill-post-status.ts --live",
+    "cleanup:orphan-social-oauth": "bun run scripts/cleanup-orphan-social-oauth.ts --live",
+    "cleanup:orphan-social-oauth:dry": "bun run scripts/cleanup-orphan-social-oauth.ts",
     "deps:update": "bunx npm-check-updates -u --reject typescript,better-auth && bun install",
     "dev": "bun run ../../../scripts/dev/run-portless.ts api -- bun run dev:process",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",

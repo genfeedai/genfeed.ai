@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
@@ -7,7 +8,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const FANVUE_API_BASE = 'https://api.fanvue.com';
@@ -66,6 +67,10 @@ export class FanvueService {
     private readonly httpService: HttpService,
   ) {}
 
+  requireConfigured(): void {
+    this.getOAuthConfig();
+  }
+
   /**
    * Generate PKCE code_verifier and code_challenge pair
    */
@@ -86,8 +91,7 @@ export class FanvueService {
    * Build the Fanvue OAuth authorization URL
    */
   buildAuthUrl(state: string, codeChallenge: string): string {
-    const clientId = this.configService.get('FANVUE_CLIENT_ID');
-    const redirectUri = this.configService.get('FANVUE_REDIRECT_URI');
+    const { clientId, redirectUri } = this.getOAuthConfig();
 
     const params = new URLSearchParams({
       client_id: clientId,
@@ -97,7 +101,7 @@ export class FanvueService {
       response_type: 'code',
       scope: FANVUE_SCOPES.join(' '),
       state,
-    } as Record<string, string>);
+    });
 
     return `${FANVUE_AUTH_URL}?${params.toString()}`;
   }
@@ -111,11 +115,8 @@ export class FanvueService {
   ): Promise<FanvueTokenResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const clientId = this.configService.get('FANVUE_CLIENT_ID');
-    const clientSecret = this.configService.get('FANVUE_CLIENT_SECRET');
-    const redirectUri = this.configService.get('FANVUE_REDIRECT_URI');
-
     try {
+      const { clientId, clientSecret, redirectUri } = this.getOAuthConfig();
       const response = await firstValueFrom(
         this.httpService.post(
           FANVUE_TOKEN_URL,
@@ -126,7 +127,7 @@ export class FanvueService {
             code_verifier: codeVerifier,
             grant_type: OAuthGrantType.AUTHORIZATION_CODE,
             redirect_uri: redirectUri,
-          } as Record<string, string>).toString(),
+          }).toString(),
           {
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
@@ -152,6 +153,34 @@ export class FanvueService {
       });
       throw error;
     }
+  }
+
+  private getOAuthConfig(): {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+  } {
+    const clientId = this.configService.get('FANVUE_CLIENT_ID');
+    const clientSecret = this.configService.get('FANVUE_CLIENT_SECRET');
+    const redirectUri = this.configService.get('FANVUE_REDIRECT_URI');
+
+    if (
+      typeof clientId !== 'string' ||
+      clientId.trim().length === 0 ||
+      isUnconfiguredSecret(clientId) ||
+      typeof clientSecret !== 'string' ||
+      clientSecret.trim().length === 0 ||
+      isUnconfiguredSecret(clientSecret) ||
+      typeof redirectUri !== 'string' ||
+      redirectUri.trim().length === 0 ||
+      isUnconfiguredSecret(redirectUri)
+    ) {
+      throw new ServiceUnavailableException(
+        'Fanvue OAuth is not configured for this deployment.',
+      );
+    }
+
+    return { clientId, clientSecret, redirectUri };
   }
 
   /**

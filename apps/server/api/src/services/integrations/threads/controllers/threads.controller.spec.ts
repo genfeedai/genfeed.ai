@@ -16,6 +16,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 
@@ -49,14 +50,25 @@ describe('ThreadsController', () => {
     getTrends: vi.fn(),
   };
   const mockLoggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  let configValues: Record<string, string | undefined>;
+  const mockConfigService = {
+    get: vi.fn((key: string) => configValues[key]),
+  };
 
   beforeEach(async () => {
+    configValues = {
+      THREADS_API_VERSION: 'v1.0',
+      THREADS_CLIENT_ID: 'threads-client-id',
+      THREADS_CLIENT_SECRET: 'threads-client-secret',
+      THREADS_REDIRECT_URI: 'https://app.genfeed.ai/oauth/threads',
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ThreadsController],
       providers: [
         {
           provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue('test-value') },
+          useValue: mockConfigService,
         },
         {
           provide: BrandsService,
@@ -134,11 +146,90 @@ describe('ThreadsController', () => {
         CredentialPlatform.THREADS,
         expect.objectContaining({ isConnected: false }),
       );
-      expect(result).toHaveProperty('url');
+      expect(result).toEqual({
+        url:
+          'https://threads.net/oauth/authorize' +
+          '?client_id=threads-client-id' +
+          '&redirect_uri=https%3A%2F%2Fapp.genfeed.ai%2Foauth%2Fthreads' +
+          '&scope=threads_basic%2Cthreads_content_publish%2Cthreads_manage_insights%2Cthreads_manage_replies%2Cthreads_read_replies' +
+          '&response_type=code&state=opaque-oauth-state',
+      });
+    });
+
+    it.each([
+      ['THREADS_CLIENT_ID', undefined],
+      ['THREADS_CLIENT_SECRET', undefined],
+      ['THREADS_REDIRECT_URI', undefined],
+      ['THREADS_CLIENT_ID', '   '],
+      ['THREADS_CLIENT_SECRET', '   '],
+      ['THREADS_REDIRECT_URI', '   '],
+      ['THREADS_CLIENT_ID', 'PLACEHOLDER_NOT_CONFIGURED'],
+      ['THREADS_CLIENT_SECRET', 'PLACEHOLDER_NOT_CONFIGURED'],
+      ['THREADS_REDIRECT_URI', 'PLACEHOLDER_NOT_CONFIGURED'],
+    ])(
+      'fails closed before pending OAuth state when %s is %s',
+      async (key, value) => {
+        const mockBrand = {
+          id: mockBrandId,
+          organizationId: mockOrganizationId,
+          userId: mockUserId,
+        };
+        configValues[key] = value;
+        mockBrandsService.findOne.mockResolvedValue(mockBrand);
+
+        await expect(
+          controller.connect(mockRequest, mockUser, {
+            brandId: mockBrandId,
+          }),
+        ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+        expect(
+          mockCredentialsService.beginOAuthForBrand,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not expose missing configuration details in the error', async () => {
+      configValues.THREADS_CLIENT_SECRET = undefined;
+      mockBrandsService.findOne.mockResolvedValue({
+        id: mockBrandId,
+        organizationId: mockOrganizationId,
+        userId: mockUserId,
+      });
+
+      const failure = await controller
+        .connect(mockRequest, mockUser, { brandId: mockBrandId })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ServiceUnavailableException);
+      expect((failure as Error).message).toBe(
+        'Threads OAuth is not configured for this deployment.',
+      );
+      expect((failure as Error).message).not.toContain('THREADS_CLIENT_SECRET');
     });
   });
 
   describe('verify', () => {
+    it('fails closed when the redirect URI is unavailable before token exchange', async () => {
+      configValues.THREADS_REDIRECT_URI = 'PLACEHOLDER_NOT_CONFIGURED';
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        brandId: 'brand-id',
+        id: 'credential-id',
+        organizationId: 'organization-id',
+        userId: 'user-id',
+      });
+
+      await expect(
+        controller.verify(mockRequest, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+      expect(mockHttpService.get).not.toHaveBeenCalled();
+    });
+
     it('resolves tenant ownership from the pending OAuth state', async () => {
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
         brandId: 'brand-id',

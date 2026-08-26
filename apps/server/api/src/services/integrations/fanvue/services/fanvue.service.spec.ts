@@ -4,6 +4,7 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
@@ -19,21 +20,20 @@ describe('FanvueService', () => {
   let httpService: vi.Mocked<HttpService>;
   let credentialsService: vi.Mocked<CredentialsService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let configValues: Record<string, string | undefined>;
 
   const mockClientId = 'fanvue-client-id';
   const mockClientSecret = 'fanvue-client-secret';
   const mockRedirectUri = 'https://app.example.com/fanvue/callback';
 
   beforeEach(async () => {
+    configValues = {
+      FANVUE_CLIENT_ID: mockClientId,
+      FANVUE_CLIENT_SECRET: mockClientSecret,
+      FANVUE_REDIRECT_URI: mockRedirectUri,
+    };
     const mockConfigService = {
-      get: vi.fn((key: string) => {
-        const config: Record<string, string> = {
-          FANVUE_CLIENT_ID: mockClientId,
-          FANVUE_CLIENT_SECRET: mockClientSecret,
-          FANVUE_REDIRECT_URI: mockRedirectUri,
-        };
-        return config[key];
-      }),
+      get: vi.fn((key: string) => configValues[key]),
     };
 
     const mockHttpService = {
@@ -83,6 +83,16 @@ describe('FanvueService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('reports configured OAuth without exposing configuration values', () => {
+    expect(() => service.requireConfigured()).not.toThrow();
+
+    configValues.FANVUE_CLIENT_SECRET = 'PLACEHOLDER_NOT_CONFIGURED';
+
+    expect(() => service.requireConfigured()).toThrowError(
+      'Fanvue OAuth is not configured for this deployment.',
+    );
   });
 
   describe('generatePkce', () => {
@@ -148,9 +158,36 @@ describe('FanvueService', () => {
         'write:post',
       ]);
     });
+
+    it.each([
+      ['FANVUE_CLIENT_ID', undefined],
+      ['FANVUE_CLIENT_SECRET', undefined],
+      ['FANVUE_REDIRECT_URI', undefined],
+      ['FANVUE_CLIENT_ID', '   '],
+      ['FANVUE_CLIENT_SECRET', '   '],
+      ['FANVUE_REDIRECT_URI', '   '],
+      ['FANVUE_CLIENT_ID', 'PLACEHOLDER_NOT_CONFIGURED'],
+      ['FANVUE_CLIENT_SECRET', 'PLACEHOLDER_NOT_CONFIGURED'],
+      ['FANVUE_REDIRECT_URI', 'PLACEHOLDER_NOT_CONFIGURED'],
+    ])('rejects %s=%s instead of building a malformed URL', (key, value) => {
+      configValues[key] = value;
+
+      expect(() => service.buildAuthUrl('state', 'challenge')).toThrow(
+        ServiceUnavailableException,
+      );
+    });
   });
 
   describe('exchangeCodeForTokens', () => {
+    it('requires the redirect URI before making the token request', async () => {
+      configValues.FANVUE_REDIRECT_URI = undefined;
+
+      await expect(
+        service.exchangeCodeForTokens('auth-code', 'verifier'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(httpService.post).not.toHaveBeenCalled();
+    });
+
     it('should exchange code for tokens successfully', async () => {
       const mockTokenResponse = {
         access_token: 'fv-access-token',
