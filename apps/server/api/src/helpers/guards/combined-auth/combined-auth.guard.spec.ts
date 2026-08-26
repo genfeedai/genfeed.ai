@@ -4,7 +4,11 @@ import type { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard'
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  type ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { of } from 'rxjs';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -144,6 +148,54 @@ describe('CombinedAuthGuard', () => {
 
     expect(requestContextMiddleware.hydrate).toHaveBeenCalledTimes(1);
     expect(requestContextMiddleware.hydrate).toHaveBeenCalledWith(mockRequest);
+  });
+
+  it('accepts a confirmed organization header matching the authenticated context', async () => {
+    const organizationId = testId('org');
+    const mockRequest: { headers: object; user?: object } = {
+      headers: {
+        authorization: 'Bearer jwt_token_here',
+        'x-genfeed-organization-id': organizationId,
+      },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockImplementation(async () => {
+      mockRequest.user = { id: 'user_1', organizationId, userId: 'user_1' };
+      return true;
+    });
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+  });
+
+  it('rejects a confirmed organization header that differs from the authenticated context', async () => {
+    const mockRequest: { headers: object; user?: object } = {
+      headers: {
+        authorization: 'Bearer jwt_token_here',
+        'x-genfeed-organization-id': testId('route-org'),
+      },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+    betterAuthGuard.canActivate.mockImplementation(async () => {
+      mockRequest.user = {
+        id: 'user_1',
+        organizationId: testId('token-org'),
+        userId: 'user_1',
+      };
+      return true;
+    });
+
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(requestContextMiddleware.hydrate).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Rejected authenticated organization context mismatch',
+      expect.any(Object),
+    );
   });
 
   it('hydrates request.context after API key authentication', async () => {

@@ -1,3 +1,4 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/constants';
 import { ModalEnum } from '@genfeedai/enums';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
@@ -30,12 +31,33 @@ function createInterceptorError(
 }
 
 const httpServiceInstances = new ServiceInstanceManager<HTTPBaseService>();
+let requestOrganizationId: string | null = null;
+
+export function setRequestOrganizationId(organizationId: string | null): void {
+  requestOrganizationId = organizationId?.trim() || null;
+}
+
+export function clearRequestOrganizationId(): void {
+  requestOrganizationId = null;
+}
 
 /**
  * Clear all cached HTTP service instances
  * Call this on logout/sign-out to prevent stale token usage
  */
 export function clearAllServiceInstances(): void {
+  httpServiceInstances.clearAll();
+}
+
+/**
+ * Abort requests created under the previous tenant before dropping their
+ * service instances. Route reconciliation uses this before exposing a new
+ * organization context.
+ */
+export function cancelAndClearAllServiceInstances(): void {
+  httpServiceInstances.forEach((service) => {
+    service.cancelPendingRequests();
+  });
   httpServiceInstances.clearAll();
 }
 
@@ -174,6 +196,9 @@ export abstract class HTTPBaseService {
 
   private handleRequest = (config: InternalAxiosRequestConfig) => {
     config.headers.Authorization = `Bearer ${this.token}`;
+    if (requestOrganizationId) {
+      config.headers[ORGANIZATION_CONTEXT_HEADER] = requestOrganizationId;
+    }
 
     // Don't auto-cancel previous requests - let them complete naturally
     // Only cancel if explicitly called via cancelPendingRequests()

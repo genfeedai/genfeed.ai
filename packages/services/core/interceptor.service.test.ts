@@ -1,7 +1,9 @@
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   clearAllServiceInstances,
+  clearRequestOrganizationId,
   HTTPBaseService,
+  setRequestOrganizationId,
 } from '@services/core/interceptor.service';
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,6 +45,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearAllServiceInstances();
+    clearRequestOrganizationId();
 
     // Mock axios.create to return a mock instance
     vi.mocked(axios.create).mockReturnValue({
@@ -269,6 +272,28 @@ describe('HTTPBaseService (InterceptorService)', () => {
       const result = service.handleRequest(config);
 
       expect(result.headers.Authorization).toBe(`Bearer ${mockToken}`);
+    });
+
+    it('carries the confirmed organization identity on authenticated requests', () => {
+      const config: InternalAxiosRequestConfig = {
+        headers: {},
+      } as InternalAxiosRequestConfig;
+      setRequestOrganizationId('org-confirmed');
+
+      const result = service.handleRequest(config);
+
+      expect(result.headers['x-genfeed-organization-id']).toBe('org-confirmed');
+    });
+
+    it('omits organization identity while route reconciliation is unresolved', () => {
+      const config: InternalAxiosRequestConfig = {
+        headers: {},
+      } as InternalAxiosRequestConfig;
+      clearRequestOrganizationId();
+
+      const result = service.handleRequest(config);
+
+      expect(result.headers['x-genfeed-organization-id']).toBeUndefined();
     });
 
     it('creates abort controller if not exists', () => {

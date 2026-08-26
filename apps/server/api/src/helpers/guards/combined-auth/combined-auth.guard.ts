@@ -9,6 +9,7 @@ import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/constants';
 import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   Brand,
@@ -20,6 +21,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,
   type ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -89,10 +91,41 @@ export class CombinedAuthGuard implements CanActivate {
         );
 
     if (isAllowed) {
+      this.assertConfirmedOrganizationContext(context);
       await this.hydrateRequestContext(context);
     }
 
     return isAllowed;
+  }
+
+  private assertConfirmedOrganizationContext(context: ExecutionContext): void {
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, string | string[] | undefined>;
+      user?: AuthenticatedUser;
+    }>();
+    const suppliedOrganizationId = request.headers[ORGANIZATION_CONTEXT_HEADER];
+    if (suppliedOrganizationId === undefined) {
+      return;
+    }
+
+    const normalizedSuppliedOrganizationId = Array.isArray(
+      suppliedOrganizationId,
+    )
+      ? suppliedOrganizationId[0]?.trim()
+      : suppliedOrganizationId.trim();
+    const authenticatedOrganizationId = request.user?.organizationId?.trim();
+    if (
+      normalizedSuppliedOrganizationId &&
+      authenticatedOrganizationId === normalizedSuppliedOrganizationId
+    ) {
+      return;
+    }
+
+    this.logger.warn(
+      'Rejected authenticated organization context mismatch',
+      this.context,
+    );
+    throw new ForbiddenException('Organization context mismatch');
   }
 
   /**
