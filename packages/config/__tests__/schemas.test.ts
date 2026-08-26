@@ -968,6 +968,11 @@ describe('Config Schemas', () => {
       expect(
         schema.validate({ THREADS_GRAPH_URL: 'not-a-url' }).error,
       ).toBeDefined();
+      expect(
+        schema.validate({
+          THREADS_REDIRECT_URI: 'PLACEHOLDER_NOT_CONFIGURED',
+        }).error,
+      ).toBeUndefined();
     });
   });
 

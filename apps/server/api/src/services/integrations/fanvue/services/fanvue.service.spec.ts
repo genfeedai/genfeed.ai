@@ -176,6 +176,19 @@ describe('FanvueService', () => {
         ServiceUnavailableException,
       );
     });
+
+    it('trims configured values before building the provider URL', () => {
+      configValues.FANVUE_CLIENT_ID = `  ${mockClientId}  `;
+      configValues.FANVUE_CLIENT_SECRET = `  ${mockClientSecret}  `;
+      configValues.FANVUE_REDIRECT_URI = `  ${mockRedirectUri}  `;
+
+      const providerUrl = new URL(service.buildAuthUrl('state', 'challenge'));
+
+      expect(providerUrl.searchParams.get('client_id')).toBe(mockClientId);
+      expect(providerUrl.searchParams.get('redirect_uri')).toBe(
+        mockRedirectUri,
+      );
+    });
   });
 
   describe('exchangeCodeForTokens', () => {
@@ -383,6 +396,24 @@ describe('FanvueService', () => {
           refreshToken: 'new-refresh-token',
         }),
       );
+    });
+
+    it('does not disconnect an account when server OAuth config is unavailable', async () => {
+      configValues.FANVUE_CLIENT_SECRET = 'PLACEHOLDER_NOT_CONFIGURED';
+      credentialsService.findOne.mockResolvedValue({
+        accessToken: 'encrypted-access-token',
+        accessTokenExpiry: new Date(Date.now() + 5 * 60 * 1000),
+        id: 'credential-1',
+        platform: CredentialPlatform.FANVUE,
+        refreshToken: 'encrypted-refresh-token',
+      } as never);
+
+      await expect(service.refreshToken(orgId, brandId)).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+
+      expect(httpService.post).not.toHaveBeenCalled();
+      expect(credentialsService.patch).not.toHaveBeenCalled();
     });
 
     it('should throw when credential is not found', async () => {

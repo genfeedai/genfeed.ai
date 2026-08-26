@@ -114,7 +114,6 @@ export class ThreadsController {
     );
 
     this.loggerService.log(`${url} - Generating OAuth URL`, {
-      appId: 'configured',
       redirectUri,
     });
 
@@ -310,19 +309,18 @@ export class ThreadsController {
     clientSecret: string;
     redirectUri: string;
   } {
-    const clientId = this.configService.get('THREADS_CLIENT_ID');
-    const clientSecret = this.configService.get('THREADS_CLIENT_SECRET');
-    const redirectUri = this.configService.get('THREADS_REDIRECT_URI');
+    const clientId = this.configService.get('THREADS_CLIENT_ID')?.trim();
+    const clientSecret = this.configService
+      .get('THREADS_CLIENT_SECRET')
+      ?.trim();
+    const redirectUri = this.configService.get('THREADS_REDIRECT_URI')?.trim();
 
     if (
-      typeof clientId !== 'string' ||
-      clientId.trim().length === 0 ||
+      !clientId ||
       isUnconfiguredSecret(clientId) ||
-      typeof clientSecret !== 'string' ||
-      clientSecret.trim().length === 0 ||
+      !clientSecret ||
       isUnconfiguredSecret(clientSecret) ||
-      typeof redirectUri !== 'string' ||
-      redirectUri.trim().length === 0 ||
+      !redirectUri ||
       isUnconfiguredSecret(redirectUri)
     ) {
       throw new ServiceUnavailableException(

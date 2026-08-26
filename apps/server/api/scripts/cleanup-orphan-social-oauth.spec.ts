@@ -56,9 +56,11 @@ class FakeCleanupClient implements OrphanSocialOAuthCleanupClient {
             row.isDeleted === false &&
             row.oauthState !== null &&
             args.where.platform.in.includes(row.platform) &&
-            row.updatedAt.getTime() < args.where.updatedAt.lt.getTime(),
+            row.updatedAt.getTime() < args.where.updatedAt.lt.getTime() &&
+            (!args.where.id || row.id > args.where.id.gt),
         )
         .sort((left, right) => left.id.localeCompare(right.id))
+        .slice(0, args.take)
         .map((row) => ({ ...row }));
     },
     updateMany: async (args: OrphanSocialOAuthUpdateManyArgs) => {
@@ -211,5 +213,25 @@ describe('cleanup-orphan-social-oauth', () => {
         refreshToken: null,
       },
     });
+  });
+
+  it('paginates large tenant audits and cleanup writes', async () => {
+    const client = new FakeCleanupClient(
+      Array.from({ length: 105 }, (_, index) =>
+        pendingRow({ id: `eligible-${String(index).padStart(3, '0')}` }),
+      ),
+    );
+
+    const report = await runOrphanSocialOAuthCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report).toMatchObject({ scanned: 105, updated: 105 });
+    expect(client.findCalls).toHaveLength(2);
+    expect(client.updateCalls).toHaveLength(2);
+    expect(client.updateCalls[0]?.where.id.in).toHaveLength(100);
+    expect(client.updateCalls[1]?.where.id.in).toHaveLength(5);
   });
 });

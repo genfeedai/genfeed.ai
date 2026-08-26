@@ -1,6 +1,6 @@
 import Joi from 'joi';
 
-import { conditionalRequired } from '../helpers';
+import { conditionalRequired, UNCONFIGURED_SECRET_SENTINEL } from '../helpers';
 
 /**
  * YouTube OAuth (required in cloud, optional in self-hosted)
@@ -184,7 +184,10 @@ export const threadsSchema = {
   THREADS_CLIENT_ID: Joi.string().optional().allow(''),
   THREADS_CLIENT_SECRET: Joi.string().optional().allow(''),
   THREADS_GRAPH_URL: Joi.string().uri().optional().allow(''),
-  THREADS_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+  THREADS_REDIRECT_URI: Joi.string()
+    .uri()
+    .optional()
+    .allow('', UNCONFIGURED_SECRET_SENTINEL),
 };
 
 /**

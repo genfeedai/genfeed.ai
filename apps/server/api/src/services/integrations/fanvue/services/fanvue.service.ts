@@ -160,19 +160,16 @@ export class FanvueService {
     clientSecret: string;
     redirectUri: string;
   } {
-    const clientId = this.configService.get('FANVUE_CLIENT_ID');
-    const clientSecret = this.configService.get('FANVUE_CLIENT_SECRET');
-    const redirectUri = this.configService.get('FANVUE_REDIRECT_URI');
+    const clientId = this.configService.get('FANVUE_CLIENT_ID')?.trim();
+    const clientSecret = this.configService.get('FANVUE_CLIENT_SECRET')?.trim();
+    const redirectUri = this.configService.get('FANVUE_REDIRECT_URI')?.trim();
 
     if (
-      typeof clientId !== 'string' ||
-      clientId.trim().length === 0 ||
+      !clientId ||
       isUnconfiguredSecret(clientId) ||
-      typeof clientSecret !== 'string' ||
-      clientSecret.trim().length === 0 ||
+      !clientSecret ||
       isUnconfiguredSecret(clientSecret) ||
-      typeof redirectUri !== 'string' ||
-      redirectUri.trim().length === 0 ||
+      !redirectUri ||
       isUnconfiguredSecret(redirectUri)
     ) {
       throw new ServiceUnavailableException(
@@ -233,8 +230,7 @@ export class FanvueService {
       };
     }
 
-    const clientId = this.configService.get('FANVUE_CLIENT_ID');
-    const clientSecret = this.configService.get('FANVUE_CLIENT_SECRET');
+    const { clientId, clientSecret } = this.getOAuthConfig();
     const decryptedRefreshToken = EncryptionUtil.decrypt(
       credential.refreshToken,
     );
@@ -248,7 +244,7 @@ export class FanvueService {
             client_secret: clientSecret,
             grant_type: OAuthGrantType.REFRESH_TOKEN,
             refresh_token: decryptedRefreshToken,
-          } as Record<string, string>).toString(),
+          }).toString(),
           {
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',

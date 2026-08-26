@@ -207,6 +207,33 @@ describe('ThreadsController', () => {
       );
       expect((failure as Error).message).not.toContain('THREADS_CLIENT_SECRET');
     });
+
+    it('trims configured values before building the provider URL', async () => {
+      configValues.THREADS_CLIENT_ID = '  threads-client-id  ';
+      configValues.THREADS_CLIENT_SECRET = '  threads-client-secret  ';
+      configValues.THREADS_REDIRECT_URI =
+        '  https://app.genfeed.ai/oauth/threads  ';
+      mockBrandsService.findOne.mockResolvedValue({
+        id: mockBrandId,
+        organizationId: mockOrganizationId,
+        userId: mockUserId,
+      });
+      mockCredentialsService.beginOAuthForBrand.mockResolvedValue({
+        state: 'opaque-oauth-state',
+      });
+
+      const result = await controller.connect(mockRequest, mockUser, {
+        brandId: mockBrandId,
+      });
+      const providerUrl = new URL(result.url);
+
+      expect(providerUrl.searchParams.get('client_id')).toBe(
+        'threads-client-id',
+      );
+      expect(providerUrl.searchParams.get('redirect_uri')).toBe(
+        'https://app.genfeed.ai/oauth/threads',
+      );
+    });
   });
 
   describe('verify', () => {

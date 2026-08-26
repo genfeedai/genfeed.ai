@@ -15,6 +15,7 @@
  */
 
 import process from 'node:process';
+import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import {
   PrismaClient,
   CredentialPlatform as PrismaCredentialPlatform,
@@ -27,7 +28,7 @@ import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const logger = new Logger('OrphanSocialOAuthCleanup');
-const OAUTH_STATE_TTL_MS = 15 * 60 * 1000;
+const BATCH_SIZE = 100;
 const AFFECTED_PLATFORMS: PrismaCredentialPlatform[] = [
   PrismaCredentialPlatform.FANVUE,
   PrismaCredentialPlatform.THREADS,
@@ -66,7 +67,9 @@ export interface OrphanSocialOAuthCredentialRow {
 export interface OrphanSocialOAuthFindManyArgs {
   orderBy: { id: 'asc' };
   select: Record<keyof OrphanSocialOAuthCredentialRow, true>;
+  take: number;
   where: {
+    id?: { gt: string };
     isDeleted: false;
     oauthState: { not: null };
     organizationId: string;
@@ -219,41 +222,6 @@ export async function runOrphanSocialOAuthCleanup(
   now = new Date(),
 ): Promise<OrphanSocialOAuthCleanupReport> {
   const cutoff = new Date(now.getTime() - OAUTH_STATE_TTL_MS);
-  const rows = await client.credential.findMany({
-    orderBy: { id: 'asc' },
-    select: {
-      accessToken: true,
-      accessTokenExpiry: true,
-      accessTokenSecret: true,
-      externalAvatar: true,
-      externalHandle: true,
-      externalId: true,
-      externalName: true,
-      grantedScopes: true,
-      grantedScopesCapturedAt: true,
-      id: true,
-      isConnected: true,
-      isDeleted: true,
-      oauthState: true,
-      oauthToken: true,
-      oauthTokenHash: true,
-      oauthTokenSecret: true,
-      organizationId: true,
-      platform: true,
-      refreshToken: true,
-      refreshTokenExpiry: true,
-      updatedAt: true,
-      username: true,
-    },
-    where: {
-      isDeleted: false,
-      oauthState: { not: null },
-      organizationId: args.organizationId,
-      platform: { in: [...AFFECTED_PLATFORMS] },
-      updatedAt: { lt: cutoff },
-    },
-  });
-
   const byDisposition: Record<CleanupDisposition, number> = {
     eligible: 0,
     preserve_ambiguous: 0,
@@ -261,61 +229,116 @@ export async function runOrphanSocialOAuthCleanup(
     preserve_identity: 0,
     preserve_token: 0,
   };
-  const eligibleIds: string[] = [];
-
-  for (const row of rows) {
-    const disposition = classifyOrphanSocialOAuthCredential(row);
-    byDisposition[disposition] += 1;
-    if (disposition === 'eligible') {
-      eligibleIds.push(row.id);
-    }
-  }
-
+  let afterId: string | undefined;
+  let concurrentChangesSkipped = 0;
+  let scanned = 0;
   let updated = 0;
-  if (!args.dryRun && eligibleIds.length > 0) {
-    const result = await client.credential.updateMany({
-      data: { isDeleted: true, oauthState: null, oauthToken: null },
+  let wouldUpdate = 0;
+
+  for (;;) {
+    const rows = await client.credential.findMany({
+      orderBy: { id: 'asc' },
+      select: {
+        accessToken: true,
+        accessTokenExpiry: true,
+        accessTokenSecret: true,
+        externalAvatar: true,
+        externalHandle: true,
+        externalId: true,
+        externalName: true,
+        grantedScopes: true,
+        grantedScopesCapturedAt: true,
+        id: true,
+        isConnected: true,
+        isDeleted: true,
+        oauthState: true,
+        oauthToken: true,
+        oauthTokenHash: true,
+        oauthTokenSecret: true,
+        organizationId: true,
+        platform: true,
+        refreshToken: true,
+        refreshTokenExpiry: true,
+        updatedAt: true,
+        username: true,
+      },
+      take: BATCH_SIZE,
       where: {
-        OR: [
-          {
-            oauthToken: null,
-            platform: PrismaCredentialPlatform.THREADS,
-          },
-          { platform: PrismaCredentialPlatform.FANVUE },
-        ],
-        accessToken: null,
-        accessTokenExpiry: null,
-        accessTokenSecret: null,
-        externalAvatar: null,
-        externalHandle: null,
-        externalId: null,
-        externalName: null,
-        grantedScopes: { isEmpty: true },
-        grantedScopesCapturedAt: null,
-        id: { in: eligibleIds },
-        isConnected: false,
         isDeleted: false,
+        ...(afterId ? { id: { gt: afterId } } : {}),
         oauthState: { not: null },
-        oauthTokenHash: null,
-        oauthTokenSecret: null,
         organizationId: args.organizationId,
         platform: { in: [...AFFECTED_PLATFORMS] },
-        refreshToken: null,
-        refreshTokenExpiry: null,
         updatedAt: { lt: cutoff },
-        username: null,
       },
     });
-    updated = result.count;
+
+    if (rows.length === 0) {
+      break;
+    }
+
+    scanned += rows.length;
+    const eligibleIds: string[] = [];
+    for (const row of rows) {
+      const disposition = classifyOrphanSocialOAuthCredential(row);
+      byDisposition[disposition] += 1;
+      if (disposition === 'eligible') {
+        eligibleIds.push(row.id);
+      }
+    }
+    wouldUpdate += eligibleIds.length;
+
+    if (!args.dryRun && eligibleIds.length > 0) {
+      const result = await client.credential.updateMany({
+        data: { isDeleted: true, oauthState: null, oauthToken: null },
+        where: {
+          OR: [
+            {
+              oauthToken: null,
+              platform: PrismaCredentialPlatform.THREADS,
+            },
+            { platform: PrismaCredentialPlatform.FANVUE },
+          ],
+          accessToken: null,
+          accessTokenExpiry: null,
+          accessTokenSecret: null,
+          externalAvatar: null,
+          externalHandle: null,
+          externalId: null,
+          externalName: null,
+          grantedScopes: { isEmpty: true },
+          grantedScopesCapturedAt: null,
+          id: { in: eligibleIds },
+          isConnected: false,
+          isDeleted: false,
+          oauthState: { not: null },
+          oauthTokenHash: null,
+          oauthTokenSecret: null,
+          organizationId: args.organizationId,
+          platform: { in: [...AFFECTED_PLATFORMS] },
+          refreshToken: null,
+          refreshTokenExpiry: null,
+          updatedAt: { lt: cutoff },
+          username: null,
+        },
+      });
+      updated += result.count;
+      concurrentChangesSkipped += eligibleIds.length - result.count;
+    }
+
+    afterId = rows.at(-1)?.id;
+    if (rows.length < BATCH_SIZE) {
+      break;
+    }
   }
 
   return {
     byDisposition,
-    concurrentChangesSkipped: args.dryRun ? 0 : eligibleIds.length - updated,
+    concurrentChangesSkipped,
     dryRun: args.dryRun,
-    scanned: rows.length,
+    scanned,
     updated,
-    wouldUpdate: eligibleIds.length,
+    wouldUpdate,
   };
 }
 
