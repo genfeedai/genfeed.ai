@@ -1,10 +1,16 @@
 'use client';
 
 import { isSaaS } from '@genfeedai/config/deployment';
-import type { CaptureResult, PostHogInterface } from 'posthog-js';
+import { logger } from '@services/core/logger.service';
 import type {
-  AnalyticsEvent,
-  AnalyticsEventProperties,
+  CaptureResult,
+  PostHogInterface,
+  RequestResponse,
+} from 'posthog-js';
+import {
+  ANALYTICS_EVENTS,
+  type AnalyticsEvent,
+  type AnalyticsEventProperties,
 } from './analytics-events';
 import { sanitizeAnalyticsUrl } from './analytics-url';
 
@@ -32,6 +38,13 @@ interface PendingPageview {
   url: string;
 }
 
+interface PendingAnalyticsEvent {
+  attempts: number;
+  event: AnalyticsEvent;
+  onceKey: string | null;
+  properties: AnalyticsEventProperties[AnalyticsEvent];
+}
+
 let client: PostHogInterface | null = null;
 let hasInitStarted = false;
 let lastCapturedPageviewKey: string | null = null;
@@ -39,6 +52,8 @@ let pendingIdentity: AnalyticsUserIdentity | null = null;
 // undefined = no instruction, null = explicit clear, string = active group.
 let pendingOrganizationId: string | null | undefined;
 let pendingPageview: PendingPageview | null = null;
+let pendingEventRetryTimer: number | null = null;
+let hasHydratedPendingEvents = false;
 let shouldEnsureAnonymous = false;
 let shouldResetAnalytics = false;
 let unsubscribeFromFeatureFlags: (() => void) | null = null;
@@ -59,6 +74,25 @@ interface AnalyticsFeatureFlagSubscription {
 }
 
 const featureFlagSubscriptions = new Set<AnalyticsFeatureFlagSubscription>();
+const pendingAnalyticsEvents: PendingAnalyticsEvent[] = [];
+const pendingOnceKeys = new Set<string>();
+const capturedOnceKeys = new Set<string>();
+
+/**
+ * SDK bootstrap is deliberately deferred, so every product capture must survive
+ * the interval between the user action and the dynamic import resolving.
+ */
+const MAX_PENDING_ANALYTICS_EVENTS = 100;
+const MAX_CAPTURE_RETRIES = 2;
+const CAPTURE_RETRY_DELAY_MS = 1000;
+const ONCE_STORAGE_PREFIX = 'genfeed.analytics.once.v1';
+const PENDING_EVENTS_STORAGE_KEY = 'genfeed.analytics.pending.v1';
+
+const FIRST_ONLY_ANALYTICS_EVENTS: ReadonlySet<AnalyticsEvent> = new Set([
+  ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED,
+  ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH,
+  ANALYTICS_EVENTS.ONBOARDING_COMPLETED,
+]);
 
 /**
  * True only when the app is a cloud-connected, non-desktop build with a
@@ -84,11 +118,16 @@ const FREE_TEXT_PROPERTY_KEYS = new Set([
   'utm_term',
 ]);
 const SENSITIVE_PROPERTY_KEY_PATTERN =
-  /(content|credential|message|prompt|secret|text|token)/i;
+  /(billing|card|completion|content|cookie|credential|cvv|email|message|password|payment|prompt|secret|stripe|text|token)/i;
+const EMAIL_LIKE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CREDENTIAL_LIKE_RE =
+  /^(?:bearer\s+|eyJ[A-Za-z0-9_-]+\.|p(?:hc|hx)_[A-Za-z0-9]+|(?:pk|sk)_(?:live|test)_[A-Za-z0-9]+|(?:cs|pi|pm|seti|src|tok)_[A-Za-z0-9_]+$)/i;
+const PAYMENT_CARD_LIKE_RE = /^\d{13,19}$/;
 /** A property value worth sanitising as a URL: absolute or path-relative. */
 const URL_LIKE_RE = /^(?:https?:\/\/|\/)/;
 /** Bound on recursion into nested property bags ($set/$set_once/$groups). */
 const MAX_SCRUB_DEPTH = 6;
+const BLOCKED_PROPERTY_VALUE = Symbol('blocked-analytics-property');
 
 function isDateObject(value: object): boolean {
   return Object.prototype.toString.call(value) === '[object Date]';
@@ -102,6 +141,13 @@ function isDateObject(value: object): boolean {
  */
 function scrubPropertyValue(value: unknown, depth: number): unknown {
   if (typeof value === 'string') {
+    if (
+      EMAIL_LIKE_RE.test(value) ||
+      CREDENTIAL_LIKE_RE.test(value) ||
+      PAYMENT_CARD_LIKE_RE.test(value)
+    ) {
+      return BLOCKED_PROPERTY_VALUE;
+    }
     return URL_LIKE_RE.test(value) ? sanitizeAnalyticsUrl(value) : value;
   }
   if (value === null || typeof value !== 'object') {
@@ -114,7 +160,10 @@ function scrubPropertyValue(value: unknown, depth: number): unknown {
     return isDateObject(value) ? value : {};
   }
   if (Array.isArray(value)) {
-    return value.map((item) => scrubPropertyValue(item, depth + 1));
+    return value.flatMap((item) => {
+      const scrubbed = scrubPropertyValue(item, depth + 1);
+      return scrubbed === BLOCKED_PROPERTY_VALUE ? [] : [scrubbed];
+    });
   }
   if (isDateObject(value)) {
     return value;
@@ -131,7 +180,10 @@ function scrubPropertyValue(value: unknown, depth: number): unknown {
     ) {
       continue;
     }
-    scrubbed[key] = scrubPropertyValue(record[key], depth + 1);
+    const scrubbedValue = scrubPropertyValue(record[key], depth + 1);
+    if (scrubbedValue !== BLOCKED_PROPERTY_VALUE) {
+      scrubbed[key] = scrubbedValue;
+    }
   }
   return scrubbed;
 }
@@ -154,6 +206,274 @@ function scrubEventProperties(
     ) as typeof event.properties;
   }
   return event;
+}
+
+type AnalyticsDeliveryFailureCode =
+  | 'posthog_capture_failed'
+  | 'posthog_capture_retry_exhausted'
+  | 'posthog_init_failed'
+  | 'posthog_pending_queue_full'
+  | 'posthog_request_failed';
+
+function reportAnalyticsDeliveryFailure(
+  code: AnalyticsDeliveryFailureCode,
+  context: { event?: AnalyticsEvent; statusCode?: number } = {},
+): void {
+  logger.error('PostHog analytics delivery failed', {
+    code,
+    ...context,
+    reportToSentry: false,
+  });
+}
+
+function reportPostHogRequestFailure(response: RequestResponse): void {
+  reportAnalyticsDeliveryFailure('posthog_request_failed', {
+    statusCode: response.statusCode,
+  });
+}
+
+function resolveOnceKey(event: AnalyticsEvent): string | null {
+  if (!(pendingIdentity && FIRST_ONLY_ANALYTICS_EVENTS.has(event))) {
+    return null;
+  }
+
+  return `${ONCE_STORAGE_PREFIX}:${encodeURIComponent(pendingIdentity.id)}:${event}`;
+}
+
+function hasCapturedOnce(onceKey: string): boolean {
+  if (capturedOnceKeys.has(onceKey)) {
+    return true;
+  }
+
+  try {
+    return window.localStorage.getItem(onceKey) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function rememberCapturedOnce(onceKey: string): void {
+  capturedOnceKeys.add(onceKey);
+  try {
+    window.localStorage.setItem(onceKey, '1');
+  } catch {
+    // In-memory deduplication still protects this browser session.
+  }
+}
+
+function isStoredPendingEvent(value: unknown): value is PendingAnalyticsEvent {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Partial<PendingAnalyticsEvent>;
+  return (
+    typeof candidate.attempts === 'number' &&
+    Number.isInteger(candidate.attempts) &&
+    candidate.attempts >= 0 &&
+    typeof candidate.event === 'string' &&
+    Object.values(ANALYTICS_EVENTS).includes(candidate.event) &&
+    (candidate.onceKey === null || typeof candidate.onceKey === 'string') &&
+    Boolean(
+      candidate.properties &&
+        typeof candidate.properties === 'object' &&
+        !Array.isArray(candidate.properties),
+    )
+  );
+}
+
+function persistPendingAnalyticsEvents(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (pendingAnalyticsEvents.length === 0) {
+      window.sessionStorage.removeItem(PENDING_EVENTS_STORAGE_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      PENDING_EVENTS_STORAGE_KEY,
+      JSON.stringify(pendingAnalyticsEvents),
+    );
+  } catch {
+    // The in-memory queue remains available when browser storage is blocked.
+  }
+}
+
+function hydratePendingAnalyticsEvents(): void {
+  if (hasHydratedPendingEvents || typeof window === 'undefined') {
+    return;
+  }
+  hasHydratedPendingEvents = true;
+
+  try {
+    const serialized = window.sessionStorage.getItem(
+      PENDING_EVENTS_STORAGE_KEY,
+    );
+    if (!serialized) {
+      return;
+    }
+
+    const stored = JSON.parse(serialized) as unknown;
+    if (!Array.isArray(stored)) {
+      window.sessionStorage.removeItem(PENDING_EVENTS_STORAGE_KEY);
+      return;
+    }
+
+    for (const candidate of stored.slice(0, MAX_PENDING_ANALYTICS_EVENTS)) {
+      if (!isStoredPendingEvent(candidate)) {
+        continue;
+      }
+
+      const onceKey = candidate.onceKey;
+      if (
+        onceKey &&
+        (pendingOnceKeys.has(onceKey) || hasCapturedOnce(onceKey))
+      ) {
+        continue;
+      }
+
+      pendingAnalyticsEvents.push({
+        ...candidate,
+        properties: scrubPropertyValue(
+          candidate.properties,
+          0,
+        ) as PendingAnalyticsEvent['properties'],
+      });
+      if (onceKey) {
+        pendingOnceKeys.add(onceKey);
+      }
+    }
+    persistPendingAnalyticsEvents();
+  } catch {
+    try {
+      window.sessionStorage.removeItem(PENDING_EVENTS_STORAGE_KEY);
+    } catch {
+      // Storage is unavailable; nothing else to clear.
+    }
+  }
+}
+
+function createPendingAnalyticsEvent<E extends AnalyticsEvent>(
+  event: E,
+  properties: AnalyticsEventProperties[E],
+): PendingAnalyticsEvent {
+  return {
+    attempts: 0,
+    event,
+    onceKey: resolveOnceKey(event),
+    properties: scrubPropertyValue(
+      properties,
+      0,
+    ) as AnalyticsEventProperties[AnalyticsEvent],
+  };
+}
+
+function enqueuePendingAnalyticsEvent(pending: PendingAnalyticsEvent): void {
+  if (
+    pending.onceKey &&
+    (pendingOnceKeys.has(pending.onceKey) || hasCapturedOnce(pending.onceKey))
+  ) {
+    return;
+  }
+
+  if (pendingAnalyticsEvents.length >= MAX_PENDING_ANALYTICS_EVENTS) {
+    reportAnalyticsDeliveryFailure('posthog_pending_queue_full', {
+      event: pending.event,
+    });
+    return;
+  }
+
+  pendingAnalyticsEvents.push(pending);
+  if (pending.onceKey) {
+    pendingOnceKeys.add(pending.onceKey);
+  }
+  persistPendingAnalyticsEvents();
+}
+
+function deliverAnalyticsEvent(pending: PendingAnalyticsEvent): boolean {
+  if (!client) {
+    return false;
+  }
+  if (pending.onceKey && hasCapturedOnce(pending.onceKey)) {
+    pendingOnceKeys.delete(pending.onceKey);
+    return true;
+  }
+
+  try {
+    client.capture(pending.event, pending.properties);
+    if (pending.onceKey) {
+      pendingOnceKeys.delete(pending.onceKey);
+      rememberCapturedOnce(pending.onceKey);
+    }
+    return true;
+  } catch {
+    reportAnalyticsDeliveryFailure('posthog_capture_failed', {
+      event: pending.event,
+    });
+    return false;
+  }
+}
+
+function schedulePendingEventRetry(): void {
+  if (
+    pendingEventRetryTimer !== null ||
+    pendingAnalyticsEvents.length === 0 ||
+    !client
+  ) {
+    return;
+  }
+
+  pendingEventRetryTimer = window.setTimeout(() => {
+    pendingEventRetryTimer = null;
+    flushPendingAnalyticsEvents();
+  }, CAPTURE_RETRY_DELAY_MS);
+}
+
+function flushPendingAnalyticsEvents(): void {
+  if (!client || pendingAnalyticsEvents.length === 0) {
+    return;
+  }
+  if (pendingEventRetryTimer !== null) {
+    window.clearTimeout(pendingEventRetryTimer);
+    pendingEventRetryTimer = null;
+  }
+
+  const pendingBatch = pendingAnalyticsEvents.splice(0);
+  for (const [index, pending] of pendingBatch.entries()) {
+    if (deliverAnalyticsEvent(pending)) {
+      continue;
+    }
+
+    pending.attempts += 1;
+    if (pending.attempts <= MAX_CAPTURE_RETRIES) {
+      pendingAnalyticsEvents.unshift(pending, ...pendingBatch.slice(index + 1));
+      persistPendingAnalyticsEvents();
+      schedulePendingEventRetry();
+      return;
+    }
+
+    if (pending.onceKey) {
+      pendingOnceKeys.delete(pending.onceKey);
+    }
+    reportAnalyticsDeliveryFailure('posthog_capture_retry_exhausted', {
+      event: pending.event,
+    });
+  }
+
+  persistPendingAnalyticsEvents();
+}
+
+function clearPendingAnalyticsEvents(): void {
+  if (pendingEventRetryTimer !== null && typeof window !== 'undefined') {
+    window.clearTimeout(pendingEventRetryTimer);
+  }
+  pendingEventRetryTimer = null;
+  pendingAnalyticsEvents.length = 0;
+  pendingOnceKeys.clear();
+  persistPendingAnalyticsEvents();
 }
 
 function applyPendingIdentity(): void {
@@ -297,6 +617,7 @@ function bindClientAndApplyPending(posthog: PostHogInterface): void {
   applyPendingIdentity();
   applyPendingOrganization();
   applyPendingPageview();
+  flushPendingAnalyticsEvents();
   ensureFeatureFlagSubscription();
 }
 
@@ -377,6 +698,7 @@ function loadAnalyticsSdk(): void {
         loaded: bindClientAndApplyPending,
         // Only build person profiles once a user is identified — keeps
         // anonymous, self-serve traffic out of person-based billing/analytics.
+        on_request_error: reportPostHogRequestFailure,
         person_profiles: 'identified_only',
       });
       // Test doubles often skip `loaded`. Real posthog-js already bound above.
@@ -385,8 +707,7 @@ function loadAnalyticsSdk(): void {
       }
     })
     .catch(() => {
-      // Best-effort: swallow load/init failures so analytics can never surface
-      // as an application error.
+      reportAnalyticsDeliveryFailure('posthog_init_failed');
     });
 }
 
@@ -403,6 +724,7 @@ export function initAnalytics(): void {
     return;
   }
   hasInitStarted = true;
+  hydratePendingAnalyticsEvents();
 
   runWhenIdle(loadAnalyticsSdk);
 }
@@ -444,21 +766,38 @@ export function subscribeAnalyticsFeatureFlags(
 }
 
 /**
- * Capture a typed product-analytics event. No-ops entirely when the client is
- * not initialised (i.e. every non-cloud build). Property shapes are enforced by
- * {@link AnalyticsEventProperties}; free-text values are structurally excluded.
+ * Capture a typed product-analytics event. Cloud calls made before the deferred
+ * SDK bootstrap completes are persisted in a bounded session queue so redirects
+ * cannot erase the funnel. Community, Desktop, and server calls remain no-ops.
+ * Property shapes are enforced by {@link AnalyticsEventProperties}; the same
+ * recursive privacy scrub used by `before_send` is also applied before storage.
  */
 export function captureAnalyticsEvent<E extends AnalyticsEvent>(
   event: E,
   properties: AnalyticsEventProperties[E],
 ): void {
-  if (!client) {
+  if (typeof window === 'undefined' || !isAnalyticsEnabled()) {
     return;
   }
-  try {
-    client.capture(event, properties);
-  } catch {
-    // Fire-and-forget: a capture failure must never block the tracked action.
+
+  hydratePendingAnalyticsEvents();
+  const pending = createPendingAnalyticsEvent(event, properties);
+  if (
+    pending.onceKey &&
+    (pendingOnceKeys.has(pending.onceKey) || hasCapturedOnce(pending.onceKey))
+  ) {
+    return;
+  }
+
+  if (!client) {
+    enqueuePendingAnalyticsEvent(pending);
+    return;
+  }
+
+  if (!deliverAnalyticsEvent(pending)) {
+    pending.attempts += 1;
+    enqueuePendingAnalyticsEvent(pending);
+    schedulePendingEventRetry();
   }
 }
 
@@ -494,6 +833,7 @@ export function ensureAnalyticsAnonymous(): void {
   pendingIdentity = null;
   pendingOrganizationId = undefined;
   pendingPageview = null;
+  clearPendingAnalyticsEvents();
   shouldEnsureAnonymous = true;
   applyPendingAnonymousState();
 }
@@ -510,6 +850,7 @@ export function resetAnalytics(): void {
   pendingOrganizationId = undefined;
   lastCapturedPageviewKey = null;
   pendingPageview = null;
+  clearPendingAnalyticsEvents();
   shouldEnsureAnonymous = false;
   shouldResetAnalytics = true;
   applyPendingReset();
@@ -518,8 +859,10 @@ export function resetAnalytics(): void {
 /** Test-only hook to reset module singleton state between cases. */
 export function __resetAnalyticsForTests(): void {
   unsubscribeFromFeatureFlags?.();
+  clearPendingAnalyticsEvents();
   client = null;
   hasInitStarted = false;
+  hasHydratedPendingEvents = false;
   lastCapturedPageviewKey = null;
   pendingIdentity = null;
   pendingOrganizationId = undefined;
@@ -527,5 +870,6 @@ export function __resetAnalyticsForTests(): void {
   shouldEnsureAnonymous = false;
   shouldResetAnalytics = false;
   unsubscribeFromFeatureFlags = null;
+  capturedOnceKeys.clear();
   featureFlagSubscriptions.clear();
 }
