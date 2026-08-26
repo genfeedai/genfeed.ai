@@ -1,13 +1,21 @@
+import { readFileSync } from 'node:fs';
+import { ControllersModule } from '@files/controllers/controllers.module';
 import { EditorRenderJobsController } from '@files/controllers/editor-render-jobs.controller';
 import { FilesController } from '@files/controllers/files.controller';
+import { FilesAudioOverlayController } from '@files/controllers/files-audio-overlay.controller';
 import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
 import { RequestMethod } from '@nestjs/common';
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import {
+  METHOD_METADATA,
+  MODULE_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 
 const controllers = [
   [EditorRenderJobsController, 'files/job'],
+  [FilesAudioOverlayController, 'files'],
   [FilesController, 'files'],
   [FilesMetadataController, 'files'],
   [FilesProcessingController, 'files'],
@@ -36,7 +44,7 @@ const routes = [
   [FilesController.prototype.getJobStatus, RequestMethod.GET, 'job/:jobId'],
   [FilesController.prototype.getQueueStats, RequestMethod.GET, 'stats'],
   [
-    FilesProcessingController.prototype.audioOverlay,
+    FilesAudioOverlayController.prototype.audioOverlay,
     RequestMethod.POST,
     'processing/audio-overlay',
   ],
@@ -114,4 +122,45 @@ describe('files controller boundaries', () => {
       expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
     },
   );
+
+  it('moves audio overlay off the source processing controller', () => {
+    expect(FilesProcessingController.prototype.audioOverlay).toBeUndefined();
+  });
+
+  it('registers the audio overlay sibling before the source processing controller', () => {
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ControllersModule),
+    ).toEqual([
+      EditorRenderJobsController,
+      FilesController,
+      FilesMetadataController,
+      FilesAudioOverlayController,
+      FilesProcessingController,
+      FilesStorageController,
+    ]);
+  });
+
+  it('keeps the split production surfaces within their line budgets', () => {
+    const sourceController = readFileSync(
+      new URL('./files-processing.controller.ts', import.meta.url),
+      'utf8',
+    );
+    const audioOverlayController = readFileSync(
+      new URL('./files-audio-overlay.controller.ts', import.meta.url),
+      'utf8',
+    );
+    const audioOverlayService = readFileSync(
+      new URL(
+        '../services/audio-overlay/audio-overlay.service.ts',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+
+    expect(sourceController.trimEnd().split('\n').length).toBeLessThan(500);
+    expect(audioOverlayController.trimEnd().split('\n').length).toBeLessThan(
+      150,
+    );
+    expect(audioOverlayService.trimEnd().split('\n').length).toBeLessThan(500);
+  });
 });
