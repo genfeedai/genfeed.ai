@@ -120,4 +120,20 @@ describe('CronCredentialsService', () => {
       'brand-1',
     );
   });
+
+  it('does not apply OAuth 2.0 refresh semantics to X Ads credentials', async () => {
+    credentialsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          brandId: 'brand-1',
+          id: 'cred-x-ads',
+          organizationId: 'org-1',
+          platform: 'X_ADS',
+        },
+      ],
+    });
+
+    await expect(service.refreshExpiringTokens()).resolves.toBeUndefined();
+    expect(twitterService.refreshToken).not.toHaveBeenCalled();
+  });
 });
