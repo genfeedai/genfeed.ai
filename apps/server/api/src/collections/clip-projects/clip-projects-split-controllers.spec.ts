@@ -1,5 +1,6 @@
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectHighlightsController } from '@api/collections/clip-projects/clip-project-highlights.controller';
+import { ClipProjectIngestionController } from '@api/collections/clip-projects/clip-project-ingestion.controller';
 import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
@@ -14,6 +15,45 @@ import {
 } from '@nestjs/common/constants';
 
 describe('Clip Projects split controllers', () => {
+  it.each([
+    [
+      'createFromYoutube',
+      'from-youtube',
+      'ClipProjectsController.createFromYoutube',
+      'YouTube → Clip Factory',
+      'Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates avatar or raw-cut clips asynchronously.',
+    ],
+    [
+      'analyzeYoutube',
+      'analyze',
+      'ClipProjectsController.analyzeYoutube',
+      'Analyze YouTube video for highlights',
+      'Analyze a YouTube URL: download audio, transcribe, detect highlights. Cheap step (1 credit). Returns projectId to poll for results.',
+    ],
+  ] as const)(
+    'preserves %s ingestion route and metadata',
+    (methodName, path, operationId, summary, description) => {
+      const handler = Reflect.get(
+        ClipProjectIngestionController.prototype,
+        methodName,
+      ) as object;
+
+      expect(
+        Reflect.getMetadata(PATH_METADATA, ClipProjectIngestionController),
+      ).toBe('clip-projects');
+      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+        RequestMethod.POST,
+      );
+      expect(Reflect.getMetadata(HTTP_CODE_METADATA, handler)).toBe(
+        HttpStatus.ACCEPTED,
+      );
+      expect(
+        Reflect.getMetadata('swagger/apiOperation', handler),
+      ).toMatchObject({ description, operationId, summary });
+    },
+  );
+
   it.each([
     [
       'getHighlights',
@@ -57,6 +97,9 @@ describe('Clip Projects split controllers', () => {
 
   it('preserves the shared clip-projects role guard', () => {
     expect(
+      Reflect.getMetadata(GUARDS_METADATA, ClipProjectIngestionController),
+    ).toContain(RolesGuard);
+    expect(
       Reflect.getMetadata(GUARDS_METADATA, ClipProjectHighlightsController),
     ).toContain(RolesGuard);
     expect(
@@ -65,6 +108,15 @@ describe('Clip Projects split controllers', () => {
   });
 
   it('preserves the clip-projects tag and bearer authentication metadata', () => {
+    expect(
+      Reflect.getMetadata('swagger/apiUseTags', ClipProjectIngestionController),
+    ).toEqual(['clip-projects']);
+    expect(
+      Reflect.getMetadata(
+        'swagger/apiSecurity',
+        ClipProjectIngestionController,
+      ),
+    ).toEqual([{ bearer: [] }]);
     expect(
       Reflect.getMetadata(
         'swagger/apiUseTags',
@@ -83,6 +135,7 @@ describe('Clip Projects split controllers', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ClipProjectsModule),
     ).toEqual([
+      ClipProjectIngestionController,
       ClipProjectHighlightsController,
       ClipProjectHandoffsController,
       ClipProjectReferenceFramesController,
@@ -91,6 +144,12 @@ describe('Clip Projects split controllers', () => {
   });
 
   it('removes the moved handlers from the wildcard CRUD controller', () => {
+    expect(ClipProjectsController.prototype).not.toHaveProperty(
+      'createFromYoutube',
+    );
+    expect(ClipProjectsController.prototype).not.toHaveProperty(
+      'analyzeYoutube',
+    );
     expect(ClipProjectsController.prototype).not.toHaveProperty(
       'getHighlights',
     );

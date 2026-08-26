@@ -4,7 +4,6 @@ import { ClipProjectReferenceFramesController } from '@api/collections/clip-proj
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
-import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   type GenerateClipHighlightDto,
   GenerateClipsDto,
@@ -23,9 +22,6 @@ import type { HookClipApprovalService } from '@api/collections/clip-projects/ser
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
-import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import type { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import type {
   AgentClipRunIdentity,
@@ -184,7 +180,6 @@ describe('ClipProjectsController', () => {
   let clipIdentityResolutionService: ReturnType<
     typeof createMockClipIdentityResolutionService
   >;
-  let clipFactoryQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let clipLibraryLinkService: {
     linkReadyClip: ReturnType<typeof vi.fn>;
   };
@@ -211,9 +206,6 @@ describe('ClipProjectsController', () => {
     clipIdentityResolutionService = createMockClipIdentityResolutionService();
     brandsService = {
       resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
-    };
-    clipFactoryQueueService = {
-      enqueue: vi.fn(),
     };
     clipLibraryLinkService = {
       linkReadyClip: vi.fn().mockResolvedValue({
@@ -248,8 +240,6 @@ describe('ClipProjectsController', () => {
     controller = new ClipProjectsController(
       createMockLogger(),
       clipProjectsService as ClipProjectsService,
-      clipFactoryQueueService as unknown as ClipFactoryQueueService,
-      { enqueue: vi.fn() } as unknown as ClipAnalyzeQueueService,
       clipGenerationService as ClipGenerationService,
       // Real request-preparation service over the same mocks: the validation
       // logic simply moved out of the controller, so behaviour is unchanged.
@@ -274,225 +264,6 @@ describe('ClipProjectsController', () => {
       createMockLogger(),
       clipProjectsService as ClipProjectsService,
     );
-  });
-
-  describe('createFromYoutube', () => {
-    it('should return batchJobId and estimatedClips when the project is queued', async () => {
-      const dto: CreateClipProjectFromYoutubeDto = {
-        avatarId: 'avatar-1',
-        maxClips: 12,
-        minViralityScore: 70,
-        voiceId: 'voice-1',
-        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      };
-
-      vi.mocked(clipProjectsService.create).mockResolvedValue({
-        id: projectId,
-      } as ClipProjectDocument);
-      clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
-
-      const result = await controller.createFromYoutube(
-        currentUser as never,
-        dto,
-      );
-
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(organizationId, 12);
-      expect(clipProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organizationId,
-          settings: expect.objectContaining({
-            maxClips: 12,
-            mode: 'avatar',
-          }),
-          sourceVideoUrl: dto.youtubeUrl,
-          userId,
-        }),
-      );
-      expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          maxClips: 12,
-          minViralityScore: 70,
-          mode: 'avatar',
-          projectId,
-          youtubeUrl: dto.youtubeUrl,
-        }),
-      );
-      expect(result).toEqual({
-        batchJobId: 'clip-factory-job-1',
-        estimatedClips: 12,
-        identity: expect.objectContaining({
-          avatarId: 'avatar-1',
-          isComplete: true,
-          source: 'explicit',
-          voiceId: 'voice-1',
-        }),
-        projectId,
-        status: 'processing',
-      });
-    });
-
-    it('should resolve and queue saved identity from the selected brand', async () => {
-      const brandId = testId('brand');
-      const dto: CreateClipProjectFromYoutubeDto = {
-        brandId,
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      };
-
-      vi.mocked(clipIdentityResolutionService.resolve).mockResolvedValue({
-        avatarId: 'saved-avatar-1',
-        avatarProvider: 'heygen',
-        isComplete: true,
-        label: 'Brand clip defaults',
-        missing: [],
-        source: 'brand',
-        useIdentity: true,
-        voiceId: 'saved-voice-1',
-        voiceProvider: 'heygen',
-      });
-      vi.mocked(clipProjectsService.create).mockResolvedValue({
-        id: projectId,
-      } as ClipProjectDocument);
-      brandsService.resolveBrandKitAssets.mockResolvedValue({
-        references: [
-          {
-            id: 'product-1',
-            label: 'Ceramic mug in glacier blue',
-            referenceCategory: 'PRODUCT',
-            role: 'reference',
-            url: 'https://cdn.example.com/product.png',
-          },
-        ],
-      });
-      clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
-
-      await controller.createFromYoutube(currentUser as never, dto);
-
-      expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
-        avatarId: undefined,
-        avatarProvider: undefined,
-        brandId,
-        organizationId,
-        voiceId: undefined,
-      });
-      expect(clipProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ brandId }),
-      );
-      expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          avatarId: 'saved-avatar-1',
-          runReferences: [
-            {
-              assetId: 'product-1',
-              description: 'Ceramic mug in glacier blue',
-              role: 'product',
-              url: 'https://cdn.example.com/product.png',
-            },
-          ],
-          voiceId: 'saved-voice-1',
-        }),
-      );
-      const referencePreflightOrder =
-        brandsService.resolveBrandKitAssets.mock.invocationCallOrder[0];
-      const creditCheckOrder =
-        creditsUtilsService.checkOrganizationCreditsAvailable.mock
-          .invocationCallOrder[0];
-      expect(referencePreflightOrder).toBeDefined();
-      expect(creditCheckOrder).toBeDefined();
-      expect(referencePreflightOrder ?? Number.MAX_SAFE_INTEGER).toBeLessThan(
-        creditCheckOrder ?? 0,
-      );
-    });
-
-    it('should return an actionable error when avatar defaults are missing', async () => {
-      const dto: CreateClipProjectFromYoutubeDto = {
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      };
-
-      await expect(
-        controller.createFromYoutube(currentUser as never, dto),
-      ).rejects.toThrow(
-        'Missing avatar and voice defaults. Configure saved brand defaults or provide explicit avatar and voice IDs.',
-      );
-
-      expect(clipProjectsService.create).not.toHaveBeenCalled();
-      expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
-    });
-
-    it('should reject before creating the project when credits are insufficient', async () => {
-      const dto: CreateClipProjectFromYoutubeDto = {
-        avatarId: 'avatar-1',
-        maxClips: 8,
-        voiceId: 'voice-1',
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      };
-
-      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
-        false,
-      );
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(3);
-
-      await expect(
-        controller.createFromYoutube(currentUser as never, dto),
-      ).rejects.toBeInstanceOf(InsufficientCreditsException);
-      expect(clipProjectsService.create).not.toHaveBeenCalled();
-      expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
-    });
-
-    it('should queue raw-cut projects without avatar credentials', async () => {
-      const dto: CreateClipProjectFromYoutubeDto = {
-        mode: 'raw-cut',
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      };
-
-      vi.mocked(clipProjectsService.create).mockResolvedValue({
-        id: projectId,
-      } as ClipProjectDocument);
-      clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
-
-      await controller.createFromYoutube(currentUser as never, dto);
-
-      expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
-        expect.objectContaining({
-          avatarId: undefined,
-          mode: 'raw-cut',
-          voiceId: undefined,
-        }),
-      );
-      expect(clipProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          settings: expect.objectContaining({ mode: 'raw-cut' }),
-        }),
-      );
-    });
-
-    it('should validate selected brand ownership before raw-cut creation', async () => {
-      const brandId = testId('brand');
-      const dto: CreateClipProjectFromYoutubeDto = {
-        brandId,
-        mode: 'raw-cut',
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      };
-
-      vi.mocked(clipIdentityResolutionService.resolve).mockRejectedValue(
-        new Error('Brand not found'),
-      );
-
-      await expect(
-        controller.createFromYoutube(currentUser as never, dto),
-      ).rejects.toThrow('Brand not found');
-
-      expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
-        avatarId: undefined,
-        avatarProvider: undefined,
-        brandId,
-        organizationId,
-        voiceId: undefined,
-      });
-      expect(clipProjectsService.create).not.toHaveBeenCalled();
-      expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
-    });
   });
 
   it('should validate generic clip project brand ownership before create', async () => {
@@ -574,24 +345,7 @@ describe('ClipProjectsController', () => {
     });
   });
 
-  describe('CreateClipProjectFromYoutubeDto validation', () => {
-    it('should allow the controller to resolve omitted avatar credentials', () => {
-      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      });
-
-      expect(validateSync(dto)).toEqual([]);
-    });
-
-    it('should accept raw-cut mode without avatar credentials', () => {
-      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-        mode: 'raw-cut',
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      });
-
-      expect(validateSync(dto)).toEqual([]);
-    });
-
+  describe('Hook approval DTO validation', () => {
     it('validates the optional hook approval switch', () => {
       const highlights = [
         { id: 'highlight-1', summary: 'Summary', title: 'Title' },
@@ -626,68 +380,6 @@ describe('ClipProjectsController', () => {
       ).toContain('feedback');
       expect(validateSync(approval)).toEqual([]);
     });
-
-    it('should validate optional avatar credentials in raw-cut mode', () => {
-      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-        avatarId: 123,
-        mode: 'raw-cut',
-        voiceId: false,
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      });
-
-      const errors = validateSync(dto);
-
-      expect(errors.map((error) => error.property)).toEqual(
-        expect.arrayContaining(['avatarId', 'voiceId']),
-      );
-    });
-
-    it('should reject unknown generation modes', () => {
-      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-        mode: 'unknown',
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      });
-
-      expect(validateSync(dto).map((error) => error.property)).toContain(
-        'mode',
-      );
-    });
-
-    it('should reject non-youtube URLs', () => {
-      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-        avatarId: 'avatar-1',
-        voiceId: 'voice-1',
-        youtubeUrl: 'https://example.com/not-youtube',
-      });
-
-      const errors = validateSync(dto);
-      const messages = errors.flatMap((error) =>
-        Object.values(error.constraints ?? {}),
-      );
-
-      expect(messages).toContain('Must be a valid YouTube URL');
-    });
-
-    it.each(['did', 'tavus', 'musetalk'] as const)(
-      'should reject unsupported avatar provider %s',
-      (avatarProvider) => {
-        const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-          avatarId: 'avatar-1',
-          avatarProvider,
-          voiceId: 'voice-1',
-          youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-        });
-
-        const errors = validateSync(dto);
-        const messages = errors.flatMap((error) =>
-          Object.values(error.constraints ?? {}),
-        );
-
-        expect(messages).toContain(
-          'avatarProvider must be one of the following values: heygen, argil',
-        );
-      },
-    );
   });
 
   describe('GenerateClipsDto validation', () => {
