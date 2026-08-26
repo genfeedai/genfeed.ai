@@ -6,7 +6,6 @@ import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-t
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
-import { WebsitePreviewDto } from '@api/collections/brands/dto/website-preview.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
@@ -17,8 +16,6 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
-import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -29,7 +26,6 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -48,7 +44,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpCode,
   HttpException,
   HttpStatus,
   Param,
@@ -59,14 +54,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-function slugifyBrandLabel(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 @AutoSwagger()
 @Controller('brands')
@@ -90,7 +77,6 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
     private readonly brandSetupService: BrandSetupService,
-    private readonly brandScraperService: BrandScraperService,
   ) {
     super(
       loggerService,
@@ -102,54 +88,6 @@ export class BrandsController extends BaseCRUDController<
       BrandSerializer,
       'Brand',
     );
-  }
-
-  /**
-   * Prefill create-brand form fields from a public website (no brand id yet).
-   * Static route must stay above `/:id/*` handlers.
-   */
-  @Post('website-preview')
-  @HttpCode(HttpStatus.OK)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async previewWebsite(@Body() dto: WebsitePreviewDto) {
-    try {
-      const scraped = await this.brandScraperService.scrapeWebsite(
-        dto.websiteUrl,
-      );
-      const label =
-        scraped.companyName?.trim() ||
-        scraped.tagline?.trim() ||
-        scraped.heroText?.trim() ||
-        '';
-      const description =
-        scraped.description?.trim() ||
-        scraped.metaDescription?.trim() ||
-        scraped.aboutText?.trim() ||
-        scraped.tagline?.trim() ||
-        '';
-      const slug = slugifyBrandLabel(label);
-
-      return {
-        data: {
-          description: description || undefined,
-          label: label || undefined,
-          // A social preview is not a company logo. `scraped.logoUrl` already
-          // resolves DOM logo → Logo.dev; undefined keeps the client on its
-          // deterministic placeholder path when neither source is available.
-          logoUrl: scraped.logoUrl || undefined,
-          primaryColor: scraped.primaryColor || undefined,
-          secondaryColor: scraped.secondaryColor || undefined,
-          slug: slug || undefined,
-          sourceUrl: scraped.sourceUrl,
-          websiteUrl: scraped.sourceUrl,
-        },
-      };
-    } catch (error: unknown) {
-      throw new BadRequestException(
-        (error as Error)?.message ||
-          'Could not load brand data from that website',
-      );
-    }
   }
 
   /**
@@ -332,39 +270,6 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return { data: preview };
-  }
-
-  /**
-   * Scrape a brand's website/socials, analyze with AI, and populate canonical
-   * brand guidance. Renamed + rehomed from `POST /onboarding/brand-setup`
-   * (REST audit #1354) — the 9-step orchestration lives behind BrandSetupService.
-   */
-  @Post(':id/scrape')
-  @HttpCode(200)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async scrapeBrand(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: BrandSetupDto,
-  ) {
-    await verifyBrandAccess(this.brandsService, id, user);
-    return this.brandSetupService.setupBrand(id, dto, user);
-  }
-
-  /**
-   * Add reference images (face, product, style, logo) to a brand. Rehomed from
-   * `POST /onboarding/brand/:brandId/reference-images` (REST audit #1354).
-   */
-  @Post(':id/reference-images')
-  @HttpCode(200)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async addReferenceImages(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: AddReferenceImagesDto,
-  ) {
-    await verifyBrandAccess(this.brandsService, id, user);
-    return this.brandSetupService.addReferenceImages(id, dto.images, user);
   }
 
   @Post()
