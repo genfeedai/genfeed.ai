@@ -29,10 +29,7 @@ import {
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import {
-  returnNotFound,
-  serializeSingle,
-} from '@api/helpers/utils/response/response.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -49,7 +46,6 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
-  FileInputType,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -58,14 +54,10 @@ import {
   PromptStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
-import type {
-  IResizeBodyParams,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
@@ -79,7 +71,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
@@ -98,7 +89,6 @@ export class ImagesTransformationsController {
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
     private readonly failedGenerationService: FailedGenerationService,
-    private readonly filesClientService: FilesClientService,
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -110,93 +100,6 @@ export class ImagesTransformationsController {
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
-
-  @Post(':imageId/resize')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async resizeImage(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('imageId') imageId: string,
-    @Body() body: IResizeBodyParams,
-  ): Promise<JsonApiSingleResponse> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const image = await this.imagesService.findOne({
-      id: imageId,
-      userId: user.userId ?? user.id,
-    });
-
-    if (!image) {
-      return returnNotFound(this.constructorName, imageId);
-    }
-
-    try {
-      const { metadataData, ingredientData } =
-        await this.sharedService.createMediaDocuments(user, {
-          brandId: user.brandId,
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.IMAGE,
-          ),
-          extension: MetadataExtension.JPG,
-          organizationId: user.organizationId,
-          parentId: imageId,
-          status: IngredientStatus.PROCESSING,
-        });
-
-      const target = {
-        height: body.height || 1920,
-        width: body.width || 1080,
-      };
-
-      const imageUrl = `${this.configService.ingredientsEndpoint}/images/${imageId}`;
-      const resizedImage = await this.filesClientService.resizeImageFromUrl(
-        imageUrl,
-        target,
-      );
-
-      const uploadMeta = await this.filesClientService.uploadToS3(
-        ingredientData.id.toString(),
-        'images',
-        {
-          contentType: 'image/jpeg',
-          data: resizedImage,
-          type: FileInputType.BUFFER,
-        },
-      );
-
-      await this.metadataService.patch(
-        metadataData.id,
-        new MetadataEntity({
-          height: uploadMeta.height ?? target.height,
-          size: uploadMeta.size ?? resizedImage.length,
-          width: uploadMeta.width ?? target.width,
-        }),
-      );
-
-      const updatedIngredient = await this.imagesService.patch(
-        ingredientData.id,
-        {
-          cdnUrl:
-            typeof uploadMeta.publicUrl === 'string'
-              ? uploadMeta.publicUrl
-              : undefined,
-          s3Key:
-            typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
-          status: IngredientStatus.GENERATED,
-          transformations: [TransformationCategory.RESIZED],
-        },
-      );
-
-      return serializeSingle(
-        request,
-        IngredientSerializer,
-        updatedIngredient || ingredientData,
-      );
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
-  }
 
   @Post(':imageId/reframe')
   @RateLimit(RateLimitPresets.external) // 30 requests per minute for AI generation
