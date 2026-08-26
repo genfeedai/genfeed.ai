@@ -250,6 +250,14 @@ export function resolveOrganizationScopePath(brandScopedPath: string): string {
     ? brandScopedPath
     : `/${brandScopedPath}`;
 
+  // A branded conversation cannot remain selected after brand scope is
+  // cleared. Deep-linking that thread under `~` canonicalizes straight back to
+  // its owning brand, while `/agent` resumes the most recent branded thread.
+  // The explicit new route is the stable brandless destination.
+  if (resolveAgentConversationRoute(path)) {
+    return APP_ROUTES.AGENT.NEW;
+  }
+
   for (const prefix of BRAND_ONLY_SETTINGS_PREFIXES) {
     if (path === prefix || path.startsWith(`${prefix}/`)) {
       return APP_ROUTES.SETTINGS.BRANDS;
