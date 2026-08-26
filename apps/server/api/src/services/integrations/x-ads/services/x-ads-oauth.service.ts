@@ -1,24 +1,24 @@
-import type { XAdsOAuthTokens } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
+import type {
+  XAdsOAuthTokens,
+  XAdsRequestCredentials,
+} from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
+import { isUnconfiguredSecret } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
 
-const X_ADS_OAUTH_SCOPES = ['ads.read', 'ads.write', 'offline.access'];
-
 interface XAdsOAuthConfig {
-  clientId: string;
-  clientSecret: string;
+  apiKey: string;
+  apiSecret: string;
   redirectUri: string;
 }
 
 /**
- * X Ads OAuth 2.0 (PKCE) via the `twitter-api-v2` SDK — the same OAuth
- * provider and client library as organic X (`TwitterService`), scoped to
- * Ads Data API access. Degrades gracefully when credentials are absent,
- * mirroring `GoogleAdsOAuthService`: the integration is not provisioned in
- * cloud production, so `X_ADS_CLIENT_ID`/`X_ADS_CLIENT_SECRET` may be unset.
+ * X Ads three-legged OAuth 1.0a via the provider-recommended
+ * `twitter-api-v2` client. The Ads application API key/secret are deliberately
+ * separate from organic X's OAuth 2.0 client credentials.
  */
 @Injectable()
 export class XAdsOAuthService {
@@ -29,93 +29,93 @@ export class XAdsOAuthService {
     private readonly loggerService: LoggerService,
   ) {}
 
-  generateAuthLink(state: string): { url: string; codeVerifier: string } {
+  async generateAuthLink(): Promise<{
+    oauthToken: string;
+    oauthTokenSecret: string;
+    url: string;
+  }> {
     const config = this.getConfig();
     const client = this.buildClient(config);
+    const result = await client.generateAuthLink(config.redirectUri, {
+      authAccessType: 'write',
+      linkMode: 'authorize',
+    });
 
-    const { url, codeVerifier } = client.generateOAuth2AuthLink(
-      config.redirectUri,
-      {
-        scope: X_ADS_OAUTH_SCOPES,
-        state,
-      },
-    );
-
-    return { codeVerifier, url };
+    return {
+      oauthToken: result.oauth_token,
+      oauthTokenSecret: result.oauth_token_secret,
+      url: result.url,
+    };
   }
 
-  async exchangeAuthCodeForAccessToken(
-    code: string,
-    codeVerifier: string,
+  async exchangeRequestToken(
+    oauthToken: string,
+    oauthTokenSecret: string,
+    oauthVerifier: string,
   ): Promise<XAdsOAuthTokens> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       const config = this.getConfig();
-      const client = this.buildClient(config);
-
-      const { accessToken, refreshToken, expiresIn, scope } =
-        await client.loginWithOAuth2({
-          code,
-          codeVerifier,
-          redirectUri: config.redirectUri,
-        });
+      const client = this.buildClient(config, {
+        accessToken: oauthToken,
+        accessTokenSecret: oauthTokenSecret,
+      });
+      const { accessSecret, accessToken, screenName, userId } =
+        await client.login(oauthVerifier);
 
       return {
         accessToken,
-        expiresIn,
-        refreshToken: refreshToken ?? '',
-        scope: Array.isArray(scope) ? scope.join(' ') : scope,
+        accessTokenSecret: accessSecret,
+        screenName,
+        userId,
       };
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(`${caller} failed`, {
+        name: error instanceof Error ? error.name : 'UnknownError',
+      });
       throw error;
     }
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<XAdsOAuthTokens> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const client = this.buildClient(this.getConfig());
-
-      const {
-        accessToken,
-        refreshToken: rotatedRefreshToken,
-        expiresIn,
-        scope,
-      } = await client.refreshOAuth2Token(refreshToken);
-
-      return {
-        accessToken,
-        expiresIn,
-        refreshToken: rotatedRefreshToken ?? refreshToken,
-        scope: Array.isArray(scope) ? scope.join(' ') : scope,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
+  createAdsClient(credentials: XAdsRequestCredentials): TwitterApi['ads'] {
+    return this.buildClient(this.getConfig(), credentials).ads;
   }
 
-  private buildClient(config: XAdsOAuthConfig): TwitterApi {
+  private buildClient(
+    config: XAdsOAuthConfig,
+    credentials?: XAdsRequestCredentials,
+  ): TwitterApi {
     return new TwitterApi({
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
+      appKey: config.apiKey,
+      appSecret: config.apiSecret,
+      ...(credentials
+        ? {
+            accessSecret: credentials.accessTokenSecret,
+            accessToken: credentials.accessToken,
+          }
+        : {}),
     });
   }
 
   private getConfig(): XAdsOAuthConfig {
-    const clientId = this.configService.get('X_ADS_CLIENT_ID');
-    const clientSecret = this.configService.get('X_ADS_CLIENT_SECRET');
+    const apiKey = this.configService.get('X_ADS_API_KEY');
+    const apiSecret = this.configService.get('X_ADS_API_SECRET');
     const redirectUri = this.configService.get('X_ADS_REDIRECT_URI');
 
-    if (!clientId || !clientSecret || !redirectUri) {
+    if (
+      !apiKey ||
+      !apiSecret ||
+      !redirectUri ||
+      isUnconfiguredSecret(apiKey) ||
+      isUnconfiguredSecret(apiSecret) ||
+      isUnconfiguredSecret(redirectUri)
+    ) {
       throw new ServiceUnavailableException(
         'X Ads OAuth is not configured for this deployment.',
       );
     }
 
-    return { clientId, clientSecret, redirectUri };
+    return { apiKey, apiSecret, redirectUri };
   }
 }

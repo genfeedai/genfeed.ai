@@ -222,8 +222,8 @@ export interface IEnvConfig {
   TWITTER_REDIRECT_URI?: string;
 
   // === X Ads ===
-  X_ADS_CLIENT_ID?: string;
-  X_ADS_CLIENT_SECRET?: string;
+  X_ADS_API_KEY?: string;
+  X_ADS_API_SECRET?: string;
   X_ADS_REDIRECT_URI?: string;
   X_ADS_REPOSITORY_COMMERCIAL_USE_APPROVED?: 'true' | 'false';
   X_ADS_REPOSITORY_ENTITLEMENT_CONFIRMED?: 'true' | 'false';

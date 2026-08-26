@@ -13,7 +13,6 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
-import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
@@ -48,11 +47,9 @@ function safeOAuthErrorMetadata(error: unknown): {
 }
 
 /**
- * X Ads connect/verify — role-gated like `GoogleAdsController`, but the
- * OAuth mechanics are PKCE (shared provider with organic X), so `connect()`
- * stores a code verifier and `verify()` decrypts it before exchange, mirroring
- * `TwitterController`. Kept intentionally minimal: read/write ad operations
- * live on `XAdsService` behind the ads-gateway adapter, not on this controller.
+ * X Ads connect/verify — role-gated like `GoogleAdsController`, with the
+ * provider-required three-legged OAuth 1.0a request-token flow. Organic X uses
+ * a separate platform and OAuth 2.0 credential contract.
  */
 @AutoSwagger()
 @Controller('services/x-ads')
@@ -95,24 +92,36 @@ export class XAdsController {
     }
 
     try {
-      const { credential, state } =
-        await this.credentialsService.beginOAuthForBrand(
-          brand,
-          user.userId ?? user.id,
-          CredentialPlatform.X_ADS,
-          { isConnected: false },
-        );
+      // Validate application configuration and obtain the provider request
+      // token before creating a pending database row. Missing or placeholder
+      // deployment credentials therefore fail without leaving orphan state.
+      const { oauthToken, oauthTokenSecret, url } =
+        await this.xAdsOAuthService.generateAuthLink();
 
-      const { url, codeVerifier } =
-        this.xAdsOAuthService.generateAuthLink(state);
+      const { credential } = await this.credentialsService.beginOAuthForBrand(
+        brand,
+        user.userId ?? user.id,
+        CredentialPlatform.X_ADS,
+        { isConnected: false },
+      );
 
-      await this.credentialsService.patch(credential.id, {
-        oauthTokenSecret: codeVerifier,
-      });
+      await this.credentialsService.attachOAuth1RequestToken(
+        credential.id,
+        CredentialPlatform.X_ADS,
+        {
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
+        },
+        oauthToken,
+        oauthTokenSecret,
+      );
 
       return serializeSingle(request, CredentialOAuthSerializer, { url });
     } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
+      this.loggerService.error(
+        `${caller} failed`,
+        safeOAuthErrorMetadata(error),
+      );
       if (error instanceof ServiceUnavailableException) {
         throw error;
       }
@@ -136,10 +145,10 @@ export class XAdsController {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${caller} started`);
 
-    if (!body.code || !body.state) {
+    if (!body.oauthToken || !body.oauthVerifier) {
       throw new HttpException(
         {
-          detail: 'Missing required OAuth parameters',
+          detail: 'Missing required OAuth 1.0a parameters',
           title: 'Invalid payload',
         },
         HttpStatus.BAD_REQUEST,
@@ -148,8 +157,8 @@ export class XAdsController {
 
     try {
       const credential =
-        await this.credentialsService.findPendingOAuthCredential(
-          body.state,
+        await this.credentialsService.findPendingOAuth1Credential(
+          body.oauthToken,
           CredentialPlatform.X_ADS,
           {
             organizationId: user.organizationId,
@@ -164,23 +173,33 @@ export class XAdsController {
         );
       }
 
-      const codeVerifier = credential.oauthTokenSecret
+      const requestToken = credential.oauthToken
+        ? EncryptionUtil.decrypt(credential.oauthToken)
+        : null;
+      const requestTokenSecret = credential.oauthTokenSecret
         ? EncryptionUtil.decrypt(credential.oauthTokenSecret)
         : null;
 
-      if (!codeVerifier) {
+      if (!requestToken || !requestTokenSecret) {
         throw new HttpException(
-          { detail: 'Missing PKCE code verifier', title: 'OAuth Error' },
+          {
+            detail: 'Missing OAuth 1.0a request-token credentials',
+            title: 'OAuth Error',
+          },
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      const tokens = await this.xAdsOAuthService.exchangeAuthCodeForAccessToken(
-        body.code,
-        codeVerifier,
+      const tokens = await this.xAdsOAuthService.exchangeRequestToken(
+        requestToken,
+        requestTokenSecret,
+        body.oauthVerifier,
       );
 
-      const accounts = await this.xAdsService.getAdAccounts(tokens.accessToken);
+      const accounts = await this.xAdsService.getAdAccounts({
+        accessToken: tokens.accessToken,
+        accessTokenSecret: tokens.accessTokenSecret,
+      });
       // The OAuth token can cover multiple accounts, while the credential has
       // one display identity and every Ads operation still requires an
       // explicitly validated adAccountId. Provider order is not contractual,
@@ -208,13 +227,15 @@ export class XAdsController {
         },
         {
           accessToken: tokens.accessToken,
-          accessTokenExpiry: tokens.expiresIn
-            ? new Date(Date.now() + tokens.expiresIn * 1000)
-            : undefined,
+          accessTokenExpiry: null,
+          accessTokenSecret: tokens.accessTokenSecret,
+          grantedScopes: [],
+          grantedScopesCapturedAt: null,
           oauthToken: null,
+          oauthTokenHash: null,
           oauthTokenSecret: null,
-          refreshToken: tokens.refreshToken,
-          ...buildGrantedScopesCredentialPatch(tokens.scope),
+          refreshToken: null,
+          refreshTokenExpiry: null,
         },
       );
 

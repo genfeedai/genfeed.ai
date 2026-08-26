@@ -106,9 +106,10 @@ describe('Tasks E2E Tests', () => {
   beforeEach(async () => {
     await dbHelper.clearDatabase();
 
+    const testUserId = generateIdString();
     testUser = createTestUser({
-      id: generateIdString(),
-      email: 'tasks-test@example.com',
+      id: testUserId,
+      email: `tasks-test-${testUserId}@example.com`,
     });
 
     testOrganization = createTestOrganization({

@@ -417,6 +417,8 @@ export class TestDatabaseHelper {
   };
 
   private readonly clearOrder = [
+    'campaignTarget',
+    'outreachCampaign',
     'orgIntegration',
     'task',
     'creditTransaction',

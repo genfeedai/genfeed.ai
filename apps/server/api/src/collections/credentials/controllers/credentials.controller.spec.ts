@@ -15,12 +15,11 @@ import { PinterestService } from '@api/services/integrations/pinterest/services/
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('CredentialsController', () => {
   let controller: CredentialsController;
@@ -175,7 +174,6 @@ describe('CredentialsController', () => {
       createMockPlatformService() as unknown as RedditService,
       createMockPlatformService() as unknown as TiktokService,
       createMockPlatformService() as unknown as TwitterService,
-      createMockPlatformService() as unknown as XAdsService,
       createMockPlatformService() as unknown as YoutubeService,
     );
   });
@@ -450,6 +448,21 @@ describe('CredentialsController', () => {
       ).rejects.toThrow(HttpException);
     });
 
+    it('rejects OAuth 1.0a X Ads credentials because their access tokens do not refresh', async () => {
+      credentialsService.findOne.mockResolvedValueOnce({
+        brandId: brandEntityId,
+        id: credId,
+        organizationId: orgId,
+        platform: CredentialPlatform.X_ADS,
+      });
+
+      await expect(
+        controller.refreshCredentialToken(mockRequest, credId, mockUser),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+    });
+
     it('should mark credential as disconnected when refresh fails', async () => {
       const failingTwitter = {
         refreshToken: vi.fn().mockRejectedValue(new Error('Token expired')),
@@ -472,7 +485,6 @@ describe('CredentialsController', () => {
         createMockPlatformService() as unknown as RedditService,
         createMockPlatformService() as unknown as TiktokService,
         failingTwitter as unknown as TwitterService,
-        createMockPlatformService() as unknown as XAdsService,
         createMockPlatformService() as unknown as YoutubeService,
       );
 

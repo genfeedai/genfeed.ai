@@ -2,6 +2,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import type { XAdsRequestCredentials } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
@@ -71,8 +72,7 @@ export class PausedXAdsCampaignDraftService {
     const credential = await this.prisma.credential.findFirst({
       select: {
         accessToken: true,
-        grantedScopes: true,
-        grantedScopesCapturedAt: true,
+        accessTokenSecret: true,
         id: true,
       },
       where: {
@@ -84,21 +84,16 @@ export class PausedXAdsCampaignDraftService {
         platform: PrismaCredentialPlatform.X_ADS,
       },
     });
-    if (!credential?.accessToken) {
+    if (!credential?.accessToken || !credential.accessTokenSecret) {
       throw new BadRequestException(
         'The selected X Ads credential is unavailable.',
       );
     }
-    if (
-      !credential.grantedScopesCapturedAt ||
-      !credential.grantedScopes.includes('ads.write')
-    ) {
-      throw new BadRequestException(
-        'The selected X Ads credential requires ads.write. Reconnect X Ads and grant ads access.',
-      );
-    }
-    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-    const accounts = await this.xAdsService.getAdAccounts(accessToken);
+    const oauthCredentials: XAdsRequestCredentials = {
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
+      accessTokenSecret: EncryptionUtil.decrypt(credential.accessTokenSecret),
+    };
+    const accounts = await this.xAdsService.getAdAccounts(oauthCredentials);
     const selectedAccount = accounts.find(
       (account) => account.id === input.adAccountId,
     );
@@ -110,7 +105,7 @@ export class PausedXAdsCampaignDraftService {
     const resolvedAdAccountId = selectedAccount.id;
 
     const fundingInstruments = await this.xAdsService.getFundingInstruments(
-      accessToken,
+      oauthCredentials,
       resolvedAdAccountId,
     );
     const fundingInstrument =
@@ -168,7 +163,7 @@ export class PausedXAdsCampaignDraftService {
     }
 
     const publishedTweets = await this.xAdsService.listPublishedTweets(
-      accessToken,
+      oauthCredentials,
       resolvedAdAccountId,
       [input.sourceTweetId],
     );
@@ -202,7 +197,7 @@ export class PausedXAdsCampaignDraftService {
       },
       async () => {
         const campaigns = await this.xAdsService.listCampaigns(
-          accessToken,
+          oauthCredentials,
           resolvedAdAccountId,
         );
         const existingCampaign = campaigns.find(
@@ -212,7 +207,7 @@ export class PausedXAdsCampaignDraftService {
         const campaign =
           existingCampaign ??
           (await this.xAdsService.createCampaign(
-            accessToken,
+            oauthCredentials,
             resolvedAdAccountId,
             {
               entityStatus: 'PAUSED',
@@ -222,7 +217,7 @@ export class PausedXAdsCampaignDraftService {
           ));
 
         const lineItems = await this.xAdsService.listLineItems(
-          accessToken,
+          oauthCredentials,
           resolvedAdAccountId,
           campaign.id,
         );
@@ -233,7 +228,7 @@ export class PausedXAdsCampaignDraftService {
         const lineItem =
           existingLineItem ??
           (await this.xAdsService.createLineItem(
-            accessToken,
+            oauthCredentials,
             resolvedAdAccountId,
             {
               campaignId: campaign.id,
@@ -246,7 +241,7 @@ export class PausedXAdsCampaignDraftService {
           ));
 
         const promotedTweets = await this.xAdsService.listPromotedTweets(
-          accessToken,
+          oauthCredentials,
           resolvedAdAccountId,
           lineItem.id,
         );
@@ -257,7 +252,7 @@ export class PausedXAdsCampaignDraftService {
         const promotedTweet =
           existingPromotedTweet ??
           (await this.xAdsService.createPromotedTweet(
-            accessToken,
+            oauthCredentials,
             resolvedAdAccountId,
             {
               lineItemId: lineItem.id,

@@ -55,13 +55,13 @@ describe('XAdsController', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let controller: XAdsController;
   let credentialsService: {
+    attachOAuth1RequestToken: ReturnType<typeof vi.fn>;
     beginOAuthForBrand: ReturnType<typeof vi.fn>;
     connectAccount: ReturnType<typeof vi.fn>;
-    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
+    findPendingOAuth1Credential: ReturnType<typeof vi.fn>;
   };
   let xAdsOAuthService: {
-    exchangeAuthCodeForAccessToken: ReturnType<typeof vi.fn>;
+    exchangeRequestToken: ReturnType<typeof vi.fn>;
     generateAuthLink: ReturnType<typeof vi.fn>;
   };
   let xAdsService: { getAdAccounts: ReturnType<typeof vi.fn> };
@@ -80,28 +80,32 @@ describe('XAdsController', () => {
       findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }),
     };
     credentialsService = {
+      attachOAuth1RequestToken: vi
+        .fn()
+        .mockResolvedValue({ id: 'credential-1' }),
       beginOAuthForBrand: vi.fn().mockResolvedValue({
         credential: { id: 'credential-1' },
         state: 'opaque-state',
       }),
       connectAccount: vi.fn().mockResolvedValue({ id: 'credential-1' }),
-      findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      findPendingOAuth1Credential: vi.fn().mockResolvedValue({
         id: 'credential-1',
         organizationId: 'org-1',
-        oauthTokenSecret: 'pkce-verifier',
+        oauthToken: 'request-token',
+        oauthTokenSecret: 'request-token-secret',
       }),
-      patch: vi.fn().mockResolvedValue({ id: 'credential-1' }),
     };
     xAdsOAuthService = {
-      exchangeAuthCodeForAccessToken: vi.fn().mockResolvedValue({
+      exchangeRequestToken: vi.fn().mockResolvedValue({
         accessToken: 'access-token',
-        expiresIn: 7200,
-        refreshToken: 'refresh-token',
-        scope: 'ads.read ads.write offline.access',
+        accessTokenSecret: 'access-token-secret',
+        screenName: 'ads-operator',
+        userId: 'x-user-1',
       }),
-      generateAuthLink: vi.fn().mockReturnValue({
-        codeVerifier: 'pkce-verifier',
-        url: 'https://x.com/i/oauth2/authorize',
+      generateAuthLink: vi.fn().mockResolvedValue({
+        oauthToken: 'request-token',
+        oauthTokenSecret: 'request-token-secret',
+        url: 'https://api.x.com/oauth/authorize?oauth_token=request-token',
       }),
     };
     xAdsService = {
@@ -142,6 +146,13 @@ describe('XAdsController', () => {
       CredentialPlatform.X_ADS,
       { isConnected: false },
     );
+    expect(credentialsService.attachOAuth1RequestToken).toHaveBeenCalledWith(
+      'credential-1',
+      CredentialPlatform.X_ADS,
+      { organizationId: 'org-1', userId: 'user-1' },
+      'request-token',
+      'request-token-secret',
+    );
   });
 
   it('preserves a typed unavailable response when OAuth is not configured', async () => {
@@ -160,6 +171,7 @@ describe('XAdsController', () => {
     expect((failure as HttpException).getStatus()).toBe(
       HttpStatus.SERVICE_UNAVAILABLE,
     );
+    expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
   });
 
   it('keeps unexpected OAuth initialization errors behind the generic response', async () => {
@@ -180,17 +192,26 @@ describe('XAdsController', () => {
     );
   });
 
-  it('verifies only the pending OAuth state in the caller scope', async () => {
+  it('verifies only the pending X Ads request token in the caller scope', async () => {
     await controller.verify({} as never, user, {
-      code: 'authorization-code',
-      state: 'opaque-state',
+      oauthToken: 'request-token',
+      oauthVerifier: 'oauth-verifier',
     });
 
-    expect(credentialsService.findPendingOAuthCredential).toHaveBeenCalledWith(
-      'opaque-state',
+    expect(credentialsService.findPendingOAuth1Credential).toHaveBeenCalledWith(
+      'request-token',
       CredentialPlatform.X_ADS,
       { organizationId: 'org-1', userId: 'user-1' },
     );
+    expect(xAdsOAuthService.exchangeRequestToken).toHaveBeenCalledWith(
+      'request-token',
+      'request-token-secret',
+      'oauth-verifier',
+    );
+    expect(xAdsService.getAdAccounts).toHaveBeenCalledWith({
+      accessToken: 'access-token',
+      accessTokenSecret: 'access-token-secret',
+    });
     expect(credentialsService.connectAccount).toHaveBeenCalledWith(
       'credential-1',
       'org-1',
@@ -198,9 +219,31 @@ describe('XAdsController', () => {
         id: 'account-1',
       }),
       expect.objectContaining({
-        grantedScopes: ['ads.read', 'ads.write', 'offline.access'],
+        accessToken: 'access-token',
+        accessTokenSecret: 'access-token-secret',
+        oauthToken: null,
+        oauthTokenHash: null,
+        oauthTokenSecret: null,
       }),
     );
+  });
+
+  it('never resolves an organic X credential for an X Ads callback', async () => {
+    credentialsService.findPendingOAuth1Credential.mockResolvedValue(null);
+
+    await expect(
+      controller.verify({} as never, user, {
+        oauthToken: 'organic-x-request-token',
+        oauthVerifier: 'oauth-verifier',
+      }),
+    ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+
+    expect(credentialsService.findPendingOAuth1Credential).toHaveBeenCalledWith(
+      'organic-x-request-token',
+      CredentialPlatform.X_ADS,
+      expect.any(Object),
+    );
+    expect(xAdsOAuthService.exchangeRequestToken).not.toHaveBeenCalled();
   });
 
   it('fails verification without connecting when X returns no ad account', async () => {
@@ -208,8 +251,8 @@ describe('XAdsController', () => {
 
     const failure = await controller
       .verify({} as never, user, {
-        code: 'authorization-code',
-        state: 'opaque-state',
+        oauthToken: 'request-token',
+        oauthVerifier: 'oauth-verifier',
       })
       .then(
         () => null,
@@ -227,8 +270,8 @@ describe('XAdsController', () => {
     );
 
     await controller.verify({} as never, user, {
-      code: 'authorization-code',
-      state: 'opaque-state',
+      oauthToken: 'request-token',
+      oauthVerifier: 'oauth-verifier',
     });
 
     expect(credentialsService.connectAccount).toHaveBeenCalledWith(
@@ -243,15 +286,15 @@ describe('XAdsController', () => {
     );
   });
 
-  it('maps PKCE decryption failure without leaking ciphertext details', async () => {
+  it('maps request-token decryption failure without leaking ciphertext details', async () => {
     vi.mocked(EncryptionUtil.decrypt).mockImplementationOnce(() => {
       throw new Error('ciphertext payload details');
     });
 
     const failure = await controller
       .verify({} as never, user, {
-        code: 'authorization-code',
-        state: 'opaque-state',
+        oauthToken: 'request-token',
+        oauthVerifier: 'oauth-verifier',
       })
       .then(
         () => null,
@@ -263,20 +306,18 @@ describe('XAdsController', () => {
     expect(
       JSON.stringify((failure as HttpException).getResponse()),
     ).not.toContain('ciphertext payload details');
-    expect(
-      xAdsOAuthService.exchangeAuthCodeForAccessToken,
-    ).not.toHaveBeenCalled();
+    expect(xAdsOAuthService.exchangeRequestToken).not.toHaveBeenCalled();
   });
 
   it('maps raw provider verification errors to a stable client response', async () => {
-    xAdsOAuthService.exchangeAuthCodeForAccessToken.mockRejectedValue(
+    xAdsOAuthService.exchangeRequestToken.mockRejectedValue(
       new Error('provider request headers and token details'),
     );
 
     const failure = await controller
       .verify({} as never, user, {
-        code: 'authorization-code',
-        state: 'opaque-state',
+        oauthToken: 'request-token',
+        oauthVerifier: 'oauth-verifier',
       })
       .then(
         () => null,
@@ -288,6 +329,6 @@ describe('XAdsController', () => {
     expect(
       JSON.stringify((failure as HttpException).getResponse()),
     ).not.toContain('provider request headers and token details');
-    expect(credentialsService.patch).not.toHaveBeenCalled();
+    expect(credentialsService.connectAccount).not.toHaveBeenCalled();
   });
 });

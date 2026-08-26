@@ -4,11 +4,10 @@ import { XAdsController } from '@api/services/integrations/x-ads/controllers/x-a
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(XAdsService, {
-  additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
+  additionalImports: [BrandsCoreModule, CredentialsCoreModule],
   additionalProviders: [XAdsOAuthService],
 });
 

@@ -29,9 +29,14 @@ describe('XAdsAdapter', () => {
 
   const mockCtx: AdsAdapterContext = {
     accessToken: 'x-token',
+    accessTokenSecret: 'x-token-secret',
     adAccountId: 'acct-123',
     credentialId: 'cred-1',
     organizationId: 'org-1',
+  };
+  const oauthCredentials = {
+    accessToken: 'x-token',
+    accessTokenSecret: 'x-token-secret',
   };
 
   beforeEach(async () => {
@@ -98,6 +103,15 @@ describe('XAdsAdapter', () => {
           timezone: 'UTC',
         },
       ]);
+      expect(xAdsService.getAdAccounts).toHaveBeenCalledWith(oauthCredentials);
+    });
+
+    it('fails closed before provider traffic when the OAuth token secret is missing', async () => {
+      await expect(
+        adapter.getAdAccounts({ ...mockCtx, accessTokenSecret: undefined }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(xAdsService.getAdAccounts).not.toHaveBeenCalled();
     });
   });
 
@@ -145,7 +159,7 @@ describe('XAdsAdapter', () => {
         });
 
         expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
-          'x-token',
+          oauthCredentials,
           'acct-123',
           ['cmp-1'],
           { endDate: '2026-08-20', startDate: '2026-08-19' },
@@ -177,7 +191,7 @@ describe('XAdsAdapter', () => {
         });
 
         expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
-          'x-token',
+          oauthCredentials,
           'acct-123',
           ['cmp-1'],
           { endDate: '2026-08-19', startDate: '2026-08-18' },
@@ -206,7 +220,7 @@ describe('XAdsAdapter', () => {
       });
 
       expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         ['cmp-1'],
         { endDate: '2026-03-08', startDate: '2026-03-07' },
@@ -235,7 +249,7 @@ describe('XAdsAdapter', () => {
         });
 
         expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
-          'x-token',
+          oauthCredentials,
           'acct-123',
           ['cmp-1'],
           { endDate: '2026-08-19', startDate: '2026-08-12' },
@@ -276,7 +290,7 @@ describe('XAdsAdapter', () => {
       });
 
       expect(xAdsService.getCampaignStats).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         ['cmp-1'],
         { endDate: '2026-03-08', startDate: '2026-03-01' },
@@ -322,7 +336,7 @@ describe('XAdsAdapter', () => {
       const result = await adapter.getAdSetInsights(mockCtx, 'li-1');
 
       expect(xAdsService.getLineItemStats).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         ['li-1'],
         expect.objectContaining({
@@ -349,7 +363,7 @@ describe('XAdsAdapter', () => {
       const result = await adapter.getAdInsights(mockCtx, 'pt-1');
 
       expect(xAdsService.getPromotedTweetStats).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         ['pt-1'],
         expect.objectContaining({
@@ -384,7 +398,7 @@ describe('XAdsAdapter', () => {
       expect(result.status).toBe('PAUSED');
       expect(result.platform).toBe('x');
       expect(xAdsService.createCampaign).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         expect.objectContaining({
           dailyBudgetAmountLocalMicro: 25_000_000,
@@ -394,7 +408,7 @@ describe('XAdsAdapter', () => {
         }),
       );
       expect(xAdsService.getFundingInstruments).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
       );
     });
@@ -446,11 +460,11 @@ describe('XAdsAdapter', () => {
       });
 
       expect(xAdsService.getFundingInstruments).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
       );
       expect(xAdsService.createCampaign).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         expect.objectContaining({ fundingInstrumentId: 'fi-active' }),
       );
@@ -486,7 +500,7 @@ describe('XAdsAdapter', () => {
       });
 
       expect(xAdsService.createCampaign).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         expect.objectContaining({
           dailyBudgetAmountLocalMicro: 0,
@@ -521,7 +535,7 @@ describe('XAdsAdapter', () => {
       expect(result.platform).toBe('x');
       expect(result.dailyBudget).toBe(12.5);
       expect(xAdsService.createLineItem).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         expect.objectContaining({
           campaignId: 'cmp-1',
@@ -579,7 +593,7 @@ describe('XAdsAdapter', () => {
       });
 
       expect(xAdsService.createLineItem).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         expect.objectContaining({ dailyBudgetAmountLocalMicro: 0 }),
       );
@@ -617,7 +631,7 @@ describe('XAdsAdapter', () => {
 
       expect(result.id).toBe('cmp-1');
       expect(xAdsService.updateCampaign).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         'cmp-1',
         expect.objectContaining({
@@ -643,7 +657,7 @@ describe('XAdsAdapter', () => {
 
       expect(result.id).toBe('cmp-1');
       expect(xAdsService.updateCampaign).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         'cmp-1',
         expect.objectContaining({
@@ -669,7 +683,7 @@ describe('XAdsAdapter', () => {
       });
 
       expect(xAdsService.updateCampaign).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         'cmp-1',
         expect.objectContaining({
@@ -775,7 +789,7 @@ describe('XAdsAdapter', () => {
       });
 
       expect(xAdsService.getPromotedTweetStats).toHaveBeenCalledWith(
-        'x-token',
+        oauthCredentials,
         'acct-123',
         ['pt-1', 'pt-2'],
         expect.objectContaining({

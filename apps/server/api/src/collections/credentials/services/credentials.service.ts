@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
@@ -24,6 +24,10 @@ import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+
+function hashOAuthRequestToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 /**
  * Columns that describe *this connection* rather than *this account*. When a
@@ -485,6 +489,43 @@ export class CredentialsService extends BaseService<
     return { credential, state };
   }
 
+  /**
+   * Attach an OAuth 1.0a request-token pair to its pending credential.
+   *
+   * The tokens pass through the centralized encrypt-on-write boundary. A
+   * one-way hash remains queryable for the provider callback without making
+   * either temporary secret searchable in plaintext.
+   */
+  async attachOAuth1RequestToken(
+    credentialId: string,
+    platform: CredentialPlatform,
+    scope: OAuthCredentialScope,
+    oauthToken: string,
+    oauthTokenSecret: string,
+  ): Promise<void> {
+    const { modifiedCount } = await this.patchAll(
+      {
+        id: credentialId,
+        isConnected: false,
+        organizationId: requireCredentialRelationId(
+          scope.organizationId,
+          'organizationId',
+        ),
+        platform,
+        userId: requireCredentialRelationId(scope.userId, 'userId'),
+      },
+      {
+        oauthToken,
+        oauthTokenHash: hashOAuthRequestToken(oauthToken),
+        oauthTokenSecret,
+      },
+    );
+
+    if (modifiedCount !== 1) {
+      throw new NotFoundException('Pending credential', credentialId);
+    }
+  }
+
   /** Resolve a pending OAuth nonce within the authenticated tenant scope. */
   async findPendingOAuthCredential(
     state: string,
@@ -512,6 +553,43 @@ export class CredentialsService extends BaseService<
             userId: requireCredentialRelationId(scope.userId, 'userId'),
           }
         : {}),
+    });
+
+    if (
+      !credential?.brandId ||
+      !credential.organizationId ||
+      !credential.userId
+    ) {
+      return null;
+    }
+
+    return credential as PendingOAuthCredential;
+  }
+
+  /**
+   * Resolve an OAuth 1.0a callback through its provider-issued request token.
+   * The lookup remains TTL-bound and tenant/user scoped, preventing a token
+   * copied from another session from attaching credentials across accounts.
+   */
+  async findPendingOAuth1Credential(
+    oauthToken: string,
+    platform: CredentialPlatform,
+    scope: OAuthCredentialScope,
+  ): Promise<PendingOAuthCredential | null> {
+    if (typeof oauthToken !== 'string' || !oauthToken.trim()) {
+      return null;
+    }
+
+    const credential = await this.findOne({
+      isConnected: false,
+      oauthTokenHash: hashOAuthRequestToken(oauthToken),
+      organizationId: requireCredentialRelationId(
+        scope.organizationId,
+        'organizationId',
+      ),
+      platform,
+      updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
+      userId: requireCredentialRelationId(scope.userId, 'userId'),
     });
 
     if (
