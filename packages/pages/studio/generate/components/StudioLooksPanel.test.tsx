@@ -38,7 +38,7 @@ const look: IStudioLook = {
   brandId: 'brand-1',
   camera: 'camera-1',
   cameraMovement: null,
-  createdAt: new Date(),
+  createdAt: '2026-08-26T00:00:00.000Z',
   id: 'look-1',
   isDeleted: false,
   label: 'Editorial',
@@ -49,7 +49,7 @@ const look: IStudioLook = {
   promptTemplate: 'preset-1',
   scene: 'scene-1',
   style: 'style-1',
-  updatedAt: new Date(),
+  updatedAt: '2026-08-26T00:00:00.000Z',
   userId: 'user-1',
 };
 

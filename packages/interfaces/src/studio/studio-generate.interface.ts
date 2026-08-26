@@ -5,7 +5,7 @@ import type {
   RouterPriority,
 } from '@genfeedai/enums';
 import type { ReactNode } from 'react';
-import type { IIngredient, IQueryParams } from '../index';
+import type { IBaseEntity, IIngredient, IQueryParams } from '../index';
 
 export type StudioLookAssetType = 'image' | 'video';
 
@@ -22,15 +22,11 @@ export interface StudioLookPayload {
   style: string;
 }
 
-export interface IStudioLook extends StudioLookPayload {
+export interface IStudioLook extends StudioLookPayload, IBaseEntity {
   assetType: StudioLookAssetType;
   brandId: string;
-  createdAt: Date;
-  id: string;
-  isDeleted: boolean;
   label: string;
   organizationId: string;
-  updatedAt: Date;
   userId: string;
 }
 
