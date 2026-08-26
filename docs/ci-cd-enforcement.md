@@ -4,7 +4,7 @@ This document maps Genfeed's delivery rules to the mechanism that enforces
 them. It distinguishes repository code, which changes through pull requests,
 from GitHub settings, which a repository administrator must maintain.
 
-Last audited: 2026-08-22 against `master`, repository rulesets, Actions policy,
+Last audited: 2026-08-26 against `master`, repository rulesets, Actions policy,
 deployment environments, recent workflow runs, and the current workflow test
 suite.
 
@@ -67,6 +67,13 @@ organization or repository policy changes:
 - Repository Actions currently default `GITHUB_TOKEN` to write. Workflows
   override that default, but administrators should change the repository
   default to read-only so a newly added workflow fails safe.
+- Repository Actions allow `GITHUB_TOKEN` to create and approve pull requests
+  so the trusted scheduled `deps-update.yml` workflow can deliver its one
+  weekly update PR. That job explicitly grants only `contents: write` and
+  `pull-requests: write`; every other configurable permission remains `none`.
+  Keep the repository setting enabled while this workflow uses `GITHUB_TOKEN`,
+  and keep its exact owner/head/base deduplication plus failed-creation branch
+  rollback executable contract intact.
 - Repository Actions currently allow all actions and do not require full-SHA
   pins at the settings layer. Repository tests enforce immutable pins after
   checkout; administrators should also enable the full-length SHA policy and,
