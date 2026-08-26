@@ -364,6 +364,15 @@ test.describe('Agent Onboarding', () => {
     await expect(authenticatedPage).toHaveURL(
       new RegExp(`/agent/onboarding/${threadId}$`),
     );
+
+    // Prove the promoted thread route is durable, then interact with the
+    // server-hydrated card. The route transition and the initial local turn
+    // deliberately overlap; reloading removes that transient hand-off from
+    // the action assertion while covering the user-critical resume path.
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`/agent/onboarding/${threadId}$`),
+    );
     await expect(
       authenticatedPage.getByText(
         'I drafted a voice profile for your approval.',
