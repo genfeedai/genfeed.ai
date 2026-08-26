@@ -1,14 +1,3 @@
-let mockCloudMode = true;
-vi.mock('@genfeedai/config', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/config')>();
-  return {
-    ...actual,
-    isCloudDeployment: () => mockCloudMode,
-  };
-});
-
-// findBySlug is the only route in this suite that serializes. Keep the rest of
-// the response helpers real so nothing else changes shape.
 vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   const actual =
     await importOriginal<
@@ -16,161 +5,61 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
     >();
   return {
     ...actual,
+    serializeCollection: vi.fn((_request, _serializer, data) => data),
     serializeSingle: vi.fn((_request, _serializer, data) => data),
   };
 });
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
-import type { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { RolesService } from '@api/collections/roles/services/roles.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import type { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { SubscriptionTier } from '@genfeedai/enums';
-import type { OrganizationOption } from '@genfeedai/interfaces';
-import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 describe('OrganizationsController', () => {
-  let controller: OrganizationsController;
-
-  const mockLoggerService = {
+  const loggerService = {
     debug: vi.fn(),
     error: vi.fn(),
     log: vi.fn(),
     warn: vi.fn(),
   };
-
-  const mockMembersService = {
-    create: vi.fn(),
-    find: vi.fn(),
-    findActiveForUserAccess: vi.fn(),
-    findOne: vi.fn(),
-    setLastUsedBrand: vi.fn(),
-  };
-
-  const mockOrganizationsService = {
-    count: vi.fn(),
-    create: vi.fn(),
+  const organizationsService = {
+    findAll: vi.fn(),
     findBySlug: vi.fn(),
-    findOne: vi.fn(),
-    generateUniqueSlug: vi.fn(),
   };
-
-  const mockBrandsService = {
-    create: vi.fn(),
-    findOne: vi.fn(),
+  const operationsService = {
+    canUserReadEntity: vi.fn(),
+    createOrganization: vi.fn(),
+    findMine: vi.fn(),
   };
-
-  const mockUsersService = {
-    findOne: vi.fn(),
-    patch: vi.fn(),
-  };
-
-  const mockRolesService = {
-    findOne: vi.fn(),
-  };
-
-  const mockOrganizationSettingsService = {
-    ensureForOrganization: vi.fn(),
-    findOne: vi.fn(),
-  };
-
-  const mockDefaultRecurringContentService = {
-    ensureDefaultBundle: vi.fn(),
-  };
-
-  const mockInvalidatingCache = {
-    invalidateForUser: vi.fn().mockResolvedValue(undefined),
-  };
-
-  const currentUser = {
+  const user = {
     brandId: 'brand_active',
+    id: 'user_1',
     isSuperAdmin: false,
     organizationId: 'org_active',
     userId: 'user_1',
-  } as unknown as User;
+  } as User;
+  const request = {
+    originalUrl: '/api/organizations',
+    query: {},
+  } as Request;
+  const controller = new OrganizationsController(
+    loggerService as unknown as LoggerService,
+    organizationsService as unknown as OrganizationsService,
+    operationsService as unknown as OrganizationsOperationsService,
+  );
 
-  beforeEach(async () => {
+  afterEach(() => {
     vi.clearAllMocks();
-    mockCloudMode = true;
-
-    mockDefaultRecurringContentService.ensureDefaultBundle.mockResolvedValue(
-      undefined,
-    );
-    mockOrganizationSettingsService.findOne.mockResolvedValue({
-      subscriptionTier: SubscriptionTier.FREE,
-    });
-    mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue({
-      id: 'organization_settings_new',
-      organizationId: 'org_new',
-    });
-    mockOrganizationsService.count.mockResolvedValue(0);
-    mockOrganizationsService.create.mockResolvedValue({
-      id: 'org_new',
-      label: 'New Org',
-      slug: 'new-org',
-    });
-    mockOrganizationsService.generateUniqueSlug.mockResolvedValue('new-org');
-    mockBrandsService.create.mockResolvedValue({
-      id: 'brand_new',
-      label: 'New Org',
-    });
-    mockMembersService.create.mockResolvedValue({ id: 'member_new' });
-    mockMembersService.setLastUsedBrand.mockResolvedValue(undefined);
-    mockRolesService.findOne.mockResolvedValue({ id: 'role_admin' });
-    mockUsersService.findOne.mockResolvedValue({ id: 'user_1' });
-    mockUsersService.patch.mockResolvedValue({ id: 'user_1' });
-
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [OrganizationsController],
-      providers: [
-        { provide: LoggerService, useValue: mockLoggerService },
-        { provide: BrandsService, useValue: mockBrandsService },
-        { provide: MembersService, useValue: mockMembersService },
-        { provide: OrganizationsService, useValue: mockOrganizationsService },
-        {
-          provide: DefaultRecurringContentService,
-          useValue: mockDefaultRecurringContentService,
-        },
-        { provide: UsersService, useValue: mockUsersService },
-        { provide: RolesService, useValue: mockRolesService },
-        {
-          provide: OrganizationSettingsService,
-          useValue: mockOrganizationSettingsService,
-        },
-        {
-          provide: RequestContextCacheService,
-          useValue: mockInvalidatingCache,
-        },
-        {
-          provide: AccessBootstrapCacheService,
-          useValue: mockInvalidatingCache,
-        },
-        {
-          provide: BetterAuthIdentityCacheService,
-          useValue: mockInvalidatingCache,
-        },
-        UserAccessCacheService,
-      ],
-    }).compile();
-
-    controller = module.get<OrganizationsController>(OrganizationsController);
   });
 
-  it('lets membership discovery run before active-organization membership validation', () => {
+  it('keeps membership discovery outside active-organization role validation', () => {
     expect(
       Reflect.getMetadata(
         SKIP_ROLES_KEY,
@@ -179,454 +68,101 @@ describe('OrganizationsController', () => {
     ).toBe(true);
   });
 
-  describe('findMine', () => {
-    it('resolves organizations from Prisma-shaped membership rows (organizationId scalar)', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([
-        { id: 'member_1', isActive: true, organizationId: 'org_a' },
-        { id: 'member_2', isActive: true, organizationId: 'org_b' },
-      ]);
-      mockOrganizationsService.findOne.mockImplementation(
-        async ({ id }: { id: string }) => ({
-          id,
-          label: `label ${id}`,
-          slug: `slug-${id}`,
-          userId: id === 'org_a' ? 'user_1' : 'user_2',
-        }),
-      );
-      mockBrandsService.findOne.mockResolvedValue(null);
+  it('delegates organization access decisions to the operations service', async () => {
+    const organization = { id: 'org_other' } as OrganizationDocument;
+    operationsService.canUserReadEntity.mockResolvedValue(true);
 
-      const result = (await controller.findMine(
-        currentUser,
-      )) as OrganizationOption[];
-
-      expect(mockMembersService.findActiveForUserAccess).toHaveBeenCalledWith(
-        'user_1',
-      );
-      expect(mockMembersService.find).not.toHaveBeenCalled();
-      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        id: 'org_a',
-        isDeleted: false,
-      });
-      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        id: 'org_b',
-        isDeleted: false,
-      });
-      expect(mockBrandsService.findOne).toHaveBeenCalledWith({
-        isDeleted: false,
-        organizationId: 'org_a',
-      });
-      expect(result.map((entry) => entry.id)).toEqual(['org_a', 'org_b']);
-      expect(
-        result.map((entry) => ({ id: entry.id, isOwner: entry.isOwner })),
-      ).toEqual([
-        { id: 'org_a', isOwner: true },
-        { id: 'org_b', isOwner: false },
-      ]);
-    });
-
-    it('dedups multiple membership rows pointing at the same organization', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([
-        { id: 'member_1', isActive: true, organizationId: 'org_a' },
-        { id: 'member_2', isActive: true, organizationId: 'org_a' },
-      ]);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_a',
-        label: 'Org A',
-        slug: 'org-a',
-      });
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      const result = (await controller.findMine(
-        currentUser,
-      )) as OrganizationOption[];
-
-      expect(result).toHaveLength(1);
-      expect(mockOrganizationsService.findOne).toHaveBeenCalledTimes(1);
-    });
-
-    it('skips membership rows without a resolvable organization id', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([
-        { id: 'member_1', isActive: true, organizationId: 'org_a' },
-        { id: 'member_broken', isActive: true, organizationId: undefined },
-      ]);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_a',
-        label: 'Org A',
-        slug: 'org-a',
-      });
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      const result = (await controller.findMine(
-        currentUser,
-      )) as OrganizationOption[];
-
-      expect(result).toHaveLength(1);
-      expect(mockOrganizationsService.findOne).toHaveBeenCalledTimes(1);
-      expect(mockOrganizationsService.findOne).not.toHaveBeenCalledWith({
-        id: undefined,
-      });
-    });
-
-    it('marks only the active organization from identity', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([
-        { id: 'member_1', isActive: true, organizationId: 'org_active' },
-        { id: 'member_2', isActive: true, organizationId: 'org_other' },
-      ]);
-      mockOrganizationsService.findOne.mockImplementation(
-        async ({ id }: { id: string }) => ({
-          id,
-          label: `label ${id}`,
-          slug: `slug-${id}`,
-        }),
-      );
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      const result = (await controller.findMine(
-        currentUser,
-      )) as OrganizationOption[];
-
-      expect(
-        result.map((entry) => ({ id: entry.id, isActive: entry.isActive })),
-      ).toEqual([
-        { id: 'org_active', isActive: true },
-        { id: 'org_other', isActive: false },
-      ]);
-    });
-
-    it('returns live memberships when the session organization is stale', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([
-        { id: 'member_live', isActive: true, organizationId: 'org_live' },
-      ]);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_live',
-        label: 'Live Org',
-        slug: 'live-org',
-      });
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      const result = (await controller.findMine({
-        ...currentUser,
-        organizationId: 'org_stale',
-      })) as OrganizationOption[];
-
-      expect(result.map((entry) => entry.id)).toEqual(['org_live']);
-      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        id: 'org_live',
-        isDeleted: false,
-      });
-      expect(mockOrganizationsService.findOne).not.toHaveBeenCalledWith({
-        id: 'org_stale',
-        isDeleted: false,
-      });
-    });
-
-    it('does not trust a stale session organization when the user has no active memberships', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
-
-      const result = (await controller.findMine(
-        currentUser,
-      )) as OrganizationOption[];
-
-      expect(result).toEqual([]);
-      expect(mockOrganizationsService.findOne).not.toHaveBeenCalled();
-      expect(mockBrandsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('returns an empty list when neither memberships nor session metadata resolve an organization', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([]);
-
-      const result = await controller.findMine({
-        brandId: 'brand_active',
-        isSuperAdmin: false,
-        userId: 'user_1',
-      } as unknown as User);
-
-      expect(result).toEqual([]);
-      expect(mockOrganizationsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('returns the mine collection as the documented raw option array', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([
-        { id: 'member_1', isActive: true, organizationId: 'org_active' },
-      ]);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_active',
-        label: 'Active Org',
-        slug: 'active-org',
-        userId: 'user_1',
-      });
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      const result = await controller.findAll({} as never, currentUser, {
-        mine: true,
-      });
-
-      expect(result).toEqual([
-        {
-          brand: null,
-          id: 'org_active',
-          isActive: true,
-          isOwner: true,
-          label: 'Active Org',
-          slug: 'active-org',
-        },
-      ]);
-    });
-
-    it('defaults a regular user to their membership organizations without a mine flag', async () => {
-      mockMembersService.findActiveForUserAccess.mockResolvedValue([
-        { id: 'member_1', isActive: true, organizationId: 'org_active' },
-      ]);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_active',
-        label: 'Active Org',
-        slug: 'active-org',
-        userId: 'user_1',
-      });
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      const result = await controller.findAll(
-        {} as never,
-        currentUser,
-        {} as OrganizationQueryDto,
-      );
-
-      expect(result).toEqual([
-        {
-          brand: null,
-          id: 'org_active',
-          isActive: true,
-          isOwner: true,
-          label: 'Active Org',
-          slug: 'active-org',
-        },
-      ]);
-      expect(mockMembersService.findActiveForUserAccess).toHaveBeenCalledWith(
-        'user_1',
-      );
-    });
-  });
-
-  describe('createOrganization', () => {
-    it.each([
-      SubscriptionTier.FREE,
-      SubscriptionTier.BYOK,
-      SubscriptionTier.PRO,
-    ])(
-      'blocks %s after the single organization limit is reached',
-      async (tier) => {
-        mockOrganizationSettingsService.findOne.mockResolvedValue({
-          subscriptionTier: tier,
-        });
-        mockOrganizationsService.count.mockResolvedValue(
-          SINGLE_ORGANIZATION_LIMIT,
-        );
-
-        await expect(
-          controller.createOrganization({ label: 'Second Org' }, currentUser),
-        ).rejects.toMatchObject({
-          response: {
-            code: 'PLAN_LIMIT_EXCEEDED',
-            meta: {
-              currentCount: SINGLE_ORGANIZATION_LIMIT,
-              limit: SINGLE_ORGANIZATION_LIMIT,
-              resource: 'organizations',
-              upgradeTier: SubscriptionTier.SCALE,
-            },
-          },
-          status: 403,
-        });
-        expect(mockOrganizationsService.create).not.toHaveBeenCalled();
-        expect(mockBrandsService.create).not.toHaveBeenCalled();
-      },
-    );
-
-    it.each([SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE])(
-      'allows additional organizations for %s',
-      async (tier) => {
-        mockOrganizationSettingsService.findOne.mockResolvedValue({
-          subscriptionTier: tier,
-        });
-
-        const result = await controller.createOrganization(
-          { description: 'Desc', label: 'New Org' },
-          currentUser,
-        );
-
-        expect(result).toEqual({
-          brand: { id: 'brand_new', label: 'New Org' },
-          organization: { id: 'org_new', label: 'New Org' },
-        });
-        expect(mockOrganizationsService.count).not.toHaveBeenCalled();
-        expect(mockOrganizationsService.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            label: 'New Org',
-            slug: 'new-org',
-            userId: 'user_1',
-          }),
-        );
-        expect(
-          mockOrganizationSettingsService.ensureForOrganization,
-        ).toHaveBeenCalledOnce();
-        expect(
-          mockOrganizationSettingsService.ensureForOrganization,
-        ).toHaveBeenCalledWith('org_new');
-        expect(
-          mockOrganizationSettingsService.ensureForOrganization.mock
-            .invocationCallOrder[0],
-        ).toBeLessThan(mockBrandsService.create.mock.invocationCallOrder[0]);
-        expect(mockMembersService.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            organizationId: 'org_new',
-            roleId: 'role_admin',
-            userId: 'user_1',
-          }),
-        );
-      },
+    await expect(
+      controller.canUserReadEntity(user, organization),
+    ).resolves.toBe(true);
+    expect(operationsService.canUserReadEntity).toHaveBeenCalledWith(
+      user,
+      organization,
     );
   });
 
-  // Organization rows carry no `organizationId`/`brandId` pointer, so the base
-  // containment default would treat them as shared and fail open on
-  // GET /organizations/:id. This override resolves access by active org,
-  // ownership, or an active membership instead.
-  describe('canUserReadEntity', () => {
-    type OrganizationRow = Parameters<
-      OrganizationsController['canUserReadEntity']
-    >[1];
+  it('delegates membership-visible lists for regular users', async () => {
+    const memberships = [{ id: 'org_active', label: 'Active Org' }];
+    operationsService.findMine.mockResolvedValue(memberships);
 
-    const asOrganization = (row: Record<string, unknown>): OrganizationRow =>
-      row as OrganizationRow;
-
-    it('allows the active organization without a membership lookup', async () => {
-      const result = await controller.canUserReadEntity(
-        currentUser,
-        asOrganization({ id: 'org_active', userId: 'user_other' }),
-      );
-
-      expect(result).toBe(true);
-      expect(mockMembersService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('allows the owner of another organization', async () => {
-      const result = await controller.canUserReadEntity(
-        currentUser,
-        asOrganization({ id: 'org_other', userId: 'user_1' }),
-      );
-
-      expect(result).toBe(true);
-    });
-
-    it('allows a user with an active membership', async () => {
-      mockMembersService.findOne.mockResolvedValue({ id: 'member_1' });
-
-      const result = await controller.canUserReadEntity(
-        currentUser,
-        asOrganization({ id: 'org_other', userId: 'user_other' }),
-      );
-
-      expect(result).toBe(true);
-      expect(mockMembersService.findOne).toHaveBeenCalledWith({
-        isActive: true,
-        organizationId: 'org_other',
-        userId: 'user_1',
-      });
-    });
-
-    it('denies a non-member of another organization', async () => {
-      mockMembersService.findOne.mockResolvedValue(null);
-
-      const result = await controller.canUserReadEntity(
-        currentUser,
-        asOrganization({ id: 'org_other', userId: 'user_other' }),
-      );
-
-      expect(result).toBe(false);
-    });
+    await expect(controller.findAll(request, user, {} as never)).resolves.toBe(
+      memberships,
+    );
+    expect(operationsService.findMine).toHaveBeenCalledWith(user);
+    expect(organizationsService.findAll).not.toHaveBeenCalled();
   });
 
-  // GET /organizations/by-slug/:slug is bespoke, so the base findOne gate never
-  // runs for it. Without its own check any authenticated user could read any
-  // organization by guessing a slug.
+  it('preserves the platform-wide superadmin list', async () => {
+    const collection = { docs: [{ id: 'org_1' }] };
+    organizationsService.findAll.mockResolvedValue(collection);
+
+    await expect(
+      controller.findAll(request, { ...user, isSuperAdmin: true }, {} as never),
+    ).resolves.toBe(collection);
+    expect(organizationsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isDeleted: false } }),
+      expect.any(Object),
+    );
+  });
+
+  it('keeps the create override transport-only and preserves its envelope', async () => {
+    const result = {
+      brand: { id: 'brand_new', label: 'New Org' },
+      organization: { id: 'org_new', label: 'New Org' },
+    };
+    operationsService.createOrganization.mockResolvedValue(result);
+    const dto = {
+      description: 'Description',
+      label: 'New Org',
+    } as unknown as CreateOrganizationDto;
+
+    await expect(controller.create(request, user, dto)).resolves.toBe(result);
+    expect(operationsService.createOrganization).toHaveBeenCalledWith(
+      { description: 'Description', label: 'New Org' },
+      user,
+    );
+  });
+
   describe('findBySlug', () => {
-    const mockRequest = {
-      originalUrl: '/api/organizations/by-slug/other-org',
-      query: {},
-    } as unknown as Parameters<OrganizationsController['findBySlug']>[0];
+    const organization = {
+      id: 'org_other',
+      label: 'Other Org',
+      userId: 'user_other',
+    } as OrganizationDocument;
 
-    const NOT_FOUND_DETAIL = 'Organization with slug "other-org" not found';
+    it('returns a readable organization with the existing serializer path', async () => {
+      organizationsService.findBySlug.mockResolvedValue(organization);
+      operationsService.canUserReadEntity.mockResolvedValue(true);
 
-    const readSlug = (user: User = currentUser): Promise<unknown> =>
-      controller.findBySlug(mockRequest, 'other-org', user);
+      await expect(
+        controller.findBySlug(request, 'other-org', user),
+      ).resolves.toBe(organization);
+      expect(operationsService.canUserReadEntity).toHaveBeenCalledWith(
+        user,
+        organization,
+        false,
+      );
+    });
 
-    const expectNotFound = async (): Promise<void> => {
-      const error = await readSlug().catch((thrown: unknown) => thrown);
+    it.each([
+      ['unknown slug', null],
+      ['denied foreign organization', organization],
+    ])('uses the same anti-probing 404 for an %s', async (_case, result) => {
+      organizationsService.findBySlug.mockResolvedValue(result);
+      operationsService.canUserReadEntity.mockResolvedValue(false);
+
+      const error = await controller
+        .findBySlug(request, 'other-org', user)
+        .catch((thrown: unknown) => thrown);
 
       expect(error).toBeInstanceOf(NotFoundException);
       expect((error as NotFoundException).getStatus()).toBe(
         HttpStatus.NOT_FOUND,
       );
       expect((error as NotFoundException).getResponse()).toEqual({
-        detail: NOT_FOUND_DETAIL,
+        detail: 'Organization with slug "other-org" not found',
         title: 'Resource Not Found',
       });
-    };
-
-    it('returns the organization for a member reading their own org', async () => {
-      const org = { id: 'org_other', label: 'Other Org', userId: 'user_other' };
-      mockOrganizationsService.findBySlug.mockResolvedValue(org);
-      mockMembersService.findOne.mockResolvedValue({ id: 'member_1' });
-
-      const result = await readSlug();
-
-      expect(result).toBe(org);
-      expect(mockOrganizationsService.findBySlug).toHaveBeenCalledWith(
-        'other-org',
-      );
-    });
-
-    it('returns the active organization without a membership lookup', async () => {
-      const org = { id: 'org_active', label: 'Active Org', userId: 'user_x' };
-      mockOrganizationsService.findBySlug.mockResolvedValue(org);
-
-      const result = await readSlug();
-
-      expect(result).toBe(org);
-      expect(mockMembersService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('404s when a non-member reads a foreign organization', async () => {
-      mockOrganizationsService.findBySlug.mockResolvedValue({
-        id: 'org_other',
-        label: 'Other Org',
-        userId: 'user_other',
-      });
-      mockMembersService.findOne.mockResolvedValue(null);
-
-      await expectNotFound();
-    });
-
-    // Same assertion as the denied read above: the two responses must be
-    // indistinguishable, or the slug becomes an existence oracle.
-    it('404s identically for an unknown slug', async () => {
-      mockOrganizationsService.findBySlug.mockResolvedValue(null);
-
-      await expectNotFound();
-    });
-
-    it('lets a super admin read a foreign organization', async () => {
-      const org = { id: 'org_other', label: 'Other Org', userId: 'user_other' };
-      mockOrganizationsService.findBySlug.mockResolvedValue(org);
-      mockMembersService.findOne.mockResolvedValue(null);
-
-      const superAdminUser = {
-        ...currentUser,
-        isSuperAdmin: true,
-      } as unknown as User;
-
-      const result = await readSlug(superAdminUser);
-
-      expect(result).toBe(org);
     });
   });
 });
