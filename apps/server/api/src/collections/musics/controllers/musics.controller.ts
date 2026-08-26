@@ -258,11 +258,9 @@ export class MusicsController {
   }
 
   public canUserModifyEntity(user: User, entity: MusicDocument): boolean {
-    const music = entity as unknown as Record<string, unknown>;
-
     return (
-      music.organizationId === user.organizationId &&
-      music.userId === (user.userId ?? user.id)
+      entity.organizationId === user.organizationId &&
+      entity.userId === (user.userId ?? user.id)
     );
   }
 
