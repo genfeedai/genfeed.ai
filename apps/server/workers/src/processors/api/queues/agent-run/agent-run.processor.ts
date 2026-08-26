@@ -12,15 +12,18 @@ import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
+import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
 import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
@@ -108,6 +111,7 @@ export class AgentRunProcessor extends WorkerHost {
     @Inject(forwardRef(() => AgentStrategyAutopilotService))
     private readonly agentStrategyAutopilotService: AgentStrategyAutopilotService,
     private readonly agentStreamPublisherService: AgentStreamPublisherService,
+    private readonly voiceGenerationService: VoiceGenerationService,
     @Optional()
     private readonly campaignExecutionService: AgentCampaignExecutionService,
     @Optional()
@@ -133,6 +137,16 @@ export class AgentRunProcessor extends WorkerHost {
       runId: data.runId,
       strategyId: data.strategyId,
     });
+
+    if (data.kind === 'agent-chat-turn') {
+      await this.processAcceptedChatTurn(job);
+      return;
+    }
+
+    if (data.kind === 'voice-generation') {
+      await this.processVoiceGeneration(data);
+      return;
+    }
 
     try {
       // 1. Mark run as running
@@ -354,5 +368,110 @@ export class AgentRunProcessor extends WorkerHost {
 
       throw error; // Let BullMQ handle retry
     }
+  }
+
+  private async processAcceptedChatTurn(
+    job: Job<AgentRunJobData>,
+  ): Promise<void> {
+    const { data } = job;
+    if (!data.request || !data.threadId || !data.clientRequestId) {
+      throw new Error(`Agent chat run ${data.runId} has incomplete job data`);
+    }
+
+    const persistedRun = await this.agentRunsService.getById(
+      data.runId,
+      data.organizationId,
+    );
+    if (
+      persistedRun &&
+      [AgentRunStatus.COMPLETED, AgentRunStatus.CANCELLED].includes(
+        String(persistedRun.status) as AgentRunStatus,
+      )
+    ) {
+      this.logger.log(`${this.logContext} skipped terminal chat redelivery`, {
+        organizationId: data.organizationId,
+        runId: data.runId,
+        status: persistedRun.status,
+      });
+      return;
+    }
+    if (
+      persistedRun &&
+      String(persistedRun.status) === AgentRunStatus.RUNNING
+    ) {
+      const persistedError =
+        'Agent generation stopped before it could complete safely.';
+      await this.agentRunsService.fail(
+        data.runId,
+        data.organizationId,
+        persistedError,
+      );
+      await this.agentStreamPublisherService.publishError({
+        error: 'Agent generation stopped safely. Please retry.',
+        runId: data.runId,
+        threadId: data.threadId,
+        userId: data.userId,
+      });
+      this.agentStreamPublisherService.publishRunComplete({
+        error: persistedError,
+        organizationId: data.organizationId,
+        runId: data.runId,
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+        userId: data.userId,
+      });
+      return;
+    }
+
+    const request = data.request as unknown as AgentChatRequest;
+    try {
+      await this.agentOrchestratorService.chatStream(request, {
+        apiKeyContext: data.apiKeyContext,
+        authToken: data.encryptedAuthToken
+          ? EncryptionUtil.decrypt(data.encryptedAuthToken)
+          : undefined,
+        executionMode: 'background',
+        organizationId: data.organizationId,
+        runId: data.runId,
+        userId: data.userId,
+      });
+    } catch (error: unknown) {
+      const attempts = Number(job.opts.attempts) || 1;
+      const isLastAttempt = job.attemptsMade + 1 >= attempts;
+      if (isLastAttempt) {
+        const persistedError =
+          'Agent generation could not be completed after durable retries.';
+        await this.agentRunsService.fail(
+          data.runId,
+          data.organizationId,
+          persistedError,
+        );
+        await this.agentStreamPublisherService.publishError({
+          error: 'Agent generation could not be completed. Please retry.',
+          runId: data.runId,
+          threadId: data.threadId,
+          userId: data.userId,
+        });
+      }
+      throw error;
+    }
+
+    this.logger.log(`${this.logContext} accepted chat turn completed`, {
+      clientRequestId: data.clientRequestId,
+      organizationId: data.organizationId,
+      runId: data.runId,
+      threadId: data.threadId,
+    });
+  }
+
+  private async processVoiceGeneration(data: AgentRunJobData): Promise<void> {
+    if (!data.voiceRequest) {
+      throw new Error(`Voice generation ${data.runId} has incomplete job data`);
+    }
+    await this.voiceGenerationService.executeQueuedGeneration({
+      ...data.voiceRequest,
+      organizationId: data.organizationId,
+      userId: data.userId,
+    });
   }
 }

@@ -178,6 +178,8 @@ export interface AgentClipRunIdentity {
 }
 
 export interface AgentUiAction extends AgentUiActionBase {
+  assetId?: string;
+  assetKind?: 'image' | 'video' | 'voice';
   ctas?: AgentUiActionCta[];
   data?: Record<string, unknown>;
   contentFormat?:
@@ -192,6 +194,7 @@ export interface AgentUiAction extends AgentUiActionBase {
   images?: string[];
   videos?: string[];
   audio?: string[];
+  voiceoverText?: string;
   tweets?: string[];
   packs?: Array<{ label: string; price: string; credits: number }>;
   metrics?: Record<string, unknown>;

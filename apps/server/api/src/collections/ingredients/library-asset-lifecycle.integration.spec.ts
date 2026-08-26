@@ -614,6 +614,7 @@ describe('Library asset lifecycle', () => {
       ingredientsService,
       foldersService,
       { cancelProcessingIngredient: vi.fn() } as never,
+      { ingredientsEndpoint: 'https://cdn.test/ingredients' } as never,
     );
     imagesUploadsController = new ImagesUploadsController(
       filesClientService as unknown as FilesClientService,

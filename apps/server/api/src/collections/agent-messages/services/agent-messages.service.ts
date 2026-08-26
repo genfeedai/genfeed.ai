@@ -23,6 +23,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export interface AddMessageDto {
+  /** Stable server identity for idempotent queue redelivery. */
+  id?: string;
   room: string;
   organizationId: string;
   userId: string;
@@ -109,7 +111,7 @@ export class AgentMessagesService extends BaseService<
         },
       );
 
-    return this.create({
+    const messageData = {
       ...rest,
       ...artifactWrite,
       artifactReferences: dedupeArtifactReferences([
@@ -119,7 +121,21 @@ export class AgentMessagesService extends BaseService<
       threadId: room,
       isDeleted: false,
       isLegacyArtifactReferenceEligible: false,
-    } as unknown as Partial<AgentMessageDocument>);
+    } as unknown as Partial<AgentMessageDocument>;
+
+    if (dto.id) {
+      return (await this.prisma.agentMessage.upsert({
+        create: messageData as Prisma.AgentMessageUncheckedCreateInput,
+        update: {},
+        where: {
+          id: dto.id,
+          isDeleted: false,
+          organizationId: dto.organizationId,
+        },
+      })) as AgentMessageDocument;
+    }
+
+    return this.create(messageData);
   }
 
   async resolveMessageArtifactReferences(

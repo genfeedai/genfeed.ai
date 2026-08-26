@@ -5,6 +5,13 @@ const IDEMPOTENCY_TTL_SECONDS = 3600; // 1 hour window
 const IDEMPOTENCY_PREFIX = 'idempotency:';
 const IDEMPOTENCY_RESULT_PREFIX = 'idempotency-result:';
 
+export interface RunIdempotentOptions {
+  /** In-flight reservation window; shorten only when persistence can recover. */
+  lockTtlSeconds?: number;
+  /** Completed response replay window. */
+  resultTtlSeconds?: number;
+}
+
 /**
  * Acquire an idempotency lock for the given key.
  *
@@ -15,12 +22,10 @@ const IDEMPOTENCY_RESULT_PREFIX = 'idempotency-result:';
 export async function assertIdempotent(
   cacheService: CacheService,
   key: string,
+  ttlSeconds: number = IDEMPOTENCY_TTL_SECONDS,
 ): Promise<void> {
   const lockKey = `${IDEMPOTENCY_PREFIX}${key}`;
-  const acquired = await cacheService.acquireLock(
-    lockKey,
-    IDEMPOTENCY_TTL_SECONDS,
-  );
+  const acquired = await cacheService.acquireLock(lockKey, ttlSeconds);
   if (!acquired) {
     throw new ConflictException(
       `Duplicate request detected. Idempotency key "${key}" is already being processed or was recently completed.`,
@@ -52,6 +57,7 @@ export async function runIdempotent<T>(
   cacheService: CacheService,
   key: string,
   operation: () => Promise<T>,
+  options?: RunIdempotentOptions,
 ): Promise<T> {
   const resultKey = `${IDEMPOTENCY_RESULT_PREFIX}${key}`;
   const cached = await cacheService.get<T>(resultKey);
@@ -59,11 +65,17 @@ export async function runIdempotent<T>(
     return cached;
   }
 
-  await assertIdempotent(cacheService, key);
+  await assertIdempotent(
+    cacheService,
+    key,
+    options?.lockTtlSeconds ?? IDEMPOTENCY_TTL_SECONDS,
+  );
 
   try {
     const result = await operation();
-    await cacheService.set(resultKey, result, { ttl: IDEMPOTENCY_TTL_SECONDS });
+    await cacheService.set(resultKey, result, {
+      ttl: options?.resultTtlSeconds ?? IDEMPOTENCY_TTL_SECONDS,
+    });
     return result;
   } catch (error: unknown) {
     await releaseIdempotencyKey(cacheService, key);

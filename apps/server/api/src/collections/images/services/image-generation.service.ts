@@ -45,6 +45,7 @@ import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief
 import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   IngredientCategory,
+  IngredientStatus,
   MetadataExtension,
   ModelCategory,
   PromptCategory,
@@ -63,6 +64,7 @@ const IMAGE_POPULATE = [
   PopulatePatterns.metadataFull,
   PopulatePatterns.brandMinimal,
 ];
+const PROVIDER_DISPATCH_GRACE_MS = 5 * 60 * 1000;
 
 /**
  * Owns the full image-generation workflow extracted out of
@@ -116,6 +118,50 @@ export class ImageGenerationService {
       modelSchemaFamily,
       promptOriginalText,
     } = await this.resolveAndValidate(user, createImageDto, request);
+
+    if (createImageDto.sourceActionId) {
+      const accepted = await this.imagesService.findOne(
+        {
+          category: IngredientCategory.IMAGE,
+          isDeleted: false,
+          organizationId: user.organizationId,
+          sourceActionId: createImageDto.sourceActionId,
+          status: {
+            in: [
+              IngredientStatus.PROCESSING,
+              IngredientStatus.GENERATED,
+              IngredientStatus.VALIDATED,
+            ],
+          },
+        },
+        IMAGE_POPULATE,
+      );
+      if (accepted) {
+        const isFreshUndispatchedPlaceholder =
+          accepted.status === IngredientStatus.PROCESSING &&
+          !accepted.metadata?.externalId &&
+          accepted.createdAt instanceof Date &&
+          Date.now() - accepted.createdAt.getTime() <
+            PROVIDER_DISPATCH_GRACE_MS;
+        const wasDispatched =
+          accepted.status !== IngredientStatus.PROCESSING ||
+          Boolean(accepted.metadata?.externalId) ||
+          isFreshUndispatchedPlaceholder;
+        if (wasDispatched) {
+          await this.creditsService.ensureDeferredCredits(
+            createImageDto,
+            model,
+            user.organizationId,
+            request,
+          );
+          await onCreditsPrepared?.();
+          return serializeSingle(request, IngredientSerializer, accepted);
+        }
+        await this.imagesService.patch(accepted.id, {
+          status: IngredientStatus.FAILED,
+        });
+      }
+    }
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
     const promptBuilderBrand = {
@@ -552,6 +598,7 @@ export class ImageGenerationService {
         promptTemplate: imageTemplateUsed,
         providerData: toRedactedGenerationBriefProviderData(briefEvidence),
         scope: createImageDto.scope,
+        sourceActionId: createImageDto.sourceActionId,
         sourceIds: referenceIds,
         style,
         tagIds: createImageDto.tags,

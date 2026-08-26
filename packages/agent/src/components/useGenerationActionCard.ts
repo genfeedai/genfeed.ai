@@ -432,6 +432,7 @@ export function useGenerationActionCard({
         promptId: promptDoc.id,
         promptText: prompt,
         references: referenceIds.length > 0 ? referenceIds : undefined,
+        waitForCompletion: false,
       });
 
       const result = await runAgentApiEffect(

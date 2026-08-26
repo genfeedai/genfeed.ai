@@ -7,6 +7,7 @@ import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.se
 
 export type {
   AgentClonedVoice,
+  AgentGeneratedAsset,
   AgentInstallReadiness,
   CredentialMentionItem,
   GenerateIngredientResult,
@@ -89,11 +90,13 @@ export class AgentApiService extends AgentBaseApiService {
 
   // Media / generation
   getModelsEffect = mediaApi.getModelsEffect.bind(null, this);
+  getGeneratedAssetEffect = mediaApi.getGeneratedAssetEffect.bind(null, this);
   mergeVideosEffect = mediaApi.mergeVideosEffect.bind(null, this);
   reframeVideoEffect = mediaApi.reframeVideoEffect.bind(null, this);
   resizeVideoEffect = mediaApi.resizeVideoEffect.bind(null, this);
   createPromptEffect = mediaApi.createPromptEffect.bind(null, this);
   generateIngredientEffect = mediaApi.generateIngredientEffect.bind(null, this);
+  generateVoiceEffect = mediaApi.generateVoiceEffect.bind(null, this);
   cloneVoiceEffect = mediaApi.cloneVoiceEffect.bind(null, this);
   getClonedVoicesEffect = mediaApi.getClonedVoicesEffect.bind(null, this);
   setBrandVoiceDefaultsEffect = mediaApi.setBrandVoiceDefaultsEffect.bind(

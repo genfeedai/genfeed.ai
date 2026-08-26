@@ -32,6 +32,7 @@ describe('api/threads', () => {
     const { startAgentChatStream } = await import('../../src/api/threads');
     await startAgentChatStream({
       attachments: [{ kind: 'image', url: 'https://cdn.genfeed.ai/example.png' }],
+      clientRequestId: 'request-1',
       content: 'hello',
       model: 'claude-3-7-sonnet',
       threadId: 'thread-1',
@@ -39,6 +40,7 @@ describe('api/threads', () => {
 
     expect(mockPost).toHaveBeenCalledWith('/agent/threads/thread-1/turns/stream', {
       attachments: [{ kind: 'image', url: 'https://cdn.genfeed.ai/example.png' }],
+      clientRequestId: 'request-1',
       content: 'hello',
       model: 'claude-3-7-sonnet',
       source: 'agent',
@@ -67,6 +69,7 @@ describe('api/threads', () => {
     expect(mockPost).toHaveBeenCalledWith('/agent/threads/turns/stream', {
       attachments: undefined,
       brandId: undefined,
+      clientRequestId: expect.any(String),
       content: 'hello',
       expectedContextVersion: undefined,
       model: undefined,

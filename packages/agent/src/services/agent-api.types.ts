@@ -47,6 +47,14 @@ export interface GenerateIngredientResult {
   url?: string;
 }
 
+export interface AgentGeneratedAsset {
+  category?: string;
+  cdnUrl?: string;
+  id: string;
+  status: string;
+  url?: string;
+}
+
 export interface AgentClonedVoice {
   id: string;
   metadataLabel?: string;

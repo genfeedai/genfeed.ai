@@ -47,6 +47,7 @@ describe('IngredientsController — Library axes', () => {
 
   const ingredientsService = {
     findAll: vi.fn().mockResolvedValue({ docs: [] }),
+    findByIds: vi.fn().mockResolvedValue([]),
     getLibrarySummary: vi.fn().mockResolvedValue({
       byCategory: {},
       byShelf: {},
@@ -61,6 +62,7 @@ describe('IngredientsController — Library axes', () => {
     ingredientsService as unknown as IngredientsService,
     {} as never,
     {} as never,
+    { ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients' } as never,
   );
 
   afterEach(() => {
@@ -290,6 +292,32 @@ describe('IngredientsController — Library axes', () => {
         organizationId,
         { brandId: otherBrandId },
       );
+    });
+  });
+
+  describe('getBatch', () => {
+    it('normalizes an s3Key-only asset to its canonical public CDN URL', async () => {
+      ingredientsService.findByIds.mockResolvedValue([
+        {
+          cdnUrl: null,
+          id: 'image-queued',
+          s3Key: 'ingredients/images/image-queued.png',
+        },
+      ]);
+
+      await expect(
+        controller.getBatch(mockRequest, 'image-queued', mockUser),
+      ).resolves.toEqual({
+        data: {
+          docs: [
+            expect.objectContaining({
+              cdnUrl:
+                'https://cdn.genfeed.ai/ingredients/images/image-queued.png',
+              id: 'image-queued',
+            }),
+          ],
+        },
+      });
     });
   });
 });

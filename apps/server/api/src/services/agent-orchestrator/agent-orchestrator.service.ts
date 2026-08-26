@@ -19,11 +19,13 @@ import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrat
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
+import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import type {
   AgentChatContext,
   AgentChatRequest,
   AgentChatResult,
   AgentThreadUiActionRequest,
+  AgentTurnAcknowledgement,
   ThreadResolutionResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
@@ -114,7 +116,27 @@ export class AgentOrchestratorService {
     private readonly agentProfileResolverService?: AgentProfileResolverService,
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
+    @Optional()
+    private readonly turnAcceptanceService?: AgentTurnAcceptanceService,
   ) {}
+
+  async acceptChatStream(
+    request: AgentChatRequest,
+    context: AgentChatContext,
+  ): Promise<AgentTurnAcknowledgement> {
+    if (!request.clientRequestId) {
+      throw new BadRequestException('clientRequestId is required.');
+    }
+    if (!this.turnAcceptanceService) {
+      throw new InternalServerErrorException(
+        'Durable agent turn acceptance is unavailable.',
+      );
+    }
+    return this.turnAcceptanceService.accept(
+      request as AgentChatRequest & { clientRequestId: string },
+      context,
+    );
+  }
 
   async chat(
     request: AgentChatRequest,
@@ -340,19 +362,45 @@ export class AgentOrchestratorService {
     runId: string;
     startedAt: string;
   }> {
-    // Look up user's generation priority + default chat model
-    const userSettings = await this.settingsService.findOne({
-      userId: context.userId,
+    const executionStartedAt = Date.now();
+    const contextStartedAt = Date.now();
+    const contextResolution = await (async () => {
+      const userSettings = await this.settingsService.findOne({
+        userId: context.userId,
+      });
+      const resolvedRequest = applyPinnedDefaultAgentModel(
+        request,
+        userSettings?.defaultAgentModel,
+      );
+      const resolved = await this.contextService.resolveSystemPromptAndModel(
+        resolvedRequest,
+        context,
+      );
+      return { request: resolvedRequest, resolved, userSettings };
+    })().catch((error: unknown) => {
+      this.loggerService.error(`${this.constructorName} stage failed`, {
+        clientRequestId: request.clientRequestId,
+        durationMs: Date.now() - contextStartedAt,
+        error: error instanceof Error ? error.message : String(error),
+        organizationId: context.organizationId,
+        outcome: 'failed',
+        runId: context.runId,
+        stage: 'context_assembly',
+        threadId: request.threadId,
+      });
+      throw error;
     });
-    request = applyPinnedDefaultAgentModel(
-      request,
-      userSettings?.defaultAgentModel,
-    );
-
-    const resolved = await this.contextService.resolveSystemPromptAndModel(
-      request,
-      context,
-    );
+    request = contextResolution.request;
+    const { resolved, userSettings } = contextResolution;
+    this.loggerService.log(`${this.constructorName} stage completed`, {
+      clientRequestId: request.clientRequestId,
+      durationMs: Date.now() - contextStartedAt,
+      organizationId: context.organizationId,
+      outcome: 'completed',
+      runId: context.runId,
+      stage: 'context_assembly',
+      threadId: request.threadId,
+    });
     const systemPromptOverride = resolved.systemPrompt;
     const resolvedMemories = resolved.memories ?? [];
     const generationPriority = context.strategyId
@@ -416,7 +464,7 @@ export class AgentOrchestratorService {
       scope,
     };
     const scopeMetadata = toAgentScopeMetadata(scope);
-    const attemptId = randomUUID();
+    const attemptId = context.runId ?? randomUUID();
     const baseRunInput: StreamingAgentRunAttemptInput = {
       brandId: scope.brandId,
       id: attemptId,
@@ -437,20 +485,33 @@ export class AgentOrchestratorService {
     let runId: string | undefined;
 
     try {
-      const createdRun = await this.agentRunsService.create({
-        ...baseRunInput,
-        metadata: {
-          ...baseRunInput.metadata,
-          ...buildAgentRoutingMetadata({
-            defaultModelKey:
-              await this.agentChatModelRegistry.getDefaultModelKey(),
-            model,
-            prompt: request.content,
-            source: request.source,
-          }),
-        },
+      const routingMetadata = buildAgentRoutingMetadata({
+        defaultModelKey: await this.agentChatModelRegistry.getDefaultModelKey(),
+        model,
+        prompt: request.content,
+        source: request.source,
       });
-      runId = String((createdRun as { id: string }).id);
+      if (context.runId) {
+        runId = context.runId;
+        await this.agentRunsService.mergeMetadata(
+          runId,
+          context.organizationId,
+          {
+            ...baseRunInput.metadata,
+            ...routingMetadata,
+            requestState: 'running',
+          },
+        );
+      } else {
+        const createdRun = await this.agentRunsService.create({
+          ...baseRunInput,
+          metadata: {
+            ...baseRunInput.metadata,
+            ...routingMetadata,
+          },
+        });
+        runId = String((createdRun as { id: string }).id);
+      }
       const startedRun = await this.agentRunsService.start(
         runId,
         context.organizationId,
@@ -491,6 +552,7 @@ export class AgentOrchestratorService {
         artifactReferences: request.artifactReferences,
         brandId: scope.brandId,
         content: request.content,
+        ...(context.executionMode === 'background' ? { id: runId } : {}),
         metadata: {
           agentScope: scopeMetadata,
           ...(request.attachments?.length
@@ -573,32 +635,64 @@ export class AgentOrchestratorService {
         };
       }
 
-      // Fire-and-forget streaming
-      this.runInThreadLane(threadId, async () => {
-        await this.streamLoopService.runStreamLoop(
-          streamContext,
-          threadId,
-          systemPromptOverride,
-          model,
-          turnCost,
-          policy,
-          generationPriority,
-          resolvedMemories,
-          request.agentType,
-          request.source,
-          seedTitle,
-          startedAt,
-          request.attachments,
-        );
-      }).catch((error: unknown) => {
-        this.loggerService.error(
-          `${this.constructorName} runStreamLoop unhandled rejection`,
-          {
-            error: error instanceof Error ? error.message : error,
-            threadId,
-          },
-        );
-      });
+      const executeStream = () =>
+        this.runInThreadLane(threadId, async () => {
+          const providerStartedAt = Date.now();
+          try {
+            await this.streamLoopService.runStreamLoop(
+              streamContext,
+              threadId,
+              systemPromptOverride,
+              model,
+              turnCost,
+              policy,
+              generationPriority,
+              resolvedMemories,
+              request.agentType,
+              request.source,
+              seedTitle,
+              startedAt,
+              request.attachments,
+            );
+            this.loggerService.log(`${this.constructorName} stage completed`, {
+              clientRequestId: request.clientRequestId,
+              durationMs: Date.now() - providerStartedAt,
+              organizationId: context.organizationId,
+              outcome: 'completed',
+              runId,
+              stage: 'llm_provider_execution',
+              threadId,
+              totalDurationMs: Date.now() - executionStartedAt,
+            });
+          } catch (error: unknown) {
+            this.loggerService.error(`${this.constructorName} stage failed`, {
+              clientRequestId: request.clientRequestId,
+              durationMs: Date.now() - providerStartedAt,
+              error: error instanceof Error ? error.message : String(error),
+              organizationId: context.organizationId,
+              outcome: 'failed',
+              runId,
+              stage: 'llm_provider_execution',
+              threadId,
+            });
+            throw error;
+          }
+        });
+
+      if (context.executionMode === 'background') {
+        await executeStream();
+      } else {
+        // Legacy in-process callers retain immediate stream acknowledgement.
+        executeStream().catch((error: unknown) => {
+          this.loggerService.error(
+            `${this.constructorName} runStreamLoop unhandled rejection`,
+            {
+              error: error instanceof Error ? error.message : error,
+              threadId,
+            },
+          );
+        });
+      }
 
       return {
         brandId: scope.brandId,

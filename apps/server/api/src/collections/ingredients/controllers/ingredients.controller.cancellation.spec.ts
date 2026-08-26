@@ -30,6 +30,7 @@ describe('IngredientsController.cancelGeneration', () => {
     {} as never,
     {} as never,
     cancellationService as unknown as IngredientGenerationCancellationService,
+    {} as never,
   );
 
   afterEach(() => {

@@ -22,6 +22,7 @@ type ConfirmedToolAction =
 type ToolExecutionOverrides = {
   generationModelOverride?: string;
   generationPriority?: ThreadUiActionExecutionParams['context']['generationPriority'];
+  sourceActionId?: string;
 };
 
 @Injectable()
@@ -160,41 +161,50 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       request.outputs ?? 1,
     ].join(':');
 
-    return runIdempotent(this.cacheService, idempotencyKey, async () => {
-      const execution = await this.executeTool(
-        params,
-        request.toolName,
-        request.toolPayload,
-        {
-          generationModelOverride: request.model,
-          generationPriority: request.priority,
-        },
-      );
-      if (!execution.result.success) {
-        throwFailedUiActionResult(
-          execution.result.error,
-          `Failed to generate ${request.generationType}.`,
-        );
-      }
-      const linkedResult = {
-        ...execution.result,
-        nextActions: (execution.result.nextActions ?? []).map((action) => ({
-          ...action,
-          data: {
-            ...(action.data ?? {}),
-            sourceGenerationActionId: request.sourceActionId,
+    return runIdempotent(
+      this.cacheService,
+      idempotencyKey,
+      async () => {
+        const execution = await this.executeTool(
+          params,
+          request.toolName,
+          request.toolPayload,
+          {
+            generationModelOverride: request.model,
+            generationPriority: request.priority,
+            sourceActionId: request.sourceActionId,
           },
-        })),
-      };
-      return this.finalizer.finalizeStructuredAssistantTurn({
-        content: `${request.generationType === 'image' ? 'Image' : 'Video'} generated.`,
-        context: params.context,
-        model: params.model,
-        result: linkedResult,
-        threadId: params.threadId,
-        toolCalls: [execution.summary],
-      });
-    });
+        );
+        if (!execution.result.success) {
+          throwFailedUiActionResult(
+            execution.result.error,
+            `Failed to generate ${request.generationType}.`,
+          );
+        }
+        const linkedResult = {
+          ...execution.result,
+          nextActions: (execution.result.nextActions ?? []).map((action) => ({
+            ...action,
+            data: {
+              ...(action.data ?? {}),
+              sourceGenerationActionId: request.sourceActionId,
+            },
+          })),
+        };
+        return this.finalizer.finalizeStructuredAssistantTurn({
+          content: `${request.generationType === 'image' ? 'Image' : 'Video'} generation accepted.`,
+          context: params.context,
+          eventIdempotencyKey: `agent-media-result:${request.sourceActionId}`,
+          model: params.model,
+          result: linkedResult,
+          threadId: params.threadId,
+          toolCalls: [execution.summary],
+        });
+      },
+      // Persisted source-action placeholders recover media after an API crash,
+      // so a stale in-memory reservation must not block the one-hour replay.
+      { lockTtlSeconds: 120 },
+    );
   }
 
   private readMediaRequest(params: ThreadUiActionExecutionParams) {
@@ -299,6 +309,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           overrides.generationPriority ?? params.context.generationPriority,
         organizationId: params.context.organizationId,
         runId: params.context.runId,
+        sourceActionId: overrides.sourceActionId,
         strategyId: params.context.strategyId,
         threadId: params.threadId,
         userId: params.context.userId,

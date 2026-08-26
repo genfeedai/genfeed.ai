@@ -7,6 +7,7 @@
  */
 
 import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
+import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
@@ -77,6 +78,7 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
 
 @Module({
   exports: [
+    AgentRunQueueService,
     QueueService,
     CampaignQueueService,
     SocialReplyCampaignQueueService,
@@ -505,6 +507,7 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
     ),
   ],
   providers: [
+    AgentRunQueueService,
     QueueService,
     CampaignQueueService,
     SocialReplyCampaignQueueService,

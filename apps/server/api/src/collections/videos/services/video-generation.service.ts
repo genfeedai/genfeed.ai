@@ -4,13 +4,26 @@ import { VideoGenerationCompletionService } from '@api/collections/videos/servic
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { VideoSerializer } from '@genfeedai/serializers';
 import { Injectable } from '@nestjs/common';
+
+const VIDEO_POPULATE = [
+  PopulatePatterns.promptFull,
+  PopulatePatterns.metadataFull,
+  PopulatePatterns.userMinimal,
+  PopulatePatterns.brandMinimal,
+];
+const PROVIDER_DISPATCH_GRACE_MS = 5 * 60 * 1000;
 
 /**
  * Coordinates the stable video-generation stages. Validation/model resolution,
@@ -24,6 +37,7 @@ export class VideoGenerationService {
     private readonly creditsService: VideoGenerationCreditsService,
     private readonly executionService: VideoGenerationExecutionService,
     private readonly preparationService: VideoGenerationPreparationService,
+    private readonly videosService: VideosService,
   ) {}
 
   async generateVideo(
@@ -39,6 +53,49 @@ export class VideoGenerationService {
       createVideoDto,
       request,
     );
+    if (createVideoDto.sourceActionId) {
+      const accepted = await this.videosService.findOne(
+        {
+          category: IngredientCategory.VIDEO,
+          isDeleted: false,
+          organizationId: user.organizationId,
+          sourceActionId: createVideoDto.sourceActionId,
+          status: {
+            in: [
+              IngredientStatus.PROCESSING,
+              IngredientStatus.GENERATED,
+              IngredientStatus.VALIDATED,
+            ],
+          },
+        },
+        VIDEO_POPULATE,
+      );
+      if (accepted) {
+        const isFreshUndispatchedPlaceholder =
+          accepted.status === IngredientStatus.PROCESSING &&
+          !accepted.metadata?.externalId &&
+          accepted.createdAt instanceof Date &&
+          Date.now() - accepted.createdAt.getTime() <
+            PROVIDER_DISPATCH_GRACE_MS;
+        const wasDispatched =
+          accepted.status !== IngredientStatus.PROCESSING ||
+          Boolean(accepted.metadata?.externalId) ||
+          isFreshUndispatchedPlaceholder;
+        if (wasDispatched) {
+          await this.creditsService.ensureDeferredCredits(
+            createVideoDto,
+            resolved.model,
+            resolved.user.organizationId,
+            request,
+          );
+          await onCreditsPrepared?.();
+          return serializeSingle(request, VideoSerializer, accepted);
+        }
+        await this.videosService.patch(accepted.id, {
+          status: IngredientStatus.FAILED,
+        });
+      }
+    }
     const context = await this.preparationService.prepare(
       resolved,
       placeholderScope,

@@ -27,12 +27,14 @@ describe('VoiceGenerationService', () => {
   let shared: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let credits: {
     assertOrganizationCanAfford: ReturnType<typeof vi.fn>;
+    settleBackgroundGenerationCredits: ReturnType<typeof vi.fn>;
     settleGenerationCredits: ReturnType<typeof vi.fn>;
   };
   let voices: {
     findOne: ReturnType<typeof vi.fn>;
     patchAll: ReturnType<typeof vi.fn>;
   };
+  let queue: { queueVoiceGeneration: ReturnType<typeof vi.fn> };
   let service: VoiceGenerationService;
 
   beforeEach(() => {
@@ -50,6 +52,7 @@ describe('VoiceGenerationService', () => {
     };
     credits = {
       assertOrganizationCanAfford: vi.fn(),
+      settleBackgroundGenerationCredits: vi.fn(),
       settleGenerationCredits: vi.fn(),
     };
     voices = {
@@ -59,12 +62,14 @@ describe('VoiceGenerationService', () => {
       }),
       patchAll: vi.fn(),
     };
+    queue = { queueVoiceGeneration: vi.fn() };
     service = new VoiceGenerationService(
       elevenLabs as unknown as ElevenLabsService,
       logger as unknown as LoggerService,
       shared as unknown as SharedService,
       credits as unknown as VoiceCreditsService,
       voices as unknown as VoicesService,
+      queue as never,
     );
   });
 
@@ -85,7 +90,7 @@ describe('VoiceGenerationService', () => {
   it('creates, renders, settles, and returns a generated voice', async () => {
     const result = await service.generate(
       user,
-      { text: 'Hello', voiceId: 'voice-1' },
+      { text: 'Hello', voiceId: 'voice-1', waitForCompletion: true },
       request,
     );
 
@@ -111,8 +116,9 @@ describe('VoiceGenerationService', () => {
       userId,
     );
     expect(voices.patchAll).toHaveBeenCalledWith(
-      { id: ingredientId },
+      { id: ingredientId, isDeleted: false, organizationId },
       expect.objectContaining({
+        cdnUrl: 'https://example.com/generated.mp3',
         duration: 90,
         status: IngredientStatus.GENERATED,
       }),
@@ -131,13 +137,17 @@ describe('VoiceGenerationService', () => {
     );
 
     await expect(
-      service.generate(user, { text: 'Hello', voiceId: 'voice-1' }, request),
+      service.generate(
+        user,
+        { text: 'Hello', voiceId: 'voice-1', waitForCompletion: true },
+        request,
+      ),
     ).rejects.toMatchObject({
       response: { detail: 'provider unavailable' },
       status: HttpStatus.INTERNAL_SERVER_ERROR,
     });
     expect(voices.patchAll).toHaveBeenLastCalledWith(
-      { id: ingredientId },
+      { id: ingredientId, isDeleted: false, organizationId },
       { status: IngredientStatus.FAILED },
     );
   });
@@ -150,11 +160,103 @@ describe('VoiceGenerationService', () => {
     credits.settleGenerationCredits.mockRejectedValue(settlementError);
 
     await expect(
-      service.generate(user, { text: 'Hello', voiceId: 'voice-1' }, request),
+      service.generate(
+        user,
+        { text: 'Hello', voiceId: 'voice-1', waitForCompletion: true },
+        request,
+      ),
     ).rejects.toBe(settlementError);
     expect(voices.patchAll).toHaveBeenLastCalledWith(
-      { id: ingredientId },
+      { id: ingredientId, isDeleted: false, organizationId },
       { status: IngredientStatus.FAILED },
     );
+  });
+
+  it('returns the persisted placeholder and queues voice rendering when waiting is disabled', async () => {
+    voices.findOne.mockResolvedValue({
+      id: ingredientId,
+      status: IngredientStatus.PROCESSING,
+    });
+
+    const result = await service.generate(
+      user,
+      { text: 'Hello', voiceId: 'voice-1', waitForCompletion: false },
+      request,
+    );
+
+    expect(result).toMatchObject({
+      id: ingredientId,
+      status: IngredientStatus.PROCESSING,
+    });
+    expect(elevenLabs.generateAndUploadAudio).not.toHaveBeenCalled();
+    expect(queue.queueVoiceGeneration).toHaveBeenCalledWith({
+      ingredientId,
+      organizationId,
+      text: 'Hello',
+      userId,
+      voiceId: 'voice-1',
+    });
+  });
+
+  it('re-reserves background work for an idempotent source-action retry', async () => {
+    voices.findOne.mockResolvedValue({
+      id: ingredientId,
+      status: IngredientStatus.PROCESSING,
+    });
+
+    const result = await service.generate(
+      user,
+      {
+        sourceActionId: 'voice-card-1',
+        text: 'Hello',
+        voiceId: 'voice-1',
+        waitForCompletion: false,
+      },
+      request,
+    );
+
+    expect(result).toMatchObject({ id: ingredientId });
+    expect(shared.createMediaDocuments).not.toHaveBeenCalled();
+    expect(voices.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: IngredientCategory.VOICE,
+        organizationId,
+        sourceActionId: 'voice-card-1',
+      }),
+      expect.any(Array),
+    );
+    expect(queue.queueVoiceGeneration).toHaveBeenCalledWith({
+      ingredientId,
+      organizationId,
+      text: 'Hello',
+      userId,
+      voiceId: 'voice-1',
+    });
+  });
+
+  it('reconciles a persisted voice before retrying provider work and settles once by asset identity', async () => {
+    voices.findOne.mockResolvedValue({
+      cdnUrl: 'https://example.com/generated.mp3',
+      duration: 90,
+      id: ingredientId,
+      status: IngredientStatus.GENERATED,
+    });
+
+    const result = await service.executeQueuedGeneration({
+      ingredientId,
+      organizationId,
+      text: 'Hello',
+      userId,
+      voiceId: 'voice-1',
+    });
+
+    expect(result).toMatchObject({ id: ingredientId });
+    expect(elevenLabs.generateAndUploadAudio).not.toHaveBeenCalled();
+    expect(credits.settleBackgroundGenerationCredits).toHaveBeenCalledWith({
+      durationSeconds: 90,
+      ingredientId,
+      organizationId,
+      userId,
+    });
   });
 });

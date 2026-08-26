@@ -66,6 +66,8 @@ export interface ToolExecutionContext {
   platform?: string;
   /** Agent run ID for content attribution */
   runId?: string;
+  /** Durable identity of the confirmed conversation action. */
+  sourceActionId?: string;
   /** Agent strategy ID for content attribution */
   strategyId?: string;
   /** Keep batch generation attached to the current live run and stream item previews */

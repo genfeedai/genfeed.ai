@@ -18,6 +18,9 @@ export class CreditDeductionQueueService {
 
   async queueDeduction(data: CreditDeductionJobData): Promise<void> {
     await this.queue.add('deduct-credits', data, {
+      ...(data.settlementAssetId
+        ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
+        : {}),
       jobId: data.idempotencyKey
         ? `credit-deduct-${data.organizationId}-${data.idempotencyKey}`
         : `credit-deduct-${data.organizationId}-${Date.now()}`,

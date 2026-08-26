@@ -25,6 +25,8 @@ interface VoiceCloneCardProps {
 type CardStatus = 'idle' | 'uploading' | 'cloning' | 'done' | 'error';
 
 const EMPTY_EXISTING_VOICES: NonNullable<AgentUiAction['existingVoices']> = [];
+const MAX_VOICE_RECONCILIATION_FAILURES = 10;
+const MAX_VOICE_RECONCILIATION_ATTEMPTS = 360;
 
 export function VoiceCloneCard({
   action,
@@ -91,7 +93,46 @@ export function VoiceCloneCard({
       return;
     }
 
+    const controller = new AbortController();
+    let consecutiveFailures = 0;
+    let totalAttempts = 0;
     const interval = window.setInterval(() => {
+      if (action.voiceoverText) {
+        totalAttempts += 1;
+        runAgentApiEffect(
+          apiService.getGeneratedAssetEffect(activeVoiceId, controller.signal),
+        )
+          .then((asset) => {
+            consecutiveFailures = 0;
+            const nextStatus = asset.status.toUpperCase();
+            if (nextStatus === 'GENERATED' || nextStatus === 'VALIDATED') {
+              setProgress(100);
+              setStatus('done');
+            } else if (
+              ['ARCHIVED', 'CANCELLED', 'FAILED', 'REJECTED'].includes(
+                nextStatus,
+              )
+            ) {
+              setStatus('error');
+              setError('Voice generation failed. Please try again.');
+            } else if (totalAttempts >= MAX_VOICE_RECONCILIATION_ATTEMPTS) {
+              setStatus('error');
+              setError(
+                'Voice generation is taking longer than expected. Please try again.',
+              );
+            }
+          })
+          .catch(() => {
+            consecutiveFailures += 1;
+            if (consecutiveFailures >= MAX_VOICE_RECONCILIATION_FAILURES) {
+              setStatus('error');
+              setError(
+                'Unable to reconcile voice generation. Please try again.',
+              );
+            }
+          });
+        return;
+      }
       runAgentApiEffect(apiService.getClonedVoicesEffect())
         .then((voices) => {
           const voice = voices.find((item) => item.id === activeVoiceId);
@@ -116,9 +157,10 @@ export function VoiceCloneCard({
     }, 5000);
 
     return () => {
+      controller.abort();
       window.clearInterval(interval);
     };
-  }, [activeVoiceId, apiService, status]);
+  }, [action.voiceoverText, activeVoiceId, apiService, status]);
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,7 +194,7 @@ export function VoiceCloneCard({
       return;
     }
 
-    if (!action.brandId) {
+    if (!action.brandId && !action.voiceoverText) {
       setError('No active brand found. Select a brand and retry.');
       return;
     }
@@ -161,11 +203,27 @@ export function VoiceCloneCard({
     setError(null);
 
     try {
-      await runAgentApiEffect(
-        apiService.setBrandVoiceDefaultsEffect(action.brandId, {
-          defaultVoiceId: effectiveSelectedVoiceId,
-        }),
-      );
+      if (action.brandId) {
+        await runAgentApiEffect(
+          apiService.setBrandVoiceDefaultsEffect(action.brandId, {
+            defaultVoiceId: effectiveSelectedVoiceId,
+          }),
+        );
+      }
+      if (action.voiceoverText) {
+        const accepted = await runAgentApiEffect(
+          apiService.generateVoiceEffect({
+            sourceActionId: action.id,
+            text: action.voiceoverText,
+            voiceId: effectiveSelectedVoiceId,
+            waitForCompletion: false,
+          }),
+        );
+        setActiveVoiceId(accepted.id);
+        setProgress(10);
+        setStatus('cloning');
+        return;
+      }
       setStatus('done');
     } catch (err: unknown) {
       setStatus('error');
@@ -175,7 +233,13 @@ export function VoiceCloneCard({
           : 'Failed to set default voice for this brand.',
       );
     }
-  }, [action.brandId, apiService, effectiveSelectedVoiceId]);
+  }, [
+    action.brandId,
+    action.id,
+    action.voiceoverText,
+    apiService,
+    effectiveSelectedVoiceId,
+  ]);
 
   const handleClone = useCallback(async () => {
     if (!file) {

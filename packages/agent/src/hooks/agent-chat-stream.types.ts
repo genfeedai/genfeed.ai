@@ -16,6 +16,8 @@ export interface SendStreamMessageOptions {
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
   brandId?: string;
+  /** Reused only for recovery of an ambiguous acknowledgement. */
+  clientRequestId?: string;
   planModeEnabled?: boolean;
 }
 

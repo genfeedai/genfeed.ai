@@ -25,6 +25,8 @@ import { VoiceCloneCard } from '@genfeedai/agent/components/VoiceCloneCard';
 interface ApiOverrides {
   cloneVoiceEffect?: ReturnType<typeof vi.fn>;
   getClonedVoicesEffect?: ReturnType<typeof vi.fn>;
+  getGeneratedAssetEffect?: ReturnType<typeof vi.fn>;
+  generateVoiceEffect?: ReturnType<typeof vi.fn>;
   setBrandVoiceDefaultsEffect?: ReturnType<typeof vi.fn>;
 }
 
@@ -38,6 +40,12 @@ function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
       }),
     ),
     getClonedVoicesEffect: vi.fn(() => Effect.succeed([])),
+    getGeneratedAssetEffect: vi.fn(() =>
+      Effect.succeed({ id: 'generated-voice-1', status: 'GENERATED' }),
+    ),
+    generateVoiceEffect: vi.fn(() =>
+      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
+    ),
     setBrandVoiceDefaultsEffect: vi.fn(() => Effect.succeed(undefined)),
     ...overrides,
   } as unknown as AgentApiService;
@@ -101,6 +109,96 @@ describe('VoiceCloneCard', () => {
     await waitFor(() =>
       expect(screen.queryByText('Voice setup')).not.toBeInTheDocument(),
     );
+  });
+
+  it('generates requested speech from the selected voice instead of only saving a default', async () => {
+    const generateVoiceEffect = vi.fn(() =>
+      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
+    );
+    render(
+      <VoiceCloneCard
+        action={makeAction({
+          title: 'Generate Voice',
+          voiceoverText: 'Welcome to FUD News',
+        })}
+        apiService={makeApiService({ generateVoiceEffect })}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /use selected voice/i }),
+      );
+    });
+
+    expect(generateVoiceEffect).toHaveBeenCalledWith({
+      sourceActionId: 'voice-card-1',
+      text: 'Welcome to FUD News',
+      voiceId: 'voice-1',
+      waitForCompletion: false,
+    });
+  });
+
+  it('stops voice generation reconciliation after repeated API failures', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi.fn(() =>
+      Effect.fail(new Error('network unavailable')),
+    );
+    render(
+      <VoiceCloneCard
+        action={makeAction({
+          title: 'Generate Voice',
+          voiceoverText: 'Welcome to FUD News',
+        })}
+        apiService={makeApiService({ getGeneratedAssetEffect })}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /use selected voice/i }),
+      );
+    });
+    await vi.advanceTimersByTimeAsync(50_000);
+
+    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(10);
+    expect(
+      screen.getByText(
+        'Unable to reconcile voice generation. Please try again.',
+      ),
+    ).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it('bounds voice reconciliation when the asset remains processing', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi.fn(() =>
+      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
+    );
+    render(
+      <VoiceCloneCard
+        action={makeAction({
+          title: 'Generate Voice',
+          voiceoverText: 'Welcome to FUD News',
+        })}
+        apiService={makeApiService({ getGeneratedAssetEffect })}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /use selected voice/i }),
+      );
+    });
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
+
+    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(360);
+    expect(
+      screen.getByText(
+        'Voice generation is taking longer than expected. Please try again.',
+      ),
+    ).toBeInTheDocument();
+    vi.useRealTimers();
   });
 
   it('shows an error when no brand is active', async () => {

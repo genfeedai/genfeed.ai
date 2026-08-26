@@ -146,6 +146,8 @@ export interface AgentUiActionOutputVariant {
 
 export interface AgentUiAction {
   id: string;
+  assetId?: string;
+  assetKind?: 'image' | 'video' | 'voice';
   type:
     | 'oauth_connect_card'
     | 'content_preview_card'
@@ -202,6 +204,7 @@ export interface AgentUiAction {
   images?: string[];
   videos?: string[];
   audio?: string[];
+  voiceoverText?: string;
   packs?: Array<{ label: string; price: string; credits: number }>;
   metrics?: Record<string, unknown>;
   status?: string;
@@ -533,6 +536,7 @@ export interface AgentChatPayload {
   artifactReferences?: AgentArtifactReference[];
   threadId?: string;
   brandId?: string | null;
+  clientRequestId?: string;
   expectedContextVersion?: number;
   content: string;
   model?: string;
@@ -653,9 +657,14 @@ export interface AgentRunPage {
 export interface AgentChatStreamResponse {
   threadId: string;
   brandId?: string | null;
+  clientRequestId: string;
+  contextId: string;
   contextVersion: number;
+  queuedAt: string;
   runId: string;
-  startedAt: string;
+  /** Compatibility for older deployments during a rolling release. */
+  startedAt?: string;
+  status: 'queued';
 }
 
 export interface UpdateAgentThreadContextPayload {

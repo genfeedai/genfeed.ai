@@ -281,6 +281,7 @@ export class AgentPrepareToolHandler {
           recommendedVoiceId,
           title: voiceoverText ? 'Generate Voice' : 'Set Up Voice Clone',
           type: 'voice_clone_card' as const,
+          voiceoverText: voiceoverText || undefined,
         },
       ],
       success: true,

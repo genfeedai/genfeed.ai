@@ -17,15 +17,14 @@ import type {
 import { STREAM_COMPLETION_POLL_INTERVAL_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type {
   AgentChatMessage,
+  AgentChatStreamResponse,
   AgentThread,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
-import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
-import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
+import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { hasLiveReconnectStream } from '@genfeedai/agent/utils/has-live-reconnect-stream';
-import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useRef } from 'react';
@@ -40,19 +39,32 @@ export type {
 // `getAgentStreamRuntime` for why a per-instance ref meant two stream owners.
 const streamRuntime = getAgentStreamRuntime();
 
+function createClientRequestId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  return `agent-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function isAmbiguousAcknowledgementError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const status = (error as { status?: unknown }).status;
+  return status === 0 || status === 408 || status === 504;
+}
+
 export function useAgentChatStream(
   options: UseAgentChatStreamOptions,
 ): UseAgentChatStreamReturn {
   const { apiService, model, onOnboardingCompleted } = options;
-  const { connectionState, getSocketManager, subscribe, isReady } =
-    useSocketManager();
+  const { connectionState, subscribe, isReady } = useSocketManager();
 
   const addMessage = useAgentChatStore((s) => s.addMessage);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
   const upsertThread = useAgentChatStore((s) => s.upsertThread);
   const setError = useAgentChatStore((s) => s.setError);
-  const setIsGenerating = useAgentChatStore((s) => s.setIsGenerating);
   const setMessages = useAgentChatStore((s) => s.setMessages);
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const clearMessages = useAgentChatStore((s) => s.clearMessages);
@@ -288,131 +300,6 @@ export function useAgentChatStream(
       }
     },
     [onOnboardingCompleted],
-  );
-
-  const completeNonStreamingTurn = useCallback(
-    async (
-      content: string,
-      sendOptions?: SendStreamMessageOptions,
-      threadIdOverride?: string | null,
-    ) => {
-      setIsGenerating(true);
-
-      try {
-        const resolvedModel = model?.trim() || undefined;
-        const requestPageContext = toAgentRequestPageContext(pageContext);
-        const currentThread = useAgentChatStore
-          .getState()
-          .threads.find((item) => item.id === threadIdOverride);
-        const response = await runAgentApiEffect(
-          apiService.chatEffect(
-            {
-              artifactReferences: sendOptions?.artifactReferences,
-              attachments: sendOptions?.attachments,
-              brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
-              content,
-              expectedContextVersion: currentThread?.contextVersion,
-              model: resolvedModel,
-              pageContext: requestPageContext,
-              planModeEnabled: sendOptions?.planModeEnabled,
-              source: sendOptions?.source,
-              threadId: threadIdOverride ?? undefined,
-            },
-            sendOptions?.signal,
-          ),
-        );
-
-        const existingThread = useAgentChatStore
-          .getState()
-          .threads.find((item) => item.id === response.threadId);
-
-        syncThreadState(
-          response.threadId,
-          content,
-          existingThread?.title,
-          existingThread?.createdAt,
-          existingThread?.planModeEnabled ?? sendOptions?.planModeEnabled,
-          response.contextVersion,
-          response.brandId,
-        );
-        const lastGeneratedAsset = extractLastGeneratedAssetFromMetadata(
-          response.message.metadata,
-        );
-        updateThreadSummary(response.threadId, {
-          attentionState: null,
-          lastActivityAt: new Date().toISOString(),
-          lastAssistantPreview: response.message.content.slice(0, 280),
-          ...(lastGeneratedAsset
-            ? { lastGeneratedAssetUrl: lastGeneratedAsset.url }
-            : {}),
-          pendingInputCount: 0,
-          runStatus: 'completed',
-        });
-        setCreditsRemaining(response.creditsRemaining);
-
-        const assistantMessage: AgentChatMessage = {
-          content: response.message.content,
-          createdAt: new Date().toISOString(),
-          id: `assistant-${Date.now()}`,
-          metadata: {
-            toolCalls: response.toolCalls.map(mapToolCallResponse),
-            ...response.message.metadata,
-          },
-          role: 'assistant',
-          threadId: response.threadId,
-        };
-
-        addMessage(assistantMessage);
-        setLatestProposedPlan(
-          (response.message.metadata?.proposedPlan as
-            | Parameters<typeof setLatestProposedPlan>[0]
-            | undefined) ?? null,
-        );
-
-        const metadata = response.message.metadata;
-        const uiBlocksState =
-          metadata?.uiBlocks &&
-          typeof metadata.uiBlocks === 'object' &&
-          !Array.isArray(metadata.uiBlocks)
-            ? (metadata.uiBlocks as Record<string, unknown>)
-            : null;
-        const dashboardOperation =
-          typeof metadata?.dashboardOperation === 'string'
-            ? metadata.dashboardOperation
-            : typeof uiBlocksState?.operation === 'string'
-              ? uiBlocksState.operation
-              : undefined;
-        const dashboardPayload =
-          uiBlocksState?.blocks ??
-          (uiBlocksState?.components ? uiBlocksState : metadata?.uiBlocks);
-
-        if (dashboardOperation && metadata?.uiBlocks) {
-          applyDashboardOperation(
-            dashboardOperation,
-            dashboardPayload,
-            uiBlocksState?.blockIds ?? metadata.blockIds,
-          );
-        }
-
-        await completeOnboardingIfNeeded(response.toolCalls);
-      } finally {
-        if (!sendOptions?.signal?.aborted) {
-          setIsGenerating(false);
-        }
-      }
-    },
-    [
-      addMessage,
-      apiService,
-      completeOnboardingIfNeeded,
-      model,
-      pageContext,
-      setCreditsRemaining,
-      setIsGenerating,
-      setLatestProposedPlan,
-      updateThreadSummary,
-      syncThreadState,
-    ],
   );
 
   const scheduleCompletionWatchdog = useCallback(() => {
@@ -653,9 +540,6 @@ export function useAgentChatStream(
       resetStreamState();
       cleanupSubscriptions();
 
-      const socketManager = getSocketManager();
-      const canStream = isReady && Boolean(socketManager?.isConnected?.());
-
       if (currentActiveThreadId) {
         updateThreadSummary(currentActiveThreadId, {
           attentionState: null,
@@ -663,15 +547,6 @@ export function useAgentChatStream(
           pendingInputCount: 0,
           runStatus: 'queued',
         });
-      }
-
-      if (!canStream) {
-        await completeNonStreamingTurn(
-          content,
-          sendOptions,
-          currentActiveThreadId,
-        );
-        return;
       }
 
       useAgentChatStore.setState((state) => ({
@@ -686,30 +561,46 @@ export function useAgentChatStream(
         const currentThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === currentActiveThreadId);
-        const response = await runAgentApiEffect(
-          apiService.chatStreamEffect(
-            {
-              artifactReferences: sendOptions?.artifactReferences,
-              attachments: sendOptions?.attachments,
-              brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
-              content,
-              expectedContextVersion: currentThread?.contextVersion,
-              model: resolvedModel,
-              pageContext: requestPageContext,
-              planModeEnabled: sendOptions?.planModeEnabled,
-              source: sendOptions?.source,
-              threadId: currentActiveThreadId ?? undefined,
-            },
-            signal,
-          ),
-        );
+        const clientRequestId =
+          sendOptions?.clientRequestId ?? createClientRequestId();
+        const startTurn = () =>
+          runAgentApiEffect(
+            apiService.chatStreamEffect(
+              {
+                artifactReferences: sendOptions?.artifactReferences,
+                attachments: sendOptions?.attachments,
+                brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
+                clientRequestId,
+                content,
+                expectedContextVersion: currentThread?.contextVersion,
+                model: resolvedModel,
+                pageContext: requestPageContext,
+                planModeEnabled: sendOptions?.planModeEnabled,
+                source: sendOptions?.source,
+                threadId: currentActiveThreadId ?? undefined,
+              },
+              signal,
+            ),
+          );
+        let response: AgentChatStreamResponse;
+        try {
+          response = await startTurn();
+        } catch (error: unknown) {
+          if (signal.aborted || !isAmbiguousAcknowledgementError(error)) {
+            throw error;
+          }
+          response = await startTurn();
+        }
+
+        const acceptedAt =
+          response.queuedAt ?? response.startedAt ?? new Date().toISOString();
 
         streamRuntime.activeStreamThreadRef.current = response.threadId;
         streamRuntime.pendingCompletionRef.current = {
           initiatedAt: Date.now(),
           preAssistantIds,
           runId: response.runId,
-          startedAt: response.startedAt ?? null,
+          startedAt: acceptedAt,
           threadId: response.threadId,
         };
         const existingThread = useAgentChatStore
@@ -727,11 +618,11 @@ export function useAgentChatStream(
         scheduleCompletionWatchdog();
         flushBufferedEvents(response.threadId);
         setActiveRun(response.runId, {
-          startedAt: response.startedAt,
+          startedAt: acceptedAt,
           status: 'running',
         });
         markThreadRunning(response.threadId, {
-          lastActivityAt: response.startedAt,
+          lastActivityAt: acceptedAt,
           runStatus: 'running',
         });
       } catch (err) {
@@ -748,9 +639,7 @@ export function useAgentChatStream(
             runStatus: 'failed',
           });
         }
-        setError(
-          err instanceof Error ? err.message : 'Failed to start streaming',
-        );
+        setError(serializeAgentError(err));
         setActiveRunStatus('failed');
         resetStreamState();
         cleanupSubscriptions();
@@ -760,7 +649,6 @@ export function useAgentChatStream(
       model,
       pageContext,
       apiService,
-      isReady,
       attachSubscriptions,
       addMessage,
       setError,
@@ -769,9 +657,7 @@ export function useAgentChatStream(
       resetStreamState,
       cleanupSubscriptions,
       clearCompletionWatchdog,
-      completeNonStreamingTurn,
       flushBufferedEvents,
-      getSocketManager,
       scheduleCompletionWatchdog,
       setActiveRun,
       setActiveRunStatus,

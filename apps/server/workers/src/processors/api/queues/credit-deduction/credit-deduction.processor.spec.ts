@@ -26,6 +26,7 @@ describe('CreditDeductionProcessor', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
+  let prisma: { ingredient: { findFirst: ReturnType<typeof vi.fn> } };
 
   beforeEach(() => {
     creditsUtilsService = {
@@ -46,6 +47,7 @@ describe('CreditDeductionProcessor', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
+    prisma = { ingredient: { findFirst: vi.fn() } };
 
     processor = new CreditDeductionProcessor(
       creditsUtilsService as never,
@@ -53,6 +55,102 @@ describe('CreditDeductionProcessor', () => {
       notificationsService as never,
       redisService as never,
       logger as never,
+      prisma as never,
+    );
+  });
+
+  it('waits to settle agent media credits until a durable asset is generated', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'asset-1',
+      status: 'PROCESSING',
+      url: null,
+    });
+
+    await expect(
+      processor.process(buildJob({ settlementAssetId: 'asset-1' })),
+    ).rejects.toThrow('not terminal');
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('emits an operator signal before an unsettled asset exhausts durable retries', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'asset-1',
+      status: 'PROCESSING',
+    });
+    const job = buildJob({ settlementAssetId: 'asset-1' });
+    job.attemptsMade = 20_159;
+    job.opts.attempts = 20_160;
+
+    await expect(processor.process(job)).rejects.toThrow('not terminal');
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('requires operator reconciliation'),
+      expect.objectContaining({ assetId: 'asset-1' }),
+    );
+  });
+
+  it('moves no credits when agent media reaches a terminal failure without an asset', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'asset-1',
+      status: 'FAILED',
+      url: null,
+    });
+
+    await processor.process(buildJob({ settlementAssetId: 'asset-1' }));
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('moves no credits when a terminal media row has no user-accessible file', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      cdnUrl: null,
+      id: 'asset-1',
+      s3Key: null,
+      status: 'GENERATED',
+    });
+
+    await processor.process(buildJob({ settlementAssetId: 'asset-1' }));
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('settles one referenced charge for a generated user-accessible asset', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      cdnUrl: 'https://cdn.genfeed.ai/images/asset-1.png',
+      id: 'asset-1',
+      s3Key: 'images/asset-1.png',
+      status: 'GENERATED',
+    });
+
+    await processor.process(
+      buildJob({
+        idempotencyKey: 'agent-media-action-1',
+        referenceId: 'action-1',
+        referenceType: 'agent-media:generation',
+        settlementAssetId: 'asset-1',
+      }),
+    );
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.any(Number),
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({
+        referenceId: 'action-1',
+        referenceType: 'agent-media:generation',
+      }),
     );
   });
 

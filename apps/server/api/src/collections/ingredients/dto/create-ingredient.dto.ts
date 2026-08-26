@@ -19,6 +19,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateAvatarDto {
@@ -99,6 +100,15 @@ export class CreateIngredientDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly agentStrategyId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(128)
+  @ApiProperty({
+    description: 'Confirmed agent action identity for durable reconciliation',
+    required: false,
+  })
+  readonly sourceActionId?: string;
 
   @IsEntityId({ each: true })
   @IsArray()

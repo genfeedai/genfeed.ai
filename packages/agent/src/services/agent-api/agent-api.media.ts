@@ -1,5 +1,6 @@
 import type {
   AgentClonedVoice,
+  AgentGeneratedAsset,
   GenerateIngredientResult,
   GenerationModel,
   PresignedUploadResponse,
@@ -25,6 +26,36 @@ export function getModelsEffect(
     'Failed to fetch models',
     'Failed to deserialize models',
   );
+}
+
+export function getGeneratedAssetEffect(
+  api: AgentBaseApiService,
+  id: string,
+  signal?: AbortSignal,
+): Effect.Effect<AgentGeneratedAsset, AgentApiError> {
+  return api
+    .fetchCollectionEffect<AgentGeneratedAsset>(
+      `${api.config.baseUrl}/ingredients/batch?ids=${encodeURIComponent(id)}`,
+      { signal },
+      'Failed to reconcile generated asset',
+      'Failed to deserialize generated asset',
+    )
+    .pipe(
+      Effect.flatMap((assets) =>
+        assets[0]
+          ? Effect.succeed({
+              ...assets[0],
+              url: assets[0].url ?? assets[0].cdnUrl,
+            })
+          : Effect.fail(
+              new AgentApiRequestError({
+                detail: `Generated asset ${id} was not found`,
+                message: 'Generated asset was not found',
+                status: 404,
+              }),
+            ),
+      ),
+    );
 }
 
 export function mergeVideosEffect(
@@ -139,7 +170,10 @@ export function generateIngredientEffect(
   return api.fetchJsonEffect<GenerateIngredientResult>(
     `${api.config.baseUrl}${endpoint}`,
     {
-      body: JSON.stringify({ ...body, waitForCompletion: true }),
+      body: JSON.stringify({
+        ...body,
+        waitForCompletion: body.waitForCompletion ?? true,
+      }),
       method: 'POST',
       signal,
     },
@@ -161,6 +195,24 @@ export function cloneVoiceEffect(
     },
     'Failed to clone voice',
     'Failed to deserialize cloned voice',
+  );
+}
+
+export function generateVoiceEffect(
+  api: AgentBaseApiService,
+  payload: {
+    sourceActionId?: string;
+    text: string;
+    voiceId: string;
+    waitForCompletion: false;
+  },
+  signal?: AbortSignal,
+): Effect.Effect<AgentGeneratedAsset, AgentApiError> {
+  return api.fetchResourceEffect<AgentGeneratedAsset>(
+    `${api.config.baseUrl}/voices/generate`,
+    { body: JSON.stringify(payload), method: 'POST', signal },
+    'Failed to generate voice',
+    'Failed to deserialize generated voice',
   );
 }
 

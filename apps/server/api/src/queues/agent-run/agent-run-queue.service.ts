@@ -71,7 +71,44 @@ export class AgentRunQueueService implements OnModuleInit {
       strategyId: data.strategyId,
     });
 
-    return job.id!;
+    return jobId;
+  }
+
+  async queueVoiceGeneration(data: {
+    ingredientId: string;
+    organizationId: string;
+    text: string;
+    userId: string;
+    voiceId: string;
+  }): Promise<string> {
+    const jobId = `voice-generation-${data.ingredientId}`;
+    const reservation = await reserveIdempotentJob(this.agentRunQueue, jobId);
+    if (reservation.alreadyQueued) {
+      return jobId;
+    }
+
+    await this.agentRunQueue.add(
+      'generate-voice',
+      {
+        kind: 'voice-generation',
+        organizationId: data.organizationId,
+        runId: data.ingredientId,
+        userId: data.userId,
+        voiceRequest: {
+          ingredientId: data.ingredientId,
+          text: data.text,
+          voiceId: data.voiceId,
+        },
+      },
+      {
+        attempts: 3,
+        backoff: { delay: 5000, type: 'exponential' },
+        jobId,
+        removeOnComplete: 100,
+        removeOnFail: 50,
+      },
+    );
+    return jobId;
   }
 
   /**

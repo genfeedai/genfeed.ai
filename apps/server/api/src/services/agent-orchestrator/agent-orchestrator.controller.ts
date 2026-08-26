@@ -23,6 +23,7 @@ import {
   Controller,
   Get,
   Headers,
+  HttpCode,
   Optional,
   Param,
   Patch,
@@ -70,6 +71,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/turns/stream')
+  @HttpCode(202)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({
     summary: 'Start a streaming agent turn in a new or provided thread',
@@ -83,6 +85,7 @@ export class AgentOrchestratorController {
   }
 
   @Post('threads/:threadId/turns/stream')
+  @HttpCode(202)
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start a streaming agent turn in a thread' })
   async createThreadTurnStream(
@@ -143,7 +146,7 @@ export class AgentOrchestratorController {
       );
       const authToken = authorization?.replace('Bearer ', '');
 
-      const result = await this.orchestratorService.chatStream(
+      const result = await this.orchestratorService.acceptChatStream(
         authorizedRequest,
         {
           apiKeyContext: user,
@@ -178,6 +181,7 @@ export class AgentOrchestratorController {
       artifactReferences: body.artifactReferences,
       attachments: body.attachments,
       brandId: body.brandId,
+      clientRequestId: body.clientRequestId,
       content: body.content,
       expectedContextVersion: body.expectedContextVersion,
       model: body.model,

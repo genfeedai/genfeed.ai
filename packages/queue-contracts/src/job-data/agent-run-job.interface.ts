@@ -1,6 +1,37 @@
-import type { ActionOriginContext } from '@genfeedai/enums';
+import type { ActionOriginContext, AgentType } from '@genfeedai/enums';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
+
+export interface AgentChatTurnJobRequest {
+  agentType?: AgentType;
+  artifactReferences?: AgentArtifactReference[];
+  attachments?: unknown;
+  brandId?: string | null;
+  clientRequestId: string;
+  content: string;
+  expectedContextVersion?: number;
+  model?: string;
+  pageContext?: unknown;
+  planModeEnabled?: boolean;
+  source?: 'agent' | 'proactive' | 'onboarding';
+  threadId: string;
+}
 
 export interface AgentRunJobData {
+  /** Distinguishes a durable user chat turn from proactive strategy work. */
+  kind?: 'agent-chat-turn' | 'voice-generation';
+  voiceRequest?: {
+    ingredientId: string;
+    text: string;
+    voiceId: string;
+  };
+  /** Stable client identity used for ambiguous acknowledgement retries. */
+  clientRequestId?: string;
+  /** Encrypted bearer token for authenticated internal tool calls. */
+  encryptedAuthToken?: string;
+  /** Minimal API-key publishing scope; contains no credential material. */
+  apiKeyContext?: { isApiKey?: boolean; scopes?: string[] };
+  /** Authorized chat request executed after the HTTP acknowledgement. */
+  request?: AgentChatTurnJobRequest;
   /** Trusted initiating action context propagated across queue retries */
   actionContext?: ActionOriginContext;
   /** The agent-runs record ID */

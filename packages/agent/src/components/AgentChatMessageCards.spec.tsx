@@ -5,6 +5,7 @@ import {
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 const action = {
@@ -32,6 +33,102 @@ describe('OAuthConnectCard', () => {
 });
 
 describe('ContentPreviewCard', () => {
+  it('reconciles an accepted image asset into the persisted conversation card', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi
+      .fn()
+      .mockReturnValueOnce(
+        Effect.succeed({ id: 'image-queued', status: 'PROCESSING' }),
+      )
+      .mockReturnValue(
+        Effect.succeed({
+          id: 'image-queued',
+          status: 'generated',
+          url: 'https://cdn.test/image-queued.png',
+        }),
+      );
+
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: 'image-queued',
+          assetKind: 'image',
+          id: 'image-output',
+          status: 'processing',
+          title: 'Image generating',
+          type: 'content_preview_card',
+        }}
+        apiService={{ getGeneratedAssetEffect } as never}
+      />,
+    );
+
+    expect(screen.getByLabelText('Image generation in progress')).toBeVisible();
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open Image generating 1 preview',
+      }),
+    ).toBeInTheDocument();
+    expect(getGeneratedAssetEffect).toHaveBeenCalledWith(
+      'image-queued',
+      expect.any(AbortSignal),
+    );
+    vi.useRealTimers();
+  });
+
+  it('bounds reconciliation polling for an asset that never becomes readable', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi.fn(() =>
+      Effect.fail(new Error('still unavailable')),
+    );
+
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: 'image-stuck',
+          assetKind: 'image',
+          id: 'image-stuck-card',
+          status: 'processing',
+          type: 'content_preview_card',
+        }}
+        apiService={{ getGeneratedAssetEffect } as never}
+      />,
+    );
+
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(150);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Unable to reconcile generated media. Please refresh and try again.',
+    );
+    vi.useRealTimers();
+  });
+
+  it('keeps reconciling a healthy long-running video beyond the image horizon', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi.fn(() =>
+      Effect.succeed({ id: 'video-long', status: 'PROCESSING' }),
+    );
+
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: 'video-long',
+          assetKind: 'video',
+          id: 'video-long-card',
+          status: 'processing',
+          type: 'content_preview_card',
+        }}
+        apiService={{ getGeneratedAssetEffect } as never}
+      />,
+    );
+
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    expect(getGeneratedAssetEffect.mock.calls.length).toBeGreaterThan(150);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it('opens generated image variants from the conversation card', () => {
     render(
       <ContentPreviewCard

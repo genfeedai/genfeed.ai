@@ -349,6 +349,35 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
 });
 
 describe('AgentMediaGenerationToolHandler generateImage', () => {
+  it('accepts confirmed image generation without synchronously waiting for the provider', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: { attributes: { status: 'processing' }, id: 'ingredient-queued' },
+    });
+
+    const result = await handler.generateImage(
+      { prompt: 'logo for genfeed.ai' },
+      context,
+    );
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/images',
+      expect.objectContaining({ waitForCompletion: false }),
+      context,
+    );
+    expect(result).toMatchObject({
+      data: { id: 'ingredient-queued', status: 'processing' },
+      success: true,
+    });
+    expect(result.nextActions?.[0]).toMatchObject({
+      assetId: 'ingredient-queued',
+      assetKind: 'image',
+      status: 'processing',
+      type: 'content_preview_card',
+    });
+  });
+
   it('does not claim success with a blank preview when generation errors', async () => {
     const { handler, internalApi } = createHandler();
     internalApi.callInternalApi.mockRejectedValue(
@@ -465,6 +494,30 @@ describe('AgentMediaGenerationToolHandler generateImage', () => {
 });
 
 describe('AgentMediaGenerationToolHandler generateVideo', () => {
+  it('accepts confirmed video generation without synchronously waiting for the provider', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: { attributes: { status: 'processing' }, id: 'video-queued' },
+    });
+
+    const result = await handler.generateVideo(
+      { prompt: 'red apple' },
+      context,
+    );
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/videos',
+      expect.objectContaining({ waitForCompletion: false }),
+      context,
+    );
+    expect(result.nextActions?.[0]).toMatchObject({
+      assetId: 'video-queued',
+      assetKind: 'video',
+      status: 'processing',
+    });
+  });
+
   it('forwards the thread scope brandId to POST /v1/videos', async () => {
     const { handler, internalApi } = createHandler();
     internalApi.callInternalApi.mockResolvedValue({

@@ -1615,6 +1615,7 @@ model Ingredient {
   agentRun        AgentRun?      @relation("ingredient_agent_run", fields: [agentRunId], references: [id])
   agentStrategyId String?
   agentStrategy   AgentStrategy? @relation("ingredient_agent_strategy", fields: [agentStrategyId], references: [id])
+  sourceActionId  String?
 
   // Discriminator: single table for Image, Video, Music, GIF, Avatar, Voice, etc.
   category              IngredientCategory       @default(IMAGE)
@@ -1713,6 +1714,7 @@ model Ingredient {
   @@index([scope])
   @@index([isPublic])
   @@index([agentRunId])
+  @@index([organizationId, sourceActionId], map: "ingredients_org_source_action_idx")
   @@index([agentStrategyId])
   @@index([personaSlug])
   @@index([isDeleted, personaId, reviewStatus])

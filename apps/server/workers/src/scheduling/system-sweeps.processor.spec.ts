@@ -1,6 +1,7 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
+import { CronAgentTurnReconcileService } from '@workers/crons/agent-turn/cron.agent-turn-reconcile.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
@@ -15,6 +16,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('SystemSweepsProcessor', () => {
   let processor: SystemSweepsProcessor;
+  let agentTurnService: {
+    reconcileStrandedTurns: ReturnType<typeof vi.fn>;
+  };
   let batchGenerationService: {
     reconcileSettlementShortfalls: ReturnType<typeof vi.fn>;
     resumeStrandedBatches: ReturnType<typeof vi.fn>;
@@ -40,6 +44,7 @@ describe('SystemSweepsProcessor', () => {
   }
 
   beforeEach(async () => {
+    agentTurnService = { reconcileStrandedTurns: vi.fn() };
     batchGenerationService = {
       reconcileSettlementShortfalls: vi.fn(),
       resumeStrandedBatches: vi.fn(),
@@ -57,6 +62,10 @@ describe('SystemSweepsProcessor', () => {
       providers: [
         SystemSweepsProcessor,
         { provide: ConfigService, useValue: configService },
+        {
+          provide: CronAgentTurnReconcileService,
+          useValue: agentTurnService,
+        },
         {
           provide: CronBatchGenerationReconcileService,
           useValue: batchGenerationService,
@@ -116,6 +125,12 @@ describe('SystemSweepsProcessor', () => {
     );
 
     expect(batchGenerationService.resumeStrandedBatches).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches the stranded agent-turn reconcile sweep', async () => {
+    await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.AGENT_TURN_RECONCILE));
+
+    expect(agentTurnService.reconcileStrandedTurns).toHaveBeenCalledOnce();
   });
 
   it('dispatches the batch credit settlement reconcile sweep', async () => {

@@ -301,6 +301,7 @@ export class VideoGenerationPreparationService {
         providerData: toRedactedVideoGenerationBriefProviderData(briefEvidence),
         resolution: createVideoDto.resolution,
         scope: createVideoDto.scope,
+        sourceActionId: createVideoDto.sourceActionId,
         sourceIds: referenceIds,
         status: IngredientStatus.PROCESSING,
         style: emptyStyleToNull(createVideoDto.style),

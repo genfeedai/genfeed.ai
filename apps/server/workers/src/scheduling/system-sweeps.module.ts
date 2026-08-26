@@ -2,6 +2,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
+import { CronAgentTurnModule } from '@workers/crons/agent-turn/cron.agent-turn.module';
 import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronReviewGateModule } from '@workers/crons/review-gate/cron.review-gate.module';
@@ -25,6 +26,7 @@ import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.process
       },
       name: SYSTEM_SWEEPS_QUEUE,
     }),
+    CronAgentTurnModule,
     CronBatchGenerationModule,
     CronPostsModule,
     CronReviewGateModule,

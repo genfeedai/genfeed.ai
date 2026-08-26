@@ -185,6 +185,7 @@ describe('Library folder lifecycle persistence', () => {
         bindCancelOnAbort: vi.fn(),
         cancelProcessingIngredient: vi.fn(),
       } as never,
+      { ingredientsEndpoint: 'https://cdn.test/ingredients' } as never,
     );
   });
 

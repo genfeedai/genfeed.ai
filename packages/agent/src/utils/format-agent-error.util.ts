@@ -16,6 +16,20 @@ export type FormattedAgentError = {
   isConfigurationError: boolean;
 };
 
+export type AgentErrorDescriptor = {
+  detail?: string;
+  message?: string;
+  source?:
+    | 'acknowledgement'
+    | 'api'
+    | 'network'
+    | 'provider'
+    | 'stream_recovery';
+  status?: number;
+};
+
+const STRUCTURED_ERROR_PREFIX = 'agent-error:';
+
 const CONFIG_PATTERNS: Array<{
   match: RegExp;
   title: string;
@@ -86,9 +100,8 @@ const CONFIG_PATTERNS: Array<{
       /ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|socket hang up|failed to fetch|load failed|networkerror|network error|\bnetwork\b|bad gateway|gateway timeout|status code 502\b|\bHTTP\s*502\b|status code 504\b|\bHTTP\s*504\b|\btimeout\b/i,
     title: 'Connection interrupted',
     summary:
-      'Could not reach the agent API (connection dropped or the local API was restarting).',
-    recovery:
-      'Confirm the API is up (https://api.genfeed.localhost/v1/health), then retry the message.',
+      'The connection to the agent service was interrupted before it could respond.',
+    recovery: 'Check your connection, then retry the message.',
   },
   {
     // Must run before the UI-action-500 "local reload" rule. A cancelled
@@ -108,10 +121,8 @@ const CONFIG_PATTERNS: Array<{
     match:
       /generation failed:\s*5\d{2}\b|failed with status(?: code)?\s*500\b|Failed to respond to UI action:\s*500\b|:\s*500\s*$/i,
     title: 'Connection interrupted',
-    summary:
-      'The API returned a server error mid-request — often a local reload.',
-    recovery:
-      'Wait for the API to finish restarting, then retry. Avoid generating while the backend is rebuilding.',
+    summary: 'The agent service returned a server error mid-request.',
+    recovery: 'Wait a moment, then retry the message.',
   },
   {
     // Also match this rule's own copy. Errors reach the composer from several
@@ -205,10 +216,100 @@ function extractSafeContext(text: string): string | null {
   );
 }
 
+function parseStructuredError(
+  raw: string | AgentErrorDescriptor | null | undefined,
+): AgentErrorDescriptor | undefined {
+  if (raw && typeof raw === 'object') return raw;
+  if (typeof raw !== 'string' || !raw.startsWith(STRUCTURED_ERROR_PREFIX)) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(
+      raw.slice(STRUCTURED_ERROR_PREFIX.length),
+    ) as AgentErrorDescriptor;
+  } catch {
+    return undefined;
+  }
+}
+
+export function serializeAgentError(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return error instanceof Error ? error.message : String(error);
+  }
+  const descriptor: AgentErrorDescriptor = {
+    detail:
+      typeof (error as { detail?: unknown }).detail === 'string'
+        ? (error as { detail: string }).detail
+        : undefined,
+    message:
+      error instanceof Error
+        ? error.message
+        : typeof (error as { message?: unknown }).message === 'string'
+          ? (error as { message: string }).message
+          : undefined,
+    source: (error as AgentErrorDescriptor).source,
+    status:
+      typeof (error as { status?: unknown }).status === 'number'
+        ? (error as { status: number }).status
+        : undefined,
+  };
+  return `${STRUCTURED_ERROR_PREFIX}${JSON.stringify(descriptor)}`;
+}
+
 export function formatAgentError(
-  raw: string | null | undefined,
+  raw: string | AgentErrorDescriptor | null | undefined,
 ): FormattedAgentError {
-  const original = (raw ?? '').trim();
+  const structured = parseStructuredError(raw);
+  if (structured?.source) {
+    const source = structured.source;
+    if (source === 'acknowledgement') {
+      return {
+        detail: null,
+        isConfigurationError: false,
+        recovery:
+          'Retry the message. The same request identity prevents a duplicate run.',
+        summary:
+          'The agent service did not acknowledge the turn before the request deadline.',
+        title: 'Turn acknowledgement timed out',
+      };
+    }
+    if (source === 'stream_recovery') {
+      return {
+        detail: null,
+        isConfigurationError: false,
+        recovery:
+          'Refresh the conversation to reconcile the run, then retry if it did not finish.',
+        summary: 'The run took too long to confirm over the live stream.',
+        title: 'Run timed out',
+      };
+    }
+    if (source === 'provider') {
+      return {
+        detail: null,
+        isConfigurationError: false,
+        recovery: 'Retry in a moment or choose another available model.',
+        summary:
+          'The generation provider did not complete the request in time.',
+        title: 'Provider temporarily unavailable',
+      };
+    }
+    if (source === 'network' || structured.status === 0) {
+      return {
+        detail: null,
+        isConfigurationError: false,
+        recovery: 'Check your connection, then retry the message.',
+        summary:
+          'The connection to the agent service was interrupted before it could respond.',
+        title: 'Connection interrupted',
+      };
+    }
+  }
+
+  const original = structured
+    ? (structured.detail ?? structured.message ?? '').trim()
+    : typeof raw === 'string'
+      ? raw.trim()
+      : '';
 
   if (!original) {
     return {
@@ -274,7 +375,7 @@ export function formatAgentError(
 
 /** Single-line detail safe for timeline step rows. */
 export function formatAgentErrorDetail(
-  raw: string | null | undefined,
+  raw: string | AgentErrorDescriptor | null | undefined,
 ): string | null {
   const formatted = formatAgentError(raw);
   if (formatted.detail) {
