@@ -89,6 +89,16 @@ describe('ClipHighlightDetector', () => {
 
       expect(configService.get).toHaveBeenCalledWith('OPENROUTER_API_KEY');
     });
+
+    it('uses a per-job model override without changing the shared default', async () => {
+      httpService.post.mockReturnValue(of(llmResponse('[]')));
+
+      await detector.detectHighlights('full text', segments, 3, {
+        model: 'openrouter/free',
+      });
+
+      expect(httpService.post.mock.calls[0][1].model).toBe('openrouter/free');
+    });
   });
 
   describe('parsing and filtering', () => {
@@ -257,6 +267,33 @@ describe('ClipHighlightDetector', () => {
   });
 
   describe('fallback behavior', () => {
+    it('uses deterministic transcript windows when the free provider fails', async () => {
+      const fallbackSegments = [
+        { end: 10, start: 0, text: 'A clear opening hook' },
+        { end: 20, start: 10, text: 'A useful explanation' },
+        { end: 30, start: 20, text: 'A complete takeaway' },
+      ];
+      httpService.post.mockReturnValue(throwError(() => new Error('down')));
+
+      const result = await detector.detectHighlights(
+        'full text',
+        fallbackSegments,
+        1,
+        { fallback: 'deterministic', model: 'openrouter/free' },
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        clip_type: 'educational',
+        end_time: 30,
+        start_time: 0,
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        'ClipHighlightDetector using deterministic fallback',
+        { code: 'clip_highlight_provider_unavailable' },
+      );
+    });
+
     it('returns an empty array when the response has no JSON array', async () => {
       httpService.post.mockReturnValue(
         of(llmResponse('Sorry, I could not find any clips.')),

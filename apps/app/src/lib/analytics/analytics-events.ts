@@ -41,6 +41,7 @@ export const ANALYTICS_EVENTS = {
   GENERATION_STARTED: 'generation_started',
   ONBOARDING_COMPLETED: 'onboarding_completed',
   POST_PUBLISHED: 'post_published',
+  PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED: 'public_youtube_clip_project_claimed',
   SIGNUP_COMPLETED: 'signup_completed',
   SIGNUP_STARTED: 'signup_started',
   STUDIO_EDITOR_OPENED: 'studio_editor_opened',
@@ -240,6 +241,9 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.POST_PUBLISHED]: {
     /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */
     readonly platform: string;
+  };
+  [ANALYTICS_EVENTS.PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED]: {
+    readonly source: 'public_preview';
   };
   [ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH]: {
     /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */

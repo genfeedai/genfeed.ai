@@ -108,6 +108,9 @@ describe('ClipAnalyzeProcessor', () => {
       httpService,
       configService,
       new ClipHighlightDetector(logger, httpService, configService),
+      {
+        patchByWorkerProjectId: vi.fn().mockResolvedValue(undefined),
+      } as never,
     );
   });
 

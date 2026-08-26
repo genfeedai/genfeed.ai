@@ -10,6 +10,7 @@ import {
 const ROOT_CALLBACK_URL = '/';
 const POST_SIGNUP_CALLBACK_URL = '/onboarding/post-signup';
 const BRAND_OS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const PUBLIC_YOUTUBE_CLIP_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 type AuthCallbackURLOptions = {
   defaultCallbackURL?: string;
@@ -44,6 +45,13 @@ export function parseBrandOsPreviewToken(value?: string | null): string | null {
   return token && BRAND_OS_TOKEN_PATTERN.test(token) ? token : null;
 }
 
+export function parsePublicYoutubeClipToken(
+  value?: string | null,
+): string | null {
+  const token = value?.trim();
+  return token && PUBLIC_YOUTUBE_CLIP_TOKEN_PATTERN.test(token) ? token : null;
+}
+
 function buildPostSignupCallbackURL(
   searchParams: Pick<URLSearchParams, 'get'>,
 ): string {
@@ -56,6 +64,9 @@ function buildPostSignupCallbackURL(
   const brandName = searchParams.get('brandName')?.trim();
   const brandOsToken = parseBrandOsPreviewToken(
     searchParams.get('brandOsToken'),
+  );
+  const clipToolToken = parsePublicYoutubeClipToken(
+    searchParams.get('clipToolToken'),
   );
 
   if (selectedPlan) {
@@ -78,6 +89,10 @@ function buildPostSignupCallbackURL(
     params.set('brandOsToken', brandOsToken);
   }
 
+  if (clipToolToken) {
+    params.set('clipToolToken', clipToolToken);
+  }
+
   const query = params.toString();
   return query
     ? `${POST_SIGNUP_CALLBACK_URL}?${query}`
@@ -95,7 +110,8 @@ export function getAuthCallbackURL(
 
   if (
     options.includeOnboardingHandoffParams ||
-    parseBrandOsPreviewToken(searchParams.get('brandOsToken'))
+    parseBrandOsPreviewToken(searchParams.get('brandOsToken')) ||
+    parsePublicYoutubeClipToken(searchParams.get('clipToolToken'))
   ) {
     return buildPostSignupCallbackURL(searchParams);
   }

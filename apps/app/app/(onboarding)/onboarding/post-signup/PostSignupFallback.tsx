@@ -22,7 +22,7 @@ export default function PostSignupFallback({
       <Button
         label={
           retryBrandOsHandoff
-            ? 'Retry saving Brand OS'
+            ? 'Retry saving preview'
             : 'Continue to onboarding'
         }
         onClick={() => {

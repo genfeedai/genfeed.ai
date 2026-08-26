@@ -59,6 +59,11 @@ export interface TranscriptSegment {
   text: string;
 }
 
+export interface ClipHighlightDetectionOptions {
+  fallback?: 'deterministic';
+  model?: string;
+}
+
 @Injectable()
 export class ClipHighlightDetector {
   private readonly logContext = 'ClipHighlightDetector';
@@ -80,6 +85,7 @@ export class ClipHighlightDetector {
     _transcriptText: string,
     segments: TranscriptSegment[],
     maxClips: number,
+    options: ClipHighlightDetectionOptions = {},
   ): Promise<HighlightResult[]> {
     const formattedTranscript = segments
       .map((seg) => {
@@ -100,35 +106,94 @@ Return a JSON array of clip objects sorted by virality_score descending.`;
 
     const openRouterApiKey = this.configService.get('OPENROUTER_API_KEY') || '';
 
-    const response = await firstValueFrom(
-      this.httpService.post(
-        this.openRouterUrl,
-        {
-          max_tokens: 4096,
-          messages: [
-            { content: HIGHLIGHT_SYSTEM_PROMPT, role: 'system' },
-            { content: userPrompt, role: 'user' },
-          ],
-          model: LLM_DEFAULTS.highlighted,
-          provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
-          stream: false,
-          temperature: 0.3,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${openRouterApiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://genfeed.ai',
-            'X-Title': 'GenFeed AI Clip Factory',
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          this.openRouterUrl,
+          {
+            max_tokens: 4096,
+            messages: [
+              { content: HIGHLIGHT_SYSTEM_PROMPT, role: 'system' },
+              { content: userPrompt, role: 'user' },
+            ],
+            model: options.model ?? LLM_DEFAULTS.highlighted,
+            provider: OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
+            stream: false,
+            temperature: 0.3,
           },
-          timeout: 60_000,
-        },
-      ),
+          {
+            headers: {
+              Authorization: `Bearer ${openRouterApiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://genfeed.ai',
+              'X-Title': 'GenFeed AI Clip Factory',
+            },
+            timeout: 60_000,
+          },
+        ),
+      );
+
+      const content = response.data?.choices?.[0]?.message?.content || '';
+      const highlights = this.parseHighlights(content, maxClips);
+      return highlights.length > 0 || options.fallback !== 'deterministic'
+        ? highlights
+        : this.buildDeterministicFallback(segments, maxClips);
+    } catch (error) {
+      if (options.fallback !== 'deterministic') {
+        throw error;
+      }
+      this.logger.warn(`${this.logContext} using deterministic fallback`, {
+        code: 'clip_highlight_provider_unavailable',
+      });
+      return this.buildDeterministicFallback(segments, maxClips);
+    }
+  }
+
+  private buildDeterministicFallback(
+    segments: TranscriptSegment[],
+    maxClips: number,
+  ): HighlightResult[] {
+    const valid = segments.filter(
+      (segment) =>
+        Number.isFinite(segment.start) &&
+        Number.isFinite(segment.end) &&
+        segment.start >= 0 &&
+        segment.end > segment.start &&
+        segment.text.trim().length > 0,
     );
+    const highlights: HighlightResult[] = [];
+    let cursor = 0;
 
-    const content = response.data?.choices?.[0]?.message?.content || '';
+    while (cursor < valid.length && highlights.length < maxClips) {
+      const start = valid[cursor].start;
+      let endIndex = cursor;
+      while (
+        endIndex + 1 < valid.length &&
+        valid[endIndex].end - start < 30 &&
+        valid[endIndex + 1].end - start <= 90
+      ) {
+        endIndex += 1;
+      }
+      const end = valid[endIndex].end;
+      if (end - start >= 15 && end - start <= 90) {
+        const text = valid
+          .slice(cursor, endIndex + 1)
+          .map((segment) => segment.text.trim())
+          .join(' ');
+        highlights.push({
+          clip_type: 'educational',
+          end_time: end,
+          start_time: start,
+          summary: text.slice(0, 180),
+          tags: [],
+          title: text.slice(0, 57) || `Key moment ${highlights.length + 1}`,
+          virality_score: Math.max(50, 70 - highlights.length * 5),
+        });
+      }
+      cursor = Math.max(cursor + 1, endIndex + 1);
+    }
 
-    return this.parseHighlights(content, maxClips);
+    return highlights;
   }
 
   /**
