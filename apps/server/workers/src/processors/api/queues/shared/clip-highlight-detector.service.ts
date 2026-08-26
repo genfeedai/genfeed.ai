@@ -7,12 +7,12 @@
  * processors cannot drift.
  */
 
-import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { firstValueFrom } from 'rxjs';
 
 /** System prompt for highlight detection. */

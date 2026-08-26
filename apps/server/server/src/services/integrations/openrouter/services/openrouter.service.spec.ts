@@ -1,12 +1,12 @@
 import { Readable } from 'node:stream';
-import type {
-  OpenRouterChatCompletionParams,
-  OpenRouterChatCompletionResponse,
-} from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type {
+  OpenRouterChatCompletionParams,
+  OpenRouterChatCompletionResponse,
+} from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import { OpenRouterService } from './openrouter.service';
