@@ -304,17 +304,6 @@ export function getThreadStatusKey(options: {
   return 'idle';
 }
 
-export function getThreadStatusA11yLabel(
-  thread: AgentThread,
-  statusMeta: ReturnType<typeof getThreadStatusMeta>,
-): string {
-  if (statusMeta) {
-    return `${statusMeta.label} status for ${thread.title || 'Untitled'}`;
-  }
-
-  return `Conversation status for ${thread.title || 'Untitled'}`;
-}
-
 export function hasRenderableThreadId(thread: AgentThread): boolean {
   return isRenderableThreadId(thread.id);
 }

@@ -756,12 +756,13 @@ function checkWebTokenDrift(failures: string[]): void {
   }
 }
 
-function checkPlatformCoverage(failures: string[]): void {
+export function checkPlatformCoverage(failures: string[]): void {
   const design = readRepoFile('DESIGN.md');
   const tailwindConfig = readRepoFile(
     'packages/next-config/tailwind.config.base.ts',
   );
   const shadcnTheme = readRepoFile('packages/styles/shadcn-theme.css');
+  const globalStyles = readRepoFile('packages/styles/globals.css');
 
   for (const [platformId, platform] of Object.entries(PLATFORM_COLORS)) {
     const hex = platform.base.toUpperCase();
@@ -785,6 +786,12 @@ function checkPlatformCoverage(failures: string[]): void {
       `--platform-${platformId}: ${lowerHex};`,
       failures,
       'packages/styles/shadcn-theme.css',
+    );
+    assertContains(
+      globalStyles,
+      `--color-platform-${platformId}: var(--platform-${platformId});`,
+      failures,
+      'packages/styles/globals.css',
     );
   }
 }

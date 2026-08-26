@@ -62,4 +62,15 @@ describe('PlatformBadge', () => {
       /(?:amber|blue|emerald|green|indigo|orange|pink|red|sky|violet|yellow)-\d{2,3}/,
     );
   });
+
+  it.each(['devto', 'ghost', 'threads'])(
+    'keeps the near-black %s identity legible on the dark canvas',
+    (platform) => {
+      render(<PlatformBadge platform={platform} />);
+
+      expect(screen.getByText(/.+/).parentElement).toHaveClass(
+        'bg-foreground/10',
+      );
+    },
+  );
 });

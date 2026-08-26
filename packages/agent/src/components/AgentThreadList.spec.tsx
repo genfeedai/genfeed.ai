@@ -739,13 +739,10 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const statusPill = await screen.findByLabelText(
-      'Needs input status for Needs your reply',
-    );
+    const statusPill = await screen.findByText('Needs input');
 
     expect(statusPill).toHaveTextContent('Needs input');
     expect(statusPill.querySelector('svg')).toBeInTheDocument();
-    expect(statusPill).toHaveAttribute('title', 'Needs input');
   });
 
   it('does not hide the status meaning behind a focus-only tooltip', async () => {
@@ -759,9 +756,7 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    const statusIndicator = await screen.findByLabelText(
-      'Needs input status for Needs keyboard help',
-    );
+    const statusIndicator = await screen.findByText('Needs input');
 
     expect(statusIndicator).toHaveTextContent('Needs input');
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
@@ -945,7 +940,7 @@ describe('AgentThreadList', () => {
     expect(ids).toContain('conv-2');
   });
 
-  it('shows a pulsing activity disc for the active thread while working', async () => {
+  it('shows a labelled iconic status pill for the active thread while working', async () => {
     const thread = createThread('conv-1', 'Assess desktop app readiness');
     storeState.activeThreadId = 'conv-1';
     storeState.activeRunStatus = 'running';
@@ -960,19 +955,13 @@ describe('AgentThreadList', () => {
     expect(
       await screen.findByText('Assess desktop app readiness'),
     ).toBeInTheDocument();
-    const status = screen.getByLabelText(
-      'Running status for Assess desktop app readiness',
-    );
+    const status = screen.getByText('Running');
     expect(status).toBeInTheDocument();
-    expect(status).toHaveAttribute('role', 'img');
-    expect(status).toHaveAttribute('title', 'Running');
-    // Structural pulse ring for active work (not a color-token assertion).
-    expect(status.querySelector('.animate-ping')).not.toBeNull();
-    // Disc-only — no text status chip.
-    expect(screen.queryByText('Running')).not.toBeInTheDocument();
+    expect(status.querySelector('svg')).not.toBeNull();
+    expect(status.querySelector('.animate-ping')).toBeNull();
   });
 
-  it('shows a pulsing disc for a non-active thread that is still running', async () => {
+  it('shows a labelled iconic status pill for a non-active running thread', async () => {
     const thread = createThread('conv-1', 'Background run', {
       attentionState: 'running',
       runStatus: 'running',
@@ -988,13 +977,12 @@ describe('AgentThreadList', () => {
     render(<AgentThreadList apiService={apiService as never} />);
 
     expect(await screen.findByText('Background run')).toBeInTheDocument();
-    const status = screen.getByLabelText('Running status for Background run');
-    expect(status).toHaveAttribute('title', 'Running');
-    expect(status.querySelector('.animate-ping')).not.toBeNull();
-    expect(screen.queryByText('Running')).not.toBeInTheDocument();
+    const status = screen.getByText('Running');
+    expect(status.querySelector('svg')).not.toBeNull();
+    expect(status.querySelector('.animate-ping')).toBeNull();
   });
 
-  it('does not show an activity disc for a non-active thread with stale running status', async () => {
+  it('does not show a status pill for a non-active thread with stale running status', async () => {
     const thread = createThread('conv-1', 'Old stuck thread', {
       runStatus: 'running',
     } as Partial<AgentThread>);
@@ -1009,9 +997,7 @@ describe('AgentThreadList', () => {
     render(<AgentThreadList apiService={apiService as never} />);
 
     expect(await screen.findByText('Old stuck thread')).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('Running status for Old stuck thread'),
-    ).toBeNull();
+    expect(screen.queryByText('Running')).toBeNull();
   });
 
   it('ignores a previous brand request that rejects after the next load starts', async () => {
@@ -1138,7 +1124,7 @@ describe('AgentThreadList', () => {
     expect(screen.queryByText('Brand A chat')).toBeNull();
   });
 
-  it('shows a pulsing activity disc for the active thread while a local ui action is busy', async () => {
+  it('shows a labelled iconic status pill while a local ui action is busy', async () => {
     const thread = createThread('conv-1', 'Generate launch creative');
     storeState.activeThreadId = 'conv-1';
     storeState.activeRunStatus = 'idle';
@@ -1154,11 +1140,9 @@ describe('AgentThreadList', () => {
     expect(
       await screen.findByText('Generate launch creative'),
     ).toBeInTheDocument();
-    // Local UI busy is treated as running — disc + pulse, not a spinner.
-    const status = screen.getByLabelText(
-      'Running status for Generate launch creative',
-    );
+    const status = screen.getByText('Running');
     expect(status).toBeInTheDocument();
-    expect(status.querySelector('.animate-ping')).not.toBeNull();
+    expect(status.querySelector('svg')).not.toBeNull();
+    expect(status.querySelector('.animate-ping')).toBeNull();
   });
 });

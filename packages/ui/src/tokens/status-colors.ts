@@ -19,19 +19,6 @@ import {
   TimerOff,
 } from 'lucide-react';
 
-export const issueStatusIcon: Record<string, string> = {
-  backlog: 'text-muted-foreground border-muted-foreground',
-  blocked: 'text-destructive border-destructive',
-  cancelled: 'text-muted-foreground border-muted-foreground',
-  done: 'text-success border-success',
-  in_progress: 'text-warning border-warning',
-  in_review: 'text-info border-info',
-  todo: 'text-info border-info',
-};
-
-export const issueStatusIconDefault =
-  'text-muted-foreground border-muted-foreground';
-
 export const issueStatusText: Record<string, string> = {
   backlog: 'text-muted-foreground',
   blocked: 'text-destructive',
@@ -105,18 +92,6 @@ export const statusIcon: Record<StatusKey, LucideIcon> = {
 export const statusIconDefault = Clock3;
 
 export const statusBadgeDefault = 'bg-muted text-muted-foreground';
-
-export const agentStatusDot: Record<string, string> = {
-  active: 'bg-success',
-  archived: 'bg-muted-foreground',
-  error: 'bg-destructive',
-  idle: 'bg-warning',
-  paused: 'bg-warning',
-  pending_approval: 'bg-warning',
-  running: 'bg-info',
-};
-
-export const agentStatusDotDefault = 'bg-muted-foreground';
 
 export const priorityColor: Record<string, string> = {
   critical: 'text-destructive',

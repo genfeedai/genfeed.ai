@@ -106,12 +106,11 @@ function getStatusConfig(status: string): BadgeStatusConfig {
       return {
         canonicalStatus: 'pending',
         label: 'Scheduled',
-        variant: 'info',
+        variant: 'warning',
       };
 
     case 'info':
       return {
-        canonicalStatus: 'running',
         label: 'Information',
         variant: 'info',
       };
@@ -121,7 +120,7 @@ function getStatusConfig(status: string): BadgeStatusConfig {
       return {
         canonicalStatus: 'running',
         label: 'Processing',
-        variant: 'accent',
+        variant: 'info',
       };
 
     case 'inactive':
@@ -129,14 +128,14 @@ function getStatusConfig(status: string): BadgeStatusConfig {
       return {
         canonicalStatus: 'pending',
         label: 'Pending',
-        variant: 'secondary',
+        variant: 'warning',
       };
 
     case 'canceled':
       return {
         canonicalStatus: 'cancelled',
-        label: 'Failed',
-        variant: 'error',
+        label: 'Cancelled',
+        variant: 'secondary',
       };
 
     case 'draft':

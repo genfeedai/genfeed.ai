@@ -2,7 +2,6 @@ export * from './agent-conversation-route.interface';
 export * from './app-switcher.interface';
 export * from './avatar.interface';
 export * from './badge.interface';
-export * from './badge-status-config.interface';
 export * from './command-palette.interface';
 export * from './content-block.interface';
 export * from './elements-content.interface';

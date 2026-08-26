@@ -3,6 +3,7 @@ import {
   APP_CHROME_COLOR_SURFACES,
   assertLowerOnlyDesignSystemBaselineUpdate,
   buildDesignSystemBaseline,
+  checkPlatformCoverage,
   type DesignSystemBaseline,
   type DesignSystemFinding,
   diffDesignSystemBaseline,
@@ -53,6 +54,16 @@ describe('app chrome color guard', () => {
     expect(APP_CHROME_COLOR_SURFACES).toContainEqual({
       root: 'apps/app/app/(onboarding)',
     });
+  });
+});
+
+describe('platform token pipeline', () => {
+  it('registers every guarded platform token with Tailwind v4', () => {
+    const failures: string[] = [];
+
+    checkPlatformCoverage(failures);
+
+    expect(failures).toEqual([]);
   });
 });
 

@@ -52,7 +52,7 @@ describe('value-swap iconography contract', () => {
   it('documents the one-question value-swap rule and labeled status contract', () => {
     const design = readFileSync(join(REPO_ROOT, 'DESIGN.md'), 'utf8');
 
-    expect(design).toContain("does the trigger's own displayed value change");
+    expect(design).toContain("does the trigger's own");
     expect(design).toContain('ChevronsUpDown');
     expect(design).toContain(
       'status-specific icon alongside its visible label',

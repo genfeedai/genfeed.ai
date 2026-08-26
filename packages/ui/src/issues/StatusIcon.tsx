@@ -27,6 +27,7 @@ export function StatusIcon({ status, className, showLabel }: StatusIconProps) {
       aria-hidden={showLabel || undefined}
       aria-label={showLabel ? undefined : label}
       className={cn('size-4 shrink-0', colorClass, className)}
+      role={showLabel ? undefined : 'img'}
     />
   );
 

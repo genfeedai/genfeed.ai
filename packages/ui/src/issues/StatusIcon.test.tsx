@@ -8,7 +8,7 @@ describe('StatusIcon', () => {
   it('uses a labeled status-specific glyph instead of a generic dot', () => {
     const { container } = render(<StatusIcon status="done" />);
 
-    expect(screen.getByLabelText('Done')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Done' })).toBeInTheDocument();
     expect(container.querySelector('svg')).toBeInTheDocument();
     expect(container.querySelector('.rounded-full')).not.toBeInTheDocument();
   });

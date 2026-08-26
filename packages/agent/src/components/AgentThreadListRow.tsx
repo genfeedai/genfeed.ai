@@ -1,8 +1,12 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import { AgentThreadStatus, ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { statusBadge, statusIcon } from '@genfeedai/ui';
+import {
+  AgentThreadStatus,
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+} from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { Badge } from '@ui/primitives/badge';
+import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -24,7 +28,6 @@ import Link from 'next/link';
 import type { ReactElement, RefObject } from 'react';
 import {
   formatRelativeTime,
-  getThreadStatusA11yLabel,
   getThreadStatusKey,
   getThreadStatusMeta,
   resolveThreadListPreview,
@@ -95,22 +98,18 @@ function agentThreadListRowClassName(options: {
 
 function ThreadActivityIndicator({
   statusMeta,
-  a11yLabel,
 }: {
   statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
-  a11yLabel: string;
 }): ReactElement {
   const statusKey = getThreadStatusKey({
     tone: statusMeta.tone,
   });
-  const StatusIcon = statusIcon[statusKey];
 
   return (
     <Badge
-      aria-label={a11yLabel}
-      className={cn('shrink-0 capitalize', statusBadge[statusKey])}
-      icon={<StatusIcon />}
-      title={statusMeta.label}
+      className="shrink-0 capitalize"
+      size={ComponentSize.SM}
+      status={statusKey}
     >
       {statusMeta.label}
     </Badge>
@@ -174,16 +173,12 @@ export function AgentThreadListRow({
   );
   const isMenuOpen = openMenuThreadId === conv.id;
   const shouldShowActions = renamingThreadId === conv.id || isMenuOpen;
-  const statusA11yLabel = getThreadStatusA11yLabel(conv, statusMeta);
   const preview = resolveThreadListPreview(conv);
   const threadTitle = conv.title || 'Untitled';
   const generatedAssetUrl = conv.lastGeneratedAssetUrl?.trim() || null;
 
   const activityIndicator = statusMeta ? (
-    <ThreadActivityIndicator
-      statusMeta={statusMeta}
-      a11yLabel={statusA11yLabel}
-    />
+    <ThreadActivityIndicator statusMeta={statusMeta} />
   ) : null;
 
   const thumbSlot = (

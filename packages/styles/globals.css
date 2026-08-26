@@ -55,6 +55,36 @@
   --color-info: hsl(var(--info));
   --color-info-foreground: hsl(var(--info-foreground));
 
+  /* Guarded platform identity tokens. Register each CSS variable with
+     Tailwind v4 so bg-platform-* and text-platform-* utilities are emitted. */
+  --color-platform-beehiiv: var(--platform-beehiiv);
+  --color-platform-devto: var(--platform-devto);
+  --color-platform-discord: var(--platform-discord);
+  --color-platform-facebook: var(--platform-facebook);
+  --color-platform-fanvue: var(--platform-fanvue);
+  --color-platform-ghost: var(--platform-ghost);
+  --color-platform-hacker_news: var(--platform-hacker_news);
+  --color-platform-instagram: var(--platform-instagram);
+  --color-platform-linkedin: var(--platform-linkedin);
+  --color-platform-mastodon: var(--platform-mastodon);
+  --color-platform-medium: var(--platform-medium);
+  --color-platform-notion: var(--platform-notion);
+  --color-platform-pinterest: var(--platform-pinterest);
+  --color-platform-product_hunt: var(--platform-product_hunt);
+  --color-platform-reddit: var(--platform-reddit);
+  --color-platform-shopify: var(--platform-shopify);
+  --color-platform-slack: var(--platform-slack);
+  --color-platform-snapchat: var(--platform-snapchat);
+  --color-platform-substack: var(--platform-substack);
+  --color-platform-telegram: var(--platform-telegram);
+  --color-platform-threads: var(--platform-threads);
+  --color-platform-tiktok: var(--platform-tiktok);
+  --color-platform-twitch: var(--platform-twitch);
+  --color-platform-twitter: var(--platform-twitter);
+  --color-platform-whatsapp: var(--platform-whatsapp);
+  --color-platform-wordpress: var(--platform-wordpress);
+  --color-platform-youtube: var(--platform-youtube);
+
   /* "error" aliases "destructive" — 92 usages across codebase kept for compatibility */
   --color-error: hsl(var(--destructive));
   --color-error-foreground: hsl(var(--destructive-foreground));

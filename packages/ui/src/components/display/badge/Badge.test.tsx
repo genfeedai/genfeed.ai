@@ -56,4 +56,25 @@ describe('Badge', () => {
       ).not.toBeNull();
     },
   );
+
+  it.each([
+    ['scheduled', 'bg-warning/10', 'border-warning/30'],
+    ['processing', 'bg-info/10', 'border-info/30'],
+    ['warning', 'bg-warning/10', 'border-warning/30'],
+    ['canceled', 'bg-muted', 'border-border'],
+  ])(
+    'keeps the %s alias fill and border on one semantic tone',
+    (status, bgClass, borderClass) => {
+      const { container } = render(<Badge status={status} />);
+
+      expect(container.firstElementChild).toHaveClass(bgClass, borderClass);
+    },
+  );
+
+  it('does not render a running glyph for a generic information badge', () => {
+    const { container } = render(<Badge status="info" />);
+
+    expect(screen.getByText('Information')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="badge-icon"]')).toBeNull();
+  });
 });

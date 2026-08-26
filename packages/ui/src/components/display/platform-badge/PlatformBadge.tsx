@@ -49,7 +49,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     textColor: 'text-foreground',
   },
   devto: {
-    bgColor: 'bg-platform-devto/10',
+    bgColor: 'bg-foreground/10',
     icon: DevIcon,
     iconColor: 'text-foreground',
     label: 'DEV',
@@ -70,7 +70,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     textColor: 'text-foreground',
   },
   ghost: {
-    bgColor: 'bg-platform-ghost/10',
+    bgColor: 'bg-foreground/10',
     icon: GhostIcon,
     iconColor: 'text-foreground',
     label: 'Ghost',
@@ -147,7 +147,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
     textColor: 'text-foreground',
   },
   threads: {
-    bgColor: 'bg-platform-threads/10',
+    bgColor: 'bg-foreground/10',
     icon: ThreadsIcon,
     iconColor: 'text-foreground',
     label: 'Threads',
