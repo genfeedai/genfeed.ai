@@ -1,36 +1,20 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
-import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
-import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import type { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import {
-  AssetCategory,
-  AssetParent,
-  IngredientCategory,
-  ModelCategory,
-} from '@genfeedai/enums';
+import { AssetCategory, AssetParent, ModelCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
-import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
@@ -38,22 +22,14 @@ describe('AssetsOperationsController', () => {
   let controller: AssetsOperationsController;
   let assetsService: vi.Mocked<AssetsService>;
   let brandsService: vi.Mocked<BrandsService>;
-  let cacheService: vi.Mocked<CacheService>;
-  let filesClientService: vi.Mocked<FilesClientService>;
-  let ingredientsService: vi.Mocked<IngredientsService>;
-  let metadataService: vi.Mocked<MetadataService>;
   let promptBuilderService: vi.Mocked<PromptBuilderService>;
   let replicateService: vi.Mocked<ReplicateService>;
-  let validationConfigService: vi.Mocked<ValidationConfigService>;
-  let websocketService: vi.Mocked<NotificationsPublisherService>;
   let loggerService: vi.Mocked<LoggerService>;
   let configService: ConfigService;
 
   const mockUserId = 'cmuser0000000000000000001';
   const mockOrgId = 'cmorganization000000000000001';
   const mockBrandId = 'cmbrand000000000000000001';
-  const mockIngredientId = 'cmingredient000000000000001';
-  const mockMetadataId = 'cmmetadata0000000000000001';
   const mockAssetId = 'cmasset000000000000000001';
 
   const mockUser = {
@@ -69,13 +45,6 @@ describe('AssetsOperationsController', () => {
     query: {},
     user: mockUser,
   } as unknown as Request;
-
-  const mockFile = {
-    buffer: Buffer.from('file'),
-    mimetype: 'image/png',
-    originalname: 'logo.png',
-    size: 1024,
-  } as unknown as Express.Multer.File;
 
   const mockBrand = {
     id: mockBrandId,
@@ -94,19 +63,6 @@ describe('AssetsOperationsController', () => {
     userId: mockUserId,
   };
 
-  const mockIngredient = {
-    category: IngredientCategory.IMAGE,
-    id: mockIngredientId,
-    metadataId: mockMetadataId,
-    userId: mockUserId,
-  } as unknown as IngredientDocument;
-
-  const mockMetadata = {
-    height: 1024,
-    id: mockMetadataId,
-    width: 1024,
-  };
-
   beforeEach(async () => {
     assetsService = {
       create: vi.fn().mockResolvedValue(mockAsset),
@@ -119,31 +75,13 @@ describe('AssetsOperationsController', () => {
       findOne: vi.fn().mockResolvedValue(mockBrand),
     } as unknown as vi.Mocked<BrandsService>;
 
-    cacheService = {
-      del: vi.fn().mockResolvedValue(0),
-      invalidateByTags: vi.fn().mockResolvedValue(0),
-    } as unknown as vi.Mocked<CacheService>;
-
     configService = { isProduction: false } as unknown as ConfigService;
-
-    filesClientService = {
-      copyInS3: vi.fn().mockResolvedValue({}),
-      uploadToS3: vi.fn().mockResolvedValue({}),
-    } as unknown as vi.Mocked<FilesClientService>;
-
-    ingredientsService = {
-      findOne: vi.fn().mockResolvedValue(mockIngredient),
-    } as unknown as vi.Mocked<IngredientsService>;
 
     loggerService = {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
     } as unknown as vi.Mocked<LoggerService>;
-
-    metadataService = {
-      findOne: vi.fn().mockResolvedValue(mockMetadata),
-    } as unknown as vi.Mocked<MetadataService>;
 
     promptBuilderService = {
       buildPrompt: vi.fn().mockResolvedValue({ input: { prompt: 'built' } }),
@@ -153,32 +91,15 @@ describe('AssetsOperationsController', () => {
       generateTextToImage: vi.fn().mockResolvedValue('generation-id'),
     } as unknown as vi.Mocked<ReplicateService>;
 
-    validationConfigService = {
-      getAllowedImageExtensions: vi.fn().mockReturnValue(['png']),
-      getAllowedImageMimeTypes: vi.fn().mockReturnValue(['image/png']),
-      getMaxFileSize: vi.fn().mockReturnValue(50 * 1024 * 1024),
-    } as unknown as vi.Mocked<ValidationConfigService>;
-
-    websocketService = {
-      publishAssetStatus: vi.fn().mockResolvedValue(undefined),
-      publishBrandRefresh: vi.fn().mockResolvedValue(undefined),
-    } as unknown as vi.Mocked<NotificationsPublisherService>;
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AssetsOperationsController],
       providers: [
         { provide: ConfigService, useValue: configService },
         { provide: AssetsService, useValue: assetsService },
         { provide: BrandsService, useValue: brandsService },
-        { provide: CacheService, useValue: cacheService },
-        { provide: FilesClientService, useValue: filesClientService },
-        { provide: IngredientsService, useValue: ingredientsService },
         { provide: LoggerService, useValue: loggerService },
-        { provide: MetadataService, useValue: metadataService },
         { provide: PromptBuilderService, useValue: promptBuilderService },
         { provide: ReplicateService, useValue: replicateService },
-        { provide: ValidationConfigService, useValue: validationConfigService },
-        { provide: NotificationsPublisherService, useValue: websocketService },
       ],
     })
       .overrideGuard(BetterAuthGuard)
@@ -310,192 +231,6 @@ describe('AssetsOperationsController', () => {
       await expect(
         controller.generate(mockRequest, mockUser, generateDto),
       ).rejects.toThrow(ValidationException);
-    });
-  });
-
-  describe('createUpload', () => {
-    it('should upload an asset and publish updates', async () => {
-      const uploadDto: CreateAssetDto = {
-        category: AssetCategory.LOGO,
-        parentId: mockBrandId.toString(),
-        parentType: AssetParent.BRAND,
-      };
-
-      const result = await controller.createUpload(
-        mockRequest,
-        mockUser,
-        mockFile,
-        uploadDto,
-      );
-
-      expect(assetsService.patchAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          category: AssetCategory.LOGO,
-          parentBrandId: expect.any(String),
-          parentType: AssetParent.BRAND,
-        }),
-        { isDeleted: true },
-      );
-      expect(cacheService.invalidateByTags).toHaveBeenCalledWith([
-        'brands',
-        'links',
-        'assets',
-        'public',
-      ]);
-      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
-        mockAssetId,
-        'logos',
-        {
-          contentType: 'image/png',
-          data: mockFile.buffer,
-          type: 'buffer',
-        },
-      );
-      expect(websocketService.publishAssetStatus).toHaveBeenCalledWith(
-        mockAssetId.toString(),
-        'completed',
-        mockUserId.toString(),
-        expect.objectContaining({
-          assetId: mockAssetId.toString(),
-          category: AssetCategory.LOGO,
-        }),
-      );
-      expect(websocketService.publishBrandRefresh).toHaveBeenCalledWith(
-        mockBrandId.toString(),
-        mockUserId.toString(),
-        expect.objectContaining({
-          assetId: mockAssetId.toString(),
-          category: AssetCategory.LOGO,
-        }),
-      );
-      expect(result).toBeDefined();
-    });
-
-    it('should throw when file is missing', () => {
-      const pipe = new UploadValidationPipe({
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-        allowedMimeTypes: [
-          'image/jpeg',
-          'image/jpg',
-          'image/png',
-          'image/webp',
-          'image/gif',
-        ],
-        maxSizeBytes: 50 * 1024 * 1024,
-      });
-      expect(() =>
-        pipe.transform(undefined as unknown as Express.Multer.File),
-      ).toThrow(HttpException);
-    });
-  });
-
-  describe('createFromIngredient', () => {
-    it('should create an asset from an ingredient', async () => {
-      const createDto: CreateFromIngredientDto = {
-        category: AssetCategory.LOGO,
-        ingredientId: mockIngredientId.toString(),
-        parentId: mockBrandId.toString(),
-      };
-
-      const result = await controller.createFromIngredient(
-        mockRequest,
-        mockUser,
-        createDto,
-      );
-
-      expect(ingredientsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: mockIngredientId.toString(),
-          userId: expect.any(String),
-        }),
-      );
-      expect(metadataService.findOne).toHaveBeenCalledWith({
-        id: mockMetadataId,
-      });
-      expect(filesClientService.copyInS3).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
-        mockAssetId.toString(),
-        'images',
-        'logos',
-      );
-      expect(cacheService.invalidateByTags).toHaveBeenCalledWith([
-        'brands',
-        'links',
-        'assets',
-        'public',
-      ]);
-      expect(websocketService.publishAssetStatus).toHaveBeenCalledWith(
-        mockAssetId.toString(),
-        'completed',
-        mockUserId.toString(),
-        expect.objectContaining({
-          assetId: mockAssetId.toString(),
-          category: AssetCategory.LOGO,
-        }),
-      );
-      expect(result).toBeDefined();
-    });
-
-    it('should throw when ingredient is missing', async () => {
-      ingredientsService.findOne.mockResolvedValueOnce(null);
-
-      const createDto: CreateFromIngredientDto = {
-        category: AssetCategory.LOGO,
-        ingredientId: mockIngredientId.toString(),
-        parentId: mockBrandId.toString(),
-      };
-
-      await expect(
-        controller.createFromIngredient(mockRequest, mockUser, createDto),
-      ).rejects.toBeInstanceOf(HttpException);
-    });
-
-    it('should reject non-image ingredients', async () => {
-      ingredientsService.findOne.mockResolvedValueOnce({
-        ...mockIngredient,
-        category: IngredientCategory.VIDEO,
-      });
-
-      const createDto: CreateFromIngredientDto = {
-        category: AssetCategory.BANNER,
-        ingredientId: mockIngredientId.toString(),
-        parentId: mockBrandId.toString(),
-      };
-
-      await expect(
-        controller.createFromIngredient(mockRequest, mockUser, createDto),
-      ).rejects.toThrow(ValidationException);
-    });
-
-    it('should reject missing metadata', async () => {
-      metadataService.findOne.mockResolvedValueOnce(null);
-
-      const createDto: CreateFromIngredientDto = {
-        category: AssetCategory.LOGO,
-        ingredientId: mockIngredientId.toString(),
-        parentId: mockBrandId.toString(),
-      };
-
-      await expect(
-        controller.createFromIngredient(mockRequest, mockUser, createDto),
-      ).rejects.toThrow(ValidationException);
-    });
-
-    it('should remove asset when copy fails', async () => {
-      filesClientService.copyInS3.mockRejectedValueOnce(
-        new Error('S3 failure'),
-      );
-
-      const createDto: CreateFromIngredientDto = {
-        category: AssetCategory.LOGO,
-        ingredientId: mockIngredientId.toString(),
-        parentId: mockBrandId.toString(),
-      };
-
-      await expect(
-        controller.createFromIngredient(mockRequest, mockUser, createDto),
-      ).rejects.toThrow(ValidationException);
-      expect(assetsService.remove).toHaveBeenCalledWith(mockAssetId);
     });
   });
 });
