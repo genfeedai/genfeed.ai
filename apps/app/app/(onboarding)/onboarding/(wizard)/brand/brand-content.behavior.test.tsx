@@ -49,6 +49,14 @@ vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+
+  return {
+    useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  };
+});
+
 vi.mock('@hooks/ui/use-gsap-entrance', () => ({
   useGsapTimeline: () => vi.fn(),
 }));

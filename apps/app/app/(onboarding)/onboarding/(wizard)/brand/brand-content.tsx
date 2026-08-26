@@ -10,6 +10,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   deriveBrandNameFromDomain,
@@ -94,6 +95,7 @@ function BrandContentContent() {
   const { getToken } = useAuthIdentity();
   const { push } = useRouter();
   const { handleStepComplete } = useOnboarding();
+  const translate = useTranslations('pages.onboarding.brand');
   const searchParams = useSearchParams();
   const isAutoRequested = searchParams.get('auto') === 'true';
   const initialBrandName =
@@ -184,9 +186,7 @@ function BrandContentContent() {
       } catch (error) {
         logger.error('Failed to prefill onboarding data', error);
         if (!controller.signal.aborted) {
-          setErrorMessage(
-            "We couldn't load your workspace details. You can retry Continue or Skip Onboarding.",
-          );
+          setErrorMessage(translate('errors.initialization'));
         }
       }
     };
@@ -196,7 +196,7 @@ function BrandContentContent() {
     return () => {
       controller.abort();
     };
-  }, [getToken]);
+  }, [getToken, translate]);
 
   const resolveBrandId = useCallback(
     async (token: string): Promise<string | null> => {
@@ -244,12 +244,10 @@ function BrandContentContent() {
         );
       } catch (error) {
         logger.error('Failed to set account type', error);
-        setErrorMessage(
-          "We couldn't save your account type. Try selecting it again.",
-        );
+        setErrorMessage(translate('errors.accountType'));
       }
     },
-    [getToken, resolveOrgId],
+    [getToken, resolveOrgId, translate],
   );
 
   const handleContinue = useCallback(
@@ -361,9 +359,7 @@ function BrandContentContent() {
         await handleStepComplete('brand');
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
-        setErrorMessage(
-          "We couldn't save your workspace. Check your connection and try again.",
-        );
+        setErrorMessage(translate('errors.continue'));
         setSubmitting(false);
       }
     },
@@ -376,6 +372,7 @@ function BrandContentContent() {
       targetAudience,
       tone,
       handleStepComplete,
+      translate,
     ],
   );
 
@@ -405,12 +402,10 @@ function BrandContentContent() {
       push('/');
     } catch (error) {
       logger.error('Failed to skip onboarding', error);
-      setErrorMessage(
-        "We couldn't skip onboarding. Check your connection and try again.",
-      );
+      setErrorMessage(translate('errors.skip'));
       setSubmitting(false);
     }
-  }, [getToken, push, resolveOrgId]);
+  }, [getToken, push, resolveOrgId, translate]);
 
   const handleWebsiteUrlChange = useCallback((value: string) => {
     setWebsiteUrl(value);
