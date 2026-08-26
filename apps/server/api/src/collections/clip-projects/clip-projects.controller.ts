@@ -12,12 +12,14 @@ import { ClipGenerationRequestService } from '@api/collections/clip-projects/ser
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
+import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -41,6 +43,7 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -72,6 +75,7 @@ export class ClipProjectsController {
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly hookClipApprovalService: HookClipApprovalService,
+    private readonly clipResultsService: ClipResultsService,
   ) {}
 
   @Post(':projectId/generate')
@@ -135,7 +139,11 @@ export class ClipProjectsController {
       progress: 0,
       settings: {
         ...project.settings,
+        avatarId: identity?.avatarId,
+        avatarProvider: dto.avatarProvider ?? 'heygen',
+        flow: 'review',
         mode,
+        voiceId: identity?.voiceId,
       },
       status: 'generating',
     });
@@ -177,7 +185,214 @@ export class ClipProjectsController {
       clipCount: selectedEditedHighlights.length,
       clipResultIds: result.clipResultIds,
       ...(reference.application ? { reference: reference.application } : {}),
-      status: result.queuedClipCount > 0 ? 'generating' : 'failed',
+      status:
+        !result.awaitingHookApproval &&
+        result.completedClipCount === result.queuedClipCount
+          ? 'completed'
+          : result.queuedClipCount > 0
+            ? 'generating'
+            : 'failed',
+    });
+  }
+
+  @Post(':projectId/retry-failed')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({
+    description:
+      'Retry only failed clip results while preserving completed clips and their Library handoffs.',
+    summary: 'Retry failed clip generations',
+  })
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async retryFailedClips(
+    @CurrentUser() user: User,
+    @Param('projectId') projectId: string,
+  ): Promise<{
+    clipCount: number;
+    clipResultIds: string[];
+    status: string;
+  }> {
+    const organizationId = user.organizationId;
+    const project = await this.clipProjectsService.findOne({
+      id: projectId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (!project) {
+      throw new NotFoundException('ClipProject', projectId);
+    }
+
+    const failedResults = (
+      await this.clipResultsService.findByProject(projectId, organizationId)
+    ).filter(
+      (result) => result.status === 'failed' || result.status === 'degraded',
+    );
+    if (failedResults.length === 0) {
+      throw new BadRequestException(
+        'This project has no failed clips to retry.',
+      );
+    }
+
+    const mode = project.settings?.mode ?? DEFAULT_CLIP_RESULT_MODE;
+    const provider = project.settings?.avatarProvider ?? 'heygen';
+    const identity =
+      mode === 'avatar' && provider !== 'genfeedai'
+        ? await this.clipIdentityResolutionService.resolve({
+            avatarId: project.settings?.avatarId,
+            avatarProvider: project.settings?.avatarProvider,
+            brandId: project.brandId,
+            organizationId,
+            voiceId: project.settings?.voiceId,
+          })
+        : undefined;
+    this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
+
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        organizationId,
+        failedResults.length,
+      );
+    if (!hasCredits) {
+      const currentBalance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(
+          organizationId,
+        );
+      throw new InsufficientCreditsException(
+        failedResults.length,
+        currentBalance,
+      );
+    }
+
+    const runReferences = project.brandId
+      ? await this.clipGenerationRequestService.resolveRunReferences(
+          project.brandId,
+          organizationId,
+        )
+      : [];
+    const reference =
+      mode === 'avatar'
+        ? this.clipGenerationRequestService.resolveProjectReference({
+            mode,
+            project,
+            provider,
+          })
+        : {};
+    this.clipGenerationRequestService.assertProviderRequirements(
+      provider,
+      reference,
+      runReferences,
+      mode,
+    );
+    const invalidRange = failedResults.find(
+      (result) =>
+        typeof result.startTime !== 'number' ||
+        !Number.isFinite(result.startTime) ||
+        typeof result.endTime !== 'number' ||
+        !Number.isFinite(result.endTime) ||
+        result.endTime <= result.startTime,
+    );
+    if (invalidRange) {
+      throw new BadRequestException(
+        `Failed clip result ${String(invalidRange.id)} has an invalid source time range.`,
+      );
+    }
+    const highlights = failedResults.map((result) => ({
+      clip_type: this.readString(result.clipType) ?? 'highlight',
+      end_time: result.endTime as number,
+      start_time: result.startTime as number,
+      summary: this.readString(result.summary) ?? '',
+      tags: Array.isArray(result.tags)
+        ? result.tags.filter((tag): tag is string => typeof tag === 'string')
+        : [],
+      title: this.readString(result.title) ?? 'Clip',
+      virality_score:
+        typeof result.viralityScore === 'number' ? result.viralityScore : 0,
+    }));
+
+    const claimed = await this.clipProjectsService.claimFailedResultRetry(
+      projectId,
+      organizationId,
+      failedResults.length,
+    );
+    if (!claimed) {
+      throw new BadRequestException(
+        'Failed clips are already being retried or the project is no longer retryable.',
+      );
+    }
+
+    let generated: Awaited<ReturnType<ClipGenerationService['generateClips']>>;
+    try {
+      generated = await this.clipGenerationService.generateClips({
+        avatarId: identity?.avatarId,
+        highlights,
+        hookApprovalRequired: false,
+        mode,
+        orgId: organizationId,
+        projectId,
+        provider,
+        ...(reference.referenceImageUrl
+          ? { referenceImageUrl: reference.referenceImageUrl }
+          : {}),
+        ...(reference.application
+          ? { referenceProvenance: reference.application.provenance }
+          : {}),
+        runReferences,
+        sourceVideoS3Key: project.sourceVideoS3Key,
+        sourceVideoUrl: project.sourceVideoUrl,
+        transcriptSegments: Array.isArray(project.transcriptSegments)
+          ? project.transcriptSegments.filter(isTranscriptSegment)
+          : [],
+        transcriptText: project.transcriptText,
+        userId: user.userId ?? user.id,
+        voiceId: identity?.voiceId,
+      });
+    } catch (error: unknown) {
+      await this.clipProjectsService.patch(
+        projectId,
+        {
+          error: 'Failed clip retry dispatch did not complete.',
+          failedClipCount: failedResults.length,
+          pendingClipCount: 0,
+          status: project.status,
+        },
+        [],
+        organizationId,
+      );
+      throw error;
+    }
+
+    if (generated.clipResultIds.length > 0) {
+      await Promise.all(
+        failedResults.map((result) =>
+          this.clipResultsService.patch(
+            String(result.id),
+            { isDeleted: true },
+            [],
+            organizationId,
+          ),
+        ),
+      );
+    }
+    if (
+      generated.queuedClipCount === 0 ||
+      (!generated.awaitingHookApproval &&
+        generated.completedClipCount === generated.queuedClipCount)
+    ) {
+      await this.clipProjectsService.reconcileTerminalState(
+        projectId,
+        organizationId,
+      );
+    }
+
+    return serializeClipGenerationResult({
+      clipCount: failedResults.length,
+      clipResultIds: generated.clipResultIds,
+      status:
+        !generated.awaitingHookApproval &&
+        generated.completedClipCount === generated.queuedClipCount
+          ? 'completed'
+          : generated.queuedClipCount > 0
+            ? 'generating'
+            : 'failed',
     });
   }
 
@@ -318,5 +533,9 @@ export class ClipProjectsController {
     );
 
     return serializeSingle(request, ClipProjectSerializer, data);
+  }
+
+  private readString(value: unknown): string | null {
+    return typeof value === 'string' && value.length > 0 ? value : null;
   }
 }

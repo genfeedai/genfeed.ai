@@ -8,9 +8,11 @@ import { ClipProjectIngestionService } from '@api/collections/clip-projects/serv
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
+import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ClipAnalyzeModule } from '@api/queues/clip-analyze/clip-analyze.module';
 import { ClipFactoryModule } from '@api/queues/clip-factory/clip-factory.module';
 import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
+import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -27,9 +29,11 @@ import { Module } from '@nestjs/common';
     ClipResultsModule,
     CreditsModule,
     EditorProjectsModule,
+    IngredientsModule,
     ClipAnalyzeModule,
     ClipFactoryModule,
     ClipOrchestratorModule,
+    UploadsModule,
   ],
   providers: [ClipProjectIngestionService],
 })

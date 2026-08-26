@@ -16,7 +16,10 @@ import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { WhisperService } from '@api/services/whisper/whisper.service';
-import { CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS } from '@genfeedai/constants';
+import {
+  CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
+  CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,
+} from '@genfeedai/constants';
 import {
   normalizeClipReferenceFrameSet,
   normalizeClipReferenceTimestamps,
@@ -24,11 +27,13 @@ import {
 import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipReferenceFrameSet,
+  type ClipSourceArtifact,
 } from '@genfeedai/interfaces';
 import {
   CLIP_ANALYZE_CONCURRENCY,
   CLIP_ANALYZE_QUEUE,
   ClipAnalyzeJobData,
+  type ClipAnalyzeJobResult,
 } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
@@ -83,6 +88,11 @@ function unavailableReferenceFrames(
   };
 }
 
+interface AudioExtractionResult {
+  audioUrl: string;
+  sourceArtifact?: ClipSourceArtifact;
+}
+
 @Processor(
   CLIP_ANALYZE_QUEUE,
   withLongJobWorkerOptions({
@@ -104,32 +114,52 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<ClipAnalyzeJobData>): Promise<void> {
+  async process(job: Job<ClipAnalyzeJobData>): Promise<ClipAnalyzeJobResult> {
     const { data } = job;
     const { projectId } = data;
+    let sourceCompleted = false;
+    let sourceArtifact = data.source?.artifact;
 
     this.logger.log(`${this.logContext} starting analysis`, {
       jobId: job.id,
       projectId,
-      youtubeUrl: data.youtubeUrl,
     });
 
     try {
       // Stage 1: Download audio via files microservice
-      await this.updateProject(projectId, {
-        progress: 5,
-        status: 'analyzing',
-      });
-
-      const audioUrl = await this.downloadAudio(
-        data.youtubeUrl,
+      await this.updateProject(
+        projectId,
+        {
+          progress: 5,
+          status: 'analyzing',
+        },
         data.orgId,
-        data.userId,
       );
-      await this.updateProject(projectId, { progress: 15 });
+      await this.updateSource(
+        data,
+        data.source?.kind === 'youtube' ? 'downloading' : 'extracting',
+      );
+
+      const extraction: AudioExtractionResult =
+        data.source?.contentType?.startsWith('audio/')
+          ? { audioUrl: data.youtubeUrl }
+          : await this.downloadAudio(
+              data.youtubeUrl,
+              data.orgId,
+              data.userId,
+              projectId,
+              data.source?.ingredientId,
+              data.source?.artifact?.storageKey,
+            );
+      const { audioUrl } = extraction;
+      if (extraction.sourceArtifact) {
+        sourceArtifact = extraction.sourceArtifact;
+        await this.persistSourceArtifact(data, sourceArtifact);
+      }
+      await this.updateProject(projectId, { progress: 15 }, data.orgId);
+      await this.updateSource(data, 'ready-for-transcription');
 
       this.logger.log(`${this.logContext} audio downloaded`, {
-        audioUrl,
         projectId,
       });
 
@@ -139,12 +169,18 @@ export class ClipAnalyzeProcessor extends WorkerHost {
         data.language,
       );
 
-      await this.updateProject(projectId, {
-        progress: 45,
-        transcriptSegments: transcription.segments,
-        transcriptSrt: transcription.srt,
-        transcriptText: transcription.text,
-      });
+      await this.updateProject(
+        projectId,
+        {
+          progress: 45,
+          transcriptSegments: transcription.segments,
+          transcriptSrt: transcription.srt,
+          transcriptText: transcription.text,
+        },
+        data.orgId,
+      );
+      await this.updateSource(data, 'completed');
+      sourceCompleted = true;
 
       this.logger.log(`${this.logContext} transcription complete`, {
         duration: transcription.duration,
@@ -172,21 +208,32 @@ export class ClipAnalyzeProcessor extends WorkerHost {
       const referenceTimestamps = deriveReferenceTimestamps(highlights);
       let referenceFrames: ClipReferenceFrameSet;
 
-      if (referenceTimestamps.length === 0) {
+      if (
+        referenceTimestamps.length === 0 ||
+        data.source?.contentType?.startsWith('audio/')
+      ) {
         referenceFrames = unavailableReferenceFrames(
-          'clip_reference_no_timestamps',
-          'No eligible highlight timestamps were available for reference extraction.',
+          referenceTimestamps.length === 0
+            ? 'clip_reference_no_timestamps'
+            : 'clip_reference_audio_source',
+          referenceTimestamps.length === 0
+            ? 'No eligible highlight timestamps were available for reference extraction.'
+            : 'Audio sources do not contain reference frames.',
         );
       } else {
-        await this.updateProject(projectId, {
-          highlights,
-          progress: 75,
-          referenceFrames: pendingReferenceFrames(referenceTimestamps),
-        });
+        await this.updateProject(
+          projectId,
+          {
+            highlights,
+            progress: 75,
+            referenceFrames: pendingReferenceFrames(referenceTimestamps),
+          },
+          data.orgId,
+        );
 
         try {
           referenceFrames = await this.extractReferenceFrames(
-            data.youtubeUrl,
+            sourceArtifact?.mediaUrl ?? data.youtubeUrl,
             data.orgId,
             data.userId,
             projectId,
@@ -206,32 +253,51 @@ export class ClipAnalyzeProcessor extends WorkerHost {
 
       // Stage 6: Save analysis output. Reference extraction failures are
       // represented in the contract and do not discard transcript/highlights.
-      await this.updateProject(projectId, {
-        highlights,
-        progress: 100,
-        referenceFrames,
-        status: 'analyzed',
-      });
+      await this.updateProject(
+        projectId,
+        {
+          highlights,
+          progress: 100,
+          referenceFrames,
+          status: 'analyzed',
+        },
+        data.orgId,
+      );
 
       this.logger.log(`${this.logContext} analysis complete`, {
         highlightsCount: highlights.length,
         projectId,
       });
+      return { sourceArtifact };
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown analysis error';
 
       this.logger.error(`${this.logContext} analysis failed`, error);
 
-      await this.updateProject(projectId, {
-        error: errorMessage,
-        status: 'failed',
-      }).catch((updateErr: unknown) => {
+      await this.updateProject(
+        projectId,
+        {
+          error: errorMessage,
+          status: 'failed',
+        },
+        data.orgId,
+      ).catch((updateErr: unknown) => {
         this.logger.error(
           `${this.logContext} failed to update project status`,
           updateErr,
         );
       });
+      if (!sourceCompleted) {
+        await this.updateSource(data, 'failed', errorMessage).catch(
+          (updateErr: unknown) => {
+            this.logger.error(
+              `${this.logContext} failed to update source status`,
+              updateErr,
+            );
+          },
+        );
+      }
 
       throw error;
     }
@@ -280,7 +346,10 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     youtubeUrl: string,
     organizationId: string,
     userId: string,
-  ): Promise<string> {
+    projectId: string,
+    ingredientId?: string,
+    sourceS3Key?: string,
+  ): Promise<AudioExtractionResult> {
     const filesUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
       'http://localhost:3012';
@@ -289,8 +358,12 @@ export class ClipAnalyzeProcessor extends WorkerHost {
       this.httpService.post(
         `${filesUrl}/v1/files/process/video`,
         {
+          id: `clip-audio-${projectId}`,
+          ingredientId: ingredientId ?? projectId,
           organizationId,
-          params: { inputPath: youtubeUrl },
+          params: sourceS3Key
+            ? { s3Key: sourceS3Key }
+            : { inputPath: youtubeUrl },
           type: 'video-to-audio',
           userId,
         },
@@ -315,8 +388,8 @@ export class ClipAnalyzeProcessor extends WorkerHost {
   private async waitForAudioJob(
     filesUrl: string,
     jobId: string,
-    timeoutMs = 120_000,
-  ): Promise<string> {
+    timeoutMs = CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
+  ): Promise<AudioExtractionResult> {
     const pollInterval = 2_000;
     const start = Date.now();
 
@@ -330,7 +403,33 @@ export class ClipAnalyzeProcessor extends WorkerHost {
 
       if (status === 'completed' || status === 'COMPLETED') {
         const result = payload?.result || payload;
-        return result.outputUrl || result.url;
+        const audioUrl = result.outputUrl || result.url;
+        if (typeof audioUrl !== 'string' || audioUrl.length === 0) {
+          throw new Error(
+            `Audio extraction job ${jobId} completed without an output URL`,
+          );
+        }
+        const sourceUrl = result.sourceUrl;
+        const sourceS3Key = result.sourceS3Key;
+        const sourceDurationSeconds = result.sourceDurationSeconds;
+        return {
+          audioUrl,
+          ...(typeof sourceUrl === 'string' && sourceUrl.length > 0
+            ? {
+                sourceArtifact: {
+                  contentType: 'video/mp4',
+                  ...(typeof sourceDurationSeconds === 'number' &&
+                  Number.isFinite(sourceDurationSeconds)
+                    ? { durationSeconds: sourceDurationSeconds }
+                    : {}),
+                  mediaUrl: sourceUrl,
+                  ...(typeof sourceS3Key === 'string' && sourceS3Key.length > 0
+                    ? { storageKey: sourceS3Key }
+                    : {}),
+                },
+              }
+            : {}),
+        };
       }
 
       if (status === 'failed' || status === 'FAILED') {
@@ -382,7 +481,63 @@ export class ClipAnalyzeProcessor extends WorkerHost {
   private async updateProject(
     projectId: string,
     update: Record<string, unknown>,
+    organizationId: string,
   ): Promise<void> {
-    await this.clipProjectsService.patch(projectId, update);
+    await this.clipProjectsService.patch(projectId, update, [], organizationId);
+  }
+
+  private async updateSource(
+    data: ClipAnalyzeJobData,
+    status: NonNullable<ClipAnalyzeJobData['source']>['status'],
+    errorMessage?: string,
+  ): Promise<void> {
+    if (!data.source) {
+      return;
+    }
+
+    const source = {
+      ...data.source,
+      failure: errorMessage
+        ? {
+            code: 'clip_source_processing_failed',
+            message: errorMessage,
+            retryable: true,
+          }
+        : null,
+      status,
+      updatedAt: new Date().toISOString(),
+    };
+    data.source = source;
+    await this.updateProject(
+      data.projectId,
+      {
+        source,
+      },
+      data.orgId,
+    );
+  }
+
+  private async persistSourceArtifact(
+    data: ClipAnalyzeJobData,
+    artifact: ClipSourceArtifact,
+  ): Promise<void> {
+    if (data.source) {
+      data.source = {
+        ...data.source,
+        artifact,
+        durationSeconds:
+          artifact.durationSeconds ?? data.source.durationSeconds,
+      };
+    }
+
+    await this.updateProject(
+      data.projectId,
+      {
+        ...(data.source ? { source: data.source } : {}),
+        sourceVideoS3Key: artifact.storageKey,
+        sourceVideoUrl: artifact.mediaUrl,
+      },
+      data.orgId,
+    );
   }
 }

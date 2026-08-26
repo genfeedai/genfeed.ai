@@ -61,7 +61,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a clip project from a YouTube URL and run the full AI clip factory: analyze highlights and generate avatar video clips asynchronously. Expensive (one credit per clip). Requires an avatarId and voiceId. Returns a projectId to poll with get_clip_project.',
+      'Create a clip project from a YouTube URL and run the full AI clip factory asynchronously. Expensive (one credit per clip). HeyGen and Argil require avatarId and voiceId; GenfeedAI requires a brand character reference. Returns a projectId to poll with get_clip_project.',
     name: 'create_clip_project_from_youtube',
     parameters: {
       properties: {
@@ -72,7 +72,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         avatarProvider: {
           default: 'heygen',
           description: 'Avatar video provider to use',
-          enum: ['heygen', 'argil'],
+          enum: ['heygen', 'argil', 'genfeedai'],
           type: 'string',
         },
         language: {
@@ -149,7 +149,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Generate video clips for selected highlights of an analyzed clip project. Expensive (one credit per clip). The project must be in "analyzed" status. Mode "avatar" (default, currently supported) requires avatarId and voiceId; mode "raw-cut" produces deterministic ffmpeg cuts of the source footage with burned captions and needs no avatar/voice (raw-cut requires API support — see #1238).',
+      'Generate video clips for selected highlights of an analyzed clip project. Expensive (one credit per clip). The project must be in "analyzed" status. In avatar mode, HeyGen and Argil require avatarId and voiceId; GenfeedAI requires a selected reference frame or brand character reference. Raw-cut mode produces deterministic source-footage cuts with burned captions and needs no avatar or voice.',
     name: 'generate_clips',
     parameters: {
       properties: {
@@ -160,7 +160,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         avatarProvider: {
           default: 'heygen',
           description: 'Avatar video provider to use (avatar mode)',
-          enum: ['heygen', 'argil'],
+          enum: ['heygen', 'argil', 'genfeedai'],
           type: 'string',
         },
         editedHighlights: {
@@ -186,7 +186,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         mode: {
           default: 'avatar',
           description:
-            'Generation mode. "avatar" regenerates as an AI avatar (requires avatarId + voiceId). "raw-cut" cuts the original footage with burned captions (no avatar/voice; requires API support #1238).',
+            'Generation mode. "avatar" uses the selected provider requirements. "raw-cut" cuts the original footage with burned captions and needs no avatar or voice.',
           enum: ['avatar', 'raw-cut'],
           type: 'string',
         },

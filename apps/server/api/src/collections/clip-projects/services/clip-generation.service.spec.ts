@@ -29,12 +29,16 @@ function createMockLogger(): LoggerService {
 }
 
 function createMockClipResultsService(): Mocked<
-  Pick<ClipResultsService, 'create' | 'createGenerated' | 'patch'>
+  Pick<
+    ClipResultsService,
+    'create' | 'createGenerated' | 'patch' | 'transitionProviderTerminal'
+  >
 > {
   return {
     create: vi.fn().mockResolvedValue({ id: 'clip-result-1' }),
     createGenerated: vi.fn().mockResolvedValue({ id: 'clip-result-1' }),
     patch: vi.fn().mockResolvedValue({}),
+    transitionProviderTerminal: vi.fn().mockResolvedValue(true),
   };
 }
 
@@ -250,6 +254,8 @@ describe('ClipGenerationService', () => {
         providerJobId: 'argil-job-1',
         providerName: 'argil',
       },
+      [],
+      orgId,
     );
   });
 
@@ -381,19 +387,91 @@ describe('ClipGenerationService', () => {
   it('should set clip status to extracting before firing generation', async () => {
     await service.generateClips(makeInput());
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
-      providerName: 'heygen',
-      status: 'extracting',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-result-1',
+      {
+        providerName: 'heygen',
+        status: 'extracting',
+      },
+      [],
+      orgId,
+    );
   });
 
   it('should persist provider metadata when a job is queued successfully', async () => {
     await service.generateClips(makeInput());
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
-      providerJobId: 'heygen-job-1',
-      providerName: 'heygen',
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-result-1',
+      {
+        providerJobId: 'heygen-job-1',
+        providerName: 'heygen',
+      },
+      [],
+      orgId,
+    );
+  });
+
+  it('persists and reconciles an inline managed-provider completion', async () => {
+    Object.assign(provider, { providerName: 'genfeedai' as const });
+    provider.generateVideo.mockImplementation(async (input) => {
+      await input.onJobCreated?.({
+        jobId: 'genfeedai-clip-clip-result-1',
+        providerName: 'genfeedai',
+      });
+      return {
+        jobId: 'genfeedai-clip-clip-result-1',
+        providerName: 'genfeedai',
+        status: 'completed',
+        videoUrl: 'https://cdn.genfeed.ai/clips/clip-result-1.mp4',
+      };
     });
+    const clipLibraryLinkService = {
+      linkReadyClip: vi.fn().mockResolvedValue({ status: 'linked' }),
+    };
+    const clipProjectsService = {
+      reconcileTerminalState: vi.fn().mockResolvedValue({}),
+    };
+    service = new ClipGenerationService(
+      clipResultsService as unknown as ClipResultsService,
+      avatarVideoService as unknown as AvatarVideoService,
+      rawCutClipService as unknown as RawCutClipService,
+      logger,
+      undefined,
+      clipLibraryLinkService as never,
+      clipProjectsService as never,
+    );
+
+    const result = await service.generateClips(
+      makeInput({
+        avatarId: undefined,
+        provider: 'genfeedai',
+        referenceImageUrl: 'https://cdn.example.com/character.png',
+        voiceId: undefined,
+      }),
+    );
+
+    expect(result).toEqual({
+      clipResultIds: ['clip-result-1'],
+      completedClipCount: 1,
+      providerJobIds: ['genfeedai-clip-clip-result-1'],
+      queuedClipCount: 1,
+    });
+    expect(clipResultsService.transitionProviderTerminal).toHaveBeenCalledWith({
+      clipResultId: 'clip-result-1',
+      providerJobId: 'genfeedai-clip-clip-result-1',
+      providerName: 'genfeedai',
+      status: 'completed',
+      videoUrl: 'https://cdn.genfeed.ai/clips/clip-result-1.mp4',
+    });
+    expect(clipLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
+      clipResultId: 'clip-result-1',
+      organizationId: orgId,
+    });
+    expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
+      projectId,
+      orgId,
+    );
   });
 
   it('should mark clip as failed when provider errors', async () => {
@@ -401,10 +479,15 @@ describe('ClipGenerationService', () => {
 
     const result = await service.generateClips(makeInput());
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
-      providerName: 'heygen',
-      status: 'failed',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-result-1',
+      {
+        providerName: 'heygen',
+        status: 'failed',
+      },
+      [],
+      orgId,
+    );
     expect(result.providerJobIds).toEqual(['']);
     expect(result.queuedClipCount).toBe(0);
   });
@@ -419,10 +502,15 @@ describe('ClipGenerationService', () => {
 
     const result = await service.generateClips(makeInput());
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
-      providerName: 'heygen',
-      status: 'failed',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-result-1',
+      {
+        providerName: 'heygen',
+        status: 'failed',
+      },
+      [],
+      orgId,
+    );
     expect(result.providerJobIds).toEqual(['']);
     expect(result.queuedClipCount).toBe(0);
   });
@@ -492,10 +580,15 @@ describe('ClipGenerationService', () => {
     expect(result.providerJobIds).toEqual(['', 'job-ok']);
     expect(result.queuedClipCount).toBe(1);
     // First clip failed, second succeeded
-    expect(clipResultsService.patch).toHaveBeenCalledWith('cr-1', {
-      providerName: 'heygen',
-      status: 'failed',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'cr-1',
+      {
+        providerName: 'heygen',
+        status: 'failed',
+      },
+      [],
+      orgId,
+    );
   });
 
   // Guards the shared runGenerationLoop skeleton: the extracting-status patch is
@@ -519,14 +612,24 @@ describe('ClipGenerationService', () => {
       }),
     );
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('cr-1', {
-      providerName: 'heygen',
-      status: 'extracting',
-    });
-    expect(clipResultsService.patch).toHaveBeenCalledWith('cr-2', {
-      providerName: 'heygen',
-      status: 'extracting',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'cr-1',
+      {
+        providerName: 'heygen',
+        status: 'extracting',
+      },
+      [],
+      orgId,
+    );
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'cr-2',
+      {
+        providerName: 'heygen',
+        status: 'extracting',
+      },
+      [],
+      orgId,
+    );
   });
 });
 
@@ -640,6 +743,8 @@ describe('ClipGenerationService (raw-cut mode)', () => {
           sourceVideoS3Key: 'videos/source.mp4',
           userId,
         }),
+        [],
+        orgId,
       );
       return {
         jobId: 'raw-cut-trim-clip-result-1',
@@ -650,10 +755,15 @@ describe('ClipGenerationService (raw-cut mode)', () => {
 
     await service.generateClips(makeRawCutInput());
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
-      providerName: 'raw-cut',
-      status: 'extracting',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-result-1',
+      {
+        providerName: 'raw-cut',
+        status: 'extracting',
+      },
+      [],
+      orgId,
+    );
     expect(clipResultsService.patch).toHaveBeenCalledWith(
       'clip-result-1',
       expect.objectContaining({
@@ -663,6 +773,8 @@ describe('ClipGenerationService (raw-cut mode)', () => {
         sourceVideoS3Key: 'videos/source.mp4',
         userId,
       }),
+      [],
+      orgId,
     );
   });
 
@@ -688,9 +800,14 @@ describe('ClipGenerationService (raw-cut mode)', () => {
     expect(result.clipResultIds).toEqual(['cr-1', 'cr-2']);
     expect(result.providerJobIds).toEqual(['', 'trim-job-2']);
     expect(result.queuedClipCount).toBe(1);
-    expect(clipResultsService.patch).toHaveBeenCalledWith('cr-1', {
-      providerName: 'raw-cut',
-      status: 'failed',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'cr-1',
+      {
+        providerName: 'raw-cut',
+        status: 'failed',
+      },
+      [],
+      orgId,
+    );
   });
 });

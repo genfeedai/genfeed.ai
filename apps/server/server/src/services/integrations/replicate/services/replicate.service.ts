@@ -542,7 +542,12 @@ export class ReplicateService {
     language: string;
     duration: number;
     confidence?: number;
-    segments?: Array<{ start: number; end: number; text: string }>;
+    segments?: Array<{
+      start: number;
+      end: number;
+      text: string;
+      words?: Array<{ start: number; end: number; word: string }>;
+    }>;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -599,7 +604,12 @@ export class ReplicateService {
       const output = result.output as {
         text?: string;
         language?: string;
-        segments?: Array<{ start: number; end: number; text: string }>;
+        segments?: Array<{
+          start: number;
+          end: number;
+          text: string;
+          words?: Array<{ start: number; end: number; word: string }>;
+        }>;
       };
 
       // Calculate duration from segments if available

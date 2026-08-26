@@ -40,6 +40,12 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
     label: 'Argil',
     value: 'argil',
   },
+  {
+    description: 'Managed generation',
+    disabled: false,
+    label: 'GenfeedAI',
+    value: 'genfeedai',
+  },
 ];
 
 export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
@@ -65,7 +71,12 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
     setGenerationMode,
     setMaxClips,
     setMinViralityScore,
+    setSourceFile,
+    setSourceKind,
     setYoutubeUrl,
+    sourceFile,
+    sourceKind,
+    uploadProgress,
     youtubeUrl,
   } = clipsPage;
 
@@ -117,6 +128,8 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
               onSetMaxClips={setMaxClips}
               minViralityScore={minViralityScore}
               onSetMinViralityScore={setMinViralityScore}
+              onSetSourceFile={setSourceFile}
+              onSetSourceKind={setSourceKind}
               error={error}
               isSubmitting={isSubmitting}
               onAnalyze={handleAnalyze}
@@ -130,6 +143,9 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
                     ? 'Uses configured avatar and voice defaults.'
                     : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
               }
+              sourceFile={sourceFile}
+              sourceKind={sourceKind}
+              uploadProgress={uploadProgress}
             />
           ) : (
             <>
@@ -155,6 +171,8 @@ function ClipsProjectDetail({
   error,
   generationMode,
   handleGenerate,
+  handleRetryFailedClips,
+  handleRetrySource,
   handleSelectReferenceFrame,
   identityDefaults,
   isHydrating,
@@ -188,9 +206,12 @@ function ClipsProjectDetail({
     return (
       <ClipsProgressView
         project={project}
+        isRetrying={isSubmitting}
         selectedCount={project.estimatedClips ?? selectedCount}
         clipsService={clipsService}
         onReset={resetToInput}
+        onRetryFailedClips={handleRetryFailedClips}
+        onRetrySource={handleRetrySource}
       />
     );
   }
@@ -198,6 +219,10 @@ function ClipsProjectDetail({
   if (step === 'review' && project) {
     const isAnalyzing =
       project.status !== 'analyzed' && project.status !== 'failed';
+    const isManagedProvider = avatarProvider === 'genfeedai';
+    const hasSelectedReference = Boolean(
+      project.referenceFrames?.selectedCandidateId,
+    );
 
     return (
       <div className="mx-auto w-full max-w-4xl">
@@ -276,45 +301,51 @@ function ClipsProjectDetail({
                 <h3 className="text-sm font-medium text-foreground">
                   Avatar Configuration
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="avatar-id-review"
-                      className="mb-1 block text-xs text-muted-foreground"
-                    >
-                      Avatar ID
-                    </label>
-                    <Input
-                      id="avatar-id-review"
-                      type="text"
-                      value={avatarId}
-                      onChange={(event) => setAvatarId(event.target.value)}
-                      placeholder={`${avatarProvider === 'argil' ? 'Argil' : 'HeyGen'} avatar ID`}
-                    />
+                {!isManagedProvider ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="avatar-id-review"
+                        className="mb-1 block text-xs text-muted-foreground"
+                      >
+                        Avatar ID
+                      </label>
+                      <Input
+                        id="avatar-id-review"
+                        type="text"
+                        value={avatarId}
+                        onChange={(event) => setAvatarId(event.target.value)}
+                        placeholder={`${avatarProvider === 'argil' ? 'Argil' : 'HeyGen'} avatar ID`}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="voice-id-review"
+                        className="mb-1 block text-xs text-muted-foreground"
+                      >
+                        Voice ID
+                      </label>
+                      <Input
+                        id="voice-id-review"
+                        type="text"
+                        value={voiceId}
+                        onChange={(event) => setVoiceId(event.target.value)}
+                        placeholder={`${avatarProvider === 'argil' ? 'Argil' : 'HeyGen'} voice ID`}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label
-                      htmlFor="voice-id-review"
-                      className="mb-1 block text-xs text-muted-foreground"
-                    >
-                      Voice ID
-                    </label>
-                    <Input
-                      id="voice-id-review"
-                      type="text"
-                      value={voiceId}
-                      onChange={(event) => setVoiceId(event.target.value)}
-                      placeholder={`${avatarProvider === 'argil' ? 'Argil' : 'HeyGen'} voice ID`}
-                    />
-                  </div>
-                </div>
+                ) : null}
 
                 <p className="text-xs text-muted-foreground">
-                  {avatarProvider === 'argil'
-                    ? 'Enter the avatar and voice IDs from your Argil account.'
-                    : identityDefaults.isComplete
-                      ? 'Using configured HeyGen identity defaults and overrides.'
-                      : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
+                  {isManagedProvider
+                    ? hasSelectedReference
+                      ? 'Uses the selected reference frame through managed GenfeedAI generation.'
+                      : 'Select a reference frame above. Managed GenfeedAI access must also be enabled for this deployment.'
+                    : avatarProvider === 'argil'
+                      ? 'Enter the avatar and voice IDs from your Argil account.'
+                      : identityDefaults.isComplete
+                        ? 'Using configured HeyGen identity defaults and overrides.'
+                        : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -364,7 +395,10 @@ function ClipsProjectDetail({
                 isDisabled={
                   isSubmitting ||
                   selectedCount === 0 ||
-                  (generationMode === 'avatar' && (!avatarId || !voiceId))
+                  (generationMode === 'avatar' &&
+                    (isManagedProvider
+                      ? !hasSelectedReference
+                      : !avatarId || !voiceId))
                 }
                 isLoading={isSubmitting}
                 className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"

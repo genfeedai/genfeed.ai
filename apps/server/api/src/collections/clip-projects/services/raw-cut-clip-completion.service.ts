@@ -2,6 +2,7 @@ import { ClipProjectsService } from '@api/collections/clip-projects/clip-project
 import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import {
   getRawCutCaptionJobId,
+  getRawCutFramingJobId,
   RawCutClipService,
 } from '@api/collections/clip-projects/services/raw-cut-clip.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
@@ -9,10 +10,15 @@ import type { ClipResultDocument } from '@api/collections/clip-results/schemas/c
 import { isTerminalClipStatus } from '@api/collections/clip-shared/clip-terminal-contract.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { JobState, Status } from '@genfeedai/enums';
-import type { IJobStatusResponse } from '@genfeedai/interfaces';
+import type {
+  ClipRawCutFramingContract,
+  ClipRawCutMediaValidationContract,
+  IJobStatusResponse,
+} from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 export interface RawCutVideoCompletionEvent {
   error?: string;
@@ -37,6 +43,7 @@ export class RawCutClipCompletionService {
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipResultsService: ClipResultsService,
     private readonly fileQueueService: FileQueueService,
+    private readonly filesClientService: FilesClientService,
     private readonly rawCutClipService: RawCutClipService,
     private readonly logger: LoggerService,
   ) {}
@@ -118,6 +125,14 @@ export class RawCutClipCompletionService {
         await this.completeCaption(clipResult, { ...event, organizationId });
         return true;
       }
+
+      if (
+        status === 'reframing' &&
+        (!eventJobType || eventJobType === 'convert-to-portrait')
+      ) {
+        await this.completeFraming(clipResult, { ...event, organizationId });
+        return true;
+      }
     } catch (error: unknown) {
       if (error instanceof RawCutCompletionContractError) {
         await this.failClip(
@@ -156,6 +171,10 @@ export class RawCutClipCompletionService {
     ]);
     const results = await Promise.allSettled(
       activeClips.map(async (clipResult) => {
+        if (clipResult.status === 'validating') {
+          await this.completeValidation(clipResult);
+          return;
+        }
         const jobId = this.readString(clipResult.providerJobId);
         if (!jobId) {
           if (this.isStale(clipResult.updatedAt)) {
@@ -173,7 +192,7 @@ export class RawCutClipCompletionService {
         try {
           job = await this.fileQueueService.getJobStatus(jobId);
         } catch (error: unknown) {
-          if (await this.redispatchTrimIfPossible(clipResult)) {
+          if (await this.redispatchCurrentStageIfPossible(clipResult)) {
             return;
           }
           if (this.isStale(clipResult.updatedAt)) {
@@ -192,8 +211,7 @@ export class RawCutClipCompletionService {
           return;
         }
 
-        const stageJobType =
-          clipResult.status === 'captioning' ? 'add-captions' : 'clip-trim';
+        const stageJobType = this.getStageJobType(clipResult.status);
         await this.handleCompletion({
           error: job.failedReason,
           ingredientId: this.readId(clipResult),
@@ -233,6 +251,55 @@ export class RawCutClipCompletionService {
     const clipResultId = this.readId(clipResult);
     const projectId = this.requireProjectId(clipResult);
     const { s3Key, url } = this.readOutput(event.result, 'trim');
+    const userId = event.userId ?? this.readCanonicalUserId(clipResult);
+
+    if (!userId) {
+      await this.failClip(
+        clipResultId,
+        projectId,
+        event.organizationId,
+        'Raw-cut clip is missing its canonical user id.',
+      );
+      return;
+    }
+
+    const framingJobId = getRawCutFramingJobId(clipResultId);
+    const framingJob = await this.fileQueueService.processVideo({
+      id: framingJobId,
+      ingredientId: clipResultId,
+      organizationId: event.organizationId,
+      params: {
+        framingMode: 'contain-blur',
+        height: 1920,
+        s3Key,
+        width: 1080,
+      },
+      room: this.readString(clipResult.room),
+      type: 'convert-to-portrait',
+      userId,
+      websocketUrl: `/clips/${clipResultId}`,
+    });
+
+    await this.clipResultsService.patch(
+      clipResultId,
+      {
+        providerJobId: framingJob.jobId,
+        status: 'reframing',
+        videoS3Key: s3Key,
+        videoUrl: url,
+      },
+      [],
+      event.organizationId,
+    );
+  }
+
+  private async completeFraming(
+    clipResult: ClipResultDocument,
+    event: RawCutVideoCompletionEvent,
+  ): Promise<void> {
+    const clipResultId = this.readId(clipResult);
+    const projectId = this.requireProjectId(clipResult);
+    const { s3Key, url } = this.readOutput(event.result, 'framing');
     const captionSrt = this.readString(clipResult.captionSrt);
     const userId = event.userId ?? this.readCanonicalUserId(clipResult);
 
@@ -245,7 +312,6 @@ export class RawCutClipCompletionService {
       );
       return;
     }
-
     if (!userId) {
       await this.failClip(
         clipResultId,
@@ -256,27 +322,37 @@ export class RawCutClipCompletionService {
       return;
     }
 
-    const captionJobId = getRawCutCaptionJobId(clipResultId);
     const captionJob = await this.fileQueueService.processVideo({
-      id: captionJobId,
+      id: getRawCutCaptionJobId(clipResultId),
       ingredientId: clipResultId,
       organizationId: event.organizationId,
-      params: {
-        captionContent: captionSrt,
-        s3Key,
-      },
+      params: { captionContent: captionSrt, s3Key },
       room: this.readString(clipResult.room),
       type: 'add-captions',
       userId,
       websocketUrl: `/clips/${clipResultId}`,
     });
+    const framing: ClipRawCutFramingContract = {
+      aspectRatio: '9:16',
+      height: 1920,
+      strategy: 'contain-blur',
+      subjectSafety: 'full-source-visible',
+      version: 1,
+      width: 1080,
+    };
 
-    await this.clipResultsService.patch(clipResultId, {
-      providerJobId: captionJob.jobId,
-      status: 'captioning',
-      videoS3Key: s3Key,
-      videoUrl: url,
-    });
+    await this.clipResultsService.patch(
+      clipResultId,
+      {
+        framing,
+        providerJobId: captionJob.jobId,
+        status: 'captioning',
+        videoS3Key: s3Key,
+        videoUrl: url,
+      },
+      [],
+      event.organizationId,
+    );
   }
 
   private async completeCaption(
@@ -284,17 +360,63 @@ export class RawCutClipCompletionService {
     event: RawCutVideoCompletionEvent,
   ): Promise<void> {
     const clipResultId = this.readId(clipResult);
-    const projectId = this.requireProjectId(clipResult);
     const { s3Key, url } = this.readOutput(event.result, 'caption');
 
-    await this.clipResultsService.patch(clipResultId, {
+    await this.clipResultsService.patch(
+      clipResultId,
+      {
+        captionedVideoS3Key: s3Key,
+        captionedVideoUrl: url,
+        status: 'validating',
+      },
+      [],
+      event.organizationId,
+    );
+    await this.completeValidation({
+      ...clipResult,
       captionedVideoS3Key: s3Key,
       captionedVideoUrl: url,
-      isProjectReconciliationPending: true,
-      status: 'completed',
+      status: 'validating',
     });
-    await this.linkLibraryAsset(clipResultId, event.organizationId);
-    await this.reconcileProject(clipResultId, projectId, event.organizationId);
+  }
+
+  private async completeValidation(
+    clipResult: ClipResultDocument,
+  ): Promise<void> {
+    const clipResultId = this.readId(clipResult);
+    const projectId = this.requireProjectId(clipResult);
+    const organizationId = clipResult.organizationId;
+    const s3Key = this.readString(clipResult.captionedVideoS3Key);
+    const url = this.readString(clipResult.captionedVideoUrl);
+    if (!s3Key || !url) {
+      await this.failClip(
+        clipResultId,
+        projectId,
+        organizationId,
+        'Raw-cut validation is missing its canonical captioned media.',
+      );
+      return;
+    }
+
+    const validation = await this.validateCaptionedOutput(clipResult, url);
+    const completed = validation.status === 'passed';
+    await this.clipResultsService.patch(
+      clipResultId,
+      {
+        captionedVideoS3Key: s3Key,
+        captionedVideoUrl: url,
+        error: completed ? null : validation.issues.join(' '),
+        isProjectReconciliationPending: true,
+        mediaValidation: validation,
+        status: completed ? 'completed' : 'degraded',
+      },
+      [],
+      organizationId,
+    );
+    if (completed) {
+      await this.linkLibraryAsset(clipResultId, organizationId);
+    }
+    await this.reconcileProject(clipResultId, projectId, organizationId);
   }
 
   private async linkLibraryAsset(
@@ -321,11 +443,16 @@ export class RawCutClipCompletionService {
     error: string,
   ): Promise<void> {
     const isProjectReconciliationPending = Boolean(projectId);
-    await this.clipResultsService.patch(clipResultId, {
-      error,
-      isProjectReconciliationPending,
-      status: 'failed',
-    });
+    await this.clipResultsService.patch(
+      clipResultId,
+      {
+        error,
+        isProjectReconciliationPending,
+        status: 'failed',
+      },
+      [],
+      organizationId,
+    );
 
     if (projectId) {
       await this.reconcileProject(clipResultId, projectId, organizationId);
@@ -334,7 +461,7 @@ export class RawCutClipCompletionService {
 
   private readOutput(
     result: Record<string, unknown> | undefined,
-    stage: 'caption' | 'trim',
+    stage: 'caption' | 'framing' | 'trim',
   ): { s3Key: string; url: string } {
     const s3Key = this.readString(result?.s3Key);
     const url = this.readString(result?.url);
@@ -356,12 +483,16 @@ export class RawCutClipCompletionService {
       : {};
   }
 
-  private async redispatchTrimIfPossible(
+  private async redispatchCurrentStageIfPossible(
     clipResult: ClipResultDocument,
   ): Promise<boolean> {
-    if (clipResult.status !== 'extracting') {
-      return false;
+    if (clipResult.status === 'reframing') {
+      return this.redispatchFramingIfPossible(clipResult);
     }
+    if (clipResult.status === 'captioning') {
+      return this.redispatchCaptionIfPossible(clipResult);
+    }
+    if (clipResult.status !== 'extracting') return false;
 
     const captionSrt = this.readString(clipResult.captionSrt);
     const endTime = this.readNumber(clipResult.endTime);
@@ -391,9 +522,63 @@ export class RawCutClipCompletionService {
       startTime,
       userId,
     });
-    await this.clipResultsService.patch(this.readId(clipResult), {
-      providerJobId: dispatch.jobId,
+    await this.clipResultsService.patch(
+      this.readId(clipResult),
+      { providerJobId: dispatch.jobId },
+      [],
+      clipResult.organizationId,
+    );
+    return true;
+  }
+
+  private async redispatchFramingIfPossible(
+    clipResult: ClipResultDocument,
+  ): Promise<boolean> {
+    const s3Key = this.readString(clipResult.videoS3Key);
+    const userId = this.readCanonicalUserId(clipResult);
+    if (!s3Key || !userId) return false;
+    const response = await this.fileQueueService.processVideo({
+      id: getRawCutFramingJobId(this.readId(clipResult)),
+      ingredientId: this.readId(clipResult),
+      organizationId: clipResult.organizationId,
+      params: { framingMode: 'contain-blur', height: 1920, s3Key, width: 1080 },
+      room: this.readString(clipResult.room),
+      type: 'convert-to-portrait',
+      userId,
+      websocketUrl: `/clips/${this.readId(clipResult)}`,
     });
+    await this.clipResultsService.patch(
+      this.readId(clipResult),
+      { providerJobId: response.jobId },
+      [],
+      clipResult.organizationId,
+    );
+    return true;
+  }
+
+  private async redispatchCaptionIfPossible(
+    clipResult: ClipResultDocument,
+  ): Promise<boolean> {
+    const captionSrt = this.readString(clipResult.captionSrt);
+    const s3Key = this.readString(clipResult.videoS3Key);
+    const userId = this.readCanonicalUserId(clipResult);
+    if (!captionSrt || !s3Key || !userId) return false;
+    const response = await this.fileQueueService.processVideo({
+      id: getRawCutCaptionJobId(this.readId(clipResult)),
+      ingredientId: this.readId(clipResult),
+      organizationId: clipResult.organizationId,
+      params: { captionContent: captionSrt, s3Key },
+      room: this.readString(clipResult.room),
+      type: 'add-captions',
+      userId,
+      websocketUrl: `/clips/${this.readId(clipResult)}`,
+    });
+    await this.clipResultsService.patch(
+      this.readId(clipResult),
+      { providerJobId: response.jobId },
+      [],
+      clipResult.organizationId,
+    );
     return true;
   }
 
@@ -420,9 +605,12 @@ export class RawCutClipCompletionService {
       projectId,
       organizationId,
     );
-    await this.clipResultsService.patch(clipResultId, {
-      isProjectReconciliationPending: false,
-    });
+    await this.clipResultsService.patch(
+      clipResultId,
+      { isProjectReconciliationPending: false },
+      [],
+      organizationId,
+    );
   }
 
   private async reconcileProjectIfPending(
@@ -433,9 +621,12 @@ export class RawCutClipCompletionService {
     }
     const projectId = this.readProjectId(clipResult);
     if (!projectId) {
-      await this.clipResultsService.patch(this.readId(clipResult), {
-        isProjectReconciliationPending: false,
-      });
+      await this.clipResultsService.patch(
+        this.readId(clipResult),
+        { isProjectReconciliationPending: false },
+        [],
+        clipResult.organizationId,
+      );
       return;
     }
     await this.reconcileProject(
@@ -458,12 +649,101 @@ export class RawCutClipCompletionService {
     eventJobType: string | undefined,
   ): boolean {
     if (!eventJobType) {
-      return status === 'extracting' || status === 'captioning';
+      return (
+        status === 'extracting' ||
+        status === 'reframing' ||
+        status === 'captioning'
+      );
     }
     return (
       (status === 'extracting' && eventJobType === 'clip-trim') ||
+      (status === 'reframing' && eventJobType === 'convert-to-portrait') ||
       (status === 'captioning' && eventJobType === 'add-captions')
     );
+  }
+
+  private getStageJobType(status: string): string {
+    if (status === 'reframing') return 'convert-to-portrait';
+    if (status === 'captioning') return 'add-captions';
+    return 'clip-trim';
+  }
+
+  private async validateCaptionedOutput(
+    clipResult: ClipResultDocument,
+    url: string,
+  ): Promise<ClipRawCutMediaValidationContract> {
+    const expectedDurationSeconds =
+      this.readNumber(clipResult.duration) ??
+      Math.max(
+        0,
+        (this.readNumber(clipResult.endTime) ?? 0) -
+          (this.readNumber(clipResult.startTime) ?? 0),
+      );
+    const issues: string[] = [];
+    let decodeOk = false;
+    let durationSeconds: number | null = null;
+    let hasAudio = false;
+    let height: number | null = null;
+    let videoCodec: string | null = null;
+    let width: number | null = null;
+
+    try {
+      const inspection = await this.filesClientService.inspectVideoQa({
+        blackDurationSeconds: 0.5,
+        freezeDurationSeconds: 2,
+        isContactSheetEnabled: false,
+        videoUrl: url,
+      });
+      decodeOk = inspection.decodeOk;
+      const probe = JSON.parse(inspection.probeJson) as {
+        format?: { duration?: string | number };
+        streams?: Array<{
+          codec_name?: string;
+          codec_type?: string;
+          height?: number;
+          width?: number;
+        }>;
+      };
+      const streams = Array.isArray(probe.streams) ? probe.streams : [];
+      const video = streams.find((stream) => stream.codec_type === 'video');
+      hasAudio = streams.some((stream) => stream.codec_type === 'audio');
+      height = this.readNumber(video?.height) ?? null;
+      width = this.readNumber(video?.width) ?? null;
+      videoCodec = this.readString(video?.codec_name) ?? null;
+      const rawDuration = Number(probe.format?.duration);
+      durationSeconds = Number.isFinite(rawDuration) ? rawDuration : null;
+    } catch {
+      issues.push('Media preflight could not inspect the rendered clip.');
+    }
+
+    if (!decodeOk) issues.push('Rendered video is not decodable.');
+    if (width !== 1080 || height !== 1920) {
+      issues.push('Rendered video is not 1080x1920 portrait media.');
+    }
+    if (videoCodec !== 'h264') issues.push('Rendered video is not H.264.');
+    if (!hasAudio) issues.push('Rendered video is missing its source audio.');
+    if (
+      durationSeconds === null ||
+      Math.abs(durationSeconds - expectedDurationSeconds) > 0.75
+    ) {
+      issues.push('Rendered duration is outside the 750ms tolerance.');
+    }
+    if (!this.readString(clipResult.captionSrt)) {
+      issues.push('Rendered clip has no caption contract.');
+    }
+
+    return {
+      checkedAt: new Date().toISOString(),
+      decodeOk,
+      durationSeconds,
+      expectedDurationSeconds,
+      hasAudio,
+      height,
+      issues,
+      status: issues.length === 0 ? 'passed' : 'failed',
+      videoCodec,
+      width,
+    };
   }
 
   private isStale(updatedAt: Date): boolean {

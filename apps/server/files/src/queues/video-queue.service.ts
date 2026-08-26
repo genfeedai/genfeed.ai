@@ -162,7 +162,13 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addVideoToAudioJob(data: VideoJobData): Promise<Job<VideoJobData>> {
-    return this.addJob(JOB_TYPES.VIDEO_TO_AUDIO, data, 'video-to-audio');
+    return this.addJob(
+      JOB_TYPES.VIDEO_TO_AUDIO,
+      data,
+      'video-to-audio',
+      undefined,
+      data.id,
+    );
   }
 
   async addTrimJob(data: VideoJobData): Promise<Job<VideoJobData>> {

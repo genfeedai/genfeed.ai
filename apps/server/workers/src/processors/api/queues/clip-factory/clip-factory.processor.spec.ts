@@ -155,18 +155,26 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       data.projectId,
       expect.objectContaining({ status: 'transcribing' }),
+      [],
+      data.orgId,
     );
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       data.projectId,
       expect.objectContaining({ status: 'analyzing' }),
+      [],
+      data.orgId,
     );
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       data.projectId,
       expect.objectContaining({ status: 'clipping' }),
+      [],
+      data.orgId,
     );
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       data.projectId,
       expect.objectContaining({ progress: 60, status: 'generating' }),
+      [],
+      data.orgId,
     );
   });
 
@@ -217,6 +225,8 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: 'completed' }),
+      [],
+      'org-123',
     );
   });
 
@@ -235,6 +245,8 @@ describe('ClipFactoryProcessor', () => {
         error: 'Clip generation failed before any generation job was queued.',
         status: 'failed',
       }),
+      [],
+      'org-123',
     );
   });
 
@@ -246,6 +258,8 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: 'failed' }),
+      [],
+      'org-123',
     );
   });
 
@@ -261,6 +275,8 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: 'failed' }),
+      [],
+      'org-123',
     );
   });
 
@@ -309,6 +325,8 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: 'failed' }),
+      [],
+      'org-123',
     );
     expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });
@@ -329,6 +347,8 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ status: 'failed' }),
+      [],
+      'org-123',
     );
     expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });

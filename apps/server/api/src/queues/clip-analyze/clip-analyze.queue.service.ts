@@ -1,3 +1,4 @@
+import type { ClipSourceContract } from '@genfeedai/interfaces';
 import {
   CLIP_ANALYZE_JOB_NAME,
   CLIP_ANALYZE_QUEUE,
@@ -5,7 +6,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 @Injectable()
@@ -25,9 +26,22 @@ export class ClipAnalyzeQueueService {
     this.logger.log(`${this.logContext} enqueued`, {
       jobId: job.id,
       projectId: data.projectId,
-      youtubeUrl: data.youtubeUrl,
     });
 
     return job.id ?? data.projectId;
+  }
+
+  async retry(projectId: string, source: ClipSourceContract): Promise<string> {
+    const jobId = `clip-analyze-${projectId}`;
+    const job = await this.clipAnalyzeQueue.getJob(jobId);
+    if (!job || (await job.getState()) !== 'failed') {
+      throw new BadRequestException(
+        `Failed clip analysis job ${jobId} was not found`,
+      );
+    }
+
+    await job.updateData({ ...job.data, source });
+    await job.retry();
+    return job.id ?? jobId;
   }
 }

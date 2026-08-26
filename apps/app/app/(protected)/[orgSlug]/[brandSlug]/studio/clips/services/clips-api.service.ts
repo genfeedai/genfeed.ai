@@ -1,6 +1,7 @@
 import type {
   AgentClipRunIdentity,
   ClipLibraryLinkStatus,
+  ClipProcessingFlow,
   ClipProjectReadResponse,
   ClipReferenceFrameSet,
   HookClipApprovalAction,
@@ -72,6 +73,29 @@ interface CreateFromYoutubeResponse {
   identity?: AgentClipRunIdentity;
   projectId: string;
   status: string;
+}
+
+interface PrepareUploadPayload {
+  avatarId?: string;
+  avatarProvider?: string;
+  brandId?: string;
+  contentType: string;
+  filename: string;
+  flow: ClipProcessingFlow;
+  language: string;
+  maxClips: number;
+  minViralityScore: number;
+  mode: ClipResultMode;
+  sizeBytes: number;
+  voiceId?: string;
+}
+
+interface PrepareUploadResponse {
+  expiresIn: number;
+  ingredientId: string;
+  projectId: string;
+  publicUrl: string;
+  uploadUrl: string;
 }
 
 interface EditorHandoffResponse {
@@ -255,6 +279,74 @@ export class ClipsApiService {
         body: JSON.stringify(payload),
         method: 'POST',
       },
+    );
+  }
+
+  async prepareUpload(
+    payload: PrepareUploadPayload,
+  ): Promise<PrepareUploadResponse> {
+    return this.fetchJson<PrepareUploadResponse>(
+      `${this.apiEndpoint}/clip-projects/from-upload`,
+      {
+        body: JSON.stringify(payload),
+        method: 'POST',
+      },
+    );
+  }
+
+  async uploadSource(
+    uploadUrl: string,
+    file: File,
+    onProgress: (progress: number) => void,
+  ): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('PUT', uploadUrl);
+      request.setRequestHeader(
+        'Content-Type',
+        file.type || 'application/octet-stream',
+      );
+      request.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        }
+      });
+      request.addEventListener('load', () => {
+        if (request.status >= 200 && request.status < 300) {
+          onProgress(100);
+          resolve();
+          return;
+        }
+        reject(new Error(`Source upload failed with status ${request.status}`));
+      });
+      request.addEventListener('error', () => {
+        reject(new Error('Source upload could not reach storage.'));
+      });
+      request.addEventListener('abort', () => {
+        reject(new Error('Source upload was cancelled.'));
+      });
+      request.send(file);
+    });
+  }
+
+  async finalizeUpload(projectId: string): Promise<CreateFromYoutubeResponse> {
+    return this.fetchJson<CreateFromYoutubeResponse>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/source/finalize`,
+      { method: 'POST' },
+    );
+  }
+
+  async retrySource(projectId: string): Promise<CreateFromYoutubeResponse> {
+    return this.fetchJson<CreateFromYoutubeResponse>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/source/retry`,
+      { method: 'POST' },
+    );
+  }
+
+  async retryFailedClips(projectId: string): Promise<void> {
+    await this.fetchJson(
+      `${this.apiEndpoint}/clip-projects/${projectId}/retry-failed`,
+      { method: 'POST' },
     );
   }
 

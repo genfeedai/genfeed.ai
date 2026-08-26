@@ -52,7 +52,7 @@ export class YtDlpService {
       '--socket-timeout',
       '30',
       '--max-filesize',
-      '500M',
+      '10G',
       '-f',
       'bestvideo[height<=720]+bestaudio/best[height<=720]',
       '--merge-output-format',
@@ -98,7 +98,9 @@ export class YtDlpService {
   }
 
   private runYtDlp(args: string[], outputPath: string): Promise<string> {
-    this.logger.log(`yt-dlp ${args.join(' ')}`);
+    this.logger.log('yt-dlp media acquisition started', {
+      operation: args.includes('-x') ? 'audio' : 'video',
+    });
 
     return new Promise((resolve, reject) => {
       const proc = spawn('yt-dlp', args, {

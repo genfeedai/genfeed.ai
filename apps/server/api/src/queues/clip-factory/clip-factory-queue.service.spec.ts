@@ -115,7 +115,7 @@ describe('ClipFactoryQueueService', () => {
       );
     });
 
-    it('should log enqueue details including projectId and youtubeUrl', async () => {
+    it('should log enqueue details without the private source URL', async () => {
       const jobData = makeJobData();
 
       await service.enqueue(jobData);
@@ -124,9 +124,9 @@ describe('ClipFactoryQueueService', () => {
         expect.stringContaining('enqueued'),
         expect.objectContaining({
           projectId: 'project-xyz',
-          youtubeUrl: 'https://youtube.com/watch?v=factory-test',
         }),
       );
+      expect(logger.log.mock.calls[0]?.[1]).not.toHaveProperty('youtubeUrl');
     });
 
     it('should propagate queue errors', async () => {
@@ -182,6 +182,44 @@ describe('ClipFactoryQueueService', () => {
           }),
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+
+    it('queues GenfeedAI jobs without vendor avatar credentials when a character reference exists', async () => {
+      const jobData = makeJobData({
+        avatarId: undefined,
+        avatarProvider: 'genfeedai',
+        runReferences: [
+          {
+            assetId: 'character-1',
+            role: 'character',
+            url: 'https://cdn.example.com/character.png',
+          },
+        ],
+        voiceId: undefined,
+      });
+
+      await service.enqueue(jobData);
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'clip-factory-run',
+        jobData,
+        expect.any(Object),
+      );
+    });
+
+    it('rejects a GenfeedAI job without a character reference', async () => {
+      await expect(
+        service.enqueue(
+          makeJobData({
+            avatarId: undefined,
+            avatarProvider: 'genfeedai',
+            runReferences: [],
+            voiceId: undefined,
+          }),
+        ),
+      ).rejects.toThrow(/character reference/);
 
       expect(queue.add).not.toHaveBeenCalled();
     });

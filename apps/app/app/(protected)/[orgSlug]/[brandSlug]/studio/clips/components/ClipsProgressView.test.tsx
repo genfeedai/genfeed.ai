@@ -17,7 +17,10 @@ function renderApproval() {
   render(
     <ClipsProgressView
       clipsService={clipsService as unknown as ClipsApiService}
+      isRetrying={false}
       onReset={vi.fn()}
+      onRetryFailedClips={vi.fn()}
+      onRetrySource={vi.fn()}
       project={{
         clips: [],
         highlights: [],

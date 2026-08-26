@@ -62,8 +62,10 @@ class MockFFmpegService {
   getVideoMetadata = vi.fn().mockResolvedValue({
     codec: 'h264',
     duration: 10,
+    format: { duration: '10' },
     fps: 30,
     height: 1080,
+    streams: [],
     width: 1920,
   });
 }
@@ -142,6 +144,9 @@ describe('VideoProcessor', () => {
   let webSocketService: MockWebSocketService;
   let loggerService: MockLoggerService;
   let redisService: RedisService;
+  const ytDlpService = {
+    downloadVideo: vi.fn().mockResolvedValue('/tmp/audio-test/input.mp4'),
+  };
 
   beforeEach(async () => {
     ffmpegService = new MockFFmpegService();
@@ -203,7 +208,7 @@ describe('VideoProcessor', () => {
 
     // VideoProcessor constructor order: FFmpegService, HookRemixService,
     // VideoMergeJobService, S3Service, WebSocketService, RedisService,
-    // LoggerService
+    // LoggerService, RemotionRenderJobService, reference extraction, YtDlpService
     processor = new VideoProcessor(
       ffmpegService as unknown as never,
       hookRemixService as unknown as never,
@@ -214,6 +219,7 @@ describe('VideoProcessor', () => {
       loggerService as unknown as never,
       remotionRenderJobService as never,
       clipReferenceFrameExtractionService as never,
+      ytDlpService as never,
     );
   });
 
@@ -1140,6 +1146,7 @@ describe('VideoProcessor', () => {
         expect.any(String),
         { height: 1920, width: 1080 },
         expect.any(Function),
+        undefined,
       );
     });
 
@@ -1156,6 +1163,42 @@ describe('VideoProcessor', () => {
         expect.any(String),
         { height: 1920, width: 1080 },
         expect.any(Function),
+        undefined,
+      );
+    });
+
+    it('publishes deterministic raw-cut portrait completion metadata', async () => {
+      const data = createMockJobData({
+        params: {
+          framingMode: 'contain-blur',
+          height: 1920,
+          width: 1080,
+        },
+      });
+      const job = createMockJob(
+        JOB_TYPES.CONVERT_TO_PORTRAIT,
+        data,
+        'raw-cut-frame-clip-1',
+      );
+
+      await processor.handlePortraitConversion(job);
+
+      expect(ffmpegService.convertToPortrait).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        { height: 1920, width: 1080 },
+        expect.any(Function),
+        'contain-blur',
+      );
+      expect(redisService.publish).toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.objectContaining({
+          result: expect.objectContaining({
+            jobId: 'raw-cut-frame-clip-1',
+            jobType: JOB_TYPES.CONVERT_TO_PORTRAIT,
+          }),
+          status: 'completed',
+        }),
       );
     });
 
@@ -1185,6 +1228,7 @@ describe('VideoProcessor', () => {
       const result = await processor.handleVideoToAudio(job);
 
       expect(result.success).toBe(true);
+      expect(result.url).toBeDefined();
       expect(ffmpegService.convertVideoToAudio).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
@@ -1203,6 +1247,58 @@ describe('VideoProcessor', () => {
         expect.any(String),
         'audio/mpeg',
       );
+    });
+
+    it('materializes a YouTube source before extracting audio', async () => {
+      const data = createMockJobData({
+        params: {
+          inputPath: 'https://www.youtube.com/watch?v=test',
+          s3Key: undefined,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.VIDEO_TO_AUDIO, data);
+
+      const result = await processor.handleVideoToAudio(job);
+
+      expect(ytDlpService.downloadVideo).toHaveBeenCalledWith(
+        data.params.inputPath,
+        expect.stringContaining('input.mp4'),
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          sourceDurationSeconds: 10,
+          sourceS3Key: expect.any(String),
+          sourceUrl: expect.stringContaining('https://'),
+        }),
+      );
+      expect(s3Service.downloadFromUrl).not.toHaveBeenCalled();
+    });
+
+    it('rejects a YouTube source beyond the six-hour policy before upload', async () => {
+      ffmpegService.getVideoMetadata.mockResolvedValueOnce({
+        codec: 'h264',
+        duration: 6 * 60 * 60 + 1,
+        format: { duration: String(6 * 60 * 60 + 1) },
+        fps: 30,
+        height: 720,
+        streams: [],
+        width: 1280,
+      });
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://youtu.be/too-long',
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      await expect(processor.handleVideoToAudio(job)).rejects.toThrow(
+        'Clip sources may be up to 6 hours long.',
+      );
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+      expect(ffmpegService.convertVideoToAudio).not.toHaveBeenCalled();
     });
 
     it('should use custom audio options when provided', async () => {

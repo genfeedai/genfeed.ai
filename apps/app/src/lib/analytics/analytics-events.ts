@@ -54,6 +54,10 @@ export type AnalyticsEvent =
 /** Terminal outcome of a tracked action. */
 export type AnalyticsOutcome = 'failure' | 'success';
 
+export type ClipAnalyticsFlow = 'quick' | 'review';
+export type ClipAnalyticsMode = 'avatar' | 'raw-cut';
+export type ClipAnalyticsSourceKind = 'upload' | 'youtube';
+
 export type ConnectGenfeedStep =
   | 'client_selected'
   | 'configuration_copied'
@@ -221,9 +225,15 @@ export interface AnalyticsEventProperties {
     readonly surface: StudioEditorSurface;
   };
   [ANALYTICS_EVENTS.GENERATION_STARTED]: {
+    readonly clipFlow?: ClipAnalyticsFlow;
+    readonly clipMode?: ClipAnalyticsMode;
+    readonly clipSourceKind?: ClipAnalyticsSourceKind;
     readonly generationType: GenerationType;
   };
   [ANALYTICS_EVENTS.GENERATION_COMPLETED]: {
+    readonly clipFlow?: ClipAnalyticsFlow;
+    readonly clipMode?: ClipAnalyticsMode;
+    readonly clipSourceKind?: ClipAnalyticsSourceKind;
     readonly generationType: GenerationType;
     readonly outcome: AnalyticsOutcome;
   };

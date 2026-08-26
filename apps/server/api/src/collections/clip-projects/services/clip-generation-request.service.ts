@@ -24,6 +24,7 @@ import {
   DEFAULT_CLIP_REFERENCE_POLICY,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/interfaces';
+import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface PrepareClipGenerationParams {
@@ -63,6 +64,7 @@ export class ClipGenerationRequestService {
     projectId,
   }: PrepareClipGenerationParams): Promise<PreparedClipGeneration> {
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
+    const provider = dto.avatarProvider ?? 'heygen';
 
     const project = await this.clipProjectsService.findOne({
       id: projectId,
@@ -84,11 +86,11 @@ export class ClipGenerationRequestService {
       mode,
       policy: dto.referencePolicy ?? DEFAULT_CLIP_REFERENCE_POLICY,
       project,
-      provider: dto.avatarProvider ?? 'heygen',
+      provider,
     });
 
     const identity =
-      mode === 'avatar'
+      mode === 'avatar' && provider !== 'genfeedai'
         ? await this.clipIdentityResolutionService.resolve({
             avatarId: dto.avatarId,
             avatarProvider: dto.avatarProvider,
@@ -103,6 +105,7 @@ export class ClipGenerationRequestService {
       : [];
 
     this.assertCompleteAvatarIdentity(identity);
+    this.assertProviderRequirements(provider, reference, runReferences, mode);
 
     if (
       mode === 'raw-cut' &&
@@ -111,6 +114,14 @@ export class ClipGenerationRequestService {
     ) {
       throw new BadRequestException(
         'Raw-cut clip generation requires a source video.',
+      );
+    }
+    if (
+      mode === 'raw-cut' &&
+      project.source?.contentType?.startsWith('audio/')
+    ) {
+      throw new BadRequestException(
+        'Raw-cut clip generation requires source video, not audio-only media.',
       );
     }
 
@@ -137,6 +148,39 @@ export class ClipGenerationRequestService {
       runReferences,
       selectedHighlights,
     };
+  }
+
+  resolveProjectReference(input: {
+    mode: ClipResultMode;
+    project: ClipProjectDocument;
+    provider: SupportedAvatarVideoProviderName;
+  }): ResolvedClipReference {
+    return resolveSelectedClipReference({
+      mode: input.mode,
+      policy: DEFAULT_CLIP_REFERENCE_POLICY,
+      project: input.project,
+      provider: input.provider,
+    });
+  }
+
+  assertProviderRequirements(
+    provider: SupportedAvatarVideoProviderName,
+    reference: ResolvedClipReference,
+    runReferences: readonly ClipRunGenerationReference[],
+    mode: ClipResultMode,
+  ): void {
+    if (mode !== 'avatar' || provider !== 'genfeedai') {
+      return;
+    }
+
+    const hasCharacterReference = runReferences.some(
+      (item) => item.role === 'character' && item.url.length > 0,
+    );
+    if (!reference.referenceImageUrl && !hasCharacterReference) {
+      throw new BadRequestException(
+        'GenfeedAI managed clip generation requires a selected reference frame or brand character reference.',
+      );
+    }
   }
 
   async resolveRunReferences(

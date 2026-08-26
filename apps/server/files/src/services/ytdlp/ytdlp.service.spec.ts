@@ -143,6 +143,7 @@ describe('YtDlpService', () => {
       expect(result).toMatch(/\.mp3$/);
       expect(loggerMock.log).toHaveBeenCalledWith(
         expect.stringContaining('yt-dlp'),
+        { operation: 'audio' },
       );
     });
 
@@ -231,7 +232,7 @@ describe('YtDlpService', () => {
       dateNowMock.mockRestore();
     });
 
-    it('should log the yt-dlp command with correct arguments', async () => {
+    it('should log acquisition without exposing the source URL', async () => {
       const url = 'https://youtube.com/watch?v=test';
       const mockProcess = useMockProcess(spawnMock);
 
@@ -244,14 +245,11 @@ describe('YtDlpService', () => {
 
       await promise;
 
-      const loggedCommand = loggerMock.log.mock.calls[0]?.[0];
-      expect(loggedCommand).toEqual(
-        expect.stringContaining('yt-dlp -x --audio-format mp3 -o '),
+      expect(loggerMock.log).toHaveBeenCalledWith(
+        'yt-dlp media acquisition started',
+        { operation: 'audio' },
       );
-      expect(loggedCommand).toEqual(
-        expect.stringContaining('public/tmp/clips/'),
-      );
-      expect(loggedCommand).toEqual(expect.stringContaining(` ${url}`));
+      expect(JSON.stringify(loggerMock.log.mock.calls)).not.toContain(url);
     });
 
     it('removes %(ext)s intermediate siblings after a failed download', async () => {
@@ -313,7 +311,7 @@ describe('YtDlpService', () => {
           '--socket-timeout',
           '30',
           '--max-filesize',
-          '500M',
+          '10G',
           '-f',
           'bestvideo[height<=720]+bestaudio/best[height<=720]',
           '--merge-output-format',

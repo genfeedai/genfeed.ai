@@ -12,7 +12,9 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
+import { CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/constants';
 import {
+  type ClipSourceArtifact,
   DEFAULT_CLIP_RESULT_MODE,
   isClipResultMode,
 } from '@genfeedai/interfaces';
@@ -30,6 +32,11 @@ import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/cli
 
 import type { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
+
+interface AudioExtractionResult {
+  audioUrl: string;
+  sourceArtifact?: ClipSourceArtifact;
+}
 
 @Processor(
   CLIP_FACTORY_QUEUE,
@@ -56,6 +63,7 @@ export class ClipFactoryProcessor extends WorkerHost {
   async process(job: Job<ClipFactoryJobData>): Promise<void> {
     const { data } = job;
     const { projectId } = data;
+    let sourceCompleted = false;
     const mode = data.mode ?? DEFAULT_CLIP_RESULT_MODE;
     const runReferences = Object.freeze(
       (data.runReferences ?? []).map((reference) =>
@@ -66,7 +74,6 @@ export class ClipFactoryProcessor extends WorkerHost {
     this.logger.log(`${this.logContext} starting pipeline`, {
       jobId: job.id,
       projectId,
-      youtubeUrl: data.youtubeUrl,
     });
 
     try {
@@ -74,27 +81,62 @@ export class ClipFactoryProcessor extends WorkerHost {
         throw new Error(`Unknown clip generation mode "${mode}".`);
       }
 
-      if (mode === 'avatar' && (!data.avatarId || !data.voiceId)) {
+      if (
+        mode === 'avatar' &&
+        data.avatarProvider !== 'genfeedai' &&
+        (!data.avatarId || !data.voiceId)
+      ) {
         throw new Error(
           'Avatar clip generation requires avatarId and voiceId.',
         );
       }
 
-      // Stage 1: Download audio via files microservice
-      await this.updateProject(projectId, {
-        progress: 5,
-        status: 'transcribing',
-      });
+      if (
+        mode === 'avatar' &&
+        data.avatarProvider === 'genfeedai' &&
+        !runReferences.some(
+          (reference) =>
+            reference.role === 'character' && reference.url.length > 0,
+        )
+      ) {
+        throw new Error(
+          'GenfeedAI managed clip generation requires a brand character reference.',
+        );
+      }
 
-      const audioUrl = await this.downloadAudio(
-        data.youtubeUrl,
+      // Stage 1: Download audio via files microservice
+      await this.updateProject(
+        projectId,
+        {
+          progress: 5,
+          status: 'transcribing',
+        },
         data.orgId,
-        data.userId,
       );
-      await this.updateProject(projectId, { progress: 15 });
+      await this.updateSource(
+        data,
+        data.source?.kind === 'youtube' ? 'downloading' : 'extracting',
+      );
+
+      const extraction: AudioExtractionResult =
+        data.source?.contentType?.startsWith('audio/')
+          ? { audioUrl: data.youtubeUrl }
+          : await this.downloadAudio(
+              data.youtubeUrl,
+              data.orgId,
+              data.userId,
+              projectId,
+              data.source?.ingredientId,
+              data.source?.artifact?.storageKey,
+            );
+      const { audioUrl } = extraction;
+      if (extraction.sourceArtifact) {
+        await this.persistSourceArtifact(data, extraction.sourceArtifact);
+      }
+      await this.updateProject(projectId, { progress: 15 }, data.orgId);
+      await this.updateSource(data, 'ready-for-transcription');
 
       this.logger.log(`${this.logContext} audio downloaded`, {
-        audioUrl,
         projectId,
       });
 
@@ -104,13 +146,19 @@ export class ClipFactoryProcessor extends WorkerHost {
         data.language,
       );
 
-      await this.updateProject(projectId, {
-        progress: 35,
-        status: 'analyzing',
-        transcriptSegments: transcription.segments,
-        transcriptSrt: transcription.srt,
-        transcriptText: transcription.text,
-      });
+      await this.updateProject(
+        projectId,
+        {
+          progress: 35,
+          status: 'analyzing',
+          transcriptSegments: transcription.segments,
+          transcriptSrt: transcription.srt,
+          transcriptText: transcription.text,
+        },
+        data.orgId,
+      );
+      await this.updateSource(data, 'completed');
+      sourceCompleted = true;
 
       this.logger.log(`${this.logContext} transcription complete`, {
         duration: transcription.duration,
@@ -137,17 +185,25 @@ export class ClipFactoryProcessor extends WorkerHost {
           totalHighlights: highlights.length,
         });
 
-        await this.updateProject(projectId, {
-          progress: 100,
-          status: 'completed',
-        });
+        await this.updateProject(
+          projectId,
+          {
+            progress: 100,
+            status: 'completed',
+          },
+          data.orgId,
+        );
         return;
       }
 
-      await this.updateProject(projectId, {
-        progress: 50,
-        status: 'clipping',
-      });
+      await this.updateProject(
+        projectId,
+        {
+          progress: 50,
+          status: 'clipping',
+        },
+        data.orgId,
+      );
 
       // Stage 5: Generate clips using the requested mode
       const result = await this.clipGenerationService.generateClips({
@@ -158,7 +214,8 @@ export class ClipFactoryProcessor extends WorkerHost {
         projectId,
         provider: data.avatarProvider,
         runReferences,
-        sourceVideoUrl: data.youtubeUrl,
+        sourceVideoS3Key: data.source?.artifact?.storageKey,
+        sourceVideoUrl: data.source?.artifact?.mediaUrl ?? data.youtubeUrl,
         transcriptSegments: transcription.segments,
         transcriptText: transcription.text,
         userId: data.userId,
@@ -172,18 +229,39 @@ export class ClipFactoryProcessor extends WorkerHost {
       });
 
       if (result.queuedClipCount === 0) {
-        await this.updateProject(projectId, {
-          error: 'Clip generation failed before any generation job was queued.',
-          progress: 100,
-          status: 'failed',
-        });
+        await this.updateProject(
+          projectId,
+          {
+            error:
+              'Clip generation failed before any generation job was queued.',
+            progress: 100,
+            status: 'failed',
+          },
+          data.orgId,
+        );
         return;
       }
 
-      await this.updateProject(projectId, {
-        progress: 60,
-        status: 'generating',
-      });
+      if (
+        !result.awaitingHookApproval &&
+        result.completedClipCount === result.queuedClipCount
+      ) {
+        await this.clipProjectsService.reconcileTerminalState(
+          projectId,
+          data.orgId,
+        );
+        this.logger.log(`${this.logContext} pipeline complete`, { projectId });
+        return;
+      }
+
+      await this.updateProject(
+        projectId,
+        {
+          progress: 60,
+          status: 'generating',
+        },
+        data.orgId,
+      );
 
       this.logger.log(`${this.logContext} pipeline complete`, { projectId });
     } catch (error: unknown) {
@@ -192,15 +270,29 @@ export class ClipFactoryProcessor extends WorkerHost {
 
       this.logger.error(`${this.logContext} pipeline failed`, error);
 
-      await this.updateProject(projectId, {
-        error: errorMessage,
-        status: 'failed',
-      }).catch((updateErr: unknown) => {
+      await this.updateProject(
+        projectId,
+        {
+          error: errorMessage,
+          status: 'failed',
+        },
+        data.orgId,
+      ).catch((updateErr: unknown) => {
         this.logger.error(
           `${this.logContext} failed to update project status`,
           updateErr,
         );
       });
+      if (!sourceCompleted) {
+        await this.updateSource(data, 'failed', errorMessage).catch(
+          (updateErr: unknown) => {
+            this.logger.error(
+              `${this.logContext} failed to update source status`,
+              updateErr,
+            );
+          },
+        );
+      }
 
       throw error;
     }
@@ -213,7 +305,10 @@ export class ClipFactoryProcessor extends WorkerHost {
     youtubeUrl: string,
     organizationId: string,
     userId: string,
-  ): Promise<string> {
+    projectId: string,
+    ingredientId?: string,
+    sourceS3Key?: string,
+  ): Promise<AudioExtractionResult> {
     const configuredFilesUrl = this.configService.get(
       'GENFEEDAI_MICROSERVICES_FILES_URL',
     ) as string | undefined;
@@ -232,8 +327,12 @@ export class ClipFactoryProcessor extends WorkerHost {
       this.httpService.post(
         `${filesUrl}/v1/files/process/video`,
         {
+          id: `clip-audio-${projectId}`,
+          ingredientId: ingredientId ?? projectId,
           organizationId,
-          params: { inputPath: youtubeUrl },
+          params: sourceS3Key
+            ? { s3Key: sourceS3Key }
+            : { inputPath: youtubeUrl },
           type: 'video-to-audio',
           userId,
         },
@@ -259,8 +358,8 @@ export class ClipFactoryProcessor extends WorkerHost {
   private async waitForAudioJob(
     filesUrl: string,
     jobId: string,
-    timeoutMs = 120_000,
-  ): Promise<string> {
+    timeoutMs = CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
+  ): Promise<AudioExtractionResult> {
     const pollInterval = 2_000;
     const start = Date.now();
 
@@ -269,12 +368,38 @@ export class ClipFactoryProcessor extends WorkerHost {
         this.httpService.get(`${filesUrl}/v1/files/job/${jobId}`),
       );
 
-      const status = response.data?.status || response.data?.data?.status;
+      const payload = response.data?.data || response.data;
+      const status = payload?.status || payload?.state;
 
       if (status === 'completed' || status === 'COMPLETED') {
-        const result =
-          response.data?.result || response.data?.data?.result || response.data;
-        return result.outputUrl || result.url;
+        const result = payload?.result || payload;
+        const audioUrl = result.outputUrl || result.url;
+        if (typeof audioUrl !== 'string' || audioUrl.length === 0) {
+          throw new Error(
+            `Audio extraction job ${jobId} completed without an output URL`,
+          );
+        }
+        const sourceUrl = result.sourceUrl;
+        const sourceS3Key = result.sourceS3Key;
+        const sourceDurationSeconds = result.sourceDurationSeconds;
+        return {
+          audioUrl,
+          ...(typeof sourceUrl === 'string' && sourceUrl.length > 0
+            ? {
+                sourceArtifact: {
+                  contentType: 'video/mp4',
+                  ...(typeof sourceDurationSeconds === 'number' &&
+                  Number.isFinite(sourceDurationSeconds)
+                    ? { durationSeconds: sourceDurationSeconds }
+                    : {}),
+                  mediaUrl: sourceUrl,
+                  ...(typeof sourceS3Key === 'string' && sourceS3Key.length > 0
+                    ? { storageKey: sourceS3Key }
+                    : {}),
+                },
+              }
+            : {}),
+        };
       }
 
       if (status === 'failed' || status === 'FAILED') {
@@ -295,7 +420,63 @@ export class ClipFactoryProcessor extends WorkerHost {
   private async updateProject(
     projectId: string,
     update: Record<string, unknown>,
+    organizationId: string,
   ): Promise<void> {
-    await this.clipProjectsService.patch(projectId, update);
+    await this.clipProjectsService.patch(projectId, update, [], organizationId);
+  }
+
+  private async updateSource(
+    data: ClipFactoryJobData,
+    status: NonNullable<ClipFactoryJobData['source']>['status'],
+    errorMessage?: string,
+  ): Promise<void> {
+    if (!data.source) {
+      return;
+    }
+
+    const source = {
+      ...data.source,
+      failure: errorMessage
+        ? {
+            code: 'clip_source_processing_failed',
+            message: errorMessage,
+            retryable: true,
+          }
+        : null,
+      status,
+      updatedAt: new Date().toISOString(),
+    };
+    data.source = source;
+    await this.updateProject(
+      data.projectId,
+      {
+        source,
+      },
+      data.orgId,
+    );
+  }
+
+  private async persistSourceArtifact(
+    data: ClipFactoryJobData,
+    artifact: ClipSourceArtifact,
+  ): Promise<void> {
+    if (data.source) {
+      data.source = {
+        ...data.source,
+        artifact,
+        durationSeconds:
+          artifact.durationSeconds ?? data.source.durationSeconds,
+      };
+    }
+
+    await this.updateProject(
+      data.projectId,
+      {
+        ...(data.source ? { source: data.source } : {}),
+        sourceVideoS3Key: artifact.storageKey,
+        sourceVideoUrl: artifact.mediaUrl,
+      },
+      data.orgId,
+    );
   }
 }

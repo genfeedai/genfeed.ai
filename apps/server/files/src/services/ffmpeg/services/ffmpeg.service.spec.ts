@@ -179,6 +179,7 @@ describe('FFmpegService', () => {
         '/out.mp4',
         dimensions,
         onProgress,
+        undefined,
       );
       expect(transform.convertToPortrait).toHaveBeenCalledWith(
         '/in.mp4',

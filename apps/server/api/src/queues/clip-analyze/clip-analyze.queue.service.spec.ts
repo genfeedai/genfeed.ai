@@ -119,9 +119,9 @@ describe('ClipAnalyzeQueueService', () => {
         expect.stringContaining('enqueued'),
         expect.objectContaining({
           projectId: 'project-abc',
-          youtubeUrl: 'https://youtube.com/watch?v=test',
         }),
       );
+      expect(logger.log.mock.calls[0]?.[1]).not.toHaveProperty('youtubeUrl');
     });
 
     it('should propagate queue errors', async () => {

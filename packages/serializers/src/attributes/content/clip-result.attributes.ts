@@ -19,6 +19,8 @@ export const clipResultAttributes = createEntityAttributes([
   'captionedVideoS3Key',
   'thumbnailUrl',
   'captionSrt',
+  'framing',
+  'mediaValidation',
   'mode',
   'status',
   'isSelected',

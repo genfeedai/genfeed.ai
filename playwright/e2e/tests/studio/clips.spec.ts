@@ -13,10 +13,13 @@ import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass
 const CLIPS_URL = brandPath(APP_ROUTES.STUDIO.CLIPS);
 const API_ANALYZE = '**/clip-projects/analyze';
 const API_CREATE_FROM_YOUTUBE = '**/clip-projects/from-youtube';
+const API_PREPARE_UPLOAD = '**/clip-projects/from-upload';
 const API_GENERATE = '**/clip-projects/*/generate';
 const API_HIGHLIGHTS = '**/clip-projects/*/highlights';
 const API_HOOK_APPROVAL = '**/clip-projects/*/hook-approval';
 const API_PROJECT = '**/clip-projects/*';
+const API_FINALIZE_UPLOAD = '**/clip-projects/*/source/finalize';
+const API_RETRY_FAILED = '**/clip-projects/*/retry-failed';
 const API_REWRITE = '**/clip-projects/*/highlights/*/rewrite';
 const API_CLIP_RESULTS = '**/clip-results**';
 
@@ -32,16 +35,19 @@ function isClipProjectCollectionUrl(url: string): boolean {
 const MOCK_PROJECT_ID = '000000000000000000001234';
 const MOCK_YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
-function jsonApiProject(status: string): {
+function jsonApiProject(
+  status: string,
+  attributes: Record<string, unknown> = {},
+): {
   data: {
-    attributes: { status: string };
+    attributes: Record<string, unknown> & { status: string };
     id: string;
     type: 'clip-projects';
   };
 } {
   return {
     data: {
-      attributes: { status },
+      attributes: { status, ...attributes },
       id: MOCK_PROJECT_ID,
       type: 'clip-projects',
     },
@@ -302,6 +308,201 @@ test.describe('Clip Factory', () => {
     );
     await expect(
       authenticatedPage.getByText(/found 3 highlights/i),
+    ).toBeVisible();
+  });
+
+  test('uploads a durable source and restores its review project after reload', async ({
+    authenticatedPage,
+  }) => {
+    let prepareBody: Record<string, unknown> | null = null;
+    let uploadCompleted = false;
+
+    await authenticatedPage.route(API_PREPARE_UPLOAD, async (route) => {
+      prepareBody = JSON.parse(route.request().postData() ?? '{}') as Record<
+        string,
+        unknown
+      >;
+      await route.fulfill({
+        body: JSON.stringify({
+          expiresIn: 900,
+          ingredientId: 'ingredient-upload-1',
+          projectId: MOCK_PROJECT_ID,
+          publicUrl: 'https://cdn.genfeed.ai/uploads/podcast.mp4',
+          uploadUrl: 'https://uploads.genfeed.test/podcast.mp4',
+        }),
+        contentType: 'application/json',
+        status: 201,
+      });
+    });
+    await authenticatedPage.route(
+      'https://uploads.genfeed.test/podcast.mp4',
+      async (route) => {
+        uploadCompleted = true;
+        await route.fulfill({
+          headers: { 'Access-Control-Allow-Origin': '*' },
+          status: 200,
+        });
+      },
+    );
+    await authenticatedPage.route(API_FINALIZE_UPLOAD, async (route) => {
+      expect(uploadCompleted).toBe(true);
+      await route.fulfill({
+        body: JSON.stringify({
+          batchJobId: 'clip-analyze-upload-1',
+          estimatedClips: 3,
+          projectId: MOCK_PROJECT_ID,
+          status: 'analyzing',
+        }),
+        contentType: 'application/json',
+        status: 202,
+      });
+    });
+    await authenticatedPage.route(API_PROJECT, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname.includes('/highlights')) {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        body: JSON.stringify(
+          jsonApiProject('analyzed', {
+            settings: { flow: 'review', mode: 'avatar' },
+            source: {
+              artifact: {
+                contentType: 'video/mp4',
+                mediaUrl: 'https://cdn.genfeed.ai/uploads/podcast.mp4',
+                storageKey: 'uploads/podcast.mp4',
+              },
+              contentType: 'video/mp4',
+              filename: 'podcast.mp4',
+              flow: 'review',
+              ingredientId: 'ingredient-upload-1',
+              kind: 'upload',
+              schemaVersion: 1,
+              status: 'completed',
+            },
+          }),
+        ),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+    await mockHighlightsPolling(authenticatedPage);
+
+    await authenticatedPage.goto(CLIPS_URL);
+    await authenticatedPage
+      .getByRole('button', { name: /upload audio or video/i })
+      .click();
+    await authenticatedPage.getByLabel(/audio or video file/i).setInputFiles({
+      buffer: Buffer.from('fixture-video'),
+      mimeType: 'video/mp4',
+      name: 'podcast.mp4',
+    });
+    await authenticatedPage
+      .getByRole('button', { name: /review highlights first/i })
+      .click();
+
+    await expect.poll(() => prepareBody).not.toBeNull();
+    expect(prepareBody).toMatchObject({
+      contentType: 'video/mp4',
+      filename: 'podcast.mp4',
+      flow: 'review',
+      sizeBytes: 13,
+    });
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`),
+    );
+    await authenticatedPage.reload();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: /review highlights/i }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(/found 3 highlights/i),
+    ).toBeVisible();
+  });
+
+  test('preserves ready siblings and retries only degraded clip work', async ({
+    authenticatedPage,
+  }) => {
+    let retryCount = 0;
+    await authenticatedPage.route(API_PROJECT, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      await route.fulfill({
+        body: JSON.stringify(
+          jsonApiProject('partially-completed', {
+            settings: { flow: 'quick', mode: 'raw-cut' },
+            source: {
+              contentType: 'video/mp4',
+              flow: 'quick',
+              kind: 'upload',
+              schemaVersion: 1,
+              status: 'completed',
+            },
+          }),
+        ),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+    await authenticatedPage.route(API_CLIP_RESULTS, async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: mockCompletedClipResult,
+              id: 'ready-clip',
+            },
+            {
+              attributes: {
+                ...mockCompletedClipResult,
+                captionedVideoUrl: undefined,
+                mediaValidation: {
+                  issues: ['Rendered video is missing its source audio.'],
+                  status: 'failed',
+                },
+                status: 'degraded',
+                title: 'Needs review',
+              },
+              id: 'degraded-clip',
+            },
+          ],
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+    await authenticatedPage.route(API_RETRY_FAILED, async (route) => {
+      retryCount += 1;
+      await route.fulfill({
+        body: JSON.stringify({
+          clipCount: 1,
+          clipResultIds: ['retry-clip'],
+          status: 'generating',
+        }),
+        contentType: 'application/json',
+        status: 202,
+      });
+    });
+
+    await authenticatedPage.goto(`${CLIPS_URL}/${MOCK_PROJECT_ID}`);
+    await expect(
+      authenticatedPage.getByText('Edited Hook Title'),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByText(/review required/i)).toBeVisible();
+    await authenticatedPage
+      .getByRole('button', { name: /retry failed clips/i })
+      .click();
+
+    await expect.poll(() => retryCount).toBe(1);
+    await expect(
+      authenticatedPage.getByText('Edited Hook Title'),
     ).toBeVisible();
   });
 

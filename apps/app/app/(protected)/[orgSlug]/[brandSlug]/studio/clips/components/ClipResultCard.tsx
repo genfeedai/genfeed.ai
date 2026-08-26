@@ -322,11 +322,13 @@ export default function ClipResultCard({
       )}
 
       {/* Processing indicator */}
-      {!hasReadyAction && clip.status !== 'failed' && (
-        <div className="mt-auto flex items-center justify-center pt-3">
-          <Spinner size={ComponentSize.SM} className="text-primary/50" />
-        </div>
-      )}
+      {!hasReadyAction &&
+        clip.status !== 'failed' &&
+        clip.status !== 'degraded' && (
+          <div className="mt-auto flex items-center justify-center pt-3">
+            <Spinner size={ComponentSize.SM} className="text-primary/50" />
+          </div>
+        )}
 
       {canRetryLibraryLink && (
         <div className="mt-2">
@@ -351,6 +353,15 @@ export default function ClipResultCard({
       {clip.status === 'failed' && (
         <div className="mt-auto pt-2">
           <p className="text-xs text-destructive/70">{t('generationFailed')}</p>
+        </div>
+      )}
+      {clip.status === 'degraded' && (
+        <div className="mt-auto pt-2">
+          <p className="text-xs font-medium text-amber-600">Review required</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {clip.mediaValidation?.issues.join(' ') ??
+              'This clip did not pass media readiness checks.'}
+          </p>
         </div>
       )}
     </Card>

@@ -9,6 +9,7 @@ import { RemotionRenderJobService } from '@files/services/remotion/remotion-rend
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
+import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import type { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
 import {
   JobProgress,
@@ -36,6 +37,30 @@ interface VideoCompletionResult {
   endTime?: number;
 }
 
+const YOUTUBE_HOSTS = new Set([
+  'm.youtube.com',
+  'music.youtube.com',
+  'www.youtube.com',
+  'youtu.be',
+  'youtube.com',
+]);
+
+function isYoutubeUrl(value: string | undefined): value is string {
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'https:' &&
+      url.username.length === 0 &&
+      url.password.length === 0 &&
+      YOUTUBE_HOSTS.has(url.hostname.toLowerCase())
+    );
+  } catch {
+    return false;
+  }
+}
+
 function isFinalAttempt(job: Job<VideoJobData>): boolean {
   return job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
 }
@@ -56,6 +81,7 @@ export class VideoProcessor extends WorkerHost {
     private readonly logger: LoggerService,
     private readonly remotionRenderJobService: RemotionRenderJobService,
     private readonly clipReferenceFrameExtractionService: ClipReferenceFrameExtractionService,
+    private readonly ytDlpService: YtDlpService,
   ) {
     super();
   }
@@ -689,9 +715,10 @@ export class VideoProcessor extends WorkerHost {
         outputPath,
         { height: params.height || 1920, width: params.width || 1080 },
         this.createProgressCallback(metadata.websocketUrl, userId, room),
+        params.framingMode,
       );
 
-      const { s3Key } = await this.uploadAndEmitSuccess(
+      const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
         'videos',
@@ -702,7 +729,29 @@ export class VideoProcessor extends WorkerHost {
       );
 
       this.ffmpegService.cleanupTempFiles(ingredientId, 'portrait');
-      return { outputPath, s3Key, success: true };
+      const result = {
+        jobId: String(job.id),
+        jobType: JOB_TYPES.CONVERT_TO_PORTRAIT,
+        outputPath,
+        s3Key,
+        success: true,
+        url,
+      };
+      if (isRawCutJob(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'completed',
+          {
+            jobId: result.jobId,
+            jobType: result.jobType,
+            s3Key: result.s3Key,
+            url: result.url,
+          },
+        );
+      }
+      return result;
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Portrait conversion failed: ${message}`);
@@ -712,6 +761,19 @@ export class VideoProcessor extends WorkerHost {
         userId,
         room,
       );
+      if (isRawCutJob(job) && isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          {
+            jobId: String(job.id),
+            jobType: JOB_TYPES.CONVERT_TO_PORTRAIT,
+          },
+          message,
+        );
+      }
       throw error;
     }
   }
@@ -725,7 +787,29 @@ export class VideoProcessor extends WorkerHost {
       const inputPath = path.join(tempPath, 'input.mp4');
       const outputPath = path.join(tempPath, 'output.mp3');
 
-      await this.downloadInput(params, inputPath);
+      let sourceS3Key: string | undefined;
+      let sourceDurationSeconds: number | undefined;
+      let sourceUrl: string | undefined;
+      if (isYoutubeUrl(params.inputPath)) {
+        await this.ytDlpService.downloadVideo(params.inputPath, inputPath);
+        const sourceMetadata =
+          await this.ffmpegService.getVideoMetadata(inputPath);
+        const parsedSourceDuration = Number(sourceMetadata.format?.duration);
+        sourceDurationSeconds = Number.isFinite(parsedSourceDuration)
+          ? parsedSourceDuration
+          : undefined;
+        if (
+          sourceDurationSeconds !== undefined &&
+          sourceDurationSeconds > 6 * 60 * 60
+        ) {
+          throw new Error('Clip sources may be up to 6 hours long.');
+        }
+        sourceS3Key = this.s3Service.generateS3Key('videos', ingredientId);
+        await this.s3Service.uploadFile(sourceS3Key, inputPath, 'video/mp4');
+        sourceUrl = this.s3Service.getPublicUrl(sourceS3Key);
+      } else {
+        await this.downloadInput(params, inputPath);
+      }
 
       await this.ffmpegService.convertVideoToAudio(inputPath, outputPath, {
         audioBitrate: params.audioBitrate || '128k',
@@ -733,7 +817,7 @@ export class VideoProcessor extends WorkerHost {
         format: params.audioFormat || 'mp3',
       });
 
-      const { s3Key } = await this.uploadAndEmitSuccess(
+      const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
         'audio',
@@ -744,7 +828,15 @@ export class VideoProcessor extends WorkerHost {
       );
 
       this.ffmpegService.cleanupTempFiles(ingredientId, 'audio');
-      return { outputPath, s3Key, success: true };
+      return {
+        outputPath,
+        s3Key,
+        sourceDurationSeconds,
+        sourceS3Key,
+        sourceUrl,
+        success: true,
+        url,
+      };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Video-to-audio conversion failed: ${message}`);
@@ -765,7 +857,10 @@ export class VideoProcessor extends WorkerHost {
     );
 
     try {
-      const inputPath = params.inputPath!;
+      const inputPath = params.inputPath;
+      if (!inputPath) {
+        throw new Error('Frame extraction requires an input path');
+      }
       const outputDir =
         params.outputDir ||
         this.ffmpegService.getTempPath('frames', ingredientId);
@@ -840,7 +935,10 @@ export class VideoProcessor extends WorkerHost {
     );
 
     try {
-      const videoPath = params.videoPath!;
+      const videoPath = params.videoPath;
+      if (!videoPath) {
+        throw new Error('Video metadata extraction requires a video path');
+      }
       const metadata = await this.ffmpegService.getVideoMetadata(videoPath);
 
       return {

@@ -17,9 +17,14 @@ function renderForm(
     onModeChange: vi.fn(),
     onSetMaxClips: vi.fn(),
     onSetMinViralityScore: vi.fn(),
+    onSetSourceFile: vi.fn(),
+    onSetSourceKind: vi.fn(),
     onSetYoutubeUrl: vi.fn(),
     onStartQuick: vi.fn(),
     quickStartHint: 'Uses saved brand avatar and voice defaults.',
+    sourceFile: null,
+    sourceKind: 'youtube' as const,
+    uploadProgress: 0,
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     ...overrides,
   };
@@ -74,5 +79,23 @@ describe('ClipsInputForm', () => {
     fireEvent.click(screen.getByRole('button', { name: /raw cut/i }));
 
     expect(props.onModeChange).toHaveBeenCalledWith('raw-cut');
+  });
+
+  it('switches to a long-form upload and accepts an audio file', () => {
+    const { props } = renderForm();
+    fireEvent.click(
+      screen.getByRole('button', { name: /upload audio or video/i }),
+    );
+    expect(props.onSetSourceKind).toHaveBeenCalledWith('upload');
+
+    const file = new File(['audio'], 'podcast.mp3', { type: 'audio/mpeg' });
+    const { props: uploadProps } = renderForm({
+      sourceKind: 'upload',
+      youtubeUrl: '',
+    });
+    fireEvent.change(screen.getByLabelText('Audio or video file'), {
+      target: { files: [file] },
+    });
+    expect(uploadProps.onSetSourceFile).toHaveBeenCalledWith(file);
   });
 });

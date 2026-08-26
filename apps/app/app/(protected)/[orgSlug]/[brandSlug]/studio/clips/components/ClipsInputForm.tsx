@@ -6,7 +6,7 @@ import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, Upload, Youtube } from 'lucide-react';
 
 import ClipModeSelector from './ClipModeSelector';
 
@@ -22,29 +22,120 @@ export default function ClipsInputForm({
   onStartQuick,
   onSetMaxClips,
   onSetMinViralityScore,
+  onSetSourceFile,
+  onSetSourceKind,
   onSetYoutubeUrl,
   quickStartHint,
+  sourceFile,
+  sourceKind,
+  uploadProgress,
   youtubeUrl,
 }: ClipsInputFormProps) {
+  const hasSource =
+    sourceKind === 'youtube'
+      ? youtubeUrl.trim().length > 0
+      : Boolean(sourceFile);
+
   return (
     <div className="mx-auto w-full max-w-3xl">
       <Card bodyClassName="space-y-5 p-6">
-        {/* YouTube URL */}
-        <div>
-          <label
-            htmlFor="youtube-url"
-            className="mb-1.5 block text-sm font-medium text-foreground"
-          >
-            YouTube URL
-          </label>
-          <Input
-            id="youtube-url"
-            type="url"
-            value={youtubeUrl}
-            onChange={(e) => onSetYoutubeUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
-        </div>
+        <fieldset>
+          <legend className="mb-2 text-sm font-medium text-foreground">
+            Source
+          </legend>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              aria-pressed={sourceKind === 'youtube'}
+              onClick={() => onSetSourceKind('youtube')}
+              className={`rounded-lg border px-4 py-3 text-sm ${
+                sourceKind === 'youtube'
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-secondary text-muted-foreground'
+              }`}
+              icon={<Youtube className="size-4" />}
+              label="YouTube URL"
+            />
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              aria-pressed={sourceKind === 'upload'}
+              onClick={() => onSetSourceKind('upload')}
+              className={`rounded-lg border px-4 py-3 text-sm ${
+                sourceKind === 'upload'
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-secondary text-muted-foreground'
+              }`}
+              icon={<Upload className="size-4" />}
+              label="Upload audio or video"
+            />
+          </div>
+        </fieldset>
+
+        {sourceKind === 'youtube' ? (
+          <div>
+            <label
+              htmlFor="youtube-url"
+              className="mb-1.5 block text-sm font-medium text-foreground"
+            >
+              YouTube URL
+            </label>
+            <Input
+              id="youtube-url"
+              type="url"
+              value={youtubeUrl}
+              onChange={(e) => onSetYoutubeUrl(e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </div>
+        ) : (
+          <div>
+            <label
+              htmlFor="clip-source-file"
+              className="mb-1.5 block text-sm font-medium text-foreground"
+            >
+              Audio or video file
+            </label>
+            <Input
+              id="clip-source-file"
+              type="file"
+              accept="audio/*,video/*"
+              onChange={(event) =>
+                onSetSourceFile(event.target.files?.[0] ?? null)
+              }
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Supports long-form audio and video up to 10 GB and 6 hours.
+            </p>
+            {sourceFile ? (
+              <p className="mt-2 text-xs text-foreground" role="status">
+                {sourceFile.name} · {(sourceFile.size / 1024 / 1024).toFixed(1)}{' '}
+                MB
+              </p>
+            ) : null}
+            {isSubmitting && uploadProgress > 0 ? (
+              <div
+                className="mt-3"
+                aria-label={`Upload ${uploadProgress}% complete`}
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={uploadProgress}
+                role="progressbar"
+              >
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Uploading source… {uploadProgress}%
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
 
         <ClipModeSelector mode={generationMode} onModeChange={onModeChange} />
 
@@ -111,7 +202,7 @@ export default function ClipsInputForm({
           <Button
             variant={ButtonVariant.UNSTYLED}
             onClick={onStartQuick}
-            isDisabled={isSubmitting || !youtubeUrl}
+            isDisabled={isSubmitting || !hasSource}
             isLoading={isSubmitting}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
             icon={
@@ -141,7 +232,7 @@ export default function ClipsInputForm({
               <Button
                 variant={ButtonVariant.LINK}
                 onClick={onAnalyze}
-                isDisabled={isSubmitting || !youtubeUrl}
+                isDisabled={isSubmitting || !hasSource}
                 className="text-xs text-muted-foreground hover:text-foreground"
                 icon={<Search className="size-3.5" />}
                 label="Review highlights first"

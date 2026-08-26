@@ -132,8 +132,13 @@ export class ClipResultsService extends BaseService<
     id: string,
     updateDto: Partial<UpdateClipResultDto> | Record<string, unknown>,
     populate: PopulateInput = [],
+    organizationId?: string,
   ): Promise<ClipResultDocument> {
-    const existing = await this.findOne({ id: id });
+    const existing = await this.findOne({
+      id: id,
+      isDeleted: false,
+      ...(organizationId !== undefined ? { organizationId } : {}),
+    });
     const existingData = this.readRecord(
       (existing as Record<string, unknown> | null)?.data,
     );
@@ -248,7 +253,7 @@ export class ClipResultsService extends BaseService<
       where: {
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['extracting', 'captioning'] },
+        status: { in: ['extracting', 'reframing', 'captioning', 'validating'] },
       },
     });
   }
@@ -264,7 +269,7 @@ export class ClipResultsService extends BaseService<
       where: {
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['extracting', 'captioning'] },
+        status: { in: ['extracting', 'reframing', 'captioning', 'validating'] },
       },
     });
 
@@ -280,7 +285,7 @@ export class ClipResultsService extends BaseService<
         },
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['completed', 'failed'] },
+        status: { in: ['completed', 'degraded', 'failed'] },
       },
     });
   }
@@ -300,7 +305,7 @@ export class ClipResultsService extends BaseService<
         },
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['completed', 'failed'] },
+        status: { in: ['completed', 'degraded', 'failed'] },
       },
     });
 

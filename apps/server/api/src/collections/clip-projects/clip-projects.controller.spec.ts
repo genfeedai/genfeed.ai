@@ -46,12 +46,14 @@ function createMockLogger(): LoggerService {
 function createMockClipProjectsService(): Pick<
   ClipProjectsService,
   | 'create'
+  | 'claimFailedResultRetry'
   | 'findOne'
   | 'patch'
   | 'reconcileTerminalState'
   | 'selectReferenceFrame'
 > {
   return {
+    claimFailedResultRetry: vi.fn().mockResolvedValue(true),
     create: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
@@ -184,7 +186,9 @@ describe('ClipProjectsController', () => {
     linkReadyClip: ReturnType<typeof vi.fn>;
   };
   let clipResultsService: {
+    findByProject: ReturnType<typeof vi.fn>;
     findProjectResultForHandoff: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
   };
   let creditsUtilsService: {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
@@ -215,7 +219,9 @@ describe('ClipProjectsController', () => {
       }),
     };
     clipResultsService = {
+      findByProject: vi.fn().mockResolvedValue([]),
       findProjectResultForHandoff: vi.fn(),
+      patch: vi.fn(),
     };
     creditsUtilsService = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
@@ -251,6 +257,7 @@ describe('ClipProjectsController', () => {
       clipIdentityResolutionService as ClipIdentityResolutionService,
       creditsUtilsService as unknown as CreditsUtilsService,
       hookClipApprovalService as unknown as HookClipApprovalService,
+      clipResultsService as unknown as ClipResultsService,
     );
     handoffsController = new ClipProjectHandoffsController(
       createMockLogger(),
@@ -491,7 +498,7 @@ describe('ClipProjectsController', () => {
         );
 
         expect(messages).toContain(
-          'avatarProvider must be one of the following values: heygen, argil',
+          'avatarProvider must be one of the following values: heygen, argil, genfeedai',
         );
       },
     );
@@ -560,6 +567,46 @@ describe('ClipProjectsController', () => {
       clipResultIds: ['clip-result-1'],
       status: 'generating',
     });
+  });
+
+  it('dispatches managed GenfeedAI generation from a selected reference without vendor IDs', async () => {
+    const project = withSelectedReference(
+      createProject(projectId, organizationId),
+    );
+    const dto: GenerateClipsDto = {
+      avatarProvider: 'genfeedai',
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Managed summary',
+          title: 'Managed title',
+        },
+      ],
+      mode: 'avatar',
+      selectedHighlightIds: ['highlight-1'],
+    };
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(project);
+    vi.mocked(clipGenerationService.generateClips).mockResolvedValue({
+      clipResultIds: ['clip-result-1'],
+      completedClipCount: 1,
+      providerJobIds: ['genfeedai-clip-clip-result-1'],
+      queuedClipCount: 1,
+    });
+
+    await expect(
+      controller.generateClips(currentUser as never, projectId, dto),
+    ).resolves.toEqual(expect.objectContaining({ status: 'completed' }));
+
+    expect(clipIdentityResolutionService.resolve).not.toHaveBeenCalled();
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        avatarId: undefined,
+        provider: 'genfeedai',
+        referenceImageUrl: 'https://cdn.example.com/frame-1.jpg',
+        voiceId: undefined,
+      }),
+    );
   });
 
   it('defaults multi-clip avatar generation to one-credit hook approval', async () => {
@@ -997,6 +1044,73 @@ describe('ClipProjectsController', () => {
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
     expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
+  });
+
+  it('retries failed clips without replacing completed results', async () => {
+    const project = {
+      ...createProject(projectId, organizationId),
+      settings: { mode: 'raw-cut' as const },
+      sourceVideoS3Key: 'videos/source.mp4',
+      sourceVideoUrl: 'https://cdn.example.com/source.mp4',
+      status: 'partially-completed',
+    } as ClipProjectDocument;
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(project);
+    clipResultsService.findByProject.mockResolvedValue([
+      {
+        clipType: 'hook',
+        endTime: 45,
+        id: 'failed-result-1',
+        startTime: 15,
+        status: 'failed',
+        summary: 'Retry this clip',
+        tags: ['hook'],
+        title: 'Failed hook',
+        viralityScore: 85,
+      },
+      { id: 'completed-result-1', status: 'completed' },
+    ]);
+    vi.mocked(clipGenerationService.generateClips).mockResolvedValue({
+      clipResultIds: ['replacement-result-1'],
+      providerJobIds: ['raw-cut-retry-1'],
+      queuedClipCount: 1,
+    });
+
+    await expect(
+      controller.retryFailedClips(currentUser as never, projectId),
+    ).resolves.toEqual(
+      expect.objectContaining({ clipCount: 1, status: 'generating' }),
+    );
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        highlights: [
+          expect.objectContaining({
+            end_time: 45,
+            start_time: 15,
+            title: 'Failed hook',
+          }),
+        ],
+        sourceVideoS3Key: 'videos/source.mp4',
+      }),
+    );
+    expect(clipProjectsService.claimFailedResultRetry).toHaveBeenCalledWith(
+      projectId,
+      organizationId,
+      1,
+    );
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'failed-result-1',
+      { isDeleted: true },
+      [],
+      organizationId,
+    );
+    expect(clipResultsService.patch).not.toHaveBeenCalledWith(
+      'completed-result-1',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('creates an editor handoff for a ready clip result', async () => {

@@ -4,9 +4,11 @@ import type { ClipGenerationRequestService } from '@api/collections/clip-project
 import type { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
+import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
@@ -30,15 +32,20 @@ describe('ClipProjectIngestionService', () => {
   let service: ClipProjectIngestionService;
   let clipProjectsService: {
     create: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
   };
   let clipFactoryQueueService: {
     enqueue: ReturnType<typeof vi.fn>;
+    retry: ReturnType<typeof vi.fn>;
   };
   let clipAnalyzeQueueService: {
     enqueue: ReturnType<typeof vi.fn>;
+    retry: ReturnType<typeof vi.fn>;
   };
   let clipGenerationRequestService: {
     assertCompleteAvatarIdentity: ReturnType<typeof vi.fn>;
+    assertProviderRequirements: ReturnType<typeof vi.fn>;
     resolveRunReferences: ReturnType<typeof vi.fn>;
   };
   let clipIdentityResolutionService: {
@@ -48,6 +55,11 @@ describe('ClipProjectIngestionService', () => {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
   };
+  let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
+  let presignedUploadService: {
+    confirmUpload: ReturnType<typeof vi.fn>;
+    getPresignedUploadUrl: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -56,12 +68,16 @@ describe('ClipProjectIngestionService', () => {
       create: vi.fn().mockResolvedValue({
         id: 'project-1',
       } as ClipProjectDocument),
+      findOne: vi.fn(),
+      patch: vi.fn(),
     };
     clipFactoryQueueService = {
       enqueue: vi.fn().mockResolvedValue('factory-job-1'),
+      retry: vi.fn().mockResolvedValue('clip-factory-project-1'),
     };
     clipAnalyzeQueueService = {
       enqueue: vi.fn().mockResolvedValue('analyze-job-1'),
+      retry: vi.fn().mockResolvedValue('clip-analyze-project-1'),
     };
     clipGenerationRequestService = {
       assertCompleteAvatarIdentity: vi.fn((identity?: AgentClipRunIdentity) => {
@@ -71,6 +87,7 @@ describe('ClipProjectIngestionService', () => {
           );
         }
       }),
+      assertProviderRequirements: vi.fn(),
       resolveRunReferences: vi.fn().mockResolvedValue([]),
     };
     clipIdentityResolutionService = {
@@ -80,6 +97,17 @@ describe('ClipProjectIngestionService', () => {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
     };
+    ingredientsService = { findOne: vi.fn() };
+    presignedUploadService = {
+      confirmUpload: vi.fn(),
+      getPresignedUploadUrl: vi.fn().mockResolvedValue({
+        expiresIn: 3600,
+        id: 'ingredient-1',
+        publicUrl: 'https://cdn.test/videos/ingredient-1',
+        s3Key: 'videos/ingredient-1',
+        uploadUrl: 'https://uploads.test/ingredient-1',
+      }),
+    };
     service = new ClipProjectIngestionService(
       clipProjectsService as unknown as ClipProjectsService,
       clipFactoryQueueService as unknown as ClipFactoryQueueService,
@@ -87,6 +115,8 @@ describe('ClipProjectIngestionService', () => {
       clipGenerationRequestService as unknown as ClipGenerationRequestService,
       clipIdentityResolutionService as unknown as ClipIdentityResolutionService,
       creditsUtilsService as unknown as CreditsUtilsService,
+      ingredientsService as unknown as IngredientsService,
+      presignedUploadService as unknown as PresignedUploadService,
     );
   });
 
@@ -136,13 +166,20 @@ describe('ClipProjectIngestionService', () => {
       settings: {
         addCaptions: true,
         aspectRatio: '9:16',
+        avatarId: 'avatar-custom',
+        avatarProvider: 'argil',
         captionStyle: 'default',
+        flow: 'quick',
+        language: 'fr',
         maxClips: 12,
         maxDuration: 90,
         minDuration: 15,
+        minViralityScore: 72,
         mode: 'avatar',
+        voiceId: 'voice-custom',
       },
       sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'quick', kind: 'youtube' }),
       userId: 'user-1',
     });
     expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith({
@@ -158,7 +195,18 @@ describe('ClipProjectIngestionService', () => {
       userId: 'user-1',
       voiceId: 'voice-custom',
       youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'quick', kind: 'youtube' }),
     });
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      'project-1',
+      {
+        source: expect.objectContaining({
+          jobId: 'clip-factory-project-1',
+        }),
+      },
+      [],
+      'org-1',
+    );
     expect(result).toEqual({
       batchJobId: 'factory-job-1',
       estimatedClips: 12,
@@ -209,13 +257,20 @@ describe('ClipProjectIngestionService', () => {
       settings: {
         addCaptions: true,
         aspectRatio: '9:16',
+        avatarId: 'avatar-1',
+        avatarProvider: 'heygen',
         captionStyle: 'default',
+        flow: 'quick',
+        language: 'en',
         maxClips: 10,
         maxDuration: 90,
         minDuration: 15,
+        minViralityScore: 50,
         mode: 'avatar',
+        voiceId: 'voice-1',
       },
       sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'quick', kind: 'youtube' }),
       userId: 'user-1',
     });
     expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith({
@@ -231,6 +286,7 @@ describe('ClipProjectIngestionService', () => {
       userId: 'user-1',
       voiceId: 'voice-1',
       youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'quick', kind: 'youtube' }),
     });
     const referenceOrder =
       clipGenerationRequestService.resolveRunReferences.mock
@@ -444,11 +500,16 @@ describe('ClipProjectIngestionService', () => {
         addCaptions: true,
         aspectRatio: '9:16',
         captionStyle: 'default',
+        flow: 'review',
+        language: 'es',
         maxClips: 14,
         maxDuration: 90,
         minDuration: 15,
+        minViralityScore: 64,
+        mode: 'avatar',
       },
       sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'review', kind: 'youtube' }),
       status: 'pending',
       userId: 'user-1',
     });
@@ -460,6 +521,7 @@ describe('ClipProjectIngestionService', () => {
       projectId: 'project-1',
       userId: 'user-1',
       youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'review', kind: 'youtube' }),
     });
     expect(result).toEqual({
       identity: analysisIdentity,
@@ -483,11 +545,16 @@ describe('ClipProjectIngestionService', () => {
         addCaptions: true,
         aspectRatio: '9:16',
         captionStyle: 'default',
+        flow: 'review',
+        language: 'en',
         maxClips: 10,
         maxDuration: 90,
         minDuration: 15,
+        minViralityScore: 50,
+        mode: 'avatar',
       },
       sourceVideoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'review', kind: 'youtube' }),
       status: 'pending',
       userId: 'legacy-user-1',
     });
@@ -499,7 +566,185 @@ describe('ClipProjectIngestionService', () => {
       projectId: 'project-1',
       userId: 'legacy-user-1',
       youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      source: expect.objectContaining({ flow: 'review', kind: 'youtube' }),
     });
+  });
+
+  it('prepares a durable video upload without persisting upload credentials', async () => {
+    const result = await service.prepareUpload(currentUser as never, {
+      contentType: 'video/mp4',
+      filename: 'three-hour-podcast.mp4',
+      flow: 'review',
+      sizeBytes: 4_000_000_000,
+    });
+
+    expect(clipProjectsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        source: expect.objectContaining({
+          contentType: 'video/mp4',
+          flow: 'review',
+          ingredientId: 'ingredient-1',
+          kind: 'upload',
+          status: 'uploading',
+        }),
+      }),
+    );
+    expect(
+      JSON.stringify(clipProjectsService.create.mock.calls[0]),
+    ).not.toContain('uploads.test');
+    expect(result).toMatchObject({
+      ingredientId: 'ingredient-1',
+      projectId: 'project-1',
+      uploadUrl: 'https://uploads.test/ingredient-1',
+    });
+  });
+
+  it('confirms authoritative upload metadata and queues the configured review flow', async () => {
+    const source = {
+      artifact: {
+        contentType: 'video/mp4',
+        mediaUrl: 'https://cdn.test/videos/ingredient-1',
+        storageKey: 'videos/ingredient-1',
+      },
+      contentType: 'video/mp4',
+      filename: 'podcast.mp4',
+      fingerprint: 'sha256:test',
+      flow: 'review' as const,
+      ingredientId: 'ingredient-1',
+      kind: 'upload' as const,
+      maxRetries: 3,
+      retryCount: 0,
+      schemaVersion: 1 as const,
+      sizeBytes: 100,
+      status: 'uploading' as const,
+      updatedAt: '2026-08-26T12:00:00.000Z',
+    };
+    clipProjectsService.findOne.mockResolvedValue({
+      id: 'project-1',
+      language: 'en',
+      organizationId: 'org-1',
+      settings: { flow: 'review', maxClips: 6, minViralityScore: 55 },
+      source,
+      sourceVideoS3Key: 'videos/ingredient-1',
+      sourceVideoUrl: 'https://cdn.test/videos/ingredient-1',
+    } as ClipProjectDocument);
+    ingredientsService.findOne
+      .mockResolvedValueOnce({
+        id: 'ingredient-1',
+        metadata: {},
+        status: 'PROCESSING',
+      })
+      .mockResolvedValueOnce({
+        id: 'ingredient-1',
+        metadata: { duration: 3600, size: 4_000_000_000 },
+        mimeType: 'video/mp4',
+        status: 'UPLOADED',
+      });
+
+    await expect(
+      service.finalizeUpload(currentUser as never, 'project-1'),
+    ).resolves.toMatchObject({
+      batchJobId: 'analyze-job-1',
+      estimatedClips: 6,
+      status: 'analyzing',
+    });
+
+    expect(presignedUploadService.confirmUpload).toHaveBeenCalledWith(
+      currentUser,
+      'ingredient-1',
+    );
+    expect(clipAnalyzeQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 'project-1',
+        source: expect.objectContaining({
+          durationSeconds: 3600,
+          jobId: 'clip-analyze-project-1',
+          status: 'queued',
+        }),
+        youtubeUrl: 'https://cdn.test/videos/ingredient-1',
+      }),
+    );
+  });
+
+  it('rejects authoritative upload metadata that exceeds the source policy', async () => {
+    clipProjectsService.findOne.mockResolvedValue({
+      id: 'project-1',
+      organizationId: 'org-1',
+      settings: { flow: 'review' },
+      source: {
+        contentType: 'video/mp4',
+        filename: 'oversized.mp4',
+        flow: 'review',
+        ingredientId: 'ingredient-1',
+        kind: 'upload',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        sizeBytes: 100,
+        status: 'uploading',
+      },
+    } as ClipProjectDocument);
+    ingredientsService.findOne.mockResolvedValue({
+      id: 'ingredient-1',
+      metadata: { duration: 3600, size: 11 * 1024 * 1024 * 1024 },
+      mimeType: 'video/mp4',
+      status: 'UPLOADED',
+    });
+
+    await expect(
+      service.finalizeUpload(currentUser as never, 'project-1'),
+    ).rejects.toThrow('Clip sources may be up to 10 GB.');
+    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('retries only the failed deterministic source job', async () => {
+    clipProjectsService.findOne.mockResolvedValue({
+      id: 'project-1',
+      organizationId: 'org-1',
+      settings: { flow: 'review', maxClips: 6 },
+      source: {
+        fingerprint: 'sha256:test',
+        flow: 'review',
+        jobId: 'clip-analyze-project-1',
+        kind: 'youtube',
+        maxRetries: 3,
+        retryCount: 0,
+        schemaVersion: 1,
+        status: 'failed',
+        updatedAt: '2026-08-26T12:00:00.000Z',
+      },
+    } as ClipProjectDocument);
+
+    await expect(
+      service.retrySource(currentUser as never, 'project-1'),
+    ).resolves.toMatchObject({
+      batchJobId: 'clip-analyze-project-1',
+      status: 'queued',
+    });
+
+    expect(clipAnalyzeQueueService.retry).toHaveBeenCalledWith(
+      'project-1',
+      expect.objectContaining({ retryCount: 1, status: 'queued' }),
+    );
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      'project-1',
+      expect.objectContaining({ error: null, status: 'pending' }),
+      [],
+      'org-1',
+    );
+  });
+
+  it('rejects raw-cut generation for an audio-only upload', async () => {
+    await expect(
+      service.prepareUpload(currentUser as never, {
+        contentType: 'audio/mpeg',
+        filename: 'podcast.mp3',
+        mode: 'raw-cut',
+        sizeBytes: 10_000,
+      }),
+    ).rejects.toThrow('Audio sources require avatar mode');
+    expect(presignedUploadService.getPresignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('propagates analysis identity, persistence, and queue errors unchanged', async () => {

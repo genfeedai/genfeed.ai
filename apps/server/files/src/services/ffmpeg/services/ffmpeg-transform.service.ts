@@ -191,8 +191,32 @@ export class FFmpegTransformService {
     outputPath: string,
     dimensions?: { width: number; height: number },
     onProgress?: (progress: FFmpegProgress) => void,
+    framingMode: 'center-crop' | 'contain-blur' = 'center-crop',
   ): Promise<void> {
     const { width = 1080, height = 1920 } = dimensions || {};
+
+    if (framingMode === 'contain-blur') {
+      const filter =
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},boxblur=luma_radius=min(h\\,w)/20:luma_power=1[bg];` +
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease[fg];` +
+        `[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p`;
+      await this.core.executeFFmpeg(
+        [
+          '-i',
+          inputPath,
+          '-filter_complex',
+          filter,
+          '-c:v',
+          'libx264',
+          '-c:a',
+          'aac',
+          '-y',
+          outputPath,
+        ],
+        onProgress,
+      );
+      return;
+    }
 
     // Conditional crop: handles both landscape→portrait (crop) and
     // ultra-narrow-portrait→portrait (letterbox) in a single filter chain.

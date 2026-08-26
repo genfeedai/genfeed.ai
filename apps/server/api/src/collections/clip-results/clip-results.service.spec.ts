@@ -355,7 +355,7 @@ describe('ClipResultsService', () => {
         isDeleted: false,
         organizationId: 'org-1',
         providerJobId: 'video-1',
-        status: { notIn: ['completed', 'failed'] },
+        status: { notIn: ['completed', 'degraded', 'failed'] },
       },
     });
   });
@@ -463,7 +463,9 @@ describe('ClipResultsService', () => {
       where: {
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['extracting', 'captioning'] },
+        status: {
+          in: ['extracting', 'reframing', 'captioning', 'validating'],
+        },
       },
     });
   });

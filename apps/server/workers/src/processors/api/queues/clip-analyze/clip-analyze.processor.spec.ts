@@ -131,7 +131,11 @@ describe('ClipAnalyzeProcessor', () => {
       .mockReturnValueOnce(
         of({
           data: {
-            result: { outputUrl: 'https://cdn.test/audio.mp3' },
+            result: {
+              outputUrl: 'https://cdn.test/audio.mp3',
+              sourceS3Key: 'clips/sources/proj-123.mp4',
+              sourceUrl: 'https://cdn.test/source.mp4',
+            },
             state: 'completed',
           },
         }) as never,
@@ -228,7 +232,7 @@ describe('ClipAnalyzeProcessor', () => {
       expect.objectContaining({
         ingredientId: 'proj-123',
         params: {
-          inputPath: mockJobData.youtubeUrl,
+          inputPath: 'https://cdn.test/source.mp4',
           timestamps: [32.5, 50],
         },
         type: 'extract-reference-frames',

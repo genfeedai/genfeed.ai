@@ -84,6 +84,7 @@ export interface VideoProcessingParams {
   width?: number;
   height?: number;
   format?: 'portrait' | 'landscape' | 'square';
+  framingMode?: 'center-crop' | 'contain-blur';
 
   // Merge params
   sourceIds?: string[];
@@ -244,6 +245,9 @@ export interface JobResult {
   outputPath?: string;
   s3Key?: string;
   url?: string;
+  sourceS3Key?: string;
+  sourceDurationSeconds?: number;
+  sourceUrl?: string;
   duration?: number;
   width?: number;
   height?: number;
