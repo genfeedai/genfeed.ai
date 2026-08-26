@@ -15,6 +15,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly personaId: Ingredient['personaId'];
   declare readonly agentRunId: Ingredient['agentRunId'];
   declare readonly agentStrategyId: Ingredient['agentStrategyId'];
+  declare readonly sourceActionId: Ingredient['sourceActionId'];
   declare readonly groupId: Ingredient['groupId'];
   declare readonly groupIndex: Ingredient['groupIndex'];
   declare readonly isMergeEnabled: Ingredient['isMergeEnabled'];
