@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { resolveFullCalendarConstructor } from './resolve-fullcalendar-constructor';
+import {
+  resolveFullCalendarConstructor,
+  resolveFullCalendarPlugin,
+} from './resolve-fullcalendar-constructor';
 
 class MockCalendar {
   constructor(
@@ -47,6 +50,30 @@ describe('resolveFullCalendarConstructor', () => {
   it('throws when no constructor is present', () => {
     expect(() => resolveFullCalendarConstructor({})).toThrow(
       'Unable to load FullCalendar component',
+    );
+  });
+});
+
+describe('resolveFullCalendarPlugin', () => {
+  const plugin = { name: 'mock-plugin' };
+
+  it('uses a direct plugin export', () => {
+    expect(resolveFullCalendarPlugin(plugin)).toBe(plugin);
+  });
+
+  it('unwraps a default plugin export', () => {
+    expect(resolveFullCalendarPlugin({ default: plugin })).toBe(plugin);
+  });
+
+  it('unwraps a double-default plugin export', () => {
+    expect(resolveFullCalendarPlugin({ default: { default: plugin } })).toBe(
+      plugin,
+    );
+  });
+
+  it('throws when no named plugin is present', () => {
+    expect(() => resolveFullCalendarPlugin({})).toThrow(
+      'Unable to load FullCalendar plugin',
     );
   });
 });

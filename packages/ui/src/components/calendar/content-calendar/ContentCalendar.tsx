@@ -39,7 +39,10 @@ import {
   useState,
 } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { resolveFullCalendarConstructor } from './resolve-fullcalendar-constructor';
+import {
+  resolveFullCalendarConstructor,
+  resolveFullCalendarPlugin,
+} from './resolve-fullcalendar-constructor';
 
 interface FullCalendarHostProps {
   options: CalendarOptions;
@@ -277,11 +280,11 @@ function FullCalendarMount({
         calendar = new CalendarCtor(elementRef.current, {
           ...options,
           plugins: [
-            themeModule.default,
-            timeGridModule.default,
-            dayGridModule.default,
-            listModule.default,
-            interactionModule.default,
+            resolveFullCalendarPlugin(themeModule),
+            resolveFullCalendarPlugin(timeGridModule),
+            resolveFullCalendarPlugin(dayGridModule),
+            resolveFullCalendarPlugin(listModule),
+            resolveFullCalendarPlugin(interactionModule),
           ],
         }) as FullCalendarInstance;
         calendarRef.current = calendar;
