@@ -391,8 +391,6 @@ describe('FilesController', () => {
     );
 
     controller = {
-      audioOverlay:
-        processingController.audioOverlay.bind(processingController),
       cleanupTempFiles:
         metadataController.cleanupTempFiles.bind(metadataController),
       copyFile: storageController.copyFile.bind(storageController),

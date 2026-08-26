@@ -1,5 +1,6 @@
 import { ConfigModule } from '@files/config/config.module';
 import { QUEUE_NAMES } from '@files/queues/queue.constants';
+import { AudioOverlayService } from '@files/services/audio-overlay/audio-overlay.service';
 import { ClipReferenceFramesModule } from '@files/services/clip-reference-frames/clip-reference-frames.module';
 import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
 import { FilesModule } from '@files/services/files/files.module';
@@ -19,6 +20,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
+    AudioOverlayService,
     ClipReferenceFramesModule,
     FFmpegModule,
     FilesModule,
@@ -51,6 +53,7 @@ import { Module } from '@nestjs/common';
     ),
   ],
   providers: [
+    AudioOverlayService,
     S3Service,
     VideoMergeJobService,
     WebSocketService,
