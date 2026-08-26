@@ -96,6 +96,17 @@ export function createTestsGateJobs(env) {
       applicable: true,
     },
     {
+      // Spec files are invisible to the Typecheck step inside Static checks —
+      // every backend tsconfig.typecheck.json excludes them — so the ratchet
+      // runs as its own job. It was absent from this aggregate, which let a red
+      // Spec Typecheck report a green Tests Gate: the master failure tracker
+      // keys off `tests-gate.result`, so run 32971423541 filed no tracker and
+      // its resolve arm closed the open ones instead.
+      name: 'Spec typecheck',
+      result: readResult(env, 'SPEC_TYPECHECK_RESULT'),
+      applicable: true,
+    },
+    {
       name: 'Build',
       result: readResult(env, 'BUILD_RESULT'),
       applicable: true,
