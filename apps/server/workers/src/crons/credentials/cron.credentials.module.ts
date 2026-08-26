@@ -7,7 +7,6 @@ import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.
 import { RedditModule } from '@api/services/integrations/reddit/reddit.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
-import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
@@ -23,7 +22,6 @@ import { CronCredentialsService } from '@workers/crons/credentials/cron.credenti
     forwardRef(() => RedditModule),
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
-    forwardRef(() => XAdsModule),
     forwardRef(() => YoutubeModule),
   ],
   providers: [CronCredentialsService],

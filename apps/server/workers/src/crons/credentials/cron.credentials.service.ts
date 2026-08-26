@@ -8,7 +8,6 @@ import { PinterestService } from '@api/services/integrations/pinterest/services/
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
   CredentialPlatform,
@@ -48,7 +47,6 @@ export class CronCredentialsService {
     private readonly redditService: RedditService,
     private readonly tiktokService: TiktokService,
     private readonly twitterService: TwitterService,
-    private readonly xAdsService: XAdsService,
     private readonly youtubeService: YoutubeService,
   ) {
     this.platformRefreshers = new Map<CredentialPlatform, TokenRefreshService>([
@@ -60,7 +58,6 @@ export class CronCredentialsService {
       [CredentialPlatform.REDDIT, this.redditService],
       [CredentialPlatform.TIKTOK, this.tiktokService],
       [CredentialPlatform.TWITTER, this.twitterService],
-      [CredentialPlatform.X_ADS, this.xAdsService],
       [CredentialPlatform.YOUTUBE, this.youtubeService],
     ]);
   }

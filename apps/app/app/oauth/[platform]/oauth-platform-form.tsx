@@ -23,7 +23,7 @@ type VerifyResult =
   | { status: 'success' }
   | { status: 'error'; errorMessage: string };
 
-const OAUTH1_PLATFORMS: string[] = [];
+const OAUTH1_PLATFORMS = ['x-ads'];
 
 const REDIRECT_DELAY_MS = 3000;
 const DEFAULT_RETURN_PATH = '/settings/api-keys';
@@ -90,8 +90,8 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
         const body = isOAuth1
           ? {
-              oauth_token: oauthToken,
-              oauth_verifier: oauthVerifier,
+              oauthToken,
+              oauthVerifier,
             }
           : {
               code,

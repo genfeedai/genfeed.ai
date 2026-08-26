@@ -166,6 +166,12 @@ describe('AdsGatewayController', () => {
     ] as const)(
       'scopes a %s credential to an active connected provider row',
       async (platform, credentialPlatform) => {
+        if (platform === 'x') {
+          credentialsService.findOne.mockResolvedValue({
+            accessToken: 'token-abc',
+            accessTokenSecret: 'token-secret-abc',
+          });
+        }
         mockAdapter.getAdAccounts.mockResolvedValue([]);
 
         await controller.getAdAccounts(mockUser, platform, validCredentialId);
@@ -211,6 +217,35 @@ describe('AdsGatewayController', () => {
       expect(mockAdapter.getAdAccounts).toHaveBeenCalledWith(
         expect.objectContaining({ accessToken: 'plaintext-meta-token' }),
       );
+    });
+
+    it('decrypts both OAuth 1.0a credentials for X Ads only', async () => {
+      credentialsService.findOne.mockResolvedValue({
+        accessToken: EncryptionUtil.encrypt('x-access-token'),
+        accessTokenSecret: EncryptionUtil.encrypt('x-access-token-secret'),
+      });
+      mockAdapter.getAdAccounts.mockResolvedValue([]);
+
+      await controller.getAdAccounts(mockUser, 'x', validCredentialId);
+
+      expect(mockAdapter.getAdAccounts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accessToken: 'x-access-token',
+          accessTokenSecret: 'x-access-token-secret',
+        }),
+      );
+    });
+
+    it('fails closed when an X Ads credential has no token secret', async () => {
+      credentialsService.findOne.mockResolvedValue({
+        accessToken: EncryptionUtil.encrypt('x-access-token'),
+        accessTokenSecret: null,
+      });
+
+      await expect(
+        controller.getAdAccounts(mockUser, 'x', validCredentialId),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(mockAdapter.getAdAccounts).not.toHaveBeenCalled();
     });
   });
 

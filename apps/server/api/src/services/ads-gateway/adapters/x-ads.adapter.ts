@@ -16,6 +16,7 @@ import type {
   XAdsInsightsRow,
   XAdsLineItem,
   XAdsPromotedTweet,
+  XAdsRequestCredentials,
 } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import type {
@@ -105,7 +106,9 @@ export class XAdsAdapter implements IAdsAdapter {
   ) {}
 
   async getAdAccounts(ctx: AdsAdapterContext): Promise<UnifiedAdAccount[]> {
-    const accounts = await this.xAdsService.getAdAccounts(ctx.accessToken);
+    const accounts = await this.xAdsService.getAdAccounts(
+      this.getCredentials(ctx),
+    );
 
     return accounts.map((a) => ({
       currency: a.currency,
@@ -119,7 +122,7 @@ export class XAdsAdapter implements IAdsAdapter {
 
   async listCampaigns(ctx: AdsAdapterContext): Promise<UnifiedCampaign[]> {
     const campaigns = await this.xAdsService.listCampaigns(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
     );
 
@@ -138,7 +141,7 @@ export class XAdsAdapter implements IAdsAdapter {
     );
 
     const rows = await this.xAdsService.getCampaignStats(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       [campaignId],
       dateRanges.reporting,
@@ -159,7 +162,7 @@ export class XAdsAdapter implements IAdsAdapter {
     );
 
     const rows = await this.xAdsService.getLineItemStats(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       [adSetId],
       dateRanges.reporting,
@@ -180,7 +183,7 @@ export class XAdsAdapter implements IAdsAdapter {
     );
 
     const rows = await this.xAdsService.getPromotedTweetStats(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       [adId],
       dateRanges.reporting,
@@ -206,7 +209,7 @@ export class XAdsAdapter implements IAdsAdapter {
     }
 
     const campaign = await this.xAdsService.createCampaign(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       {
         dailyBudgetAmountLocalMicro:
@@ -241,7 +244,7 @@ export class XAdsAdapter implements IAdsAdapter {
     );
 
     const campaign = await this.xAdsService.updateCampaign(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       campaignId,
       {
@@ -296,7 +299,7 @@ export class XAdsAdapter implements IAdsAdapter {
     campaignId: string,
   ): Promise<UnifiedAdSet[]> {
     const lineItems = await this.xAdsService.listLineItems(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       campaignId,
     );
@@ -327,7 +330,7 @@ export class XAdsAdapter implements IAdsAdapter {
     // Line items are the X Ads equivalent of ad sets. They always launch
     // PAUSED — CreateAdSetInput has no caller-supplied status to override.
     const lineItem = await this.xAdsService.createLineItem(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       {
         dailyBudgetAmountLocalMicro:
@@ -353,7 +356,7 @@ export class XAdsAdapter implements IAdsAdapter {
     adSetId?: string,
   ): Promise<UnifiedAd[]> {
     const promotedTweets = await this.xAdsService.listPromotedTweets(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       adSetId,
     );
@@ -398,7 +401,7 @@ export class XAdsAdapter implements IAdsAdapter {
     const metric = params?.metric || 'ctr';
 
     const promotedTweets = await this.xAdsService.listPromotedTweets(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
     );
 
@@ -407,7 +410,7 @@ export class XAdsAdapter implements IAdsAdapter {
     }
 
     const rows = await this.xAdsService.getPromotedTweetStats(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
       promotedTweets.map((tweet) => tweet.id),
       dateRanges.reporting,
@@ -529,7 +532,7 @@ export class XAdsAdapter implements IAdsAdapter {
     ctx: AdsAdapterContext,
   ): Promise<string | undefined> {
     const instruments = await this.xAdsService.getFundingInstruments(
-      ctx.accessToken,
+      this.getCredentials(ctx),
       ctx.adAccountId,
     );
 
@@ -537,5 +540,18 @@ export class XAdsAdapter implements IAdsAdapter {
       instruments.find((instrument) => instrument.entityStatus === 'ACTIVE') ??
       instruments[0]
     )?.id;
+  }
+
+  private getCredentials(ctx: AdsAdapterContext): XAdsRequestCredentials {
+    if (!ctx.accessTokenSecret) {
+      throw new BadRequestException(
+        'X Ads credential is missing an OAuth 1.0a access token secret.',
+      );
+    }
+
+    return {
+      accessToken: ctx.accessToken,
+      accessTokenSecret: ctx.accessTokenSecret,
+    };
   }
 }

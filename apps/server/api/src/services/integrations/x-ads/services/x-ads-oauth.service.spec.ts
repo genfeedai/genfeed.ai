@@ -1,13 +1,17 @@
-const mockGenerateOAuth2AuthLink = vi.fn();
-const mockLoginWithOAuth2 = vi.fn();
-const mockRefreshOAuth2Token = vi.fn();
+const mockGenerateAuthLink = vi.fn();
+const mockLogin = vi.fn();
+const mockAdsClient = {
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+};
 
 vi.mock('twitter-api-v2', () => ({
   TwitterApi: vi.fn(function TwitterApiMock() {
     return {
-      generateOAuth2AuthLink: mockGenerateOAuth2AuthLink,
-      loginWithOAuth2: mockLoginWithOAuth2,
-      refreshOAuth2Token: mockRefreshOAuth2Token,
+      ads: mockAdsClient,
+      generateAuthLink: mockGenerateAuthLink,
+      login: mockLogin,
     };
   }),
 }));
@@ -24,8 +28,8 @@ describe('XAdsOAuthService', () => {
   let service: XAdsOAuthService;
 
   const config: Record<string, string> = {
-    X_ADS_CLIENT_ID: 'x-ads-client-id',
-    X_ADS_CLIENT_SECRET: 'x-ads-client-secret',
+    X_ADS_API_KEY: 'x-ads-api-key',
+    X_ADS_API_SECRET: 'x-ads-api-secret',
     X_ADS_REDIRECT_URI: 'https://app.genfeed.ai/oauth/x-ads',
   };
 
@@ -37,88 +41,101 @@ describe('XAdsOAuthService', () => {
       { get: configGet } as unknown as ConfigService,
       loggerService as unknown as LoggerService,
     );
-    mockGenerateOAuth2AuthLink.mockReturnValue({
-      codeVerifier: 'pkce-verifier',
-      url: 'https://x.com/i/oauth2/authorize',
+    mockGenerateAuthLink.mockResolvedValue({
+      oauth_callback_confirmed: 'true',
+      oauth_token: 'request-token',
+      oauth_token_secret: 'request-token-secret',
+      url: 'https://api.x.com/oauth/authorize?oauth_token=request-token',
     });
   });
 
-  it('requests the canonical X Ads scopes through PKCE', () => {
-    const result = service.generateAuthLink('opaque-state');
+  it('starts three-legged OAuth 1.0a with a signed request token', async () => {
+    const result = await service.generateAuthLink();
 
     expect(TwitterApi).toHaveBeenCalledWith({
-      clientId: 'x-ads-client-id',
-      clientSecret: 'x-ads-client-secret',
+      appKey: 'x-ads-api-key',
+      appSecret: 'x-ads-api-secret',
     });
-    expect(mockGenerateOAuth2AuthLink).toHaveBeenCalledWith(
+    expect(mockGenerateAuthLink).toHaveBeenCalledWith(
       'https://app.genfeed.ai/oauth/x-ads',
       {
-        scope: ['ads.read', 'ads.write', 'offline.access'],
-        state: 'opaque-state',
+        authAccessType: 'write',
+        linkMode: 'authorize',
       },
     );
     expect(result).toEqual({
-      codeVerifier: 'pkce-verifier',
-      url: 'https://x.com/i/oauth2/authorize',
+      oauthToken: 'request-token',
+      oauthTokenSecret: 'request-token-secret',
+      url: 'https://api.x.com/oauth/authorize?oauth_token=request-token',
     });
   });
 
-  it.each([
-    ['X_ADS_CLIENT_ID'],
-    ['X_ADS_CLIENT_SECRET'],
-    ['X_ADS_REDIRECT_URI'],
-  ])('fails closed when %s is missing', (missingKey) => {
+  it.each([['X_ADS_API_KEY'], ['X_ADS_API_SECRET'], ['X_ADS_REDIRECT_URI']])(
+    'fails closed when %s is missing',
+    async (missingKey) => {
+      configGet.mockImplementation((key: string) =>
+        key === missingKey ? undefined : config[key],
+      );
+
+      await expect(service.generateAuthLink()).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+      expect(TwitterApi).not.toHaveBeenCalled();
+    },
+  );
+
+  it('fails closed on placeholder application credentials', async () => {
     configGet.mockImplementation((key: string) =>
-      key === missingKey ? undefined : config[key],
+      key === 'X_ADS_API_KEY' ? 'PLACEHOLDER_NOT_CONFIGURED' : config[key],
     );
 
-    expect(() => service.generateAuthLink('opaque-state')).toThrow(
+    await expect(service.generateAuthLink()).rejects.toBeInstanceOf(
       ServiceUnavailableException,
     );
     expect(TwitterApi).not.toHaveBeenCalled();
   });
 
-  it('guards token exchange with the same typed configuration check', async () => {
-    configGet.mockReturnValue(undefined);
-
-    await expect(
-      service.exchangeAuthCodeForAccessToken('code', 'verifier'),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
-    expect(mockLoginWithOAuth2).not.toHaveBeenCalled();
-  });
-
-  it('exchanges a code and normalizes granted scopes', async () => {
-    mockLoginWithOAuth2.mockResolvedValue({
+  it('exchanges the correlated request token and verifier for durable credentials', async () => {
+    mockLogin.mockResolvedValue({
       accessToken: 'access-token',
-      expiresIn: 7200,
-      refreshToken: 'refresh-token',
-      scope: ['ads.read', 'ads.write', 'offline.access'],
+      accessSecret: 'access-token-secret',
+      screenName: 'ads-operator',
+      userId: 'x-user-1',
     });
 
-    const result = await service.exchangeAuthCodeForAccessToken(
-      'code',
-      'verifier',
+    const result = await service.exchangeRequestToken(
+      'request-token',
+      'request-token-secret',
+      'oauth-verifier',
     );
 
-    expect(mockLoginWithOAuth2).toHaveBeenCalledWith({
-      code: 'code',
-      codeVerifier: 'verifier',
-      redirectUri: 'https://app.genfeed.ai/oauth/x-ads',
+    expect(TwitterApi).toHaveBeenCalledWith({
+      accessSecret: 'request-token-secret',
+      accessToken: 'request-token',
+      appKey: 'x-ads-api-key',
+      appSecret: 'x-ads-api-secret',
     });
+    expect(mockLogin).toHaveBeenCalledWith('oauth-verifier');
     expect(result).toEqual({
       accessToken: 'access-token',
-      expiresIn: 7200,
-      refreshToken: 'refresh-token',
-      scope: 'ads.read ads.write offline.access',
+      accessTokenSecret: 'access-token-secret',
+      screenName: 'ads-operator',
+      userId: 'x-user-1',
     });
   });
 
-  it('guards refresh with the same typed configuration check', async () => {
-    configGet.mockReturnValue(undefined);
+  it('builds the Ads client only from X Ads credentials', () => {
+    const result = service.createAdsClient({
+      accessToken: 'access-token',
+      accessTokenSecret: 'access-token-secret',
+    });
 
-    await expect(
-      service.refreshAccessToken('refresh-token'),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
-    expect(mockRefreshOAuth2Token).not.toHaveBeenCalled();
+    expect(TwitterApi).toHaveBeenCalledWith({
+      accessSecret: 'access-token-secret',
+      accessToken: 'access-token',
+      appKey: 'x-ads-api-key',
+      appSecret: 'x-ads-api-secret',
+    });
+    expect(result).toBe(mockAdsClient);
   });
 });
