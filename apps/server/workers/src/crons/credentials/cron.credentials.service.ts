@@ -1,5 +1,4 @@
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
-import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
@@ -20,6 +19,7 @@ import { GoogleAdsService } from '@server/services/integrations/google-ads/servi
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
+import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 
 interface TokenRefreshService {
   refreshToken(orgId: string, brandId: string): Promise<unknown>;

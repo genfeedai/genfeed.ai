@@ -4,7 +4,7 @@ import {
   isTikTokAuthorizationError,
   isTikTokRateLimitError,
   isTikTokScopeError,
-} from '@api/services/integrations/tiktok/utils/tiktok-error.util';
+} from '@server/services/integrations/tiktok/utils/tiktok-error.util';
 
 describe('TikTok error utilities', () => {
   it.each([undefined, null])(

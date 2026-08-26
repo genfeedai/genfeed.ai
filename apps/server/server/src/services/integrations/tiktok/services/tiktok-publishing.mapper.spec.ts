@@ -1,4 +1,4 @@
-import { resolveTikTokPrivacyLevel } from './tiktok-publishing.mapper';
+import { resolveTikTokPrivacyLevel } from '@server/services/integrations/tiktok/services/tiktok-publishing.mapper';
 
 describe('resolveTikTokPrivacyLevel', () => {
   it('uses an offered composer selection', () => {
