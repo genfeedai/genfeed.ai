@@ -1,217 +1,161 @@
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeCollection: vi.fn((_req, _serializer, data) => data.docs || data),
-  serializeSingle: vi.fn((_req, _serializer, data) => data),
-}));
-
-import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import { readFileSync } from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { MusicsOperationsController } from '@api/collections/musics/controllers/musics-operations.controller';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
+import {
+  ModelsGuard,
+  ValidateModel,
+} from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
-import { testId } from '@helpers/testing/test-id.helper';
+import { ActivitySource, ModelCategory } from '@genfeedai/enums';
+import type {
+  CreditsConfig,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { HttpException, HttpStatus, RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import type { Request } from 'express';
 
 describe('MusicsOperationsController', () => {
   let controller: MusicsOperationsController;
-  let promptsService: PromptsService;
+  const musicGenerationService = {
+    generateMusic: vi.fn(),
+  };
+  const loggerService = {
+    error: vi.fn(),
+    log: vi.fn(),
+  };
 
-  const mockUser = {
-    id: 'user_123',
-    brandId: testId('brand'),
-    organizationId: testId('org'),
-    userId: testId('user'),
+  const user = {
+    brandId: 'brand-1',
+    id: 'auth-user-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
   } as unknown as User;
-
-  const mockCreateMusicDto: CreateMusicDto = {
+  const dto = Object.assign(new CreateMusicDto(), {
     duration: 10,
     outputs: 1,
-    text: 'Generate a happy background music',
-  };
-
-  const mockServices = {
-    activitiesService: {
-      create: vi.fn().mockResolvedValue({ id: testId('activity') }),
-    },
-    brandsService: {
-      findOne: vi.fn().mockResolvedValue({
-        id: testId('brand'),
-      }),
-    },
-    creditsUtilsService: { deductCreditsFromOrganization: vi.fn() },
-    failedGenerationService: {
-      handleFailedMusicGeneration: vi.fn(),
-    },
-    loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-    metadataService: { patch: vi.fn() },
-    modelsService: {
-      findOne: vi.fn().mockResolvedValue({ cost: 10, key: 'model-key' }),
-    },
-    musicsService: {
-      patch: vi.fn(),
-    },
-    pollingService: {
-      pollForResult: vi
-        .fn()
-        .mockResolvedValue({ output: ['https://example.com/audio.mp3'] }),
-    },
-    promptBuilderService: {
-      buildPrompt: vi.fn().mockReturnValue({ prompt: 'built prompt' }),
-    },
-    promptsService: {
-      create: vi.fn().mockResolvedValue({
-        id: testId('prompt'),
-        original: mockCreateMusicDto.text,
-      }),
-    },
-    replicateService: {
-      runModel: vi.fn().mockResolvedValue('generation-id-123'),
-    },
-    routerService: {
-      getDefaultModel: vi.fn().mockResolvedValue('music-model-key'),
-      selectModel: vi.fn().mockResolvedValue({
-        reason: 'best',
-        selectedModel: 'music-model-key',
-      }),
-    },
-    sharedService: {
-      createMediaDocuments: vi.fn().mockResolvedValue({
-        ingredientData: {
-          id: testId('ingredient'),
-        },
-        metadataData: {
-          id: testId('metadata'),
-        },
-      }),
-    },
-    websocketService: {
-      emit: vi.fn().mockResolvedValue({}),
-      publishBackgroundTaskUpdate: vi.fn().mockResolvedValue({}),
-    },
-  };
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [MusicsOperationsController],
-      providers: [
-        {
-          provide: ActivitiesService,
-          useValue: mockServices.activitiesService,
-        },
-        {
-          provide: BrandsService,
-          useValue: mockServices.brandsService,
-        },
-        {
-          provide: CreditsUtilsService,
-          useValue: mockServices.creditsUtilsService,
-        },
-        {
-          provide: FailedGenerationService,
-          useValue: mockServices.failedGenerationService,
-        },
-        { provide: LoggerService, useValue: mockServices.loggerService },
-        { provide: MetadataService, useValue: mockServices.metadataService },
-        { provide: ModelsService, useValue: mockServices.modelsService },
-        {
-          provide: OrganizationSettingsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue({
-              defaultMusicModel: 'music-model-key',
-            }),
-          },
-        },
-        { provide: MusicsService, useValue: mockServices.musicsService },
-        { provide: PromptsService, useValue: mockServices.promptsService },
-        {
-          provide: PromptBuilderService,
-          useValue: mockServices.promptBuilderService,
-        },
-        {
-          provide: IngredientCompletionService,
-          useValue: mockServices.pollingService,
-        },
-        { provide: ReplicateService, useValue: mockServices.replicateService },
-        { provide: RouterService, useValue: mockServices.routerService },
-        { provide: SharedService, useValue: mockServices.sharedService },
-        {
-          provide: NotificationsPublisherService,
-          useValue: mockServices.websocketService,
-        },
-      ],
-    })
-      .overrideGuard(BetterAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(SubscriptionGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(CreditsGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(ModelsGuard)
-      .useValue({ canActivate: () => true })
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_ctx: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
-      .compile();
-
-    controller = module.get<MusicsOperationsController>(
-      MusicsOperationsController,
-    );
-    promptsService = module.get<PromptsService>(PromptsService);
+    text: 'Generate happy background music',
   });
+  const request = { originalUrl: '/api/musics' } as unknown as Request;
 
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
+    controller = new MusicsOperationsController(
+      loggerService as unknown as LoggerService,
+      musicGenerationService as unknown as MusicGenerationService,
+    );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('delegates the unchanged request contract to MusicGenerationService', async () => {
+    const response = {
+      data: { id: 'music-1' },
+    } as unknown as JsonApiSingleResponse;
+    musicGenerationService.generateMusic.mockResolvedValue(response);
+
+    await expect(controller.create(request, user, dto)).resolves.toBe(response);
+    expect(musicGenerationService.generateMusic).toHaveBeenCalledOnce();
+    expect(musicGenerationService.generateMusic).toHaveBeenCalledWith(
+      user,
+      dto,
+      request,
+    );
+    expect(loggerService.log).toHaveBeenCalledWith(
+      'MusicsOperationsController.create started',
+      {
+        operation: 'create',
+        service: 'MusicsOperationsController',
+      },
+    );
   });
 
-  describe('create', () => {
-    it('should create music generation request successfully', async () => {
-      const result = await controller.create(
-        {} as unknown as Request,
-        mockUser,
-        mockCreateMusicDto,
-      );
+  it('passes delegated HTTP errors through unchanged', async () => {
+    const error = new HttpException(
+      { detail: 'Prompt is required', title: 'Prompt validation failed' },
+      HttpStatus.BAD_REQUEST,
+    );
+    musicGenerationService.generateMusic.mockRejectedValue(error);
 
-      expect(promptsService.create).toHaveBeenCalled();
-      expect(
-        mockServices.sharedService.createMediaDocuments,
-      ).toHaveBeenCalled();
-      expect(result).toBeDefined();
+    await expect(controller.create(request, user, dto)).rejects.toBe(error);
+    expect(loggerService.error).toHaveBeenCalledWith(
+      'MusicsOperationsController.create failed',
+      expect.objectContaining({
+        operation: 'create',
+        service: 'MusicsOperationsController',
+      }),
+    );
+  });
+
+  it('preserves POST /musics and its OpenAPI identity', () => {
+    const handler = MusicsOperationsController.prototype.create;
+
+    expect(Reflect.getMetadata(PATH_METADATA, MusicsOperationsController)).toBe(
+      'musics',
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('/');
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.POST,
+    );
+    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
+      summary: 'create',
     });
+  });
 
-    it('should throw error when text is missing', async () => {
-      const invalidDto = { ...mockCreateMusicDto, text: undefined };
+  it('preserves controller and endpoint guards', () => {
+    const handler = MusicsOperationsController.prototype.create;
 
-      await expect(
-        controller.create({} as unknown as Request, mockUser, invalidDto),
-      ).rejects.toThrow(HttpException);
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, MusicsOperationsController),
+    ).toEqual([RolesGuard]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, handler)).toEqual([
+      SubscriptionGuard,
+      CreditsGuard,
+      ModelsGuard,
+    ]);
+  });
+
+  it('preserves credit and model-validation metadata', () => {
+    const handler = MusicsOperationsController.prototype.create;
+    const reflector = new Reflector();
+
+    expect(Reflect.getMetadata(CREDITS_KEY, handler) as CreditsConfig).toEqual({
+      description: 'Music generation',
+      source: ActivitySource.MUSIC_GENERATION,
     });
+    expect(reflector.get(ValidateModel, handler)).toEqual({
+      category: ModelCategory.MUSIC,
+    });
+  });
+
+  it('keeps CreateMusicDto as the runtime request body type', () => {
+    const parameterTypes = Reflect.getMetadata(
+      'design:paramtypes',
+      MusicsOperationsController.prototype,
+      'create',
+    ) as unknown[];
+
+    expect(parameterTypes[2]).toBe(CreateMusicDto);
+  });
+
+  it('keeps the controller transport-only and within the controller limit', () => {
+    const source = readFileSync(
+      new URL('./musics-operations.controller.ts', import.meta.url),
+      'utf8',
+    );
+
+    expect(source.trimEnd().split('\n').length).toBeLessThanOrEqual(500);
+    expect(source).not.toMatch(
+      /ReplicateService|CreditsUtilsService|createMediaDocuments|waitForMultipleIngredientsCompletion|serializeSingle/,
+    );
   });
 });

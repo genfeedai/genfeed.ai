@@ -12,6 +12,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsController } from '@api/collections/musics/controllers/musics.controller';
 import { MusicsOperationsController } from '@api/collections/musics/controllers/musics-operations.controller';
 import { MusicsUploadController } from '@api/collections/musics/controllers/musics-upload.controller';
+import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
@@ -51,6 +52,12 @@ import { Module } from '@nestjs/common';
     RouterModule,
     IngredientCompletionModule,
   ],
-  providers: [MusicsService, CreditsGuard, ModelsGuard, CreditsInterceptor],
+  providers: [
+    MusicsService,
+    MusicGenerationService,
+    CreditsGuard,
+    ModelsGuard,
+    CreditsInterceptor,
+  ],
 })
 export class MusicsModule {}
