@@ -99,7 +99,7 @@ export default function ReviewPostHoverPreview({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-[min(22rem,calc(100vw-2rem))] border border-border bg-popover p-2 text-popover-foreground shadow-dropdown"
+        className="w-[min(22rem,calc(100vw-2rem))] bg-popover p-2 text-popover-foreground"
         onMouseEnter={() => {
           clearTimers();
           setIsOpen(true);

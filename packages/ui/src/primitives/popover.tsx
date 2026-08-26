@@ -34,7 +34,7 @@ function PopoverContent({
           onPointerDownOutside?.(event);
         }}
         className={cn(
-          'app-region-no-drag z-50 w-72 rounded-md border border-border p-4 outline-none',
+          'app-region-no-drag z-50 w-72 rounded-md p-4 outline-none',
           overlayMenuSurfaceClassName,
           className,
         )}
@@ -67,7 +67,7 @@ function PopoverPanelContent({
           onPointerDownOutside?.(event);
         }}
         className={cn(
-          'app-region-no-drag z-[10001] overflow-hidden rounded-xl border border-border outline-none',
+          'app-region-no-drag z-[10001] overflow-hidden rounded-xl outline-none',
           overlayMenuSurfaceClassName,
           className,
         )}
