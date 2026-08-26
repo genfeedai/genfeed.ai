@@ -65,6 +65,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
@@ -94,6 +95,7 @@ import type {
 } from '@genfeedai/interfaces/billing';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -215,6 +217,20 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
       controllers: [StripeWebhookController],
       providers: [
         StripeService,
+        {
+          inject: [ConfigService, LoggerService, StripeService],
+          provide: SubscriptionCreditGrantService,
+          useFactory: (
+            configService: ConfigService,
+            loggerService: LoggerService,
+            stripeService: StripeService,
+          ) =>
+            new SubscriptionCreditGrantService(
+              configService,
+              loggerService,
+              stripeService,
+            ),
+        },
         StripeWebhookService,
         StripeInvoiceWebhookHandler,
         StripeSubscriptionCreditReconcilerService,
