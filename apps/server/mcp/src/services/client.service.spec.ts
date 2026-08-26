@@ -898,13 +898,13 @@ describe('ClientService (MCP)', () => {
         },
       };
 
-      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
+      (mockAxiosInstance.patch as Mock).mockResolvedValue(mockResponse);
 
       const result = await service.cancelAgentRun('run-1');
 
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/runs/run-1/cancellations',
-      );
+      expect(mockAxiosInstance.patch).toHaveBeenCalledWith('/runs/run-1', {
+        status: 'cancelled',
+      });
       expect(result).toEqual({ id: 'run-1', status: 'CANCELLED' });
     });
   });

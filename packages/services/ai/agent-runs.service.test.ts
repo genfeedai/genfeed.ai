@@ -180,7 +180,7 @@ describe('AgentRunsService', () => {
   });
 
   describe('cancel and retry', () => {
-    it('POSTs to /runs/:id/cancellations', async () => {
+    it('PATCHes the run status to cancelled', async () => {
       fetchMock.mockResolvedValue(
         fetchResponse(resourceDocument({}, { id: 'run_c' })),
       );
@@ -189,8 +189,9 @@ describe('AgentRunsService', () => {
       await service.cancel('run_c');
 
       const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-      expect(url).toContain('/runs/run_c/cancellations');
-      expect(init.method).toBe('POST');
+      expect(url).toContain('/runs/run_c');
+      expect(init.method).toBe('PATCH');
+      expect(JSON.parse(init.body as string)).toEqual({ status: 'cancelled' });
     });
 
     it('POSTs to /runs/:id/retries', async () => {

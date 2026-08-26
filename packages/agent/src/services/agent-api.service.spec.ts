@@ -576,7 +576,7 @@ describe('AgentApiService', () => {
   });
 
   describe('cancelRun', () => {
-    it('posts a run cancellation resource', async () => {
+    it('patches the run status to cancelled', async () => {
       const run = { id: 'run-1', status: 'cancelled' };
       mockJsonApiResource(run, 'agent-run');
       const service = makeService();
@@ -586,8 +586,11 @@ describe('AgentApiService', () => {
       ).resolves.toEqual(run);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/runs/run-1/cancellations',
-        expect.objectContaining({ method: 'POST' }),
+        'http://api.test/runs/run-1',
+        expect.objectContaining({
+          body: JSON.stringify({ status: 'cancelled' }),
+          method: 'PATCH',
+        }),
       );
     });
 
@@ -601,8 +604,11 @@ describe('AgentApiService', () => {
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/runs/run-1/cancellations?brand=brand-1',
-        expect.objectContaining({ method: 'POST' }),
+        'http://api.test/runs/run-1?brand=brand-1',
+        expect.objectContaining({
+          body: JSON.stringify({ status: 'cancelled' }),
+          method: 'PATCH',
+        }),
       );
     });
   });
