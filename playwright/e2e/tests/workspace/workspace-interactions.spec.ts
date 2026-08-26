@@ -56,6 +56,13 @@ test.describe('Workspace — deep interactions', () => {
     });
     await mockAnalyticsData(authenticatedPage);
     await mockWorkspaceTasks(authenticatedPage);
+    await authenticatedPage.route('**/dashboard-layouts**', async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({ data: null }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
   });
 
   test('switches between workspace inbox views and opens an item', async ({
@@ -112,28 +119,34 @@ test.describe('Workspace — deep interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('exercises workspace snapshot panels and quick actions', async ({
+  test('exercises the operational overview and workspace quick actions', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.OVERVIEW);
+    await assertRouteRenders(
+      authenticatedPage,
+      brandPath(APP_ROUTES.WORKSPACE.OVERVIEW),
+    );
 
     await expect(
       authenticatedPage.getByTestId('workspace-new-task'),
     ).toHaveCount(0);
 
     const openReview = authenticatedPage
-      .getByTestId('workspace-recent-outputs')
-      .getByRole('link', { name: 'Open Review' });
+      .getByTestId('operational-home-approvals')
+      .getByRole('link', { name: 'Open queue' });
     await expect(openReview).toBeVisible();
     await openReview.click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
       .toBe(brandPath(APP_ROUTES.PUBLISH.REVIEW));
 
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.OVERVIEW);
+    await assertRouteRenders(
+      authenticatedPage,
+      brandPath(APP_ROUTES.WORKSPACE.INBOX_UNREAD),
+    );
 
     const historyItem = authenticatedPage
-      .getByTestId('workspace-history-preview')
+      .getByTestId('workspace-inbox')
       .getByTestId('workspace-task-row')
       .first();
     await expect(historyItem).toBeVisible();
@@ -141,11 +154,6 @@ test.describe('Workspace — deep interactions', () => {
     await expect(
       authenticatedPage.getByTestId('workspace-task-inspector'),
     ).toBeVisible();
-
-    await assertRouteRenders(
-      authenticatedPage,
-      APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-    );
 
     const primaryAction = authenticatedPage
       .getByTestId('desktop-sidebar-rail')

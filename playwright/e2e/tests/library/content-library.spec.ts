@@ -1,3 +1,4 @@
+import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
@@ -24,7 +25,7 @@ test.describe('Content Library', () => {
 
   test.describe('Page Display', () => {
     test('should display library page', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/library/);
@@ -34,7 +35,7 @@ test.describe('Content Library', () => {
     });
 
     test('should show captions section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/captions/);
@@ -44,7 +45,7 @@ test.describe('Content Library', () => {
     });
 
     test('should show assets section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.VIDEOS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/videos/);
@@ -54,7 +55,7 @@ test.describe('Content Library', () => {
     });
 
     test('should show mood board section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.MOODBOARD);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.MOODBOARD));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/moodboard/);
@@ -64,7 +65,7 @@ test.describe('Content Library', () => {
     });
 
     test('should show avatars section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.AVATARS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.AVATARS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(authenticatedPage).toHaveURL(/avatars/);
@@ -82,28 +83,28 @@ test.describe('Content Library', () => {
     test('should navigate between library destinations', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      const rail = authenticatedPage.getByTestId('desktop-sidebar-rail');
+      const libraryNav = authenticatedPage.getByTestId('library-nav-panel');
 
-      await rail.getByRole('link', { name: 'Recent' }).click();
+      await libraryNav.getByRole('link', { name: 'Recent' }).click();
       await authenticatedPage.waitForLoadState('domcontentloaded');
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${APP_ROUTES.LIBRARY.RECENT}(?:[/?#]|$)`),
-      );
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(brandPath(APP_ROUTES.LIBRARY.RECENT));
 
-      await rail.getByRole('link', { name: 'Starred' }).click();
+      await libraryNav.getByRole('link', { name: 'Starred' }).click();
       await authenticatedPage.waitForLoadState('domcontentloaded');
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${APP_ROUTES.LIBRARY.STARRED}(?:[/?#]|$)`),
-      );
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(brandPath(APP_ROUTES.LIBRARY.STARRED));
 
-      await rail.getByRole('link', { name: 'All assets' }).click();
+      await libraryNav.getByRole('link', { name: 'All assets' }).click();
       await authenticatedPage.waitForLoadState('domcontentloaded');
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`${APP_ROUTES.LIBRARY.ASSETS}(?:[/?#]|$)`),
-      );
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(brandPath(APP_ROUTES.LIBRARY.ASSETS));
     });
   });
 
@@ -111,7 +112,7 @@ test.describe('Content Library', () => {
     test('should display items in captions section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.CAPTIONS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.CAPTIONS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -142,7 +143,7 @@ test.describe('Content Library', () => {
     test('should display items in assets section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.VIDEOS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -154,7 +155,7 @@ test.describe('Content Library', () => {
     test('should display items in mood board section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.MOODBOARD);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.MOODBOARD));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
@@ -166,7 +167,7 @@ test.describe('Content Library', () => {
     test('should display items in avatars section', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LIBRARY.AVATARS);
+      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.AVATARS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
