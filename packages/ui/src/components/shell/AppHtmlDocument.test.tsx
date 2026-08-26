@@ -50,6 +50,7 @@ describe('AppHtmlDocument', () => {
     expect(html.indexOf('genfeed-theme-document-bootstrap')).toBeLessThan(
       html.indexOf('<body'),
     );
+    expect(html).not.toContain('data-scroll-behavior');
   });
 
   it.each(['light', 'dark'] as const)(

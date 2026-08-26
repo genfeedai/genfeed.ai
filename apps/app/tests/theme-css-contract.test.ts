@@ -13,4 +13,18 @@ describe('Tailwind theme selector contract', () => {
       '@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));',
     );
   });
+
+  it('keeps opt-in opacity and transform transitions available on buttons', () => {
+    const source = readFileSync(
+      join(process.cwd(), '../../packages/styles/globals.css'),
+      'utf8',
+    );
+
+    const buttonRule = source.match(/\.btn,\s*button\s*\{(?<body>[^}]*)\}/)
+      ?.groups?.body;
+
+    expect(buttonRule).toContain('opacity');
+    expect(buttonRule).toContain('transform');
+    expect(buttonRule).not.toContain('transition-property: all');
+  });
 });

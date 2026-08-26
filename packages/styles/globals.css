@@ -293,11 +293,13 @@ body {
   }
 }
 
-/* One interaction duration (200ms) and only paint properties. `all` at 300ms
-   animated layout and transforms on every button press, which reads as lag. */
+/* One interaction duration (200ms) and an explicit property allowlist. `all`
+   animated layout on every button press, while opacity/transform stay available
+   to components that deliberately opt into those compositor transitions. */
 .btn,
 button {
-  transition-property: color, background-color, border-color, box-shadow;
+  transition-property:
+    color, background-color, border-color, box-shadow, opacity, transform;
   transition-duration: 200ms;
 }
 
