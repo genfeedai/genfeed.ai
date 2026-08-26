@@ -106,6 +106,24 @@ describe('AgentOAuthConnectMenu', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers Fanvue through its service route and omits unavailable X Ads', async () => {
+    const user = userEvent.setup();
+    const onOAuthConnect = vi.fn().mockResolvedValue(undefined);
+    render(<AgentOAuthConnectMenu onOAuthConnect={onOAuthConnect} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
+    );
+
+    expect(screen.getByText('Creator')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'X Ads' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Fanvue' }));
+
+    expect(onOAuthConnect).toHaveBeenCalledWith('fanvue');
+  });
+
   it('opens on the elevated overlay surface, not the canvas panel', async () => {
     const user = userEvent.setup();
     render(<AgentOAuthConnectMenu onOAuthConnect={vi.fn()} />);
