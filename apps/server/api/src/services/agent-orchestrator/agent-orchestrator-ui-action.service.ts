@@ -195,6 +195,7 @@ export class AgentOrchestratorUiActionService {
         return withAgentScopeResult(confirmed.result, confirmed.scope);
       }
       case 'confirm_install_official_workflow':
+      case 'confirm_agent_transfer':
       case 'confirm_publish_post':
       case 'confirm_generate_media':
       case 'confirm_save_brand_voice_profile':

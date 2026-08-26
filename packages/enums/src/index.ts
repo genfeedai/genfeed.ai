@@ -7,6 +7,7 @@ export * from './agent-reply-style.enum';
 export * from './agent-run.enum';
 export * from './agent-strategy.enum';
 export * from './agent-thread.enum';
+export * from './agent-transfer.enum';
 export * from './ai-action.enum';
 export * from './alert.enum';
 export * from './analytics-metric.enum';

@@ -46,6 +46,8 @@ export interface AgentChatRequest {
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
+  /** Trusted internal provenance for a user-confirmed cross-thread handoff. */
+  transferId?: string;
   model?: string;
   source?: 'agent' | 'proactive' | 'onboarding';
   systemPromptOverride?: string;

@@ -23,6 +23,7 @@ import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools
 import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { AgentTransferToolHandler } from '@api/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
@@ -97,6 +98,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
   AgentToolName.INSPECT_WORKFLOW,
   AgentToolName.LIST_ADS_RESEARCH,
   AgentToolName.LIST_AGENT_RUNS,
+  AgentToolName.LIST_AGENT_CONVERSATIONS,
   AgentToolName.LIST_BRANDS,
   AgentToolName.LIST_CHARACTERS,
   AgentToolName.LIST_GENFEED_TOOLS,
@@ -109,6 +111,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
   AgentToolName.RENDER_DASHBOARD,
   AgentToolName.RESOLVE_HANDLE,
   AgentToolName.SUGGEST_NEXT_STEPS,
+  AgentToolName.TRANSFER_AGENT_CONVERSATION,
 ]);
 
 /**
@@ -146,6 +149,8 @@ export class AgentToolExecutorService {
     private readonly spawnHandler: AgentSpawnToolHandler,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
+    @Optional()
+    private readonly transferHandler?: AgentTransferToolHandler,
   ) {}
 
   async executeTool(
@@ -258,6 +263,16 @@ export class AgentToolExecutorService {
     switch (toolName) {
       case AgentToolName.LIST_GENFEED_TOOLS:
         return this.catalogHandler.listGenfeedTools(params);
+
+      case AgentToolName.LIST_AGENT_CONVERSATIONS:
+        return this.transferHandler
+          ? this.transferHandler.listConversations(params, ctx)
+          : this.unavailableTransferTool();
+
+      case AgentToolName.TRANSFER_AGENT_CONVERSATION:
+        return this.transferHandler
+          ? this.transferHandler.transfer(params, ctx)
+          : this.unavailableTransferTool();
 
       case AgentToolName.GET_CREDITS_BALANCE:
         return this.workspaceHandler.getCreditsBalance(ctx);
@@ -545,5 +560,13 @@ export class AgentToolExecutorService {
           success: false,
         };
     }
+  }
+
+  private unavailableTransferTool(): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      error: 'Conversation transfer tools are unavailable.',
+      success: false,
+    };
   }
 }

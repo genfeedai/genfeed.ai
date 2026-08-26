@@ -16,7 +16,7 @@ import {
   hasAgentArtifactWriteInput,
 } from '@api/shared/utils/agent-artifact-reference-write.util';
 import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
-import { AgentExecutionStatus } from '@genfeedai/enums';
+import { AgentExecutionStatus, AgentTransferStatus } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import {
@@ -296,13 +296,21 @@ export class AgentRunsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<AgentRunDocument | null> {
-    return (await this.delegate.update({
+    const run = (await this.delegate.update({
       where: scopedWhere(organizationId, { id }),
       data: {
         startedAt: new Date(),
         status: AgentExecutionStatus.RUNNING,
       },
     })) as AgentRunDocument | null;
+    await this.prisma.agentTransfer.updateMany({
+      data: {
+        startedAt: new Date(),
+        status: AgentTransferStatus.RUNNING,
+      },
+      where: scopedWhere(organizationId, { destinationRunId: id }),
+    });
+    return run;
   }
 
   @HandleErrors('get agent run', 'agent-runs')
@@ -364,6 +372,10 @@ export class AgentRunsService extends BaseService<
     await this.delegate.updateMany({
       where: scopedWhere(organizationId, { id }),
       data: { progress: Math.min(100, Math.max(0, progress)) },
+    });
+    await this.prisma.agentTransfer.updateMany({
+      data: { progress: Math.min(100, Math.max(0, progress)) },
+      where: scopedWhere(organizationId, { destinationRunId: id }),
     });
   }
 
@@ -446,7 +458,7 @@ export class AgentRunsService extends BaseService<
       ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    return (await this.delegate.update({
+    const completed = (await this.delegate.update({
       where: { id },
       data: {
         completedAt,
@@ -456,6 +468,19 @@ export class AgentRunsService extends BaseService<
         ...(summary && { summary }),
       },
     })) as AgentRunDocument | null;
+    await this.prisma.agentTransfer.updateMany({
+      data: {
+        completedAt,
+        completionSummary: summary ?? run.summary,
+        outputArtifactReferences: (run.artifactReferences ??
+          []) as Prisma.InputJsonValue,
+        outputArtifactVersionPinIds: run.artifactVersionPinIds ?? [],
+        progress: 100,
+        status: AgentTransferStatus.COMPLETED,
+      },
+      where: scopedWhere(organizationId, { destinationRunId: id }),
+    });
+    return completed;
   }
 
   @HandleErrors('fail agent run', 'agent-runs')
@@ -475,7 +500,7 @@ export class AgentRunsService extends BaseService<
       ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    return (await this.delegate.update({
+    const failed = (await this.delegate.update({
       where: { id },
       data: {
         completedAt,
@@ -485,6 +510,15 @@ export class AgentRunsService extends BaseService<
         status: AgentExecutionStatus.FAILED,
       },
     })) as AgentRunDocument | null;
+    await this.prisma.agentTransfer.updateMany({
+      data: {
+        completedAt,
+        failureReason: error.slice(0, 500),
+        status: AgentTransferStatus.FAILED,
+      },
+      where: scopedWhere(organizationId, { destinationRunId: id }),
+    });
+    return failed;
   }
 
   @HandleErrors('cancel agent run', 'agent-runs')
@@ -504,7 +538,7 @@ export class AgentRunsService extends BaseService<
       ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    return (await this.delegate.update({
+    const cancelled = (await this.delegate.update({
       where: { id },
       data: {
         completedAt,
@@ -512,6 +546,11 @@ export class AgentRunsService extends BaseService<
         status: AgentExecutionStatus.CANCELLED,
       },
     })) as AgentRunDocument | null;
+    await this.prisma.agentTransfer.updateMany({
+      data: { completedAt, status: AgentTransferStatus.CANCELLED },
+      where: scopedWhere(organizationId, { destinationRunId: id }),
+    });
+    return cancelled;
   }
 
   /**

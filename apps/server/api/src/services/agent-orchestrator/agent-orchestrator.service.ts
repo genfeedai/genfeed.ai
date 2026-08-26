@@ -240,6 +240,14 @@ export class AgentOrchestratorService {
         content: request.content,
         metadata: {
           agentScope: toAgentScopeMetadata(scope),
+          ...(request.transferId
+            ? {
+                agentTransfer: {
+                  direction: 'inbound',
+                  transferId: request.transferId,
+                },
+              }
+            : {}),
           ...(request.attachments?.length
             ? { attachments: request.attachments }
             : {}),
@@ -555,6 +563,14 @@ export class AgentOrchestratorService {
         ...(context.executionMode === 'background' ? { id: runId } : {}),
         metadata: {
           agentScope: scopeMetadata,
+          ...(request.transferId
+            ? {
+                agentTransfer: {
+                  direction: 'inbound',
+                  transferId: request.transferId,
+                },
+              }
+            : {}),
           ...(request.attachments?.length
             ? { attachments: request.attachments }
             : {}),

@@ -14,6 +14,7 @@ import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ConfirmedToolAction =
+  | 'confirm_agent_transfer'
   | 'confirm_generate_media'
   | 'confirm_install_official_workflow'
   | 'confirm_publish_post'
@@ -23,6 +24,7 @@ type ToolExecutionOverrides = {
   generationModelOverride?: string;
   generationPriority?: ThreadUiActionExecutionParams['context']['generationPriority'];
   sourceActionId?: string;
+  confirmationOrigin?: 'thread-ui-action';
 };
 
 @Injectable()
@@ -39,6 +41,8 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     params: ThreadUiActionExecutionParams,
   ): Promise<AgentChatResult> {
     switch (action) {
+      case 'confirm_agent_transfer':
+        return this.executeAgentTransfer(params);
       case 'confirm_install_official_workflow':
         return this.executeOfficialWorkflowInstall(params);
       case 'confirm_publish_post':
@@ -48,6 +52,48 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       case 'confirm_save_brand_voice_profile':
         return this.executeSaveBrandVoiceProfile(params);
     }
+  }
+
+  private async executeAgentTransfer(
+    params: ThreadUiActionExecutionParams,
+  ): Promise<AgentChatResult> {
+    const sourceActionId =
+      typeof params.payload?.sourceActionId === 'string'
+        ? params.payload.sourceActionId.trim()
+        : '';
+    if (!sourceActionId) {
+      throw new BadRequestException('Transfer source action is required.');
+    }
+    const idempotencyKey = [
+      'agent-transfer-confirmation',
+      params.context.organizationId,
+      params.context.userId,
+      params.threadId,
+      sourceActionId,
+    ].join(':');
+    return runIdempotent(this.cacheService, idempotencyKey, async () => {
+      const execution = await this.executeTool(
+        params,
+        AgentToolName.TRANSFER_AGENT_CONVERSATION,
+        { ...(params.payload ?? {}) },
+        { confirmationOrigin: 'thread-ui-action', sourceActionId },
+      );
+      if (!execution.result.success) {
+        throwFailedUiActionResult(
+          execution.result.error,
+          'Failed to start the destination conversation.',
+        );
+      }
+      return this.finalizer.finalizeStructuredAssistantTurn({
+        content: 'The handoff was sent and the destination run was queued.',
+        context: params.context,
+        eventIdempotencyKey: `agent-transfer-result:${sourceActionId}`,
+        model: params.model,
+        result: execution.result,
+        threadId: params.threadId,
+        toolCalls: [execution.summary],
+      });
+    });
   }
 
   private async executeOfficialWorkflowInstall(
@@ -308,6 +354,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
         generationPriority:
           overrides.generationPriority ?? params.context.generationPriority,
         organizationId: params.context.organizationId,
+        confirmationOrigin: overrides.confirmationOrigin,
         runId: params.context.runId,
         sourceActionId: overrides.sourceActionId,
         strategyId: params.context.strategyId,

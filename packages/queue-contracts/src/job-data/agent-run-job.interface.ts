@@ -14,6 +14,8 @@ export interface AgentChatTurnJobRequest {
   planModeEnabled?: boolean;
   source?: 'agent' | 'proactive' | 'onboarding';
   threadId: string;
+  /** Trusted internal provenance for a user-confirmed cross-thread handoff. */
+  transferId?: string;
 }
 
 export interface AgentRunJobData {

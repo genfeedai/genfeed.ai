@@ -85,6 +85,7 @@ import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/ag
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
+import { AgentTransferToolHandler } from '@api/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
@@ -107,7 +108,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentOrchestratorController, AgentToolsController],
-  exports: [AgentOrchestratorService],
+  exports: [AgentOrchestratorService, AgentTurnAcceptanceService],
   imports: [
     AgentCampaignsModule,
     AgentGoalsModule,
@@ -171,6 +172,7 @@ import { Module } from '@nestjs/common';
     AgentMediaTextGenerationService,
     AgentOnboardingToolHandler,
     AgentToolInternalApiService,
+    AgentTransferToolHandler,
     AgentWorkflowToolCreateService,
     AgentWorkflowToolExecuteService,
     AgentWorkflowToolHandler,

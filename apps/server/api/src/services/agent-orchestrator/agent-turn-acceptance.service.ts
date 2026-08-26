@@ -36,6 +36,14 @@ function stableUuid(...parts: string[]): string {
   ].join('-');
 }
 
+export function buildAgentTurnRunId(
+  organizationId: string,
+  userId: string,
+  clientRequestId: string,
+): string {
+  return stableUuid('agent-turn-run', organizationId, userId, clientRequestId);
+}
+
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(',')}]`;
@@ -74,8 +82,7 @@ export class AgentTurnAcceptanceService {
     context: AgentChatContext,
   ): Promise<AgentTurnAcknowledgement> {
     const acceptedAt = Date.now();
-    const runId = stableUuid(
-      'agent-turn-run',
+    const runId = buildAgentTurnRunId(
       context.organizationId,
       context.userId,
       request.clientRequestId,

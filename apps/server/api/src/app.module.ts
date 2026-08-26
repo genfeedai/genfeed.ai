@@ -16,6 +16,7 @@ import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memor
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
+import { AgentTransfersModule } from '@api/collections/agent-transfers/agent-transfers.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
@@ -263,6 +264,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // Database Collections (alphabetical)
     AgentCampaignsModule,
     AgentThreadsModule,
+    AgentTransfersModule,
     AgentMemoriesModule,
     AgentRunsModule,
     AgentThreadingModule,
