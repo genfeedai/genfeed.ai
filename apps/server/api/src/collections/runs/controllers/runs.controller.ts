@@ -198,7 +198,7 @@ export class RunsController {
   )
   @ApiOperation({
     summary:
-      'Update run status/output/progress (cancel via { status: cancelled })',
+      'Update run status/output/progress (start/cancel via status transitions)',
   })
   @ApiResponse({ description: 'Updated run', type: RunEntity })
   async update(
@@ -209,36 +209,14 @@ export class RunsController {
   ) {
     const { organizationId } = this.getRequestContext(user);
 
-    // Cancel is a status transition on the run resource (same pattern as
-    // schedule cancel). Routes through cancelRun for terminal metering/events.
+    // Lifecycle commands are status transitions on the run resource. Route
+    // them through their existing services to preserve metering and events.
     const run =
-      dto.status === RunStatus.CANCELLED
-        ? await this.runsService.cancelRun(runId, organizationId)
-        : await this.runsService.updateRun(runId, organizationId, dto);
-
-    if (!run) {
-      throw new NotFoundException('Run');
-    }
-
-    return serializeSingle(request, RunSerializer, run);
-  }
-
-  @Post(':runId/execute')
-  @RequiredScopes(
-    ApiKeyScope.VIDEOS_CREATE,
-    ApiKeyScope.IMAGES_CREATE,
-    ApiKeyScope.POSTS_CREATE,
-    ApiKeyScope.ADMIN,
-  )
-  @ApiOperation({ summary: 'Start run execution' })
-  @ApiResponse({ description: 'Run transitioned to running', type: RunEntity })
-  async execute(
-    @CurrentUser() user: User,
-    @Req() request: Request,
-    @Param('runId') runId: string,
-  ) {
-    const { organizationId } = this.getRequestContext(user);
-    const run = await this.runsService.executeRun(runId, organizationId);
+      dto.status === RunStatus.RUNNING
+        ? await this.runsService.executeRun(runId, organizationId)
+        : dto.status === RunStatus.CANCELLED
+          ? await this.runsService.cancelRun(runId, organizationId)
+          : await this.runsService.updateRun(runId, organizationId, dto);
 
     if (!run) {
       throw new NotFoundException('Run');

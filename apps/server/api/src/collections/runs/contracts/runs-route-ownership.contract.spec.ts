@@ -187,14 +187,21 @@ describe('Runs route ownership (registered route table)', () => {
   });
 
   it('mounts the generic Run ledger under /action-runs, never /runs', () => {
-    const paths = readRegisteredRoutes(app).map((route) => route.path);
+    const routes = readRegisteredRoutes(app);
+    const paths = routes.map((route) => route.path);
 
     // Paths unique to RunsController — they must all live under action-runs.
     expect(paths).toContain('/action-runs');
-    expect(paths).toContain('/action-runs/:runId/execute');
     expect(paths).toContain('/action-runs/:runId/events');
+    expect(routes).toContainEqual({
+      method: 'PATCH',
+      path: '/action-runs/:runId',
+    });
 
-    expect(paths).not.toContain('/runs/:runId/execute');
+    expect(routes).not.toContainEqual({
+      method: 'POST',
+      path: '/action-runs/:runId/execute',
+    });
     expect(paths).not.toContain('/runs/:runId/events');
   });
 
@@ -232,6 +239,17 @@ describe('Runs route ownership (registered route table)', () => {
 
     expect(runsService.getRun).toHaveBeenCalledTimes(1);
     expect(agentRunsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('PATCH /action-runs/:runId starts execution through the Run ledger', async () => {
+    await request(app.getHttpServer())
+      .patch('/action-runs/run-1')
+      .send({ status: 'running' });
+
+    expect(runsService.executeRun).toHaveBeenCalledWith('run-1', orgId);
+    expect(runsService.cancelRun).not.toHaveBeenCalled();
+    expect(runsService.updateRun).not.toHaveBeenCalled();
+    expect(agentRunsService.patch).not.toHaveBeenCalled();
   });
 });
 

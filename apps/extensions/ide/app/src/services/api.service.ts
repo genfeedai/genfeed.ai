@@ -207,7 +207,9 @@ export class ApiService {
   }
 
   executeRun(runId: string): Promise<RunRecord> {
-    return this.request<RunRecord>('POST', `/action-runs/${runId}/execute`);
+    return this.request<RunRecord>('PATCH', `/action-runs/${runId}`, {
+      status: 'running',
+    });
   }
 
   getRun(runId: string): Promise<RunRecord> {

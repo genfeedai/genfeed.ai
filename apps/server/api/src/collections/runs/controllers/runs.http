@@ -74,8 +74,13 @@ Content-Type: application/json
 
 
 ### Execute Run (Start Processing)
-POST {{apiBaseUrl}}/action-runs/{{testRunId}}/execute
+PATCH {{apiBaseUrl}}/action-runs/{{testRunId}}
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "running"
+}
 
 
 ### Cancel Run
