@@ -16,11 +16,11 @@ vi.mock('twitter-api-v2', () => ({
   }),
 }));
 
-import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { TwitterApi } from 'twitter-api-v2';
+import { XAdsOAuthService } from './x-ads-oauth.service';
 
 describe('XAdsOAuthService', () => {
   let configGet: ReturnType<typeof vi.fn>;
