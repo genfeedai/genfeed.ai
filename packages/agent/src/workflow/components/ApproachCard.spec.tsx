@@ -97,8 +97,9 @@ describe('ApproachCard', () => {
       <ApproachCard approach={makeApproach()} isSelected onSelect={vi.fn()} />,
     );
 
-    expect(screen.getByRole('button').className).toContain(
-      'border-blue-500/40',
+    expect(screen.getByRole('button')).toHaveClass(
+      'bg-info/10',
+      'shadow-border-strong',
     );
   });
 });

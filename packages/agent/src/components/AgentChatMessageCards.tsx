@@ -311,7 +311,7 @@ export function ContentPreviewCard({
         </div>
       )}
       {reconciliationError && (
-        <p className="text-xs text-red-600 dark:text-red-400" role="alert">
+        <p className="text-xs text-destructive" role="alert">
           {reconciliationError}
         </p>
       )}
