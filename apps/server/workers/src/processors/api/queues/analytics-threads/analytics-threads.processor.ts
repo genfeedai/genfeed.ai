@@ -1,6 +1,5 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsCollectionFailedTarget,
@@ -20,6 +19,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
 import { SERVER_TOKENS } from '@server/server.dependencies';
+import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { ANALYTICS_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
