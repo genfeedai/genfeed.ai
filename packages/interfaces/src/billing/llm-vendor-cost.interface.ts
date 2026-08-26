@@ -4,12 +4,14 @@
  */
 
 export interface ILlmCompletionCallContext {
+  brandId?: string;
   runId?: string;
   threadId?: string;
   userId?: string;
 }
 
 export interface ILlmCompletionTelemetryEvent {
+  brandId?: string;
   completionTokens: number;
   isByok: boolean;
   latencyMs: number;
@@ -23,6 +25,7 @@ export interface ILlmCompletionTelemetryEvent {
 }
 
 export interface ILlmVendorCostRecordInput {
+  brandId?: string;
   completionTokens: number;
   isByok: boolean;
   latencyMs: number;
@@ -86,6 +89,7 @@ export interface ILlmGenerationTelemetryProperties {
   $ai_provider: string;
   $ai_total_cost_usd: number;
   is_byok: boolean;
+  brand_id?: string;
   organization_id?: string;
   run_id?: string;
   thread_id?: string;

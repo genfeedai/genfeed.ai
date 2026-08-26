@@ -125,6 +125,7 @@ import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.modu
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { CoreModule } from '@api/endpoints/core/core.module';
+import { CostReportingModule } from '@api/endpoints/cost-reporting/cost-reporting.module';
 import { DevModule } from '@api/endpoints/dev/dev.module';
 import { DocsModule } from '@api/endpoints/docs/docs.module';
 import { IntegrationsModule } from '@api/endpoints/integrations/integrations.module';
@@ -439,6 +440,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // Content Gateway + Skill Execution
     ContentGatewayModule,
+    CostReportingModule,
     SkillExecutorModule,
 
     // Content Orchestration (AI influencer pipeline)

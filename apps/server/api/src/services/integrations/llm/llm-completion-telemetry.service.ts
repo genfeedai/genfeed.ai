@@ -45,6 +45,7 @@ export class LlmCompletionTelemetryService {
     if (event.organizationId) {
       try {
         await this.ledger.record({
+          brandId: event.brandId,
           completionTokens: event.completionTokens,
           isByok: event.isByok,
           latencyMs: event.latencyMs,

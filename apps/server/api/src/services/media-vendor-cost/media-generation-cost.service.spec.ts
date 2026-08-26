@@ -37,6 +37,7 @@ describe('MediaGenerationCostService', () => {
 
   it('records realized vendor cost from the model provider cost', async () => {
     await service.recordGenerationCost({
+      brandId: 'brand-1',
       category: 'video',
       durationSeconds: 10,
       ingredientId: 'ing-1',
@@ -45,6 +46,7 @@ describe('MediaGenerationCostService', () => {
     });
 
     expect(ledgerService.record).toHaveBeenCalledWith({
+      brandId: 'brand-1',
       category: 'video',
       ingredientId: 'ing-1',
       isByok: false,

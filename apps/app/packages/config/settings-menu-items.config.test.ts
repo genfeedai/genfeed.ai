@@ -66,7 +66,7 @@ describe('buildSettingsMenuItems', () => {
         'Models',
         'Agents',
         'Credits',
-        'Usage',
+        'Cost & Usage',
         'API Keys',
         'Integrations',
         'Webhooks',
@@ -87,7 +87,7 @@ describe('buildSettingsMenuItems', () => {
         'Agents',
         'Credits',
         'Subscription',
-        'Usage',
+        'Cost & Usage',
         'API Keys',
         'Integrations',
         'Webhooks',
@@ -106,7 +106,7 @@ describe('buildSettingsMenuItems', () => {
         ['Models', 'Organization'],
         ['Agents', 'Organization'],
         ['Credits', 'Billing'],
-        ['Usage', 'Billing'],
+        ['Cost & Usage', 'Billing'],
         ['API Keys', 'Developer'],
         ['Integrations', 'Developer'],
         ['Webhooks', 'Developer'],
@@ -127,13 +127,15 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
-    it('hides Credits/Usage when showCredits is false; Subscription only when enterprise', () => {
+    it('hides Credits when the wallet is unavailable but keeps provider cost reporting', () => {
       const items = buildSettingsMenuItems({
         scope: SettingsSurface.ORGANIZATION,
         showCredits: false,
       });
       expect(items.find((i) => i.label === 'Credits')).toBeUndefined();
-      expect(items.find((i) => i.label === 'Usage')).toBeUndefined();
+      expect(items.find((i) => i.label === 'Cost & Usage')?.href).toBe(
+        APP_ROUTES.SETTINGS.USAGE,
+      );
       expect(items.find((i) => i.label === 'Subscription')).toBeUndefined();
       expect(items.find((i) => i.label === 'API Keys')?.href).toBe(
         '/settings/api-keys',
@@ -147,7 +149,7 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Credits')?.href).toBe(
         '/settings/credits',
       );
-      expect(items.find((i) => i.label === 'Usage')?.href).toBe(
+      expect(items.find((i) => i.label === 'Cost & Usage')?.href).toBe(
         '/settings/usage',
       );
       expect(items.find((i) => i.label === 'Brands')?.href).toBe(
@@ -184,6 +186,7 @@ describe('buildSettingsMenuItems', () => {
         'Publishing',
         'Agent Defaults',
         'Skills',
+        'Cost & Usage',
       ]);
     });
 
@@ -209,9 +212,12 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Skills')?.href).toBe(
         APP_ROUTES.SETTINGS.SKILLS,
       );
+      expect(items.find((i) => i.label === 'Cost & Usage')?.href).toBe(
+        APP_ROUTES.SETTINGS.USAGE,
+      );
     });
 
-    it('uses two meaningful groups: Brand and Automation', () => {
+    it('uses meaningful Brand, Automation, and Billing groups', () => {
       expect(items.map((item) => [item.label, item.group])).toEqual([
         ['Profile', 'Brand'],
         ['Social', 'Brand'],
@@ -223,6 +229,7 @@ describe('buildSettingsMenuItems', () => {
         ['Publishing', 'Automation'],
         ['Agent Defaults', 'Automation'],
         ['Skills', 'Automation'],
+        ['Cost & Usage', 'Billing'],
       ]);
     });
   });

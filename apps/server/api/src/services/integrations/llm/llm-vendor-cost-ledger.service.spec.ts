@@ -36,6 +36,7 @@ describe('LlmVendorCostLedgerService', () => {
 
   it('persists a tenant-scoped ledger row without prompt or completion content', async () => {
     await service.record({
+      brandId: 'brand-1',
       completionTokens: 5,
       isByok: false,
       latencyMs: 40,
@@ -50,6 +51,7 @@ describe('LlmVendorCostLedgerService', () => {
 
     expect(llmVendorCost.create).toHaveBeenCalledWith({
       data: {
+        brandId: 'brand-1',
         completionTokens: 5,
         isByok: false,
         isDeleted: false,
@@ -69,6 +71,7 @@ describe('LlmVendorCostLedgerService', () => {
     expect(Object.keys(payload.data)).toEqual(
       expect.arrayContaining([
         'completionTokens',
+        'brandId',
         'isByok',
         'isDeleted',
         'latencyMs',

@@ -26,6 +26,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
+import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -58,6 +59,7 @@ export class ImageGenerationProviderDispatchService {
     private readonly failedGenerationService: FailedGenerationService,
     private readonly filesClientService: FilesClientService,
     private readonly generationEventWebhookService: GenerationEventWebhookService,
+    private readonly mediaGenerationCostService: MediaGenerationCostService,
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -631,6 +633,16 @@ export class ImageGenerationProviderDispatchService {
     ingredientId: ImageGenerationSavedIngredient['id'],
     output: GenerationWebhookOutput,
   ): Promise<void> {
+    await this.mediaGenerationCostService.recordGenerationCost({
+      brandId: context.brand.id?.toString() ?? null,
+      category: 'image',
+      height: context.height,
+      ingredientId: ingredientId.toString(),
+      modelKey: context.model,
+      organizationId: context.user.organizationId,
+      width: context.width,
+    });
+
     await this.generationEventWebhookService.emitGenerationCompleted({
       brandId: context.brand.id?.toString() ?? null,
       generationId: ingredientId.toString(),

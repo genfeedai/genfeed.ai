@@ -335,6 +335,7 @@ export class AgentOrchestratorStreamLoopService {
                   context.organizationId,
                   onStreamToken,
                   {
+                    brandId: context.scope?.brandId,
                     runId: context.runId,
                     threadId,
                     userId: context.userId,
@@ -344,6 +345,7 @@ export class AgentOrchestratorStreamLoopService {
                   chatParams,
                   context.organizationId,
                   {
+                    brandId: context.scope?.brandId,
                     runId: context.runId,
                     threadId,
                     userId: context.userId,

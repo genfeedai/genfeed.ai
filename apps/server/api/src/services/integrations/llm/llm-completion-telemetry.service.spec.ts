@@ -13,6 +13,7 @@ vi.mock('@libs/security/destination-guard', () => ({
 }));
 
 const event: ILlmCompletionTelemetryEvent = {
+  brandId: 'brand-1',
   completionTokens: 500,
   isByok: false,
   latencyMs: 42,
@@ -66,6 +67,7 @@ describe('LlmCompletionTelemetryService', () => {
 
     expect(ledger.record).toHaveBeenCalledWith(
       expect.objectContaining({
+        brandId: 'brand-1',
         isByok: false,
         model: 'deepseek/deepseek-v4-flash-0731',
         organizationId: 'org-1',

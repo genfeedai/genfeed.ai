@@ -7,6 +7,7 @@ describe('MediaVendorCostLedgerService', () => {
     mediaVendorCost: {
       create: vi.fn().mockResolvedValue(undefined),
       groupBy: vi.fn().mockResolvedValue([]),
+      upsert: vi.fn().mockResolvedValue(undefined),
     },
   };
   const logger = {
@@ -27,6 +28,7 @@ describe('MediaVendorCostLedgerService', () => {
 
   it('persists one ledger row per generation', async () => {
     await service.record({
+      brandId: 'brand-1',
       category: 'video',
       ingredientId: 'ing-1',
       isByok: false,
@@ -38,9 +40,11 @@ describe('MediaVendorCostLedgerService', () => {
       vendorCostMicros: 2_400_000,
     });
 
-    expect(prisma.mediaVendorCost.create).toHaveBeenCalledWith({
-      data: {
+    expect(prisma.mediaVendorCost.upsert).toHaveBeenCalledWith({
+      create: {
+        brandId: 'brand-1',
         category: 'video',
+        idempotencyKey: 'media:org-1:ing-1',
         ingredientId: 'ing-1',
         isByok: false,
         isDeleted: false,
@@ -51,6 +55,8 @@ describe('MediaVendorCostLedgerService', () => {
         units: 10,
         vendorCostMicros: 2_400_000,
       },
+      update: {},
+      where: { idempotencyKey: 'media:org-1:ing-1' },
     });
   });
 

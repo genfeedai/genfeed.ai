@@ -41,6 +41,7 @@ const BRAND_SETTINGS = {
   PUBLISHING: '/settings/publishing',
   SOCIAL: '/settings/social',
   SKILLS: APP_ROUTES.SETTINGS.SKILLS,
+  USAGE: APP_ROUTES.SETTINGS.USAGE,
   VOICE: '/settings/voice',
 } as const;
 
@@ -68,7 +69,8 @@ export interface BuildSettingsMenuItemsParams {
  * - Never add a top-level "Settings" shell label — the route/scope already says that.
  * - Org: Organization (who/what + Agents defaults) · Billing (money) ·
  *   Developer (keys/webhooks)
- * - Brand: Brand (public + identity) · Automation (how content runs)
+ * - Brand: Brand (public + identity) · Automation (how content runs) ·
+ *   Billing (cost attribution)
  * - Personal: Account (Personal, Notifications, Chat, Progress, Help).
  *
  * Naming / paths (deliberate):
@@ -200,18 +202,14 @@ function buildOrganizationMenuItems(
           },
         ]
       : []),
-    ...(showCredits
-      ? [
-          {
-            group: 'Billing',
-            href: APP_ROUTES.SETTINGS.USAGE,
-            hrefScope: 'organization' as const,
-            label: 'Usage',
-            outline: ChartColumn,
-            solid: ChartColumn,
-          },
-        ]
-      : []),
+    {
+      group: 'Billing',
+      href: APP_ROUTES.SETTINGS.USAGE,
+      hrefScope: 'organization',
+      label: 'Cost & Usage',
+      outline: ChartColumn,
+      solid: ChartColumn,
+    },
     {
       group: 'Developer',
       href: APP_ROUTES.SETTINGS.API_KEYS,
@@ -323,6 +321,14 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Skills',
       outline: Puzzle,
       solid: Puzzle,
+    },
+    {
+      group: 'Billing',
+      href: BRAND_SETTINGS.USAGE,
+      hrefScope: 'brand',
+      label: 'Cost & Usage',
+      outline: ChartColumn,
+      solid: ChartColumn,
     },
   ];
 }

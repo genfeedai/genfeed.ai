@@ -91,11 +91,15 @@ describe('ImageGenerationProviderDispatchService', () => {
     emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
     emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
   };
+  const mediaGenerationCostService = {
+    recordGenerationCost: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new ImageGenerationProviderDispatchService(
     activitiesService as never,
     failedGenerationService as never,
     filesClientService as never,
     generationEventWebhookService as never,
+    mediaGenerationCostService as never,
     imagesService as never,
     loggerService,
     metadataService as never,
@@ -231,6 +235,17 @@ describe('ImageGenerationProviderDispatchService', () => {
         storageKey: 'images/generated.png',
         url: 'https://cdn.example.com/generated.png',
       },
+    });
+    expect(
+      mediaGenerationCostService.recordGenerationCost,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      category: 'image',
+      height: 1080,
+      ingredientId: 'ingredient-1',
+      modelKey: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      organizationId: 'organization-1',
+      width: 1920,
     });
     expect(plan?.kind).toBe('inline');
   });

@@ -347,6 +347,7 @@ describe('WebhooksService', () => {
         mediaGenerationCostService.recordGenerationCost,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
+          brandId: mockBrandId,
           category: IngredientCategory.IMAGE,
           ingredientId: mockIngredientId.toString(),
         }),

@@ -20,9 +20,9 @@ import { Injectable } from '@nestjs/common';
  * recorded with vendorCostMicros = 0. Best-effort by contract: any failure is
  * logged and swallowed so the ledger can never break a generation.
  *
- * Known gap: the synchronous image poll/inline path (self-hosted and
- * local-SaaS without reachable provider webhooks) does not reach the webhook
- * finalize and is not recorded yet.
+ * The webhook finalize and synchronous image completion paths both call this
+ * service. MediaVendorCostLedgerService de-duplicates them by organization +
+ * ingredient so retries cannot inflate agency reports.
  */
 @Injectable()
 export class MediaGenerationCostService {
@@ -88,6 +88,7 @@ export class MediaGenerationCostService {
         : computeMediaVendorCostMicros(model, unitOptions);
 
       await this.ledgerService.record({
+        brandId: context.brandId ?? null,
         category: context.category,
         ingredientId: context.ingredientId,
         isByok,
