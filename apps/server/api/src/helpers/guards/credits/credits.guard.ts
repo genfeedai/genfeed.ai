@@ -537,6 +537,7 @@ export class CreditsGuard implements CanActivate {
             ...(creditsDeferred ? { deferred: true } : {}),
             isByokBypass: true,
             modelKey: modelKey || creditsConfig.modelKey,
+            provider: byokProvider,
           };
           return true;
         }
