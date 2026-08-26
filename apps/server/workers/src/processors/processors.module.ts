@@ -49,7 +49,6 @@ import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.mod
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
@@ -76,6 +75,7 @@ import { LinkedInService } from '@server/services/integrations/linkedin/services
 import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
 import { ArticleGenerationProcessor } from '@workers/processors/api/collections/articles/processors/article-generation.processor';

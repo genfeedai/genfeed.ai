@@ -3153,22 +3153,6 @@
       "workspace": "api"
     },
     {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/twitter/services/twitter.service.spec.ts",
-      "fingerprint": "085a935b6b1928df73ba",
-      "message": "Type '{ get: Mock<Procedure>; }' is missing the following properties from type 'TwitterApiv2': _prefix, readWrite, labs, readOnly, and 103 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2740,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/twitter/services/twitter.service.spec.ts",
-      "fingerprint": "7580dbe1462917922324",
-      "message": "Type '{ trendsByPlace: Mock<Procedure>; }' is missing the following properties from type 'TwitterApiv1': _prefix, readWrite, sendDm, getDmEvent, and 111 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/youtube/services/modules/youtube-auth.service.spec.ts",

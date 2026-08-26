@@ -110,7 +110,6 @@
         "stripe": "22.5.0",
         "tailwindcss": "4.3.3",
         "tippy.js": "6.3.7",
-        "twitter-api-v2": "1.29.1",
         "uuid": "14.0.2",
         "vaul": "1.1.2",
         "winston": "3.19.0",
@@ -529,6 +528,7 @@
         "jsonwebtoken": "9.0.3",
         "linkedin-api-client": "0.3.0",
         "rxjs": "7.8.2",
+        "twitter-api-v2": "1.29.1",
       },
       "devDependencies": {
         "@nestjs/testing": "11.2.3",

@@ -79,22 +79,19 @@ vi.mock('@genfeedai/helpers', async (importOriginal) => {
   };
 });
 
-vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
+vi.mock('@server/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((val: string) => val),
 }));
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { mockModel } from '@api/helpers/mocks/model.mock';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { SERVER_TOKENS } from '@server/server.dependencies';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -165,12 +162,11 @@ describe('TwitterService (coverage)', () => {
       providers: [
         TwitterService,
         TwitterResponseMapper,
-        { provide: ActivitiesService, useValue: activitiesService },
+        { provide: SERVER_TOKENS.activities, useValue: activitiesService },
         { provide: ConfigService, useValue: { get: vi.fn(() => 'cfg-val') } },
-        { provide: CredentialsService, useValue: credentialsService },
+        { provide: SERVER_TOKENS.credentials, useValue: credentialsService },
         { provide: HttpService, useValue: httpService },
         { provide: LoggerService, useValue: loggerService },
-        { provide: PrismaService, useValue: mockModel },
       ],
     }).compile();
 

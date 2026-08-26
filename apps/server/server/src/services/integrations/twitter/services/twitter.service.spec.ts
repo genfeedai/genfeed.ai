@@ -13,22 +13,19 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
-import { mockModel } from '@api/helpers/mocks/model.mock';
-import {
-  resolveTwitterReplySettings,
-  TwitterService,
-} from '@api/services/integrations/twitter/services/twitter.service';
-import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { CredentialDocument } from '@server/collections/credentials/credential.types';
+import { SERVER_TOKENS } from '@server/server.dependencies';
+import {
+  resolveTwitterReplySettings,
+  TwitterService,
+} from '@server/services/integrations/twitter/services/twitter.service';
+import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
+import type { TwitterApi } from 'twitter-api-v2';
 
 function makeTwitterCredential(
   overrides: Partial<CredentialDocument> = {},
@@ -68,19 +65,17 @@ describe('TwitterService', () => {
       providers: [
         TwitterService,
         TwitterResponseMapper,
-        { provide: ActivitiesService, useValue: {} },
+        { provide: SERVER_TOKENS.activities, useValue: {} },
         { provide: ConfigService, useValue: { get: vi.fn() } },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: credentialsMock,
         },
         { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
-        { provide: AnalyticsService, useValue: {} },
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn() },
         },
-        { provide: PrismaService, useValue: mockModel },
       ],
     }).compile();
 
@@ -148,7 +143,9 @@ describe('TwitterService', () => {
         ],
       });
 
-      service.twitterClient = { v2: { get: getMock } };
+      service.twitterClient = {
+        v2: { get: getMock },
+      } as unknown as TwitterApi;
 
       const res = await service.getMediaAnalytics('id');
 
@@ -173,7 +170,7 @@ describe('TwitterService', () => {
 
       service.twitterClient = {
         v1: { trendsByPlace: trendsMock },
-      };
+      } as unknown as TwitterApi;
 
       const res = await service.getTrends('o', 'a');
 

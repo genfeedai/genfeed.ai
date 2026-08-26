@@ -16,7 +16,8 @@
     "htmlparser2": "12.0.0",
     "jsonwebtoken": "9.0.3",
     "linkedin-api-client": "0.3.0",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "twitter-api-v2": "1.29.1"
   },
   "description": "Server-tier services shared by Genfeed API and workers",
   "devDependencies": {
