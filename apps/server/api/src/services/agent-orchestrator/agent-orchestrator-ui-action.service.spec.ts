@@ -6,6 +6,7 @@ import { AgentOrchestratorUiActionBrandIdentityService } from '@api/services/age
 import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
+import { ErrorCode } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
@@ -477,6 +478,38 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     const serialized = JSON.stringify(error.getResponse());
     expect(serialized).not.toContain('secret-prompt');
     expect(serialized).not.toContain('{"input"');
+  });
+
+  it('preserves an unusable image result as a structured upstream failure', async () => {
+    const safeResultError =
+      'Image generation finished without a usable CDN URL.';
+    const { service, threadEventRecorder } = createService({
+      executeTool: vi.fn().mockResolvedValue({
+        creditsUsed: 0,
+        error: `Failed to respond to UI action: 500 - ${safeResultError}`,
+        success: false,
+      }),
+    });
+
+    const error = await expectHttpStatus(
+      service.handleThreadUiAction(
+        GENERATE_MEDIA_REQUEST,
+        { organizationId: ORG_ID, userId: USER_ID },
+        host,
+      ),
+      HttpStatus.BAD_GATEWAY,
+    );
+
+    expect(error).not.toBeInstanceOf(InternalServerErrorException);
+    expect(error.getResponse()).toEqual(
+      expect.objectContaining({
+        code: ErrorCode.SERVICE_UNAVAILABLE,
+        detail: safeResultError,
+        status: HttpStatus.BAD_GATEWAY,
+        title: 'Generation result unavailable',
+      }),
+    );
+    expect(threadEventRecorder.recordRunFailed).toHaveBeenCalled();
   });
 
   it('keeps unexpected generate-media failures as 500', async () => {
