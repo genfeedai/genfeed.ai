@@ -2,6 +2,7 @@
 
 import { statusBadge, statusIcon } from '@genfeedai/ui';
 import { DollarSign } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
 import { useExecutionStore } from '../stores/execution';
@@ -10,6 +11,7 @@ import { useWorkflowStore } from '../stores/workflow';
 import { Button } from '../ui/button';
 
 export function CostIndicator() {
+  const translate = useTranslations('pages.workflows.status');
   const nodes = useWorkflowStore((state) => state.nodes);
   const isRunning = useExecutionStore((state) => state.isRunning);
   const actualCost = useExecutionStore((state) => state.actualCost);
@@ -28,7 +30,7 @@ export function CostIndicator() {
       variant="secondary"
       size="sm"
       onClick={() => openModal('cost')}
-      title="View cost breakdown"
+      title={translate('viewCostBreakdown')}
       className="text-muted-foreground hover:text-foreground"
     >
       <DollarSign className="size-3.5" />
@@ -38,7 +40,7 @@ export function CostIndicator() {
           className={`inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-2xs ${statusBadge.running}`}
         >
           <RunningIcon className="size-3" aria-hidden />
-          <span>Running</span>
+          <span>{translate('running')}</span>
         </span>
       )}
     </Button>

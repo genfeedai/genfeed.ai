@@ -4,6 +4,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ActiveRunsPanel from './ActiveRunsPanel';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('./AgentRunCard', () => ({
   default: ({
     onCancel,

@@ -508,6 +508,13 @@
       "subject": "Subject",
       "vocabularyLibrary": "Vocabulary library"
     },
+    "status": {
+      "activeRuns": "Active Runs",
+      "creditEstimate": "{credits} credits",
+      "estimatedCost": "Estimated workflow cost in credits",
+      "running": "Running",
+      "viewCostBreakdown": "View cost breakdown"
+    },
     "videoQa": {
       "connectVideo": "Connect a video to inspect",
       "contactSheet": "Render contact sheet",
