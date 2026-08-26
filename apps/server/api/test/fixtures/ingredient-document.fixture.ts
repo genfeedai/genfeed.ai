@@ -6,7 +6,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 
 export function createIngredientDocumentFixture(
   partial: Partial<IngredientDocument> = {},
-): IngredientDocument {
+): IngredientEntity {
   return new IngredientEntity(partial);
 }
 
