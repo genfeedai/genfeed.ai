@@ -75,7 +75,11 @@ export class PublicYoutubeClipsService {
           youtubeUrl: normalizedUrl,
         });
       } catch (error) {
-        await this.store.deleteSession(created.previewToken);
+        await this.store.releaseFailedSession(
+          created.previewToken,
+          created.session.sourceFingerprint,
+          normalizedIdempotencyKey,
+        );
         this.logger.error('Public YouTube clip analysis enqueue failed', {
           code: 'public_youtube_clip_enqueue_failed',
           error,

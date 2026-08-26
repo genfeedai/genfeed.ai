@@ -99,6 +99,17 @@ redis.call('SET', KEYS[1], updated, 'EX', ttl)
 return {'reserved', updated}
 `;
 
+const RELEASE_FAILED_SESSION_SCRIPT = `
+redis.call('DEL', KEYS[1])
+if redis.call('GET', KEYS[2]) == ARGV[1] then
+  redis.call('DEL', KEYS[2])
+end
+if redis.call('GET', KEYS[3]) == ARGV[1] then
+  redis.call('DEL', KEYS[3])
+end
+return 1
+`;
+
 export interface StoredPublicYoutubeHighlight {
   readonly clip_type: string;
   readonly end_time: number;
@@ -328,6 +339,35 @@ export class PublicClipToolStoreService {
         code: 'public_youtube_clip_cleanup_failed',
         error,
       });
+    }
+  }
+
+  async releaseFailedSession(
+    previewToken: string,
+    sourceFingerprint: string,
+    idempotencyKey?: string,
+  ): Promise<void> {
+    this.assertToken(previewToken);
+    const idempotencyHash = hashToken(
+      `${sourceFingerprint}:${idempotencyKey ?? previewToken}`,
+    );
+    try {
+      await this.requireRedis().eval(
+        RELEASE_FAILED_SESSION_SCRIPT,
+        3,
+        this.sessionKey(previewToken),
+        `${DUPLICATE_PREFIX}${sourceFingerprint}`,
+        `${IDEMPOTENCY_PREFIX}${idempotencyHash}`,
+        previewToken,
+      );
+    } catch (error) {
+      this.logger.warn(
+        'Failed public YouTube clip reservation cleanup failed',
+        {
+          code: 'public_youtube_clip_failed_reservation_cleanup_failed',
+          error,
+        },
+      );
     }
   }
 

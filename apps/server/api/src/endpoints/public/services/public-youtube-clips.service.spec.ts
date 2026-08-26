@@ -36,6 +36,7 @@ describe('PublicYoutubeClipsService', () => {
     deleteSession: vi.fn(),
     getSession: vi.fn(),
     patchByToken: vi.fn(),
+    releaseFailedSession: vi.fn(),
     reservePreview: vi.fn(),
     toWorkerProjectId: vi.fn(),
   };
@@ -120,6 +121,24 @@ describe('PublicYoutubeClipsService', () => {
     );
 
     expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('releases only the failed enqueue reservations so retries stay safe', async () => {
+    queue.enqueue.mockRejectedValueOnce(new Error('queue unavailable'));
+
+    await expect(
+      service.create(
+        'https://www.youtube.com/watch?v=abc12345',
+        'request-key-1',
+      ),
+    ).rejects.toMatchObject({ status: 503 });
+
+    expect(store.releaseFailedSession).toHaveBeenCalledWith(
+      token,
+      storedSession.sourceFingerprint,
+      'request-key-1',
+    );
+    expect(store.deleteSession).not.toHaveBeenCalled();
   });
 
   it('renders the one preview from the durable source artifact', async () => {
