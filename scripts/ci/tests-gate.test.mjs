@@ -22,6 +22,7 @@ const ALL_SUCCESS_ENV = {
   TEST_WEB_DESKTOP_MOBILE_RESULT: 'success',
   TEST_EXTENSIONS_RESULT: 'success',
   STATIC_CHECKS_RESULT: 'success',
+  SPEC_TYPECHECK_RESULT: 'success',
   BUILD_RESULT: 'success',
   TEST_APP_RESULT: 'skipped',
   TEST_APP_CHANGED_RESULT: 'success',
@@ -206,6 +207,27 @@ test('static checks can never be skipped past the gate', () => {
   ]);
 });
 
+test('fails when the spec typecheck ratchet fails', () => {
+  // Spec files sit outside every backend tsconfig.typecheck.json, so the
+  // ratchet is the only job that sees them. Left out of the gate it reported
+  // green on a red trunk: run 32971423541 had Spec Typecheck failing, Tests
+  // Gate passing, the master failure reporter skipped, and its resolve arm
+  // closing the open trackers.
+  const result = evaluate({ SPEC_TYPECHECK_RESULT: 'failure' });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, ['Spec typecheck failure']);
+});
+
+test('spec typecheck can never be skipped past the gate', () => {
+  const result = evaluate({ SPEC_TYPECHECK_RESULT: 'skipped' });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, [
+    'Spec typecheck was applicable but skipped',
+  ]);
+});
+
 test('fails when an applicable job is unexpectedly skipped', () => {
   const result = evaluate({ TEST_APP_CHANGED_RESULT: 'skipped' });
 
@@ -287,6 +309,7 @@ test('keeps the workflow contract stable', () => {
 
   for (const job of [
     'static-checks',
+    'spec-typecheck',
     'test-scope',
     'test-packages',
     'test-server-services',

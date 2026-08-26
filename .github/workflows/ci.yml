@@ -815,12 +815,19 @@ jobs:
   # shard jobs made run 31200491364 look complete while the heavy tier was
   # absent. The release path (workflow_call inherits the caller's originating
   # event, e.g. workflow_dispatch) stays gated by its own callers, unchanged.
+  #
+  # `spec-typecheck` belongs here for the same reason: this aggregate is what
+  # the master failure tracker below keys off, so a job missing from `needs`
+  # cannot raise the alarm. Run 32971423541 went red on Spec Typecheck with a
+  # green Tests Gate, which skipped the reporter and let the resolve arm close
+  # the open trackers on a red trunk.
   tests-gate:
     name: Tests Gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
       - static-checks
+      - spec-typecheck
       - test-scope
       - test-packages
       - test-server-services
@@ -858,6 +865,7 @@ jobs:
           TEST_API_CHANGED_RESULT: ${{ needs.test-api-changed.result }}
           OPENAPI_DRIFT_RESULT: ${{ needs.openapi-drift.result }}
           STATIC_CHECKS_RESULT: ${{ needs.static-checks.result }}
+          SPEC_TYPECHECK_RESULT: ${{ needs.spec-typecheck.result }}
           BUILD_RESULT: ${{ needs.build.result }}
         shell: bash
         run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
